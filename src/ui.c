@@ -99,9 +99,7 @@ void ui_init(ui_t *ui, nav_t *nav)
 	/* log_debug("%d, %d", ui->nrow, ui->ncol); */
 
 	ui->wdirs = NULL;
-	ui->dirs = NULL; /* set later in ui_draw */
 	ui->ndirs = 0;
-	ui->preview_dir = NULL;
 
 	ui->cmd_prefix[0] = 0;
 	ui->cmd_acc_left[0] = 0;
@@ -235,7 +233,7 @@ void ui_draw_preview(ui_t *ui)
 	struct ncplane *w = WPREVIEW(ui);
 	ncplane_erase(w);
 
-	dir = ui->dirs[0];
+	dir = ui->nav->dirs[0];
 	if (dir && dir->ind < dir->len) {
 		file = dir->files[dir->ind];
 		if (ui->file_preview) {
@@ -640,7 +638,7 @@ bool ui_insert_preview(ui_t *ui, preview_t *pv)
 
 	bool ret = false;
 
-	const file_t *file = dir_current_file(ui->dirs[0]);
+	const file_t *file = dir_current_file(ui->nav->dirs[0]);
 	if (file && (file == pv->fptr || streq(pv->path, file->path))) {
 		preview_free(ui->file_preview);
 		ui->file_preview = pv;
@@ -1036,7 +1034,7 @@ void draw_cmdline(ui_t *ui)
 	ncplane_set_fg_default(ui->cmdline);
 
 	if (ui->cmd_prefix[0] == 0) {
-		const dir_t *dir = ui->dirs[0];
+		const dir_t *dir = ui->nav->dirs[0];
 		if (dir && dir->ind < dir->len) {
 			/* TODO: for empty directories, show the stat of the
 			 * directory instead (on 2021-07-18) */
@@ -1123,7 +1121,7 @@ static void draw_info(ui_t *ui)
 	ncplane_putchar(ui->infoline, ':');
 	ncplane_set_styles(ui->infoline, NCSTYLE_BOLD);
 
-	const dir_t *dir = ui->dirs[0];
+	const dir_t *dir = ui->nav->dirs[0];
 	if (dir) {
 		// shortening should work fine with ascii only names
 		const file_t *file = dir_current_file(dir);
@@ -1259,41 +1257,38 @@ const char *ui_history_next(ui_t *ui)
 /* }}} */
 
 /* main drawing/echo/err {{{ */
-void ui_draw(ui_t *ui, nav_t *nav)
+void ui_draw(ui_t *ui)
 {
-	ui_draw_dirs(ui, nav);
+	ui_draw_dirs(ui);
 	draw_menu(ui);
 	draw_cmdline(ui);
 }
 
 /* to not overwrite errors */
-void ui_draw_dirs(ui_t *ui, nav_t *nav)
+void ui_draw_dirs(ui_t *ui)
 {
 #ifdef TRACE
 	log_trace("ui_draw_dirs");
 #endif
 
-	ui->dirs = nav->dirs;
-	ui->preview_dir = nav->preview;
-
-	nav->height = ui->nrow - 2;
-	ui->selection_sz = nav->selection_len;
-	ui->load_sz = nav->load_len;
-	ui->load_mode = nav->mode;
+	ui->nav->height = ui->nrow - 2;
+	ui->selection_sz = ui->nav->selection_len;
+	ui->load_sz = ui->nav->load_len;
+	ui->load_mode = ui->nav->mode;
 	draw_info(ui);
 
-	const int l = nav->ndirs;
+	const int l = ui->nav->ndirs;
 	int i;
 	for (i = 0; i < l; i++) {
-		wdraw_dir(ui->wdirs[l-i-1], ui->dirs[i], nav->selection, nav->load,
-				nav->mode, i == 0 ? ui->highlight : NULL);
+		wdraw_dir(ui->wdirs[l-i-1], ui->nav->dirs[i], ui->nav->selection, ui->nav->load,
+				ui->nav->mode, i == 0 ? ui->highlight : NULL);
 	}
 
 	if (cfg.preview) {
-		dir_t *pdir = ui->preview_dir;
+		dir_t *pdir = ui->nav->preview;
 		if (pdir) {
-			wdraw_dir(WPREVIEW(ui), ui->preview_dir, nav->selection,
-					nav->load, nav->mode, NULL);
+			wdraw_dir(WPREVIEW(ui), ui->nav->preview, ui->nav->selection,
+					ui->nav->load, ui->nav->mode, NULL);
 		} else {
 			/* TODO: reload preview after resize (on 2021-07-27) */
 			ui_draw_preview(ui);
@@ -1319,7 +1314,7 @@ void ui_clear(ui_t *ui)
 
 	notcurses_refresh(nc, NULL, NULL);
 
-	ui_draw(ui, ui->nav);
+	ui_draw(ui);
 }
 
 void ui_echom(ui_t *ui, const char *format, ...)

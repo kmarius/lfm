@@ -26,8 +26,6 @@ typedef struct Ui {
 	cvector_vector_type(struct ncplane*) wdirs;
 
 	int ndirs; /* number of columns including the preview */
-	dir_t **dirs; /* pointer to nav->dirs */
-	dir_t *preview_dir;
 
 	int nrow;
 	int ncol;
@@ -64,9 +62,9 @@ void ui_destroy(ui_t *ui);
 
 void ui_clear(ui_t *ui);
 
-void ui_draw(ui_t *ui, nav_t *nav);
+void ui_draw(ui_t *ui);
 
-void ui_draw_dirs(ui_t *ui, nav_t *nav);
+void ui_draw_dirs(ui_t *ui);
 
 void ui_error(ui_t *ui, const char *format, ...);
 

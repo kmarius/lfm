@@ -61,7 +61,7 @@ static void async_result_cb(EV_P_ ev_async *w, int revents)
 	pthread_mutex_unlock(&async_results.mutex);
 
 	if (redraw) {
-		ui_draw(&app->ui, &app->nav);
+		ui_draw(&app->ui);
 	} else if (redraw_preview) {
 		ui_draw_preview(&app->ui);
 	}
@@ -106,7 +106,7 @@ static void stdin_cb(EV_P_ ev_io *w, int revents)
 	}
 }
 
-static void read_pipe(app_t *app)
+static void read_fifo(app_t *app)
 {
 	char buf[8192 * 2];
 	int nbytes;
@@ -152,7 +152,7 @@ static void inotify_cb(EV_P_ ev_io *w, int revents)
 
 			if (event->wd == fifo_wd) {
 				/* TODO: could filter for our pipe here (on 2021-08-13) */
-				read_pipe(app);
+				read_fifo(app);
 				continue;
 			}
 
