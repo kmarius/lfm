@@ -20,6 +20,10 @@ bool hasprefix(const char *pre, const char *str);
 
 bool hascaseprefix(const char *pre, const char *str);
 
+bool hassuffix(const char *suf, const char *str);
+
+bool hascasesuffix(const char *suf, const char *str);
+
 int msleep(long msec);
 
 unsigned long current_micros(void);

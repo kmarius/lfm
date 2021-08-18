@@ -3,16 +3,16 @@
 #include "log.h"
 #include "util.h"
 
-#ifndef parent
-#define parent(i) ((i)-1) / 2
+#ifndef PARENT
+#define PARENT(i) ((i)-1) / 2
 #endif
 
-#ifndef left_child
-#define leftchild(i) (2 * (i) + 1)
+#ifndef LCHILD
+#define LCHILD(i) (2 * (i) + 1)
 #endif
 
-#ifndef right_child
-#define rightchild(i) (2 * (i) + 2)
+#ifndef RCHILD
+#define RCHILD(i) (2 * (i) + 2)
 #endif
 
 static inline void upheap(dirheap_t *heap, int i);
@@ -32,7 +32,7 @@ void dirheap_insert(dirheap_t *heap, dir_t *d)
 	d->access = time(NULL);
 	if (heap->size >= DIRHEAP_MAX_SIZE) {
 		log_trace("free_dir %s %p", heap->dirs[0]->path, heap->dirs[0]);
-		free_dir(heap->dirs[0]);
+		dir_free(heap->dirs[0]);
 		heap->dirs[0] = d;
 		downheap(heap, 0);
 	} else {
@@ -69,7 +69,7 @@ static dir_t *dirheap_takei(dirheap_t *heap, int i)
 		swap(heap->dirs + i, heap->dirs + heap->size-1);
 		heap->size--;
 
-		if (i == 0 || heap->dirs[i]->access >= heap->dirs[parent(i)]->access) {
+		if (i == 0 || heap->dirs[i]->access >= heap->dirs[PARENT(i)]->access) {
 			downheap(heap, i);
 		} else {
 			upheap(heap, i);
@@ -98,7 +98,7 @@ dir_t *dirheap_ptake(dirheap_t *heap, dir_t **p)
 static inline void upheap(dirheap_t *heap, int i)
 {
 	int p;
-	while (i > 0 && heap->dirs[p = parent(i)]->access > heap->dirs[i]->access) {
+	while (i > 0 && heap->dirs[p = PARENT(i)]->access > heap->dirs[i]->access) {
 		swap(&heap->dirs[p], &heap->dirs[i]);
 		i = p;
 	}
@@ -108,8 +108,8 @@ static void downheap(dirheap_t *heap, int i)
 {
 	/* log_debug("downheap %s", dirs[i]->name); */
 
-	const int lidx = leftchild(i);
-	const int ridx = rightchild(i);
+	const int lidx = LCHILD(i);
+	const int ridx = RCHILD(i);
 
 	int largest = i;
 
@@ -133,23 +133,3 @@ void log_dirheap(dirheap_t *heap) {
 		log_debug("%s", heap->dirs[i]->name);
 	}
 }
-
-/* time is increasing, we chould only have to downheap */
-void dirheap_update(dirheap_t *heap, int i, time_t access) {
-	heap->dirs[i]->access = access;
-	if (heap->dirs[i]->access < access) {
-		heap->dirs[i]->access = access;
-		downheap(heap, i);
-	} else {
-		heap->dirs[i]->access = access;
-		upheap(heap, i);
-	}
-	/* log_debug("---after updating %s ---", dirs[i]->name); */
-	/* log_dirheap(dirs, n); */
-}
-
-void dirheap_pupdate(dirheap_t *heap, dir_t **p, time_t t)
-{
-	dirheap_update(heap, p - heap->dirs, t);
-}
-

@@ -113,19 +113,19 @@ void dir_sort(dir_t *dir)
 	if (!dir->sorted) {
 		/* log_trace("dir_sort %s", dir->path); */
 		switch (dir->sorttype) {
-		case NATURAL:
+		case SORT_NATURAL:
 			qsort(dir->allfiles, dir->alllen, sizeof(file_t),
 			      compare_natural);
 			break;
-		case NAME:
+		case SORT_NAME:
 			qsort(dir->allfiles, dir->alllen, sizeof(file_t),
 			      compare_name);
 			break;
-		case SIZE:
+		case SORT_SIZE:
 			qsort(dir->allfiles, dir->alllen, sizeof(file_t),
 			      compare_size);
 			break;
-		case CTIME:
+		case SORT_CTIME:
 			qsort(dir->allfiles, dir->alllen, sizeof(file_t),
 			      compare_ctime);
 			break;
@@ -218,7 +218,6 @@ bool file_isexec(const file_t *file) {
 
 bool file_isdir(const file_t *file)
 {
-	/* log_debug("%s", file->name); */
 	struct stat statbuf;
 	int mode = file->stat.st_mode;
 	if (S_ISLNK(mode)) {
@@ -238,6 +237,11 @@ bool dir_check(const dir_t *dir)
 		return 0;
 	}
 	return statbuf.st_mtime <= dir->loadtime;
+}
+
+bool dir_isroot(const dir_t *dir)
+{
+	return dir->path[0] == '/' && dir->path[1] == 0;
 }
 
 dir_t *new_dir(const char *path)
@@ -271,7 +275,7 @@ dir_t *new_dir(const char *path)
 	dir->sorted = false;
 	dir->sortedfiles = NULL;
 	dir->sortedlen = 0;
-	dir->sorttype = NATURAL;
+	dir->sorttype = SORT_NATURAL;
 	dir->loading = false;
 	dir->access = 0;
 
@@ -294,101 +298,106 @@ static int file_count(const char *path)
 	return ct - 2;
 }
 
-dir_t *new_loading_dir(const char *path)
+dir_t *dir_new_loading(const char *path)
 {
 	dir_t *d = new_dir(path);
 	d->loading = true;
 	return d;
 }
 
-dir_t *load_dir(const char *path)
+bool file_load(file_t *file, const char *base, const char *name)
 {
+	char buf[PATH_MAX] = {0};
+	asprintf(&file->path, "%s/%s", base, name);
 
-	file_t *file;
+	if (lstat(file->path, &file->stat) == -1) {
+		/* likely the file was deleted */
+		log_error("lstat: %s", strerror(errno));
+		free(file->path);
+		return false;
+	}
+
+	file->name = basename(file->path);
+	file->link_target = NULL;
+
+	if (S_ISLNK(file->stat.st_mode)) {
+		if (readlink(file->path, buf, sizeof(buf)) == -1) {
+			log_error("readlink: %s", strerror(errno));
+			/* TODO: mark broken symlink? (on 2021-08-02) */
+		} else {
+			file->link_target = strdup(buf);
+		}
+	}
+
+	file->filecount = file_isdir(file) ? file_count(file->path) : 0;
+
+	return true;
+}
+
+dir_t *dir_load(const char *path)
+{
+	int i, ct;
+	bool ok;
 	dir_t *newdir = new_dir(path);
+	struct dirent *dp;
 
 	DIR *dirp = opendir(path);
 	if (!dirp) {
 		log_error("opendir: %s", strerror(errno));
 		newdir->error = errno;
-		/* EACCES Permission denied. */
-		/* EBADF  fd is not a valid file descriptor opened for reading.
-		 */
-		/* EMFILE The per-process limit on the number of open file */
-		/*        descriptors has been reached. */
-		/* ENFILE The system-wide limit on the total number of open
-		 * files */
-		/*        has been reached. */
-		/* ENOENT Directory does not exist, or name is an empty string.
-		 */
-		/* ENOMEM Insufficient memory to complete the operation. */
-		/* ENOTDIR */
 		return newdir;
 	}
 
-	int ct = 0;
-	struct dirent *dp;
-	while ((dp = readdir(dirp))) {
-		ct++;
-	}
+	for (ct = 0; (dp = readdir(dirp)); ct++);
 	ct -= 2;
+
 	newdir->allfiles = malloc(sizeof(file_t) * ct);
-	newdir->files = malloc(sizeof(file_t *) * ct);
-	newdir->sortedfiles = malloc(sizeof(file_t *) * ct);
-	if (!newdir->allfiles || !newdir->files || !newdir->sortedfiles) {
+	if (!newdir->allfiles) {
 		log_error("load_dir fucked up, malloc failed");
+		newdir->error = -1;
+		return newdir;
 	}
+
 	rewinddir(dirp);
-	char file_path[PATH_MAX];
-	for (int i = 0; (dp = readdir(dirp));) {
-		file = newdir->allfiles + i;
+	for (i = 0; (dp = readdir(dirp)) && i < ct;) {
 		if (dp->d_name[0] == '.' &&
-		    (dp->d_name[1] == 0 ||
-		     (dp->d_name[1] == '.' && dp->d_name[2] == 0))) {
+				(dp->d_name[1] == 0 ||
+				 (dp->d_name[1] == '.' && dp->d_name[2] == 0))) {
 			continue;
 		}
-		snprintf(file_path, PATH_MAX, "%s/%s", path, dp->d_name);
-		file->path = strdup(file_path);
-		file->name = basename(file->path);
-		file->link_target = NULL;
-
-		if (lstat(file_path, &file->stat) == -1) {
-			log_error("lstat: %s", strerror(errno));
+		ok = file_load(newdir->allfiles + i, path, dp->d_name);
+		if (ok) {
+			i++;
 		}
-		if (S_ISLNK(file->stat.st_mode)) {
-			char buf[PATH_MAX] = {0};
-			if (readlink(file_path, buf, PATH_MAX) == -1) {
-				log_error("readlink: %s", strerror(errno));
-				/* TODO: mark broken symlink? (on 2021-08-02) */
-			} else {
-				file->link_target = strdup(buf);
-			}
-		}
-
-		file->filecount = file_isdir(file) ? file_count(file->path) : 0;
-
-		i++;
 	}
-
 	closedir(dirp);
 
-	int i;
-	for (i = 0; i < ct; i++) {
-		newdir->sortedfiles[i] = &newdir->allfiles[i];
-		newdir->files[i] = &newdir->allfiles[i];
+	newdir->alllen = i;
+
+	newdir->sortedfiles = malloc(sizeof(file_t*) * newdir->alllen);
+	newdir->files = malloc(sizeof(file_t*) * newdir->alllen);
+
+	if (!newdir->files || !newdir->sortedfiles) {
+		log_error("load_dir fucked up, malloc failed");
+		newdir->error = -1;
+		return newdir;
 	}
 
-	newdir->len = ct;
-	newdir->alllen = ct;
-	newdir->sortedlen = ct;
-	/* dir_sort(newdir); */
+	newdir->sortedlen = newdir->alllen;
+	newdir->len = newdir->alllen;
+
+	for (i = 0; i < newdir->alllen; i++) {
+		newdir->sortedfiles[i] = newdir->allfiles + i;
+		newdir->files[i] = newdir->allfiles + i;
+	}
 
 	return newdir;
 }
 
-void free_dir(dir_t *dir)
+void dir_free(dir_t *dir)
 {
 	if (dir) {
+		/* log_debug("dir_free %p %d %d", dir, dir->alllen, dir->len); */
 		for (int i = 0; i < dir->alllen; i++) {
 			free(dir->allfiles[i].path);
 			free(dir->allfiles[i].link_target);

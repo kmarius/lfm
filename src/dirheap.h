@@ -23,11 +23,6 @@ typedef struct dirheap {
 void dirheap_insert(dirheap_t *heap, dir_t *d);
 
 /*
- * Update the directory pointed at by p with the access time t.
- */
-void dirheap_pupdate(dirheap_t *heap, dir_t **p, time_t t);
-
-/*
  * Find the directory with path PATH, returns NULL if none found.
  */
 dir_t **dirheap_find(dirheap_t *heap, const char *path);

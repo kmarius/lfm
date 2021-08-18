@@ -9,8 +9,13 @@
 #include "ui.h"
 #include "util.h"
 
-resq_t results;
-tpool_t *tm;
+tpool_t *async_tm;
+
+resq_t async_results = {
+	.head = NULL,
+	.tail = NULL,
+	.watcher = NULL,
+};
 
 void queue_put(resq_t *queue, enum result_e type, void *payload)
 {
@@ -28,33 +33,39 @@ void queue_put(resq_t *queue, enum result_e type, void *payload)
 	}
 }
 
-bool queue_get(resq_t *queue, res_t **r)
+bool queue_get(resq_t *queue, enum result_e *type, void **r)
 {
-	if (!(*r = queue->head)) {
+	res_t *res = queue->head;
+	if (!res) {
 		return false;
 	}
-	queue->head = (*r)->next;
-	if (queue->tail == *r) {
+
+	*r = res->payload;
+	*type = res->type;
+
+	queue->head = res->next;
+	if (queue->tail == res) {
 		queue->tail = NULL;
 	}
+	free(res);
 	return true;
 }
 
 void queue_clear(resq_t *queue)
 {
-	res_t *r;
-	while (queue_get(queue, &r)) {
-		switch (r->type) {
+	void *r;
+	enum result_e type;
+	while (queue_get(queue, &type, &r)) {
+		switch (type) {
 		case RES_DIR:
-			free_dir(r->payload);
+			dir_free(r);
 			break;
 		case RES_PREVIEW:
-			free_preview(r->payload);
+			preview_free(r);
 			break;
 		default:
 			break;
 		}
-		free(r);
 	}
 }
 
@@ -63,31 +74,31 @@ struct dir_work {
 	int delay;
 };
 
-static void async_load_dir_worker(void *arg)
+static void async_dir_load_worker(void *arg)
 {
 	struct dir_work *w = arg;
 	if (w->delay > 0) {
 		msleep(w->delay);
 	}
-	dir_t *d = load_dir(w->path);
+	dir_t *d = dir_load(w->path);
 
-	pthread_mutex_lock(&results.mutex);
-	queue_put(&results, RES_DIR, d);
-	pthread_mutex_unlock(&results.mutex);
+	pthread_mutex_lock(&async_results.mutex);
+	queue_put(&async_results, RES_DIR, d);
+	pthread_mutex_unlock(&async_results.mutex);
 
-	if (results.watcher) {
-		ev_async_send(EV_DEFAULT_ results.watcher);
+	if (async_results.watcher) {
+		ev_async_send(EV_DEFAULT_ async_results.watcher);
 	}
 	free(w->path);
 	free(w);
 }
 
-void async_load_dir_delayed(const char *path, int delay /* millis */)
+void async_dir_load_delayed(const char *path, int delay /* millis */)
 {
 	struct dir_work *w = malloc(sizeof(struct dir_work));
 	w->path = strdup(path);
 	w->delay = delay;
-	tpool_add_work(tm, async_load_dir_worker, w);
+	tpool_add_work(async_tm, async_dir_load_worker, w);
 }
 
 struct pv_work {
@@ -97,26 +108,26 @@ struct pv_work {
 	int y;
 };
 
-static void async_load_pv_worker(void *arg)
+static void async_preview_load_worker(void *arg)
 {
 	struct pv_work *w = (struct pv_work*) arg;
-	preview_t *pv = new_file_preview(w->path, w->fptr, w->x, w->y);
-	pthread_mutex_lock(&results.mutex);
-	queue_put(&results, RES_PREVIEW, pv);
-	pthread_mutex_unlock(&results.mutex);
-	if (results.watcher) {
-		ev_async_send(EV_DEFAULT_ results.watcher);
+	preview_t *pv = preview_new_from_file(w->path, w->fptr, w->x, w->y);
+	pthread_mutex_lock(&async_results.mutex);
+	queue_put(&async_results, RES_PREVIEW, pv);
+	pthread_mutex_unlock(&async_results.mutex);
+	if (async_results.watcher) {
+		ev_async_send(EV_DEFAULT_ async_results.watcher);
 	}
 	free(w->path);
 	free(w);
 }
 
-void async_load_preview(const char *path, const file_t *fptr, int x, int y)
+void async_preview_load(const char *path, const file_t *fptr, int x, int y)
 {
 	struct pv_work *w = malloc(sizeof(struct pv_work));
 	w->fptr = fptr;
 	w->path = strdup(path);
 	w->x = x;
 	w->y = y;
-	tpool_add_work(tm, async_load_pv_worker, w);
+	tpool_add_work(async_tm, async_preview_load_worker, w);
 }

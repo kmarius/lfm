@@ -8,9 +8,9 @@ SRC_EXT = c
 # Path to the source directory, relative to the makefile
 SRC_PATH = src
 # Space-separated pkg-config libraries used by this project
-LIBS = luajit ncursesw
+LIBS = luajit ncursesw notcurses
 # General compiler flags
-COMPILE_FLAGS = -std=gnu11 -Wall -Wextra -g -O2 -pthread
+COMPILE_FLAGS = -std=gnu11 -Wall -Wextra -g -O2 -pthread -pthread
 # Additional release-specific flags
 RCOMPILE_FLAGS = -D NDEBUG
 # Additional debug-specific flags
@@ -18,7 +18,7 @@ DCOMPILE_FLAGS = -D DEBUG
 # Add additional include paths
 INCLUDES = -I $(SRC_PATH) -I/usr/include/libev -I/usr/include/luajit-2.0
 # General linker settings
-LINK_FLAGS = -lev -lpthread
+LINK_FLAGS = -lev -lpthread -pthread
 # Additional release-specific linker settings
 RLINK_FLAGS =
 # Additional debug-specific linker settings

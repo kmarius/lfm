@@ -198,7 +198,7 @@ void nav_cut(nav_t *load);
 /*
  * Clear copy/move buffer.
  */
-void nav_clear_load(nav_t *nav);
+void nav_load_clear(nav_t *nav);
 
 /*
  * Get the list of files in copy/move buffer.

@@ -6,6 +6,8 @@
 #include <stdbool.h>
 
 #include "dir.h"
+#include "tpool.h"
+
 
 enum result_e { RES_DIR, RES_PREVIEW };
 
@@ -22,14 +24,17 @@ typedef struct ResultQueue {
 	ev_async *watcher;
 } resq_t;
 
-bool queue_get(resq_t *dirq, res_t **result);
+extern tpool_t *async_tm;
+extern resq_t async_results;
+
+bool queue_get(resq_t *dirq, enum result_e *type, void **result);
 
 void queue_clear(resq_t *dirq);
 
-void async_load_dir_delayed(const char *path, int delay /* millis */);
+void async_dir_load_delayed(const char *path, int delay /* millis */);
 
-#define async_load_dir(path) async_load_dir_delayed(path, -1)
+#define async_dir_load(path) async_dir_load_delayed(path, -1)
 
-void async_load_preview(const char *path, const file_t *fptr, int x, int y);
+void async_preview_load(const char *path, const file_t *fptr, int x, int y);
 
 #endif

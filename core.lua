@@ -52,7 +52,8 @@ function lfm.sel_or_cur()
 end
 
 local hooks = {
-	StartupComplete = {},
+	LfmEnter = {},
+	ExitPre = {},
 }
 
 function lfm.register_hook(name, f)

@@ -1,7 +1,8 @@
 #ifndef UI_H
 #define UI_H
 
-#include <curses.h>
+#include <notcurses/notcurses.h>
+// #include <curses.h>
 #include <lua.h>
 
 #include "cvector.h"
@@ -13,15 +14,16 @@
 #define ACC_SIZE 256
 #define PREFIX_SIZE 32
 
-#define RINGBUF_LEN 16
-
 typedef struct Ui {
-	// nav_t *nav;
+	nav_t *nav;
 
-	WINDOW *cmdline;
-	WINDOW *infoline;
-	WINDOW *menu;
-	cvector_vector_type(WINDOW *) wdirs;
+	int input_ready_fd;
+	struct notcurses *nc;
+
+	struct ncplane *cmdline;
+	struct ncplane *infoline;
+	struct ncplane *menu;
+	cvector_vector_type(struct ncplane*) wdirs;
 
 	int ndirs; /* number of columns including the preview */
 	dir_t **dirs; /* pointer to nav->dirs */
@@ -52,7 +54,7 @@ typedef struct Ui {
 	int selection_sz;
 } ui_t;
 
-void ui_init(ui_t *ui);
+void ui_init(ui_t *ui, nav_t *nav);
 
 void ui_resize(ui_t *ui);
 
@@ -60,7 +62,7 @@ void ui_recol(ui_t *ui);
 
 void ui_destroy(ui_t *ui);
 
-void ui_clear(ui_t *ui, nav_t *nav);
+void ui_clear(ui_t *ui);
 
 void ui_draw(ui_t *ui, nav_t *nav);
 
@@ -98,13 +100,13 @@ const char *ui_history_prev(ui_t *ui);
 
 const char *ui_history_next(ui_t *ui);
 
-bool ui_insert_pv(ui_t *ui, preview_t *pv);
+bool ui_insert_preview(ui_t *ui, preview_t *pv);
 
 void ui_draw_preview(ui_t *ui);
 
-void kbblocking(bool blocking);
+void ui_kbblocking(bool blocking);
 
-void search_nohighlight(ui_t *ui);
-void search_highlight(ui_t *ui, const char *search, bool forward);
+void ui_search_nohighlight(ui_t *ui);
+void ui_search_highlight(ui_t *ui, const char *search, bool forward);
 
 #endif

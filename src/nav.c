@@ -19,27 +19,24 @@
 
 void nav_update_preview(nav_t *nav);
 
-static dir_t *nav_load_dir(nav_t *nav, const char *path);
-file_t *nav_current_file(const nav_t *nav);
-/* static void nav_mark_save_current(nav_t *nav, char mark); */
+static dir_t *load_dir(nav_t *nav, const char *path);
 static void update_watchers(nav_t *nav);
-static void nav_remove_preview(nav_t *nav);
+static void remove_preview(nav_t *nav);
 static void mark_save(nav_t *nav, char mark, const char *path);
 
 static const char *concatpath(const char *dir, const char *file)
 {
 	static char path[PATH_MAX + 1];
-	snprintf_nowarn(path, PATH_MAX, "%s%s%s", dir,
+	snprintf_nowarn(path, sizeof(path)-1, "%s%s%s", dir,
 			streq(dir, "/") ? "" : "/", file);
 	return path;
 }
 
 bool cvector_contains(const char *path, char **selection)
 {
-	char **it;
-	for (it = cvector_begin(selection); it != cvector_end(selection);
-			++it) {
-		if (*it && streq(*it, path))
+	size_t i;
+	for (i = 0; i < cvector_size(selection); i++) {
+		if (selection[i] && streq(selection[i], path))
 			return true;
 	}
 	return false;
@@ -57,11 +54,11 @@ static void populate(nav_t *nav)
 		getcwd(pwd, sizeof(pwd));
 	}
 
-	nav->dirs[0] = nav_load_dir(nav, pwd); /* current dir */
+	nav->dirs[0] = load_dir(nav, pwd); /* current dir */
 	dir_t *d = nav->dirs[0];
 	for (i = 1; i < nav->ndirs; i++) {
 		if ((s = dir_parent(d))) {
-			d = nav_load_dir(nav, s);
+			d = load_dir(nav, s);
 			nav->dirs[i] = d;
 			dir_sel(d, nav->dirs[i-1]->name);
 		} else {
@@ -76,7 +73,7 @@ void nav_init(nav_t *nav)
 
 	if (cfg.startpath) {
 		if ((chdir(cfg.startpath)) != 0) {
-			error("chdir: %s", strerror(errno));
+			app_error("chdir: %s", strerror(errno));
 		} else {
 			setenv("PWD", cfg.startpath, true);
 		}
@@ -96,9 +93,8 @@ void nav_init(nav_t *nav)
 	nav->visual = false;
 	nav->preview = NULL;
 
-	const int l = cvector_size(cfg.ratios) - (cfg.preview ? 1 : 0);
-	cvector_grow(nav->dirs, l);
-	nav->ndirs = l;
+	nav->ndirs = cvector_size(cfg.ratios) - (cfg.preview ? 1 : 0);
+	cvector_grow(nav->dirs, nav->ndirs);
 
 	populate(nav);
 
@@ -112,7 +108,7 @@ void nav_recol(nav_t *nav)
 	int i;
 	const int l = cvector_size(cfg.ratios) - (cfg.preview ? 1 : 0);
 
-	nav_remove_preview(nav);
+	remove_preview(nav);
 	for (i = 0; i < nav->ndirs; i++) {
 		dirheap_insert(&nav->dircache, nav->dirs[i]);
 	}
@@ -140,9 +136,11 @@ void nav_chdir(nav_t *nav, const char *path, bool save)
 	}
 
 	if (chdir(path) != 0) {
-		error("chdir: %s", strerror(errno));
+		app_error("chdir: %s", strerror(errno));
 		return;
 	}
+
+	notify_set_watchers(NULL, 0);
 
 	setenv("PWD", path, true);
 
@@ -150,7 +148,7 @@ void nav_chdir(nav_t *nav, const char *path, bool save)
 		mark_save(nav, '\'', nav->dirs[0]->path);
 	}
 
-	nav_remove_preview(nav);
+	remove_preview(nav);
 	int i;
 	for (i = 0; i < nav->ndirs; i++) {
 		if (nav->dirs[i]) {
@@ -158,8 +156,8 @@ void nav_chdir(nav_t *nav, const char *path, bool save)
 		}
 	}
 	populate(nav);
-	nav_update_preview(nav);
 	update_watchers(nav);
+	nav_update_preview(nav);
 }
 
 static void update_watchers(nav_t *nav)
@@ -203,7 +201,7 @@ void nav_hidden_set(nav_t *nav, bool hidden)
  * the directory, but we would have to find the directory in the heap first.
  * For now, we update when inserting/updating the dir.
  * (on 2021-08-03) */
-dir_t *nav_load_dir(nav_t *nav, const char *path)
+static dir_t *load_dir(nav_t *nav, const char *path)
 {
 	/* log_trace("nav_load_dir %s", path); */
 	dir_t *dir;
@@ -215,13 +213,13 @@ dir_t *nav_load_dir(nav_t *nav, const char *path)
 
 	if ((dir = dirheap_take(&nav->dircache, path))) {
 		if (!dir_check(dir)) {
-			async_load_dir(dir->path);
+			async_dir_load(dir->path);
 		}
 		dir->hidden = cfg.hidden;
 		dir_sort(dir);
 	} else {
-		dir = new_loading_dir(path);
-		async_load_dir(path);
+		dir = dir_new_loading(path);
+		async_dir_load(path);
 	}
 	return dir;
 }
@@ -235,8 +233,7 @@ dir_t *nav_current_dir(const nav_t *nav) { return nav->dirs[0]; }
 
 dir_t *nav_preview_dir(const nav_t *nav) { return nav->preview; }
 
-
-void copy_attrs(dir_t *dir, dir_t *olddir) {
+static void copy_attrs(dir_t *dir, dir_t *olddir) {
 	strncpy(dir->filter, olddir->filter, sizeof(dir->filter));
 	dir->hidden = cfg.hidden;
 	dir->pos = olddir->pos;
@@ -262,40 +259,40 @@ void copy_attrs(dir_t *dir, dir_t *olddir) {
  * faster (on 2021-07-28) */
 bool nav_insert_dir(nav_t *nav, dir_t *dir)
 {
-	/* log_debug("nav_insert_dir %s %p %d", dir->path, dir, dir->len); */
+	log_debug("nav_insert_dir %s", dir->path);
+
 	dir_t **dirptr = dirheap_find(&nav->dircache, dir->path);
-	bool ret = false;
 	if (dirptr) {
+		/* replace in dir cache */
 		copy_attrs(dir, *dirptr);
-		free_dir(*dirptr);
+		dir_free(*dirptr);
 		*dirptr = dir;
 		/* TODO: maybe don't update here (on 2021-08-09) */
-		dirheap_pupdate(&nav->dircache, dirptr, time(NULL));
 	} else {
-		int i;
-		for (i = 0; i < nav->ndirs; i++) {
-			if (nav->dirs[i] && streq(nav->dirs[i]->path, dir->path)) {
-				copy_attrs(dir, nav->dirs[i]);
-				free(nav->dirs[i]);
-				nav->dirs[i] = dir;
-				ret = true;
-				break;
-			}
-		}
+		/* check if it an active directory */
 		if (nav->preview && streq(nav->preview->path, dir->path)) {
 			copy_attrs(dir, nav->preview);
-			free(nav->preview);
+			dir_free(nav->preview);
 			nav->preview = dir;
-			ret = true;
+			return true;
+		} else {
+			int i;
+			for (i = 0; i < nav->ndirs; i++) {
+				if (nav->dirs[i] && streq(nav->dirs[i]->path, dir->path)) {
+					copy_attrs(dir, nav->dirs[i]);
+					dir_free(nav->dirs[i]);
+					nav->dirs[i] = dir;
+					if (i == 0) {
+						/* current dir */
+						nav_update_preview(nav);
+					}
+					return true;
+				}
+			}
 		}
-		if (!ret) {
-			dirheap_insert(&nav->dircache, dir);
-		}
+		dir_free(dir);
 	}
-	if (ret) {
-		nav_update_preview(nav);
-	}
-	return ret;
+	return false;
 }
 
 void nav_check_dirs(const nav_t *nav)
@@ -308,11 +305,11 @@ void nav_check_dirs(const nav_t *nav)
 			continue;
 		}
 		if (!dir_check(nav->dirs[i])) {
-			async_load_dir(nav->dirs[i]->path);
+			async_dir_load(nav->dirs[i]->path);
 		}
 	}
 	if (nav->preview && !dir_check(nav->preview)) {
-		async_load_dir(nav->preview->path);
+		async_dir_load(nav->preview->path);
 	}
 }
 
@@ -321,13 +318,13 @@ void nav_drop_cache(nav_t *nav)
 	int i;
 	for (i = 0; i < nav->ndirs; i++) {
 		if (nav->dirs[i]) {
-			free_dir(nav->dirs[i]);
+			dir_free(nav->dirs[i]);
 		}
 	}
-	nav_remove_preview(nav);
+	remove_preview(nav);
 
 	for (i = 0; i < nav->dircache.size; i++) {
-		free_dir(nav->dircache.dirs[i]);
+		dir_free(nav->dircache.dirs[i]);
 	}
 	nav->dircache.size = 0;
 
@@ -344,7 +341,7 @@ void nav_drop_cache(nav_t *nav)
 	update_watchers(nav);
 }
 
-static void nav_remove_preview(nav_t *nav)
+static void remove_preview(nav_t *nav)
 {
 	if (nav->preview) {
 		notify_remove_watcher(nav->preview->path);
@@ -356,42 +353,44 @@ static void nav_remove_preview(nav_t *nav)
 void nav_update_preview(nav_t *nav)
 {
 	/* log_trace("update_preview %s", nav_current_dir(nav)->path); */
+	int i;
 	if (!cfg.preview) {
-		nav_remove_preview(nav);
+		remove_preview(nav);
 		return;
 	}
 
-	file_t *file = nav_current_file(nav);
-	dir_t *pdir = nav->preview;
+	const file_t *file = nav_current_file(nav);
 	if (file && file_isdir(file)) {
-		const char *p = concatpath(nav->dirs[0]->path, file->name);
-		if (pdir && streq(pdir->path, p)) {
-			return;
-		} else {
-			dir_t *dir = nav_load_dir(nav, p);
-			if (dir) {
-				notify_add_watcher(dir->path);
+		if (nav->preview) {
+			if (streq(nav->preview->path, file->path)) {
+				return;
 			}
-
-			/* TODO: actually we need to check if the previous preview is
-			 * any of the active dirs now (on 2021-08-07) */
-			if (pdir && pdir != nav->dirs[0]) {
-				notify_remove_watcher(pdir->path);
-				dirheap_insert(&nav->dircache, pdir);
+			for (i = 0; i < nav->ndirs; i++) {
+				if (nav->dirs[i] && streq(nav->preview->path, nav->dirs[i]->path)) {
+					break;
+				}
 			}
-
-			nav->preview = dir;
+			if (i == nav->ndirs) {
+				notify_remove_watcher(nav->preview->path);
+				dirheap_insert(&nav->dircache, nav->preview);
+			}
 		}
+		nav->preview = load_dir(nav, file->path);
+		notify_add_watcher(nav->preview->path);
 	} else {
-		// file preview incoming
-		if (pdir) {
-			/* TODO: as above (on 2021-08-07) */
-			if (pdir != nav->dirs[0]) {
-				notify_remove_watcher(pdir->path);
-				dirheap_insert(&nav->dircache, pdir);
+		// file preview or empty
+		if (nav->preview) {
+			for (i = 0; i < nav->ndirs; i++) {
+				if (nav->dirs[i] && streq(nav->preview->path, nav->dirs[i]->path)) {
+					break;
+				}
 			}
+			if (i == nav->ndirs) {
+				notify_remove_watcher(nav->preview->path);
+				dirheap_insert(&nav->dircache, nav->preview);
+			}
+			nav->preview = NULL;
 		}
-		nav->preview = NULL;
 	}
 }
 
@@ -556,7 +555,7 @@ void nav_selection_write(const nav_t *nav, const char *path)
 
 	FILE *fp = fopen(path, "w");
 	if (!fp) {
-		error("selfile: %s", strerror(errno));
+		app_error("selfile: %s", strerror(errno));
 		return;
 	}
 
@@ -676,11 +675,6 @@ static void mark_save(nav_t *nav, char mark, const char *path)
 	cvector_push_back(nav->marklist, newmark);
 }
 
-/* static void nav_mark_save_current(nav_t *nav, char mark) */
-/* { */
-/* 	mark_save(nav, mark, nav->dirs[0]->path); */
-/* } */
-
 bool nav_mark_load(nav_t *nav, char mark)
 {
 	log_trace("nav_mark_load: %c", mark);
@@ -698,7 +692,7 @@ bool nav_mark_load(nav_t *nav, char mark)
 			return 1;
 		}
 	}
-	error("no such mark: %c", mark);
+	app_error("no such mark: %c", mark);
 	return 0;
 }
 /* }}} */
@@ -713,7 +707,7 @@ void nav_load_files(nav_t *nav, int mode)
 	if (nav->selection_len == 0) {
 		nav_selection_toggle_current(nav);
 	}
-	nav_clear_load(nav);
+	nav_load_clear(nav);
 	char **tmp = nav->load;
 	nav->load = nav->selection;
 	nav->load_len = nav->selection_len;
@@ -721,7 +715,7 @@ void nav_load_files(nav_t *nav, int mode)
 	nav->selection_len = 0;
 }
 
-void nav_clear_load(nav_t *nav)
+void nav_load_clear(nav_t *nav)
 {
 	cvector_fclear(nav->load, free);
 	nav->load_len = 0;
@@ -764,7 +758,7 @@ void nav_destroy(nav_t *nav)
 	cvector_free(nav->prev_selection);
 	cvector_ffree(nav->load, free);
 	for (i = 0; i < nav->dircache.size; i++) {
-		free_dir(nav->dircache.dirs[i]);
+		dir_free(nav->dircache.dirs[i]);
 	}
 	cvector_ffree(nav->marklist, free_mark);
 }

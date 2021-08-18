@@ -14,15 +14,15 @@ typedef struct Preview {
 	time_t mtime;
 } preview_t;
 
-preview_t *new_preview(const char *path, const file_t *fptr, int nrow, int ncol);
+preview_t *preview_new(const char *path, const file_t *fptr, int nrow, int ncol);
 
-preview_t *new_loading_preview(const char *path, const file_t *fptr, int nrow,
+preview_t *preview_new_loading(const char *path, const file_t *fptr, int nrow,
 			       int ncol);
 
-preview_t *new_file_preview(const char *path, const file_t *fptr, int nrow, int ncol);
+preview_t *preview_new_from_file(const char *path, const file_t *fptr, int nrow, int ncol);
 
 bool preview_check(const preview_t *pv);
 
-void free_preview(preview_t *pv);
+void preview_free(preview_t *pv);
 
 #endif

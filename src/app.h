@@ -22,14 +22,14 @@ void app_timeout(int duration);
 
 void app_init(app_t *app);
 
-void run(app_t *app);
+void app_run(app_t *app);
 
 void app_quit(app_t *app);
 
 void app_destroy(app_t *app);
 
-void print(const char *format, ...);
+void app_print(const char *format, ...);
 
-void error(const char *format, ...);
+void app_error(const char *format, ...);
 
 #endif

@@ -7,6 +7,7 @@
 #include <lualib.h>
 #include <ncurses.h>
 #include <stdlib.h>
+#include <notcurses/notcurses.h>
 #include <string.h>
 #include <wchar.h>
 
@@ -32,7 +33,7 @@ void lua_run_hook(lua_State *L, const char *hook)
 	lua_gettable(L, -2);
 	lua_pushstring(L, hook);
 	if (lua_pcall(L, 1, 0, 0)) {
-		log_error("exec_lfmcmd: %s", lua_tostring(L, -1));
+		log_error("run_hook: %s", lua_tostring(L, -1));
 	}
 }
 
@@ -48,8 +49,15 @@ void lua_exec_lfmcmd(lua_State *L, app_t *app, const char *cmd)
 	}
 }
 
-void lua_handle_key(lua_State *L, app_t *app, int key)
+void lua_handle_key(lua_State *L, app_t *app, ncinput *in)
 {
+	int key = in->id;
+	if (in->alt) {
+		key = ALT(key);
+	}
+	if (in->ctrl) {
+		key = CTRL(key);
+	}
 	if (key == CTRL('q')) {
 		app_quit(app);
 		return;
@@ -76,12 +84,12 @@ bool lua_load_file(lua_State *L, app_t *app, const char *path)
 	}
 	return true;
 }
-/* Apparently, these can only return a single value */
+
+/* These can only return a single value. */
 static int l_nav_index(lua_State *L)
 {
 	nav_t *nav = &app->nav;
 	const char *key = luaL_checkstring(L, 2);
-	log_info("nav indexed with %s", key);
 	if (streq(key, "height")) {
 		lua_pushinteger(L, app->nav.height);
 		return 1;
@@ -111,7 +119,6 @@ static int l_nav_index(lua_State *L)
 static int l_cfg_index(lua_State *L)
 {
 	const char *key = luaL_checkstring(L, 2);
-	/* log_info("indexed %s", key); */
 	if (streq(key, "truncatechar")) {
 		char buf[2];
 		buf[0] = cfg.truncatechar;
@@ -165,13 +172,18 @@ static int l_cfg_newindex(lua_State *L)
 		ui_draw(&app->ui, &app->nav);
 	} else if (streq(key, "ratios")) {
 		const int l = lua_objlen(L, 3);
+		log_debug("%d", l);
+		if (l == 0) {
+			app_error("no ratios given");
+			return 0;
+		}
 		int *ratios = malloc(sizeof(int) * l);
 		int i;
 		for (i = 0; i < l; i++) {
 			lua_rawgeti(L, 3, i + 1);
 			ratios[i] = lua_tointeger(L, -1);
 			if (ratios[i] <= 0) {
-				error("invalid ratios");
+				app_error("invalid ratio");
 				free(ratios);
 				return 0;
 			}
@@ -243,7 +255,7 @@ static int l_error(lua_State *L)
 static int l_ui_clear(lua_State *L)
 {
 	(void) L;
-	ui_clear(&app->ui, &app->nav);
+	ui_clear(&app->ui);
 	return 0;
 }
 
@@ -270,6 +282,7 @@ static int l_ui_draw(lua_State *L)
 
 static int l_colors_newindex(lua_State *L)
 {
+	/* TODO: continue (on 2021-08-17) */
 	const char *key = luaL_checkstring(L, 2);
 	if (streq(key, "executable")) {
 		if (lua_istable(L, 3)) {
@@ -285,6 +298,8 @@ static int l_colors_newindex(lua_State *L)
 				bg = atoi(lua_tostring(L, -1));
 				lua_pop(L, 1);
 			}
+			(void) fg;
+			(void) bg;
 		}
 	}
 	return 0;
@@ -310,7 +325,7 @@ static int l_cmd_clear(lua_State *L)
 	ui_cmd_clear(&app->ui);
 	/* TODO: when resized during command mode, nav is not drawn on clearing
 	 * (on 2021-07-18) */
-	ui_draw(&app->ui, &app->nav);
+	/* ui_draw(&app->ui, &app->nav); */
 	return 0;
 }
 
@@ -403,7 +418,7 @@ static int l_nav_updir(lua_State *L)
 {
 	(void) L;
 	nav_updir(&app->nav);
-	search_nohighlight(&app->ui);
+	ui_search_nohighlight(&app->ui);
 	ui_draw(&app->ui, &app->nav);
 	return 0;
 }
@@ -415,7 +430,7 @@ static int l_nav_open(lua_State *L)
 	if (!file) {
 		/* changed directory */
 		ui_draw(&app->ui, &app->nav);
-		search_nohighlight(&app->ui);
+		ui_search_nohighlight(&app->ui);
 		return 0;
 	} else {
 		if (cfg.selfile) {
@@ -457,19 +472,15 @@ static int l_sel_visual_toggle(lua_State *L)
 static int l_shell_pre(lua_State *L)
 {
 	(void) L;
-	/* def_prog_mode();           #<{(| save current tty modes |)}># */
-	/* reset_shell_mode(); */
-	kbblocking(true);
-	endwin(); /* restore original tty modes */
+	ui_kbblocking(true);
 	return 0;
 }
 
 static int l_shell_post(lua_State *L)
 {
 	(void) L;
-	/* reset_prog_mode();           #<{(| save current tty modes |)}># */
-	kbblocking(false);
-	refresh(); /* restore save modes, repaint screen */
+	ui_kbblocking(false);
+	ui_clear(&app->ui);
 	return 0;
 }
 
@@ -481,13 +492,13 @@ static int l_sortby(lua_State *L)
 	for (int i = 0; i < l; i++) {
 		op = luaL_checkstring(L, i + 1);
 		if (streq(op, "name")) {
-			dir->sorttype = NAME;
+			dir->sorttype = SORT_NAME;
 		} else if (streq(op, "natural")) {
-			dir->sorttype = NATURAL;
+			dir->sorttype = SORT_NATURAL;
 		} else if (streq(op, "ctime")) {
-			dir->sorttype = CTIME;
+			dir->sorttype = SORT_CTIME;
 		} else if (streq(op, "size")) {
-			dir->sorttype = SIZE;
+			dir->sorttype = SORT_SIZE;
 		} else if (streq(op, "dirfirst")) {
 			dir->dirfirst = true;
 		} else if (streq(op, "nodirfirst")) {
@@ -497,7 +508,7 @@ static int l_sortby(lua_State *L)
 		} else if (streq(op, "noreverse")) {
 			dir->reverse = false;
 		} else {
-			error("sortby: unrecognized operation: %s", op);
+			app_error("sortby: unrecognized operation: %s", op);
 		}
 	}
 	dir->sorted = false;
@@ -532,7 +543,7 @@ static int l_selection_reverse(lua_State *L)
 static int l_nav_chdir(lua_State *L)
 {
 	const char *path = lua_tostring(L, 1);
-	search_nohighlight(&app->ui);
+	ui_search_nohighlight(&app->ui);
 	nav_chdir(&app->nav, path, true);
 	ui_draw_dirs(&app->ui, &app->nav);
 	return 0;
@@ -560,11 +571,13 @@ static int l_nav_get_load(lua_State *L)
 	return 2;
 }
 
-static int l_nav_set_load(lua_State *L)
+static int l_nav_load_set(lua_State *L)
 {
+	int i;
 	nav_t *nav = &app->nav;
+	log_debug("l_nav_load_set %p %p %p", app, &app->ui, nav);
 	const char *mode = luaL_checkstring(L, 1);
-	nav_clear_load(nav);
+	nav_load_clear(nav);
 	if (streq(mode, "move")) {
 		nav->mode = MODE_MOVE;
 	} else {
@@ -572,20 +585,19 @@ static int l_nav_set_load(lua_State *L)
 		nav->mode = MODE_COPY;
 	}
 	const int l = lua_objlen(L, 2);
-	int i;
 	for (i = 0; i < l; i++) {
 		lua_rawgeti(L, 2, i + 1);
 		cvector_push_back(nav->load, strdup(lua_tostring(L, -1)));
 		lua_pop(L, 1);
 	}
-	nav->load_len = i;
+	nav->load_len = l;
 	return 0;
 }
 
-static int l_nav_clear_load(lua_State *L)
+static int l_nav_load_clear(lua_State *L)
 {
 	(void) L;
-	nav_clear_load(&app->nav);
+	nav_load_clear(&app->nav);
 	return 0;
 }
 
@@ -607,8 +619,9 @@ static int l_nav_cut(lua_State *L)
 
 static int l_tokenize(lua_State *L)
 {
-	static char buf[512];
 	const char *string = luaL_optstring(L, 1, "");
+	/* string could be a single token of maximal length */
+	char *buf = malloc(sizeof(char)*(strlen(string)+1));
 	int pos1 = 0, pos2 = 0;
 	const char *tok;
 	if ((tok = tokenize(string, buf, &pos1, &pos2))) {
@@ -620,6 +633,7 @@ static int l_tokenize(lua_State *L)
 		lua_pushstring(L, tok);
 		lua_rawseti(L, -2, i++);
 	}
+	free(buf);
 	return 2;
 }
 
@@ -705,7 +719,7 @@ static int l_nav_check(lua_State *L)
 	nav_t *nav = &app->nav;
 	dir_t *d = nav_current_dir(nav);
 	if (!dir_check(d)) {
-		async_load_dir(d->path);
+		async_dir_load(d->path);
 	}
 	return 0;
 }
@@ -721,13 +735,13 @@ static int l_search(lua_State *L)
 {
 	ui_t *ui = &app->ui;
 	if (!lua_toboolean(L, 1)) {
-		search_nohighlight(ui);
+		ui_search_nohighlight(ui);
 	} else {
 		const char *search = luaL_checkstring(L, 1);
 		if (search[0] == 0) {
-			search_nohighlight(ui);
+			ui_search_nohighlight(ui);
 		} else {
-			search_highlight(ui, search, true);
+			ui_search_highlight(ui, search, true);
 		}
 	}
 	ui_draw(ui, &app->nav);
@@ -738,13 +752,13 @@ static int l_search_backwards(lua_State *L)
 {
 	ui_t *ui = &app->ui;
 	if (!lua_toboolean(L, 1)) {
-		search_nohighlight(ui);
+		ui_search_nohighlight(ui);
 	} else {
 		const char *search = luaL_checkstring(L, 1);
 		if (search[0] == 0) {
-			search_nohighlight(ui);
+			ui_search_nohighlight(ui);
 		} else {
-			search_highlight(ui, search, false);
+			ui_search_highlight(ui, search, false);
 		}
 	}
 	ui_draw(ui, &app->nav);
@@ -913,8 +927,8 @@ static const struct luaL_Reg navlib[] = {
 	{"updir", l_nav_updir},
 	{"up", l_nav_up},
 	{"load_get", l_nav_get_load},
-	{"load_set", l_nav_set_load},
-	{"load_clear", l_nav_clear_load},
+	{"load_set", l_nav_load_set},
+	{"load_clear", l_nav_load_clear},
 	{"cut", l_nav_cut},
 	{"copy", l_nav_copy},
 	{"check", l_nav_check},
@@ -978,6 +992,9 @@ int luaopen_lfm(lua_State *L)
 
 	lua_newtable(L); /* ui.colors */
 	lua_setfield(L, -2, "colors"); /* lfm.ui = {...} */
+	luaL_newmetatable(L, "mtColors"); /* metatable for the config table */
+	luaL_register(L, NULL, colorsmt);
+	lua_setmetatable(L, -2);
 
 	lua_setfield(L, -2, "ui"); /* lfm.ui = {...} */
 
@@ -995,7 +1012,7 @@ int luaopen_lfm(lua_State *L)
 	return 1;
 }
 
-void lualfm_init(lua_State *L, app_t *_app)
+void lua_init(lua_State *L, app_t *_app)
 {
 	app = _app;
 

@@ -4,15 +4,15 @@
 #include "util.h"
 
 #ifndef parent
-#define parent(i) ((i)-1) / 2
+#define PARENT(i) ((i)-1) / 2
 #endif
 
 #ifndef left_child
-#define leftchild(i) (2 * (i) + 1)
+#define LCHILD(i) (2 * (i) + 1)
 #endif
 
 #ifndef right_child
-#define rightchild(i) (2 * (i) + 2)
+#define RCHILD(i) (2 * (i) + 2)
 #endif
 
 static inline void upheap(previewheap_t *heap, int i);
@@ -29,7 +29,7 @@ void previewheap_insert(previewheap_t *heap, preview_t *d)
 {
 	d->access = time(NULL);
 	if (heap->size >= PREVIEWHEAP_MAX_SIZE) {
-		free_preview(heap->previews[0]);
+		preview_free(heap->previews[0]);
 		heap->previews[0] = d;
 		downheap(heap, 0);
 	} else {
@@ -59,7 +59,7 @@ static preview_t *previewheap_takei(previewheap_t *heap, int i)
 		swap(heap->previews + i, heap->previews + heap->size-1);
 		heap->size--;
 
-		if (i == 0 || heap->previews[i]->access >= heap->previews[parent(i)]->access) {
+		if (i == 0 || heap->previews[i]->access >= heap->previews[PARENT(i)]->access) {
 			downheap(heap, i);
 		} else {
 			upheap(heap, i);
@@ -88,7 +88,7 @@ preview_t *previewheap_ptake(previewheap_t *heap, preview_t **p)
 static inline void upheap(previewheap_t *heap, int i)
 {
 	int p;
-	while (i > 0 && heap->previews[p = parent(i)]->access > heap->previews[i]->access) {
+	while (i > 0 && heap->previews[p = PARENT(i)]->access > heap->previews[i]->access) {
 		swap(&heap->previews[p], &heap->previews[i]);
 		i = p;
 	}
@@ -96,8 +96,8 @@ static inline void upheap(previewheap_t *heap, int i)
 
 static void downheap(previewheap_t *heap, int i)
 {
-	const int lidx = leftchild(i);
-	const int ridx = rightchild(i);
+	const int lidx = LCHILD(i);
+	const int ridx = RCHILD(i);
 
 	int largest = i;
 

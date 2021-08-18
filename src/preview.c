@@ -9,7 +9,7 @@
 #include "preview.h"
 #include "popen_arr.h"
 
-preview_t *new_preview(const char *path, const file_t *fptr, int nrow, int ncol)
+preview_t *preview_new(const char *path, const file_t *fptr, int nrow, int ncol)
 {
 	(void)nrow;
 	(void)ncol;
@@ -22,18 +22,18 @@ preview_t *new_preview(const char *path, const file_t *fptr, int nrow, int ncol)
 	return pv;
 }
 
-preview_t *new_loading_preview(const char *path, const file_t *fptr, int nrow,
+preview_t *preview_new_loading(const char *path, const file_t *fptr, int nrow,
 			       int ncol)
 {
-	preview_t *pv = new_preview(path, fptr, nrow, ncol);
+	preview_t *pv = preview_new(path, fptr, nrow, ncol);
 	/* cvector_push_back(pv->lines, strdup("loading")); */
 	return pv;
 }
 
 /* line length currently not limited */
-preview_t *new_file_preview(const char *path, const file_t *fptr, int nrow, int ncol)
+preview_t *preview_new_from_file(const char *path, const file_t *fptr, int nrow, int ncol)
 {
-	preview_t *pv = new_preview(path, fptr, nrow, ncol);
+	preview_t *pv = preview_new(path, fptr, nrow, ncol);
 
 	FILE *fp;
 	char buf[4096];
@@ -73,7 +73,7 @@ bool preview_check(const preview_t *pv)
 	return pv->mtime >= statbuf.st_mtime;
 }
 
-void free_preview(preview_t *pv)
+void preview_free(preview_t *pv)
 {
 	if (pv) {
 		cvector_ffree(pv->lines, free);

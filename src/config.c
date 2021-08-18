@@ -1,3 +1,5 @@
+#define _GNU_SOURCE
+#include <stdio.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -10,22 +12,22 @@
 #include "log.h"
 
 config cfg = {
-    .truncatechar = L'~',
+	.truncatechar = L'~',
 	.fifopath = NULL,
 	.rundir = NULL,
-    .corepath = NULL,
+	.corepath = NULL,
 	.configdir = NULL,
 	.datadir = NULL,
 	.configpath = NULL,
-    .historypath = NULL,
-    .startpath = NULL,
-    .previewer = NULL,
-    /* TODO: is hidden the wrong way around? (on 2021-07-22) */
-    .hidden = false, /* show hidden files */
-    .lastdir = NULL,
-    .selfile = NULL,
-    .ratios = NULL,
-    .preview = true,
+	.historypath = NULL,
+	.startpath = NULL,
+	.previewer = NULL,
+	/* TODO: is hidden the wrong way around? (on 2021-07-22) */
+	.hidden = false, /* show hidden files */
+	.lastdir = NULL,
+	.selfile = NULL,
+	.ratios = NULL,
+	.preview = true,
 	.commands = NULL,
 	.scrolloff = 4,
 };
@@ -46,22 +48,15 @@ void config_defaults()
 	const int r[] = {1, 2, 3};
 	config_ratios_set(3, r);
 
-	char buf[PATH_MAX];
+	asprintf(&cfg.configdir, "%s/.config/lfm", getenv("HOME"));
 
-	snprintf(buf, sizeof(buf), "%s/.config/lfm", getenv("HOME"));
-	cfg.configdir = strdup(buf);
+	asprintf(&cfg.datadir, "%s/.local/share/lfm", getenv("HOME"));
 
-	snprintf(buf, sizeof(buf), "%s/.local/share/lfm", getenv("HOME"));
-	cfg.datadir = strdup(buf);
+	asprintf(&cfg.configpath, "%s/config.lua", cfg.configdir);
 
-	snprintf(buf, sizeof(buf), "%s/config.lua", cfg.configdir);
-	cfg.configpath = strdup(buf);
+	asprintf(&cfg.historypath, "%s/history", cfg.datadir);
 
-	snprintf(buf, sizeof(buf), "%s/history", cfg.datadir);
-	cfg.historypath = strdup(buf);
-
-	snprintf(buf, sizeof(buf), "%s/lua/core.lua", cfg.datadir);
-	cfg.corepath = strdup(buf);
+	asprintf(&cfg.corepath, "%s/lua/core.lua", cfg.datadir);
 }
 
 void config_clear() {

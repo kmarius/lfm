@@ -1,4 +1,5 @@
 #include <ncurses.h>
+#include <notcurses/notcurses.h>
 
 #include "keys.h"
 
@@ -27,7 +28,6 @@
 /* KEY_B2          Center of keypad */
 /* KEY_C1          Lower left of keypad */
 /* KEY_C3          Lower right of keypad */
-/* KEY_BTAB        Back tab key */
 /* KEY_BEG         Beg(inning) key */
 /* KEY_CANCEL      Cancel key */
 /* KEY_CLOSE       Close key */
@@ -93,16 +93,22 @@ const char *keytrans(int key)
 	case KEY_BREAK:
 		return "<break>";
 	case KEY_DOWN:
+	case NCKEY_DOWN:
 		return "<down>";
 	case KEY_UP:
+	case NCKEY_UP:
 		return "<up>";
 	case KEY_LEFT:
+	case NCKEY_LEFT:
 		return "<left>";
 	case KEY_RIGHT:
+	case NCKEY_RIGHT:
 		return "<right>";
 	case KEY_HOME:
+	case NCKEY_HOME:
 		return "<home>";
 	case KEY_BACKSPACE:
+	case NCKEY_BACKSPACE:
 		return "<backspace>";
 	case 127: /* tmux sends this instead */
 		return "<backspace>";
@@ -131,6 +137,7 @@ const char *keytrans(int key)
 	case KEY_F(12):
 		return "<f-12>";
 	case KEY_DC:
+	case NCKEY_DEL:
 		return "<delete>";
 	case KEY_END:
 		return "<end>";
@@ -152,13 +159,16 @@ const char *keytrans(int key)
 		return "<c-h>";
 	case CTRL('i'):
 		return "<tab>";
+	case KEY_BTAB:
+		return "<backtab>";
 	case CTRL('j'):
 		return "<c-j>";
 	case CTRL('k'):
 		return "<c-k>";
 	case CTRL('l'):
 		return "<c-l>";
-	case CTRL('m'):
+	case NCKEY_ENTER:
+	/* case CTRL('m'): */
 		return "<enter>";
 	case CTRL('n'):
 		return "<c-n>";

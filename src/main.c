@@ -123,10 +123,10 @@ int main(int argc, char **argv)
 
 	app_init(&app);
 
-	ui_draw(&app.ui, &app.nav);
+	/* ui_draw(&app.ui, &app.nav); */
 
 	log_debug("starting main loop after %.2f ms", (current_micros() - t0)/1000.0);
-	run(&app);
+	app_run(&app);
 
 	app_destroy(&app);
 

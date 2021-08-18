@@ -36,6 +36,32 @@ bool hasprefix(const char *restrict string, const char *restrict prefix)
 	return true;
 }
 
+bool hassuffix(const char *suf, const char *str)
+{
+	const char *s = strrchr(str, suf[0]);
+	return s && strcasecmp(s, suf) == 0;
+}
+
+const char *strcaserchr(const char *str, char c)
+{
+	const char *last = NULL;
+	const char *s = str;
+	while (*s)
+	{
+		if (*s == c) {
+			last = s;
+		}
+		s++;
+	}
+	return last;
+}
+
+bool hascasesuffix(const char *suf, const char *str)
+{
+	const char *s = strcaserchr(str, suf[0]);
+	return s && strcasecmp(s, suf) == 0;
+}
+
 // https://stackoverflow.com/questions/1157209/is-there-an-alternative-sleep-function-in-c-to-milliseconds
 int msleep(long msec)
 {

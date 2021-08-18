@@ -8,7 +8,7 @@
 
 #include "sort.h"
 
-enum sorttype_e { NATURAL, NAME, SIZE, CTIME };
+enum sorttype_e { SORT_NATURAL, SORT_NAME, SORT_SIZE, SORT_CTIME, };
 
 typedef struct File {
 	struct stat stat;
@@ -31,17 +31,21 @@ typedef struct Dir {
 	int len;	 /* length of the array of visible files */
 	bool sorted;
 	bool hidden; /* show hidden files */
-	int ind;	 /* index of currently selected file */
-	int pos;	 /* position of the cursor in nav */
-	char filter[64]; /* filter string */
+
 	time_t loadtime; /* load time, used to check for changes on disk and
 			    reload if necessary */
 	int error;	 /* for now, true if any error occurs when loading */
 	bool loading;
+
+	int ind;	 /* index of currently selected file */
+	int pos;	 /* position of the cursor in nav */
+	char *sel;
+
+	char filter[64]; /* filter string */
+
 	enum sorttype_e sorttype;
 	bool dirfirst;
 	bool reverse;
-	char *sel;
 } dir_t;
 
 /*
@@ -59,17 +63,17 @@ bool file_isexec(const file_t *file);
 /*
  * New directory with a 'loading' marker.
  */
-dir_t *new_loading_dir(const char *path);
+dir_t *dir_new_loading(const char *path);
 
 /*
  * Loads the directory given by PATH from disk.
  */
-dir_t *load_dir(const char *path);
+dir_t *dir_load(const char *path);
 
 /*
  * Frees all resources belonging to DIR.
  */
-void free_dir(dir_t *dir);
+void dir_free(dir_t *dir);
 
 /*
  * Current file of DIR. Can be NULL.
@@ -103,5 +107,7 @@ void dir_filter(dir_t *dir, const char *filter);
  * are no changes, false otherwise.
  */
 bool dir_check(const dir_t *dir);
+
+bool dir_isroot(const dir_t *dir);
 
 #endif

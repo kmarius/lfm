@@ -4,15 +4,15 @@
 #include "time.h"
 
 #ifndef parent
-#define parent(i) ((i)-1) / 2
+#define PARENT(i) ((i)-1) / 2
 #endif
 
 #ifndef leftchild
-#define leftchild(i) (2 * (i) + 1)
+#define LCHILD(i) (2 * (i) + 1)
 #endif
 
 #ifndef rightchild
-#define rightchild(i) (2 * (i) + 2)
+#define RCHILD(i) (2 * (i) + 2)
 #endif
 
 typedef struct KeyAble {
@@ -51,7 +51,7 @@ static void *heap_itake(heap_t *heap, int i)
 		swap(heap->nodes + i, heap->nodes + heap->size-1);
 		heap->size--;
 
-		if (i == 0 || ((_k*)heap->nodes[i])->key >= ((_k*)heap->nodes[parent(i)])->key) {
+		if (i == 0 || ((_k*)heap->nodes[i])->key >= ((_k*)heap->nodes[PARENT(i)])->key) {
 			downheap(heap, i);
 		} else {
 			upheap(heap, i);
@@ -70,7 +70,7 @@ void *heap_ptake(heap_t *heap, void **p)
 static inline void upheap(heap_t *heap, int i)
 {
 	int p;
-	while (i > 0 && ((_k*)heap->nodes[p = parent(i)])->key > ((_k*)heap->nodes[i])->key) {
+	while (i > 0 && ((_k*)heap->nodes[p = PARENT(i)])->key > ((_k*)heap->nodes[i])->key) {
 		swap(&heap->nodes[p], &heap->nodes[i]);
 		i = p;
 	}
@@ -78,8 +78,8 @@ static inline void upheap(heap_t *heap, int i)
 
 static void downheap(heap_t *heap, int i)
 {
-	const int lidx = leftchild(i);
-	const int ridx = rightchild(i);
+	const int lidx = LCHILD(i);
+	const int ridx = RCHILD(i);
 
 	int largest = i;
 
