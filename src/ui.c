@@ -45,7 +45,10 @@
 #define COLOR_SEARCH COLOR_YELLOW
 #define STYLE_SEARCH NCSTYLE_BOLD
 
-#define WPREVIEW(ui) ui->wdirs[ui->ndirs - 1]
+inline static struct ncplane *wpreview(ui_t *ui)
+{
+	return ui->wdirs[ui->ndirs-1];
+}
 
 static void history_load(ui_t *ui);
 static void draw_info(ui_t *ui);
@@ -90,13 +93,14 @@ void ui_init(ui_t *ui, nav_t *nav)
 #ifdef TRACE
 	log_trace("ui_init");
 #endif
+
 	ui->nav = nav;
 
 	ncsetup();
 	ui->input_ready_fd = notcurses_inputready_fd(nc);
 	ui->nc = nc;
 	ncplane_dim_yx(ncstd, &ui->nrow, &ui->ncol);
-	/* log_debug("%d, %d", ui->nrow, ui->ncol); */
+	nav->height = ui->nrow - 2;
 
 	ui->wdirs = NULL;
 	ui->ndirs = 0;
@@ -139,10 +143,8 @@ void ui_init(ui_t *ui, nav_t *nav)
 	ui->highlight = NULL;
 	ui->search_forward = true;
 
-	ui->load_mode = MODE_COPY;
-	ui->load_sz = 0;
+	ui->nav->load_len = 0;
 
-	ui->selection_sz = 0;
 }
 
 void ui_recol(ui_t *ui)
@@ -205,7 +207,7 @@ preview_t *ui_load_preview(ui_t *ui, file_t *file)
 	int x, y;
 	preview_t *pv = previewheap_take(&ui->previews, file->path);
 
-	struct ncplane *w = WPREVIEW(ui);
+	struct ncplane *w = wpreview(ui);
 	ncplane_dim_yx(w, &y, &x);
 
 	if (pv) {
@@ -226,11 +228,11 @@ void ui_draw_preview(ui_t *ui)
 {
 	/* log_trace("ui_draw_preview"); */
 	int x, y;
-	ncplane_dim_yx(WPREVIEW(ui), &y, &x);
+	ncplane_dim_yx(wpreview(ui), &y, &x);
 	dir_t *dir;
 	file_t *file;
 
-	struct ncplane *w = WPREVIEW(ui);
+	struct ncplane *w = wpreview(ui);
 	ncplane_erase(w);
 
 	dir = ui->nav->dirs[0];
@@ -681,23 +683,23 @@ static void wansi_addstr(struct ncplane *w, char *s)
 	}
 }
 
-static void draw_menu(ui_t *ui)
+static void draw_menu(struct ncplane *n, cvector_vector_type(char*) menubuf)
 {
-	int i;
-	struct ncplane *n = ui->menu;
+	size_t i;
 
-	if (!ui->menubuf) {
+	if (!menubuf) {
 		return;
 	}
 
 	ncplane_erase(n);
 
 	/* otherwise this doesn't draw over the directories */
-	ncplane_set_base(ui->menu, 0, 0, ' ');
+	/* Still needed as of 2021-08-18 */
+	ncplane_set_base(n, 0, 0, ' ');
 
-	for (i = 0; i < ui->menubuflen; i++) {
+	for (i = 0; i < cvector_size(menubuf); i++) {
 		ncplane_cursor_move_yx(n, i, 0);
-		const char *s = ui->menubuf[i];
+		const char *s = menubuf[i];
 		int xpos = 0;
 
 		while (*s) {
@@ -721,7 +723,7 @@ static void draw_menu(ui_t *ui)
 
 static void menu_resize(ui_t *ui)
 {
-	const int h = max(1, min(ui->menubuflen, ui->nrow - 2));
+	const int h = max(1, min(cvector_size(ui->menubuf), ui->nrow - 2));
 	ncplane_resize(ui->menu, 0, 0, 0, 0, 0, 0, h, ui->ncol);
 	ncplane_move_yx(ui->menu, ui->nrow - 1 - h, 0);
 }
@@ -742,14 +744,12 @@ void ui_showmenu(ui_t *ui, char **vec, int len)
 		menu_clear(ui);
 		cvector_ffree(ui->menubuf, free);
 		ui->menubuf = NULL;
-		ui->menubuflen = 0;
 	}
 	if (len > 0) {
 		ui->menubuf = vec;
-		ui->menubuflen = len;
 		menu_resize(ui);
 		ncplane_move_top(ui->menu);
-		draw_menu(ui);
+		draw_menu(ui->menu, ui->menubuf);
 	}
 }
 
@@ -1053,21 +1053,21 @@ void draw_cmdline(ui_t *ui)
 			ncplane_putstr_yx(ui->cmdline, 0, 0, buf);
 			ncplane_putstr_yx(ui->cmdline, 0, ui->ncol - rhs_sz, nums);
 			ncplane_set_fg_palindex(ui->cmdline, 0);
-			if (ui->load_sz > 0) {
-				if (ui->load_mode == MODE_COPY) {
+			if (ui->nav->load_len > 0) {
+				if (ui->nav->mode == MODE_COPY) {
 					ncplane_set_bg_palindex(ui->cmdline, COLOR_CPY);
 				} else {
 					ncplane_set_bg_palindex(ui->cmdline, COLOR_DEL);
 				}
-				rhs_sz += int_sz(ui->load_sz) + 3;
-				ncplane_printf_yx(ui->cmdline, 0, ui->ncol-rhs_sz+1, " %d ", ui->load_sz);
+				rhs_sz += int_sz(ui->nav->load_len) + 3;
+				ncplane_printf_yx(ui->cmdline, 0, ui->ncol-rhs_sz+1, " %d ", ui->nav->load_len);
 				ncplane_set_bg_default(ui->cmdline);
 				ncplane_putchar(ui->cmdline, ' ');
 			}
-			if (ui->selection_sz > 0) {
+			if (ui->nav->selection_len > 0) {
 				ncplane_set_bg_palindex(ui->cmdline, COLOR_SEL);
-				rhs_sz += int_sz(ui->selection_sz) + 3;
-				ncplane_printf_yx(ui->cmdline, 0, ui->ncol-rhs_sz+1, " %d ", ui->selection_sz);
+				rhs_sz += int_sz(ui->nav->selection_len) + 3;
+				ncplane_printf_yx(ui->cmdline, 0, ui->ncol-rhs_sz+1, " %d ", ui->nav->selection_len);
 				ncplane_set_bg_default(ui->cmdline);
 				ncplane_putchar(ui->cmdline, ' ');
 			}
@@ -1260,7 +1260,7 @@ const char *ui_history_next(ui_t *ui)
 void ui_draw(ui_t *ui)
 {
 	ui_draw_dirs(ui);
-	draw_menu(ui);
+	draw_menu(ui->menu, ui->menubuf);
 	draw_cmdline(ui);
 }
 
@@ -1270,15 +1270,11 @@ void ui_draw_dirs(ui_t *ui)
 #ifdef TRACE
 	log_trace("ui_draw_dirs");
 #endif
+	int i;
 
-	ui->nav->height = ui->nrow - 2;
-	ui->selection_sz = ui->nav->selection_len;
-	ui->load_sz = ui->nav->load_len;
-	ui->load_mode = ui->nav->mode;
 	draw_info(ui);
 
 	const int l = ui->nav->ndirs;
-	int i;
 	for (i = 0; i < l; i++) {
 		wdraw_dir(ui->wdirs[l-i-1], ui->nav->dirs[i], ui->nav->selection, ui->nav->load,
 				ui->nav->mode, i == 0 ? ui->highlight : NULL);
@@ -1287,7 +1283,7 @@ void ui_draw_dirs(ui_t *ui)
 	if (cfg.preview) {
 		dir_t *pdir = ui->nav->preview;
 		if (pdir) {
-			wdraw_dir(WPREVIEW(ui), ui->nav->preview, ui->nav->selection,
+			wdraw_dir(wpreview(ui), ui->nav->preview, ui->nav->selection,
 					ui->nav->load, ui->nav->mode, NULL);
 		} else {
 			/* TODO: reload preview after resize (on 2021-07-27) */

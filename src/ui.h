@@ -2,7 +2,6 @@
 #define UI_H
 
 #include <notcurses/notcurses.h>
-// #include <curses.h>
 #include <lua.h>
 
 #include "cvector.h"
@@ -15,6 +14,12 @@
 #define PREFIX_SIZE 32
 
 typedef struct Ui {
+
+	int nrow;
+	int ncol;
+
+	int ndirs; /* number of columns including the preview */
+
 	nav_t *nav;
 
 	int input_ready_fd;
@@ -25,31 +30,20 @@ typedef struct Ui {
 	struct ncplane *menu;
 	cvector_vector_type(struct ncplane*) wdirs;
 
-	int ndirs; /* number of columns including the preview */
-
-	int nrow;
-	int ncol;
-
 	char cmd_prefix[PREFIX_SIZE];
 	char cmd_acc_left[ACC_SIZE];
 	char cmd_acc_right[ACC_SIZE];
 
-	int menubuflen;
 	cvector_vector_type(char *) menubuf;
-
-	cvector_vector_type(char *) history;
-	char **history_ptr;
 
 	preview_t *file_preview;
 	previewheap_t previews;
 
+	cvector_vector_type(char *) history;
+	char **history_ptr;
+
 	char *highlight; /* search */
 	bool search_forward;
-
-	enum movemode_e load_mode;
-	int load_sz;
-
-	int selection_sz;
 } ui_t;
 
 void ui_init(ui_t *ui, nav_t *nav);
