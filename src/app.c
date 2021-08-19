@@ -83,13 +83,12 @@ static void timer_cb(EV_P_ ev_timer *w, int revents)
 	(void) w;
 	(void) revents;
 	static int tick_ct = 0;
+	/* app_t *app = (app_t *)w->data; */
 	tick_ct++;
-	if (tick_ct-1 == 0) {
+	if (tick_ct == 1) {
 		return;
 	}
-	/* ui_clear(&_app->ui, &_app->nav); */
 	/* log_debug("tick"); */
-	/* app_t *app = (app_t *)w->data; */
 	/* nav_check_dirs(&app->nav); */
 }
 
@@ -340,7 +339,10 @@ void app_error(const char *format, ...)
 	ui_error(&_app->ui, msg);
 }
 
-void app_timeout(int duration) { input_timeout = current_millis() + duration; }
+void app_timeout(int duration)
+{
+	input_timeout = current_millis() + duration;
+}
 
 void app_destroy(app_t *app)
 {

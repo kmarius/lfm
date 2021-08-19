@@ -31,7 +31,7 @@ void dirheap_insert(dirheap_t *heap, dir_t *d)
 	/* log_trace("dirheap_insert sz %d %s", heap->size, d->name); */
 	d->access = time(NULL);
 	if (heap->size >= DIRHEAP_MAX_SIZE) {
-		log_trace("free_dir %s %p", heap->dirs[0]->path, heap->dirs[0]);
+		/* log_trace("free_dir %s %p", heap->dirs[0]->path, heap->dirs[0]); */
 		dir_free(heap->dirs[0]);
 		heap->dirs[0] = d;
 		downheap(heap, 0);

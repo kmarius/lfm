@@ -13,8 +13,7 @@
 #define ACC_SIZE 256
 #define PREFIX_SIZE 32
 
-typedef struct Ui {
-
+typedef struct ui_t {
 	int nrow;
 	int ncol;
 
@@ -22,6 +21,7 @@ typedef struct Ui {
 
 	nav_t *nav;
 
+	/* needed to get input in app.c */
 	int input_ready_fd;
 	struct notcurses *nc;
 
@@ -34,12 +34,12 @@ typedef struct Ui {
 	char cmd_acc_left[ACC_SIZE];
 	char cmd_acc_right[ACC_SIZE];
 
-	cvector_vector_type(char *) menubuf;
+	cvector_vector_type(char*) menubuf;
 
 	preview_t *file_preview;
 	previewheap_t previews;
 
-	cvector_vector_type(char *) history;
+	cvector_vector_type(char*) history;
 	char **history_ptr;
 
 	char *highlight; /* search */

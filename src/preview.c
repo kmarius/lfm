@@ -40,8 +40,7 @@ preview_t *preview_new_from_file(const char *path, const file_t *fptr, int nrow,
 
 	const char *args[3] = {cfg.previewer, path, NULL};
 	/* TODO: redirect stderr (on 2021-08-10) */
-	fp = popen_arr(cfg.previewer, args, false);
-	if (!fp) {
+	if (!(fp = popen_arr(cfg.previewer, args, false))) {
 		log_error("preview: %s", strerror(errno));
 		return pv;
 	}

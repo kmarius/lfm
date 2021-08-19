@@ -104,9 +104,9 @@ static int l_nav_index(lua_State *L)
 		}
 		return 1;
 	} else if (streq(key, "current")) {
-		/* TODO: current file vs current dir (on 2021-07-21) */
-		file_t *file = nav_current_file(&app->nav);
-		if (file) {
+		/* TODO: current file or current dir (on 2021-07-21) */
+		file_t *file;
+		if ((file = nav_current_file(&app->nav))) {
 			lua_pushstring(L, file->path);
 			return 1;
 		} else {
@@ -263,7 +263,7 @@ static int l_ui_menu(lua_State *L)
 {
 	const int l = lua_gettop(L);
 	const char *s;
-	cvector_vector_type(char*) menubuf = NULL; /* all arrays are cvectors nao */
+	cvector_vector_type(char*) menubuf = NULL;
 	cvector_grow(menubuf, l);
 	for (int i = 0; i < l; i++) {
 		s = luaL_checkstring(L, i + 1);
@@ -323,9 +323,6 @@ static int l_cmd_clear(lua_State *L)
 {
 	(void) L;
 	ui_cmd_clear(&app->ui);
-	/* TODO: when resized during command mode, nav is not drawn on clearing
-	 * (on 2021-07-18) */
-	/* ui_draw(&app->ui); */
 	return 0;
 }
 
@@ -425,9 +422,9 @@ static int l_nav_updir(lua_State *L)
 
 static int l_nav_open(lua_State *L)
 {
+	file_t *file;
 	nav_t *nav = &app->nav;
-	const file_t *file = nav_open(&app->nav);
-	if (!file) {
+	if (!(file = nav_open(&app->nav))) {
 		/* changed directory */
 		ui_draw(&app->ui);
 		ui_search_nohighlight(&app->ui);
@@ -684,8 +681,8 @@ static int l_history_prev(lua_State *L)
 
 static int l_history_next(lua_State *L)
 {
-	const char *line = ui_history_next(&app->ui);
-	if (!line) {
+	const char *line;
+	if (!(line = ui_history_next(&app->ui))) {
 		return 0;
 	}
 	lua_pushstring(L, line);
@@ -767,10 +764,11 @@ static int l_search_backwards(lua_State *L)
 
 static int l_search_next_forward(lua_State *L)
 {
+	dir_t *dir;
 	nav_t *nav = &app->nav;
 	ui_t *ui = &app->ui;
-	dir_t *dir = nav_current_dir(nav);
-	if (!dir || !ui->highlight) {
+
+	if (!(dir = nav_current_dir(nav)) || !ui->highlight) {
 		return 0;
 	}
 	int start = dir->ind;
@@ -795,10 +793,11 @@ static int l_search_next_forward(lua_State *L)
 
 static int l_search_next_backwards(lua_State *L)
 {
+	dir_t *dir;
 	nav_t *nav = &app->nav;
 	ui_t *ui = &app->ui;
-	dir_t *dir = nav_current_dir(nav);
-	if (!dir || !ui->highlight) {
+
+	if (!(dir = nav_current_dir(nav)) || !ui->highlight) {
 		return 0;
 	}
 	int start = dir->ind;
@@ -846,10 +845,11 @@ static int l_search_prev(lua_State *L)
 
 static int l_find(lua_State *L)
 {
+	dir_t *dir;
 	nav_t *nav = &app->nav;
 	ui_t *ui = &app->ui;
-	dir_t *dir = nav_current_dir(nav);
-	if (!dir) {
+
+	if (!(dir = nav_current_dir(nav))) {
 		return 0;
 	}
 	const char *prefix = luaL_checkstring(L, 1);

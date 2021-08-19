@@ -227,4 +227,9 @@ bool cvector_contains(const char *path, char **selection);
 
 void nav_drop_cache(nav_t *nav);
 
+#define nav_current_dir(nav) (nav)->dirs[0]
+
+#define nav_preview_dir(nav) (nav)->preview
+
+
 #endif

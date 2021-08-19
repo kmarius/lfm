@@ -69,8 +69,7 @@ static void ncsetup()
 	struct notcurses_options opts = {
 		.flags = NCOPTION_NO_WINCH_SIGHANDLER,
 	};
-	nc = notcurses_core_init(&opts, NULL);
-	if (!nc) {
+	if (!(nc = notcurses_core_init(&opts, NULL))) {
 		exit(EXIT_FAILURE);
 	}
 	ncstd = notcurses_stdplane(nc);
@@ -90,10 +89,6 @@ void ui_kbblocking(bool blocking)
 
 void ui_init(ui_t *ui, nav_t *nav)
 {
-#ifdef TRACE
-	log_trace("ui_init");
-#endif
-
 	ui->nav = nav;
 
 	ncsetup();
@@ -145,6 +140,7 @@ void ui_init(ui_t *ui, nav_t *nav)
 
 	ui->nav->load_len = 0;
 
+	log_info("initialized ui");
 }
 
 void ui_recol(ui_t *ui)
@@ -205,12 +201,12 @@ preview_t *ui_load_preview(ui_t *ui, file_t *file)
 	/* log_trace("ui_load_preview %s", file->path); */
 
 	int x, y;
-	preview_t *pv = previewheap_take(&ui->previews, file->path);
+	preview_t *pv;
 
 	struct ncplane *w = wpreview(ui);
 	ncplane_dim_yx(w, &y, &x);
 
-	if (pv) {
+	if ((pv = previewheap_take(&ui->previews, file->path))) {
 		/* TODO: vv (on 2021-08-10) */
 		/* might be checking too often here? or is it capped by inotify
 		 * timeout? */
@@ -235,8 +231,7 @@ void ui_draw_preview(ui_t *ui)
 	struct ncplane *w = wpreview(ui);
 	ncplane_erase(w);
 
-	dir = ui->nav->dirs[0];
-	if (dir && dir->ind < dir->len) {
+	if ((dir = ui->nav->dirs[0]) && dir->ind < dir->len) {
 		file = dir->files[dir->ind];
 		if (ui->file_preview) {
 			if (streq(ui->file_preview->path, file->path)) {
@@ -253,230 +248,6 @@ void ui_draw_preview(ui_t *ui)
 		wdraw_file_preview(w, ui->file_preview);
 	}
 	notcurses_render(nc);
-}
-
-/* }}} */
-
-/* wdraw_dir {{{ */
-
-void ui_search_nohighlight(ui_t *ui)
-{
-	free(ui->highlight);
-	ui->highlight = NULL;
-	ui->search_forward = true;
-}
-
-void ui_search_highlight(ui_t *ui, const char *search, bool forward)
-{
-	ui->search_forward = forward;
-	ui->highlight = strdup(search);
-}
-
-static void wdraw_file_line(struct ncplane *n, file_t *file, bool iscurrent, char **sel,
-		char **load, enum movemode_e mode,
-		const char *highlight)
-{
-	int ncol, y0, x, _;
-	char size[16];
-	wchar_t buf[128];
-	ncplane_dim_yx(n, &_, &ncol);
-	ncplane_cursor_yx(n, &y0, &_);
-	(void)_;
-
-	const bool isexec = file_isexec(file);
-	const bool isdir = file_isdir(file);
-	const bool isselected = cvector_contains(file->path, sel);
-	const bool iscpy =
-		mode == MODE_COPY && cvector_contains(file->path, load);
-	const bool isdel =
-		mode == MODE_MOVE && cvector_contains(file->path, load);
-	const bool islink = file->link_target != NULL;
-
-	/* log_debug("%s %u %u", file->name, ncplane_fg_rgb(n), ncplane_bg_rgb(n)); */
-
-	if (isdir) {
-		snprintf(size, sizeof(size), "%d", file->filecount);
-	} else {
-		readable_fs(file->stat.st_size, size);
-	}
-
-	int rightmargin =
-		strlen(size) + 2; /* one space before and one after size */
-	if (islink) {
-		rightmargin += 3; /* " ->" */
-	}
-	if (rightmargin > ncol * 2 / 3) {
-		rightmargin = 0;
-	}
-
-	ncplane_set_bg_default(n);
-
-	if (isselected) {
-		ncplane_set_bg_palindex(n, COLOR_SEL);
-	} else if (isdel) {
-		ncplane_set_bg_palindex(n, COLOR_DEL);
-	} else if (iscpy) {
-		ncplane_set_bg_palindex(n, COLOR_CPY);
-	}
-	ncplane_putchar(n, ' ');
-	ncplane_set_bg_default(n);
-	if (isdir) {
-		ncplane_set_fg_palindex(n, COLOR_BLUE);
-		ncplane_set_styles(n, NCSTYLE_BOLD);
-	} else if (isexec) {
-		ncplane_set_fg_palindex(n, COLOR_GREEN);
-
-	} else if (hascasesuffix(".mp4", file->name)) {
-		ncplane_set_fg_palindex(n, COLOR_PINK);
-	} else if (hascasesuffix(".mkv", file->name)) {
-		ncplane_set_fg_palindex(n, COLOR_PINK);
-	} else if (hascasesuffix(".m4v", file->name)) {
-		ncplane_set_fg_palindex(n, COLOR_PINK);
-	} else if (hascasesuffix(".webm", file->name)) {
-		ncplane_set_fg_palindex(n, COLOR_PINK);
-	} else if (hascasesuffix(".avi", file->name)) {
-		ncplane_set_fg_palindex(n, COLOR_PINK);
-	} else if (hascasesuffix(".flv", file->name)) {
-		ncplane_set_fg_palindex(n, COLOR_PINK);
-	} else if (hascasesuffix(".wmv", file->name)) {
-		ncplane_set_fg_palindex(n, COLOR_PINK);
-	} else if (hascasesuffix(".avi", file->name)) {
-		ncplane_set_fg_palindex(n, COLOR_PINK);
-
-	} else if (hascasesuffix(".tar", file->name)) {
-		ncplane_set_fg_palindex(n, 9);
-	} else if (hascasesuffix(".zst", file->name)) {
-		ncplane_set_fg_palindex(n, 9);
-	} else if (hascasesuffix(".xz", file->name)) {
-		ncplane_set_fg_palindex(n, 9);
-	} else if (hascasesuffix(".gz", file->name)) {
-		ncplane_set_fg_palindex(n, 9);
-	} else if (hascasesuffix(".zip", file->name)) {
-		ncplane_set_fg_palindex(n, 9);
-	} else if (hascasesuffix(".rar", file->name)) {
-		ncplane_set_fg_palindex(n, 9);
-	} else if (hascasesuffix(".7z", file->name)) {
-		ncplane_set_fg_palindex(n, 9);
-
-	} else if (hascasesuffix(".mp3", file->name)) {
-		ncplane_set_fg_palindex(n, COLOR_YELLOW);
-	} else if (hascasesuffix(".m4a", file->name)) {
-		ncplane_set_fg_palindex(n, COLOR_YELLOW);
-	} else if (hascasesuffix(".ogg", file->name)) {
-		ncplane_set_fg_palindex(n, COLOR_YELLOW);
-	} else if (hascasesuffix(".flag", file->name)) {
-		ncplane_set_fg_palindex(n, COLOR_YELLOW);
-	} else if (hascasesuffix(".mka", file->name)) {
-		ncplane_set_fg_palindex(n, COLOR_YELLOW);
-
-	} else if (hascasesuffix(".jpg", file->name)) {
-		ncplane_set_fg_palindex(n, COLOR_YELLOW);
-	} else if (hascasesuffix(".jpeg", file->name)) {
-		ncplane_set_fg_palindex(n, COLOR_YELLOW);
-	} else if (hascasesuffix(".png", file->name)) {
-		ncplane_set_fg_palindex(n, COLOR_YELLOW);
-	} else if (hascasesuffix(".bmp", file->name)) {
-		ncplane_set_fg_palindex(n, COLOR_YELLOW);
-	} else if (hascasesuffix(".webp", file->name)) {
-		ncplane_set_fg_palindex(n, COLOR_YELLOW);
-	} else if (hascasesuffix(".gif", file->name)) {
-		ncplane_set_fg_palindex(n, COLOR_YELLOW);
-
-	} else {
-		ncplane_set_fg_default(n);
-	}
-
-	if (iscurrent) {
-		ncplane_set_bg_palindex(n, 237);
-	}
-
-	// this would be easier if we knew how long the printed filename is
-	char *hlsubstr;
-	ncplane_putchar(n, ' ');
-	if (highlight && (hlsubstr = strcasestr(file->name, highlight))) {
-		const int l = hlsubstr - file->name;
-		const uint64_t ch = ncplane_channels(n);
-		ncplane_putnstr(n, l, file->name);
-		ncplane_set_bg_palindex(n, COLOR_YELLOW);
-		ncplane_set_fg_palindex(n, COLOR_BLACK);
-		ncplane_putnstr(n, ncol-3, highlight);
-		ncplane_set_channels(n, ch);
-		ncplane_putnstr(n, ncol-3, file->name + l + strlen(highlight));
-		ncplane_cursor_yx(n, NULL, &x);
-	} else {
-		const char *p = file->name;
-		x = mbsrtowcs(buf, &p, ncol-3, NULL);
-		ncplane_putnstr(n, ncol-3, file->name);
-	}
-	for (int l = x; l < ncol - 3; l++) {
-		ncplane_putchar(n, ' ');
-	}
-	if (x + rightmargin + 2> ncol) {
-		ncplane_putwc_yx(n, y0, ncol-rightmargin - 1, cfg.truncatechar);
-	} else {
-		ncplane_cursor_move_yx(n, y0, ncol - rightmargin);
-	}
-	if (rightmargin > 0) {
-		if (islink) {
-			ncplane_putstr(n, " ->");
-		}
-		ncplane_putchar(n, ' ');
-		ncplane_putstr(n, size);
-		ncplane_putchar(n, ' ');
-	}
-	ncplane_set_fg_default(n);
-	ncplane_set_bg_default(n);
-	ncplane_set_styles(n, NCSTYLE_NONE);
-}
-
-static void wdraw_dir(struct ncplane *n, dir_t *dir, char **sel, char **load,
-		enum movemode_e mode, const char *highlight)
-{
-	int nrow, i, offset;
-
-	ncplane_erase(n);
-	ncplane_dim_yx(n, &nrow, NULL);
-	ncplane_cursor_move_yx(n, 0, 0);
-
-	if (dir) {
-#ifdef TRACE
-		log_debug("wdraw_dir %s", dir->name);
-#endif
-		if (dir->error) {
-		/* EACCES Permission denied. */
-		/* EBADF  fd is not a valid file descriptor opened for reading.
-		*/
-		/* EMFILE The per-process limit on the number of open file */
-		/*        descriptors has been reached. */
-		/* ENFILE The system-wide limit on the total number of open
-		 * files */
-		/*        has been reached. */
-		/* ENOENT Directory does not exist, or name is an empty string.
-		*/
-		/* ENOMEM Insufficient memory to complete the operation. */
-		/* ENOTDIR */
-			ncplane_putstr_yx(n, 0, 2, dir->error == -1 ? "malloc" : strerror(dir->error));
-		} else if (dir->loading) {
-			ncplane_putstr_yx(n, 0, 2, "loading");
-		} else if (dir->len == 0) {
-			ncplane_putstr_yx(n, 0, 2, "empty");
-		} else {
-			dir->pos = min(min(dir->pos, nrow - 1), dir->ind);
-
-			offset = max(dir->ind - dir->pos, 0);
-
-			if (dir->len <= nrow) {
-				offset = 0;
-			}
-
-			for (i = 0; i + offset < dir->len && i < nrow; i++) {
-				ncplane_cursor_move_yx(n, i, 0);
-				wdraw_file_line(n, dir->files[i + offset],
-						i == dir->pos, sel, load, mode,
-						highlight);
-			}
-		}
-	}
 }
 
 static void wansi_matchattr(struct ncplane *w, int a)
@@ -622,32 +393,25 @@ static void wdraw_file_preview(struct ncplane *w, preview_t *pv)
 
 	const int l = cvector_size(pv->lines);
 	for (i = 0; i < l && i < nrow; i++) {
-		/* TODO: find out how to not wrap / print a fixed amout of
-		 * visible chars (on 2021-07-27) */
-		/* TODO: possibly find out how to convert a string to cchars (on
-		 * 2021-07-27)
-		 */
-
 		ncplane_cursor_move_yx(w, i, 0);
 		wansi_addstr(w, pv->lines[i]);
-		/* ncplane_putnstr_yx(w, i, 0, ncol, pv->lines[i]); */
 	}
 }
 
 bool ui_insert_preview(ui_t *ui, preview_t *pv)
 {
 	log_debug("ui_insert_preview %s", pv->path);
+	preview_t **pvptr;
+	const file_t *file;
 
 	bool ret = false;
 
-	const file_t *file = dir_current_file(ui->nav->dirs[0]);
-	if (file && (file == pv->fptr || streq(pv->path, file->path))) {
+	if ((file = nav_current_file(ui->nav)) &&  (file == pv->fptr || streq(pv->path, file->path))) {
 		preview_free(ui->file_preview);
 		ui->file_preview = pv;
 		ret = true;
 	} else {
-		preview_t **pvptr = previewheap_find(&ui->previews, pv->path);
-		if (pvptr) {
+		if ((pvptr = previewheap_find(&ui->previews, pv->path))) {
 			/* mtime is seconds right? >= is probably better */
 			if (pv->mtime >= (*pvptr)->mtime) {
 				/* update */
@@ -665,6 +429,22 @@ bool ui_insert_preview(ui_t *ui, preview_t *pv)
 	return ret;
 }
 
+
+/* }}} */
+
+/* search {{{ */
+void ui_search_nohighlight(ui_t *ui)
+{
+	free(ui->highlight);
+	ui->highlight = NULL;
+	ui->search_forward = true;
+}
+
+void ui_search_highlight(ui_t *ui, const char *search, bool forward)
+{
+	ui->search_forward = forward;
+	ui->highlight = strdup(search);
+}
 /* }}} */
 
 /* menu {{{ */
@@ -788,11 +568,11 @@ void ui_cmd_insert(ui_t *ui, char key)
 void ui_cmd_delete(ui_t *ui)
 {
 	log_debug("cmd_delete");
-	int l;
 	if (ui->cmd_prefix[0] == 0) {
 		return;
 	}
-	if ((l = strlen(ui->cmd_acc_left)) > 0) {
+	const int l = strlen(ui->cmd_acc_left);
+	if (l > 0) {
 		ui->cmd_acc_left[l - 1] = 0;
 		log_debug("cmd_delete: %s", ui->cmd_acc_left);
 	}
@@ -803,11 +583,12 @@ void ui_cmd_delete(ui_t *ui)
 void ui_cmd_left(ui_t *ui)
 {
 	log_trace("cmd_left");
-	int l, j;
+	int j;
 	if (ui->cmd_prefix[0] == 0) {
 		return;
 	}
-	if ((l = strlen(ui->cmd_acc_left)) > 0) {
+	const int l = strlen(ui->cmd_acc_left);
+	if (l > 0) {
 		j = min(strlen(ui->cmd_acc_right), ACC_SIZE - 2);
 		ui->cmd_acc_right[j + 1] = 0;
 		for (; j > 0; j--) {
@@ -822,16 +603,18 @@ void ui_cmd_left(ui_t *ui)
 void ui_cmd_right(ui_t *ui)
 {
 	log_trace("cmd_right");
-	int l, j;
+	int i;
 	if (ui->cmd_prefix[0] == 0) {
 		return;
 	}
-	if ((j = strlen(ui->cmd_acc_right)) > 0) {
-		if ((l = strlen(ui->cmd_acc_left)) < ACC_SIZE - 2) {
+	const int l = strlen(ui->cmd_acc_right);
+	const int j = strlen(ui->cmd_acc_left);
+	if (j > 0) {
+		if (l < ACC_SIZE - 2) {
 			ui->cmd_acc_left[l] = ui->cmd_acc_right[0];
 			ui->cmd_acc_left[l + 1] = 0;
-			for (l = 0; l < j; l++) {
-				ui->cmd_acc_right[l] = ui->cmd_acc_right[l + 1];
+			for (i = 0; i < j; i++) {
+				ui->cmd_acc_right[i] = ui->cmd_acc_right[i + 1];
 			}
 		}
 	}
@@ -841,12 +624,12 @@ void ui_cmd_right(ui_t *ui)
 void ui_cmd_home(ui_t *ui)
 {
 	log_trace("cmd_home");
-	int l, j;
 	if (ui->cmd_prefix[0] == 0) {
 		return;
 	}
-	if ((l = strlen(ui->cmd_acc_left)) > 0) {
-		j = min(strlen(ui->cmd_acc_right) - 1 + l, ACC_SIZE - 1 - l);
+	const int l = strlen(ui->cmd_acc_left);
+	if (l > 0) {
+		int j = min(strlen(ui->cmd_acc_right) - 1 + l, ACC_SIZE - 1 - l);
 		ui->cmd_acc_right[j + 1] = 0;
 		for (; j >= l; j--) {
 			ui->cmd_acc_right[j] = ui->cmd_acc_right[j - l];
@@ -860,13 +643,12 @@ void ui_cmd_home(ui_t *ui)
 void ui_cmd_end(ui_t *ui)
 {
 	log_trace("cmd_end");
-	int l, j;
 	if (ui->cmd_prefix[0] == 0) {
 		return;
 	}
 	if (ui->cmd_acc_right[0] != 0) {
-		j = strlen(ui->cmd_acc_left);
-		l = ACC_SIZE - 1 - strlen(ui->cmd_acc_left);
+		const int j = strlen(ui->cmd_acc_left);
+		const int l = ACC_SIZE - 1 - strlen(ui->cmd_acc_left);
 		strncpy(ui->cmd_acc_left + j, ui->cmd_acc_right, l);
 		ui->cmd_acc_left[l + j] = 0;
 		ui->cmd_acc_right[0] = 0;
@@ -1029,13 +811,13 @@ void draw_cmdline(ui_t *ui)
 #endif
 	static char buf[512] = {0};
 	static char nums[16];
+	const dir_t *dir;
 	ncplane_erase(ui->cmdline);
 	ncplane_set_bg_default(ui->cmdline);
 	ncplane_set_fg_default(ui->cmdline);
 
 	if (ui->cmd_prefix[0] == 0) {
-		const dir_t *dir = ui->nav->dirs[0];
-		if (dir && dir->ind < dir->len) {
+		if ((dir = ui->nav->dirs[0]) && dir->ind < dir->len) {
 			/* TODO: for empty directories, show the stat of the
 			 * directory instead (on 2021-07-18) */
 			file_t *cur = dir->files[dir->ind];
@@ -1097,6 +879,9 @@ static void draw_info(ui_t *ui)
 	static char *home;
 	static int home_len;
 
+	const dir_t *dir;
+	const file_t *file;
+
 	ncplane_erase(ui->infoline);
 
 	if (user[0] == 0) {
@@ -1121,15 +906,13 @@ static void draw_info(ui_t *ui)
 	ncplane_putchar(ui->infoline, ':');
 	ncplane_set_styles(ui->infoline, NCSTYLE_BOLD);
 
-	const dir_t *dir = ui->nav->dirs[0];
-	if (dir) {
+	if ((dir = ui->nav->dirs[0])) {
 		// shortening should work fine with ascii only names
-		const file_t *file = dir_current_file(dir);
 		const char *end = dir->path + strlen(dir->path);
 		int remaining;
 		ncplane_cursor_yx(ui->infoline, NULL, &remaining);
 		remaining = ui->ncol - remaining;
-		if (file) {
+		if ((file = dir_current_file(dir))) {
 			remaining -= strlen(file->name);
 		}
 		ncplane_set_fg_palindex(ui->infoline, COLOR_BLUE);
@@ -1168,22 +951,21 @@ static void draw_info(ui_t *ui)
 void history_write(ui_t *ui)
 {
 	log_trace("history_write");
+	FILE *fp;
 
 	char *dir, *buf = strdup(cfg.historypath);
 	dir = dirname(buf);
 	mkdir_p(dir);
 	free(buf);
 
-	FILE *fp = fopen(cfg.historypath, "w");
-	if (!fp) {
+	if (!(fp = fopen(cfg.historypath, "w"))) {
 		ui_error(ui, "history: %s", strerror(errno));
 		return;
 	}
 
-	char **it;
-	for (it = cvector_begin(ui->history); it != cvector_end(ui->history);
-			++it) {
-		fputs(*it, fp);
+	size_t i;
+	for (i = 0; i < cvector_size(ui->history); i++) {
+		fputs(ui->history[i], fp);
 		fputc('\n', fp);
 	}
 	fclose(fp);
@@ -1253,6 +1035,203 @@ const char *ui_history_next(ui_t *ui)
 		return "";
 	}
 	return *ui->history_ptr;
+}
+/* }}} */
+
+/* wdraw_dir {{{ */
+
+static void print_file_line(struct ncplane *n, file_t *file, bool iscurrent, char **sel,
+		char **load, enum movemode_e mode,
+		const char *highlight)
+{
+	int ncol, y0, x;
+	char size[16];
+	wchar_t buf[128];
+	ncplane_dim_yx(n, NULL, &ncol);
+	ncplane_cursor_yx(n, &y0, NULL);
+
+	const bool isexec = file_isexec(file);
+	const bool isdir = file_isdir(file);
+	const bool isselected = cvector_contains(file->path, sel);
+	const bool iscpy =
+		mode == MODE_COPY && cvector_contains(file->path, load);
+	const bool isdel =
+		mode == MODE_MOVE && cvector_contains(file->path, load);
+	const bool islink = file_islink(file);
+
+	/* log_debug("%s %u %u", file->name, ncplane_fg_rgb(n), ncplane_bg_rgb(n)); */
+
+	if (isdir) {
+		snprintf(size, sizeof(size), "%d", file->filecount);
+	} else {
+		readable_fs(file->stat.st_size, size);
+	}
+
+	int rightmargin =
+		strlen(size) + 2; /* one space before and one after size */
+	if (islink) {
+		rightmargin += 3; /* " ->" */
+	}
+	if (rightmargin > ncol * 2 / 3) {
+		rightmargin = 0;
+	}
+
+	ncplane_set_bg_default(n);
+
+	if (isselected) {
+		ncplane_set_bg_palindex(n, COLOR_SEL);
+	} else if (isdel) {
+		ncplane_set_bg_palindex(n, COLOR_DEL);
+	} else if (iscpy) {
+		ncplane_set_bg_palindex(n, COLOR_CPY);
+	}
+	ncplane_putchar(n, ' ');
+	ncplane_set_bg_default(n);
+	if (isdir) {
+		ncplane_set_fg_palindex(n, COLOR_BLUE);
+		ncplane_set_styles(n, NCSTYLE_BOLD);
+	} else if (isexec) {
+		ncplane_set_fg_palindex(n, COLOR_GREEN);
+
+	} else if (hascasesuffix(".mp4", file->name)) {
+		ncplane_set_fg_palindex(n, COLOR_PINK);
+	} else if (hascasesuffix(".mkv", file->name)) {
+		ncplane_set_fg_palindex(n, COLOR_PINK);
+	} else if (hascasesuffix(".m4v", file->name)) {
+		ncplane_set_fg_palindex(n, COLOR_PINK);
+	} else if (hascasesuffix(".webm", file->name)) {
+		ncplane_set_fg_palindex(n, COLOR_PINK);
+	} else if (hascasesuffix(".avi", file->name)) {
+		ncplane_set_fg_palindex(n, COLOR_PINK);
+	} else if (hascasesuffix(".flv", file->name)) {
+		ncplane_set_fg_palindex(n, COLOR_PINK);
+	} else if (hascasesuffix(".wmv", file->name)) {
+		ncplane_set_fg_palindex(n, COLOR_PINK);
+	} else if (hascasesuffix(".avi", file->name)) {
+		ncplane_set_fg_palindex(n, COLOR_PINK);
+
+	} else if (hascasesuffix(".tar", file->name)) {
+		ncplane_set_fg_palindex(n, 9);
+	} else if (hascasesuffix(".zst", file->name)) {
+		ncplane_set_fg_palindex(n, 9);
+	} else if (hascasesuffix(".xz", file->name)) {
+		ncplane_set_fg_palindex(n, 9);
+	} else if (hascasesuffix(".gz", file->name)) {
+		ncplane_set_fg_palindex(n, 9);
+	} else if (hascasesuffix(".zip", file->name)) {
+		ncplane_set_fg_palindex(n, 9);
+	} else if (hascasesuffix(".rar", file->name)) {
+		ncplane_set_fg_palindex(n, 9);
+	} else if (hascasesuffix(".7z", file->name)) {
+		ncplane_set_fg_palindex(n, 9);
+
+	} else if (hascasesuffix(".mp3", file->name)) {
+		ncplane_set_fg_palindex(n, COLOR_YELLOW);
+	} else if (hascasesuffix(".m4a", file->name)) {
+		ncplane_set_fg_palindex(n, COLOR_YELLOW);
+	} else if (hascasesuffix(".ogg", file->name)) {
+		ncplane_set_fg_palindex(n, COLOR_YELLOW);
+	} else if (hascasesuffix(".flag", file->name)) {
+		ncplane_set_fg_palindex(n, COLOR_YELLOW);
+	} else if (hascasesuffix(".mka", file->name)) {
+		ncplane_set_fg_palindex(n, COLOR_YELLOW);
+
+	} else if (hascasesuffix(".jpg", file->name)) {
+		ncplane_set_fg_palindex(n, COLOR_YELLOW);
+	} else if (hascasesuffix(".jpeg", file->name)) {
+		ncplane_set_fg_palindex(n, COLOR_YELLOW);
+	} else if (hascasesuffix(".png", file->name)) {
+		ncplane_set_fg_palindex(n, COLOR_YELLOW);
+	} else if (hascasesuffix(".bmp", file->name)) {
+		ncplane_set_fg_palindex(n, COLOR_YELLOW);
+	} else if (hascasesuffix(".webp", file->name)) {
+		ncplane_set_fg_palindex(n, COLOR_YELLOW);
+	} else if (hascasesuffix(".gif", file->name)) {
+		ncplane_set_fg_palindex(n, COLOR_YELLOW);
+
+	} else {
+		ncplane_set_fg_default(n);
+	}
+
+	if (iscurrent) {
+		ncplane_set_bg_palindex(n, 237);
+	}
+
+	// this would be easier if we knew how long the printed filename is
+	char *hlsubstr;
+	ncplane_putchar(n, ' ');
+	if (highlight && (hlsubstr = strcasestr(file->name, highlight))) {
+		const int l = hlsubstr - file->name;
+		const uint64_t ch = ncplane_channels(n);
+		ncplane_putnstr(n, l, file->name);
+		ncplane_set_bg_palindex(n, COLOR_YELLOW);
+		ncplane_set_fg_palindex(n, COLOR_BLACK);
+		ncplane_putnstr(n, ncol-3, highlight);
+		ncplane_set_channels(n, ch);
+		ncplane_putnstr(n, ncol-3, file->name + l + strlen(highlight));
+		ncplane_cursor_yx(n, NULL, &x);
+	} else {
+		const char *p = file->name;
+		x = mbsrtowcs(buf, &p, ncol-3, NULL);
+		ncplane_putnstr(n, ncol-3, file->name);
+	}
+	for (int l = x; l < ncol - 3; l++) {
+		ncplane_putchar(n, ' ');
+	}
+	if (x + rightmargin + 2> ncol) {
+		ncplane_putwc_yx(n, y0, ncol-rightmargin - 1, cfg.truncatechar);
+	} else {
+		ncplane_cursor_move_yx(n, y0, ncol - rightmargin);
+	}
+	if (rightmargin > 0) {
+		if (islink) {
+			ncplane_putstr(n, " ->");
+		}
+		ncplane_putchar(n, ' ');
+		ncplane_putstr(n, size);
+		ncplane_putchar(n, ' ');
+	}
+	ncplane_set_fg_default(n);
+	ncplane_set_bg_default(n);
+	ncplane_set_styles(n, NCSTYLE_NONE);
+}
+
+static void wdraw_dir(struct ncplane *n, dir_t *dir, char **sel, char **load,
+		enum movemode_e mode, const char *highlight)
+{
+	int nrow, i, offset;
+
+	ncplane_erase(n);
+	ncplane_dim_yx(n, &nrow, NULL);
+	ncplane_cursor_move_yx(n, 0, 0);
+
+	if (dir) {
+#ifdef TRACE
+		log_debug("wdraw_dir %s", dir->name);
+#endif
+		if (dir->error) {
+			ncplane_putstr_yx(n, 0, 2, dir->error == -1 ? "malloc" : strerror(dir->error));
+		} else if (dir->loading) {
+			ncplane_putstr_yx(n, 0, 2, "loading");
+		} else if (dir->len == 0) {
+			ncplane_putstr_yx(n, 0, 2, "empty");
+		} else {
+			dir->pos = min(min(dir->pos, nrow - 1), dir->ind);
+
+			offset = max(dir->ind - dir->pos, 0);
+
+			if (dir->len <= nrow) {
+				offset = 0;
+			}
+
+			for (i = 0; i + offset < dir->len && i < nrow; i++) {
+				ncplane_cursor_move_yx(n, i, 0);
+				print_file_line(n, dir->files[i + offset],
+						i == dir->pos, sel, load, mode,
+						highlight);
+			}
+		}
+	}
 }
 /* }}} */
 

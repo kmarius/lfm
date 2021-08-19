@@ -10,15 +10,15 @@
 
 enum sorttype_e { SORT_NATURAL, SORT_NAME, SORT_SIZE, SORT_CTIME, };
 
-typedef struct File {
+typedef struct file_t {
 	struct stat stat;
-	char *name;
 	char *path;
+	char *name;
 	char *link_target;
 	int filecount; /* in case of dir */
 } file_t;
 
-typedef struct Dir {
+typedef struct dir_t {
 	time_t access; /* last acces, keep as first field */
 	char path[PATH_MAX + 1];
 	char *name;	/* a substring of path */
@@ -29,8 +29,6 @@ typedef struct Dir {
 	int alllen;	 /* length of the array of all files */
 	int sortedlen;	 /* length of the array of sorted files */
 	int len;	 /* length of the array of visible files */
-	bool sorted;
-	bool hidden; /* show hidden files */
 
 	time_t loadtime; /* load time, used to check for changes on disk and
 			    reload if necessary */
@@ -43,9 +41,11 @@ typedef struct Dir {
 
 	char filter[64]; /* filter string */
 
-	enum sorttype_e sorttype;
+	bool sorted;
+	bool hidden; /* show hidden files */
 	bool dirfirst;
 	bool reverse;
+	enum sorttype_e sorttype;
 } dir_t;
 
 /*
@@ -58,7 +58,9 @@ bool file_isdir(const file_t *file);
  * Returns true if the file is a executable or, if it is a link, if the link
  * target is.
  */
-bool file_isexec(const file_t *file);
+#define file_isexec(f) ((f)->stat.st_mode & (1 | 8 | 64))
+
+#define file_islink(f) ((f)->link_target != NULL)
 
 /*
  * New directory with a 'loading' marker.
@@ -108,6 +110,6 @@ void dir_filter(dir_t *dir, const char *filter);
  */
 bool dir_check(const dir_t *dir);
 
-bool dir_isroot(const dir_t *dir);
+#define dir_isroot(d) ((d)->path[0] == '/' && (d)->path[1] == 0)
 
 #endif

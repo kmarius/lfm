@@ -35,8 +35,9 @@ void queue_put(resq_t *queue, enum result_e type, void *payload)
 
 bool queue_get(resq_t *queue, enum result_e *type, void **r)
 {
-	res_t *res = queue->head;
-	if (!res) {
+	res_t *res;
+
+	if (!(res = queue->head)) {
 		return false;
 	}
 

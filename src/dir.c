@@ -15,7 +15,7 @@
 #include "util.h"
 
 #ifndef SWAP
-#define SWAP(x, y)                                                             \
+#define SWAP(x, y) \
 	do { \
 		unsigned char _swap_temp[sizeof(x) == sizeof(y) \
 					     ? (signed)sizeof(x) \
@@ -59,7 +59,7 @@ void dir_sel(dir_t *dir, const char *file)
 			if (i == dir->ind) {
 				return;
 			}
-			/* TODO: this cant be right, dir->pos should be limited (on 2021-08-09) */
+			/* TODO: this cant be right, dir->pos should be limited by nav height (on 2021-08-09) */
 			dir->ind = i;
 			dir->pos = dir->ind;
 			return;
@@ -211,18 +211,13 @@ void dir_filter(dir_t *dir, const char *filter)
 	apply_filter(dir);
 }
 
-
-bool file_isexec(const file_t *file) {
-	return file->stat.st_mode & (1 | 8 | 64);
-}
-
 bool file_isdir(const file_t *file)
 {
 	struct stat statbuf;
 	int mode = file->stat.st_mode;
 	if (S_ISLNK(mode)) {
 		if (stat(file->path, &statbuf) == -1) {
-			// error
+			log_error("%s", strerror(errno));
 			return false;
 		}
 		return S_ISDIR(statbuf.st_mode);
@@ -234,14 +229,10 @@ bool dir_check(const dir_t *dir)
 {
 	struct stat statbuf;
 	if (stat(dir->path, &statbuf) == -1) {
-		return 0;
+		log_error("%s", strerror(errno));
+		return false;
 	}
 	return statbuf.st_mtime <= dir->loadtime;
-}
-
-bool dir_isroot(const dir_t *dir)
-{
-	return dir->path[0] == '/' && dir->path[1] == 0;
 }
 
 dir_t *new_dir(const char *path)
@@ -284,16 +275,16 @@ dir_t *new_dir(const char *path)
 
 static int file_count(const char *path)
 {
-	DIR *dirp = opendir(path);
-	if (!dirp) {
+	int ct;
+	DIR *dirp;
+	struct dirent *dp;
+
+	if (!(dirp = opendir(path))) {
 		return 0;
 	}
 
-	int ct = 0;
-	struct dirent *dp;
-	while ((dp = readdir(dirp))) {
-		ct++;
-	}
+	for (ct = 0; (dp = readdir(dirp)); ct++)
+		;
 	closedir(dirp);
 	return ct - 2;
 }
@@ -338,11 +329,11 @@ dir_t *dir_load(const char *path)
 {
 	int i, ct;
 	bool ok;
-	dir_t *newdir = new_dir(path);
 	struct dirent *dp;
+	dir_t *newdir = new_dir(path);
 
-	DIR *dirp = opendir(path);
-	if (!dirp) {
+	DIR *dirp;
+	if (!(dirp = opendir(path))) {
 		log_error("opendir: %s", strerror(errno));
 		newdir->error = errno;
 		return newdir;
@@ -397,7 +388,6 @@ dir_t *dir_load(const char *path)
 void dir_free(dir_t *dir)
 {
 	if (dir) {
-		/* log_debug("dir_free %p %d %d", dir, dir->alllen, dir->len); */
 		for (int i = 0; i < dir->alllen; i++) {
 			free(dir->allfiles[i].path);
 			free(dir->allfiles[i].link_target);
