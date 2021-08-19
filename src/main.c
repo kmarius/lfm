@@ -1,9 +1,11 @@
 #include <errno.h>
+#include <libgen.h>
 #include <locale.h>
 #include <ev.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/time.h>
+#include <sys/stat.h>
 
 #include "app.h"
 #include "config.h"
@@ -116,14 +118,29 @@ int main(int argc, char **argv)
 
 	if (optind < argc) {
 		log_debug("setting start dir %s", argv[optind]);
-		cfg.startpath = argv[optind];
+		cfg.startpath = arealpath(argv[optind]);
+		struct stat statbuf;
+		if (stat(cfg.startpath, &statbuf) == -1) {
+			log_error(strerror(errno));
+			free(cfg.startpath);
+			cfg.startpath = NULL;
+		} else {
+			if (!S_ISDIR(statbuf.st_mode)) {
+				char *f = cfg.startpath;
+				cfg.startfile = abasename(cfg.startpath);
+				cfg.startpath = adirname(cfg.startpath);
+				free(f);
+				log_debug("set start dir %s", cfg.startpath);
+				log_debug("set start file to %s", cfg.startfile);
+			} else {
+				log_debug("set start dir %s", cfg.startpath);
+			}
+		}
 	}
 
 	setlocale(LC_ALL, "");
 
 	app_init(&app);
-
-	/* ui_draw(&app.ui, &app.nav); */
 
 	log_debug("starting main loop after %.2f ms", (current_micros() - t0)/1000.0);
 	app_run(&app);

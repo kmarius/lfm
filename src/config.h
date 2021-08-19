@@ -19,6 +19,7 @@ typedef struct Config {
 	char *lastdir;
 	char *selfile;
 	char *startpath;
+	char *startfile;
 	char *previewer;
 	bool hidden;
 	bool preview;

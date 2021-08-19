@@ -34,4 +34,17 @@ unsigned long current_millis(void);
 /* recursive mkdir */
 void mkdir_p(char *path);
 
+/* these return pointer to statically allocated arrays */
+char *srealpath(const char *p);
+
+char *sbasename(const char *p);
+
+char *sdirname(const char *p);
+
+#define arealpath(p) strdup(srealpath(p))
+
+#define abasename(p) strdup(sbasename(p))
+
+#define adirname(p) strdup(sdirname(p))
+
 #endif

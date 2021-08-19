@@ -42,6 +42,8 @@ typedef struct ui_t {
 	cvector_vector_type(char*) history;
 	char **history_ptr;
 
+	cvector_vector_type(char*) messages;
+
 	char *highlight; /* search */
 	bool search_forward;
 } ui_t;
@@ -63,6 +65,10 @@ void ui_draw_dirs(ui_t *ui);
 void ui_error(ui_t *ui, const char *format, ...);
 
 void ui_echom(ui_t *ui, const char *format, ...);
+
+void ui_verror(ui_t *ui, const char *format, va_list args);
+
+void ui_vechom(ui_t *ui, const char *format, va_list args);
 
 void ui_showmenu(ui_t *ui, char **vec, int len);
 

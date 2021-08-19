@@ -21,6 +21,7 @@ config cfg = {
 	.configpath = NULL,
 	.historypath = NULL,
 	.startpath = NULL,
+	.startfile = NULL,
 	.previewer = NULL,
 	/* TODO: is hidden the wrong way around? (on 2021-07-22) */
 	.hidden = false, /* show hidden files */
@@ -68,4 +69,6 @@ void config_clear() {
 	free(cfg.corepath);
 	free(cfg.configpath);
 	free(cfg.historypath);
+	free(cfg.startpath);
+	free(cfg.startfile);
 }

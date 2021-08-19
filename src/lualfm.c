@@ -689,6 +689,19 @@ static int l_history_next(lua_State *L)
 	return 1;
 }
 
+static int l_ui_messages(lua_State *L)
+{
+	size_t i;
+
+	ui_t *ui = &app->ui;
+	lua_newtable(L);
+	for (i = 0; i < cvector_size(ui->messages); i++) {
+		lua_pushstring(L, ui->messages[i]);
+		lua_rawseti(L, -2, i+1);
+	}
+	return 1;
+}
+
 static int l_crash(lua_State *L)
 {
 	free(L);
@@ -958,6 +971,7 @@ static const struct luaL_Reg uilib[] = {{"clear", l_ui_clear},
 	{"history_prev", l_history_prev},
 	{"menu", l_ui_menu},
 	{"draw", l_ui_draw},
+	{"messages", l_ui_messages},
 	{NULL, NULL}};
 
 static const struct luaL_Reg loglib[] = {{"debug", l_log_debug},

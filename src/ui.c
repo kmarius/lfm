@@ -28,7 +28,7 @@
 #define VERSION_FMT "v0.epsilon"
 #endif
 
-#define TRACE 1
+/* #define TRACE 1 */
 
 #define COLOR_BLACK 0
 #define COLOR_RED 1
@@ -44,6 +44,8 @@
 
 #define COLOR_SEARCH COLOR_YELLOW
 #define STYLE_SEARCH NCSTYLE_BOLD
+
+static bool init = false;
 
 inline static struct ncplane *wpreview(ui_t *ui)
 {
@@ -135,11 +137,14 @@ void ui_init(ui_t *ui, nav_t *nav)
 	ui->history_ptr = NULL;
 	history_load(ui);
 
+	/* ui->messages = NULL; */
+
 	ui->highlight = NULL;
 	ui->search_forward = true;
 
 	ui->nav->load_len = 0;
 
+	init = true;
 	log_info("initialized ui");
 }
 
@@ -1294,34 +1299,52 @@ void ui_clear(ui_t *ui)
 
 void ui_echom(ui_t *ui, const char *format, ...)
 {
-	char msg[128];
 	va_list args;
 	va_start(args, format);
-	vsprintf(msg, format, args);
+	ui_vechom(ui, format, args);
 	va_end(args);
-
-	ncplane_erase(ui->cmdline);
-	ncplane_set_fg_palindex(ui->cmdline, 15);
-	ncplane_putstr_yx(ui->cmdline, 0, 0, msg);
-	ncplane_set_fg_default(ui->cmdline);
-	notcurses_render(nc);
 }
 
 void ui_error(ui_t *ui, const char *format, ...)
 {
-	char msg[128];
 	va_list args;
 	va_start(args, format);
-	vsprintf(msg, format, args);
+	ui_verror(ui, format, args);
 	va_end(args);
+}
+
+void ui_verror(ui_t *ui, const char *format, va_list args)
+{
+	char *msg;
+	vasprintf(&msg, format, args);
 
 	log_error(msg);
 
-	ncplane_erase(ui->cmdline);
-	ncplane_set_fg_palindex(ui->cmdline, COLOR_RED);
-	ncplane_putstr_yx(ui->cmdline, 0, 0, msg);
-	ncplane_set_fg_default(ui->cmdline);
-	notcurses_render(nc);
+	cvector_push_back(ui->messages, msg);
+
+	if (init) {
+		ncplane_erase(ui->cmdline);
+		ncplane_set_fg_palindex(ui->cmdline, COLOR_RED);
+		ncplane_putstr_yx(ui->cmdline, 0, 0, msg);
+		ncplane_set_fg_default(ui->cmdline);
+		notcurses_render(nc);
+	}
+}
+
+void ui_vechom(ui_t *ui, const char *format, va_list args)
+{
+	char *msg;
+	vasprintf(&msg, format, args);
+
+	cvector_push_back(ui->messages, msg);
+
+	if (init) {
+		ncplane_erase(ui->cmdline);
+		ncplane_set_fg_palindex(ui->cmdline, 15);
+		ncplane_putstr_yx(ui->cmdline, 0, 0, msg);
+		ncplane_set_fg_default(ui->cmdline);
+		notcurses_render(nc);
+	}
 }
 
 /* }}} */
@@ -1332,6 +1355,7 @@ void ui_destroy(ui_t *ui)
 	history_write(ui);
 	history_clear(ui);
 	cvector_free(ui->history);
+	cvector_ffree(ui->messages, free);
 	cvector_ffree(ui->menubuf, free);
 	for (i = 0; i < ui->previews.size; i++) {
 		preview_free(ui->previews.previews[i]);

@@ -100,6 +100,10 @@ void nav_init(nav_t *nav)
 
 	update_watchers(nav);
 
+	if (cfg.startfile) {
+		nav_sel(nav, cfg.startfile);
+	}
+
 	nav_update_preview(nav);
 }
 
@@ -598,7 +602,7 @@ static bool nav_move(nav_t *nav, int ct)
 		return true;
 	}
 	/* We actually have to redraw becuase we could be selecting the last
-	 * file in the directory. */
+	 * file in the directory but not actually moving. */
 	return dir->ind == dir->len - 1;
 }
 
@@ -638,7 +642,7 @@ file_t *nav_open(nav_t *nav)
 
 void nav_updir(nav_t *nav)
 {
-	if (streq(nav->dirs[0]->path, "/")) {
+	if (dir_isroot(nav->dirs[0])) {
 		return;
 	}
 	const char *current_name = nav->dirs[0]->name;

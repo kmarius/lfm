@@ -328,7 +328,6 @@ bool file_load(file_t *file, const char *base, const char *name)
 dir_t *dir_load(const char *path)
 {
 	int i, ct;
-	bool ok;
 	struct dirent *dp;
 	dir_t *newdir = new_dir(path);
 
@@ -356,8 +355,7 @@ dir_t *dir_load(const char *path)
 				 (dp->d_name[1] == '.' && dp->d_name[2] == 0))) {
 			continue;
 		}
-		ok = file_load(newdir->allfiles + i, path, dp->d_name);
-		if (ok) {
+		if (file_load(newdir->allfiles + i, path, dp->d_name)) {
 			i++;
 		}
 	}

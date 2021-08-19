@@ -265,6 +265,7 @@ void app_init(app_t *app)
 		exit(EXIT_FAILURE);
 	}
 
+	app->ui.messages = NULL; /* needed to keep errors on nav startup */
 	nav_init(&app->nav);
 	ui_init(&app->ui, &app->nav);
 
@@ -316,13 +317,10 @@ void app_print(const char *format, ...)
 	if (!_app) {
 		return;
 	}
-	char msg[128];
 	va_list args;
 	va_start(args, format);
-	vsnprintf(msg, sizeof(msg), format, args);
+	ui_vechom(&_app->ui, format, args);
 	va_end(args);
-
-	ui_echom(&_app->ui, msg);
 }
 
 void app_error(const char *format, ...)
@@ -330,13 +328,10 @@ void app_error(const char *format, ...)
 	if (! _app) {
 		return;
 	}
-	char msg[128];
 	va_list args;
 	va_start(args, format);
-	vsnprintf(msg, sizeof(msg), format, args);
+	ui_verror(&_app->ui, format, args);
 	va_end(args);
-
-	ui_error(&_app->ui, msg);
 }
 
 void app_timeout(int duration)

@@ -2,9 +2,11 @@
 #include <errno.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <libgen.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/time.h>
+#include <linux/limits.h>
 #include <sys/types.h>
 #include <time.h>
 
@@ -107,4 +109,25 @@ void mkdir_p(char *path)
 	if (mkdir(path, 0755) && errno != EEXIST) {
 		log_error("error while trying to create '%s'", path);
 	}
+}
+
+char *srealpath(const char *p)
+{
+	static char fullpath[PATH_MAX+1];
+	realpath(p, fullpath);
+	return fullpath;
+}
+
+char *sbasename(const char *p)
+{
+	static char buf[PATH_MAX+1];
+	strncpy(buf, p, sizeof(buf)-1);
+	return basename(buf);
+}
+
+char *sdirname(const char *p)
+{
+	static char buf[PATH_MAX+1];
+	strncpy(buf, p, sizeof(buf)-1);
+	return dirname(buf);
 }
