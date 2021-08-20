@@ -405,16 +405,14 @@ static void wdraw_file_preview(struct ncplane *n, preview_t *pv)
 
 bool ui_insert_preview(ui_t *ui, preview_t *pv)
 {
-	log_debug("ui_insert_preview %s %d", pv->path, pv->nrow);
+	/* log_debug("ui_insert_preview %s %d", pv->path, pv->nrow); */
 	preview_t **pvptr;
 	const file_t *file;
 
-	bool ret = false;
-
-	if ((file = nav_current_file(ui->nav)) &&  (file == pv->fptr || streq(pv->path, file->path))) {
+	if ((file = nav_current_file(ui->nav)) && (file == pv->fptr || streq(pv->path, file->path))) {
 		preview_free(ui->file_preview);
 		ui->file_preview = pv;
-		ret = true;
+		return true;
 	} else {
 		if ((pvptr = previewheap_find(&ui->previews, pv->path))) {
 			if (pv->mtime >= (*pvptr)->mtime) {
@@ -430,7 +428,7 @@ bool ui_insert_preview(ui_t *ui, preview_t *pv)
 			previewheap_insert(&ui->previews, pv);
 		}
 	}
-	return ret;
+	return false;
 }
 
 
