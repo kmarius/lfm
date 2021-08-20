@@ -813,51 +813,64 @@ void draw_cmdline(ui_t *ui)
 #endif
 	static char buf[512] = {0};
 	static char nums[16];
+	static char size[32];
+	static char mtime[32];
 	const dir_t *dir;
 	ncplane_erase(ui->cmdline);
 	ncplane_set_bg_default(ui->cmdline);
 	ncplane_set_fg_default(ui->cmdline);
+	int rhs_sz = 0;
+	int lhs_sz = 0;
 
 	if (ui->cmd_prefix[0] == 0) {
 		if ((dir = ui->nav->dirs[0]) && dir->ind < dir->len) {
 			/* TODO: for empty directories, show the stat of the
 			 * directory instead (on 2021-07-18) */
-			file_t *cur = dir->files[dir->ind];
-			static char size[32];
-			static char mtime[32];
-			const int lhs_sz = snprintf(
+			const file_t *file = dir_current_file(dir);
+			lhs_sz = snprintf(
 					buf, sizeof(buf), "%s %2.ld %s %s %4s %s%s%s",
-					perms(cur->stat.st_mode), cur->stat.st_nlink,
-					owner(cur->stat.st_uid), group(cur->stat.st_gid),
-					readable_fs(cur->stat.st_size, size),
-					print_time(cur->stat.st_mtime, mtime, sizeof(mtime)),
-					cur->link_target ? " -> " : "",
-					cur->link_target ? cur->link_target : "");
-			int rhs_sz = snprintf(nums, sizeof(nums), " %d/%d", dir->ind + 1, dir->len);
+					perms(file->stat.st_mode), file->stat.st_nlink,
+					owner(file->stat.st_uid), group(file->stat.st_gid),
+					readable_fs(file->stat.st_size, size),
+					print_time(file->stat.st_mtime, mtime, sizeof(mtime)),
+					file->link_target ? " -> " : "",
+					file->link_target ? file->link_target : "");
 			ncplane_putstr_yx(ui->cmdline, 0, 0, buf);
-			ncplane_putstr_yx(ui->cmdline, 0, ui->ncol - rhs_sz, nums);
-			if (ui->nav->load_len > 0) {
-				if (ui->nav->mode == MODE_COPY) {
-					ncplane_set_channels(ui->cmdline, cfg.colors.copy);
-				} else {
-					ncplane_set_channels(ui->cmdline, cfg.colors.delete);
-				}
-				rhs_sz += int_sz(ui->nav->load_len) + 3;
-				ncplane_printf_yx(ui->cmdline, 0, ui->ncol-rhs_sz+1, " %d ", ui->nav->load_len);
-				ncplane_set_bg_default(ui->cmdline);
-				ncplane_putchar(ui->cmdline, ' ');
+		}
+
+		rhs_sz = snprintf(nums, sizeof(nums), " %d/%d", dir->len ? dir->ind + 1 : 0, dir->len);
+		ncplane_putstr_yx(ui->cmdline, 0, ui->ncol - rhs_sz, nums);
+
+		if (dir->filter[0]) {
+			rhs_sz += strlen(dir->filter) + 3;
+			ncplane_set_bg_palindex(ui->cmdline, COLOR_GREEN);
+			ncplane_set_fg_palindex(ui->cmdline, COLOR_BLACK);
+			ncplane_printf_yx(ui->cmdline, 0, ui->ncol-rhs_sz+1, " %s ", dir->filter);
+			ncplane_set_bg_default(ui->cmdline);
+			ncplane_set_fg_default(ui->cmdline);
+			ncplane_putchar(ui->cmdline, ' ');
+		}
+		if (ui->nav->load_len > 0) {
+			if (ui->nav->mode == MODE_COPY) {
+				ncplane_set_channels(ui->cmdline, cfg.colors.copy);
+			} else {
+				ncplane_set_channels(ui->cmdline, cfg.colors.delete);
 			}
-			if (ui->nav->selection_len > 0) {
-				ncplane_set_channels(ui->cmdline, cfg.colors.selection);
-				rhs_sz += int_sz(ui->nav->selection_len) + 3;
-				ncplane_printf_yx(ui->cmdline, 0, ui->ncol-rhs_sz+1, " %d ", ui->nav->selection_len);
-				ncplane_set_bg_default(ui->cmdline);
-				ncplane_putchar(ui->cmdline, ' ');
-			}
-			if (lhs_sz + rhs_sz > ui->ncol) {
-				ncplane_putwc_yx(ui->cmdline, 0, ui->ncol - rhs_sz - 1, cfg.truncatechar);
-				ncplane_putchar(ui->cmdline, ' ');
-			}
+			rhs_sz += int_sz(ui->nav->load_len) + 3;
+			ncplane_printf_yx(ui->cmdline, 0, ui->ncol-rhs_sz+1, " %d ", ui->nav->load_len);
+			ncplane_set_bg_default(ui->cmdline);
+			ncplane_putchar(ui->cmdline, ' ');
+		}
+		if (ui->nav->selection_len > 0) {
+			ncplane_set_channels(ui->cmdline, cfg.colors.selection);
+			rhs_sz += int_sz(ui->nav->selection_len) + 3;
+			ncplane_printf_yx(ui->cmdline, 0, ui->ncol-rhs_sz+1, " %d ", ui->nav->selection_len);
+			ncplane_set_bg_default(ui->cmdline);
+			ncplane_putchar(ui->cmdline, ' ');
+		}
+		if (lhs_sz + rhs_sz > ui->ncol) {
+			ncplane_putwc_yx(ui->cmdline, 0, ui->ncol - rhs_sz - 1, cfg.truncatechar);
+			ncplane_putchar(ui->cmdline, ' ');
 		}
 	} else {
 		const int cursor_pos = strlen(ui->cmd_prefix) + strlen(ui->cmd_acc_left);
