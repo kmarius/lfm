@@ -11,14 +11,15 @@
 
 preview_t *preview_new(const char *path, const file_t *fptr, int nrow, int ncol)
 {
-	(void)nrow;
-	(void)ncol;
 	preview_t *pv = malloc(sizeof(preview_t));
 	pv->fptr = fptr;
 	pv->lines = NULL;
 	pv->path = strdup(path);
 	pv->mtime = 0;
 	pv->access = 0;
+	pv->ncol = ncol;
+	pv->nrow = nrow;
+	pv->loading = false;
 	return pv;
 }
 
@@ -26,6 +27,7 @@ preview_t *preview_new_loading(const char *path, const file_t *fptr, int nrow,
 			       int ncol)
 {
 	preview_t *pv = preview_new(path, fptr, nrow, ncol);
+	pv->loading = true;
 	/* cvector_push_back(pv->lines, strdup("loading")); */
 	return pv;
 }

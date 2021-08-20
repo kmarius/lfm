@@ -3,6 +3,7 @@
 #include <stdlib.h>
 
 #include "async.h"
+#include "log.h"
 #include "dir.h"
 #include "preview.h"
 #include "tpool.h"

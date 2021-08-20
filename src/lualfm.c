@@ -280,28 +280,67 @@ static int l_ui_draw(lua_State *L)
 	return 0;
 }
 
+static unsigned long read_pair(lua_State *L)
+{
+	int fg = -1;
+	int bg = -1;
+	lua_getfield(L, -1, "fg");
+	if (!lua_isnoneornil(L, -1)) {
+		fg = lua_tointeger(L, -1);
+	}
+	lua_pop(L, 1);
+	lua_getfield(L, -1, "bg");
+	if (!lua_isnoneornil(L, -1)) {
+		bg = lua_tointeger(L, -1);
+	}
+	lua_pop(L, 1);
+	return NCCHANNELS_INITIALIZER_PALINDEX(fg, bg);
+}
+
 static int l_colors_newindex(lua_State *L)
 {
-	/* TODO: continue (on 2021-08-17) */
 	const char *key = luaL_checkstring(L, 2);
-	if (streq(key, "executable")) {
+	if (streq(key, "copy")) {
 		if (lua_istable(L, 3)) {
-			int fg = -1;
-			int bg = -1;
-			lua_getfield(L, 3, "fg");
-			if (!lua_isnoneornil(L, -1)) {
-				fg = atoi(lua_tostring(L, -1));
+			cfg.colors.copy = read_pair(L);
+		}
+	} else if (streq(key, "delete")) {
+		if (lua_istable(L, 3)) {
+			cfg.colors.delete = read_pair(L);
+		}
+	} else if (streq(key, "dir")) {
+		if (lua_istable(L, 3)) {
+			cfg.colors.dir = read_pair(L);
+		}
+	} else if (streq(key, "exec")) {
+		if (lua_istable(L, 3)) {
+			cfg.colors.exec = read_pair(L);
+		}
+	} else if (streq(key, "search")) {
+		if (lua_istable(L, 3)) {
+			cfg.colors.search = read_pair(L);
+		}
+	} else if (streq(key, "current")) {
+		cfg.colors.current = luaL_checkinteger(L, 3);
+	} else if (streq(key, "patterns")) {
+		if (lua_istable(L, 3)) {
+			lua_pushnil(L);
+			while (lua_next(L, 3)) {
+				lua_getfield(L, -1, "color");
+				unsigned long ch = read_pair(L);
 				lua_pop(L, 1);
+
+				lua_getfield(L, -1, "ext");
+				lua_pushnil(L);
+				while (lua_next(L, -2)) {
+					ext_channel_add(lua_tostring(L, -1), ch);
+					lua_pop(L, 1);
+				}
+				lua_pop(L, 2);
 			}
-			lua_getfield(L, 3, "bg");
-			if (!lua_isnoneornil(L, -1)) {
-				bg = atoi(lua_tostring(L, -1));
-				lua_pop(L, 1);
-			}
-			(void) fg;
-			(void) bg;
 		}
 	}
+	ui_draw(&app->ui);
 	return 0;
 }
 
@@ -1005,10 +1044,10 @@ int luaopen_lfm(lua_State *L)
 	luaL_register(L, NULL, uilib);
 
 	lua_newtable(L); /* ui.colors */
-	lua_setfield(L, -2, "colors"); /* lfm.ui = {...} */
 	luaL_newmetatable(L, "mtColors"); /* metatable for the config table */
 	luaL_register(L, NULL, colorsmt);
 	lua_setmetatable(L, -2);
+	lua_setfield(L, -2, "colors"); /* lfm.ui = {...} */
 
 	lua_setfield(L, -2, "ui"); /* lfm.ui = {...} */
 

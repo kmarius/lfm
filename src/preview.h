@@ -12,6 +12,9 @@ typedef struct Preview {
 	char *path;
 	cvector_vector_type(char*) lines;
 	time_t mtime;
+	int ncol;
+	int nrow;
+	bool loading;
 } preview_t;
 
 preview_t *preview_new(const char *path, const file_t *fptr, int nrow, int ncol);

@@ -7,6 +7,18 @@
 
 #include "cvector.h"
 
+#define COLOR_BLACK 0
+#define COLOR_RED 1
+#define COLOR_GREEN 2
+#define COLOR_YELLOW 3
+#define COLOR_BLUE 4
+#define COLOR_PINK 5
+#define COLOR_TEAL 6
+
+#define NCCHANNELS_INITIALIZER_PALINDEX(fg, bg) \
+	(((NC_BGDEFAULT_MASK | NC_BG_PALETTE) & 0xff000000) | fg) << 32ull \
+	| (bg < 0 ? 0 : (((NC_BGDEFAULT_MASK | NC_BG_PALETTE) & 0xff000000) | bg))
+
 typedef struct Config {
 	wchar_t truncatechar;
 	char *corepath;    /* ~/.local/share/lfm/lua/core.lua */
@@ -26,6 +38,15 @@ typedef struct Config {
 	cvector_vector_type(char*) commands;
 	cvector_vector_type(int) ratios;
 	int scrolloff;
+	struct colors {
+		unsigned long selection;
+		unsigned long copy;
+		unsigned long delete;
+		unsigned long search;
+		unsigned long exec;
+		unsigned long dir;
+		short current; /* bg index only */
+	} colors;
 } config;
 
 extern config cfg;

@@ -8,6 +8,10 @@
 #define streq(X, Y) (strcmp(X, Y) == 0)
 #endif
 
+#ifndef strcaseeq
+#define strcaseeq(X, Y) (strcasecmp(X, Y) == 0)
+#endif
+
 #ifndef snprintf_nowarn
 #define snprintf_nowarn(...) (snprintf(__VA_ARGS__) < 0 ? abort() : (void)0)
 #endif
@@ -15,6 +19,8 @@
 int min(int i, int j);
 
 int max(int i, int j);
+
+const char *strcaserchr(const char *str, char c);
 
 bool hasprefix(const char *pre, const char *str);
 

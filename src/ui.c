@@ -22,28 +22,7 @@
 #include "ui.h"
 #include "util.h"
 
-#ifdef DEBUG
-#define VERSION_FMT "v0.epsilon-debug"
-#else
-#define VERSION_FMT "v0.epsilon"
-#endif
-
 /* #define TRACE 1 */
-
-#define COLOR_BLACK 0
-#define COLOR_RED 1
-#define COLOR_GREEN 2
-#define COLOR_YELLOW 3
-#define COLOR_BLUE 4
-#define COLOR_PINK 5
-#define COLOR_TEAL 6
-
-#define COLOR_SEL COLOR_PINK
-#define COLOR_DEL COLOR_RED
-#define COLOR_CPY COLOR_YELLOW
-
-#define COLOR_SEARCH COLOR_YELLOW
-#define STYLE_SEARCH NCSTYLE_BOLD
 
 static bool init = false;
 
@@ -51,6 +30,13 @@ inline static struct ncplane *wpreview(ui_t *ui)
 {
 	return ui->wdirs[ui->ndirs-1];
 }
+
+typedef struct tup_t {
+	char *ext;
+	unsigned long channel;
+} tup_t;
+
+static tup_t *ext_channels = NULL;
 
 static void history_load(ui_t *ui);
 static void draw_info(ui_t *ui);
@@ -186,6 +172,10 @@ void ui_resize(ui_t *ui)
 	ncplane_resize(ui->infoline, 0, 0, 0, 0, 0, 0, 1, ui->ncol);
 	ncplane_resize(ui->cmdline, 0, 0, 0, 0, 0, 0, 1, ui->ncol);
 	ncplane_move_yx(ui->cmdline, ui->nrow - 1, 0);
+	/* if (ui->file_preview) { */
+	/* 	preview_free(ui->file_preview); */
+	/* 	ui->file_preview = NULL; */
+	/* } */
 	menu_resize(ui);
 	ui_recol(ui);
 	ui_clear(ui);
@@ -205,31 +195,36 @@ preview_t *ui_load_preview(ui_t *ui, file_t *file)
 {
 	/* log_trace("ui_load_preview %s", file->path); */
 
-	int x, y;
+	int ncol, nrow;
 	preview_t *pv;
 
 	struct ncplane *w = wpreview(ui);
-	ncplane_dim_yx(w, &y, &x);
+	ncplane_dim_yx(w, &nrow, &ncol);
 
 	if ((pv = previewheap_take(&ui->previews, file->path))) {
 		/* TODO: vv (on 2021-08-10) */
 		/* might be checking too often here? or is it capped by inotify
 		 * timeout? */
-		if (!preview_check(pv)) {
-			async_preview_load(pv->path, file, x, y);
+		if (!preview_check(pv) || pv->nrow < ui->nrow - 2) {
+			async_preview_load(pv->path, file, nrow, ncol);
 		}
 	} else {
-		pv = preview_new_loading(file->path, file, x, y);
-		async_preview_load(file->path, file, x, y);
+		pv = preview_new_loading(file->path, file, nrow, ncol);
+		async_preview_load(file->path, file, nrow, ncol);
 	}
 	return pv;
 }
 
 void ui_draw_preview(ui_t *ui)
 {
+	wdraw_file_preview(wpreview(ui), ui->file_preview);
+}
+
+static void update_preview(ui_t *ui)
+{
 	/* log_trace("ui_draw_preview"); */
-	int x, y;
-	ncplane_dim_yx(wpreview(ui), &y, &x);
+	int ncol, nrow;
+	ncplane_dim_yx(wpreview(ui), &nrow, &ncol);
 	dir_t *dir;
 	file_t *file;
 
@@ -240,8 +235,12 @@ void ui_draw_preview(ui_t *ui)
 		file = dir->files[dir->ind];
 		if (ui->file_preview) {
 			if (streq(ui->file_preview->path, file->path)) {
-				if (!preview_check(ui->file_preview)) {
-					async_preview_load(file->path, file, x, y);
+				if ((!preview_check(ui->file_preview)
+							|| ui->file_preview->nrow < nrow)
+						&& !ui->file_preview->loading){
+					// avoid loading more previews when drawing
+					ui->file_preview->loading = true;
+					async_preview_load(file->path, file, nrow, ncol);
 				}
 			} else {
 				previewheap_insert(&ui->previews, ui->file_preview);
@@ -250,9 +249,7 @@ void ui_draw_preview(ui_t *ui)
 		} else {
 			ui->file_preview = ui_load_preview(ui, file);
 		}
-		wdraw_file_preview(w, ui->file_preview);
 	}
-	notcurses_render(nc);
 }
 
 static void wansi_matchattr(struct ncplane *w, int a)
@@ -384,28 +381,38 @@ static char *wansi_consoom(struct ncplane *w, char *s)
 	return s;
 }
 
-static void wdraw_file_preview(struct ncplane *w, preview_t *pv)
+static void wdraw_file_preview(struct ncplane *n, preview_t *pv)
 {
 #ifdef TRACE
 	log_trace("wdraw_preview");
 #endif
-	int i, ncol, nrow;
 
-	ncplane_dim_yx(w, &nrow, &ncol);
-	ncplane_set_styles(w, NCSTYLE_NONE);
-	ncplane_set_fg_default(w);
-	ncplane_set_bg_default(w);
+	int i, nrow;
 
-	const int l = cvector_size(pv->lines);
-	for (i = 0; i < l && i < nrow; i++) {
-		ncplane_cursor_move_yx(w, i, 0);
-		wansi_addstr(w, pv->lines[i]);
+	ncplane_erase(n);
+	/* render, otherwise artefacts of the previous preview remain
+	 * as of 2021-08-19 */
+	notcurses_render(nc);
+
+	if (pv) {
+		ncplane_dim_yx(n, &nrow, NULL);
+		ncplane_set_styles(n, NCSTYLE_NONE);
+		ncplane_set_fg_default(n);
+		ncplane_set_bg_default(n);
+
+		const int l = cvector_size(pv->lines);
+		for (i = 0; i < l && i < nrow; i++) {
+			ncplane_cursor_move_yx(n, i, 0);
+			wansi_addstr(n, pv->lines[i]);
+		}
 	}
+
+	notcurses_render(nc);
 }
 
 bool ui_insert_preview(ui_t *ui, preview_t *pv)
 {
-	log_debug("ui_insert_preview %s", pv->path);
+	log_debug("ui_insert_preview %s %d", pv->path, pv->nrow);
 	preview_t **pvptr;
 	const file_t *file;
 
@@ -417,7 +424,6 @@ bool ui_insert_preview(ui_t *ui, preview_t *pv)
 		ret = true;
 	} else {
 		if ((pvptr = previewheap_find(&ui->previews, pv->path))) {
-			/* mtime is seconds right? >= is probably better */
 			if (pv->mtime >= (*pvptr)->mtime) {
 				/* update */
 				pv->access = (*pvptr)->access;
@@ -839,12 +845,11 @@ void draw_cmdline(ui_t *ui)
 			int rhs_sz = snprintf(nums, sizeof(nums), " %d/%d", dir->ind + 1, dir->len);
 			ncplane_putstr_yx(ui->cmdline, 0, 0, buf);
 			ncplane_putstr_yx(ui->cmdline, 0, ui->ncol - rhs_sz, nums);
-			ncplane_set_fg_palindex(ui->cmdline, 0);
 			if (ui->nav->load_len > 0) {
 				if (ui->nav->mode == MODE_COPY) {
-					ncplane_set_bg_palindex(ui->cmdline, COLOR_CPY);
+					ncplane_set_channels(ui->cmdline, cfg.colors.copy);
 				} else {
-					ncplane_set_bg_palindex(ui->cmdline, COLOR_DEL);
+					ncplane_set_channels(ui->cmdline, cfg.colors.delete);
 				}
 				rhs_sz += int_sz(ui->nav->load_len) + 3;
 				ncplane_printf_yx(ui->cmdline, 0, ui->ncol-rhs_sz+1, " %d ", ui->nav->load_len);
@@ -852,7 +857,7 @@ void draw_cmdline(ui_t *ui)
 				ncplane_putchar(ui->cmdline, ' ');
 			}
 			if (ui->nav->selection_len > 0) {
-				ncplane_set_bg_palindex(ui->cmdline, COLOR_SEL);
+				ncplane_set_channels(ui->cmdline, cfg.colors.selection);
 				rhs_sz += int_sz(ui->nav->selection_len) + 3;
 				ncplane_printf_yx(ui->cmdline, 0, ui->ncol-rhs_sz+1, " %d ", ui->nav->selection_len);
 				ncplane_set_bg_default(ui->cmdline);
@@ -895,10 +900,6 @@ static void draw_info(ui_t *ui)
 		home = getenv("HOME");
 		home_len = strlen(home);
 	}
-
-	ncplane_set_fg_default(ui->infoline);
-	ncplane_set_styles(ui->infoline, NCSTYLE_NONE);
-	ncplane_putstr_yx(ui->infoline, 0, ui->ncol-strlen(VERSION_FMT),  VERSION_FMT);
 
 	ncplane_set_styles(ui->infoline, NCSTYLE_BOLD);
 	ncplane_set_fg_palindex(ui->infoline, COLOR_GREEN);
@@ -1045,6 +1046,26 @@ const char *ui_history_next(ui_t *ui)
 
 /* wdraw_dir {{{ */
 
+unsigned long ext_channel_find(const char *ext)
+{
+	size_t i;
+	if (ext) {
+		const size_t l = cvector_size(ext_channels);
+		for (i = 0; i < l; i++) {
+			if (streq(ext, ext_channels[i].ext)) {
+				return ext_channels[i].channel;
+			}
+		}
+	}
+	return 0;
+}
+
+void ext_channel_add(const char *ext, unsigned long channel)
+{
+	tup_t t = { .ext = strdup(ext), .channel = channel };
+	cvector_push_back(ext_channels, t);
+}
+
 static void print_file_line(struct ncplane *n, file_t *file, bool iscurrent, char **sel,
 		char **load, enum movemode_e mode,
 		const char *highlight)
@@ -1084,82 +1105,31 @@ static void print_file_line(struct ncplane *n, file_t *file, bool iscurrent, cha
 	ncplane_set_bg_default(n);
 
 	if (isselected) {
-		ncplane_set_bg_palindex(n, COLOR_SEL);
+		ncplane_set_channels(n, cfg.colors.selection);
 	} else if (isdel) {
-		ncplane_set_bg_palindex(n, COLOR_DEL);
+		ncplane_set_channels(n, cfg.colors.delete);
 	} else if (iscpy) {
-		ncplane_set_bg_palindex(n, COLOR_CPY);
+		ncplane_set_channels(n, cfg.colors.copy);
 	}
 	ncplane_putchar(n, ' ');
 	ncplane_set_bg_default(n);
 	if (isdir) {
-		ncplane_set_fg_palindex(n, COLOR_BLUE);
+		ncplane_set_channels(n, cfg.colors.dir);
 		ncplane_set_styles(n, NCSTYLE_BOLD);
 	} else if (isexec) {
-		ncplane_set_fg_palindex(n, COLOR_GREEN);
-
-	} else if (hascasesuffix(".mp4", file->name)) {
-		ncplane_set_fg_palindex(n, COLOR_PINK);
-	} else if (hascasesuffix(".mkv", file->name)) {
-		ncplane_set_fg_palindex(n, COLOR_PINK);
-	} else if (hascasesuffix(".m4v", file->name)) {
-		ncplane_set_fg_palindex(n, COLOR_PINK);
-	} else if (hascasesuffix(".webm", file->name)) {
-		ncplane_set_fg_palindex(n, COLOR_PINK);
-	} else if (hascasesuffix(".avi", file->name)) {
-		ncplane_set_fg_palindex(n, COLOR_PINK);
-	} else if (hascasesuffix(".flv", file->name)) {
-		ncplane_set_fg_palindex(n, COLOR_PINK);
-	} else if (hascasesuffix(".wmv", file->name)) {
-		ncplane_set_fg_palindex(n, COLOR_PINK);
-	} else if (hascasesuffix(".avi", file->name)) {
-		ncplane_set_fg_palindex(n, COLOR_PINK);
-
-	} else if (hascasesuffix(".tar", file->name)) {
-		ncplane_set_fg_palindex(n, 9);
-	} else if (hascasesuffix(".zst", file->name)) {
-		ncplane_set_fg_palindex(n, 9);
-	} else if (hascasesuffix(".xz", file->name)) {
-		ncplane_set_fg_palindex(n, 9);
-	} else if (hascasesuffix(".gz", file->name)) {
-		ncplane_set_fg_palindex(n, 9);
-	} else if (hascasesuffix(".zip", file->name)) {
-		ncplane_set_fg_palindex(n, 9);
-	} else if (hascasesuffix(".rar", file->name)) {
-		ncplane_set_fg_palindex(n, 9);
-	} else if (hascasesuffix(".7z", file->name)) {
-		ncplane_set_fg_palindex(n, 9);
-
-	} else if (hascasesuffix(".mp3", file->name)) {
-		ncplane_set_fg_palindex(n, COLOR_YELLOW);
-	} else if (hascasesuffix(".m4a", file->name)) {
-		ncplane_set_fg_palindex(n, COLOR_YELLOW);
-	} else if (hascasesuffix(".ogg", file->name)) {
-		ncplane_set_fg_palindex(n, COLOR_YELLOW);
-	} else if (hascasesuffix(".flag", file->name)) {
-		ncplane_set_fg_palindex(n, COLOR_YELLOW);
-	} else if (hascasesuffix(".mka", file->name)) {
-		ncplane_set_fg_palindex(n, COLOR_YELLOW);
-
-	} else if (hascasesuffix(".jpg", file->name)) {
-		ncplane_set_fg_palindex(n, COLOR_YELLOW);
-	} else if (hascasesuffix(".jpeg", file->name)) {
-		ncplane_set_fg_palindex(n, COLOR_YELLOW);
-	} else if (hascasesuffix(".png", file->name)) {
-		ncplane_set_fg_palindex(n, COLOR_YELLOW);
-	} else if (hascasesuffix(".bmp", file->name)) {
-		ncplane_set_fg_palindex(n, COLOR_YELLOW);
-	} else if (hascasesuffix(".webp", file->name)) {
-		ncplane_set_fg_palindex(n, COLOR_YELLOW);
-	} else if (hascasesuffix(".gif", file->name)) {
-		ncplane_set_fg_palindex(n, COLOR_YELLOW);
-
+		ncplane_set_channels(n, cfg.colors.exec);
+		ncplane_set_channels(n, cfg.colors.exec);
 	} else {
-		ncplane_set_fg_default(n);
+		unsigned long ch = ext_channel_find(strcaserchr(file->name, '.'));
+		if (ch > 0) {
+			ncplane_set_channels(n, ch);
+		} else {
+			ncplane_set_fg_default(n);
+		}
 	}
 
 	if (iscurrent) {
-		ncplane_set_bg_palindex(n, 237);
+		ncplane_set_bg_palindex(n, cfg.colors.current);
 	}
 
 	// this would be easier if we knew how long the printed filename is
@@ -1169,7 +1139,7 @@ static void print_file_line(struct ncplane *n, file_t *file, bool iscurrent, cha
 		const int l = hlsubstr - file->name;
 		const uint64_t ch = ncplane_channels(n);
 		ncplane_putnstr(n, l, file->name);
-		ncplane_set_bg_palindex(n, COLOR_YELLOW);
+		ncplane_set_channels(n, cfg.colors.search);
 		ncplane_set_fg_palindex(n, COLOR_BLACK);
 		ncplane_putnstr(n, ncol-3, highlight);
 		ncplane_set_channels(n, ch);
@@ -1229,7 +1199,8 @@ static void wdraw_dir(struct ncplane *n, dir_t *dir, char **sel, char **load,
 				offset = 0;
 			}
 
-			for (i = 0; i + offset < dir->len && i < nrow; i++) {
+			const int l = min(dir->len - offset, nrow);
+			for (i = 0; i < l; i++) {
 				ncplane_cursor_move_yx(n, i, 0);
 				print_file_line(n, dir->files[i + offset],
 						i == dir->pos, sel, load, mode,
@@ -1255,6 +1226,7 @@ void ui_draw_dirs(ui_t *ui)
 	log_trace("ui_draw_dirs");
 #endif
 	int i;
+	dir_t *pdir;
 
 	draw_info(ui);
 
@@ -1265,12 +1237,11 @@ void ui_draw_dirs(ui_t *ui)
 	}
 
 	if (cfg.preview) {
-		dir_t *pdir = ui->nav->preview;
-		if (pdir) {
+		if ((pdir = ui->nav->preview)) {
 			wdraw_dir(wpreview(ui), ui->nav->preview, ui->nav->selection,
 					ui->nav->load, ui->nav->mode, NULL);
 		} else {
-			/* TODO: reload preview after resize (on 2021-07-27) */
+			update_preview(ui);
 			ui_draw_preview(ui);
 		}
 	}
@@ -1349,6 +1320,8 @@ void ui_vechom(ui_t *ui, const char *format, va_list args)
 
 /* }}} */
 
+#define tup_free(t) free((t).ext)
+
 void ui_destroy(ui_t *ui)
 {
 	int i;
@@ -1357,6 +1330,7 @@ void ui_destroy(ui_t *ui)
 	cvector_free(ui->history);
 	cvector_ffree(ui->messages, free);
 	cvector_ffree(ui->menubuf, free);
+	cvector_ffree(ext_channels, tup_free);
 	for (i = 0; i < ui->previews.size; i++) {
 		preview_free(ui->previews.previews[i]);
 	}

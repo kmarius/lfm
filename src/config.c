@@ -6,6 +6,7 @@
 #include <string.h>
 #include <wchar.h>
 #include <linux/limits.h>
+#include <notcurses/notcurses.h>
 
 #include "config.h"
 #include "cvector.h"
@@ -31,6 +32,15 @@ config cfg = {
 	.preview = true,
 	.commands = NULL,
 	.scrolloff = 4,
+	.colors = {
+		.copy = NCCHANNELS_INITIALIZER_PALINDEX(COLOR_BLACK, COLOR_YELLOW),
+		.current = 237,
+		.delete = NCCHANNELS_INITIALIZER_PALINDEX(COLOR_RED, COLOR_BLACK),
+		.dir = NCCHANNELS_INITIALIZER_PALINDEX(COLOR_BLUE, -1),
+		.exec = NCCHANNELS_INITIALIZER_PALINDEX(COLOR_GREEN, -1),
+		.search = NCCHANNELS_INITIALIZER_PALINDEX(COLOR_BLACK, COLOR_YELLOW),
+		.selection = NCCHANNELS_INITIALIZER_PALINDEX(-1, COLOR_PINK),
+	}
 };
 
 void config_ratios_set(size_t n, const int *ratios)
