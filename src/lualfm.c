@@ -1031,9 +1031,17 @@ int luaopen_lfm(lua_State *L)
 	luaL_openlib(L, "lfm", lfmlib, 1);
 
 	lua_newtable(L);	       /* cfg */
+
+	lua_newtable(L); /* ui.colors */
+	luaL_newmetatable(L, "mtColors"); /* metatable for the config table */
+	luaL_register(L, NULL, colorsmt);
+	lua_setmetatable(L, -2);
+	lua_setfield(L, -2, "colors"); /* lfm.ui = {...} */
+
 	luaL_newmetatable(L, "mtCfg"); /* metatable for the config table */
 	luaL_register(L, NULL, cfgmt);
 	lua_setmetatable(L, -2);
+
 	lua_setfield(L, -2, "cfg"); /* lfm.cfg = {...} */
 
 	lua_newtable(L); /* lfm.log */
@@ -1042,13 +1050,6 @@ int luaopen_lfm(lua_State *L)
 
 	lua_newtable(L); /* lfm.ui */
 	luaL_register(L, NULL, uilib);
-
-	lua_newtable(L); /* ui.colors */
-	luaL_newmetatable(L, "mtColors"); /* metatable for the config table */
-	luaL_register(L, NULL, colorsmt);
-	lua_setmetatable(L, -2);
-	lua_setfield(L, -2, "colors"); /* lfm.ui = {...} */
-
 	lua_setfield(L, -2, "ui"); /* lfm.ui = {...} */
 
 	lua_newtable(L); /* lfm.cmd */
