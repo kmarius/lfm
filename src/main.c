@@ -73,6 +73,7 @@ int main(int argc, char **argv)
 	snprintf(logpath, sizeof(logpath), "/tmp/lfm.%d.log", getpid());
 #endif
 	cfg.fifopath = fifopath;
+	setenv("LFMFIFO", fifopath, 1);
 
 	FILE *log_fp = fopen(logpath, "w");
 
