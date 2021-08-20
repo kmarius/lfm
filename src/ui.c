@@ -1,10 +1,9 @@
 #define _GNU_SOURCE
-#include <notcurses/notcurses.h>
-/* #include <ncurses.h> */
 #include <errno.h>
 #include <fcntl.h>
 #include <grp.h>
 #include <libgen.h>
+#include <notcurses/notcurses.h>
 #include <pwd.h>
 #include <stdlib.h>
 #include <string.h>
@@ -255,8 +254,6 @@ static void update_preview(ui_t *ui)
 static void wansi_matchattr(struct ncplane *w, int a)
 {
 	/* log_debug("match_attr %d", a); */
-	int fg = -1;
-	int bg = -1;
 	if (a >= 0 && a <= 9) {
 		switch (a) {
 			case 0:
@@ -295,14 +292,10 @@ static void wansi_matchattr(struct ncplane *w, int a)
 				break;
 		}
 	} else if (a >= 30 && a <= 37) {
-		fg = a - 30;
-		ncplane_set_fg_palindex(w, fg);
+		ncplane_set_fg_palindex(w, a-30);
 	} else if (a >= 40 && a <= 47) {
-		bg = a - 40;
-		ncplane_set_bg_palindex(w, bg);
+		ncplane_set_bg_palindex(w, a-40);
 	}
-	(void)fg;
-	(void)bg;
 }
 
 /*
@@ -1052,7 +1045,7 @@ unsigned long ext_channel_find(const char *ext)
 	if (ext) {
 		const size_t l = cvector_size(ext_channels);
 		for (i = 0; i < l; i++) {
-			if (streq(ext, ext_channels[i].ext)) {
+			if (strcaseeq(ext, ext_channels[i].ext)) {
 				return ext_channels[i].channel;
 			}
 		}
@@ -1066,8 +1059,8 @@ void ext_channel_add(const char *ext, unsigned long channel)
 	cvector_push_back(ext_channels, t);
 }
 
-static void print_file_line(struct ncplane *n, file_t *file, bool iscurrent, char **sel,
-		char **load, enum movemode_e mode,
+static void print_file_line(struct ncplane *n, file_t *file,
+		bool iscurrent, char **sel, char **load, enum movemode_e mode,
 		const char *highlight)
 {
 	int ncol, y0, x;
@@ -1076,26 +1069,17 @@ static void print_file_line(struct ncplane *n, file_t *file, bool iscurrent, cha
 	ncplane_dim_yx(n, NULL, &ncol);
 	ncplane_cursor_yx(n, &y0, NULL);
 
-	const bool isexec = file_isexec(file);
-	const bool isdir = file_isdir(file);
-	const bool isselected = cvector_contains(file->path, sel);
-	const bool iscpy =
-		mode == MODE_COPY && cvector_contains(file->path, load);
-	const bool isdel =
-		mode == MODE_MOVE && cvector_contains(file->path, load);
-	const bool islink = file_islink(file);
-
 	/* log_debug("%s %u %u", file->name, ncplane_fg_rgb(n), ncplane_bg_rgb(n)); */
 
-	if (isdir) {
+	bool isdir, islink;
+	if ((isdir = file_isdir(file))) {
 		snprintf(size, sizeof(size), "%d", file->filecount);
 	} else {
 		readable_fs(file->stat.st_size, size);
 	}
 
-	int rightmargin =
-		strlen(size) + 2; /* one space before and one after size */
-	if (islink) {
+	int rightmargin = strlen(size) + 2;
+	if ((islink = file_islink(file))) {
 		rightmargin += 3; /* " ->" */
 	}
 	if (rightmargin > ncol * 2 / 3) {
@@ -1104,20 +1088,20 @@ static void print_file_line(struct ncplane *n, file_t *file, bool iscurrent, cha
 
 	ncplane_set_bg_default(n);
 
-	if (isselected) {
+	if (cvector_contains(file->path, sel)) {
 		ncplane_set_channels(n, cfg.colors.selection);
-	} else if (isdel) {
+	} else if (mode == MODE_MOVE && cvector_contains(file->path, load)) {
 		ncplane_set_channels(n, cfg.colors.delete);
-	} else if (iscpy) {
+	} else if (mode == MODE_COPY && cvector_contains(file->path, load)) {
 		ncplane_set_channels(n, cfg.colors.copy);
 	}
 	ncplane_putchar(n, ' ');
 	ncplane_set_bg_default(n);
+
 	if (isdir) {
 		ncplane_set_channels(n, cfg.colors.dir);
 		ncplane_set_styles(n, NCSTYLE_BOLD);
-	} else if (isexec) {
-		ncplane_set_channels(n, cfg.colors.exec);
+	} else if (file_isexec(file)) {
 		ncplane_set_channels(n, cfg.colors.exec);
 	} else {
 		unsigned long ch = ext_channel_find(strcaserchr(file->name, '.'));
@@ -1132,7 +1116,6 @@ static void print_file_line(struct ncplane *n, file_t *file, bool iscurrent, cha
 		ncplane_set_bg_palindex(n, cfg.colors.current);
 	}
 
-	// this would be easier if we knew how long the printed filename is
 	char *hlsubstr;
 	ncplane_putchar(n, ' ');
 	if (highlight && (hlsubstr = strcasestr(file->name, highlight))) {
@@ -1140,7 +1123,6 @@ static void print_file_line(struct ncplane *n, file_t *file, bool iscurrent, cha
 		const uint64_t ch = ncplane_channels(n);
 		ncplane_putnstr(n, l, file->name);
 		ncplane_set_channels(n, cfg.colors.search);
-		ncplane_set_fg_palindex(n, COLOR_BLACK);
 		ncplane_putnstr(n, ncol-3, highlight);
 		ncplane_set_channels(n, ch);
 		ncplane_putnstr(n, ncol-3, file->name + l + strlen(highlight));
@@ -1150,6 +1132,7 @@ static void print_file_line(struct ncplane *n, file_t *file, bool iscurrent, cha
 		x = mbsrtowcs(buf, &p, ncol-3, NULL);
 		ncplane_putnstr(n, ncol-3, file->name);
 	}
+
 	for (int l = x; l < ncol - 3; l++) {
 		ncplane_putchar(n, ' ');
 	}
@@ -1203,8 +1186,7 @@ static void wdraw_dir(struct ncplane *n, dir_t *dir, char **sel, char **load,
 			for (i = 0; i < l; i++) {
 				ncplane_cursor_move_yx(n, i, 0);
 				print_file_line(n, dir->files[i + offset],
-						i == dir->pos, sel, load, mode,
-						highlight);
+						i == dir->pos, sel, load, mode, highlight);
 			}
 		}
 	}
