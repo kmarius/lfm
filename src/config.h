@@ -25,14 +25,14 @@ typedef struct chtup_t {
 } chtup_t;
 
 typedef struct Config {
-	wchar_t truncatechar;
-	char *corepath;    /* ~/.local/share/lfm/lua/core.lua */
-	char *historypath; /* ~/.local/share/lfm/history */
-	char *configpath;  /* ~/.config/lfm/config.lua */
-	char *configdir;   /* ~/.config/lfm */
-	char *datadir;     /* ~/.local/share/lfm */
-	char *fifopath;    /* $rundir/$PID.fifo */
-	char *rundir;      /* /run/media/user/N/lfm */
+	wchar_t truncatechar; /* '~' */
+	char *corepath;       /* ~/.local/share/lfm/lua/core.lua */
+	char *historypath;    /* ~/.local/share/lfm/history */
+	char *configpath;     /* ~/.config/lfm/config.lua */
+	char *configdir;      /* ~/.config/lfm */
+	char *datadir;        /* ~/.local/share/lfm */
+	char *fifopath;       /* $rundir/$PID.fifo */
+	char *rundir;         /* /run/media/user/N/lfm */
 	char *lastdir;
 	char *selfile;
 	char *startpath;
@@ -40,9 +40,10 @@ typedef struct Config {
 	char *previewer;
 	bool hidden;
 	bool preview;
+	int scrolloff;
 	cvector_vector_type(char*) commands;
 	cvector_vector_type(int) ratios;
-	int scrolloff;
+
 	struct colors {
 		chtup_t *ext_channels;
 
@@ -52,7 +53,7 @@ typedef struct Config {
 		unsigned long search;
 		unsigned long exec;
 		unsigned long dir;
-		short current; /* bg index only */
+		short current; /* bg palette index only */
 	} colors;
 } config;
 
@@ -60,7 +61,7 @@ extern config cfg;
 
 void config_ratios_set(size_t n, const int *ratios);
 
-void ext_channel_add(const char *ext, unsigned long channel);
+void config_ext_channel_add(const char *ext, unsigned long channel);
 
 void config_defaults();
 

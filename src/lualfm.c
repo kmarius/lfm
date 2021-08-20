@@ -333,7 +333,7 @@ static int l_colors_newindex(lua_State *L)
 				lua_getfield(L, -1, "ext");
 				lua_pushnil(L);
 				while (lua_next(L, -2)) {
-					ext_channel_add(lua_tostring(L, -1), ch);
+					config_ext_channel_add(lua_tostring(L, -1), ch);
 					lua_pop(L, 1);
 				}
 				lua_pop(L, 2);
@@ -935,9 +935,9 @@ static int l_getpid(lua_State *L)
 
 static int l_timeout(lua_State *L)
 {
-	int len = luaL_checkinteger(L, 1);
-	if (len > 0) {
-		app_timeout(len);
+	const int dur = luaL_checkinteger(L, 1);
+	if (dur > 0) {
+		app_timeout(dur);
 	}
 	return 0;
 }

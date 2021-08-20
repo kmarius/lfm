@@ -55,7 +55,7 @@ void config_ratios_set(size_t n, const int *ratios)
 	}
 }
 
-void ext_channel_add(const char *ext, unsigned long channel)
+void config_ext_channel_add(const char *ext, unsigned long channel)
 {
 	chtup_t t = { .ext = strdup(ext), .channel = channel };
 	cvector_push_back(cfg.colors.ext_channels, t);
