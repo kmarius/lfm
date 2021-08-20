@@ -19,6 +19,11 @@
 	(((NC_BGDEFAULT_MASK | NC_BG_PALETTE) & 0xff000000) | fg) << 32ull \
 	| (bg < 0 ? 0 : (((NC_BGDEFAULT_MASK | NC_BG_PALETTE) & 0xff000000) | bg))
 
+typedef struct chtup_t {
+	char *ext;
+	unsigned long channel;
+} chtup_t;
+
 typedef struct Config {
 	wchar_t truncatechar;
 	char *corepath;    /* ~/.local/share/lfm/lua/core.lua */
@@ -39,6 +44,8 @@ typedef struct Config {
 	cvector_vector_type(int) ratios;
 	int scrolloff;
 	struct colors {
+		chtup_t *ext_channels;
+
 		unsigned long selection;
 		unsigned long copy;
 		unsigned long delete;
@@ -52,6 +59,8 @@ typedef struct Config {
 extern config cfg;
 
 void config_ratios_set(size_t n, const int *ratios);
+
+void ext_channel_add(const char *ext, unsigned long channel);
 
 void config_defaults();
 

@@ -33,6 +33,7 @@ config cfg = {
 	.commands = NULL,
 	.scrolloff = 4,
 	.colors = {
+		.ext_channels = NULL,
 		.copy = NCCHANNELS_INITIALIZER_PALINDEX(COLOR_BLACK, COLOR_YELLOW),
 		.current = 237,
 		.delete = NCCHANNELS_INITIALIZER_PALINDEX(COLOR_BLACK, COLOR_RED),
@@ -54,6 +55,12 @@ void config_ratios_set(size_t n, const int *ratios)
 	}
 }
 
+void ext_channel_add(const char *ext, unsigned long channel)
+{
+	chtup_t t = { .ext = strdup(ext), .channel = channel };
+	cvector_push_back(cfg.colors.ext_channels, t);
+}
+
 void config_defaults()
 {
 	const int r[] = {1, 2, 3};
@@ -70,6 +77,8 @@ void config_defaults()
 	asprintf(&cfg.corepath, "%s/lua/core.lua", cfg.datadir);
 }
 
+#define chtup_free(t) free((t).ext)
+
 void config_clear() {
 	cvector_free(cfg.ratios);
 	cvector_free(cfg.commands);
@@ -81,4 +90,5 @@ void config_clear() {
 	free(cfg.historypath);
 	free(cfg.startpath);
 	free(cfg.startfile);
+	cvector_ffree(cfg.colors.ext_channels, chtup_free);
 }

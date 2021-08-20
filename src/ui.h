@@ -107,6 +107,4 @@ void ui_kbblocking(bool blocking);
 void ui_search_nohighlight(ui_t *ui);
 void ui_search_highlight(ui_t *ui, const char *search, bool forward);
 
-void ext_channel_add(const char *ext, unsigned long channel);
-
 #endif

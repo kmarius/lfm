@@ -30,13 +30,6 @@ inline static struct ncplane *wpreview(ui_t *ui)
 	return ui->wdirs[ui->ndirs-1];
 }
 
-typedef struct tup_t {
-	char *ext;
-	unsigned long channel;
-} tup_t;
-
-static tup_t *ext_channels = NULL;
-
 static void history_load(ui_t *ui);
 static void draw_info(ui_t *ui);
 static void draw_cmdline(ui_t *ui);
@@ -1056,20 +1049,14 @@ unsigned long ext_channel_find(const char *ext)
 {
 	size_t i;
 	if (ext) {
-		const size_t l = cvector_size(ext_channels);
+		const size_t l = cvector_size(cfg.colors.ext_channels);
 		for (i = 0; i < l; i++) {
-			if (strcaseeq(ext, ext_channels[i].ext)) {
-				return ext_channels[i].channel;
+			if (strcaseeq(ext, cfg.colors.ext_channels[i].ext)) {
+				return cfg.colors.ext_channels[i].channel;
 			}
 		}
 	}
 	return 0;
-}
-
-void ext_channel_add(const char *ext, unsigned long channel)
-{
-	tup_t t = { .ext = strdup(ext), .channel = channel };
-	cvector_push_back(ext_channels, t);
 }
 
 static void print_file_line(struct ncplane *n, file_t *file,
@@ -1315,8 +1302,6 @@ void ui_vechom(ui_t *ui, const char *format, va_list args)
 
 /* }}} */
 
-#define tup_free(t) free((t).ext)
-
 void ui_destroy(ui_t *ui)
 {
 	int i;
@@ -1325,7 +1310,6 @@ void ui_destroy(ui_t *ui)
 	cvector_free(ui->history);
 	cvector_ffree(ui->messages, free);
 	cvector_ffree(ui->menubuf, free);
-	cvector_ffree(ext_channels, tup_free);
 	for (i = 0; i < ui->previews.size; i++) {
 		preview_free(ui->previews.previews[i]);
 	}
