@@ -280,21 +280,38 @@ static int l_ui_draw(lua_State *L)
 	return 0;
 }
 
+static unsigned read_channel(lua_State *L, int ind)
+{
+	switch(lua_type(L, ind))
+	{
+		case LUA_TSTRING:
+			return NCCHANNEL_INITIALIZER_PALINDEX(atoi(lua_tostring(L, ind)));
+			break;
+		case LUA_TNUMBER:
+			return NCCHANNEL_INITIALIZER_HEX(lua_tointeger(L, ind));
+			break;
+		default:
+			log_error("read_channel: unexpected type");
+			return 0;
+	}
+}
+
 static unsigned long read_color_pair(lua_State *L, int ind)
 {
-	int fg = -1;
-	int bg = -1;
+	unsigned fg, bg;
+	ncchannel_set_default(&fg);
+	ncchannel_set_default(&bg);
 	lua_getfield(L, ind, "fg");
 	if (!lua_isnoneornil(L, -1)) {
-		fg = lua_tointeger(L, -1);
+		fg = read_channel(L, -1);
 	}
 	lua_pop(L, 1);
 	lua_getfield(L, ind, "bg");
 	if (!lua_isnoneornil(L, -1)) {
-		bg = lua_tointeger(L, -1);
+		bg = read_channel(L, -1);
 	}
 	lua_pop(L, 1);
-	return NCCHANNELS_INITIALIZER_PALINDEX(fg, bg);
+	return ncchannels_combine(fg, bg);
 }
 
 static int l_colors_newindex(lua_State *L)
