@@ -98,7 +98,7 @@ bool nav_bot(nav_t *nav);
  * Changes directory to the directory given by PATH. If SAVE then the current
  * directory will be saved as the special "'" mark.
  */
-void nav_chdir(nav_t *nav, const char *path, bool save);
+bool nav_chdir(nav_t *nav, const char *path, bool save);
 
 /*
  * Open the currently selected file: if it is a directory, chdir into it.

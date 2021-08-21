@@ -11,6 +11,7 @@
 #include "async.h"
 #include "config.h"
 #include "dir.h"
+#include "lualfm.h"
 #include "dirheap.h"
 #include "log.h"
 #include "nav.h"
@@ -129,7 +130,7 @@ void nav_recol(nav_t *nav)
 	nav_update_preview(nav);
 }
 
-void nav_chdir(nav_t *nav, const char *path, bool save)
+bool nav_chdir(nav_t *nav, const char *path, bool save)
 {
 	log_trace("nav_chdir: %s", path);
 
@@ -143,7 +144,7 @@ void nav_chdir(nav_t *nav, const char *path, bool save)
 
 	if (chdir(path) != 0) {
 		app_error("chdir: %s", strerror(errno));
-		return;
+		return false;
 	}
 
 	notify_set_watchers(NULL, 0);
@@ -164,6 +165,8 @@ void nav_chdir(nav_t *nav, const char *path, bool save)
 	populate(nav);
 	update_watchers(nav);
 	nav_update_preview(nav);
+
+	return true;
 }
 
 static void update_watchers(nav_t *nav)

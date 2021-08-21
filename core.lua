@@ -54,6 +54,8 @@ end
 local hooks = {
 	LfmEnter = {},
 	ExitPre = {},
+	ChdirPre = {},
+	ChdirPost = {},
 }
 
 function lfm.register_hook(name, f)

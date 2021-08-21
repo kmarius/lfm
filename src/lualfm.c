@@ -638,7 +638,10 @@ static int l_nav_chdir(lua_State *L)
 {
 	const char *path = lua_tostring(L, 1);
 	ui_search_nohighlight(&app->ui);
-	nav_chdir(&app->nav, path, true);
+	lua_run_hook(L, "ChdirPre");
+	if (nav_chdir(&app->nav, path, true)) {
+		lua_run_hook(L, "ChdirPost");
+	}
 	ui_draw_dirs(&app->ui);
 	return 0;
 }
