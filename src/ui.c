@@ -780,7 +780,7 @@ static char *readable_fs(double size, char *buf)
 		size /= 1024;
 		i++;
 	}
-	sprintf(buf, "%.*f%s", i > 0 ? 1 : 0, size, units[i]);
+	snprintf(buf, sizeof(buf)-1, "%.*f%s", i > 0 ? 1 : 0, size, units[i]);
 	return buf;
 }
 

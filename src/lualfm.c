@@ -324,19 +324,16 @@ static int l_colors_newindex(lua_State *L)
 		cfg.colors.current = luaL_checkinteger(L, 3);
 	} else if (streq(key, "patterns")) {
 		if (lua_istable(L, 3)) {
-			lua_pushnil(L);
-			while (lua_next(L, 3)) {
+			for (lua_pushnil(L); lua_next(L, 3); lua_pop(L, 1)) {
 				lua_getfield(L, -1, "color");
 				unsigned long ch = read_pair(L);
 				lua_pop(L, 1);
 
 				lua_getfield(L, -1, "ext");
-				lua_pushnil(L);
-				while (lua_next(L, -2)) {
+				for (lua_pushnil(L); lua_next(L, -2); lua_pop(L, 1)) {
 					config_ext_channel_add(lua_tostring(L, -1), ch);
-					lua_pop(L, 1);
 				}
-				lua_pop(L, 2);
+				lua_pop(L, 1);
 			}
 		}
 	}
@@ -481,6 +478,26 @@ static int l_nav_open(lua_State *L)
 	}
 }
 
+static int l_nav_current_dir(lua_State *L)
+{
+	const dir_t *dir = nav_current_dir(&app->nav);
+	lua_newtable(L);
+	lua_pushstring(L, dir->path);
+	lua_setfield(L, -2, "path");
+	lua_pushstring(L, dir->name);
+	lua_setfield(L, -2, "name");
+
+	lua_newtable(L);
+	int i;
+	for (i = 0; i < dir->len; i++) {
+		lua_pushstring(L, dir->files[i]->path);
+		lua_rawseti(L, -2, i+1);
+	}
+	lua_setfield(L, -2, "files");
+
+	return 1;
+}
+
 static int l_sel_visual_start(lua_State *L)
 {
 	(void) L;
@@ -557,6 +574,24 @@ static int l_selection_toggle_current(lua_State *L)
 {
 	(void) L;
 	nav_selection_toggle_current(&app->nav);
+	return 0;
+}
+
+static int l_selection_add(lua_State *L)
+{
+	nav_selection_add_file(&app->nav, luaL_checkstring(L, 1));
+	return 0;
+}
+
+static int l_selection_set(lua_State *L)
+{
+	cvector_vector_type(char*) selection = NULL;
+	if (lua_istable(L, -1)) {
+		for (lua_pushnil(L); lua_next(L, -2); lua_pop(L, 1)) {
+			cvector_push_back(selection, strdup(luaL_checkstring(L, -1)));
+		}
+	}
+	nav_selection_set(&app->nav, selection);
 	return 0;
 }
 
@@ -968,9 +1003,12 @@ static const struct luaL_Reg navlib[] = {
 	{"getfilter", l_nav_filter_get},
 	{"mark_load", l_nav_mark_load},
 	{"open", l_nav_open},
+	{"current_dir", l_nav_current_dir},
 	{"selection_clear", l_selection_clear},
 	{"selection_reverse", l_selection_reverse},
 	{"selection_toggle", l_selection_toggle_current},
+	{"selection_add", l_selection_add},
+	{"selection_set", l_selection_set},
 	{"sortby", l_sortby},
 	{"top", l_nav_top},
 	{"visual_start", l_sel_visual_start},

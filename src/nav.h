@@ -231,5 +231,8 @@ void nav_drop_cache(nav_t *nav);
 
 #define nav_preview_dir(nav) (nav)->preview
 
+void nav_selection_add_file(nav_t *nav, const char *path);
+
+void nav_selection_set(nav_t *nav, cvector_vector_type(char*) sel);
 
 #endif

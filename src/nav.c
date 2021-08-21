@@ -403,7 +403,7 @@ void nav_selection_clear(nav_t *nav)
 	nav->selection_len = 0;
 }
 
-void selection_add_file(nav_t *nav, const char *path)
+void nav_selection_add_file(nav_t *nav, const char *path)
 {
 	/* log_trace("selection_add_file"); */
 	size_t i;
@@ -417,6 +417,13 @@ void selection_add_file(nav_t *nav, const char *path)
 	}
 	cvector_push_back(nav->selection, strdup(path));
 	nav->selection_len++;
+}
+
+void nav_selection_set(nav_t *nav, cvector_vector_type(char*) sel)
+{
+	nav_selection_clear(nav);
+	free(nav->selection);
+	nav->selection = sel;
 }
 
 void selection_toggle_file(nav_t *nav, const char *path)
@@ -474,7 +481,7 @@ void nav_selection_visual_start(nav_t *nav)
 	}
 	nav->visual = true;
 	nav->visual_anchor = dir->ind;
-	selection_add_file(nav, dir->files[dir->ind]->path);
+	nav_selection_add_file(nav, dir->files[dir->ind]->path);
 	for (i = 0; i < cvector_size(nav->selection); i++) {
 		if (!nav->selection[i]) {
 			continue;
