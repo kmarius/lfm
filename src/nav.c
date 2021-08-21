@@ -110,7 +110,9 @@ void nav_init(nav_t *nav)
 void nav_recol(nav_t *nav)
 {
 	int i;
-	const int l = cvector_size(cfg.ratios) - (cfg.preview ? 1 : 0);
+	/* We silently disable previews without changing cfg.preview.
+	 * */
+	const int l = max(1, cvector_size(cfg.ratios) - (cfg.preview ? 1 : 0));
 
 	remove_preview(nav);
 	for (i = 0; i < nav->ndirs; i++) {

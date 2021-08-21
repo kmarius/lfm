@@ -1223,7 +1223,7 @@ void ui_draw_dirs(ui_t *ui)
 				ui->nav->mode, i == 0 ? ui->highlight : NULL);
 	}
 
-	if (cfg.preview) {
+	if (cfg.preview && ui->ndirs > 1) {
 		if ((pdir = ui->nav->preview)) {
 			wdraw_dir(wpreview(ui), ui->nav->preview, ui->nav->selection,
 					ui->nav->load, ui->nav->mode, NULL);
