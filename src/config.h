@@ -15,9 +15,14 @@
 #define COLOR_PINK 5
 #define COLOR_TEAL 6
 
-#define NCCHANNELS_INITIALIZER_PALINDEX(fg, bg) \
-	(((NC_BGDEFAULT_MASK | NC_BG_PALETTE) & 0xff000000) | fg) << 32ull \
-	| (bg < 0 ? 0 : (((NC_BGDEFAULT_MASK | NC_BG_PALETTE) & 0xff000000) | bg))
+#define CHANNEL_INITIALIZER_PALINDEX(ind) \
+	(ind < 0 \
+	 ? ~NC_BGDEFAULT_MASK & 0xff000000llu \
+	 : (((NC_BGDEFAULT_MASK | NC_BG_PALETTE) & 0xff000000llu) | (ind & 0xff)))
+
+#define NCCHANNELS_INITIALIZER_PALINDEX(_fg, _bg) \
+	((CHANNEL_INITIALIZER_PALINDEX(_fg) << 32llu) \
+	 | CHANNEL_INITIALIZER_PALINDEX(_bg))
 
 typedef struct chtup_t {
 	char *ext;

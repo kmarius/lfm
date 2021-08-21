@@ -1096,6 +1096,11 @@ static void print_file(struct ncplane *n, const file_t *file,
 	} else if (mode == MODE_COPY && cvector_contains(file->path, load)) {
 		ncplane_set_channels(n, cfg.colors.copy);
 	}
+	// this is needed because when selecting with space the filename is printed
+	// as black (bug in notcurses)
+	// 2021-08-21
+	ncplane_set_fg_default(n);
+
 	ncplane_putchar(n, ' ');
 	ncplane_set_fg_default(n);
 	ncplane_set_bg_default(n);
