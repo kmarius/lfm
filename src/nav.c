@@ -84,7 +84,6 @@ void nav_init(nav_t *nav)
 	nav->ndirs = 0;
 	nav->dirs = NULL;
 	nav->height = 0;
-	nav->load_len = 0;
 	nav->load = NULL;
 	nav->marklist = NULL;
 	nav->mode = 0;
@@ -719,7 +718,6 @@ void nav_load_files(nav_t *nav, int mode)
 	nav_load_clear(nav);
 	char **tmp = nav->load;
 	nav->load = nav->selection;
-	nav->load_len = nav->selection_len;
 	nav->selection = tmp;
 	nav->selection_len = 0;
 }
@@ -727,7 +725,6 @@ void nav_load_files(nav_t *nav, int mode)
 void nav_load_clear(nav_t *nav)
 {
 	cvector_fclear(nav->load, free);
-	nav->load_len = 0;
 }
 
 char * const *nav_get_load(const nav_t *nav) { return nav->load; }

@@ -44,7 +44,6 @@ typedef struct Nav {
 
 	/* Copy/move buffer, vector of paths */
 	cvector_vector_type(char *) load;
-	int load_len;
 	enum movemode_e mode;
 
 	/* Height of the nav in the ui, needed to adjust pos for each dir */

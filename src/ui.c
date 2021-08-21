@@ -120,8 +120,6 @@ void ui_init(ui_t *ui, nav_t *nav)
 	ui->highlight = NULL;
 	ui->search_forward = true;
 
-	ui->nav->load_len = 0;
-
 	init = true;
 	log_info("initialized ui");
 }
@@ -841,14 +839,14 @@ void draw_cmdline(ui_t *ui)
 				ncplane_set_fg_default(ui->cmdline);
 				ncplane_putchar(ui->cmdline, ' ');
 			}
-			if (ui->nav->load_len > 0) {
+			if (cvector_size(ui->nav->load) > 0) {
 				if (ui->nav->mode == MODE_COPY) {
 					ncplane_set_channels(ui->cmdline, cfg.colors.copy);
 				} else {
 					ncplane_set_channels(ui->cmdline, cfg.colors.delete);
 				}
-				rhs_sz += int_sz(ui->nav->load_len) + 3;
-				ncplane_printf_yx(ui->cmdline, 0, ui->ncol-rhs_sz+1, " %d ", ui->nav->load_len);
+				rhs_sz += int_sz(cvector_size(ui->nav->load)) + 3;
+				ncplane_printf_yx(ui->cmdline, 0, ui->ncol-rhs_sz+1, " %lu ", cvector_size(ui->nav->load));
 				ncplane_set_bg_default(ui->cmdline);
 				ncplane_putchar(ui->cmdline, ' ');
 			}

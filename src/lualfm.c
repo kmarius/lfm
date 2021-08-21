@@ -126,9 +126,9 @@ static int l_cfg_index(lua_State *L)
 		lua_pushboolean(L, cfg.hidden);
 		return 1;
 	} else if (streq(key, "ratios")) {
-		const int l = cvector_size(cfg.ratios);
+		const size_t l = cvector_size(cfg.ratios);
 		lua_createtable(L, l, 0);
-		int i;
+		size_t i;
 		for (i = 0; i < l; i++) {
 			lua_pushinteger(L, cfg.ratios[i]);
 			lua_rawseti(L, -2, i + 1);
@@ -655,7 +655,7 @@ static int l_nav_get_load(lua_State *L)
 			lua_pushstring(L, "copy");
 			break;
 	}
-	lua_createtable(L, nav->load_len, 0);
+	lua_createtable(L, cvector_size(nav->load), 0);
 	for (i = 0; i < cvector_size(nav->load); i++) {
 		lua_pushstring(L, nav->load[i]);
 		lua_rawseti(L, -2, i+1);
@@ -682,7 +682,6 @@ static int l_nav_load_set(lua_State *L)
 		cvector_push_back(nav->load, strdup(lua_tostring(L, -1)));
 		lua_pop(L, 1);
 	}
-	nav->load_len = l;
 	return 0;
 }
 
