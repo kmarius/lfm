@@ -376,9 +376,6 @@ static void wdraw_file_preview(struct ncplane *n, preview_t *pv)
 	int i, nrow;
 
 	ncplane_erase(n);
-	/* render, otherwise artefacts of the previous preview remain
-	 * as of 2021-08-19 */
-	notcurses_render(nc);
 
 	if (pv) {
 		ncplane_dim_yx(n, &nrow, NULL);
