@@ -21,7 +21,7 @@
 #include "ui.h"
 #include "util.h"
 
-#define TRACE 1
+/* #define TRACE 1 */
 
 static bool init = false;
 
@@ -387,7 +387,6 @@ static void wdraw_file_preview(struct ncplane *n, preview_t *pv)
 		ncplane_set_bg_default(n);
 
 		const int l = cvector_size(pv->lines);
-		log_debug("%s %d", pv->path, l);
 		for (i = 0; i < l && i < nrow; i++) {
 			ncplane_cursor_move_yx(n, i, 0);
 			wansi_addstr(n, pv->lines[i]);
@@ -1096,6 +1095,7 @@ static void print_file(struct ncplane *n, const file_t *file,
 	} else if (mode == MODE_COPY && cvector_contains(file->path, load)) {
 		ncplane_set_channels(n, cfg.colors.copy);
 	}
+
 	// this is needed because when selecting with space the filename is printed
 	// as black (bug in notcurses)
 	// 2021-08-21
@@ -1115,12 +1115,13 @@ static void print_file(struct ncplane *n, const file_t *file,
 		if (ch > 0) {
 			ncplane_set_channels(n, ch);
 		} else {
-			ncplane_set_fg_default(n);
+			ncplane_set_channels(n, cfg.colors.normal);
+			/* ncplane_set_fg_default(n); */
 		}
 	}
 
 	if (iscurrent) {
-		ncplane_set_bg_palindex(n, cfg.colors.current);
+		ncplane_set_bchannel(n, cfg.colors.current);
 	}
 
 	char *hlsubstr;

@@ -57,13 +57,14 @@ typedef struct Config {
 	struct colors {
 		chtup_t *ext_channels;
 
+		unsigned long normal;
 		unsigned long selection;
 		unsigned long copy;
 		unsigned long delete;
 		unsigned long search;
 		unsigned long exec;
 		unsigned long dir;
-		short current; /* bg palette index only */
+		unsigned current; /* bg channel index only */
 	} colors;
 } config;
 

@@ -328,6 +328,8 @@ static int l_colors_newindex(lua_State *L)
 	} else if (streq(key, "dir")) {
 		if (lua_istable(L, 3)) {
 			cfg.colors.dir = read_color_pair(L, 3);
+		} else {
+			log_debug("nop");
 		}
 	} else if (streq(key, "exec")) {
 		if (lua_istable(L, 3)) {
@@ -337,8 +339,12 @@ static int l_colors_newindex(lua_State *L)
 		if (lua_istable(L, 3)) {
 			cfg.colors.search = read_color_pair(L, 3);
 		}
+	} else if (streq(key, "normal")) {
+		if (lua_istable(L, 3)) {
+			cfg.colors.normal = read_color_pair(L, 3);
+		}
 	} else if (streq(key, "current")) {
-		cfg.colors.current = luaL_checkinteger(L, 3);
+		cfg.colors.current = read_channel(L, 3);
 	} else if (streq(key, "patterns")) {
 		if (lua_istable(L, 3)) {
 			for (lua_pushnil(L); lua_next(L, 3); lua_pop(L, 1)) {
