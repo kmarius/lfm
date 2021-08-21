@@ -17,17 +17,17 @@
 
 #define NCCHANNEL_INITIALIZER_PALINDEX(ind) \
 	(ind < 0 \
-	 ? ~NC_BGDEFAULT_MASK & 0xff000000llu \
-	 : (((NC_BGDEFAULT_MASK | NC_BG_PALETTE) & 0xff000000llu) | (ind & 0xff)))
+	 ? ~NC_BGDEFAULT_MASK & 0xff000000lu \
+	 : (((NC_BGDEFAULT_MASK | NC_BG_PALETTE) & 0xff000000lu) | (ind & 0xff)))
 
 #define NCCHANNEL_INITIALIZER_HEX(hex) \
 	(hex < 0 \
-	 ? ~NC_BGDEFAULT_MASK & 0xff000000llu \
-	 : ((NC_BGDEFAULT_MASK & 0xff000000llu) | (hex & 0xffffff)))
+	 ? ~NC_BGDEFAULT_MASK & 0xff000000lu \
+	 : ((NC_BGDEFAULT_MASK & 0xff000000lu) | (hex & 0xffffff)))
 
-#define NCCHANNELS_INITIALIZER_PALINDEX(_fg, _bg) \
-	((NCCHANNEL_INITIALIZER_PALINDEX(_fg) << 32llu) \
-	 | NCCHANNEL_INITIALIZER_PALINDEX(_bg))
+#define NCCHANNELS_INITIALIZER_PALINDEX(fg, bg) \
+	((NCCHANNEL_INITIALIZER_PALINDEX(fg) << 32lu) \
+	 | NCCHANNEL_INITIALIZER_PALINDEX(bg))
 
 typedef struct chtup_t {
 	char *ext;
