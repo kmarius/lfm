@@ -33,7 +33,14 @@ static app_t *_app;
 static const size_t max_threads = 20;
 static int fifo_fd = -1;
 static int fifo_wd = -1;
-static unsigned long input_timeout = 0; /* written by app_timeout, checked by stdin_cb  */
+static unsigned long input_timeout = 0; /* written by app_timeout, read by stdin_cb  */
+
+static ev_io inotify_watcher;
+static ev_idle idle_watcher;
+static ev_timer timer_watcher;
+static ev_io stdin_watcher;
+static ev_signal signal_watcher;
+static ev_async async_res_watcher;
 
 /* callbacks {{{ */
 static void async_result_cb(EV_P_ ev_async *w, int revents)
@@ -224,13 +231,6 @@ static void idle_cb(struct ev_loop *loop, ev_idle *w, int revents)
 }
 
 /* callbacks }}} */
-
-static ev_io inotify_watcher;
-static ev_idle idle_watcher;
-static ev_timer timer_watcher;
-static ev_io stdin_watcher;
-static ev_signal signal_watcher;
-static ev_async async_res_watcher;
 
 void app_init(app_t *app)
 {
