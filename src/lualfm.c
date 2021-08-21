@@ -85,7 +85,6 @@ bool lua_load_file(lua_State *L, app_t *app, const char *path)
 	return true;
 }
 
-/* These can only return a single value. */
 static int l_nav_index(lua_State *L)
 {
 	nav_t *nav = &app->nav;
@@ -94,13 +93,11 @@ static int l_nav_index(lua_State *L)
 		lua_pushinteger(L, app->nav.height);
 		return 1;
 	} else if (streq(key, "selection")) {
-		char **it;
-		int i = 0;
 		lua_createtable(L, nav->selection_len, 0);
-		for (it = cvector_begin(nav->selection);
-		     it != cvector_end(nav->selection); ++it) {
-			lua_pushstring(L, *it);
-			lua_rawseti(L, -2, ++i);
+		size_t i;
+		for (i = 0; i < cvector_size(nav->selection); i++) {
+			lua_pushstring(L, nav->selection[i]);
+			lua_rawseti(L, -2, i+1);
 		}
 		return 1;
 	} else if (streq(key, "current")) {
@@ -648,6 +645,7 @@ static int l_nav_chdir(lua_State *L)
 
 static int l_nav_get_load(lua_State *L)
 {
+	size_t i;
 	nav_t *nav = &app->nav;
 	switch (nav->mode) {
 		case MODE_MOVE:
@@ -657,13 +655,10 @@ static int l_nav_get_load(lua_State *L)
 			lua_pushstring(L, "copy");
 			break;
 	}
-	char **it;
-	int i = 0;
 	lua_createtable(L, nav->load_len, 0);
-	for (it = cvector_begin(nav->load); it != cvector_end(nav->load);
-			++it) {
-		lua_pushstring(L, *it);
-		lua_rawseti(L, -2, ++i);
+	for (i = 0; i < cvector_size(nav->load); i++) {
+		lua_pushstring(L, nav->load[i]);
+		lua_rawseti(L, -2, i+1);
 	}
 	return 2;
 }
