@@ -280,16 +280,16 @@ static int l_ui_draw(lua_State *L)
 	return 0;
 }
 
-static unsigned long read_pair(lua_State *L)
+static unsigned long read_color_pair(lua_State *L, int ind)
 {
 	int fg = -1;
 	int bg = -1;
-	lua_getfield(L, -1, "fg");
+	lua_getfield(L, ind, "fg");
 	if (!lua_isnoneornil(L, -1)) {
 		fg = lua_tointeger(L, -1);
 	}
 	lua_pop(L, 1);
-	lua_getfield(L, -1, "bg");
+	lua_getfield(L, ind, "bg");
 	if (!lua_isnoneornil(L, -1)) {
 		bg = lua_tointeger(L, -1);
 	}
@@ -302,23 +302,23 @@ static int l_colors_newindex(lua_State *L)
 	const char *key = luaL_checkstring(L, 2);
 	if (streq(key, "copy")) {
 		if (lua_istable(L, 3)) {
-			cfg.colors.copy = read_pair(L);
+			cfg.colors.copy = read_color_pair(L, 3);
 		}
 	} else if (streq(key, "delete")) {
 		if (lua_istable(L, 3)) {
-			cfg.colors.delete = read_pair(L);
+			cfg.colors.delete = read_color_pair(L, 3);
 		}
 	} else if (streq(key, "dir")) {
 		if (lua_istable(L, 3)) {
-			cfg.colors.dir = read_pair(L);
+			cfg.colors.dir = read_color_pair(L, 3);
 		}
 	} else if (streq(key, "exec")) {
 		if (lua_istable(L, 3)) {
-			cfg.colors.exec = read_pair(L);
+			cfg.colors.exec = read_color_pair(L, 3);
 		}
 	} else if (streq(key, "search")) {
 		if (lua_istable(L, 3)) {
-			cfg.colors.search = read_pair(L);
+			cfg.colors.search = read_color_pair(L, 3);
 		}
 	} else if (streq(key, "current")) {
 		cfg.colors.current = luaL_checkinteger(L, 3);
@@ -326,7 +326,7 @@ static int l_colors_newindex(lua_State *L)
 		if (lua_istable(L, 3)) {
 			for (lua_pushnil(L); lua_next(L, 3); lua_pop(L, 1)) {
 				lua_getfield(L, -1, "color");
-				unsigned long ch = read_pair(L);
+				unsigned long ch = read_color_pair(L, -1);
 				lua_pop(L, 1);
 
 				lua_getfield(L, -1, "ext");
