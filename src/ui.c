@@ -21,7 +21,7 @@
 #include "ui.h"
 #include "util.h"
 
-/* #define TRACE 1 */
+#define TRACE 1
 
 static bool init = false;
 
@@ -387,6 +387,7 @@ static void wdraw_file_preview(struct ncplane *n, preview_t *pv)
 		ncplane_set_bg_default(n);
 
 		const int l = cvector_size(pv->lines);
+		log_debug("%s %d", pv->path, l);
 		for (i = 0; i < l && i < nrow; i++) {
 			ncplane_cursor_move_yx(n, i, 0);
 			wansi_addstr(n, pv->lines[i]);
@@ -1059,7 +1060,7 @@ unsigned long ext_channel_find(const char *ext)
 	return 0;
 }
 
-static void print_file_line(struct ncplane *n, file_t *file,
+static void print_file(struct ncplane *n, const file_t *file,
 		bool iscurrent, char **sel, char **load, enum movemode_e mode,
 		const char *highlight)
 {
@@ -1096,6 +1097,7 @@ static void print_file_line(struct ncplane *n, file_t *file,
 		ncplane_set_channels(n, cfg.colors.copy);
 	}
 	ncplane_putchar(n, ' ');
+	ncplane_set_fg_default(n);
 	ncplane_set_bg_default(n);
 
 	if (isdir) {
@@ -1104,7 +1106,7 @@ static void print_file_line(struct ncplane *n, file_t *file,
 	} else if (file_isexec(file)) {
 		ncplane_set_channels(n, cfg.colors.exec);
 	} else {
-		unsigned long ch = ext_channel_find(strcaserchr(file->name, '.'));
+		unsigned long ch = ext_channel_find(file->ext);
 		if (ch > 0) {
 			ncplane_set_channels(n, ch);
 		} else {
@@ -1120,7 +1122,7 @@ static void print_file_line(struct ncplane *n, file_t *file,
 	ncplane_putchar(n, ' ');
 	if (highlight && (hlsubstr = strcasestr(file->name, highlight))) {
 		const int l = hlsubstr - file->name;
-		const uint64_t ch = ncplane_channels(n);
+		const unsigned long ch = ncplane_channels(n);
 		ncplane_putnstr(n, l, file->name);
 		ncplane_set_channels(n, cfg.colors.search);
 		ncplane_putnstr(n, ncol-3, highlight);
@@ -1185,7 +1187,7 @@ static void wdraw_dir(struct ncplane *n, dir_t *dir, char **sel, char **load,
 			const int l = min(dir->len - offset, nrow);
 			for (i = 0; i < l; i++) {
 				ncplane_cursor_move_yx(n, i, 0);
-				print_file_line(n, dir->files[i + offset],
+				print_file(n, dir->files[i + offset],
 						i == dir->pos, sel, load, mode, highlight);
 			}
 		}

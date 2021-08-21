@@ -348,7 +348,7 @@ void app_destroy(app_t *app)
 	nav_destroy(&app->nav);
 	tpool_wait(async_tm);
 	tpool_destroy(async_tm);
-	queue_clear(&async_results);
+	queue_destroy(&async_results);
 	pthread_mutex_destroy(&async_results.mutex);
 	if (fifo_fd > 0) {
 		close(fifo_fd);

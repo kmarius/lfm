@@ -54,6 +54,8 @@ int main(int argc, char **argv)
 	/* TODO: get user id (on 2021-08-13) */
 
 	char rundir[48];
+	char fifopath[64];
+
 	snprintf(rundir, sizeof(rundir), "/var/run/user/%d/lfm", getuid());
 	if (mkdir(rundir, 0700) == -1 && errno != EEXIST) {
 		fprintf(stderr, "mkdir: %s", strerror(errno));
@@ -61,14 +63,11 @@ int main(int argc, char **argv)
 	}
 	cfg.rundir = rundir;
 
-	char fifopath[64];
 #ifdef DEBUG
 	snprintf(fifopath, sizeof(fifopath), "%s/debug.fifo", rundir);
-
 	const char *logpath = "/tmp/lfm.debug.log";
 #else
 	snprintf(fifopath, sizeof(fifopath), "%s/%d.fifo", rundir, getpid());
-
 	char logpath[64];
 	snprintf(logpath, sizeof(logpath), "/tmp/lfm.%d.log", getpid());
 #endif
@@ -131,11 +130,9 @@ int main(int argc, char **argv)
 				cfg.startfile = abasename(cfg.startpath);
 				cfg.startpath = adirname(cfg.startpath);
 				free(f);
-				log_debug("set start dir %s", cfg.startpath);
 				log_debug("set start file to %s", cfg.startfile);
-			} else {
-				log_debug("set start dir %s", cfg.startpath);
 			}
+			log_debug("set start dir %s", cfg.startpath);
 		}
 	}
 

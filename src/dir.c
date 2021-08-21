@@ -309,6 +309,11 @@ bool file_load(file_t *file, const char *base, const char *name)
 	}
 
 	file->name = basename(file->path);
+	file->ext = strrchr(file->name, '.');
+	if (file->ext == file->name) {
+		/* hidden file, name begins with '.'  */
+		file->ext = NULL;
+	}
 	file->link_target = NULL;
 
 	if (S_ISLNK(file->stat.st_mode)) {

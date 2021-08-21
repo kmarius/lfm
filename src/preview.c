@@ -40,18 +40,20 @@ preview_t *preview_new_from_file(const char *path, const file_t *fptr, int nrow,
 	FILE *fp;
 	char buf[4096];
 
-	const char *args[3] = {cfg.previewer, path, NULL};
-	/* TODO: redirect stderr (on 2021-08-10) */
-	if (!(fp = popen_arr(cfg.previewer, args, false))) {
-		log_error("preview: %s", strerror(errno));
-		return pv;
-	}
+	if (cfg.previewer) {
+		const char *args[3] = {cfg.previewer, path, NULL};
+		/* TODO: redirect stderr (on 2021-08-10) */
+		if (!(fp = popen_arr(cfg.previewer, args, false))) {
+			log_error("preview: %s", strerror(errno));
+			return pv;
+		}
 
-	for (int i = 0; fgets(buf, sizeof(buf), fp) && i < nrow; i++) {
-		cvector_push_back(pv->lines, strdup(buf));
-	}
+		for (int i = 0; fgets(buf, sizeof(buf), fp) && i < nrow; i++) {
+			cvector_push_back(pv->lines, strdup(buf));
+		}
 
-	pclose(fp);
+		pclose(fp);
+	}
 
 	struct stat statbuf;
 	if (stat(path, &statbuf) == -1) {

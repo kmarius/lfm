@@ -14,6 +14,7 @@ typedef struct file_t {
 	struct stat stat;
 	char *path;
 	char *name;
+	char *ext;
 	char *link_target;
 	int filecount; /* in case of dir */
 } file_t;
