@@ -301,7 +301,7 @@ local mode_filter = {
 }
 
 -- exposed to c
-function lfm.exec_lfmcmd(line)
+function lfm.exec_expr(line)
 	log.debug(line)
 	local cmd, args = lfm.tokenize(line)
 	if not cmd then
@@ -328,7 +328,7 @@ end
 
 local mode_cmd = {
 	prefix = ":",
-	enter = function(line) ui.history_append(line) lfm.exec_lfmcmd(line) end,
+	enter = function(line) ui.history_append(line) lfm.exec_expr(line) end,
 	esc = function() end,
 	change = function() end,
 }

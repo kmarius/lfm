@@ -22,9 +22,9 @@ bool lua_load_file(lua_State *L, app_t *app, const char *path);
 void lua_handle_key(lua_State *L, app_t *app, ncinput *in);
 
 /*
- * Execute an lfmcmd.
+ * Execute an expr.
  */
-void lua_exec_lfmcmd(lua_State *L, app_t *app, const char *cmd);
+void lua_exec_expr(lua_State *L, app_t *app, const char *cmd);
 
 /*
  * Run hooks.

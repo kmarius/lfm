@@ -113,7 +113,7 @@ static void read_fifo(app_t *app)
 		/* TODO: allocate string or use readline or something (on 2021-08-17) */
 		while ((nbytes = read(fifo_fd, buf, sizeof(buf))) > 0) {
 			buf[nbytes-1] = 0;
-			lua_exec_lfmcmd(app->L, app, buf);
+			lua_exec_expr(app->L, app, buf);
 		}
 	}
 }
@@ -213,7 +213,7 @@ static void idle_cb(struct ev_loop *loop, ev_idle *w, int revents)
 	if (cfg.commands) {
 		const size_t l = cvector_size(cfg.commands);
 		for (i = 0; i < l; i++) {
-			lua_exec_lfmcmd(app->L, app, cfg.commands[i]);
+			lua_exec_expr(app->L, app, cfg.commands[i]);
 		}
 		/* commands are from argv, don't free them */
 		cvector_free(cfg.commands);
