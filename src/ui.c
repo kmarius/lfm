@@ -59,11 +59,7 @@ void ui_kbblocking(bool blocking)
 {
 	int val = fcntl(STDIN_FILENO, F_GETFL, 0);
 	if (val != -1) {
-		if (blocking) {
-			fcntl(STDIN_FILENO, F_SETFL, val & ~O_NONBLOCK);
-		} else {
-			fcntl(STDIN_FILENO, F_SETFL, val | O_NONBLOCK);
-		}
+		fcntl(STDIN_FILENO, F_SETFL, blocking ? val & ~O_NONBLOCK : val | O_NONBLOCK);
 	}
 }
 
