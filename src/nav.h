@@ -17,12 +17,12 @@ enum movemode_e {
 	MODE_COPY,
 };
 
-typedef struct Mark {
+typedef struct mark_t {
 	char mark;
 	char *path;
 } mark_t;
 
-typedef struct Nav {
+typedef struct nav_t {
 	/* All loaded directories, not only visible ones */
 	heap_t *dircache;
 
