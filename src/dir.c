@@ -298,10 +298,11 @@ dir_t *dir_new_loading(const char *path)
 	return d;
 }
 
-bool file_load(file_t *file, const char *base, const char *name)
+static bool file_load(file_t *file, const char *basedir, const char *name)
 {
 	char buf[PATH_MAX] = {0};
-	asprintf(&file->path, "%s/%s", base, name);
+	bool isroot = basedir[0] == '/' && basedir[1] == 0;
+	asprintf(&file->path, "%s/%s", isroot ? "" : basedir, name);
 
 	if (lstat(file->path, &file->stat) == -1) {
 		/* likely the file was deleted */
