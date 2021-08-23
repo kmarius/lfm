@@ -150,6 +150,12 @@ static int l_cfg_index(lua_State *L)
 	} else if (streq(key, "configpath")) {
 		lua_pushstring(L, cfg.configpath);
 		return 1;
+	} else if (streq(key, "dircache_size")) {
+		lua_pushinteger(L, app->nav.dircache->capacity);
+		return 1;
+	} else if (streq(key, "previewcache_size")) {
+		lua_pushinteger(L, app->ui.previewcache->capacity);
+		return 1;
 	}
 	return 0;
 }
@@ -211,6 +217,16 @@ static int l_cfg_newindex(lua_State *L)
 		}
 		/* TODO: purge preview cache (on 2021-08-10) */
 		return 0;
+	} else if (streq(key, "dircache_size")) {
+		int capacity = luaL_checkinteger(L, 3);
+		if (capacity >= 0) {
+			heap_resize(app->nav.dircache, capacity);
+		}
+	} else if (streq(key, "previewcache_size")) {
+		int capacity = luaL_checkinteger(L, 3);
+		if (capacity >= 0) {
+			heap_resize(app->ui.previewcache, capacity);
+		}
 	}
 	return 0;
 }
@@ -797,30 +813,9 @@ static int l_ui_messages(lua_State *L)
 	return 1;
 }
 
-static int l_ui_set_cache_size(lua_State *L)
-{
-	(void) L;
-	int capacity = luaL_checkinteger(L, 1);
-	if (capacity >= 0) {
-		heap_resize(app->ui.previewcache, capacity);
-	}
-	return 0;
-}
-
-
 static int l_crash(lua_State *L)
 {
 	free(L);
-	return 0;
-}
-
-static int l_nav_set_cache_size(lua_State *L)
-{
-	(void) L;
-	int capacity = luaL_checkinteger(L, 1);
-	if (capacity >= 0) {
-		heap_resize(app->nav.dircache, capacity);
-	}
 	return 0;
 }
 
@@ -1065,7 +1060,6 @@ static const struct luaL_Reg navlib[] = {
 	{"copy", l_nav_copy},
 	{"check", l_nav_check},
 	{"drop_cache", l_nav_drop_cache},
-	{"set_cache_size", l_nav_set_cache_size},
 	{"sel", l_nav_sel},
 	{"debug_watchers", l_nav_watchers},
 	{NULL, NULL}};
@@ -1089,7 +1083,6 @@ static const struct luaL_Reg uilib[] = {{"clear", l_ui_clear},
 	{"history_append", l_history_append},
 	{"history_next", l_history_next},
 	{"history_prev", l_history_prev},
-	{"set_cache_size", l_ui_set_cache_size},
 	{"menu", l_ui_menu},
 	{"draw", l_ui_draw},
 	{"messages", l_ui_messages},
