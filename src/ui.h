@@ -12,6 +12,7 @@
 
 #define ACC_SIZE 256
 #define PREFIX_SIZE 32
+#define PREVIEW_CACHE_SIZE 31
 
 typedef struct ui_t {
 	int nrow;
@@ -37,7 +38,7 @@ typedef struct ui_t {
 	cvector_vector_type(char*) menubuf;
 
 	preview_t *file_preview;
-	previewheap_t previews;
+	heap_t *previewcache;
 
 	cvector_vector_type(char*) history;
 	char **history_ptr;

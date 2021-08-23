@@ -30,6 +30,11 @@ inline static struct ncplane *wpreview(ui_t *ui)
 	return ui->wdirs[ui->ndirs-1];
 }
 
+static int eq_preview(void *pv, const void *p)
+{
+	return streq(((preview_t*)pv)->path, p);
+}
+
 static void history_load(ui_t *ui);
 static void draw_info(ui_t *ui);
 static void draw_cmdline(ui_t *ui);
@@ -66,6 +71,8 @@ void ui_kbblocking(bool blocking)
 void ui_init(ui_t *ui, nav_t *nav)
 {
 	ui->nav = nav;
+
+	ui->previewcache = heap_new(PREVIEW_CACHE_SIZE, (void(*)(void*)) preview_free);
 
 	ncsetup();
 	ui->input_ready_fd = notcurses_inputready_fd(nc);
@@ -105,7 +112,6 @@ void ui_init(ui_t *ui, nav_t *nav)
 	ncplane_move_bottom(ui->menu);
 
 	ui->file_preview = NULL;
-	ui->previews.size = 0;
 
 	ui->history = NULL;
 	ui->history_ptr = NULL;
@@ -187,7 +193,7 @@ preview_t *ui_load_preview(ui_t *ui, file_t *file)
 	struct ncplane *w = wpreview(ui);
 	ncplane_dim_yx(w, &nrow, &ncol);
 
-	if ((pv = previewheap_take(&ui->previews, file->path))) {
+	if ((pv = heap_take(ui->previewcache, eq_preview, file->path))) {
 		/* TODO: vv (on 2021-08-10) */
 		/* might be checking too often here? or is it capped by inotify
 		 * timeout? */
@@ -229,7 +235,7 @@ static void update_preview(ui_t *ui)
 					async_preview_load(file->path, file, nrow, ncol);
 				}
 			} else {
-				previewheap_insert(&ui->previews, ui->file_preview);
+				heap_insert(ui->previewcache, ui->file_preview);
 				ui->file_preview = ui_load_preview(ui, file);
 			}
 		} else {
@@ -390,7 +396,7 @@ static void wdraw_file_preview(struct ncplane *n, preview_t *pv)
 bool ui_insert_preview(ui_t *ui, preview_t *pv)
 {
 	/* log_debug("ui_insert_preview %s %d", pv->path, pv->nrow); */
-	preview_t **pvptr;
+	preview_t *oldpv;
 	const file_t *file;
 
 	if ((file = nav_current_file(ui->nav)) && (file == pv->fptr || streq(pv->path, file->path))) {
@@ -398,18 +404,16 @@ bool ui_insert_preview(ui_t *ui, preview_t *pv)
 		ui->file_preview = pv;
 		return true;
 	} else {
-		if ((pvptr = previewheap_find(&ui->previews, pv->path))) {
-			if (pv->mtime >= (*pvptr)->mtime) {
-				/* update */
-				pv->access = (*pvptr)->access;
-				preview_free(*pvptr);
-				*pvptr = pv;
+		if ((oldpv = heap_take(ui->previewcache, eq_preview, pv->path))) {
+			if (pv->mtime >= oldpv->mtime) {
+				preview_free(oldpv);
+				heap_insert(ui->previewcache, pv);
 			} else {
 				/* discard */
 				preview_free(pv);
 			}
 		} else {
-			previewheap_insert(&ui->previews, pv);
+			heap_insert(ui->previewcache, pv);
 		}
 	}
 	return false;
@@ -1303,15 +1307,12 @@ void ui_vechom(ui_t *ui, const char *format, va_list args)
 
 void ui_destroy(ui_t *ui)
 {
-	int i;
 	history_write(ui);
 	history_clear(ui);
 	cvector_free(ui->history);
 	cvector_ffree(ui->messages, free);
 	cvector_ffree(ui->menubuf, free);
-	for (i = 0; i < ui->previews.size; i++) {
-		preview_free(ui->previews.previews[i]);
-	}
+	heap_destroy(ui->previewcache);
 	free(ui->highlight);
 	notcurses_stop(nc);
 }
