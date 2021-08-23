@@ -45,54 +45,27 @@ void dirheap_insert(dirheap_t *heap, dir_t *d)
 	/* log_dirheap(heap); */
 }
 
-dir_t **dirheap_find(dirheap_t *heap, const char *path)
-{
-	int i;
-	for (i = heap->size; i > 0; i--) {
-		if (streq(heap->dirs[i-1]->path, path)) {
-			return &heap->dirs[i-1];
-		}
-	}
-	return NULL;
-}
-
-/* Take out an element of the heap by swapping it with the last element and
- * restoring the heap property. */
-static dir_t *dirheap_takei(dirheap_t *heap, int i)
-{
-	/* log_trace("dirheap_take i %d, size %d", i, heap->size); */
-	if (i < 0 || i >= heap->size) {
-		return NULL;
-	}
-	dir_t *d = heap->dirs[i];
-	if (i < heap->size - 1) {
-		swap(heap->dirs + i, heap->dirs + heap->size-1);
-		heap->size--;
-
-		if (i == 0 || heap->dirs[i]->access >= heap->dirs[PARENT(i)]->access) {
-			downheap(heap, i);
-		} else {
-			upheap(heap, i);
-		}
-	} else {
-		heap->size--;
-	}
-	return d;
-}
-
 dir_t *dirheap_take(dirheap_t *heap, const char *path) {
 	int i;
-	for (i = heap->size; i > 0; i--) {
-		if (streq(heap->dirs[i-1]->path, path)) {
-			return dirheap_takei(heap, i-1);
+	for (i = heap->size-1; i >= 0; i--) {
+		if (streq(heap->dirs[i]->path, path)) {
+			dir_t *dir = heap->dirs[i];
+			if (i < heap->size) {
+				swap(heap->dirs + i, heap->dirs + heap->size-1);
+				heap->size--;
+
+				if (i == 0 || heap->dirs[i]->access >= heap->dirs[PARENT(i)]->access) {
+					downheap(heap, i);
+				} else {
+					upheap(heap, i);
+				}
+			} else {
+				heap->size--;
+			}
+			return dir;
 		}
 	}
 	return NULL;
-}
-
-dir_t *dirheap_ptake(dirheap_t *heap, dir_t **p)
-{
-	return dirheap_takei(heap, p - heap->dirs);
 }
 
 static inline void upheap(dirheap_t *heap, int i)

@@ -23,18 +23,8 @@ typedef struct dirheap {
 void dirheap_insert(dirheap_t *heap, dir_t *d);
 
 /*
- * Find the directory with path PATH, returns NULL if none found.
- */
-dir_t **dirheap_find(dirheap_t *heap, const char *path);
-
-/*
  * Take the directory with path PATH out of the heap, returns NULL if not found.
  */
 dir_t *dirheap_take(dirheap_t *heap, const char *path);
-
-/*
- * Take out directory pointed at by p (i.e. after callin dirheap_find);
- */
-dir_t *dirheap_ptake(dirheap_t *heap, dir_t **p);
 
 #endif

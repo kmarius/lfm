@@ -264,16 +264,16 @@ static void copy_attrs(dir_t *dir, dir_t *olddir) {
  * faster (on 2021-07-28) */
 bool nav_insert_dir(nav_t *nav, dir_t *dir)
 {
-	dir_t **dirptr;
+	dir_t *olddir;
 	int i;
 
 	log_debug("nav_insert_dir %s", dir->path);
 
-	if ((dirptr = dirheap_find(&nav->dircache, dir->path))) {
+	if ((olddir = dirheap_take(&nav->dircache, dir->path))) {
 		/* replace in dir cache */
-		copy_attrs(dir, *dirptr);
-		dir_free(*dirptr);
-		*dirptr = dir;
+		copy_attrs(dir, olddir);
+		dir_free(olddir);
+		dirheap_insert(&nav->dircache, dir);
 	} else {
 		/* check if it an active directory */
 		if (nav->preview && streq(nav->preview->path, dir->path)) {

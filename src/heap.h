@@ -1,5 +1,5 @@
-#ifndef heap_H
-#define heap_H
+#ifndef HEAP_H
+#define HEAP_H
 
 #include <time.h>
 
