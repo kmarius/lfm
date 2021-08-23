@@ -12,11 +12,13 @@
 #include "config.h"
 #include "dir.h"
 #include "lualfm.h"
-#include "dirheap.h"
+/* #include "dirheap.h" */
 #include "log.h"
 #include "nav.h"
 #include "notify.h"
 #include "util.h"
+
+#define DIRCACHE_SIZE 31
 
 void nav_update_preview(nav_t *nav);
 
@@ -24,6 +26,11 @@ static dir_t *load_dir(nav_t *nav, const char *path);
 static void update_watchers(nav_t *nav);
 static void remove_preview(nav_t *nav);
 static void mark_save(nav_t *nav, char mark, const char *path);
+
+static int eq_dir(void *d, const void *p)
+{
+	return streq(((dir_t*)d)->path, p);
+}
 
 static const char *concatpath(const char *dir, const char *file)
 {
@@ -80,7 +87,8 @@ void nav_init(nav_t *nav)
 		}
 	}
 
-	nav->dircache.size = 0;
+	nav->dircache = heap_new(DIRCACHE_SIZE, (void (*)(void*)) dir_free);
+
 	nav->ndirs = 0;
 	nav->dirs = NULL;
 	nav->height = 0;
@@ -116,7 +124,7 @@ void nav_recol(nav_t *nav)
 
 	remove_preview(nav);
 	for (i = 0; i < nav->ndirs; i++) {
-		dirheap_insert(&nav->dircache, nav->dirs[i]);
+		heap_insert(nav->dircache, nav->dirs[i]);
 	}
 
 	cvector_set_size(nav->dirs, l);
@@ -158,7 +166,7 @@ bool nav_chdir(nav_t *nav, const char *path, bool save)
 	int i;
 	for (i = 0; i < nav->ndirs; i++) {
 		if (nav->dirs[i]) {
-			dirheap_insert(&nav->dircache, nav->dirs[i]);
+			heap_insert(nav->dircache, nav->dirs[i]);
 		}
 	}
 	populate(nav);
@@ -220,7 +228,7 @@ static dir_t *load_dir(nav_t *nav, const char *path)
 		path = fullpath;
 	}
 
-	if ((dir = dirheap_take(&nav->dircache, path))) {
+	if ((dir = heap_take(nav->dircache, eq_dir, path))) {
 		if (!dir_check(dir)) {
 			async_dir_load(dir->path);
 		}
@@ -269,11 +277,11 @@ bool nav_insert_dir(nav_t *nav, dir_t *dir)
 
 	log_debug("nav_insert_dir %s", dir->path);
 
-	if ((olddir = dirheap_take(&nav->dircache, dir->path))) {
+	if ((olddir = heap_take(nav->dircache, eq_dir, dir->path))) {
 		/* replace in dir cache */
 		copy_attrs(dir, olddir);
 		dir_free(olddir);
-		dirheap_insert(&nav->dircache, dir);
+		heap_insert(nav->dircache, dir);
 	} else {
 		/* check if it an active directory */
 		if (nav->preview && streq(nav->preview->path, dir->path)) {
@@ -329,10 +337,7 @@ void nav_drop_cache(nav_t *nav)
 	}
 	remove_preview(nav);
 
-	for (i = 0; i < nav->dircache.size; i++) {
-		dir_free(nav->dircache.dirs[i]);
-	}
-	nav->dircache.size = 0;
+	heap_empty(nav->dircache);
 
 	char path[PATH_MAX];
 	const char *s;
@@ -351,7 +356,7 @@ static void remove_preview(nav_t *nav)
 {
 	if (nav->preview) {
 		notify_remove_watcher(nav->preview->path);
-		dirheap_insert(&nav->dircache, nav->preview);
+		heap_insert(nav->dircache, nav->preview);
 		nav->preview = NULL;
 	}
 }
@@ -378,7 +383,7 @@ void nav_update_preview(nav_t *nav)
 			}
 			if (i == nav->ndirs) {
 				notify_remove_watcher(nav->preview->path);
-				dirheap_insert(&nav->dircache, nav->preview);
+				heap_insert(nav->dircache, nav->preview);
 			}
 		}
 		nav->preview = load_dir(nav, file->path);
@@ -393,7 +398,7 @@ void nav_update_preview(nav_t *nav)
 			}
 			if (i == nav->ndirs) {
 				notify_remove_watcher(nav->preview->path);
-				dirheap_insert(&nav->dircache, nav->preview);
+				heap_insert(nav->dircache, nav->preview);
 			}
 			nav->preview = NULL;
 		}
@@ -757,14 +762,11 @@ const char *nav_filter_get(const nav_t *nav) { return nav->dirs[0]->filter; }
 
 void nav_destroy(nav_t *nav)
 {
-	int i;
 	cvector_ffree(nav->selection, free);
 	/* prev_selection _never_ holds allocated paths that are not already
 	 * free'd in nav->selection */
 	cvector_free(nav->prev_selection);
 	cvector_ffree(nav->load, free);
-	for (i = 0; i < nav->dircache.size; i++) {
-		dir_free(nav->dircache.dirs[i]);
-	}
 	cvector_ffree(nav->marklist, free_mark);
+	heap_destroy(nav->dircache);
 }

@@ -1,19 +1,24 @@
 #ifndef HEAP_H
 #define HEAP_H
 
-#include <time.h>
+typedef struct heap_t heap_t;
 
-#define HEAP_MAX_SIZE 31
+struct heap_node_t {
+	void *data;
+	int key;
+};
 
-typedef struct heap {
-	void *nodes[HEAP_MAX_SIZE];
+struct heap_t {
+	struct heap_node_t *nodes;
 	int size;
-} heap_t;
+	int capacity;
+	void (*free_fun)(void*);
+};
 
-typedef void (*ffun)(void *);
-
-void heap_insert(heap_t *heap, void *e, ffun f);
-void heap_pupdate(heap_t *heap, void **p, time_t t);
-void *heap_ptake(heap_t *heap, void **p);
+heap_t *heap_new(int capacity, void (*free_fun)(void*));
+void heap_insert(heap_t *heap, void *e);
+void *heap_take(heap_t *heap, int (*eq_fun)(void*, const void*), const void *arg);
+void heap_empty(heap_t *heap);
+void heap_destroy(heap_t *heap);
 
 #endif

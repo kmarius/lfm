@@ -1,3 +1,5 @@
+#include <stdlib.h>
+
 #include "heap.h"
 #include "log.h"
 #include "util.h"
@@ -15,62 +17,68 @@
 #define RCHILD(i) (2 * (i) + 2)
 #endif
 
-typedef struct KeyAble {
-	time_t key;
-} _k;
-
 static inline void upheap(heap_t *heap, int i);
 static void downheap(heap_t *heap, int i);
 
-static inline void swap(void **x, void **y)
+static inline void swap(struct heap_node_t *x, struct heap_node_t *y)
 {
-	void *tmp = *x;
+	struct heap_node_t tmp = *x;
 	*x = *y;
 	*y = tmp;
 }
 
-void heap_insert(heap_t *heap, void *e, ffun f)
+heap_t *heap_new(int capacity, void (*free_fun)(void*))
 {
-	if (heap->size >= HEAP_MAX_SIZE) {
-		f(heap->nodes[0]);
-		heap->nodes[0] = e;
+	heap_t *heap = malloc(sizeof(heap_t));
+	heap->nodes = malloc(sizeof(struct heap_node_t) * capacity);
+	heap->capacity = capacity;
+	heap->size = 0;
+	heap->free_fun = free_fun;
+	return heap;
+}
+
+void heap_insert(heap_t *heap, void *e)
+{
+	if (heap->size >= heap->capacity) {
+		heap->free_fun(heap->nodes[0].data);
+		heap->nodes[0].data = e;
+		heap->nodes[0].key = time(NULL);
 		downheap(heap, 0);
 	} else {
-		heap->nodes[heap->size++] = e;
+		heap->nodes[heap->size].data = e;
+		heap->nodes[heap->size++].key = time(NULL);
 		upheap(heap, heap->size - 1);
 	}
 }
 
-static void *heap_itake(heap_t *heap, int i)
+void *heap_take(heap_t *heap, int (*eq_fun)(void*, const void*), const void *a)
 {
-	if (i < 0 || i >= heap->size) {
-		return NULL;
-	}
-	void *e = heap->nodes[i];
-	if (i < heap->size - 1) {
-		swap(heap->nodes + i, heap->nodes + heap->size-1);
-		heap->size--;
+	int i;
+	for (i = 0; i < heap->size; i++) {
+		if (eq_fun(heap->nodes[i].data, a)) {
+			void *e = heap->nodes[i].data;
+			if (i < heap->size - 1) {
+				swap(heap->nodes + i, heap->nodes + heap->size-1);
+				heap->size--;
 
-		if (i == 0 || ((_k*)heap->nodes[i])->key >= ((_k*)heap->nodes[PARENT(i)])->key) {
-			downheap(heap, i);
-		} else {
-			upheap(heap, i);
+				if (i == 0 || heap->nodes[i].key >= heap->nodes[PARENT(i)].key) {
+					downheap(heap, i);
+				} else {
+					upheap(heap, i);
+				}
+			} else {
+				heap->size--;
+			}
+			return e;
 		}
-	} else {
-		heap->size--;
 	}
-	return e;
-}
-
-void *heap_ptake(heap_t *heap, void **p)
-{
-	return heap_itake(heap, p - heap->nodes);
+	return NULL;
 }
 
 static inline void upheap(heap_t *heap, int i)
 {
 	int p;
-	while (i > 0 && ((_k*)heap->nodes[p = PARENT(i)])->key > ((_k*)heap->nodes[i])->key) {
+	while (i > 0 && heap->nodes[p = PARENT(i)].key > heap->nodes[i].key) {
 		swap(&heap->nodes[p], &heap->nodes[i]);
 		i = p;
 	}
@@ -83,32 +91,33 @@ static void downheap(heap_t *heap, int i)
 
 	int largest = i;
 
-	if (lidx < heap->size && ((_k*)heap->nodes[lidx])->key < ((_k*)heap->nodes[largest])->key) {
+	if (lidx < heap->size && heap->nodes[lidx].key < heap->nodes[largest].key) {
 		largest = lidx;
 	}
 
-	if (ridx < heap->size && ((_k*)heap->nodes[ridx])->key < ((_k*)heap->nodes[largest])->key) {
+	if (ridx < heap->size && heap->nodes[ridx].key < heap->nodes[largest].key) {
 		largest = ridx;
 	}
 
 	if (largest != i) {
-		swap(&heap->nodes[i], &heap->nodes[largest]);
+		swap(heap->nodes+i, heap->nodes+largest);
 		downheap(heap, largest);
 	}
 }
 
-void heap_iupdate(heap_t *heap, int i, time_t t) {
-	((_k*)heap->nodes[i])->key = t;
-	if (((_k*)heap->nodes[i])->key < t) {
-		((_k*)heap->nodes[i])->key = t;
-		downheap(heap, i);
-	} else {
-		((_k*)heap->nodes[i])->key = t;
-		upheap(heap, i);
+void heap_empty(heap_t *heap)
+{
+	int i;
+	for (i = 0; i < heap->size; i++) {
+		heap->free_fun(heap->nodes[i].data);
 	}
+	heap->size = 0;
 }
 
-void heap_pupdate(heap_t *heap, void **p, time_t t)
-{
-	heap_iupdate(heap, p - heap->nodes, t);
+void heap_destroy(heap_t *heap) {
+	if (heap) {
+		heap_empty(heap);
+		free(heap->nodes);
+		free(heap);
+	}
 }
