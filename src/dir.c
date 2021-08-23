@@ -211,6 +211,8 @@ void dir_filter(dir_t *dir, const char *filter)
 	apply_filter(dir);
 }
 
+/* TODO: make isdir a field? (on 2021-08-23) */
+/* TODO: returns errors on broken symlinks (on 2021-08-23) */
 bool file_isdir(const file_t *file)
 {
 	struct stat statbuf;
