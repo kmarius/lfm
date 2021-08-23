@@ -797,6 +797,17 @@ static int l_ui_messages(lua_State *L)
 	return 1;
 }
 
+static int l_ui_set_cache_size(lua_State *L)
+{
+	(void) L;
+	int capacity = luaL_checkinteger(L, 1);
+	if (capacity >= 0) {
+		heap_resize(app->ui.previewcache, capacity);
+	}
+	return 0;
+}
+
+
 static int l_crash(lua_State *L)
 {
 	free(L);
@@ -1078,6 +1089,7 @@ static const struct luaL_Reg uilib[] = {{"clear", l_ui_clear},
 	{"history_append", l_history_append},
 	{"history_next", l_history_next},
 	{"history_prev", l_history_prev},
+	{"set_cache_size", l_ui_set_cache_size},
 	{"menu", l_ui_menu},
 	{"draw", l_ui_draw},
 	{"messages", l_ui_messages},
