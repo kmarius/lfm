@@ -1,5 +1,6 @@
 #include <stdlib.h>
 
+#include "dir.h"
 #include "heap.h"
 #include "log.h"
 #include "util.h"
@@ -37,8 +38,27 @@ heap_t *heap_new(int capacity, void (*free_fun)(void*))
 	return heap;
 }
 
+void heap_resize(heap_t *heap, int capacity)
+{
+	if (capacity < 0) {
+		return;
+	}
+	while (heap->size > capacity) {
+		heap->free_fun(heap->nodes[0].data);
+		heap->nodes[0] = heap->nodes[--heap->size];
+		if (heap->size > 0) {
+			downheap(heap, 0);
+		}
+	}
+	heap->nodes = realloc(heap->nodes, sizeof(struct heap_node_t) * capacity);
+	heap->capacity = capacity;
+}
+
 void heap_insert(heap_t *heap, void *e)
 {
+	if (heap->capacity == 0) {
+		return;
+	}
 	if (heap->size >= heap->capacity) {
 		heap->free_fun(heap->nodes[0].data);
 		heap->nodes[0].data = e;

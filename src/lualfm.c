@@ -16,6 +16,7 @@
 #include "config.h"
 #include "cvector.h"
 #include "dir.h"
+#include "heap.h"
 #include "keys.h"
 #include "notify.h"
 #include "log.h"
@@ -802,6 +803,16 @@ static int l_crash(lua_State *L)
 	return 0;
 }
 
+static int l_nav_set_cache_size(lua_State *L)
+{
+	(void) L;
+	int capacity = luaL_checkinteger(L, 1);
+	if (capacity >= 0) {
+		heap_resize(app->nav.dircache, capacity);
+	}
+	return 0;
+}
+
 static int l_nav_drop_cache(lua_State *L)
 {
 	(void) L;
@@ -1043,6 +1054,7 @@ static const struct luaL_Reg navlib[] = {
 	{"copy", l_nav_copy},
 	{"check", l_nav_check},
 	{"drop_cache", l_nav_drop_cache},
+	{"set_cache_size", l_nav_set_cache_size},
 	{"sel", l_nav_sel},
 	{"debug_watchers", l_nav_watchers},
 	{NULL, NULL}};
