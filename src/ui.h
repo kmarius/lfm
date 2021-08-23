@@ -8,7 +8,7 @@
 #include "dir.h"
 #include "nav.h"
 #include "preview.h"
-#include "previewheap.h"
+#include "heap.h"
 
 #define ACC_SIZE 256
 #define PREFIX_SIZE 32

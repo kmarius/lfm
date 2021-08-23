@@ -11,8 +11,8 @@
 #include "async.h"
 #include "config.h"
 #include "dir.h"
+#include "heap.h"
 #include "lualfm.h"
-/* #include "dirheap.h" */
 #include "log.h"
 #include "nav.h"
 #include "notify.h"

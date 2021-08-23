@@ -9,7 +9,6 @@
 
 #include "cvector.h"
 #include "dir.h"
-// #include "dirheap.h"
 #include "heap.h"
 
 enum movemode_e {

@@ -15,6 +15,7 @@
 #include "config.h"
 #include "cvector.h"
 #include "dir.h"
+#include "heap.h"
 #include "log.h"
 #include "nav.h"
 #include "preview.h"
