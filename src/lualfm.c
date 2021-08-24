@@ -156,6 +156,8 @@ static int l_cfg_index(lua_State *L)
 	} else if (streq(key, "previewcache_size")) {
 		lua_pushinteger(L, app->ui.previewcache->capacity);
 		return 1;
+	} else {
+		luaL_error(L, "unexpected key %s", key);
 	}
 	return 0;
 }
@@ -178,8 +180,7 @@ static int l_cfg_newindex(lua_State *L)
 		const int l = lua_objlen(L, 3);
 		log_debug("%d", l);
 		if (l == 0) {
-			app_error("no ratios given");
-			return 0;
+			luaL_argerror(L, 3, "no ratios given");
 		}
 		int *ratios = malloc(sizeof(int) * l);
 		int i;
@@ -187,9 +188,8 @@ static int l_cfg_newindex(lua_State *L)
 			lua_rawgeti(L, 3, i + 1);
 			ratios[i] = lua_tointeger(L, -1);
 			if (ratios[i] <= 0) {
-				app_error("invalid ratio");
 				free(ratios);
-				return 0;
+				luaL_error(L, "ratio must be non-negative");
 			}
 			lua_pop(L, 1);
 		}
@@ -219,14 +219,18 @@ static int l_cfg_newindex(lua_State *L)
 		return 0;
 	} else if (streq(key, "dircache_size")) {
 		int capacity = luaL_checkinteger(L, 3);
-		if (capacity >= 0) {
-			heap_resize(app->nav.dircache, capacity);
+		if (capacity < 0) {
+			luaL_argerror(L, 3, "size must be non-negative");
 		}
+		heap_resize(app->nav.dircache, capacity);
 	} else if (streq(key, "previewcache_size")) {
 		int capacity = luaL_checkinteger(L, 3);
-		if (capacity >= 0) {
-			heap_resize(app->ui.previewcache, capacity);
+		if (capacity < 0) {
+			luaL_argerror(L, 3, "size must be non-negative");
 		}
+		heap_resize(app->ui.previewcache, capacity);
+	} else {
+		luaL_error(L, "unexpected key %s", key);
 	}
 	return 0;
 }
@@ -305,7 +309,7 @@ static unsigned read_channel(lua_State *L, int ind)
 			return NCCHANNEL_INITIALIZER_HEX(lua_tointeger(L, ind));
 			break;
 		default:
-			log_error("read_channel: unexpected type");
+			luaL_typerror(L, ind, "string or number");
 			return 0;
 	}
 }
@@ -373,6 +377,8 @@ static int l_colors_newindex(lua_State *L)
 				lua_pop(L, 1);
 			}
 		}
+	} else {
+		luaL_error(L, "unexpected key %s", key);
 	}
 	ui_draw(&app->ui);
 	return 0;
@@ -598,7 +604,8 @@ static int l_sortby(lua_State *L)
 		} else if (streq(op, "noreverse")) {
 			dir->reverse = false;
 		} else {
-			app_error("sortby: unrecognized operation: %s", op);
+			luaL_error(L, "sortby: unrecognized option: %s", op);
+			// not reached
 		}
 	}
 	dir->sorted = false;
