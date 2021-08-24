@@ -303,7 +303,7 @@ static unsigned read_channel(lua_State *L, int ind)
 	switch(lua_type(L, ind))
 	{
 		case LUA_TSTRING:
-			return NCCHANNEL_INITIALIZER_PALINDEX(atoi(lua_tostring(L, ind)));
+			return NCCHANNEL_INITIALIZER_PALINDEX(lua_tointeger(L, ind));
 			break;
 		case LUA_TNUMBER:
 			return NCCHANNEL_INITIALIZER_HEX(lua_tointeger(L, ind));
