@@ -114,7 +114,7 @@ static int l_nav_index(lua_State *L)
 	return 0;
 }
 
-static int l_cfg_index(lua_State *L)
+static int l_config_index(lua_State *L)
 {
 	const char *key = luaL_checkstring(L, 2);
 	if (streq(key, "truncatechar")) {
@@ -162,7 +162,7 @@ static int l_cfg_index(lua_State *L)
 	return 0;
 }
 
-static int l_cfg_newindex(lua_State *L)
+static int l_config_newindex(lua_State *L)
 {
 	const char *key = luaL_checkstring(L, 2);
 	if (streq(key, "truncatechar")) {
@@ -1021,7 +1021,7 @@ static int l_timeout(lua_State *L)
 	return 0;
 }
 
-static const struct luaL_Reg lfmlib[] = {
+static const struct luaL_Reg lfm_lib[] = {
 	{"getpid", l_getpid},
 	{"timeout", l_timeout},
 	{"find", l_find},
@@ -1039,7 +1039,7 @@ static const struct luaL_Reg lfmlib[] = {
 	{"tokenize", l_tokenize},
 	{NULL, NULL}};
 
-static const struct luaL_Reg navlib[] = {
+static const struct luaL_Reg nav_lib[] = {
 	{"bottom", l_nav_bot},
 	{"chdir", l_nav_chdir},
 	{"down", l_nav_down},
@@ -1071,9 +1071,9 @@ static const struct luaL_Reg navlib[] = {
 	{"debug_watchers", l_nav_watchers},
 	{NULL, NULL}};
 
-static const struct luaL_Reg navmt[] = {{"__index", l_nav_index}, {NULL, NULL}};
+static const struct luaL_Reg nav_mt[] = {{"__index", l_nav_index}, {NULL, NULL}};
 
-static const struct luaL_Reg cmdlib[] = {{"clear", l_cmd_clear},
+static const struct luaL_Reg cmd_lib[] = {{"clear", l_cmd_clear},
 	{"delete", l_cmd_delete},
 	{"_end", l_cmd_end},
 	{"getline", l_cmd_line_get},
@@ -1086,7 +1086,7 @@ static const struct luaL_Reg cmdlib[] = {{"clear", l_cmd_clear},
 	{"setprefix", l_cmd_prefix_set},
 	{NULL, NULL}};
 
-static const struct luaL_Reg uilib[] = {{"clear", l_ui_clear},
+static const struct luaL_Reg ui_lib[] = {{"clear", l_ui_clear},
 	{"history_append", l_history_append},
 	{"history_next", l_history_next},
 	{"history_prev", l_history_prev},
@@ -1095,53 +1095,53 @@ static const struct luaL_Reg uilib[] = {{"clear", l_ui_clear},
 	{"messages", l_ui_messages},
 	{NULL, NULL}};
 
-static const struct luaL_Reg loglib[] = {{"debug", l_log_debug},
+static const struct luaL_Reg log_lib[] = {{"debug", l_log_debug},
 	{"info", l_log_info},
 	{"trace", l_log_trace},
 	{NULL, NULL}};
 
-static const struct luaL_Reg cfgmt[] = {
-	{"__index", l_cfg_index}, {"__newindex", l_cfg_newindex}, {NULL, NULL}};
+static const struct luaL_Reg config_mt[] = {
+	{"__index", l_config_index}, {"__newindex", l_config_newindex}, {NULL, NULL}};
 
-static const struct luaL_Reg colorsmt[] = {
+static const struct luaL_Reg colors_mt[] = {
 	{"__newindex", l_colors_newindex}, {NULL, NULL}};
 
 int luaopen_lfm(lua_State *L)
 {
 	log_debug("opening lualfm libs");
 
-	luaL_openlib(L, "lfm", lfmlib, 1);
+	luaL_openlib(L, "lfm", lfm_lib, 1);
 
 	lua_newtable(L);	       /* cfg */
 
 	lua_newtable(L); /* ui.colors */
-	luaL_newmetatable(L, "mtColors"); /* metatable for the config table */
-	luaL_register(L, NULL, colorsmt);
+	luaL_newmetatable(L, "colors_mt"); /* metatable for the config table */
+	luaL_register(L, NULL, colors_mt);
 	lua_setmetatable(L, -2);
 	lua_setfield(L, -2, "colors"); /* lfm.ui = {...} */
 
-	luaL_newmetatable(L, "mtCfg"); /* metatable for the config table */
-	luaL_register(L, NULL, cfgmt);
+	luaL_newmetatable(L, "config_mt"); /* metatable for the config table */
+	luaL_register(L, NULL, config_mt);
 	lua_setmetatable(L, -2);
 
-	lua_setfield(L, -2, "cfg"); /* lfm.cfg = {...} */
+	lua_setfield(L, -2, "config"); /* lfm.cfg = {...} */
 
 	lua_newtable(L); /* lfm.log */
-	luaL_register(L, NULL, loglib);
+	luaL_register(L, NULL, log_lib);
 	lua_setfield(L, -2, "log"); /* lfm.log = {...} */
 
 	lua_newtable(L); /* lfm.ui */
-	luaL_register(L, NULL, uilib);
+	luaL_register(L, NULL, ui_lib);
 	lua_setfield(L, -2, "ui"); /* lfm.ui = {...} */
 
 	lua_newtable(L); /* lfm.cmd */
-	luaL_register(L, NULL, cmdlib);
+	luaL_register(L, NULL, cmd_lib);
 	lua_setfield(L, -2, "cmd"); /* lfm.cmd = {...} */
 
 	lua_newtable(L);	       /* lfm.nav */
-	luaL_register(L, NULL, navlib);
+	luaL_register(L, NULL, nav_lib);
 	luaL_newmetatable(L, "mtNav");
-	luaL_register(L, NULL, navmt);
+	luaL_register(L, NULL, nav_mt);
 	lua_setmetatable(L, -2);
 	lua_setfield(L, -2, "nav"); /* lfm.nav = {...} */
 

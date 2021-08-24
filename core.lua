@@ -10,7 +10,7 @@ end
 local nav = lfm.nav
 local log = lfm.log
 local ui = lfm.ui
-local cfg = lfm.cfg
+local config = lfm.config
 
 do
 	setmetatable(lfm.cmd, {
@@ -287,7 +287,7 @@ map("gg", nav.top, {desc="top"})
 map("G", nav.bottom, {desc="bottom"})
 map("R", function() loadfile("/home/marius/Sync/programming/lfm/core.lua")() end, {desc="reload config"})
 map("''", function() nav.mark_load("'") end)
-map("zh", function() lfm.cfg.hidden = not lfm.cfg.hidden end, {desc="toggle hidden"})
+map("zh", function() lfm.config.hidden = not lfm.config.hidden end, {desc="toggle hidden"})
 map(":", function() lfm.cmd.prefix = ":" end)
 map("/", function() lfm.cmd.prefix = "/" lfm.search("") end)
 map("?", function() lfm.cmd.prefix = "?" lfm.search("") end)
@@ -389,4 +389,4 @@ lfm.register_mode(mode_travel)
 -- package.loaded.config = nil
 -- require("/home/marius/.config/lfm/config.lua")
 
-dofile(cfg.configpath)
+dofile(config.configpath)
