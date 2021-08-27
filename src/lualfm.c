@@ -95,10 +95,12 @@ static int l_nav_index(lua_State *L)
 		return 1;
 	} else if (streq(key, "selection")) {
 		lua_createtable(L, nav->selection_len, 0);
-		size_t i;
-		for (i = 0; i < cvector_size(nav->selection); i++) {
-			lua_pushstring(L, nav->selection[i]);
-			lua_rawseti(L, -2, i+1);
+		size_t i, j;
+		for (i = 0, j = 1; i < cvector_size(nav->selection); i++) {
+			if (nav->selection[i]) {
+				lua_pushstring(L, nav->selection[i]);
+				lua_rawseti(L, -2, j++);
+			}
 		}
 		return 1;
 	} else if (streq(key, "current")) {
