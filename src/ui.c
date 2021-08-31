@@ -598,8 +598,8 @@ void ui_cmd_right(ui_t *ui)
 	if (ui->cmd_prefix[0] == 0) {
 		return;
 	}
-	const int l = strlen(ui->cmd_acc_right);
-	const int j = strlen(ui->cmd_acc_left);
+	const int l = strlen(ui->cmd_acc_left);
+	const int j = strlen(ui->cmd_acc_right);
 	if (j > 0) {
 		if (l < ACC_SIZE - 2) {
 			ui->cmd_acc_left[l] = ui->cmd_acc_right[0];

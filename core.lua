@@ -56,6 +56,7 @@ local hooks = {
 	ExitPre = {},
 	ChdirPre = {},
 	ChdirPost = {},
+	SelectionChanged = {},
 }
 
 function lfm.register_hook(name, f)
