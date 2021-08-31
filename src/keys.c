@@ -139,6 +139,7 @@ const char *keytrans(int key)
 	case KEY_DC:
 	case NCKEY_DEL:
 		return "<delete>";
+	case NCKEY_END:
 	case KEY_END:
 		return "<end>";
 	case CTRL('a'):
