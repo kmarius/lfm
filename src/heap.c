@@ -18,6 +18,11 @@
 #define RCHILD(i) (2 * (i) + 2)
 #endif
 
+struct heap_node_t {
+	void *data;
+	int key;
+};
+
 static inline void upheap(heap_t *heap, int i);
 static void downheap(heap_t *heap, int i);
 

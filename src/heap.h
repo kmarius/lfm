@@ -3,11 +3,6 @@
 
 typedef struct heap_t heap_t;
 
-struct heap_node_t {
-	void *data;
-	int key;
-};
-
 struct heap_t {
 	struct heap_node_t *nodes;
 	int size;
