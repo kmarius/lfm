@@ -66,7 +66,6 @@ void dir_sel(dir_t *dir, const char *file)
 		}
 	}
 	dir->ind = min(dir->ind, dir->len);
-	dir->pos = dir->ind;
 }
 
 const char *dir_parent(const dir_t *dir)
