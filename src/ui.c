@@ -305,7 +305,7 @@ static char *wansi_consoom(struct ncplane *w, char *s)
 	int nums[6];
 	s++; // first char guaranteed to be \033
 	if (!(*s == '[')) {
-		log_debug("there should be a [ here");
+		log_error("there should be a [ here");
 		return s;
 	}
 	s++;
@@ -322,16 +322,16 @@ static char *wansi_consoom(struct ncplane *w, char *s)
 				acc = 0;
 				break;
 			case '\0':
-				log_debug("escape ended prematurely");
+				log_error("escape ended prematurely");
 				return s;
 			default:
 				if (!(c >= '0' && c <= '9')) {
-					log_debug("not a number? %c", c);
+					log_error("not a number? %c", c);
 				}
 				acc = 10 * acc + (c - '0');
 		}
 		if (nnums > 5) {
-			log_debug("malformed ansi: too many numbers");
+			log_error("malformed ansi: too many numbers");
 			/* TODO: seek to 'm' (on 2021-07-29) */
 			return s;
 		}
@@ -348,18 +348,18 @@ static char *wansi_consoom(struct ncplane *w, char *s)
 		if (nums[0] == 38 && nums[1] == 5) {
 			ncplane_set_fg_palindex(w, nums[2]);
 		} else if (nums[0] == 48 && nums[1] == 5) {
-			log_debug("trying to set background color per ansi code");
+			log_error("trying to set background color per ansi code");
 		}
 	} else if (nnums == 4) {
 		wansi_matchattr(w, nums[0]);
 		ncplane_set_fg_palindex(w, nums[3]);
 	} else if (nnums == 5) {
-		log_debug("using unsupported ansi code with 5 numbers");
+		log_error("using unsupported ansi code with 5 numbers");
 		/* log_debug("%d %d %d %d %d", nums[0], nums[1], nums[2],
 		 * nums[3], nums[4]);
 		 */
 	} else if (nnums == 6) {
-		log_debug("using unsupported ansi code with 6 numbers");
+		log_error("using unsupported ansi code with 6 numbers");
 		/* log_debug("%d %d %d %d %d %d", nums[0], nums[1], nums[2],
 		 * nums[3], nums[4], nums[5]); */
 	}
