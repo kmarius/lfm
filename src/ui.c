@@ -569,6 +569,19 @@ void ui_cmd_delete(ui_t *ui)
 	draw_cmdline(ui);
 }
 
+void ui_cmd_delete_right(ui_t *ui)
+{
+	log_debug("cmd_delete_right");
+	if (ui->cmd_prefix[0] == 0) {
+		return;
+	}
+	char *c = ui->cmd_acc_right;
+	while (*++c)
+		*(c-1) = *c;
+	*(c-1) = '\0';
+	draw_cmdline(ui);
+}
+
 /* pass a ct argument to move over words? */
 void ui_cmd_left(ui_t *ui)
 {

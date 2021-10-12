@@ -414,6 +414,13 @@ static int l_cmd_delete(lua_State *L)
 	return 0;
 }
 
+static int l_cmd_delete_right(lua_State *L)
+{
+	(void) L;
+	ui_cmd_delete_right(&app->ui);
+	return 0;
+}
+
 static int l_cmd_insert(lua_State *L)
 {
 	const char *c = lua_tostring(L, 1);
@@ -1077,6 +1084,7 @@ static const struct luaL_Reg nav_mt[] = {{"__index", l_nav_index}, {NULL, NULL}}
 
 static const struct luaL_Reg cmd_lib[] = {{"clear", l_cmd_clear},
 	{"delete", l_cmd_delete},
+	{"delete_right", l_cmd_delete_right},
 	{"_end", l_cmd_end},
 	{"getline", l_cmd_line_get},
 	{"getprefix", l_cmd_prefix_get},

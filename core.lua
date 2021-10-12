@@ -125,6 +125,14 @@ local function cmddelete()
 	end
 end
 
+local function cmddeleteright()
+	lfm.cmd.delete_right()
+	local mode = modes[lfm.cmd.prefix]
+	if mode then
+		mode.change()
+	end
+end
+
 local function cd(dir)
 	nav.chdir(dir or os.getenv("HOME"))
 end
@@ -270,7 +278,7 @@ cmaps = {
 	["<down>"] = {f=history_next, desc=""},
 	["<home>"] = {f=lfm.cmd.home, desc=""},
 	["<end>"] = {f=lfm.cmd._end, desc=""},
-	["<delete>"] = {f=lfm.cmd.del, desc=""},
+	["<delete>"] = {f=cmddeleteright, desc=""},
 }
 
 nmaps = {}
