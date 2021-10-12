@@ -303,9 +303,10 @@ static char *wansi_consoom(struct ncplane *w, char *s)
 	int acc = 0;
 	int nnums = 0;
 	int nums[6];
-	s++;
+	s++; // first char guaranteed to be \033
 	if (!(*s == '[')) {
 		log_debug("there should be a [ here");
+		return s;
 	}
 	s++;
 	bool fin = false;
@@ -320,10 +321,9 @@ static char *wansi_consoom(struct ncplane *w, char *s)
 				nums[nnums++] = acc;
 				acc = 0;
 				break;
-			case 0:
+			case '\0':
 				log_debug("escape ended prematurely");
-				fin = true;
-				break;
+				return s;
 			default:
 				if (!(c >= '0' && c <= '9')) {
 					log_debug("not a number? %c", c);
@@ -333,7 +333,7 @@ static char *wansi_consoom(struct ncplane *w, char *s)
 		if (nnums > 5) {
 			log_debug("malformed ansi: too many numbers");
 			/* TODO: seek to 'm' (on 2021-07-29) */
-			return NULL;
+			return s;
 		}
 		s++;
 	}
@@ -348,8 +348,7 @@ static char *wansi_consoom(struct ncplane *w, char *s)
 		if (nums[0] == 38 && nums[1] == 5) {
 			ncplane_set_fg_palindex(w, nums[2]);
 		} else if (nums[0] == 48 && nums[1] == 5) {
-			log_debug(
-					"trying to set background color per ansi code");
+			log_debug("trying to set background color per ansi code");
 		}
 	} else if (nnums == 4) {
 		wansi_matchattr(w, nums[0]);
