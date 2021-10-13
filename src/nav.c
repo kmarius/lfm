@@ -275,7 +275,7 @@ bool nav_insert_dir(nav_t *nav, dir_t *dir)
 	dir_t *olddir;
 	int i;
 
-	log_debug("nav_insert_dir %s", dir->path);
+	/* log_debug("nav_insert_dir %s", dir->path); */
 
 	if ((olddir = heap_take(nav->dircache, eq_dir, dir->path))) {
 		/* replace in dir cache */
