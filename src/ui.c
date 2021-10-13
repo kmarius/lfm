@@ -171,6 +171,7 @@ void ui_resize(ui_t *ui)
 	/* } */
 	menu_resize(ui);
 	ui_recol(ui);
+	ui->nav->height = ui->nrow - 2;
 	ui_clear(ui);
 }
 
