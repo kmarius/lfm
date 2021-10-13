@@ -10,7 +10,8 @@ int compare_name(const void *a, const void *b)
 
 int compare_size(const void *a, const void *b)
 {
-	return ((file_t *)a)->stat.st_size - ((file_t *)b)->stat.st_size;
+	long long c = ((file_t *)a)->stat.st_size - ((file_t *)b)->stat.st_size;
+	return c < 0 ? -1 : c > 0 ? 1 : 0;
 }
 
 int compare_natural(const void *a, const void *b)
