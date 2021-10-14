@@ -1140,7 +1140,7 @@ static void print_file(struct ncplane *n, const file_t *file,
 		const unsigned long ch = ncplane_channels(n);
 		ncplane_putnstr(n, l, file->name);
 		ncplane_set_channels(n, cfg.colors.search);
-		ncplane_putnstr(n, strlen(highlight), file->name);
+		ncplane_putnstr(n, strlen(highlight), file->name + l);
 		ncplane_set_channels(n, ch);
 		ncplane_putnstr(n, ncol-3, file->name + l + strlen(highlight));
 		ncplane_cursor_yx(n, NULL, &x);
