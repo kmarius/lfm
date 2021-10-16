@@ -244,6 +244,11 @@ static void update_preview(ui_t *ui)
 		} else {
 			ui->file_preview = ui_load_preview(ui, file);
 		}
+	} else {
+		if (ui->file_preview) {
+			heap_insert(ui->previewcache, ui->file_preview);
+			ui->file_preview = NULL;
+		}
 	}
 }
 
