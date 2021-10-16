@@ -279,6 +279,7 @@ cmaps = {
 	["<home>"] = {f=lfm.cmd.home, desc=""},
 	["<end>"] = {f=lfm.cmd._end, desc=""},
 	["<delete>"] = {f=cmddeleteright, desc=""},
+	["<tab>"] = {f=complete_next},
 }
 
 nmaps = {}

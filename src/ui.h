@@ -46,6 +46,7 @@ typedef struct ui_t {
 	cvector_vector_type(char*) messages;
 
 	char *highlight; /* search */
+	bool highlight_active;
 	bool search_forward;
 } ui_t;
 
@@ -109,6 +110,9 @@ void ui_kbblocking(bool blocking);
 
 void ui_search_nohighlight(ui_t *ui);
 
+/*
+ * Pass NULL as search string to re-enable highlighting with the previous search.
+ */
 void ui_search_highlight(ui_t *ui, const char *search, bool forward);
 
 #endif

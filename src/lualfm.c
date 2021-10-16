@@ -911,6 +911,7 @@ static int l_search_next_forward(lua_State *L)
 	if (!(dir = nav_current_dir(nav)) || !ui->highlight) {
 		return 0;
 	}
+	ui_search_highlight(ui, NULL, true);
 	int start = dir->ind;
 	if (!lua_toboolean(L, 1)) {
 		start++;
@@ -940,6 +941,7 @@ static int l_search_next_backwards(lua_State *L)
 	if (!(dir = nav_current_dir(nav)) || !ui->highlight) {
 		return 0;
 	}
+	ui_search_highlight(ui, NULL, false);
 	int start = dir->ind;
 	if (!lua_toboolean(L, 1)) {
 		start--;

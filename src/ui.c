@@ -121,6 +121,7 @@ void ui_init(ui_t *ui, nav_t *nav)
 	/* ui->messages = NULL; */
 
 	ui->highlight = NULL;
+	ui->highlight_active = false;
 	ui->search_forward = true;
 
 	init = true;
@@ -426,15 +427,20 @@ bool ui_insert_preview(ui_t *ui, preview_t *pv)
 /* search {{{ */
 void ui_search_nohighlight(ui_t *ui)
 {
-	free(ui->highlight);
-	ui->highlight = NULL;
+	ui->highlight_active = false;
 	ui->search_forward = true;
 }
 
 void ui_search_highlight(ui_t *ui, const char *search, bool forward)
 {
 	ui->search_forward = forward;
-	ui->highlight = strdup(search);
+	if (search) {
+			if (ui->highlight) {
+			free(ui->highlight);
+		}
+		ui->highlight = strdup(search);
+	}
+	ui->highlight_active = true;
 }
 /* }}} */
 
@@ -1231,8 +1237,12 @@ void ui_draw_dirs(ui_t *ui)
 
 	const int l = ui->nav->ndirs;
 	for (i = 0; i < l; i++) {
-		wdraw_dir(ui->wdirs[l-i-1], ui->nav->dirs[i], ui->nav->selection, ui->nav->load,
-				ui->nav->mode, i == 0 ? ui->highlight : NULL);
+		wdraw_dir(ui->wdirs[l-i-1],
+				ui->nav->dirs[i],
+				ui->nav->selection,
+				ui->nav->load,
+				ui->nav->mode,
+				i == 0 && ui->highlight_active ? ui->highlight : NULL);
 	}
 
 	if (cfg.preview && ui->ndirs > 1) {
