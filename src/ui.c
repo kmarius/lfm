@@ -428,14 +428,13 @@ bool ui_insert_preview(ui_t *ui, preview_t *pv)
 void ui_search_nohighlight(ui_t *ui)
 {
 	ui->highlight_active = false;
-	ui->search_forward = true;
 }
 
 void ui_search_highlight(ui_t *ui, const char *search, bool forward)
 {
-	ui->search_forward = forward;
 	if (search) {
-			if (ui->highlight) {
+		ui->search_forward = forward;
+		if (ui->highlight) {
 			free(ui->highlight);
 		}
 		ui->highlight = strdup(search);
