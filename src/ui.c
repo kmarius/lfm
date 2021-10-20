@@ -15,7 +15,7 @@
 #include "config.h"
 #include "cvector.h"
 #include "dir.h"
-#include "heap.h"
+#include "cache.h"
 #include "log.h"
 #include "nav.h"
 #include "preview.h"
@@ -68,7 +68,7 @@ void ui_init(ui_t *ui, nav_t *nav)
 {
 	ui->nav = nav;
 
-	ui->previewcache = heap_new(PREVIEW_CACHE_SIZE, (void(*)(void*)) preview_free);
+	ui->previewcache = cache_new(PREVIEW_CACHE_SIZE, (void(*)(void*)) preview_free);
 
 	ncsetup();
 	ui->input_ready_fd = notcurses_inputready_fd(nc);
@@ -191,7 +191,7 @@ preview_t *ui_load_preview(ui_t *ui, file_t *file)
 	struct ncplane *w = wpreview(ui);
 	ncplane_dim_yx(w, &nrow, &ncol);
 
-	if ((pv = heap_take(ui->previewcache, file->path))) {
+	if ((pv = cache_take(ui->previewcache, file->path))) {
 		/* TODO: vv (on 2021-08-10) */
 		/* might be checking too often here? or is it capped by inotify
 		 * timeout? */
@@ -233,7 +233,7 @@ static void update_preview(ui_t *ui)
 					async_preview_load(file->path, file, nrow, ncol);
 				}
 			} else {
-				heap_insert(ui->previewcache, ui->file_preview, ui->file_preview->path);
+				cache_insert(ui->previewcache, ui->file_preview, ui->file_preview->path);
 				ui->file_preview = ui_load_preview(ui, file);
 			}
 		} else {
@@ -241,7 +241,7 @@ static void update_preview(ui_t *ui)
 		}
 	} else {
 		if (ui->file_preview) {
-			heap_insert(ui->previewcache, ui->file_preview, ui->file_preview->path);
+			cache_insert(ui->previewcache, ui->file_preview, ui->file_preview->path);
 			ui->file_preview = NULL;
 		}
 	}
@@ -406,16 +406,16 @@ bool ui_insert_preview(ui_t *ui, preview_t *pv)
 		ui->file_preview = pv;
 		return true;
 	} else {
-		if ((oldpv = heap_take(ui->previewcache, pv->path))) {
+		if ((oldpv = cache_take(ui->previewcache, pv->path))) {
 			if (pv->mtime >= oldpv->mtime) {
 				preview_free(oldpv);
-				heap_insert(ui->previewcache, pv, pv->path);
+				cache_insert(ui->previewcache, pv, pv->path);
 			} else {
 				/* discard */
 				preview_free(pv);
 			}
 		} else {
-			heap_insert(ui->previewcache, pv, pv->path);
+			cache_insert(ui->previewcache, pv, pv->path);
 		}
 	}
 	return false;
@@ -1335,7 +1335,7 @@ void ui_destroy(ui_t *ui)
 	cvector_free(ui->history);
 	cvector_ffree(ui->messages, free);
 	cvector_ffree(ui->menubuf, free);
-	heap_destroy(ui->previewcache);
+	cache_destroy(ui->previewcache);
 	free(ui->highlight);
 	notcurses_stop(nc);
 }

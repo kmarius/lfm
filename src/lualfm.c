@@ -16,7 +16,7 @@
 #include "config.h"
 #include "cvector.h"
 #include "dir.h"
-#include "heap.h"
+#include "cache.h"
 #include "keys.h"
 #include "notify.h"
 #include "log.h"
@@ -224,13 +224,13 @@ static int l_config_newindex(lua_State *L)
 		if (capacity < 0) {
 			luaL_argerror(L, 3, "size must be non-negative");
 		}
-		heap_resize(app->nav.dircache, capacity);
+		cache_resize(app->nav.dircache, capacity);
 	} else if (streq(key, "previewcache_size")) {
 		int capacity = luaL_checkinteger(L, 3);
 		if (capacity < 0) {
 			luaL_argerror(L, 3, "size must be non-negative");
 		}
-		heap_resize(app->ui.previewcache, capacity);
+		cache_resize(app->ui.previewcache, capacity);
 	} else {
 		luaL_error(L, "unexpected key %s", key);
 	}

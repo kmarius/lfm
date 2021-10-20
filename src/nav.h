@@ -9,7 +9,7 @@
 
 #include "cvector.h"
 #include "dir.h"
-#include "heap.h"
+#include "cache.h"
 
 enum movemode_e {
 	MODE_MOVE,
@@ -23,7 +23,7 @@ typedef struct mark_t {
 
 typedef struct nav_t {
 	/* All loaded directories, not only visible ones */
-	heap_t *dircache;
+	cache_t *dircache;
 
 	/* Visible directories excluding preview, vector of dir_t* */
 	cvector_vector_type(dir_t *) dirs;

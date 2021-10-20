@@ -8,7 +8,7 @@
 #include "dir.h"
 #include "nav.h"
 #include "preview.h"
-#include "heap.h"
+#include "cache.h"
 
 #define ACC_SIZE 256
 #define PREFIX_SIZE 32
@@ -38,7 +38,7 @@ typedef struct ui_t {
 	cvector_vector_type(char*) menubuf;
 
 	preview_t *file_preview;
-	heap_t *previewcache;
+	cache_t *previewcache;
 
 	cvector_vector_type(char*) history;
 	char **history_ptr;
