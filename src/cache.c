@@ -6,19 +6,10 @@
 #include "util.h"
 #include "time.h"
 
-#ifndef PARENT
+#define T cache_t
 #define PARENT(i) ((i)-1) / 2
-#endif
-
-#ifndef LCHILD
 #define LCHILD(i) (2 * (i) + 1)
-#endif
-
-#ifndef RCHILD
 #define RCHILD(i) (2 * (i) + 2)
-#endif
-
-typedef cache_t T;
 
 struct node_t {
 	void *data;
@@ -26,14 +17,41 @@ struct node_t {
 	const char *search_key;
 };
 
-static inline void upheap(T *t, int i);
-static void downheap(T *t, int i);
-
 static inline void swap(struct node_t *x, struct node_t *y)
 {
 	struct node_t tmp = *x;
 	*x = *y;
 	*y = tmp;
+}
+
+static inline void upheap(struct node_t *a, int i)
+{
+	int p;
+	while (i > 0 && a[p = PARENT(i)].sort_key > a[i].sort_key) {
+		swap(a+p, a+i);
+		i = p;
+	}
+}
+
+static void downheap(struct node_t *a, int size, int i)
+{
+	const int lidx = LCHILD(i);
+	const int ridx = RCHILD(i);
+
+	int largest = i;
+
+	if (lidx < size && a[lidx].sort_key < a[largest].sort_key) {
+		largest = lidx;
+	}
+
+	if (ridx < size && a[ridx].sort_key < a[largest].sort_key) {
+		largest = ridx;
+	}
+
+	if (largest != i) {
+		swap(a+i, a+largest);
+		downheap(a, size, largest);
+	}
 }
 
 T *cache_new(int capacity, void (*free)(void*))
@@ -55,7 +73,7 @@ void cache_resize(T *t, int capacity)
 		t->free(t->nodes[0].data);
 		t->nodes[0] = t->nodes[--t->size];
 		if (t->size > 0) {
-			downheap(t, 0);
+			downheap(t->nodes, t->size, 0);
 		}
 	}
 	t->nodes = realloc(t->nodes, sizeof(struct node_t) * capacity);
@@ -72,13 +90,13 @@ void cache_insert(T *t, void *e, const char *key)
 		t->nodes[0].data = e;
 		t->nodes[0].sort_key = time(NULL);
 		t->nodes[0].search_key = key;
-		downheap(t, 0);
+		downheap(t->nodes, t->size, 0);
 	} else {
 		t->nodes[t->size].data = e;
 		t->nodes[t->size].sort_key = time(NULL);
 		t->nodes[t->size].search_key = key;
 		t->size++;
-		upheap(t, t->size - 1);
+		upheap(t->nodes, t->size - 1);
 	}
 }
 
@@ -93,9 +111,9 @@ void *cache_take(T *t, const void *key)
 				t->size--;
 
 				if (i == 0 || t->nodes[i].sort_key >= t->nodes[PARENT(i)].sort_key) {
-					downheap(t, i);
+					downheap(t->nodes, t->size, i);
 				} else {
-					upheap(t, i);
+					upheap(t->nodes, i);
 				}
 			} else {
 				t->size--;
@@ -104,36 +122,6 @@ void *cache_take(T *t, const void *key)
 		}
 	}
 	return NULL;
-}
-
-static inline void upheap(T *t, int i)
-{
-	int p;
-	while (i > 0 && t->nodes[p = PARENT(i)].sort_key > t->nodes[i].sort_key) {
-		swap(&t->nodes[p], &t->nodes[i]);
-		i = p;
-	}
-}
-
-static void downheap(T *t, int i)
-{
-	const int lidx = LCHILD(i);
-	const int ridx = RCHILD(i);
-
-	int largest = i;
-
-	if (lidx < t->size && t->nodes[lidx].sort_key < t->nodes[largest].sort_key) {
-		largest = lidx;
-	}
-
-	if (ridx < t->size && t->nodes[ridx].sort_key < t->nodes[largest].sort_key) {
-		largest = ridx;
-	}
-
-	if (largest != i) {
-		swap(t->nodes+i, t->nodes+largest);
-		downheap(t, largest);
-	}
 }
 
 void cache_clear(T *t)
@@ -152,3 +140,8 @@ void cache_destroy(T *t) {
 		free(t);
 	}
 }
+
+#undef T
+#undef RCHILD
+#undef LCHILD
+#undef PARENT
