@@ -207,7 +207,7 @@ char * const* nav_get_load(const nav_t *nav);
 /*
  * Get the mode current load, one of MODE_COPY, MODE_MOVE.
  */
-int nav_get_mode(const nav_t *nav);
+enum movemode_e nav_get_mode(const nav_t *nav);
 
 /*
  * Current file of the current directory. Can be NULL.

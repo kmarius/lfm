@@ -89,7 +89,7 @@ void nav_init(nav_t *nav)
 	nav->height = 0;
 	nav->load = NULL;
 	nav->marklist = NULL;
-	nav->mode = 0;
+	nav->mode = MODE_COPY;
 	nav->prev_selection = NULL;
 	nav->selection_len = 0;
 	nav->selection = NULL;
@@ -706,7 +706,7 @@ bool nav_mark_load(nav_t *nav, char mark)
 /* load/copy/move {{{ */
 
 /* TODO: Make it possible to append to cut/copy buffer (on 2021-07-25) */
-void nav_load_files(nav_t *nav, int mode)
+void nav_load_files(nav_t *nav, enum movemode_e mode)
 {
 	nav_selection_visual_stop(nav);
 	nav->mode = mode;
@@ -727,7 +727,7 @@ void nav_load_clear(nav_t *nav)
 
 char * const *nav_get_load(const nav_t *nav) { return nav->load; }
 
-int nav_get_mode(const nav_t *nav) { return nav->mode; }
+enum movemode_e nav_get_mode(const nav_t *nav) { return nav->mode; }
 
 void nav_cut(nav_t *nav) { nav_load_files(nav, MODE_MOVE); }
 
