@@ -27,11 +27,6 @@ static void update_watchers(nav_t *nav);
 static void remove_preview(nav_t *nav);
 static void mark_save(nav_t *nav, char mark, const char *path);
 
-static int eq_dir(void *d, const void *p)
-{
-	return streq(((dir_t*)d)->path, p);
-}
-
 static const char *concatpath(const char *dir, const char *file)
 {
 	static char path[PATH_MAX + 1];
@@ -124,7 +119,7 @@ void nav_recol(nav_t *nav)
 
 	remove_preview(nav);
 	for (i = 0; i < nav->ndirs; i++) {
-		heap_insert(nav->dircache, nav->dirs[i]);
+		heap_insert(nav->dircache, nav->dirs[i], nav->dirs[i]->path);
 	}
 
 	cvector_set_size(nav->dirs, l);
@@ -166,7 +161,7 @@ bool nav_chdir(nav_t *nav, const char *path, bool save)
 	int i;
 	for (i = 0; i < nav->ndirs; i++) {
 		if (nav->dirs[i]) {
-			heap_insert(nav->dircache, nav->dirs[i]);
+			heap_insert(nav->dircache, nav->dirs[i], nav->dirs[i]->path);
 		}
 	}
 	populate(nav);
@@ -234,7 +229,7 @@ static dir_t *load_dir(nav_t *nav, const char *path)
 		path = fullpath;
 	}
 
-	if ((dir = heap_take(nav->dircache, eq_dir, path))) {
+	if ((dir = heap_take(nav->dircache, path))) {
 		if (!dir_check(dir)) {
 			async_dir_load(dir->path);
 		}
@@ -283,11 +278,11 @@ bool nav_insert_dir(nav_t *nav, dir_t *dir)
 
 	/* log_debug("nav_insert_dir %s", dir->path); */
 
-	if ((olddir = heap_take(nav->dircache, eq_dir, dir->path))) {
+	if ((olddir = heap_take(nav->dircache, dir->path))) {
 		/* replace in dir cache */
 		copy_attrs(dir, olddir);
 		dir_free(olddir);
-		heap_insert(nav->dircache, dir);
+		heap_insert(nav->dircache, dir, dir->path);
 	} else {
 		/* check if it an active directory */
 		if (nav->preview && streq(nav->preview->path, dir->path)) {
@@ -362,7 +357,7 @@ static void remove_preview(nav_t *nav)
 {
 	if (nav->preview) {
 		notify_remove_watcher(nav->preview->path);
-		heap_insert(nav->dircache, nav->preview);
+		heap_insert(nav->dircache, nav->preview, nav->preview->path);
 		nav->preview = NULL;
 	}
 }
@@ -389,7 +384,7 @@ void nav_update_preview(nav_t *nav)
 			}
 			if (i == nav->ndirs) {
 				notify_remove_watcher(nav->preview->path);
-				heap_insert(nav->dircache, nav->preview);
+				heap_insert(nav->dircache, nav->preview, nav->preview->path);
 			}
 		}
 		nav->preview = load_dir(nav, file->path);
@@ -404,7 +399,7 @@ void nav_update_preview(nav_t *nav)
 			}
 			if (i == nav->ndirs) {
 				notify_remove_watcher(nav->preview->path);
-				heap_insert(nav->dircache, nav->preview);
+				heap_insert(nav->dircache, nav->preview, nav->preview->path);
 			}
 			nav->preview = NULL;
 		}
