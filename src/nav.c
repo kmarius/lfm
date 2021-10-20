@@ -340,14 +340,6 @@ void nav_drop_cache(nav_t *nav)
 
 	cache_clear(nav->dircache);
 
-	char path[PATH_MAX];
-	const char *s;
-	if ((s = getenv("PWD"))) {
-		strncpy(path, s, sizeof(path)-1);
-	} else {
-		getcwd(path, sizeof(path));
-	}
-
 	populate(nav);
 	nav_update_preview(nav);
 	update_watchers(nav);

@@ -225,7 +225,7 @@ dir_t *nav_current_dir(const nav_t *nav);
 bool cvector_contains(const char *path, cvector_vector_type(char*) selection);
 
 /*
- *
+ * Drop directory cache and reload visible directories from disk.
  */
 void nav_drop_cache(nav_t *nav);
 
