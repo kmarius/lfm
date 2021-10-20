@@ -424,7 +424,7 @@ void nav_selection_add_file(nav_t *nav, const char *path)
 void nav_selection_set(nav_t *nav, cvector_vector_type(char*) selection)
 {
 	nav_selection_clear(nav);
-	free(nav->selection);
+	cvector_free(nav->selection);
 	nav->selection = selection;
 }
 
@@ -763,3 +763,5 @@ void nav_destroy(nav_t *nav)
 	cvector_ffree(nav->marklist, free_mark);
 	cache_destroy(nav->dircache);
 }
+
+#undef free_mark
