@@ -222,8 +222,11 @@ dir_t *nav_current_dir(const nav_t *nav);
 /*
  * Compare PATH against each path in SELECTION to check if it is contained.
  */
-bool cvector_contains(const char *path, char **selection);
+bool cvector_contains(const char *path, cvector_vector_type(char*) selection);
 
+/*
+ *
+ */
 void nav_drop_cache(nav_t *nav);
 
 #define nav_current_dir(nav) (nav)->dirs[0]
@@ -232,6 +235,6 @@ void nav_drop_cache(nav_t *nav);
 
 void nav_selection_add_file(nav_t *nav, const char *path);
 
-void nav_selection_set(nav_t *nav, cvector_vector_type(char*) sel);
+void nav_selection_set(nav_t *nav, cvector_vector_type(char*) selection);
 
 #endif

@@ -35,7 +35,7 @@ static const char *concatpath(const char *dir, const char *file)
 	return path;
 }
 
-bool cvector_contains(const char *path, char **selection)
+bool cvector_contains(const char *path, cvector_vector_type(char*) selection)
 {
 	size_t i;
 	for (i = 0; i < cvector_size(selection); i++) {
@@ -429,11 +429,11 @@ void nav_selection_add_file(nav_t *nav, const char *path)
 	nav->selection_len++;
 }
 
-void nav_selection_set(nav_t *nav, cvector_vector_type(char*) sel)
+void nav_selection_set(nav_t *nav, cvector_vector_type(char*) selection)
 {
 	nav_selection_clear(nav);
 	free(nav->selection);
-	nav->selection = sel;
+	nav->selection = selection;
 }
 
 void selection_toggle_file(nav_t *nav, const char *path)
