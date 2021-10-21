@@ -19,6 +19,7 @@ config cfg = {
 	.corepath = NULL,
 	.configdir = NULL,
 	.datadir = NULL,
+	.logpath = NULL,
 	.configpath = NULL,
 	.historypath = NULL,
 	.startpath = NULL,
@@ -67,6 +68,20 @@ void config_defaults()
 	const int r[] = {1, 2, 3};
 	config_ratios_set(3, r);
 
+#ifdef DEBUG
+	cfg.logpath = strdup("/tmp/lfm.debug.log");
+#else
+	asprintf(&cfg.logpath, "/tmp/lfm.%d.log", getpid());
+#endif
+
+	asprintf(&cfg.rundir, "/var/run/user/%d/lfm", getuid());
+
+#ifdef DEBUG
+	asprintf(&cfg.fifopath, "%s/debug.fifo", cfg.rundir);
+#else
+	asprintf(&cfg.fifopath, "%s/%d.fifo", cfg.rundir, getpid());
+#endif
+
 	asprintf(&cfg.configdir, "%s/.config/lfm", getenv("HOME"));
 
 	asprintf(&cfg.datadir, "%s/.local/share/lfm", getenv("HOME"));
@@ -84,12 +99,14 @@ void config_clear() {
 	cvector_free(cfg.ratios);
 	cvector_free(cfg.commands);
 	free(cfg.configdir);
-	free(cfg.datadir);
-	free(cfg.previewer);
-	free(cfg.corepath);
 	free(cfg.configpath);
+	free(cfg.corepath);
+	free(cfg.datadir);
+	free(cfg.fifopath);
 	free(cfg.historypath);
-	free(cfg.startpath);
+	free(cfg.logpath);
+	free(cfg.previewer);
 	free(cfg.startfile);
+	free(cfg.startpath);
 	cvector_ffree(cfg.colors.ext_channels, chtup_free);
 }

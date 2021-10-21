@@ -51,36 +51,14 @@ int main(int argc, char **argv)
 	app_t app;
 
 	const unsigned long t0 = current_micros();
-	/* TODO: get user id (on 2021-08-13) */
 
-	char rundir[48];
-	char fifopath[64];
+	config_defaults();
 
-	snprintf(rundir, sizeof(rundir), "/var/run/user/%d/lfm", getuid());
-	if (mkdir(rundir, 0700) == -1 && errno != EEXIST) {
-		fprintf(stderr, "mkdir: %s", strerror(errno));
-		exit(EXIT_FAILURE);
-	}
-	cfg.rundir = rundir;
-
-#ifdef DEBUG
-	snprintf(fifopath, sizeof(fifopath), "%s/debug.fifo", rundir);
-	const char *logpath = "/tmp/lfm.debug.log";
-#else
-	snprintf(fifopath, sizeof(fifopath), "%s/%d.fifo", rundir, getpid());
-	char logpath[64];
-	snprintf(logpath, sizeof(logpath), "/tmp/lfm.%d.log", getpid());
-#endif
-	cfg.fifopath = fifopath;
-	setenv("LFMFIFO", fifopath, 1);
-
-	FILE *log_fp = fopen(logpath, "w");
+	FILE *log_fp = fopen(cfg.logpath, "w");
 
 	log_add_fp(log_fp, LOG_TRACE);
 	log_set_quiet(true);
 	log_debug("startup");
-
-	config_defaults();
 
 	int opt;
 	while ((opt = getopt(argc, argv, ":c:hl:s:u:v")) != -1) {
@@ -162,7 +140,7 @@ int main(int argc, char **argv)
 	fclose(log_fp);
 
 #ifndef DEBUG
-	remove(logpath);
+	remove(cfg.logpath);
 #endif
 
 	exit(0);

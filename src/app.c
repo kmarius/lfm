@@ -259,6 +259,12 @@ void app_init(app_t *app)
 		log_error("fifo: %s", strerror(errno));
 		exit(EXIT_FAILURE);
 	}
+	setenv("LFMFIFO", cfg.fifopath, 1);
+
+	if (mkdir(cfg.rundir, 0700) == -1 && errno != EEXIST) {
+		fprintf(stderr, "mkdir: %s", strerror(errno));
+		exit(EXIT_FAILURE);
+	}
 
 	if ((fifo_wd = inotify_add_watch(inotify_fd, cfg.rundir, IN_CLOSE_WRITE)) == -1) {
 		log_error("inotify: %s", strerror(errno));

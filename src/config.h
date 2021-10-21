@@ -42,6 +42,7 @@ typedef struct Config {
 	char *configdir;      /* ~/.config/lfm */
 	char *datadir;        /* ~/.local/share/lfm */
 	char *fifopath;       /* $rundir/$PID.fifo */
+	char *logpath;       /* /tmp/lfm.$PID.log */
 	char *rundir;         /* /run/media/user/N/lfm */
 	char *lastdir;
 	char *selfile;
