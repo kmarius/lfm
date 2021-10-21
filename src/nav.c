@@ -194,15 +194,20 @@ void nav_sort(nav_t *nav)
 			nav->dirs[i]->hidden = cfg.hidden;
 			/* TODO: maybe we can select the closest non-hidden file in case the
 			 * current one will be hidden (on 2021-10-17) */
-			const char *file = dir_current_file(nav->dirs[i])->name;
-			dir_sort(nav->dirs[i]);
-			dir_sel(nav->dirs[i], file);
+			if (nav->dirs[i]->len > 0) {
+				const char *file = dir_current_file(nav->dirs[i])->name;
+				dir_sort(nav->dirs[i]);
+				dir_sel(nav->dirs[i], file);
+			}
 		}
 	}
 	if (nav->preview) {
-		const char *file = dir_current_file(nav->preview)->name;
-		dir_sort(nav->preview);
-		dir_sel(nav->preview, file);
+		nav->preview->hidden = cfg.hidden;
+		if (nav->preview->len > 0) {
+			const char *file = dir_current_file(nav->preview)->name;
+			dir_sort(nav->preview);
+			dir_sel(nav->preview, file);
+		}
 	}
 }
 
