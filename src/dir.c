@@ -276,18 +276,23 @@ dir_t *new_dir(const char *path)
 
 static int file_count(const char *path)
 {
-	int ct;
-	DIR *dirp;
-	struct dirent *dp;
+	/* int ct; */
+	/* DIR *dirp; */
+	/* struct dirent *dp; */
+    /*  */
+	/* if (!(dirp = opendir(path))) { */
+	/* 	return 0; */
+	/* } */
+    /*  */
+	/* for (ct = 0; (dp = readdir(dirp)); ct++) */
+	/* 	; */
+	/* closedir(dirp); */
+	/* return ct - 2; */
 
-	if (!(dirp = opendir(path))) {
-		return 0;
-	}
-
-	for (ct = 0; (dp = readdir(dirp)); ct++)
-		;
-	closedir(dirp);
-	return ct - 2;
+	/* TODO: maybe do this lazily/async (on 2021-10-22) */
+	/* this causes directories that contain slow mountpoints to also load slowly */
+	(void) path;
+	return 0;
 }
 
 dir_t *dir_new_loading(const char *path)
