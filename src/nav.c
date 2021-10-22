@@ -174,7 +174,7 @@ bool nav_chdir(nav_t *nav, const char *path, bool save)
 static void update_watchers(nav_t *nav)
 {
 	const int l = nav->ndirs;
-	const char **w = malloc(sizeof(char *) * l);
+	const char *w[l];
 
 	int i;
 	for (i = 0; i < l; i++) {
@@ -182,8 +182,6 @@ static void update_watchers(nav_t *nav)
 	}
 
 	notify_set_watchers(w, l);
-
-	free(w);
 }
 
 void nav_sort(nav_t *nav)
