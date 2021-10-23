@@ -16,6 +16,7 @@
 #include "cvector.h"
 #include "dir.h"
 #include "cache.h"
+#include "history.h"
 #include "log.h"
 #include "nav.h"
 #include "preview.h"
@@ -31,7 +32,6 @@ inline static struct ncplane *wpreview(ui_t *ui)
 	return ui->wdirs[ui->ndirs-1];
 }
 
-static void history_load(ui_t *ui);
 static void draw_info(ui_t *ui);
 static void draw_cmdline(ui_t *ui);
 static char *readable_fs(double size, char *buf);
@@ -109,9 +109,7 @@ void ui_init(ui_t *ui, nav_t *nav)
 
 	ui->file_preview = NULL;
 
-	ui->history = NULL;
-	ui->history_ptr = NULL;
-	history_load(ui);
+	history_load(&ui->history, cfg.historypath);
 
 	/* ui->messages = NULL; */
 
@@ -673,7 +671,7 @@ void ui_cmd_clear(ui_t *ui)
 	ui->cmd_prefix[0] = 0;
 	ui->cmd_acc_left[0] = 0;
 	ui->cmd_acc_right[0] = 0;
-	ui->history_ptr = NULL;
+	history_reset(&ui->history);
 	notcurses_cursor_disable(nc);
 	draw_cmdline(ui);
 	ui_showmenu(ui, NULL, 0);
@@ -962,101 +960,6 @@ static void draw_info(ui_t *ui)
 
 /* }}} */
 
-/* history {{{ */
-
-/* TODO: add prefixes to history (on 2021-07-24) */
-/* TODO: write to history.new and move on success (on 2021-07-28) */
-
-void history_write(ui_t *ui)
-{
-	log_trace("history_write");
-	FILE *fp;
-
-	char *dir, *buf = strdup(cfg.historypath);
-	dir = dirname(buf);
-	mkdir_p(dir);
-	free(buf);
-
-	if (!(fp = fopen(cfg.historypath, "w"))) {
-		ui_error(ui, "history: %s", strerror(errno));
-		return;
-	}
-
-	size_t i;
-	for (i = 0; i < cvector_size(ui->history); i++) {
-		fputs(ui->history[i], fp);
-		fputc('\n', fp);
-	}
-	fclose(fp);
-}
-
-/* does *not* free the vector */
-void history_clear(ui_t *ui)
-{
-	cvector_fclear(ui->history, free);
-}
-
-void history_load(ui_t *ui)
-{
-	char *line = NULL;
-	ssize_t read;
-	size_t n;
-	FILE *fp;
-
-	if (! (fp = fopen(cfg.historypath, "r"))) {
-		app_error("history: %s", strerror(errno));
-		return;
-	}
-
-	while ((read = getline(&line, &n, fp)) != -1) {
-		line[strlen(line) - 1] = 0; /* remove \n */
-		cvector_push_back(ui->history, line);
-		line = NULL;
-	}
-
-	fclose(fp);
-}
-
-void ui_history_append(ui_t *ui, const char *line)
-{
-	char **end = cvector_end(ui->history);
-	if (end && streq(*(end - 1), line)) {
-		/* skip consecutive dupes */
-		return;
-	}
-	cvector_push_back(ui->history, strdup(line));
-}
-
-/* TODO: only show history items with matching prefixes (on 2021-07-24) */
-const char *ui_history_prev(ui_t *ui)
-{
-	if (!ui->history_ptr) {
-		ui->history_ptr = cvector_end(ui->history);
-	}
-	if (!ui->history_ptr) {
-		return NULL;
-	}
-	if (ui->history_ptr > cvector_begin(ui->history)) {
-		--ui->history_ptr;
-	}
-	return *ui->history_ptr;
-}
-
-const char *ui_history_next(ui_t *ui)
-{
-	if (!ui->history_ptr) {
-		return NULL;
-	}
-	if (ui->history_ptr < cvector_end(ui->history)) {
-		++ui->history_ptr;
-	}
-	if (ui->history_ptr == cvector_end(ui->history)) {
-		return "";
-	}
-	return *ui->history_ptr;
-}
-/* }}} */
-
 /* wdraw_dir {{{ */
 
 unsigned long ext_channel_find(const char *ext)
@@ -1328,11 +1231,29 @@ void ui_vechom(ui_t *ui, const char *format, va_list args)
 
 /* }}} */
 
+/* history {{{ */
+
+void ui_history_append(ui_t *ui, const char *line)
+{
+	history_append(&ui->history, line);
+}
+
+const char *ui_history_prev(ui_t *ui)
+{
+	return history_prev(&ui->history);
+}
+
+const char *ui_history_next(ui_t *ui)
+{
+	return history_next(&ui->history);
+}
+
+/* }}} */
+
 void ui_destroy(ui_t *ui)
 {
-	history_write(ui);
-	history_clear(ui);
-	cvector_free(ui->history);
+	history_write(&ui->history, cfg.historypath);
+	history_clear(&ui->history);
 	cvector_ffree(ui->messages, free);
 	cvector_ffree(ui->menubuf, free);
 	cache_destroy(ui->previewcache);

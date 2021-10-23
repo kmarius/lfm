@@ -9,6 +9,7 @@
 #include "nav.h"
 #include "preview.h"
 #include "cache.h"
+#include "history.h"
 
 #define ACC_SIZE 256
 #define PREFIX_SIZE 32
@@ -40,8 +41,7 @@ typedef struct ui_t {
 	preview_t *file_preview;
 	cache_t *previewcache;
 
-	cvector_vector_type(char*) history;
-	char **history_ptr;
+	history_t history;
 
 	cvector_vector_type(char*) messages;
 
