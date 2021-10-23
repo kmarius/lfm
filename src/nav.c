@@ -708,6 +708,17 @@ bool nav_mark_load(nav_t *nav, char mark)
 
 /* load/copy/move {{{ */
 
+static void cvector_unsparse(cvector_vector_type(char *) vec)
+{
+	size_t i, j;
+	for (i = j = 0; i < cvector_size(vec); i++) {
+		if (vec[i]) {
+			vec[j++] = vec[i];
+		}
+	}
+	cvector_set_size(vec, j);
+}
+
 /* TODO: Make it possible to append to cut/copy buffer (on 2021-07-25) */
 void nav_load_files(nav_t *nav, enum movemode_e mode)
 {
@@ -719,6 +730,7 @@ void nav_load_files(nav_t *nav, enum movemode_e mode)
 	nav_load_clear(nav);
 	char **tmp = nav->load;
 	nav->load = nav->selection;
+	cvector_unsparse(nav->load);
 	nav->selection = tmp;
 	nav->selection_len = 0;
 }
