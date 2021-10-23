@@ -32,9 +32,9 @@ typedef struct ui_t {
 	struct ncplane *menu;
 	cvector_vector_type(struct ncplane*) wdirs;
 
-	char cmd_prefix[PREFIX_SIZE];
-	char cmd_acc_left[ACC_SIZE];
-	char cmd_acc_right[ACC_SIZE];
+	wchar_t cmd_prefix[PREFIX_SIZE];
+	wchar_t cmd_acc_left[ACC_SIZE];
+	wchar_t cmd_acc_right[ACC_SIZE];
 
 	cvector_vector_type(char*) menubuf;
 
@@ -80,7 +80,7 @@ void ui_cmd_delete(ui_t *ui);
 
 void ui_cmd_delete_right(ui_t *ui);
 
-void ui_cmd_insert(ui_t *ui, char key);
+void ui_cmd_insert(ui_t *ui, const char *key);
 
 void ui_cmd_prefix_set(ui_t *ui, const char *prefix);
 

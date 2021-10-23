@@ -423,8 +423,7 @@ static int l_cmd_delete_right(lua_State *L)
 
 static int l_cmd_insert(lua_State *L)
 {
-	const char *c = lua_tostring(L, 1);
-	ui_cmd_insert(&app->ui, c[0]);
+	ui_cmd_insert(&app->ui, lua_tostring(L, 1));
 	return 0;
 }
 
@@ -464,8 +463,10 @@ static int l_cmd_prefix_set(lua_State *L)
 
 static int l_cmd_prefix_get(lua_State *L)
 {
-	const char *prefix = app->ui.cmd_prefix;
-	lua_pushstring(L, prefix[0] == 0 ? "" : prefix);
+	const wchar_t *prefix = app->ui.cmd_prefix;
+	char buf[sizeof(app->ui.cmd_prefix)] = {0};
+	wcstombs(buf, prefix, sizeof(buf)-1);
+	lua_pushstring(L, buf[0] == 0 ? "" : buf);
 	return 1;
 }
 

@@ -1,5 +1,6 @@
 #include <ncurses.h>
 #include <notcurses/notcurses.h>
+#include <wchar.h>
 
 #include "keys.h"
 
@@ -87,8 +88,7 @@
 
 const char *keytrans(int key)
 {
-	static char buf[2] = {0};
-	buf[0] = (char)key;
+	static char buf[8]; /* hope that fits */
 	switch (key) {
 	case KEY_BREAK:
 		return "<break>";
@@ -274,6 +274,14 @@ const char *keytrans(int key)
 	case ' ':
 		return "<space>";
 	default:
-		return buf;
+		{
+			int n = wctomb(buf, key);
+			if (n < 0) {
+				// invalid character
+				n = 0;
+			}
+			buf[n] = '\0';
+			return buf;
+		}
 	}
 }

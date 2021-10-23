@@ -540,22 +540,24 @@ void ui_cmd_prefix_set(ui_t *ui, const char *prefix)
 	}
 	/* curs_set(1); */
 	notcurses_cursor_enable(nc, 0, 0);
-	strncpy(ui->cmd_prefix, prefix, sizeof(ui->cmd_prefix) - 1);
+	mbstowcs(ui->cmd_prefix, prefix, sizeof(ui->cmd_prefix) - 1);
 	draw_cmdline(ui);
 }
 
-void ui_cmd_insert(ui_t *ui, char key)
+/* inserts only the first mbchar of the argument */
+void ui_cmd_insert(ui_t *ui, const char *key)
 {
-	/* log_debug("cmd_insert %c", key); */
+	/* log_debug("cmd_insert %s", key); */
+
 	if (ui->cmd_prefix[0] == 0) {
 		return;
 	}
-	const int l = strlen(ui->cmd_acc_left);
+	const int l = wcslen(ui->cmd_acc_left);
 	if (l >= ACC_SIZE - 1) {
 		return;
 	}
+	mbtowc(ui->cmd_acc_left+l, key, strlen(key));
 	ui->cmd_acc_left[l + 1] = 0;
-	ui->cmd_acc_left[l] = key;
 	draw_cmdline(ui);
 }
 
@@ -565,7 +567,7 @@ void ui_cmd_delete(ui_t *ui)
 	if (ui->cmd_prefix[0] == 0) {
 		return;
 	}
-	const int l = strlen(ui->cmd_acc_left);
+	const int l = wcslen(ui->cmd_acc_left);
 	if (l > 0) {
 		ui->cmd_acc_left[l - 1] = 0;
 		log_debug("cmd_delete: %s", ui->cmd_acc_left);
@@ -579,7 +581,7 @@ void ui_cmd_delete_right(ui_t *ui)
 	if (ui->cmd_prefix[0] == 0) {
 		return;
 	}
-	char *c = ui->cmd_acc_right;
+	wchar_t *c = ui->cmd_acc_right;
 	while (*++c)
 		*(c-1) = *c;
 	*(c-1) = '\0';
@@ -594,9 +596,9 @@ void ui_cmd_left(ui_t *ui)
 	if (ui->cmd_prefix[0] == 0) {
 		return;
 	}
-	const int l = strlen(ui->cmd_acc_left);
+	const int l = wcslen(ui->cmd_acc_left);
 	if (l > 0) {
-		j = min(strlen(ui->cmd_acc_right), ACC_SIZE - 2);
+		j = min(wcslen(ui->cmd_acc_right), ACC_SIZE - 2);
 		ui->cmd_acc_right[j + 1] = 0;
 		for (; j > 0; j--) {
 			ui->cmd_acc_right[j] = ui->cmd_acc_right[j - 1];
@@ -614,8 +616,8 @@ void ui_cmd_right(ui_t *ui)
 	if (ui->cmd_prefix[0] == 0) {
 		return;
 	}
-	const int l = strlen(ui->cmd_acc_left);
-	const int j = strlen(ui->cmd_acc_right);
+	const int l = wcslen(ui->cmd_acc_left);
+	const int j = wcslen(ui->cmd_acc_right);
 	if (j > 0) {
 		if (l < ACC_SIZE - 2) {
 			ui->cmd_acc_left[l] = ui->cmd_acc_right[0];
@@ -634,14 +636,14 @@ void ui_cmd_home(ui_t *ui)
 	if (ui->cmd_prefix[0] == 0) {
 		return;
 	}
-	const int l = strlen(ui->cmd_acc_left);
+	const int l = wcslen(ui->cmd_acc_left);
 	if (l > 0) {
-		int j = min(strlen(ui->cmd_acc_right) - 1 + l, ACC_SIZE - 1 - l);
+		int j = min(wcslen(ui->cmd_acc_right) - 1 + l, ACC_SIZE - 1 - l);
 		ui->cmd_acc_right[j + 1] = 0;
 		for (; j >= l; j--) {
 			ui->cmd_acc_right[j] = ui->cmd_acc_right[j - l];
 		}
-		strncpy(ui->cmd_acc_right, ui->cmd_acc_left, l);
+		wcsncpy(ui->cmd_acc_right, ui->cmd_acc_left, l);
 		ui->cmd_acc_left[0] = 0;
 	}
 	draw_cmdline(ui);
@@ -654,9 +656,9 @@ void ui_cmd_end(ui_t *ui)
 		return;
 	}
 	if (ui->cmd_acc_right[0] != 0) {
-		const int j = strlen(ui->cmd_acc_left);
-		const int l = ACC_SIZE - 1 - strlen(ui->cmd_acc_left);
-		strncpy(ui->cmd_acc_left + j, ui->cmd_acc_right, l);
+		const int j = wcslen(ui->cmd_acc_left);
+		const int l = ACC_SIZE - 1 - wcslen(ui->cmd_acc_left);
+		wcsncpy(ui->cmd_acc_left + j, ui->cmd_acc_right, l);
 		ui->cmd_acc_left[l + j] = 0;
 		ui->cmd_acc_right[0] = 0;
 	}
@@ -683,19 +685,23 @@ void ui_cmdline_set(ui_t *ui, const char *line)
 	if (ui->cmd_prefix[0] == 0) {
 		return;
 	}
-	strncpy(ui->cmd_acc_left, line, sizeof(ui->cmd_acc_left)-1);
+	mbstowcs(ui->cmd_acc_left, line, sizeof(ui->cmd_acc_left) - 1);
 	ui->cmd_acc_right[0] = 0;
 	draw_cmdline(ui);
 }
 
 const char *ui_cmdline_get(const ui_t *ui)
 {
-	static char buf[2 * ACC_SIZE] = {0};
+	static char buf[2 * ACC_SIZE * 4] = {0};
 	if (ui->cmd_prefix[0] == 0) {
 		return "";
 	} else {
-		snprintf(buf, sizeof(buf), "%s%s", ui->cmd_acc_left,
-				ui->cmd_acc_right);
+		size_t n = wcstombs(buf, ui->cmd_acc_left, sizeof(ui->cmd_acc_left) - 1);
+		if (n == (size_t) - 1) {
+			// could not convert
+			return buf;
+		}
+		wcstombs(buf + n, ui->cmd_acc_right, sizeof(ui->cmd_acc_right) - n - 1);
 	}
 	return buf;
 }
@@ -880,10 +886,10 @@ void draw_cmdline(ui_t *ui)
 			}
 		}
 	} else {
-		const int cursor_pos = strlen(ui->cmd_prefix) + strlen(ui->cmd_acc_left);
-		ncplane_putstr_yx(ui->cmdline, 0, 0, ui->cmd_prefix);
-		ncplane_putstr(ui->cmdline, ui->cmd_acc_left);
-		ncplane_putstr(ui->cmdline, ui->cmd_acc_right);
+		const int cursor_pos = wcslen(ui->cmd_prefix) + wcslen(ui->cmd_acc_left);
+		ncplane_putwstr_yx(ui->cmdline, 0, 0, ui->cmd_prefix);
+		ncplane_putwstr(ui->cmdline, ui->cmd_acc_left);
+		ncplane_putwstr(ui->cmdline, ui->cmd_acc_right);
 		notcurses_cursor_enable(nc, ui->nrow - 1, cursor_pos);
 	}
 	notcurses_render(nc);
