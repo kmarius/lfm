@@ -582,9 +582,11 @@ void ui_cmd_delete_right(ui_t *ui)
 		return;
 	}
 	wchar_t *c = ui->cmd_acc_right;
-	while (*++c)
-		*(c-1) = *c;
-	*(c-1) = '\0';
+	if (*c) {
+		while (*++c)
+			*(c-1) = *c;
+		*(c-1) = '\0';
+	}
 	draw_cmdline(ui);
 }
 
