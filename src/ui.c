@@ -1184,6 +1184,9 @@ void ui_clear(ui_t *ui)
 
 	notcurses_refresh(nc, NULL, NULL);
 
+	notcurses_cursor_enable(nc, 0, 0);
+	notcurses_cursor_disable(nc);
+
 	ui_draw(ui);
 }
 
