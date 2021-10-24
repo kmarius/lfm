@@ -7,3 +7,6 @@ lua
 .ccls-cache
 src/.ccls-cache
 src/.ccls
+tags
+tags.lock
+tags.temp
