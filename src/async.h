@@ -36,4 +36,4 @@ void async_dir_load_delayed(const char *path, int delay /* millis */);
 
 void async_preview_load(const char *path, const file_t *fptr, int x, int y);
 
-#endif
+#endif /* ASYNC_H */

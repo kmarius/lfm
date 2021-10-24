@@ -115,4 +115,4 @@ void ui_search_nohighlight(ui_t *ui);
  */
 void ui_search_highlight(ui_t *ui, const char *search, bool forward);
 
-#endif
+#endif /* UI_H */

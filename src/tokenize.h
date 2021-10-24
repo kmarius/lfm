@@ -12,4 +12,4 @@
  *          "abc", "d", "ef g", NULL on 4 consecutive calls */
 char *tokenize(const char *s, char *buf, int *i, int *j);
 
-#endif
+#endif /* TOKENIZE_H */

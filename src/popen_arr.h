@@ -20,7 +20,8 @@
 
 // Implemented by Vitaly _Vi Shukela in 2013, License=MIT
 
-#pragma once
+#ifndef POPEN_ARR_H
+#define POPEN_ARR_H
 
 struct FILE;
 
@@ -54,3 +55,5 @@ int popen2_arr_p(FILE** in, FILE** out,  const char* program, const char* const 
  * @return FILE* instance or NULL if error
  */
 FILE* popen_arr(const char* program, const char* const argv[], int pipe_into_program);
+
+#endif /* POPEN_ARR_H */

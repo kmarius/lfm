@@ -25,7 +25,13 @@
  *
  * You can change this typedef, but must then also change the inline
  * functions in strnatcmp.c */
+
+#ifndef STRNATCMP_H
+#define STRNATCMP_H
+
 typedef char nat_char;
 
 int strnatcmp(nat_char const *a, nat_char const *b);
 int strnatcasecmp(nat_char const *a, nat_char const *b);
+
+#endif /* STRNATCMP_H */

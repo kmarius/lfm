@@ -1,5 +1,5 @@
-#ifndef HEAP_H
-#define HEAP_H
+#ifndef CACHE_H
+#define CACHE_H
 
 typedef struct cache_t cache_t;
 
@@ -17,4 +17,4 @@ void *cache_take(cache_t *heap, const void *key);
 void cache_clear(cache_t *heap);
 void cache_destroy(cache_t *heap);
 
-#endif
+#endif /* CACHE_H */

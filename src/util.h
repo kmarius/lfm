@@ -53,4 +53,4 @@ char *sdirname(const char *p);
 
 #define adirname(p) strdup(sdirname(p))
 
-#endif
+#endif /* UTIL_H */

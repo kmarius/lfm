@@ -32,4 +32,4 @@ void app_print(const char *format, ...);
 
 void app_error(const char *format, ...);
 
-#endif
+#endif /* APP_H */

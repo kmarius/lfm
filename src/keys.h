@@ -13,4 +13,4 @@
 
 const char *keytrans(int key);
 
-#endif
+#endif /* KEYS_H */

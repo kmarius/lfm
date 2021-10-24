@@ -28,4 +28,4 @@ bool preview_check(const preview_t *pv);
 
 void preview_free(preview_t *pv);
 
-#endif
+#endif /* PREVIEW_H */

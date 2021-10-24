@@ -24,4 +24,4 @@ void notify_close();
 
 void log_watchers();
 
-#endif
+#endif /* NOTIFY_H */

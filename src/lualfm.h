@@ -32,4 +32,4 @@ void lua_exec_expr(lua_State *L, app_t *app, const char *cmd);
  */
 void lua_run_hook(lua_State *L, const char *hook);
 
-#endif
+#endif /* LFMLUA_H */

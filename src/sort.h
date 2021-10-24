@@ -9,4 +9,4 @@ int compare_natural(const void *a, const void *b);
 
 int compare_ctime(const void *a, const void *b);
 
-#endif
+#endif /* SORT_H */

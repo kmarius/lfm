@@ -79,4 +79,4 @@ void config_defaults();
 
 void config_clear();
 
-#endif
+#endif /* CONFIG_H */

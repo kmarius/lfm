@@ -113,4 +113,4 @@ bool dir_check(const dir_t *dir);
 
 #define dir_isroot(d) ((d)->path[0] == '/' && (d)->path[1] == 0)
 
-#endif
+#endif /* DIR_H */

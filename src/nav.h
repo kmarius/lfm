@@ -237,4 +237,4 @@ void nav_selection_add_file(nav_t *nav, const char *path);
 
 void nav_selection_set(nav_t *nav, cvector_vector_type(char*) selection);
 
-#endif
+#endif /* NAV_H */
