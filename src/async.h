@@ -8,18 +8,17 @@
 #include "dir.h"
 #include "tpool.h"
 
-
 enum result_e { RES_DIR, RES_PREVIEW };
 
-typedef struct Result {
+typedef struct res_t {
 	enum result_e type;
 	void *payload;
-	struct Result *next;
+	struct res_t *next;
 } res_t;
 
-typedef struct ResultQueue {
-	struct Result *head;
-	struct Result *tail;
+typedef struct resq_t {
+	struct res_t *head;
+	struct res_t *tail;
 	pthread_mutex_t mutex;
 	ev_async *watcher;
 } resq_t;
