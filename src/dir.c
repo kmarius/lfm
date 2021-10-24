@@ -15,20 +15,6 @@
 #include "log.h"
 #include "util.h"
 
-#ifndef SWAP
-#define SWAP(x, y) \
-	do { \
-		unsigned char _swap_temp[sizeof(x) == sizeof(y) \
-					     ? (signed)sizeof(x) \
-					     : -1]; \
-		memcpy(_swap_temp, &y, sizeof(x)); \
-		memcpy(&y, &x, sizeof(x)); \
-		memcpy(&x, _swap_temp, sizeof(x)); \
-	} while (0)
-#endif
-
-static bool file_hidden(file_t *file);
-
 file_t *dir_current_file(const dir_t *dir)
 {
 	if (!dir || dir->ind >= dir->len) {
@@ -101,10 +87,19 @@ static void apply_filter(dir_t *dir)
 		/* TODO: try to select previously selected file
 		 * note that on the first call dir->files is not yet valid */
 		memcpy(dir->files, dir->sortedfiles,
-		       sizeof(file_t *) * dir->sortedlen);
+				sizeof(file_t *) * dir->sortedlen);
 		dir->len = dir->sortedlen;
 	}
 	dir->ind = max(min(dir->ind, dir->len - 1), 0);
+}
+
+static bool file_hidden(file_t *file) { return file->name[0] == '.'; }
+
+static inline void swap(file_t **a, file_t **b)
+{
+	file_t *t = *a;
+	*a = *b;
+	*b = t;
 }
 
 /* sort allfiles and copy non-hidden ones to sortedfiles */
@@ -113,24 +108,24 @@ void dir_sort(dir_t *dir)
 	if (!dir->sorted) {
 		/* log_trace("dir_sort %s", dir->path); */
 		switch (dir->sorttype) {
-		case SORT_NATURAL:
-			qsort(dir->allfiles, dir->alllen, sizeof(file_t),
-			      compare_natural);
-			break;
-		case SORT_NAME:
-			qsort(dir->allfiles, dir->alllen, sizeof(file_t),
-			      compare_name);
-			break;
-		case SORT_SIZE:
-			qsort(dir->allfiles, dir->alllen, sizeof(file_t),
-			      compare_size);
-			break;
-		case SORT_CTIME:
-			qsort(dir->allfiles, dir->alllen, sizeof(file_t),
-			      compare_ctime);
-			break;
-		default:
-			break;
+			case SORT_NATURAL:
+				qsort(dir->allfiles, dir->alllen, sizeof(file_t),
+						compare_natural);
+				break;
+			case SORT_NAME:
+				qsort(dir->allfiles, dir->alllen, sizeof(file_t),
+						compare_name);
+				break;
+			case SORT_SIZE:
+				qsort(dir->allfiles, dir->alllen, sizeof(file_t),
+						compare_size);
+				break;
+			case SORT_CTIME:
+				qsort(dir->allfiles, dir->alllen, sizeof(file_t),
+						compare_ctime);
+				break;
+			default:
+				break;
 		}
 		dir->sorted = 1;
 	}
@@ -142,7 +137,7 @@ void dir_sort(dir_t *dir)
 			for (i = 0; i < dir->alllen; i++) {
 				if (file_isdir(dir->allfiles + i)) {
 					dir->sortedfiles[j++] =
-					    &dir->allfiles[i];
+						&dir->allfiles[i];
 				}
 			}
 			ndirs = j;
@@ -150,7 +145,7 @@ void dir_sort(dir_t *dir)
 			for (i = 0; i < dir->alllen; i++) {
 				if (!file_isdir(dir->allfiles + i)) {
 					dir->sortedfiles[j++] =
-					    &dir->allfiles[i];
+						&dir->allfiles[i];
 				}
 			}
 		} else {
@@ -163,36 +158,36 @@ void dir_sort(dir_t *dir)
 		if (dir->dirfirst) {
 			for (i = 0; i < dir->alllen; i++) {
 				if (!file_hidden(dir->allfiles + i) &&
-				    file_isdir(dir->allfiles + i)) {
+						file_isdir(dir->allfiles + i)) {
 					dir->sortedfiles[j++] =
-					    &dir->allfiles[i];
+						&dir->allfiles[i];
 				}
 			}
 			ndirs = j;
 			for (i = 0; i < dir->alllen; i++) {
 				if (!file_hidden(dir->allfiles + i) &&
-				    !file_isdir(dir->allfiles + i)) {
+						!file_isdir(dir->allfiles + i)) {
 					dir->sortedfiles[j++] =
-					    &dir->allfiles[i];
+						&dir->allfiles[i];
 				}
 			}
 		} else {
 			for (i = 0, j = 0; i < dir->alllen; i++) {
 				if (!file_hidden(dir->allfiles + i)) {
 					dir->sortedfiles[j++] =
-					    &dir->allfiles[i];
+						&dir->allfiles[i];
 				}
 			}
 		}
 	}
 	if (dir->reverse) {
 		for (i = 0; i < ndirs / 2; i++) {
-			SWAP(dir->sortedfiles[i],
-			     dir->sortedfiles[ndirs - i - 1]);
+			swap(dir->sortedfiles+i,
+					dir->sortedfiles + ndirs - i - 1);
 		}
 		for (i = 0; i < (dir->sortedlen - ndirs) / 2; i++) {
-			SWAP(dir->sortedfiles[ndirs + i],
-			     dir->sortedfiles[dir->sortedlen - i - 1]);
+			swap(dir->sortedfiles + ndirs + i,
+					dir->sortedfiles + dir->sortedlen - i - 1);
 		}
 	}
 	dir->sortedlen = j;
@@ -200,8 +195,6 @@ void dir_sort(dir_t *dir)
 
 	apply_filter(dir);
 }
-
-static bool file_hidden(file_t *file) { return file->name[0] == '.'; }
 
 void dir_filter(dir_t *dir, const char *filter)
 {
@@ -280,11 +273,11 @@ static int file_count(const char *path)
 	/* int ct; */
 	/* DIR *dirp; */
 	/* struct dirent *dp; */
-    /*  */
+	/*  */
 	/* if (!(dirp = opendir(path))) { */
 	/* 	return 0; */
 	/* } */
-    /*  */
+	/*  */
 	/* for (ct = 0; (dp = readdir(dirp)); ct++) */
 	/* 	; */
 	/* closedir(dirp); */
