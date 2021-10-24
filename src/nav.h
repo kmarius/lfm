@@ -65,7 +65,7 @@ void nav_init(nav_t *nav);
 /*
  * Unloads directories and frees all resources.
  */
-void nav_destroy(nav_t *nav);
+void nav_deinit(nav_t *nav);
 
 /*
  * Updates the number of loaded directories, called after the number of columns

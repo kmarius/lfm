@@ -52,7 +52,7 @@ void ui_resize(ui_t *ui);
 
 void ui_recol(ui_t *ui);
 
-void ui_destroy(ui_t *ui);
+void ui_deinit(ui_t *ui);
 
 void ui_clear(ui_t *ui);
 

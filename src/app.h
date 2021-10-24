@@ -26,7 +26,7 @@ void app_run(app_t *app);
 
 void app_quit(app_t *app);
 
-void app_destroy(app_t *app);
+void app_deinit(app_t *app);
 
 void app_print(const char *format, ...);
 

@@ -121,7 +121,7 @@ int main(int argc, char **argv)
 	log_debug("starting main loop after %.2f ms", (current_micros() - t0)/1000.0);
 	app_run(&app);
 
-	app_destroy(&app);
+	app_deinit(&app);
 
 	/* selection is written in lualfm.c */
 	if (cfg.lastdir) {

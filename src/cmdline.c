@@ -185,4 +185,8 @@ int cmdline_print(cmdline_t *t, struct ncplane *n)
 	return ret;
 }
 
+void cmdline_deinit(cmdline_t *t) {
+	(void) t;
+}
+
 #undef T

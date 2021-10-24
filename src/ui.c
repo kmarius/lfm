@@ -1161,7 +1161,7 @@ const char *ui_history_next(ui_t *ui)
 
 /* }}} */
 
-void ui_destroy(ui_t *ui)
+void ui_deinit(ui_t *ui)
 {
 	history_write(&ui->history, cfg.historypath);
 	history_clear(&ui->history);
@@ -1169,5 +1169,6 @@ void ui_destroy(ui_t *ui)
 	cvector_ffree(ui->menubuf, free);
 	cache_deinit(&ui->previewcache);
 	free(ui->highlight);
+	cmdline_deinit(&ui->cmdline);
 	notcurses_stop(nc);
 }

@@ -768,7 +768,7 @@ const char *nav_filter_get(const nav_t *nav) { return nav->dirs[0]->filter; }
 #define free_mark(mark) free((mark).path)
 #endif
 
-void nav_destroy(nav_t *nav)
+void nav_deinit(nav_t *nav)
 {
 	cvector_ffree(nav->selection, free);
 	/* prev_selection _never_ holds allocated paths that are not already

@@ -345,16 +345,16 @@ void app_timeout(int duration)
 	input_timeout = current_millis() + duration;
 }
 
-void app_destroy(app_t *app)
+void app_deinit(app_t *app)
 {
 	cvector_free(times);
 	notify_close();
 	lua_close(app->L);
-	ui_destroy(&app->ui);
-	nav_destroy(&app->nav);
+	ui_deinit(&app->ui);
+	nav_deinit(&app->nav);
 	tpool_wait(async_tm);
 	tpool_destroy(async_tm);
-	queue_destroy(&async_results);
+	queue_deinit(&async_results);
 	pthread_mutex_destroy(&async_results.mutex);
 	if (fifo_fd > 0) {
 		close(fifo_fd);

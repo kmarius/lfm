@@ -14,6 +14,7 @@ typedef struct cmdline_t {
 } cmdline_t;
 
 void cmdline_init(cmdline_t *t);
+void cmdline_deinit(cmdline_t *t);
 int cmdline_prefix_set(cmdline_t *t, const char *prefix);
 const wchar_t *cmdline_prefix_get(cmdline_t *t);
 int cmdline_insert(cmdline_t *t, const char *key);

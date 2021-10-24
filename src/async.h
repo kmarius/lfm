@@ -28,7 +28,7 @@ extern resq_t async_results;
 
 bool queue_get(resq_t *dirq, enum result_e *type, void **result);
 
-void queue_destroy(resq_t *dirq);
+void queue_deinit(resq_t *dirq);
 
 void async_dir_load_delayed(const char *path, int delay /* millis */);
 

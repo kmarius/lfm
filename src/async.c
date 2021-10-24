@@ -53,7 +53,7 @@ bool queue_get(resq_t *queue, enum result_e *type, void **r)
 	return true;
 }
 
-void queue_destroy(resq_t *queue)
+void queue_deinit(resq_t *queue)
 {
 	void *r;
 	enum result_e type;
