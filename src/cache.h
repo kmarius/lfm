@@ -11,6 +11,7 @@ struct cache_t {
 };
 
 cache_t *cache_new(int capacity, void (*free)(void*));
+void cache_init(cache_t *heap, int capacity, void (*free)(void*));
 void cache_resize(cache_t *heap, int capacity);
 void cache_insert(cache_t *heap, void *e, const char *key);
 void *cache_take(cache_t *heap, const void *key);

@@ -54,13 +54,18 @@ static void downheap(struct node_t *a, int size, int i)
 	}
 }
 
-T *cache_new(int capacity, void (*free)(void*))
+void cache_init(T *t, int capacity, void (*free)(void*))
 {
-	T *t = malloc(sizeof(T));
 	t->nodes = malloc(sizeof(struct node_t) * capacity);
 	t->capacity = capacity;
 	t->size = 0;
 	t->free = free;
+}
+
+T *cache_new(int capacity, void (*free)(void*))
+{
+	T *t = malloc(sizeof(T));
+	cache_init(t, capacity, free);
 	return t;
 }
 
