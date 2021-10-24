@@ -102,7 +102,7 @@ bool ui_insert_preview(ui_t *ui, preview_t *pv);
 
 void ui_draw_preview(ui_t *ui);
 
-void ui_kbblocking(bool blocking);
+void kbblocking(bool blocking);
 
 void ui_search_nohighlight(ui_t *ui);
 

@@ -56,7 +56,7 @@ static void ncsetup()
 	ncstd = notcurses_stdplane(nc);
 }
 
-void ui_kbblocking(bool blocking)
+void kbblocking(bool blocking)
 {
 	int val = fcntl(STDIN_FILENO, F_GETFL, 0);
 	if (val != -1) {

@@ -583,14 +583,14 @@ static int l_sel_visual_toggle(lua_State *L)
 static int l_shell_pre(lua_State *L)
 {
 	(void) L;
-	ui_kbblocking(true);
+	kbblocking(true);
 	return 0;
 }
 
 static int l_shell_post(lua_State *L)
 {
 	(void) L;
-	ui_kbblocking(false);
+	kbblocking(false);
 	ui_clear(&app->ui);
 	return 0;
 }
