@@ -48,7 +48,7 @@ static struct ncplane *ncstd;
 static void ncsetup()
 {
 	struct notcurses_options opts = {
-		.flags = NCOPTION_NO_WINCH_SIGHANDLER,
+		.flags = NCOPTION_NO_WINCH_SIGHANDLER | NCOPTION_SUPPRESS_BANNERS,
 	};
 	if (!(nc = notcurses_core_init(&opts, NULL))) {
 		exit(EXIT_FAILURE);
