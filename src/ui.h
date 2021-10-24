@@ -1,18 +1,17 @@
 #ifndef UI_H
 #define UI_H
 
-#include <notcurses/notcurses.h>
 #include <lua.h>
+#include <notcurses/notcurses.h>
 
+#include "cache.h"
+#include "cmdline.h"
 #include "cvector.h"
 #include "dir.h"
+#include "history.h"
 #include "nav.h"
 #include "preview.h"
-#include "cache.h"
-#include "history.h"
 
-#define ACC_SIZE 256
-#define PREFIX_SIZE 32
 #define PREVIEW_CACHE_SIZE 31
 
 typedef struct ui_t {
@@ -27,20 +26,17 @@ typedef struct ui_t {
 	int input_ready_fd;
 	struct notcurses *nc;
 
-	struct ncplane *cmdline;
+	struct ncplane *plane_cmdline;
 	struct ncplane *infoline;
 	struct ncplane *menu;
 	cvector_vector_type(struct ncplane*) wdirs;
-
-	wchar_t cmd_prefix[PREFIX_SIZE];
-	wchar_t cmd_acc_left[ACC_SIZE];
-	wchar_t cmd_acc_right[ACC_SIZE];
 
 	cvector_vector_type(char*) menubuf;
 
 	preview_t *file_preview;
 	cache_t *previewcache;
 
+	cmdline_t cmdline;
 	history_t history;
 
 	cvector_vector_type(char*) messages;

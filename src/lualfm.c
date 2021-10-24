@@ -14,6 +14,7 @@
 #include "app.h"
 #include "async.h"
 #include "config.h"
+#include "cmdline.h"
 #include "cvector.h"
 #include "dir.h"
 #include "cache.h"
@@ -463,10 +464,14 @@ static int l_cmd_prefix_set(lua_State *L)
 
 static int l_cmd_prefix_get(lua_State *L)
 {
-	const wchar_t *prefix = app->ui.cmd_prefix;
-	char buf[sizeof(app->ui.cmd_prefix)] = {0};
-	wcstombs(buf, prefix, sizeof(buf)-1);
-	lua_pushstring(L, buf[0] == 0 ? "" : buf);
+	char buf[PREFIX_SIZE * 8] = {0};
+	const wchar_t *prefix =cmdline_prefix_get(&app->ui.cmdline);
+	if (prefix) {
+		wcstombs(buf, prefix, sizeof(buf)-1);
+		lua_pushstring(L, buf[0] == 0 ? "" : buf);
+	} else {
+		lua_pushstring(L, "");
+	}
 	return 1;
 }
 
@@ -745,8 +750,7 @@ static int l_nav_cut(lua_State *L)
 static int l_tokenize(lua_State *L)
 {
 	const char *string = luaL_optstring(L, 1, "");
-	/* string could be a single token of maximal length */
-	char *buf = malloc(sizeof(char)*(strlen(string)+1));
+	char buf[strlen(string) + 1];
 	int pos1 = 0, pos2 = 0;
 	const char *tok;
 	if ((tok = tokenize(string, buf, &pos1, &pos2))) {
@@ -758,7 +762,6 @@ static int l_tokenize(lua_State *L)
 		lua_pushstring(L, tok);
 		lua_rawseti(L, -2, i++);
 	}
-	free(buf);
 	return 2;
 }
 
