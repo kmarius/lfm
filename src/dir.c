@@ -10,6 +10,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include "cvector.h"
 #include "dir.h"
 #include "log.h"
 #include "util.h"
@@ -339,60 +340,51 @@ static bool file_load(file_t *file, const char *basedir, const char *name)
 
 dir_t *dir_load(const char *path)
 {
-	int i, ct;
+	int i;
 	struct dirent *dp;
-	dir_t *newdir = new_dir(path);
+	dir_t *dir = new_dir(path);
+	file_t f;
 
 	DIR *dirp;
 	if (!(dirp = opendir(path))) {
 		log_error("opendir: %s", strerror(errno));
-		newdir->error = errno;
-		return newdir;
+		dir->error = errno;
+		return dir;
 	}
 
-	for (ct = 0; (dp = readdir(dirp)); ct++);
-	ct -= 2;
-
-	newdir->allfiles = malloc(sizeof(file_t) * ct);
-	if (!newdir->allfiles) {
-		log_error("load_dir fucked up, malloc failed");
-		newdir->error = -1;
-		return newdir;
-	}
-
-	rewinddir(dirp);
-	for (i = 0; (dp = readdir(dirp)) && i < ct;) {
+	for (i = 0; (dp = readdir(dirp));) {
 		if (dp->d_name[0] == '.' &&
 				(dp->d_name[1] == 0 ||
 				 (dp->d_name[1] == '.' && dp->d_name[2] == 0))) {
 			continue;
 		}
-		if (file_load(newdir->allfiles + i, path, dp->d_name)) {
+		if (file_load(&f, path, dp->d_name)) {
+			cvector_push_back(dir->allfiles, f);
 			i++;
 		}
 	}
 	closedir(dirp);
 
-	newdir->alllen = i;
+	dir->alllen = i;
 
-	newdir->sortedfiles = malloc(sizeof(file_t*) * newdir->alllen);
-	newdir->files = malloc(sizeof(file_t*) * newdir->alllen);
+	dir->sortedfiles = malloc(sizeof(file_t*) * dir->alllen);
+	dir->files = malloc(sizeof(file_t*) * dir->alllen);
 
-	if (!newdir->files || !newdir->sortedfiles) {
+	if (!dir->files || !dir->sortedfiles) {
 		log_error("load_dir fucked up, malloc failed");
-		newdir->error = -1;
-		return newdir;
+		dir->error = -1;
+		return dir;
 	}
 
-	newdir->sortedlen = newdir->alllen;
-	newdir->len = newdir->alllen;
+	dir->sortedlen = dir->alllen;
+	dir->len = dir->alllen;
 
-	for (i = 0; i < newdir->alllen; i++) {
-		newdir->sortedfiles[i] = newdir->allfiles + i;
-		newdir->files[i] = newdir->allfiles + i;
+	for (i = 0; i < dir->alllen; i++) {
+		dir->sortedfiles[i] = dir->allfiles + i;
+		dir->files[i] = dir->allfiles + i;
 	}
 
-	return newdir;
+	return dir;
 }
 
 void dir_free(dir_t *dir)
@@ -402,7 +394,7 @@ void dir_free(dir_t *dir)
 			free(dir->allfiles[i].path);
 			free(dir->allfiles[i].link_target);
 		}
-		free(dir->allfiles);
+		cvector_free(dir->allfiles);
 		free(dir->sortedfiles);
 		free(dir->files);
 		free(dir->sel);

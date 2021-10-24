@@ -6,6 +6,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
+#include "cvector.h"
 #include "sort.h"
 
 enum sorttype_e { SORT_NATURAL, SORT_NAME, SORT_SIZE, SORT_CTIME, };
@@ -24,7 +25,7 @@ typedef struct dir_t {
 	char path[PATH_MAX + 1];
 	char *name;	/* a substring of path */
 
-	file_t *allfiles;    /* files including hidden/filtered */
+	cvector_vector_type(file_t) allfiles;    /* files including hidden/filtered */
 	file_t **sortedfiles; /* files excluding hidden */
 	file_t **files;	     /* visible files */
 	int alllen;	 /* length of the array of all files */
