@@ -34,7 +34,7 @@ typedef struct ui_t {
 	cvector_vector_type(char*) menubuf;
 
 	preview_t *file_preview;
-	cache_t *previewcache;
+	cache_t previewcache;
 
 	cmdline_t cmdline;
 	history_t history;

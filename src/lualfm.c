@@ -154,10 +154,10 @@ static int l_config_index(lua_State *L)
 		lua_pushstring(L, cfg.configpath);
 		return 1;
 	} else if (streq(key, "dircache_size")) {
-		lua_pushinteger(L, app->nav.dircache->capacity);
+		lua_pushinteger(L, app->nav.dircache.capacity);
 		return 1;
 	} else if (streq(key, "previewcache_size")) {
-		lua_pushinteger(L, app->ui.previewcache->capacity);
+		lua_pushinteger(L, app->ui.previewcache.capacity);
 		return 1;
 	} else {
 		luaL_error(L, "unexpected key %s", key);
@@ -225,13 +225,13 @@ static int l_config_newindex(lua_State *L)
 		if (capacity < 0) {
 			luaL_argerror(L, 3, "size must be non-negative");
 		}
-		cache_resize(app->nav.dircache, capacity);
+		cache_resize(&app->nav.dircache, capacity);
 	} else if (streq(key, "previewcache_size")) {
 		int capacity = luaL_checkinteger(L, 3);
 		if (capacity < 0) {
 			luaL_argerror(L, 3, "size must be non-negative");
 		}
-		cache_resize(app->ui.previewcache, capacity);
+		cache_resize(&app->ui.previewcache, capacity);
 	} else {
 		luaL_error(L, "unexpected key %s", key);
 	}

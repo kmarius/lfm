@@ -62,13 +62,6 @@ void cache_init(T *t, int capacity, void (*free)(void*))
 	t->free = free;
 }
 
-T *cache_new(int capacity, void (*free)(void*))
-{
-	T *t = malloc(sizeof(T));
-	cache_init(t, capacity, free);
-	return t;
-}
-
 void cache_resize(T *t, int capacity)
 {
 	if (capacity < 0) {
@@ -138,12 +131,9 @@ void cache_clear(T *t)
 	t->size = 0;
 }
 
-void cache_destroy(T *t) {
-	if (t) {
-		cache_clear(t);
-		free(t->nodes);
-		free(t);
-	}
+void cache_deinit(T *t) {
+	cache_clear(t);
+	free(t->nodes);
 }
 
 #undef T

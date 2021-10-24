@@ -82,7 +82,7 @@ void nav_init(nav_t *nav)
 		}
 	}
 
-	nav->dircache = cache_new(DIRCACHE_SIZE, (void (*)(void*)) dir_free);
+	cache_init(&nav->dircache, DIRCACHE_SIZE, (void (*)(void*)) dir_free);
 
 	nav->ndirs = 0;
 	nav->dirs = NULL;
@@ -119,7 +119,7 @@ void nav_recol(nav_t *nav)
 
 	remove_preview(nav);
 	for (i = 0; i < nav->ndirs; i++) {
-		cache_insert(nav->dircache, nav->dirs[i], nav->dirs[i]->path);
+		cache_insert(&nav->dircache, nav->dirs[i], nav->dirs[i]->path);
 	}
 
 	cvector_set_size(nav->dirs, l);
@@ -161,7 +161,7 @@ bool nav_chdir(nav_t *nav, const char *path, bool save)
 	int i;
 	for (i = 0; i < nav->ndirs; i++) {
 		if (nav->dirs[i]) {
-			cache_insert(nav->dircache, nav->dirs[i], nav->dirs[i]->path);
+			cache_insert(&nav->dircache, nav->dirs[i], nav->dirs[i]->path);
 		}
 	}
 	populate(nav);
@@ -232,7 +232,7 @@ static dir_t *load_dir(nav_t *nav, const char *path)
 		path = fullpath;
 	}
 
-	if ((dir = cache_take(nav->dircache, path))) {
+	if ((dir = cache_take(&nav->dircache, path))) {
 		if (!dir_check(dir)) {
 			async_dir_load(dir->path);
 		}
@@ -281,11 +281,11 @@ bool nav_insert_dir(nav_t *nav, dir_t *dir)
 
 	/* log_debug("nav_insert_dir %s", dir->path); */
 
-	if ((olddir = cache_take(nav->dircache, dir->path))) {
+	if ((olddir = cache_take(&nav->dircache, dir->path))) {
 		/* replace in dir cache */
 		copy_attrs(dir, olddir);
 		dir_free(olddir);
-		cache_insert(nav->dircache, dir, dir->path);
+		cache_insert(&nav->dircache, dir, dir->path);
 	} else {
 		/* check if it an active directory */
 		if (nav->preview && streq(nav->preview->path, dir->path)) {
@@ -341,7 +341,7 @@ void nav_drop_cache(nav_t *nav)
 	}
 	remove_preview(nav);
 
-	cache_clear(nav->dircache);
+	cache_clear(&nav->dircache);
 
 	populate(nav);
 	nav_update_preview(nav);
@@ -352,7 +352,7 @@ static void remove_preview(nav_t *nav)
 {
 	if (nav->preview) {
 		notify_remove_watcher(nav->preview->path);
-		cache_insert(nav->dircache, nav->preview, nav->preview->path);
+		cache_insert(&nav->dircache, nav->preview, nav->preview->path);
 		nav->preview = NULL;
 	}
 }
@@ -379,7 +379,7 @@ void nav_update_preview(nav_t *nav)
 			}
 			if (i == nav->ndirs) {
 				notify_remove_watcher(nav->preview->path);
-				cache_insert(nav->dircache, nav->preview, nav->preview->path);
+				cache_insert(&nav->dircache, nav->preview, nav->preview->path);
 			}
 		}
 		nav->preview = load_dir(nav, file->path);
@@ -394,7 +394,7 @@ void nav_update_preview(nav_t *nav)
 			}
 			if (i == nav->ndirs) {
 				notify_remove_watcher(nav->preview->path);
-				cache_insert(nav->dircache, nav->preview, nav->preview->path);
+				cache_insert(&nav->dircache, nav->preview, nav->preview->path);
 			}
 			nav->preview = NULL;
 		}
@@ -776,7 +776,7 @@ void nav_destroy(nav_t *nav)
 	cvector_free(nav->prev_selection);
 	cvector_ffree(nav->load, free);
 	cvector_ffree(nav->marklist, free_mark);
-	cache_destroy(nav->dircache);
+	cache_deinit(&nav->dircache);
 }
 
 #undef free_mark
