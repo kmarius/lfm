@@ -33,6 +33,8 @@
 #include <stdlib.h> /* for malloc/realloc/free */
 #include <string.h> /* for memcpy */
 
+#define CVECTOR_INITIAL_CAPACITY 8
+
 /**
  * @brief cvector_vector_type - The vector type used in this library
  */
@@ -114,6 +116,39 @@
 	} while (0)
 
 /**
+ * @brief cvector_ensure_capacity - For internal use, ensures that the vector is at least
+ * <count> elements big
+ * @param vec - the vector
+ * @param count - the new capacity to set
+ * @return void
+ */
+#define cvector_ensure_capacity(vec, count) \
+	do { \
+		size_t cv_cap = cvector_capacity(vec); \
+		if (cv_cap < count) { \
+			if (cv_cap == 0) { \
+				cv_cap = CVECTOR_INITIAL_CAPACITY; \
+			} \
+			while (cv_cap < count) { \
+				cv_cap *= 2; \
+			} \
+			cvector_grow((vec), cv_cap); \
+		} \
+	} while (0)
+
+/**
+ * @brief cvector_ensure_space - For internal use, ensures that the vector has at least
+ * space for <count> more elements
+ * @param vec - the vector
+ * @param count - the new capacity to set
+ * @return void
+ */
+#define cvector_ensure_space(vec, count) \
+	do { \
+		cvector_ensure_capacity((vec), cvector_size(vec) + count); \
+	} while (0)
+
+/**
  * @brief cvector_pop_back - removes the last element from the vector
  * @param vec - the vector
  * @return void
@@ -162,18 +197,38 @@
 	} while (0)
 
 /**
- * @brief cvector_erase - removes the element at index i from the vector with an
- * optional parameter to free the object
+ * @brief cvector_swap_ferase - removes the element at index i from the vector
+ * and replaces it with the last element, with an additional parameter to free
+ * the object
  * @param vec - the vector
  * @param i - index of element to remove
  * @return void
  */
-#define cvector_ferase(vec, free_fun, i) \
+#define cvector_swap_ferase(vec, free, i) \
 	do { \
 		if (vec) { \
 			const size_t cv_sz = cvector_size(vec); \
 			if ((i) < cv_sz) { \
-				free_fun((vec)[i]); \
+				free((vec)[i]); \
+				(vec)[(i)] = (vec)[cv_sz - 1]; \
+				cvector_set_size((vec), cv_sz - 1); \
+			} \
+		} \
+	} while (0)
+
+/**
+ * @brief cvector_erase - removes the element at index i from the vector with an
+ * additional parameter to free the object
+ * @param vec - the vector
+ * @param i - index of element to remove
+ * @return void
+ */
+#define cvector_ferase(vec, free, i) \
+	do { \
+		if (vec) { \
+			const size_t cv_sz = cvector_size(vec); \
+			if ((i) < cv_sz) { \
+				free((vec)[i]); \
 				cvector_set_size((vec), cv_sz - 1); \
 				size_t cv_x; \
 				for (cv_x = (i); cv_x < (cv_sz - 1); ++cv_x) { \
@@ -200,15 +255,15 @@
  * @brief cvector_ffree - calls a function to free each element and frees the
  * vector
  * @param vec - the vector
- * @param free_fun - a function/macro used to free each object
+ * @param free - a function/macro used to free each object
  * @return void
  */
-#define cvector_ffree(vec, free_fun) \
+#define cvector_ffree(vec, free) \
 	do { \
 		if (vec) { \
 			const size_t cv_sz = cvector_size(vec); \
 			for (size_t i = 0; i < cv_sz; ++i) { \
-				free_fun((vec)[i]); \
+				free((vec)[i]); \
 			} \
 			cvector_free(vec); \
 		} \
@@ -217,15 +272,15 @@
 /**
  * @brief cvector_fclear - calls a function to free each element and sets the size to zero
  * @param vec - the vector
- * @param free_fun - a function/macro used to free each object
+ * @param free - a function/macro used to free each object
  * @return void
  */
-#define cvector_fclear(vec, free_fun) \
+#define cvector_fclear(vec, free) \
 	do { \
 		if (vec) { \
 			const size_t cv_sz = cvector_size(vec); \
 			for (size_t i = 0; i < cv_sz; ++i) { \
-				free_fun((vec)[i]); \
+				free((vec)[i]); \
 			} \
 			cvector_set_size(vec, 0); \
 		} \
@@ -254,11 +309,8 @@
  */
 #define cvector_push_back(vec, value) \
 	do { \
-		size_t cv_cap = cvector_capacity(vec); \
-		if (cv_cap <= cvector_size(vec)) { \
-			cvector_grow((vec), !cv_cap ? 4 : cv_cap * 2); \
-		} \
-		vec[cvector_size(vec)] = (value); \
+		cvector_ensure_space(vec, 1); \
+		(vec)[cvector_size(vec)] = (value); \
 		cvector_set_size((vec), cvector_size(vec) + 1); \
 	} while (0)
 
