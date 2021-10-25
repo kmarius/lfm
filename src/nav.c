@@ -418,6 +418,7 @@ void nav_selection_set(nav_t *nav, cvector_vector_type(char*) selection)
 	nav_selection_clear(nav);
 	cvector_free(nav->selection);
 	nav->selection = selection;
+	nav->selection_len = cvector_size(selection); // assume selection isnt sparse
 }
 
 void selection_toggle_file(nav_t *nav, const char *path)
