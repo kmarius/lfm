@@ -361,7 +361,7 @@ local mode_search_back = {
 
 local mode_find = {
 	prefix = "find: ",
-	enter = function(line) end,
+	enter = function(line) lfm.exec_expr("open") end,
 	esc = function() end,
 	change = function()
 		found = lfm.find(lfm.cmd.line)
