@@ -4,13 +4,23 @@
 #include <notcurses/notcurses.h>
 #include <wchar.h>
 
-#define ACC_SIZE 256
-#define PREFIX_SIZE 32
+struct vstr {
+	char *str;
+	int cap;
+	int len;
+};
+
+struct vwstr {
+	wchar_t *str;
+	int cap;
+	int len;
+};
 
 typedef struct cmdline_t {
-	char prefix[PREFIX_SIZE];
-	wchar_t left[ACC_SIZE];
-	wchar_t right[ACC_SIZE];
+	struct vstr prefix;
+	struct vwstr left;
+	struct vwstr right;
+	struct vstr buf;
 } cmdline_t;
 
 void cmdline_init(cmdline_t *t);
@@ -26,7 +36,7 @@ int cmdline_home(cmdline_t *t);
 int cmdline_end(cmdline_t *t);
 int cmdline_clear(cmdline_t *t);
 int cmdline_set(cmdline_t *t, const char *line);
-const char *cmdline_get(const cmdline_t *t);
+const char *cmdline_get(cmdline_t *t);
 int cmdline_print(cmdline_t *t, struct ncplane *n);
 
 #endif /* CMDLINE_H */

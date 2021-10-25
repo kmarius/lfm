@@ -606,7 +606,7 @@ void ui_cmdline_set(ui_t *ui, const char *line)
 	}
 }
 
-const char *ui_cmdline_get(const ui_t *ui)
+const char *ui_cmdline_get(ui_t *ui)
 {
 	return cmdline_get(&ui->cmdline);
 }

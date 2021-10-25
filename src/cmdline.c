@@ -4,15 +4,41 @@
 #include <wchar.h>
 
 #include "cmdline.h"
-#include "util.h"
 
 #define T cmdline_t
 
+/* TODO: clean up macros, create shift macros etc. (on 2021-10-25) */
+
+#define vstr_init(vec, c) \
+	do { \
+		(vec).str = malloc(sizeof(*(vec).str) * ((c) + 1)); \
+		(vec).cap = c; \
+		(vec).str[0] = 0; \
+		(vec).len = 0; \
+	} while (0)
+
+#define ensure_capacity(vec, sz) \
+	do { \
+		while ((vec).cap + 1 < sz) { \
+			(vec).str = realloc((vec).str, sizeof(*vec.str) * (vec).cap * 2 + 1); \
+			(vec).cap *= 2; \
+		} \
+	} while (0)
+
+#define ensure_space(vec, sz) \
+	do { \
+		while ((vec).cap + 1 < (vec).len + (int) sz) { \
+			(vec).str = realloc((vec).str, sizeof(*vec.str) * (vec).cap * 2 + 1); \
+			(vec).cap *= 2; \
+		} \
+	} while (0)
+
 void cmdline_init(cmdline_t *t)
 {
-	t->prefix[0] = 0;
-	t->left[0] = 0;
-	t->right[0] = 0;
+	vstr_init(t->prefix, 8);
+	vstr_init(t->left, 8);
+	vstr_init(t->right, 8);
+	vstr_init(t->buf, 8);
 }
 
 int cmdline_prefix_set(T *t, const char *prefix)
@@ -20,51 +46,53 @@ int cmdline_prefix_set(T *t, const char *prefix)
 	if (!prefix) {
 		return 0;
 	}
-	strncpy(t->prefix, prefix, sizeof(t->prefix) - 1);
+	const int l = strlen(prefix);
+	ensure_capacity(t->prefix, l);
+	strcpy(t->prefix.str, prefix);
+	t->prefix.len = l;
 	return 1;
 }
 
 const char *cmdline_prefix_get(T *t)
 {
-	return t->prefix[0] == 0 ? NULL : t->prefix;
+	return t->prefix.str[0] == 0 ? NULL : t->prefix.str;
 }
 
 int cmdline_insert(T *t, const char *key)
 {
-	if (t->prefix[0] == 0) {
+	if (t->prefix.len == 0) {
 		return 0;
 	}
-	const int l = wcslen(t->left);
-	if (l >= ACC_SIZE - 1) {
-		return 0;
-	}
-	mbtowc(t->left+l, key, strlen(key));
-	t->left[l + 1] = 0;
+	ensure_space(t->left, 1);
+	mbtowc(t->left.str+t->left.len, key, strlen(key));
+	t->left.str[t->left.len + 1] = 0;
+	t->left.len++;
 	return 1;
 }
 
 int cmdline_delete(T *t)
 {
-	if (t->prefix[0] == 0) {
+	if (t->prefix.str[0] == 0) {
 		return 0;
 	}
-	const int l = wcslen(t->left);
-	if (l > 0) {
-		t->left[l - 1] = 0;
+	if (t->left.len > 0) {
+		t->left.str[t->left.len - 1] = 0;
+		t->left.len--;
 	}
 	return 1;
 }
 
 int cmdline_delete_right(T *t)
 {
-	if (t->prefix[0] == 0) {
+	if (t->prefix.str[0] == 0) {
 		return 0;
 	}
-	wchar_t *c = t->right;
+	wchar_t *c = t->right.str;
 	if (*c) {
 		while (*++c)
 			*(c-1) = *c;
 		*(c-1) = '\0';
+		t->right.len--;
 	}
 	return 1;
 }
@@ -72,19 +100,19 @@ int cmdline_delete_right(T *t)
 /* pass a ct argument to move over words? */
 int cmdline_left(T *t)
 {
-	int j;
-	if (t->prefix[0] == 0) {
+	int i;
+	if (t->prefix.len == 0) {
 		return 0;
 	}
-	const int l = wcslen(t->left);
-	if (l > 0) {
-		j = min(wcslen(t->right), ACC_SIZE - 2);
-		t->right[j + 1] = 0;
-		for (; j > 0; j--) {
-			t->right[j] = t->right[j - 1];
+	if (t->left.len > 0) {
+		ensure_space(t->right, 1);
+		for (i = t->right.len; i >= 0; i--) {
+			t->right.str[i + 1] = t->right.str[i];
 		}
-		t->right[0] = t->left[l - 1];
-		t->left[l - 1] = 0;
+		t->right.len++;
+		t->right.str[0] = t->left.str[t->left.len-1];
+		t->left.str[t->left.len-1] = 0;
+		t->left.len--;
 	}
 	return 1;
 }
@@ -92,101 +120,120 @@ int cmdline_left(T *t)
 int cmdline_right(T *t)
 {
 	int i;
-	if (t->prefix[0] == 0) {
+	if (t->prefix.str[0] == 0) {
 		return 0;
 	}
-	const int l = wcslen(t->left);
-	const int j = wcslen(t->right);
-	if (j > 0) {
-		if (l < ACC_SIZE - 2) {
-			t->left[l] = t->right[0];
-			t->left[l + 1] = 0;
-			for (i = 0; i < j; i++) {
-				t->right[i] = t->right[i + 1];
-			}
+	if (t->right.len > 0) {
+		ensure_space(t->left, 1);
+		t->left.str[t->left.len] = t->right.str[0];
+		t->left.str[t->left.len+1] = 0;
+		for (i = 0; i < t->right.len; i++) {
+			t->right.str[i] = t->right.str[i + 1];
 		}
+		t->left.len++;
+		t->right.len--;
 	}
 	return 1;
 }
 
 int cmdline_home(T *t)
 {
-	if (t->prefix[0] == 0) {
+	int i;
+	if (t->prefix.str[0] == 0) {
 		return 0;
 	}
-	const int l = wcslen(t->left);
-	if (l > 0) {
-		int j = min(wcslen(t->right) - 1 + l, ACC_SIZE - 1 - l);
-		t->right[j + 1] = 0;
-		for (; j >= l; j--) {
-			t->right[j] = t->right[j - l];
+	if (t->left.len > 0) {
+		ensure_space(t->right, t->left.len + t->right.len);
+		t->right.str[t->right.len + t->left.len] = 0;
+		for (i = t->right.len; i >= 0; i--) {
+			t->right.str[i + t->left.len] = t->right.str[i];
 		}
-		wcsncpy(t->right, t->left, l);
-		t->left[0] = 0;
+		wcscpy(t->right.str, t->left.str);
+		t->right.len += t->left.len;
+		t->left.str[0] = 0;
+		t->left.len = 0;
 	}
 	return 1;
 }
 
 int cmdline_end(T *t)
 {
-	if (t->prefix[0] == 0) {
+	if (t->prefix.len == 0) {
 		return 0;
 	}
-	if (t->right[0] != 0) {
-		const int j = wcslen(t->left);
-		const int l = ACC_SIZE - 1 - wcslen(t->left);
-		wcsncpy(t->left + j, t->right, l);
-		t->left[l + j] = 0;
-		t->right[0] = 0;
+	if (t->right.len > 0) {
+		ensure_space(t->left, t->right.len);
+		wcscpy(t->left.str + t->left.len, t->right.str);
+		/* t->left.str[t->left.len + t->right.len] = 0; */
+		t->left.len += t->right.len;
+		t->right.str[0] = 0;
+		t->right.len = 0;
 	}
 	return 1;
 }
 
 int cmdline_clear(T *t)
 {
-	t->prefix[0] = 0;
-	t->left[0] = 0;
-	t->right[0] = 0;
+	t->prefix.str[0] = 0;
+	t->prefix.len = 0;
+	t->left.str[0] = 0;
+	t->left.len = 0;
+	t->right.str[0] = 0;
+	t->right.len = 0;
 	return 1;
 }
 
 int cmdline_set(T *t, const char *line)
 {
-	if (t->prefix[0] == 0) {
+	if (t->prefix.str[0] == 0) {
 		return 0;
 	}
-	mbstowcs(t->left, line, sizeof(t->left) - 1);
-	t->right[0] = 0;
+	t->right.str[0] = 0;
+	t->right.len = 0;
+	ensure_space(t->left, strlen(line));
+	const int n = mbstowcs(t->left.str, line, t->left.cap);
+	if (n == -1) {
+		t->left.len = 0;
+		t->left.str[0] = 0;
+	} else {
+		t->left.len = n;
+	}
 	return 1;
 }
 
-const char *cmdline_get(const T *t)
+const char *cmdline_get(T *t)
 {
-	static char buf[2 * ACC_SIZE * 4] = {0};
-	if (t->prefix[0] == 0) {
+	if (t->prefix.str[0] == 0) {
 		return "";
 	} else {
-		size_t n = wcstombs(buf, t->left, sizeof(t->left) - 1);
+		ensure_space(t->buf, t->left.len + t->right.len);
+		size_t n = wcstombs(t->buf.str, t->left.str, t->left.len);
 		if (n == (size_t) - 1) {
 			// could not convert
-			return buf;
+			return t->buf.str;
 		}
-		wcstombs(buf + n, t->right, sizeof(t->right) - n - 1);
+		wcstombs(t->buf.str + n, t->right.str, t->right.len);
 	}
-	return buf;
+	return t->buf.str;
 }
 
 int cmdline_print(cmdline_t *t, struct ncplane *n)
 {
 	int ret = 0;
-	ret += ncplane_putstr_yx(n, 0, 0, t->prefix);
-	ret += ncplane_putwstr(n, t->left);
-	ncplane_putwstr(n, t->right);
+	ret += ncplane_putstr_yx(n, 0, 0, t->prefix.str);
+	ret += ncplane_putwstr(n, t->left.str);
+	ncplane_putwstr(n, t->right.str);
 	return ret;
 }
 
 void cmdline_deinit(cmdline_t *t) {
-	(void) t;
+	free(t->prefix.str);
+	free(t->left.str);
+	free(t->right.str);
+	free(t->buf.str);
 }
 
+#undef vstr_init
+#undef ensure_space
+#undef ensure_capacity
 #undef T

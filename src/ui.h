@@ -80,7 +80,7 @@ void ui_cmd_insert(ui_t *ui, const char *key);
 
 void ui_cmd_prefix_set(ui_t *ui, const char *prefix);
 
-const char *ui_cmdline_get(const ui_t *ui);
+const char *ui_cmdline_get(ui_t *ui);
 
 void ui_cmdline_set(ui_t *ui, const char *line);
 
