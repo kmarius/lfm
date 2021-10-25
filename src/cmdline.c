@@ -72,7 +72,7 @@ int cmdline_insert(T *t, const char *key)
 
 int cmdline_delete(T *t)
 {
-	if (t->prefix.str[0] == 0) {
+	if (t->prefix.len == 0) {
 		return 0;
 	}
 	if (t->left.len > 0) {
@@ -84,14 +84,14 @@ int cmdline_delete(T *t)
 
 int cmdline_delete_right(T *t)
 {
-	if (t->prefix.str[0] == 0) {
+	int i;
+	if (t->prefix.len == 0) {
 		return 0;
 	}
-	wchar_t *c = t->right.str;
-	if (*c) {
-		while (*++c)
-			*(c-1) = *c;
-		*(c-1) = '\0';
+	if (t->right.len > 0) {
+		for (i = 0; i < t->right.len; i++) {
+			t->right.str[i] = t->right.str[i+1];
+		}
 		t->right.len--;
 	}
 	return 1;
@@ -139,7 +139,7 @@ int cmdline_right(T *t)
 int cmdline_home(T *t)
 {
 	int i;
-	if (t->prefix.str[0] == 0) {
+	if (t->prefix.len == 0) {
 		return 0;
 	}
 	if (t->left.len > 0) {
@@ -185,7 +185,7 @@ int cmdline_clear(T *t)
 
 int cmdline_set(T *t, const char *line)
 {
-	if (t->prefix.str[0] == 0) {
+	if (t->prefix.len == 0) {
 		return 0;
 	}
 	t->right.str[0] = 0;
@@ -203,16 +203,18 @@ int cmdline_set(T *t, const char *line)
 
 const char *cmdline_get(T *t)
 {
-	if (t->prefix.str[0] == 0) {
-		return "";
-	} else {
+	t->buf.str[0] = 0;
+	if (t->prefix.len != 0) {
 		ensure_space(t->buf, t->left.len + t->right.len);
 		size_t n = wcstombs(t->buf.str, t->left.str, t->left.len);
-		if (n == (size_t) - 1) {
-			// could not convert
-			return t->buf.str;
+		if (n == (size_t) -1) {
+			return "";
 		}
-		wcstombs(t->buf.str + n, t->right.str, t->right.len);
+		size_t m = wcstombs(t->buf.str + n, t->right.str, t->right.len);
+		if (m == (size_t) -1) {
+			return "";
+		}
+		t->buf.str[n+m] = 0;
 	}
 	return t->buf.str;
 }
