@@ -318,7 +318,7 @@ void app_quit(app_t *app)
 	ev_break(app->loop, EVBREAK_ALL);
 }
 
-void app_print(const char *format, ...)
+void print(const char *format, ...)
 {
 	if (!_app) {
 		return;
@@ -329,7 +329,7 @@ void app_print(const char *format, ...)
 	va_end(args);
 }
 
-void app_error(const char *format, ...)
+void error(const char *format, ...)
 {
 	if (! _app) {
 		return;
@@ -340,7 +340,7 @@ void app_error(const char *format, ...)
 	va_end(args);
 }
 
-void app_timeout(int duration)
+void timeout_set(int duration)
 {
 	input_timeout = current_millis() + duration;
 }

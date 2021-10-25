@@ -74,7 +74,7 @@ void nav_init(nav_t *nav)
 {
 	if (cfg.startpath) {
 		if ((chdir(cfg.startpath)) != 0) {
-			app_error("chdir: %s", strerror(errno));
+			error("chdir: %s", strerror(errno));
 		} else {
 			setenv("PWD", cfg.startpath, true);
 		}
@@ -143,7 +143,7 @@ bool nav_chdir(nav_t *nav, const char *path, bool save)
 	}
 
 	if (chdir(path) != 0) {
-		app_error("chdir: %s", strerror(errno));
+		error("chdir: %s", strerror(errno));
 		return false;
 	}
 
@@ -552,7 +552,7 @@ void nav_selection_write(const nav_t *nav, const char *path)
 	free(dir);
 
 	if (!(fp = fopen(path, "w"))) {
-		app_error("selfile: %s", strerror(errno));
+		error("selfile: %s", strerror(errno));
 		return;
 	}
 
@@ -682,7 +682,7 @@ bool nav_mark_load(nav_t *nav, char mark)
 			return 1;
 		}
 	}
-	app_error("no such mark: %c", mark);
+	error("no such mark: %c", mark);
 	return 0;
 }
 /* }}} */
