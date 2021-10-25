@@ -191,18 +191,18 @@ void nav_sort(nav_t *nav)
 			/* TODO: maybe we can select the closest non-hidden file in case the
 			 * current one will be hidden (on 2021-10-17) */
 			if (nav->dirs[i]->len > 0) {
-				const char *file = dir_current_file(nav->dirs[i])->name;
+				const char *name = dir_current_file(nav->dirs[i])->name;
 				dir_sort(nav->dirs[i]);
-				dir_sel(nav->dirs[i], file);
+				dir_sel(nav->dirs[i], name);
 			}
 		}
 	}
 	if (nav->preview) {
 		nav->preview->hidden = cfg.hidden;
 		if (nav->preview->len > 0) {
-			const char *file = dir_current_file(nav->preview)->name;
+			const char *name = dir_current_file(nav->preview)->name;
 			dir_sort(nav->preview);
-			dir_sel(nav->preview, file);
+			dir_sel(nav->preview, name);
 		}
 	}
 }
@@ -615,9 +615,9 @@ bool nav_bot(nav_t *nav)
 	return nav_down(nav, nav->dirs[0]->len - nav->dirs[0]->ind);
 }
 
-void nav_sel(nav_t *nav, const char *filename)
+void nav_sel(nav_t *nav, const char *name)
 {
-	dir_sel(nav->dirs[0], filename);
+	dir_sel(nav->dirs[0], name);
 	nav_update_preview(nav);
 }
 
@@ -641,9 +641,9 @@ void nav_updir(nav_t *nav)
 	if (dir_isroot(nav->dirs[0])) {
 		return;
 	}
-	const char *current_name = nav->dirs[0]->name;
+	const char *name = nav->dirs[0]->name;
 	nav_chdir(nav, dir_parent(nav->dirs[0]), false);
-	nav_sel(nav, current_name);
+	nav_sel(nav, name);
 	nav_update_preview(nav);
 }
 
