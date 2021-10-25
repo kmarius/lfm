@@ -211,6 +211,7 @@ void nav_hidden_set(nav_t *nav, bool hidden)
 {
 	cfg.hidden = hidden;
 	nav_sort(nav);
+	nav_update_preview(nav);
 }
 
 /* TODO: It actually makes more sense to update dir access times when leaving
@@ -740,6 +741,7 @@ void nav_filter(nav_t *nav, const char *filter)
 	f = dir_current_file(d);
 	dir_filter(d, filter);
 	dir_sel(d, f ? f->name : NULL);
+	nav_update_preview(nav);
 }
 
 const char *nav_filter_get(const nav_t *nav) { return nav->dirs[0]->filter; }
