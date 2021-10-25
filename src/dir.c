@@ -25,9 +25,6 @@ file_t *dir_current_file(const dir_t *dir)
 
 void dir_sel(dir_t *dir, const char *file)
 {
-	/* log_trace("dir_sel %s %s", dir->path, file); */
-	/* log_debug("%d %d", dir->len, dir->ind); */
-
 	/* TODO: Allow NULL for now to reset ind and pos (on 2021-08-01) */
 	if (!file) {
 		dir->ind = min(dir->ind, dir->len);
@@ -57,8 +54,6 @@ void dir_sel(dir_t *dir, const char *file)
 
 const char *dir_parent(const dir_t *dir)
 {
-	/* log_debug("dir_parent: %s", dir->path); */
-
 	static char tmp[PATH_MAX + 1];
 	if (streq(dir->path, "/")) {
 		return NULL;
@@ -76,7 +71,6 @@ static void apply_filter(dir_t *dir)
 {
 	int i, j;
 	if (dir->filter[0] != 0) {
-		log_trace("apply_filter %s '%s'", dir->path, dir->filter);
 		for (i = 0, j = 0; i < dir->sortedlen; i++) {
 			if (file_filtered(dir->sortedfiles[i], dir->filter)) {
 				dir->files[j++] = dir->sortedfiles[i];
@@ -106,7 +100,6 @@ static inline void swap(file_t **a, file_t **b)
 void dir_sort(dir_t *dir)
 {
 	if (!dir->sorted) {
-		/* log_trace("dir_sort %s", dir->path); */
 		switch (dir->sorttype) {
 			case SORT_NATURAL:
 				qsort(dir->allfiles, dir->alllen, sizeof(file_t),
@@ -198,7 +191,6 @@ void dir_sort(dir_t *dir)
 
 void dir_filter(dir_t *dir, const char *filter)
 {
-	log_trace("dir_filter %s %s", dir->path, filter);
 	strncpy(dir->filter, filter, sizeof(dir->filter));
 	dir->filter[sizeof(dir->filter)-1] = 0;
 	apply_filter(dir);
@@ -232,8 +224,6 @@ bool dir_check(const dir_t *dir)
 
 dir_t *new_dir(const char *path)
 {
-	/* log_trace("new_loading_dir %s", path); */
-
 	dir_t *dir = malloc(sizeof(dir_t));
 
 	if (path[0] != '/') {
