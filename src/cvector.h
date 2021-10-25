@@ -144,6 +144,24 @@
 	} while (0)
 
 /**
+ * @brief cvector_swap_erase - removes the element at index i from the vector
+ * and replaces it with the last element
+ * @param vec - the vector
+ * @param i - index of element to remove
+ * @return void
+ */
+#define cvector_swap_erase(vec, i)                                                  \
+	do {                                                                   \
+		if (vec) {                                                     \
+			const size_t cv_sz = cvector_size(vec);                \
+			if ((i) < cv_sz) {                                     \
+				(vec)[i] = (vec)[cv_sz - 1]; \
+				cvector_set_size((vec), cv_sz - 1);            \
+			}                                                      \
+		}                                                              \
+	} while (0)
+
+/**
  * @brief cvector_erase - removes the element at index i from the vector with an
  * optional parameter to free the object
  * @param vec - the vector
