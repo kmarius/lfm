@@ -23,8 +23,6 @@
 #include "ui.h"
 #include "util.h"
 
-/* #define TRACE 1 */
-
 static bool init = false;
 
 inline static struct ncplane *wpreview(ui_t *ui)
@@ -121,7 +119,6 @@ void ui_init(ui_t *ui, nav_t *nav)
 
 void ui_recol(ui_t *ui)
 {
-	/* log_trace("ui_recol"); */
 	int i;
 
 	cvector_fclear(ui->wdirs, ncplane_destroy);
@@ -179,8 +176,6 @@ static int rsize(struct ncplane *n)
 
 preview_t *ui_load_preview(ui_t *ui, file_t *file)
 {
-	/* log_trace("ui_load_preview %s", file->path); */
-
 	int ncol, nrow;
 	preview_t *pv;
 
@@ -208,7 +203,6 @@ void ui_draw_preview(ui_t *ui)
 
 static void update_preview(ui_t *ui)
 {
-	/* log_trace("ui_draw_preview"); */
 	int ncol, nrow;
 	ncplane_dim_yx(wpreview(ui), &nrow, &ncol);
 	dir_t *dir;
@@ -245,7 +239,6 @@ static void update_preview(ui_t *ui)
 
 static void wansi_matchattr(struct ncplane *w, int a)
 {
-	/* log_debug("match_attr %d", a); */
 	if (a >= 0 && a <= 9) {
 		switch (a) {
 			case 0:
@@ -296,7 +289,6 @@ static void wansi_matchattr(struct ncplane *w, int a)
  */
 static char *wansi_consoom(struct ncplane *w, char *s)
 {
-	/* log_debug("consooming"); */
 	char c;
 	int acc = 0;
 	int nnums = 0;
@@ -367,10 +359,6 @@ static char *wansi_consoom(struct ncplane *w, char *s)
 
 static void wdraw_file_preview(struct ncplane *n, preview_t *pv)
 {
-#ifdef TRACE
-	log_trace("wdraw_preview");
-#endif
-
 	int i, nrow;
 
 	ncplane_erase(n);
@@ -393,7 +381,6 @@ static void wdraw_file_preview(struct ncplane *n, preview_t *pv)
 
 bool ui_insert_preview(ui_t *ui, preview_t *pv)
 {
-	/* log_debug("ui_insert_preview %s %d", pv->path, pv->nrow); */
 	preview_t *oldpv;
 	const file_t *file;
 
@@ -724,9 +711,6 @@ static int int_sz(int n)
 
 void draw_cmdline(ui_t *ui)
 {
-#ifdef TRACE
-	log_trace("draw_cmdline");
-#endif
 	char nums[16];
 	char size[32];
 	char mtime[32];
@@ -894,8 +878,6 @@ static void print_file(struct ncplane *n, const file_t *file,
 	ncplane_dim_yx(n, NULL, &ncol);
 	ncplane_cursor_yx(n, &y0, NULL);
 
-	/* log_debug("%s %u %u", file->name, ncplane_fg_rgb(n), ncplane_bg_rgb(n)); */
-
 	bool isdir, islink;
 	if ((isdir = file_isdir(file))) {
 		snprintf(size, sizeof(size), "%d", file->filecount);
@@ -997,9 +979,6 @@ static void wdraw_dir(struct ncplane *n, dir_t *dir, char **sel, char **load,
 	ncplane_cursor_move_yx(n, 0, 0);
 
 	if (dir) {
-#ifdef TRACE
-		log_debug("wdraw_dir %s", dir->name);
-#endif
 		if (dir->error) {
 			ncplane_putstr_yx(n, 0, 2, dir->error == -1 ? "malloc" : strerror(dir->error));
 		} else if (dir->loading) {
@@ -1037,9 +1016,6 @@ void ui_draw(ui_t *ui)
 /* to not overwrite errors */
 void ui_draw_dirs(ui_t *ui)
 {
-#ifdef TRACE
-	log_trace("ui_draw_dirs");
-#endif
 	int i;
 	dir_t *pdir;
 
@@ -1069,8 +1045,6 @@ void ui_draw_dirs(ui_t *ui)
 
 void ui_clear(ui_t *ui)
 {
-	log_debug("ui_clear");
-
 	/* infoline and dirs have to be cleared *and* rendered, otherwise they will
 	 * bleed into the first row */
 	ncplane_erase(ncstd);
