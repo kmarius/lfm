@@ -72,8 +72,6 @@ static void populate(nav_t *nav)
 
 void nav_init(nav_t *nav)
 {
-	log_trace("init_nav");
-
 	if (cfg.startpath) {
 		if ((chdir(cfg.startpath)) != 0) {
 			app_error("chdir: %s", strerror(errno));
@@ -211,8 +209,6 @@ void nav_sort(nav_t *nav)
 
 void nav_hidden_set(nav_t *nav, bool hidden)
 {
-	log_trace("hidden_set %d", hidden);
-
 	cfg.hidden = hidden;
 	nav_sort(nav);
 }
@@ -223,8 +219,6 @@ void nav_hidden_set(nav_t *nav, bool hidden)
  * (on 2021-08-03) */
 static dir_t *load_dir(nav_t *nav, const char *path)
 {
-	/* log_trace("nav_load_dir %s", path); */
-
 	dir_t *dir;
 	char fullpath[PATH_MAX];
 	if (path[0] != '/') {
@@ -279,8 +273,6 @@ bool nav_insert_dir(nav_t *nav, dir_t *dir)
 	dir_t *olddir;
 	int i;
 
-	/* log_debug("nav_insert_dir %s", dir->path); */
-
 	if ((olddir = cache_take(&nav->dircache, dir->path))) {
 		/* replace in dir cache */
 		copy_attrs(dir, olddir);
@@ -314,8 +306,6 @@ bool nav_insert_dir(nav_t *nav, dir_t *dir)
 
 void nav_check_dirs(const nav_t *nav)
 {
-	/* log_trace("check_dirs"); */
-
 	int i;
 	for (i = 0; i < nav->ndirs; i++) {
 		if (!nav->dirs[i]) {
@@ -359,7 +349,6 @@ static void remove_preview(nav_t *nav)
 
 void nav_update_preview(nav_t *nav)
 {
-	/* log_trace("update_preview %s", nav_current_dir(nav)->path); */
 	int i;
 	if (!cfg.preview) {
 		remove_preview(nav);
@@ -410,7 +399,6 @@ void nav_selection_clear(nav_t *nav)
 
 void nav_selection_add_file(nav_t *nav, const char *path)
 {
-	/* log_trace("selection_add_file"); */
 	size_t i;
 	for (i = 0; i < cvector_size(nav->selection); i++) {
 		if (!nav->selection[i]) {
@@ -433,7 +421,6 @@ void nav_selection_set(nav_t *nav, cvector_vector_type(char*) selection)
 
 void selection_toggle_file(nav_t *nav, const char *path)
 {
-	/* log_trace("toggle_selection"); */
 	size_t i;
 	for (i = 0; i < cvector_size(nav->selection); i++) {
 		if (!nav->selection[i]) {
@@ -559,8 +546,6 @@ void nav_selection_write(const nav_t *nav, const char *path)
 	FILE *fp;
 	file_t *f;
 
-	log_trace("nav_selection_write");
-
 	char *dir, *buf = strdup(path);
 	dir = dirname(buf);
 	mkdir_p(dir);
@@ -631,14 +616,12 @@ bool nav_bot(nav_t *nav)
 
 void nav_sel(nav_t *nav, const char *filename)
 {
-	/* log_trace("nav_sel %s", filename); */
 	dir_sel(nav->dirs[0], filename);
 	nav_update_preview(nav);
 }
 
 file_t *nav_open(nav_t *nav)
 {
-	log_trace("nav_open");
 	file_t *file;
 
 	if (!(file = nav_current_file(nav))) {
@@ -669,7 +652,6 @@ void nav_updir(nav_t *nav)
 static void mark_save(nav_t *nav, char mark, const char *path)
 {
 	size_t i;
-	log_trace("mark_save %c %s", mark, path);
 	for (i = 0; i < cvector_size(nav->marklist); i++) {
 		if (nav->marklist[i].mark == mark) {
 			if (!streq(nav->marklist[i].path, path)) {
@@ -687,7 +669,6 @@ static void mark_save(nav_t *nav, char mark, const char *path)
 
 bool nav_mark_load(nav_t *nav, char mark)
 {
-	log_trace("nav_mark_load: %c", mark);
 	size_t i;
 	for (i = 0; i < cvector_size(nav->marklist); i++) {
 		if (nav->marklist[i].mark == mark) {
