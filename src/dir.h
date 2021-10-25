@@ -72,7 +72,7 @@ dir_t *dir_new_loading(const char *path);
 /*
  * Loads the directory given by PATH from disk.
  */
-dir_t *dir_load(const char *path);
+dir_t *dir_load(const char *path, int filecount);
 
 /*
  * Frees all resources belonging to DIR.

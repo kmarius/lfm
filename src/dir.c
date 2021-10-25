@@ -268,25 +268,21 @@ dir_t *new_dir(const char *path)
 	return dir;
 }
 
+/* this causes directories that contain slow mountpoints to also load slowly */
+/* TODO: check that this doesn't get stuck e.g. on nfs (on 2021-10-25) */
 static int file_count(const char *path)
 {
-	/* int ct; */
-	/* DIR *dirp; */
-	/* struct dirent *dp; */
-	/*  */
-	/* if (!(dirp = opendir(path))) { */
-	/* 	return 0; */
-	/* } */
-	/*  */
-	/* for (ct = 0; (dp = readdir(dirp)); ct++) */
-	/* 	; */
-	/* closedir(dirp); */
-	/* return ct - 2; */
+	int ct;
+	DIR *dirp;
+	struct dirent *dp;
 
-	/* TODO: maybe do this lazily/async (on 2021-10-22) */
-	/* this causes directories that contain slow mountpoints to also load slowly */
-	(void) path;
-	return 0;
+	if (!(dirp = opendir(path))) {
+		return 0;
+	}
+
+	for (ct = 0; (dp = readdir(dirp)); ct++) ;
+	closedir(dirp);
+	return ct - 2;
 }
 
 dir_t *dir_new_loading(const char *path)
@@ -326,12 +322,10 @@ static bool file_load(file_t *file, const char *basedir, const char *name)
 		}
 	}
 
-	file->filecount = file_isdir(file) ? file_count(file->path) : 0;
-
 	return true;
 }
 
-dir_t *dir_load(const char *path)
+dir_t *dir_load(const char *path, int filecount)
 {
 	int i;
 	struct dirent *dp;
@@ -352,6 +346,7 @@ dir_t *dir_load(const char *path)
 			continue;
 		}
 		if (file_load(&f, path, dp->d_name)) {
+			f.filecount = (filecount && file_isdir(&f)) ? file_count(f.path) : 0;
 			cvector_push_back(dir->allfiles, f);
 			i++;
 		}
