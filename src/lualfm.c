@@ -464,14 +464,8 @@ static int l_cmd_prefix_set(lua_State *L)
 
 static int l_cmd_prefix_get(lua_State *L)
 {
-	char buf[PREFIX_SIZE * 8] = {0};
-	const wchar_t *prefix =cmdline_prefix_get(&app->ui.cmdline);
-	if (prefix) {
-		wcstombs(buf, prefix, sizeof(buf)-1);
-		lua_pushstring(L, buf[0] == 0 ? "" : buf);
-	} else {
-		lua_pushstring(L, "");
-	}
+	const char *prefix = cmdline_prefix_get(&app->ui.cmdline);
+	lua_pushstring(L, prefix ? prefix : "");
 	return 1;
 }
 

@@ -20,11 +20,11 @@ int cmdline_prefix_set(T *t, const char *prefix)
 	if (!prefix) {
 		return 0;
 	}
-	mbstowcs(t->prefix, prefix, sizeof(t->prefix) - 1);
+	strncpy(t->prefix, prefix, sizeof(t->prefix) - 1);
 	return 1;
 }
 
-const wchar_t *cmdline_prefix_get(T *t)
+const char *cmdline_prefix_get(T *t)
 {
 	return t->prefix[0] == 0 ? NULL : t->prefix;
 }
@@ -179,7 +179,7 @@ const char *cmdline_get(const T *t)
 int cmdline_print(cmdline_t *t, struct ncplane *n)
 {
 	int ret = 0;
-	ret += ncplane_putwstr_yx(n, 0, 0, t->prefix);
+	ret += ncplane_putstr_yx(n, 0, 0, t->prefix);
 	ret += ncplane_putwstr(n, t->left);
 	ncplane_putwstr(n, t->right);
 	return ret;
