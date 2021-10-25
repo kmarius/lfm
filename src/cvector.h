@@ -45,11 +45,11 @@
  * @param size - the new capacity to set
  * @return void
  */
-#define cvector_set_capacity(vec, size)                                        \
-	do {                                                                   \
-		if (vec) {                                                     \
-			((size_t *)(vec))[-1] = (size);                        \
-		}                                                              \
+#define cvector_set_capacity(vec, size) \
+	do { \
+		if (vec) { \
+			((size_t *)(vec))[-1] = (size); \
+		} \
 	} while (0)
 
 /**
@@ -59,11 +59,11 @@
  * @param size - the new capacity to set
  * @return void
  */
-#define cvector_set_size(vec, size)                                            \
-	do {                                                                   \
-		if (vec) {                                                     \
-			((size_t *)(vec))[-2] = (size);                        \
-		}                                                              \
+#define cvector_set_size(vec, size) \
+	do { \
+		if (vec) { \
+			((size_t *)(vec))[-2] = (size); \
+		} \
 	} while (0)
 
 /**
@@ -94,23 +94,23 @@
  * @param count - the new capacity to set
  * @return void
  */
-#define cvector_grow(vec, count)                                               \
-	do {                                                                   \
-		const size_t cv_sz =                                           \
-		    (count) * sizeof(*(vec)) + (sizeof(size_t) * 2);           \
-		if (!(vec)) {                                                  \
-			size_t *cv_p = malloc(cv_sz);                          \
-			assert(cv_p);                                          \
-			(vec) = (void *)(&cv_p[2]);                            \
-			cvector_set_capacity((vec), (count));                  \
-			cvector_set_size((vec), 0);                            \
-		} else {                                                       \
-			size_t *cv_p1 = &((size_t *)(vec))[-2];                \
-			size_t *cv_p2 = realloc(cv_p1, (cv_sz));               \
-			assert(cv_p2);                                         \
-			(vec) = (void *)(&cv_p2[2]);                           \
-			cvector_set_capacity((vec), (count));                  \
-		}                                                              \
+#define cvector_grow(vec, count) \
+	do { \
+		const size_t cv_sz = \
+		    (count) * sizeof(*(vec)) + (sizeof(size_t) * 2); \
+		if (!(vec)) { \
+			size_t *cv_p = malloc(cv_sz); \
+			assert(cv_p); \
+			(vec) = (void *)(&cv_p[2]); \
+			cvector_set_capacity((vec), (count)); \
+			cvector_set_size((vec), 0); \
+		} else { \
+			size_t *cv_p1 = &((size_t *)(vec))[-2]; \
+			size_t *cv_p2 = realloc(cv_p1, (cv_sz)); \
+			assert(cv_p2); \
+			(vec) = (void *)(&cv_p2[2]); \
+			cvector_set_capacity((vec), (count)); \
+		} \
 	} while (0)
 
 /**
@@ -118,9 +118,9 @@
  * @param vec - the vector
  * @return void
  */
-#define cvector_pop_back(vec)                                                  \
-	do {                                                                   \
-		cvector_set_size((vec), cvector_size(vec) - 1);                \
+#define cvector_pop_back(vec) \
+	do { \
+		cvector_set_size((vec), cvector_size(vec) - 1); \
 	} while (0)
 
 /**
@@ -129,18 +129,18 @@
  * @param i - index of element to remove
  * @return void
  */
-#define cvector_erase(vec, i)                                                  \
-	do {                                                                   \
-		if (vec) {                                                     \
-			const size_t cv_sz = cvector_size(vec);                \
-			if ((i) < cv_sz) {                                     \
-				cvector_set_size((vec), cv_sz - 1);            \
-				size_t cv_x;                                   \
+#define cvector_erase(vec, i) \
+	do { \
+		if (vec) { \
+			const size_t cv_sz = cvector_size(vec); \
+			if ((i) < cv_sz) { \
+				cvector_set_size((vec), cv_sz - 1); \
+				size_t cv_x; \
 				for (cv_x = (i); cv_x < (cv_sz - 1); ++cv_x) { \
-					(vec)[cv_x] = (vec)[cv_x + 1];         \
-				}                                              \
-			}                                                      \
-		}                                                              \
+					(vec)[cv_x] = (vec)[cv_x + 1]; \
+				} \
+			} \
+		} \
 	} while (0)
 
 /**
@@ -150,15 +150,15 @@
  * @param i - index of element to remove
  * @return void
  */
-#define cvector_swap_erase(vec, i)                                                  \
-	do {                                                                   \
-		if (vec) {                                                     \
-			const size_t cv_sz = cvector_size(vec);                \
-			if ((i) < cv_sz) {                                     \
-				(vec)[i] = (vec)[cv_sz - 1]; \
-				cvector_set_size((vec), cv_sz - 1);            \
-			}                                                      \
-		}                                                              \
+#define cvector_swap_erase(vec, i) \
+	do { \
+		if (vec) { \
+			const size_t cv_sz = cvector_size(vec); \
+			if ((i) < cv_sz) { \
+				(vec)[(i)] = (vec)[cv_sz - 1]; \
+				cvector_set_size((vec), cv_sz - 1); \
+			} \
+		} \
 	} while (0)
 
 /**
@@ -168,19 +168,19 @@
  * @param i - index of element to remove
  * @return void
  */
-#define cvector_ferase(vec, free_fun, i)                                       \
-	do {                                                                   \
-		if (vec) {                                                     \
-			const size_t cv_sz = cvector_size(vec);                \
-			if ((i) < cv_sz) {                                     \
-				free_fun((vec)[i]);                            \
-				cvector_set_size((vec), cv_sz - 1);            \
-				size_t cv_x;                                   \
+#define cvector_ferase(vec, free_fun, i) \
+	do { \
+		if (vec) { \
+			const size_t cv_sz = cvector_size(vec); \
+			if ((i) < cv_sz) { \
+				free_fun((vec)[i]); \
+				cvector_set_size((vec), cv_sz - 1); \
+				size_t cv_x; \
 				for (cv_x = (i); cv_x < (cv_sz - 1); ++cv_x) { \
-					(vec)[cv_x] = (vec)[cv_x + 1];         \
-				}                                              \
-			}                                                      \
-		}                                                              \
+					(vec)[cv_x] = (vec)[cv_x + 1]; \
+				} \
+			} \
+		} \
 	} while (0)
 
 /**
@@ -188,12 +188,12 @@
  * @param vec - the vector
  * @return void
  */
-#define cvector_free(vec)                                                      \
-	do {                                                                   \
-		if (vec) {                                                     \
-			size_t *p1 = &((size_t *)(vec))[-2];                   \
-			free(p1);                                              \
-		}                                                              \
+#define cvector_free(vec) \
+	do { \
+		if (vec) { \
+			size_t *p1 = &((size_t *)(vec))[-2]; \
+			free(p1); \
+		} \
 	} while (0)
 
 /**
@@ -203,15 +203,15 @@
  * @param free_fun - a function/macro used to free each object
  * @return void
  */
-#define cvector_ffree(vec, free_fun)                                           \
-	do {                                                                   \
-		if (vec) {                                                     \
-			const size_t cv_sz = cvector_size(vec);                \
-			for (size_t i = 0; i < cv_sz; ++i) {                   \
-				free_fun((vec)[i]);                            \
-			}                                                      \
-			cvector_free(vec);                                     \
-		}                                                              \
+#define cvector_ffree(vec, free_fun) \
+	do { \
+		if (vec) { \
+			const size_t cv_sz = cvector_size(vec); \
+			for (size_t i = 0; i < cv_sz; ++i) { \
+				free_fun((vec)[i]); \
+			} \
+			cvector_free(vec); \
+		} \
 	} while (0)
 
 /**
@@ -220,15 +220,15 @@
  * @param free_fun - a function/macro used to free each object
  * @return void
  */
-#define cvector_fclear(vec, free_fun)                                           \
-	do {                                                                   \
-		if (vec) {                                                     \
-			const size_t cv_sz = cvector_size(vec);                \
-			for (size_t i = 0; i < cv_sz; ++i) {                   \
-				free_fun((vec)[i]);                            \
-			}                                                      \
-			cvector_set_size(vec, 0);                                     \
-		}                                                              \
+#define cvector_fclear(vec, free_fun) \
+	do { \
+		if (vec) { \
+			const size_t cv_sz = cvector_size(vec); \
+			for (size_t i = 0; i < cv_sz; ++i) { \
+				free_fun((vec)[i]); \
+			} \
+			cvector_set_size(vec, 0); \
+		} \
 	} while (0)
 
 /**
@@ -252,14 +252,14 @@
  * @param value - the value to add
  * @return void
  */
-#define cvector_push_back(vec, value)                                          \
-	do {                                                                   \
-		size_t cv_cap = cvector_capacity(vec);                         \
-		if (cv_cap <= cvector_size(vec)) {                             \
-			cvector_grow((vec), !cv_cap ? 4 : cv_cap * 2);         \
-		}                                                              \
-		vec[cvector_size(vec)] = (value);                              \
-		cvector_set_size((vec), cvector_size(vec) + 1);                \
+#define cvector_push_back(vec, value) \
+	do { \
+		size_t cv_cap = cvector_capacity(vec); \
+		if (cv_cap <= cvector_size(vec)) { \
+			cvector_grow((vec), !cv_cap ? 4 : cv_cap * 2); \
+		} \
+		vec[cvector_size(vec)] = (value); \
+		cvector_set_size((vec), cvector_size(vec) + 1); \
 	} while (0)
 
 #else
@@ -270,11 +270,11 @@
  * @param to - destination to which the function copy to
  * @return void
  */
-#define cvector_copy(from, to)                                                 \
-	do {                                                                   \
-		cvector_grow(to, cvector_size(from));                          \
-		cvector_set_size(to, cvector_size(from));                      \
-		memcpy(to, from, cvector_size(from) * sizeof(*(from)));        \
+#define cvector_copy(from, to) \
+	do { \
+		cvector_grow(to, cvector_size(from)); \
+		cvector_set_size(to, cvector_size(from)); \
+		memcpy(to, from, cvector_size(from) * sizeof(*(from))); \
 	} while (0)
 
 #endif /* CVECTOR_H */
