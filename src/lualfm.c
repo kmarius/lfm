@@ -838,7 +838,7 @@ static int l_nav_drop_cache(lua_State *L)
 {
 	(void) L;
 	nav_drop_cache(&app->nav);
-	/* ui_drop_cache(&app->ui); */
+	ui_drop_cache(&app->ui);
 	return 0;
 }
 

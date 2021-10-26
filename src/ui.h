@@ -115,6 +115,8 @@ void kbblocking(bool blocking);
 
 void ui_search_nohighlight(ui_t *ui);
 
+void ui_drop_cache(ui_t *ui);
+
 /*
  * Pass NULL as search string to re-enable highlighting with the previous search.
  */

@@ -404,6 +404,14 @@ bool ui_insert_preview(ui_t *ui, preview_t *pv)
 	return false;
 }
 
+void ui_drop_cache(ui_t *ui)
+{
+	preview_free(ui->file_preview);
+	ui->file_preview = NULL;
+	cache_clear(&ui->previewcache);
+	update_preview(ui);
+	ui_request_draw(ui);
+}
 
 /* }}} */
 
