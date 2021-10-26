@@ -63,6 +63,8 @@ void ui_request_draw(ui_t *ui);
 
 void ui_draw(ui_t *ui);
 
+void ui_draw_lazy(ui_t *ui);
+
 void ui_draw_dirs(ui_t *ui);
 
 void ui_draw_cmdline(ui_t *ui);

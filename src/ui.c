@@ -1018,6 +1018,18 @@ void ui_request_draw(ui_t *ui)
 	ui->needs_redraw = true;
 }
 
+void ui_draw_lazy(ui_t *ui)
+{
+	if (ui->needs_redraw) {
+		ui_draw(ui);
+	} else {
+		if (ui->needs_redraw_cmdline) {
+			ui_draw_cmdline(ui);
+		}
+		// redraw dirs here
+	}
+}
+
 void ui_draw(ui_t *ui)
 {
 	ui->needs_redraw = false;

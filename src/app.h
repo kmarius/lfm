@@ -15,7 +15,7 @@ typedef struct App {
 	struct ev_loop *loop;
 } app_t;
 
-void app_restart_idle_watcher(app_t *app);
+void app_restart_redraw_watcher(app_t *app);
 
 void app_request_draw(app_t *app);
 
