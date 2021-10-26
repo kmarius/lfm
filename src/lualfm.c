@@ -862,8 +862,8 @@ static int l_nav_check(lua_State *L)
 
 static int l_nav_sel(lua_State *L)
 {
-	nav_t *nav = &app->nav;
-	nav_sel(nav, luaL_checkstring(L, 1));
+	nav_sel(&app->nav, luaL_checkstring(L, 1));
+	ui_request_draw(&app->ui);
 	return 0;
 }
 
