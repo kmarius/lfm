@@ -34,7 +34,7 @@ typedef struct chtup_t {
 	unsigned long channel;
 } chtup_t;
 
-typedef struct Config {
+typedef struct config {
 	wchar_t truncatechar; /* '~' */
 	char *corepath;       /* ~/.local/share/lfm/lua/core.lua */
 	char *historypath;    /* ~/.local/share/lfm/history */

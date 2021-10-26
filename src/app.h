@@ -8,7 +8,7 @@
 #include "tpool.h"
 #include "ui.h"
 
-typedef struct App {
+typedef struct app_t {
 	ui_t ui;
 	nav_t nav;
 	lua_State *L;
