@@ -44,6 +44,9 @@ typedef struct ui_t {
 	char *highlight; /* search */
 	bool highlight_active;
 	bool search_forward;
+
+	bool needs_redraw;
+	bool needs_redraw_cmdline;
 } ui_t;
 
 void ui_init(ui_t *ui, nav_t *nav);
@@ -56,9 +59,13 @@ void ui_deinit(ui_t *ui);
 
 void ui_clear(ui_t *ui);
 
+void ui_request_draw(ui_t *ui);
+
 void ui_draw(ui_t *ui);
 
 void ui_draw_dirs(ui_t *ui);
+
+void ui_draw_cmdline(ui_t *ui);
 
 void ui_error(ui_t *ui, const char *format, ...);
 

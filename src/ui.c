@@ -30,8 +30,8 @@ inline static struct ncplane *wpreview(ui_t *ui)
 	return ui->wdirs[ui->ndirs-1];
 }
 
+void request_draw_cmdline(ui_t *ui);
 static void draw_info(ui_t *ui);
-static void draw_cmdline(ui_t *ui);
 static char *readable_fs(double size, char *buf);
 static void menu_resize(ui_t *ui);
 static char *wansi_consoom(struct ncplane *w, char *s);
@@ -523,28 +523,28 @@ void ui_cmd_prefix_set(ui_t *ui, const char *prefix)
 	}
 	notcurses_cursor_enable(nc, 0, 0);
 	cmdline_prefix_set(&ui->cmdline, prefix);
-	draw_cmdline(ui);
+	request_draw_cmdline(ui);
 }
 
 /* inserts only the first mbchar of the argument */
 void ui_cmd_insert(ui_t *ui, const char *key)
 {
 	if (cmdline_insert(&ui->cmdline, key)) {
-		draw_cmdline(ui);
+		request_draw_cmdline(ui);
 	}
 }
 
 void ui_cmd_delete(ui_t *ui)
 {
 	if (cmdline_delete(&ui->cmdline)) {
-		draw_cmdline(ui);
+		request_draw_cmdline(ui);
 	}
 }
 
 void ui_cmd_delete_right(ui_t *ui)
 {
 	if (cmdline_delete_right(&ui->cmdline)) {
-		draw_cmdline(ui);
+		request_draw_cmdline(ui);
 	}
 }
 
@@ -552,28 +552,28 @@ void ui_cmd_delete_right(ui_t *ui)
 void ui_cmd_left(ui_t *ui)
 {
 	if (cmdline_left(&ui->cmdline)) {
-		draw_cmdline(ui);
+		request_draw_cmdline(ui);
 	}
 }
 
 void ui_cmd_right(ui_t *ui)
 {
 	if (cmdline_right(&ui->cmdline)) {
-		draw_cmdline(ui);
+		request_draw_cmdline(ui);
 	}
 }
 
 void ui_cmd_home(ui_t *ui)
 {
 	if (cmdline_home(&ui->cmdline)) {
-		draw_cmdline(ui);
+		request_draw_cmdline(ui);
 	}
 }
 
 void ui_cmd_end(ui_t *ui)
 {
 	if (cmdline_end(&ui->cmdline)) {
-		draw_cmdline(ui);
+		request_draw_cmdline(ui);
 	}
 }
 
@@ -582,14 +582,14 @@ void ui_cmd_clear(ui_t *ui)
 	cmdline_clear(&ui->cmdline);
 	history_reset(&ui->history);
 	notcurses_cursor_disable(nc);
-	draw_cmdline(ui);
+	ui_draw_cmdline(ui);
 	ui_showmenu(ui, NULL, 0);
 }
 
 void ui_cmdline_set(ui_t *ui, const char *line)
 {
 	if (cmdline_set(&ui->cmdline, line)) {
-		draw_cmdline(ui);
+		request_draw_cmdline(ui);
 	}
 }
 
@@ -709,8 +709,14 @@ static int int_sz(int n)
 	return i;
 }
 
-void draw_cmdline(ui_t *ui)
+void request_draw_cmdline(ui_t *ui)
 {
+	ui->needs_redraw_cmdline = true;
+}
+
+void ui_draw_cmdline(ui_t *ui)
+{
+	ui->needs_redraw_cmdline = false;
 	char nums[16];
 	char size[32];
 	char mtime[32];
@@ -1006,11 +1012,18 @@ static void wdraw_dir(struct ncplane *n, dir_t *dir, char **sel, char **load,
 /* }}} */
 
 /* main drawing/echo/err {{{ */
+
+void ui_request_draw(ui_t *ui)
+{
+	ui->needs_redraw = true;
+}
+
 void ui_draw(ui_t *ui)
 {
+	ui->needs_redraw = false;
 	ui_draw_dirs(ui);
 	draw_menu(ui->menu, ui->menubuf);
-	draw_cmdline(ui);
+	ui_draw_cmdline(ui);
 }
 
 /* to not overwrite errors */
@@ -1061,7 +1074,7 @@ void ui_clear(ui_t *ui)
 	notcurses_cursor_enable(nc, 0, 0);
 	notcurses_cursor_disable(nc);
 
-	ui_draw(ui);
+	ui_request_draw(ui);
 }
 
 void ui_echom(ui_t *ui, const char *format, ...)

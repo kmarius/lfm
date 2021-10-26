@@ -174,11 +174,11 @@ static int l_config_newindex(lua_State *L)
 		const char *p = val;
 		mbsrtowcs(buf, &p, 1, NULL);
 		cfg.truncatechar = buf[0];
-		ui_draw(&app->ui);
+		ui_request_draw(&app->ui);
 	} else if (streq(key, "hidden")) {
 		bool hidden = lua_toboolean(L, 3);
 		nav_hidden_set(&app->nav, hidden);
-		ui_draw(&app->ui);
+		ui_request_draw(&app->ui);
 	} else if (streq(key, "ratios")) {
 		const int l = lua_objlen(L, 3);
 		log_debug("%d", l);
@@ -201,7 +201,7 @@ static int l_config_newindex(lua_State *L)
 		ui_recol(&app->ui);
 		erase();
 		refresh();
-		ui_draw(&app->ui);
+		ui_request_draw(&app->ui);
 		free(ratios);
 	} else if (streq(key, "scrolloff")) {
 		cfg.scrolloff = max(luaL_checkinteger(L, 3), 0);
@@ -209,7 +209,7 @@ static int l_config_newindex(lua_State *L)
 	} else if (streq(key, "preview")) {
 		cfg.preview = lua_toboolean(L, 3);
 		nav_recol(&app->nav);
-		ui_draw(&app->ui);
+		ui_request_draw(&app->ui);
 		return 0;
 	} else if (streq(key, "previewer")) {
 		if (lua_isnoneornil(L, 3)) {
@@ -297,7 +297,7 @@ static int l_ui_menu(lua_State *L)
 static int l_ui_draw(lua_State *L)
 {
 	(void) L;
-	ui_draw(&app->ui);
+	ui_request_draw(&app->ui);
 	return 0;
 }
 
@@ -383,7 +383,7 @@ static int l_colors_newindex(lua_State *L)
 	} else {
 		luaL_error(L, "unexpected key %s", key);
 	}
-	ui_draw(&app->ui);
+	ui_request_draw(&app->ui);
 	return 0;
 }
 
@@ -473,14 +473,14 @@ static int l_cmd_prefix_get(lua_State *L)
 static int l_nav_up(lua_State *L)
 {
 	if (nav_up(&app->nav, luaL_optint(L, 1, 1)))
-		ui_draw(&app->ui);
+		ui_request_draw(&app->ui);
 	return 0;
 }
 
 static int l_nav_down(lua_State *L)
 {
 	if (nav_down(&app->nav, luaL_optint(L, 1, 1)))
-		ui_draw(&app->ui);
+		ui_request_draw(&app->ui);
 	return 0;
 }
 
@@ -488,7 +488,7 @@ static int l_nav_top(lua_State *L)
 {
 	(void) L;
 	if (nav_top(&app->nav))
-		ui_draw(&app->ui);
+		ui_request_draw(&app->ui);
 	return 0;
 }
 
@@ -496,7 +496,7 @@ static int l_nav_bot(lua_State *L)
 {
 	(void) L;
 	if (nav_bot(&app->nav))
-		ui_draw(&app->ui);
+		ui_request_draw(&app->ui);
 	return 0;
 }
 
@@ -505,7 +505,7 @@ static int l_nav_updir(lua_State *L)
 	(void) L;
 	nav_updir(&app->nav);
 	ui_search_nohighlight(&app->ui);
-	ui_draw(&app->ui);
+	ui_request_draw(&app->ui);
 	return 0;
 }
 
@@ -515,7 +515,7 @@ static int l_nav_open(lua_State *L)
 	nav_t *nav = &app->nav;
 	if (!(file = nav_open(&app->nav))) {
 		/* changed directory */
-		ui_draw(&app->ui);
+		ui_request_draw(&app->ui);
 		ui_search_nohighlight(&app->ui);
 		return 0;
 	} else {
@@ -555,7 +555,7 @@ static int l_sel_visual_start(lua_State *L)
 {
 	(void) L;
 	nav_selection_visual_start(&app->nav);
-	ui_draw(&app->ui);
+	ui_request_draw(&app->ui);
 	return 0;
 }
 
@@ -563,7 +563,7 @@ static int l_sel_visual_end(lua_State *L)
 {
 	(void) L;
 	nav_selection_visual_stop(&app->nav);
-	ui_draw(&app->ui);
+	ui_request_draw(&app->ui);
 	return 0;
 }
 
@@ -571,7 +571,7 @@ static int l_sel_visual_toggle(lua_State *L)
 {
 	(void) L;
 	nav_selection_visual_toggle(&app->nav);
-	ui_draw(&app->ui);
+	ui_request_draw(&app->ui);
 	return 0;
 }
 
@@ -620,7 +620,7 @@ static int l_sortby(lua_State *L)
 	}
 	dir->sorted = false;
 	dir_sort(dir);
-	ui_draw(&app->ui);
+	ui_request_draw(&app->ui);
 	return 0;
 }
 
@@ -653,7 +653,7 @@ static int l_selection_clear(lua_State *L)
 {
 	(void) L;
 	nav_selection_clear(&app->nav);
-	ui_draw(&app->ui);
+	ui_request_draw(&app->ui);
 	return 0;
 }
 
@@ -661,7 +661,7 @@ static int l_selection_reverse(lua_State *L)
 {
 	(void) L;
 	nav_selection_reverse(&app->nav);
-	ui_draw(&app->ui);
+	ui_request_draw(&app->ui);
 	return 0;
 }
 
@@ -730,7 +730,7 @@ static int l_nav_copy(lua_State *L)
 {
 	(void) L;
 	nav_copy(&app->nav);
-	ui_draw(&app->ui);
+	ui_request_draw(&app->ui);
 	return 0;
 }
 
@@ -738,7 +738,7 @@ static int l_nav_cut(lua_State *L)
 {
 	(void) L;
 	nav_cut(&app->nav);
-	ui_draw(&app->ui);
+	ui_request_draw(&app->ui);
 	return 0;
 }
 
@@ -770,7 +770,7 @@ static int l_filter(lua_State *L)
 {
 	const char *filter = lua_tostring(L, 1);
 	nav_filter(&app->nav, filter);
-	ui_draw(&app->ui);
+	ui_request_draw(&app->ui);
 	return 0;
 }
 
@@ -784,7 +784,7 @@ static int l_nav_mark_load(lua_State *L)
 {
 	const char *b = lua_tostring(L, 1);
 	nav_mark_load(&app->nav, b[0]);
-	ui_draw(&app->ui);
+	ui_request_draw(&app->ui);
 	return 0;
 }
 
@@ -880,7 +880,7 @@ static int l_search(lua_State *L)
 			ui_search_highlight(ui, search, true);
 		}
 	}
-	ui_draw(ui);
+	ui_request_draw(ui);
 	return 0;
 }
 
@@ -897,7 +897,7 @@ static int l_search_backwards(lua_State *L)
 			ui_search_highlight(ui, search, false);
 		}
 	}
-	ui_draw(ui);
+	ui_request_draw(ui);
 	return 0;
 }
 
@@ -924,7 +924,7 @@ static int l_search_next_forward(lua_State *L)
 				nav_down(nav,
 						(start + i) % dir->len - dir->ind);
 			}
-			ui_draw(ui);
+			ui_request_draw(ui);
 			break;
 		}
 	}
@@ -957,7 +957,7 @@ static int l_search_next_backwards(lua_State *L)
 						(dir->len + start - i) % dir->len -
 						dir->ind);
 			}
-			ui_draw(ui);
+			ui_request_draw(ui);
 			break;
 		}
 	}
@@ -1007,7 +1007,7 @@ static int l_find(lua_State *L)
 					nav_down(nav, (start + i) % dir->len -
 							dir->ind);
 				}
-				ui_draw(ui);
+				ui_request_draw(ui);
 			}
 			nmatches++;
 		}

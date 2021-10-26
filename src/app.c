@@ -68,10 +68,11 @@ static void async_result_cb(EV_P_ ev_async *w, int revents)
 	pthread_mutex_unlock(&async_results.mutex);
 
 	if (redraw) {
-		ui_draw(&app->ui);
+		ui_request_draw(&app->ui);
 	} else if (redraw_preview) {
 		ui_draw_preview(&app->ui);
 	}
+	app_restart_idle_watcher(app);
 }
 
 static void sigwinch_cb(EV_P_ ev_signal *w, int revents)
@@ -83,6 +84,7 @@ static void sigwinch_cb(EV_P_ ev_signal *w, int revents)
 	 * resizing. ui_resize also gets called from a resize callback in ui.c.
 	 * However, if we don't resize here, the first line gets corrupted. */
 	ui_clear(&app->ui);
+	app_restart_idle_watcher(app);
 }
 
 static void timer_cb(EV_P_ ev_timer *w, int revents)
@@ -110,6 +112,7 @@ static void stdin_cb(EV_P_ ev_io *w, int revents)
 		/* log_debug("%u", in.id); */
 		lua_handle_key(app->L, app, &in);
 	}
+	app_restart_idle_watcher(app);
 }
 
 static void read_fifo(app_t *app)
@@ -123,6 +126,7 @@ static void read_fifo(app_t *app)
 			lua_exec_expr(app->L, app, buf);
 		}
 	}
+	app_restart_idle_watcher(app);
 }
 
 struct tup_t {
@@ -208,6 +212,7 @@ static void inotify_cb(EV_P_ ev_io *w, int revents)
 			}
 		}
 	}
+	app_restart_idle_watcher(app);
 }
 
 /* To run command line cmds after loop starts. I think it is called back before
@@ -215,18 +220,28 @@ static void inotify_cb(EV_P_ ev_io *w, int revents)
 static void idle_cb(struct ev_loop *loop, ev_idle *w, int revents)
 {
 	(void) revents;
+	(void) loop;
 	size_t i;
+	static bool first_run = true;
 	app_t *app = (app_t*) w->data;
-	if (cfg.commands) {
-		const size_t l = cvector_size(cfg.commands);
-		for (i = 0; i < l; i++) {
-			lua_exec_expr(app->L, app, cfg.commands[i]);
+	if (first_run) {
+			if (cfg.commands) {
+			const size_t l = cvector_size(cfg.commands);
+			for (i = 0; i < l; i++) {
+				lua_exec_expr(app->L, app, cfg.commands[i]);
+			}
+			/* commands are from argv, don't free them */
+			cvector_free(cfg.commands);
+			cfg.commands = NULL;
 		}
-		/* commands are from argv, don't free them */
-		cvector_free(cfg.commands);
-		cfg.commands = NULL;
+		lua_run_hook(app->L, "LfmEnter");
+		first_run = false;
 	}
-	lua_run_hook(app->L, "LfmEnter");
+	if (app->ui.needs_redraw) {
+		ui_draw(&app->ui);
+	} else if (app->ui.needs_redraw_cmdline) {
+		ui_draw_cmdline(&app->ui);
+	}
 	ev_idle_stop(loop, w);
 }
 
@@ -305,6 +320,17 @@ void app_init(app_t *app)
 	lua_load_file(app->L, app, cfg.corepath);
 
 	log_info("initialized app");
+}
+
+void app_restart_idle_watcher(app_t *app)
+{
+	ev_idle_start(app->loop, &idle_watcher);
+}
+
+void app_request_draw(app_t *app)
+{
+	app->ui.needs_redraw = true;
+	app_restart_idle_watcher(app);
 }
 
 void app_run(app_t *app)

@@ -15,6 +15,10 @@ typedef struct App {
 	struct ev_loop *loop;
 } app_t;
 
+void app_restart_idle_watcher(app_t *app);
+
+void app_request_draw(app_t *app);
+
 /*
  * Set input timout. Key input will be ignored for the next LEN ms.
  * */
