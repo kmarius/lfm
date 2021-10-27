@@ -82,7 +82,7 @@ static void async_dir_load_worker(void *arg)
 	if (w->delay > 0) {
 		msleep(w->delay);
 	}
-	dir_t *d = dir_load(w->path, 0);
+	dir_t *d = dir_load(w->path, 1);
 
 	pthread_mutex_lock(&async_results.mutex);
 	queue_put(&async_results, RES_DIR, d);
@@ -92,15 +92,15 @@ static void async_dir_load_worker(void *arg)
 		ev_async_send(EV_DEFAULT_ async_results.watcher);
 	}
 
-	d = dir_load(w->path, 1);
-
-	pthread_mutex_lock(&async_results.mutex);
-	queue_put(&async_results, RES_DIR, d);
-	pthread_mutex_unlock(&async_results.mutex);
-
-	if (async_results.watcher) {
-		ev_async_send(EV_DEFAULT_ async_results.watcher);
-	}
+	/* d = dir_load(w->path, 1); */
+    /*  */
+	/* pthread_mutex_lock(&async_results.mutex); */
+	/* queue_put(&async_results, RES_DIR, d); */
+	/* pthread_mutex_unlock(&async_results.mutex); */
+    /*  */
+	/* if (async_results.watcher) { */
+	/* 	ev_async_send(EV_DEFAULT_ async_results.watcher); */
+	/* } */
 
 	free(w->path);
 	free(w);
