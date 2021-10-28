@@ -43,7 +43,7 @@ void dir_sel(dir_t *dir, const char *file)
 			if (i == dir->ind) {
 				return;
 			}
-			/* TODO: this cant be right, dir->pos should be limited by nav height (on 2021-08-09) */
+			/* TODO: this cant be right, dir->pos should be limited by fm height (on 2021-08-09) */
 			dir->ind = i;
 			dir->pos = dir->ind;
 			return;

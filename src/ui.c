@@ -18,7 +18,7 @@
 #include "dir.h"
 #include "history.h"
 #include "log.h"
-#include "nav.h"
+#include "fm.h"
 #include "preview.h"
 #include "ui.h"
 #include "util.h"
@@ -62,9 +62,9 @@ void kbblocking(bool blocking)
 	}
 }
 
-void ui_init(ui_t *ui, nav_t *nav)
+void ui_init(ui_t *ui, fm_t *fm)
 {
-	ui->nav = nav;
+	ui->fm = fm;
 
 	cache_init(&ui->previewcache, PREVIEW_CACHE_SIZE, (void(*)(void*)) preview_free);
 
@@ -72,7 +72,7 @@ void ui_init(ui_t *ui, nav_t *nav)
 	ui->input_ready_fd = notcurses_inputready_fd(nc);
 	ui->nc = nc;
 	ncplane_dim_yx(ncstd, &ui->nrow, &ui->ncol);
-	nav->height = ui->nrow - 2;
+	fm->height = ui->nrow - 2;
 
 	ui->wdirs = NULL;
 	ui->ndirs = 0;
@@ -160,7 +160,7 @@ void ui_resize(ui_t *ui)
 	/* } */
 	menu_resize(ui);
 	ui_recol(ui);
-	ui->nav->height = ui->nrow - 2;
+	ui->fm->height = ui->nrow - 2;
 	ui_clear(ui);
 }
 
@@ -211,7 +211,7 @@ static void update_preview(ui_t *ui)
 	struct ncplane *w = wpreview(ui);
 	ncplane_erase(w);
 
-	if ((dir = ui->nav->dirs[0]) && dir->ind < dir->len) {
+	if ((dir = ui->fm->dirs[0]) && dir->ind < dir->len) {
 		file = dir->files[dir->ind];
 		if (ui->file_preview) {
 			if (streq(ui->file_preview->path, file->path)) {
@@ -384,7 +384,7 @@ bool ui_insert_preview(ui_t *ui, preview_t *pv)
 	preview_t *oldpv;
 	const file_t *file;
 
-	if ((file = nav_current_file(ui->nav)) && (file == pv->fptr || streq(pv->path, file->path))) {
+	if ((file = fm_current_file(ui->fm)) && (file == pv->fptr || streq(pv->path, file->path))) {
 		preview_free(ui->file_preview);
 		ui->file_preview = pv;
 		return true;
@@ -739,7 +739,7 @@ void ui_draw_cmdline(ui_t *ui)
 	int lhs_sz = 0;
 
 	if (!cmdline_prefix_get(&ui->cmdline)) {
-		if ((dir = nav_current_dir(ui->nav))) {
+		if ((dir = fm_current_dir(ui->fm))) {
 			if((file = dir_current_file(dir))) {
 				/* TODO: for empty directories, show the stat of the
 				 * directory instead (on 2021-07-18) */
@@ -765,21 +765,21 @@ void ui_draw_cmdline(ui_t *ui)
 				ncplane_set_fg_default(ui->plane_cmdline);
 				ncplane_putchar(ui->plane_cmdline, ' ');
 			}
-			if (cvector_size(ui->nav->load) > 0) {
-				if (ui->nav->mode == MODE_COPY) {
+			if (cvector_size(ui->fm->load) > 0) {
+				if (ui->fm->mode == MODE_COPY) {
 					ncplane_set_channels(ui->plane_cmdline, cfg.colors.copy);
 				} else {
 					ncplane_set_channels(ui->plane_cmdline, cfg.colors.delete);
 				}
-				rhs_sz += int_sz(cvector_size(ui->nav->load)) + 3;
-				ncplane_printf_yx(ui->plane_cmdline, 0, ui->ncol-rhs_sz+1, " %lu ", cvector_size(ui->nav->load));
+				rhs_sz += int_sz(cvector_size(ui->fm->load)) + 3;
+				ncplane_printf_yx(ui->plane_cmdline, 0, ui->ncol-rhs_sz+1, " %lu ", cvector_size(ui->fm->load));
 				ncplane_set_bg_default(ui->plane_cmdline);
 				ncplane_putchar(ui->plane_cmdline, ' ');
 			}
-			if (ui->nav->selection_len > 0) {
+			if (ui->fm->selection_len > 0) {
 				ncplane_set_channels(ui->plane_cmdline, cfg.colors.selection);
-				rhs_sz += int_sz(ui->nav->selection_len) + 3;
-				ncplane_printf_yx(ui->plane_cmdline, 0, ui->ncol-rhs_sz+1, " %d ", ui->nav->selection_len);
+				rhs_sz += int_sz(ui->fm->selection_len) + 3;
+				ncplane_printf_yx(ui->plane_cmdline, 0, ui->ncol-rhs_sz+1, " %d ", ui->fm->selection_len);
 				ncplane_set_bg_default(ui->plane_cmdline);
 				ncplane_putchar(ui->plane_cmdline, ' ');
 			}
@@ -829,7 +829,7 @@ static void draw_info(ui_t *ui)
 	ncplane_putchar(ui->infoline, ':');
 	ncplane_set_styles(ui->infoline, NCSTYLE_BOLD);
 
-	if ((dir = ui->nav->dirs[0])) {
+	if ((dir = ui->fm->dirs[0])) {
 		// shortening should work fine with ascii only names
 		const char *end = dir->path + strlen(dir->path);
 		int remaining;
@@ -1054,20 +1054,20 @@ void ui_draw_dirs(ui_t *ui)
 
 	draw_info(ui);
 
-	const int l = ui->nav->ndirs;
+	const int l = ui->fm->ndirs;
 	for (i = 0; i < l; i++) {
 		wdraw_dir(ui->wdirs[l-i-1],
-				ui->nav->dirs[i],
-				ui->nav->selection,
-				ui->nav->load,
-				ui->nav->mode,
+				ui->fm->dirs[i],
+				ui->fm->selection,
+				ui->fm->load,
+				ui->fm->mode,
 				i == 0 && ui->highlight_active ? ui->highlight : NULL);
 	}
 
 	if (cfg.preview && ui->ndirs > 1) {
-		if ((pdir = ui->nav->preview)) {
-			wdraw_dir(wpreview(ui), ui->nav->preview, ui->nav->selection,
-					ui->nav->load, ui->nav->mode, NULL);
+		if ((pdir = ui->fm->preview)) {
+			wdraw_dir(wpreview(ui), ui->fm->preview, ui->fm->selection,
+					ui->fm->load, ui->fm->mode, NULL);
 		} else {
 			update_preview(ui);
 			ui_draw_preview(ui);

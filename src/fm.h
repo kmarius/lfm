@@ -21,7 +21,7 @@ typedef struct mark_t {
 	char *path;
 } mark_t;
 
-typedef struct nav_t {
+typedef struct fm_t {
 	/* All loaded directories, not only visible ones */
 	cache_t dircache;
 
@@ -46,7 +46,7 @@ typedef struct nav_t {
 	cvector_vector_type(char *) load;
 	enum movemode_e mode;
 
-	/* Height of the nav in the ui, needed to adjust pos for each dir */
+	/* Height of the fm in the ui, needed to adjust pos for each dir */
 	int height;
 
 	/* Visual selection mode active */
@@ -54,170 +54,170 @@ typedef struct nav_t {
 	/* Index of the beginning of the visual selection */
 	int visual_anchor;
 
-} nav_t;
+} fm_t;
 
 /*
  * Moves to the correct starting directory, loads initial dirs and sets up
  * previews and inotify watchers.
  */
-void nav_init(nav_t *nav);
+void fm_init(fm_t *fm);
 
 /*
  * Unloads directories and frees all resources.
  */
-void nav_deinit(nav_t *nav);
+void fm_deinit(fm_t *fm);
 
 /*
  * Updates the number of loaded directories, called after the number of columns
  * changes.
  */
-void nav_recol(nav_t *nav);
+void fm_recol(fm_t *fm);
 
 /*
  * Move cursor CT up in the current directory.
  */
-bool nav_up(nav_t *nav, int ct);
+bool fm_up(fm_t *fm, int ct);
 
 /*
  * Move cursor CT down in the current directory.
  */
-bool nav_down(nav_t *nav, int ct);
+bool fm_down(fm_t *fm, int ct);
 
 /*
  * Move cursor to the top of the current directory.
  */
-bool nav_top(nav_t *nav);
+bool fm_top(fm_t *fm);
 
 /*
  * Move cursor to the bottom of the current directory.
  */
-bool nav_bot(nav_t *nav);
+bool fm_bot(fm_t *fm);
 
 /*
  * Changes directory to the directory given by PATH. If SAVE then the current
  * directory will be saved as the special "'" mark.
  */
-bool nav_chdir(nav_t *nav, const char *path, bool save);
+bool fm_chdir(fm_t *fm, const char *path, bool save);
 
 /*
  * Open the currently selected file: if it is a directory, chdir into it.
  * Otherwise return the file so that the caller can open it.
  */
-file_t *nav_open(nav_t *nav);
+file_t *fm_open(fm_t *fm);
 
 /*
  * Chdir to the parent of the current directory.
  */
-void nav_updir(nav_t *nav);
+void fm_updir(fm_t *fm);
 
 /*
  * Move the cursor the file with FILENAME if it exists. Otherwise leaves the
  * cursor at the closest valid position (i.e. after the number of files
  * decreases)
  */
-void nav_sel(nav_t *nav, const char *filename);
+void fm_sel(fm_t *fm, const char *filename);
 
 /*
  * Apply the filter string given by FILTER to the current directory.
  */
-void nav_filter(nav_t *nav, const char *filter);
+void fm_filter(fm_t *fm, const char *filter);
 
 /*
  * Return the filter string of the currently selected directory.
  */
-const char *nav_filter_get(const nav_t *nav);
+const char *fm_filter_get(const fm_t *fm);
 
 /*
  *  TODO: wrong way around? (on 2021-08-04)
  */
-void nav_hidden_set(nav_t *nav, bool hidden);
+void fm_hidden_set(fm_t *fm, bool hidden);
 
 /*
  * Checks all visible directories for changes on disk and schedules reloads if
  * necessary.
  */
-void nav_check_dirs(const nav_t *nav);
+void fm_check_dirs(const fm_t *fm);
 
 /*
  * Insert a new DIR into the directory list.
  */
-bool nav_insert_dir(nav_t *nav, dir_t *dir);
+bool fm_insert_dir(fm_t *fm, dir_t *dir);
 
 /*
  * Chdir to the directory saved as MARK.
  */
-bool nav_mark_load(nav_t *nav, char mark);
+bool fm_mark_load(fm_t *fm, char mark);
 
 /*
  * Toggles the selection of the currently selected file.
  */
-void nav_selection_toggle_current(nav_t *nav);
+void fm_selection_toggle_current(fm_t *fm);
 
 /*
  * Clear the selection completely.
  */
-void nav_selection_clear(nav_t *nav);
+void fm_selection_clear(fm_t *fm);
 
 /*
  * Reverse the file selection.
  */
-void nav_selection_reverse(nav_t *nav);
+void fm_selection_reverse(fm_t *fm);
 
 /*
  * Begin visual selection mode.
  */
-void nav_selection_visual_start(nav_t *nav);
+void fm_selection_visual_start(fm_t *fm);
 
 /*
  * End visual selection mode.
  */
-void nav_selection_visual_stop(nav_t *nav);
+void fm_selection_visual_stop(fm_t *fm);
 
 /*
  * Toggle visual selection mode.
  */
-void nav_selection_visual_toggle(nav_t *nav);
+void fm_selection_visual_toggle(fm_t *fm);
 
 /*
  * Write the current celection to the file given as PATH.
  * Directories are created as needed.
  */
-void nav_selection_write(const nav_t *nav, const char *path);
+void fm_selection_write(const fm_t *fm, const char *path);
 
 /*
  * Move the current selection to the copy buffer.
  */
-void nav_copy(nav_t *nav);
+void fm_copy(fm_t *fm);
 
 /*
  * Move the current selection to the move buffer.
  */
-void nav_cut(nav_t *load);
+void fm_cut(fm_t *load);
 
 /*
  * Clear copy/move buffer.
  */
-void nav_load_clear(nav_t *nav);
+void fm_load_clear(fm_t *fm);
 
 /*
  * Get the list of files in copy/move buffer.
  */
-char * const* nav_get_load(const nav_t *nav);
+char * const* fm_get_load(const fm_t *fm);
 
 /*
  * Get the mode current load, one of MODE_COPY, MODE_MOVE.
  */
-enum movemode_e nav_get_mode(const nav_t *nav);
+enum movemode_e fm_get_mode(const fm_t *fm);
 
 /*
  * Current file of the current directory. Can be NULL.
  */
-file_t *nav_current_file(const nav_t *nav);
+file_t *fm_current_file(const fm_t *fm);
 
 /*
  * Current directory. Never NULL.
  */
-dir_t *nav_current_dir(const nav_t *nav);
+dir_t *fm_current_dir(const fm_t *fm);
 
 /*
  * Compare PATH against each path in SELECTION to check if it is contained.
@@ -227,14 +227,14 @@ bool cvector_contains(const char *path, cvector_vector_type(char*) selection);
 /*
  * Drop directory cache and reload visible directories from disk.
  */
-void nav_drop_cache(nav_t *nav);
+void fm_drop_cache(fm_t *fm);
 
-#define nav_current_dir(nav) (nav)->dirs[0]
+#define fm_current_dir(fm) (fm)->dirs[0]
 
-#define nav_preview_dir(nav) (nav)->preview
+#define fm_preview_dir(fm) (fm)->preview
 
-void nav_selection_add_file(nav_t *nav, const char *path);
+void fm_selection_add_file(fm_t *fm, const char *path);
 
-void nav_selection_set(nav_t *nav, cvector_vector_type(char*) selection);
+void fm_selection_set(fm_t *fm, cvector_vector_type(char*) selection);
 
 #endif /* NAV_H */

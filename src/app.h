@@ -4,13 +4,13 @@
 #include <ev.h>
 #include <lua.h>
 
-#include "nav.h"
+#include "fm.h"
 #include "tpool.h"
 #include "ui.h"
 
 typedef struct app_t {
 	ui_t ui;
-	nav_t nav;
+	fm_t fm;
 	lua_State *L;
 	struct ev_loop *loop;
 } app_t;

@@ -57,7 +57,7 @@ static void async_result_cb(EV_P_ ev_async *w, int revents)
 	while (queue_get(&async_results, &type, &result)) {
 		switch (type) {
 		case RES_DIR:
-			redraw |= nav_insert_dir(&app->nav, result);
+			redraw |= fm_insert_dir(&app->fm, result);
 			break;
 		case RES_PREVIEW:
 			redraw_preview |= ui_insert_preview(&app->ui, result);
@@ -99,7 +99,7 @@ static void timer_cb(EV_P_ ev_timer *w, int revents)
 		return;
 	}
 	/* log_debug("tick"); */
-	/* nav_check_dirs(&app->nav); */
+	/* fm_check_dirs(&app->fm); */
 }
 
 static void stdin_cb(EV_P_ ev_io *w, int revents)
@@ -250,7 +250,7 @@ void app_init(app_t *app)
 	_app = app;
 	app->loop = ev_default_loop(EVFLAG_NOENV);
 
-	/* inotify should be available on nav startup */
+	/* inotify should be available on fm startup */
 	if (!notify_init()) {
 		log_error("inotify: %s", strerror(errno));
 		exit(EXIT_FAILURE);
@@ -284,9 +284,9 @@ void app_init(app_t *app)
 		exit(EXIT_FAILURE);
 	}
 
-	app->ui.messages = NULL; /* needed to keep errors on nav startup */
-	nav_init(&app->nav);
-	ui_init(&app->ui, &app->nav);
+	app->ui.messages = NULL; /* needed to keep errors on fm startup */
+	fm_init(&app->fm);
+	ui_init(&app->ui, &app->fm);
 
 	ev_idle_init(&redraw_watcher, redraw_cb);
 	redraw_watcher.data = app;
@@ -378,7 +378,7 @@ void app_deinit(app_t *app)
 	notify_close();
 	lua_close(app->L);
 	ui_deinit(&app->ui);
-	nav_deinit(&app->nav);
+	fm_deinit(&app->fm);
 	tpool_wait(async_tm);
 	tpool_destroy(async_tm);
 	queue_deinit(&async_results);

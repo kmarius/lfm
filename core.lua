@@ -7,7 +7,7 @@ if not string.match(package.cpath, home.."/.config/lfm/lua/") then
 	package.cpath = package.cpath .. ";"..home..[[/.config/lfm/libs/?.so]]
 end
 
-local nav = lfm.nav
+local fm = lfm.fm
 local log = lfm.log
 local ui = lfm.ui
 local config = lfm.config
@@ -44,9 +44,9 @@ print = function(...)
 end
 
 function lfm.sel_or_cur()
-	local sel = nav.selection
+	local sel = fm.selection
 	if not sel[1] then
-		sel = {nav.current}
+		sel = {fm.current}
 	end
 	return sel
 end
@@ -134,12 +134,12 @@ local function cmddeleteright()
 end
 
 local function cd(dir)
-	nav.chdir(dir or os.getenv("HOME"))
+	fm.chdir(dir or os.getenv("HOME"))
 end
 
 -- should return true a file has been opened
 local function open()
-	local file = nav.open()
+	local file = fm.open()
 	if file then
 		lfm.error("no opener configured")
 	end
@@ -287,16 +287,16 @@ nmaps = {}
 local map = lfm.map
 map("f", function() lfm.cmd.prefix = "find: " end, {desc="find"})
 map("F", function() lfm.cmd.prefix = "travel: " end, {desc="travel"})
-map("zf", function() lfm.cmd.prefix = "filter: " lfm.cmd.line = nav.getfilter() end, {desc="filter"})
+map("zf", function() lfm.cmd.prefix = "filter: " lfm.cmd.line = fm.getfilter() end, {desc="filter"})
 map("l", open)
 map("q", lfm.quit)
-map("j", nav.down)
-map("k", nav.up)
-map("h", nav.updir)
-map("gg", nav.top, {desc="top"})
-map("G", nav.bottom, {desc="bottom"})
+map("j", fm.down)
+map("k", fm.up)
+map("h", fm.updir)
+map("gg", fm.top, {desc="top"})
+map("G", fm.bottom, {desc="bottom"})
 map("R", function() loadfile("/home/marius/Sync/programming/lfm/core.lua")() end, {desc="reload config"})
-map("''", function() nav.mark_load("'") end)
+map("''", function() fm.mark_load("'") end)
 map("zh", function() lfm.config.hidden = not lfm.config.hidden end, {desc="toggle hidden"})
 map(":", function() lfm.cmd.prefix = ":" end)
 map("/", function() lfm.cmd.prefix = "/" lfm.search("") end)
@@ -307,9 +307,9 @@ map("N", lfm.search_prev)
 -- TODO: make functions to easily enter a mode (on 2021-07-23)
 local mode_filter = {
 	prefix = "filter: ",
-	enter = function(line) nav.filter(line) end,
-	esc = function() nav.filter("") end,
-	change = function() nav.filter(lfm.cmd.line) end,
+	enter = function(line) fm.filter(line) end,
+	esc = function() fm.filter("") end,
+	change = function() fm.filter(lfm.cmd.line) end,
 }
 
 -- exposed to c

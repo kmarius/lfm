@@ -38,7 +38,7 @@ typedef struct dir_t {
 	bool loading;
 
 	int ind;	 /* index of currently selected file */
-	int pos;	 /* position of the cursor in nav */
+	int pos;	 /* position of the cursor in fm */
 	char *sel;
 
 	char filter[64]; /* filter string */

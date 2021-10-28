@@ -12,7 +12,7 @@
 #include "cvector.h"
 #include "log.h"
 #include "lualfm.h"
-#include "nav.h"
+#include "fm.h"
 #include "ui.h"
 #include "util.h"
 

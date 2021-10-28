@@ -9,7 +9,7 @@
 #include "cvector.h"
 #include "dir.h"
 #include "history.h"
-#include "nav.h"
+#include "fm.h"
 #include "preview.h"
 
 #define PREVIEW_CACHE_SIZE 31
@@ -20,7 +20,7 @@ typedef struct ui_t {
 
 	int ndirs; /* number of columns including the preview */
 
-	nav_t *nav;
+	fm_t *fm;
 
 	/* needed to get input in app.c */
 	int input_ready_fd;
@@ -49,7 +49,7 @@ typedef struct ui_t {
 	bool needs_redraw_cmdline;
 } ui_t;
 
-void ui_init(ui_t *ui, nav_t *nav);
+void ui_init(ui_t *ui, fm_t *fm);
 
 void ui_resize(ui_t *ui);
 
