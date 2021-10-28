@@ -888,7 +888,7 @@ static void print_file(struct ncplane *n, const file_t *file,
 {
 	int ncol, y0, x;
 	char size[16];
-	wchar_t buf[128];
+	wchar_t buf[256];
 	ncplane_dim_yx(n, NULL, &ncol);
 	ncplane_cursor_yx(n, &y0, NULL);
 
