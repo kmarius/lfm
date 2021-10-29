@@ -617,6 +617,7 @@ bool fm_bot(fm_t *fm)
 
 void fm_sel(fm_t *fm, const char *name)
 {
+	/* TODO: use fm_move to set the pos offset (on 2021-10-29) */
 	dir_sel(fm->dirs[0], name);
 	fm_update_preview(fm);
 }
