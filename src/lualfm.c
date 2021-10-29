@@ -26,7 +26,60 @@
 #include "tpool.h"
 #include "util.h"
 
+#include "trie.h"
+
 static app_t *app = NULL;
+
+static trie_node_t *cur;
+static trie_node_t *maps;
+static trie_node_t *cmaps;
+
+static int *seq = NULL;
+static char *seq_str = NULL;
+
+int l_map_key(lua_State *L)
+{
+	const char *desc = NULL;
+	if (lua_type(L, 3) == LUA_TTABLE) {
+		lua_getfield(L, 3, "desc");
+		if (lua_type(L, -1) == LUA_TSTRING) {
+			desc = lua_tostring(L, -1);
+		}
+		lua_pop(L, 1);
+	}
+	const char *keys = luaL_checkstring(L, 1);
+	if (!(lua_type(L, 2) == LUA_TFUNCTION)) {
+		luaL_argerror(L, 2, "expected function");
+	}
+	int buf[strlen(keys)+1];
+	trie_node_t *k = trie_insert(maps, keytrans_inv_str(keys, buf), keys, desc);
+	lua_pushlightuserdata(L, (void *)k);
+	lua_pushvalue(L, 2);
+	lua_settable(L, LUA_REGISTRYINDEX);
+	return 0;
+}
+
+int l_cmap_key(lua_State *L)
+{
+	const char *desc = NULL;
+	if (lua_type(L, 3) == LUA_TTABLE) {
+		lua_getfield(L, 3, "desc");
+		if (lua_type(L, -1) == LUA_TSTRING) {
+			desc = lua_tostring(L, -1);
+		}
+		lua_pop(L, 1);
+	}
+	const char *keys = luaL_checkstring(L, 1);
+	if (!(lua_type(L, 2) == LUA_TFUNCTION)) {
+		luaL_argerror(L, 2, "expected function");
+	}
+	int buf[strlen(keys)+1];
+	trie_node_t *k = trie_insert(cmaps, keytrans_inv_str(keys, buf), keys, desc);
+	lua_pushlightuserdata(L, (void *)k);
+	lua_pushvalue(L, 2);
+	lua_settable(L, LUA_REGISTRYINDEX);
+	return 0;
+}
 
 void lua_run_hook(lua_State *L, const char *hook)
 {
@@ -51,6 +104,20 @@ void lua_exec_expr(lua_State *L, app_t *app, const char *cmd)
 	}
 }
 
+int l_handle_key(lua_State *L)
+{
+	const char *keys = luaL_checkstring(L, 1);
+	int buf[strlen(keys)];
+	keytrans_inv_str(keys, buf);
+	for (int *i = buf; *i; i++) {
+		struct ncinput in = {
+			.id = *i,
+		};
+		lua_handle_key(L, app, &in);
+	}
+	return 0;
+}
+
 void lua_handle_key(lua_State *L, app_t *app, ncinput *in)
 {
 	int key = in->id;
@@ -64,16 +131,83 @@ void lua_handle_key(lua_State *L, app_t *app, ncinput *in)
 		app_quit(app);
 		return;
 	}
-	lua_getglobal(L, "lfm");
-	lua_pushliteral(L, "handle_key");
-	lua_gettable(L, -2);
-	lua_pushstring(L, keytrans(key));
-	if (lua_pcall(L, 1, 0, 0)) {
-		ui_error(&app->ui, "handle_key: %s", lua_tostring(L, -1));
-		if (key == 'q') {
-			app_quit(app);
-		} else if (key == 'r') {
-			lua_load_file(L, app, cfg.configpath);
+	const char *prefix = cmdline_prefix_get(&app->ui.cmdline);
+	if (!cur) {
+		cur = prefix ? cmaps : maps;
+		cvector_set_size(seq, 0);
+	}
+	cur = trie_find_child(cur, key);
+	if (prefix) {
+		if (!cur) {
+			char buf[8] = {key, 0}; /* hope that fits */
+			int n = wctomb(buf, key);
+			if (n < 0) {
+				// invalid character
+				n = 0;
+			}
+			buf[n] = '\0';
+			ui_cmd_insert(&app->ui, buf);
+			lua_getglobal(L, "lfm");
+			if (lua_type(L, -1) == LUA_TTABLE) {
+				lua_getfield(L, -1, "modes");
+				if (lua_type(L, -1) == LUA_TTABLE) {
+					lua_getfield(L, -1, prefix);
+					if (lua_type(L, -1) == LUA_TTABLE) {
+						lua_getfield(L, -1, "change");
+						if (lua_type(L, -1) == LUA_TFUNCTION) {
+							lua_pcall(L, 0, 0, 0);
+						}
+					}
+				}
+			}
+		} else {
+			if (cur->keys) {
+				lua_pushlightuserdata(L, (void *)cur);
+				lua_gettable(L, LUA_REGISTRYINDEX);
+				cur = NULL;
+				if (lua_pcall(L, 0, 0, 0)) {
+					error("handle_key: %s", lua_tostring(L, -1));
+				}
+			} else {
+				// ???
+			}
+		}
+	}
+	if (!prefix) {
+		if (!cur) {
+			cvector_push_back(seq, key);
+			cvector_set_size(seq_str, 0);
+			/* TODO: Use a string builder (on 2021-10-29) */
+			for (size_t i = 0; i < cvector_size(seq); i++) {
+				const char *s = keytrans(seq[i]);
+				while (*s) {
+					cvector_push_back(seq_str, *s++);
+				}
+			}
+			cvector_push_back(seq_str, 0);
+			error("no such map: %s", seq_str);
+			ui_showmenu(&app->ui, NULL, 0);
+			return;
+		}
+		if (cur->keys) {
+			ui_showmenu(&app->ui, NULL, 0);
+			lua_pushlightuserdata(L, (void *)cur);
+			lua_gettable(L, LUA_REGISTRYINDEX);
+			cur = NULL;
+			if (lua_pcall(L, 0, 0, 0)) {
+				error("handle_key: %s", lua_tostring(L, -1));
+				if (key == 'q') {
+					app_quit(app);
+				} else if (key == 'r') {
+					lua_load_file(L, app, cfg.configpath);
+				}
+			}
+		} else {
+			cvector_push_back(seq, key);
+			cvector_vector_type(char*) menu = NULL;
+			cvector_push_back(menu, strdup("keys\tcommand"));
+			trie_collect_leaves(cur, &menu);
+			ui_showmenu(&app->ui, menu, cvector_size(menu));
 		}
 	}
 }
@@ -1032,6 +1166,9 @@ static int l_timeout(lua_State *L)
 }
 
 static const struct luaL_Reg lfm_lib[] = {
+	{"map", l_map_key},
+	{"cmap", l_cmap_key},
+	{"handle_key", l_handle_key},
 	{"getpid", l_getpid},
 	{"timeout", l_timeout},
 	{"find", l_find},
@@ -1163,7 +1300,20 @@ void lua_init(lua_State *L, app_t *_app)
 {
 	app = _app;
 
+	maps = trie_new();
+	cmaps = trie_new();
+	cvector_push_back(seq_str, 0);
+
 	luaL_openlibs(L);
 	luaopen_jit(L);
 	luaopen_lfm(L);
+}
+
+void lua_deinit(lua_State *L)
+{
+	lua_close(L);
+	trie_destroy(maps);
+	trie_destroy(cmaps);
+	cvector_free(seq_str);
+	cvector_free(seq);
 }

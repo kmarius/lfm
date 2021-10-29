@@ -4,8 +4,8 @@
 #include "cvector.h"
 
 typedef struct history_t {
-	cvector_vector_type(struct node) vec;
-	struct node *ptr;
+	cvector_vector_type(struct trie_node_t) vec;
+	struct trie_node_t *ptr;
 } history_t;
 
 void history_load(history_t *h, const char *path);

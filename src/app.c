@@ -376,7 +376,7 @@ void app_deinit(app_t *app)
 {
 	cvector_free(times);
 	notify_close();
-	lua_close(app->L);
+	lua_deinit(app->L);
 	ui_deinit(&app->ui);
 	fm_deinit(&app->fm);
 	tpool_wait(async_tm);

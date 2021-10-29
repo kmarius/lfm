@@ -507,6 +507,7 @@ static void menu_clear(ui_t *ui)
 
 void ui_showmenu(ui_t *ui, char **vec, int len)
 {
+	/* TODO: lazy menu? (on 2021-10-28) */
 	if (ui->menubuf) {
 		menu_clear(ui);
 		cvector_ffree(ui->menubuf, free);

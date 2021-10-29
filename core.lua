@@ -77,22 +77,23 @@ end
 local commands = {}
 local cmaps = {}
 local nmaps = {}
-local modes = {}
+lfm.modes = {}
+modes = lfm.modes
 
 function lfm.register_command(name, f, t)
 	t = t or {}
 	commands[name] = {f=f, tokenize=t.tokenize == nil and true or t.tokenize}
 end
 
-function lfm.map(keys, f, t)
-	t = t or {}
-	nmaps[keys] = {f=f, d=t.desc or ""}
-end
+-- function lfm.map(keys, f, t)
+-- 	t = t or {}
+-- 	nmaps[keys] = {f=f, d=t.desc or ""}
+-- end
 
-function lfm.cmap(keys, f, t)
-	t = t or {}
-	cmaps[keys] = {f=f, desc=t.desc or ""}
-end
+-- function lfm.cmap(keys, f, t)
+-- 	t = t or {}
+-- 	cmaps[keys] = {f=f, desc=t.desc or ""}
+-- end
 
 function lfm.register_mode(t)
 	modes[t.prefix] = t
@@ -146,100 +147,87 @@ local function open()
 	return false
 end
 
-do
-	local ansi = {
-		bold = string.char(27).."[1m",
-		normal = string.char(27).."[0m",
-	}
-	local matches = {}
-	local acc = ""
-	function lfm.handle_key(key)
-		if lfm.cmd.prefix ~= "" then
-			local cmap = cmaps[key]
-			if cmap then
-				cmap.f()
-			else
-				if key == "<space>" then
-					key = " "
-				end
-				lfm.cmd.insert(key)
-				local mode = modes[lfm.cmd.prefix]
-				if mode then
-					mode.change()
-				end
-			end
-		else
-			if key == "<esc>" then
-				lfm.cmd.clear()
-				if acc == "" then
-					local map = nmaps["<esc>"]
-					if map then
-						map.f()
-					end
-				else
-					matches = {}
-					acc = ""
-				end
-			else
-				local tmp
-				acc = acc..key
-				if next(matches) then
-					tmp = matches
-					matches = {}
-				else
-					tmp = nmaps
-				end
-				local map = tmp[key]
-				if map then
-					acc = ""
-					matches = {}
-					ui.menu()
-					map.f()
-				else
-					local menu = {}
-					for keys, t in pairs(tmp) do
-						if string.find(keys, "^"..key) then
-							local tail = string.sub(keys, #key+1, #keys)
-							matches[tail] = t
-							menu[#menu+1] = acc .. tail .. "\t" .. t.d
-						end
-					end
-					if not next(matches) then
-						ui.menu()
-						lfm.error("no such bind: " .. acc)
-						acc = ""
-					else
-						if #menu > 0 then
-							ui.menu("keys\tcommand", unpack(menu))
-						end
-					end
-				end
-			end
-		end
-	end
-end
+-- do
+-- 	local ansi = {
+-- 		bold = string.char(27).."[1m",
+-- 		normal = string.char(27).."[0m",
+-- 	}
+-- 	local matches = {}
+-- 	local acc = ""
+-- 	function lfm.handle_key(key)
+-- 		if lfm.cmd.prefix ~= "" then
+-- 			local cmap = cmaps[key]
+-- 			if cmap then
+-- 				cmap.f()
+-- 			else
+-- 				if key == "<space>" then
+-- 					key = " "
+-- 				end
+-- 				lfm.cmd.insert(key)
+-- 				local mode = modes[lfm.cmd.prefix]
+-- 				if mode then
+-- 					mode.change()
+-- 				end
+-- 			end
+-- 		else
+-- 			if key == "<esc>" then
+-- 				lfm.cmd.clear()
+-- 				if acc == "" then
+-- 					local map = nmaps["<esc>"]
+-- 					if map then
+-- 						map.f()
+-- 					end
+-- 				else
+-- 					matches = {}
+-- 					acc = ""
+-- 				end
+-- 			else
+-- 				local tmp
+-- 				acc = acc..key
+-- 				if next(matches) then
+-- 					tmp = matches
+-- 					matches = {}
+-- 				else
+-- 					tmp = nmaps
+-- 				end
+-- 				local map = tmp[key]
+-- 				if map then
+-- 					acc = ""
+-- 					matches = {}
+-- 					ui.menu()
+-- 					map.f()
+-- 				else
+-- 					local menu = {}
+-- 					for keys, t in pairs(tmp) do
+-- 						if string.find(keys, "^"..key) then
+-- 							local tail = string.sub(keys, #key+1, #keys)
+-- 							matches[tail] = t
+-- 							menu[#menu+1] = acc .. tail .. "\t" .. t.d
+-- 						end
+-- 					end
+-- 					if not next(matches) then
+-- 						ui.menu()
+-- 						lfm.error("no such bind: " .. acc)
+-- 						acc = ""
+-- 					else
+-- 						if #menu > 0 then
+-- 							ui.menu("keys\tcommand", unpack(menu))
+-- 						end
+-- 					end
+-- 				end
+-- 			end
+-- 		end
+-- 	end
+-- end
 
 -- TODO: handle <special> keys (on 2021-07-18)
 -- handle <
 --
 do
 	local hk = lfm.handle_key
-	local function helper(key)
-		hk(key)
-		return ""
-	end
 	function lfm.feedkeys(...)
 		for _, seq in pairs({...}) do
-			local prev
-			while seq ~= "" do
-				seq = string.gsub(seq, "^([^<])", helper)
-				seq = string.gsub(seq, "^(<[^>]+>)", helper)
-				if seq == prev then
-					lfm.error("feedkey: missing '>'?")
-					return
-				end
-				prev = seq
-			end
+			hk(seq)
 		end
 	end
 end
@@ -268,19 +256,19 @@ local function history_next()
 	end
 end
 
-cmaps = {
-	["<enter>"] = {f=cmdenter, desc=""},
-	["<esc>"] = {f=cmdesc, desc=""},
-	["<backspace>"] = {f=cmddelete, desc=""},
-	["<left>"] = {f=lfm.cmd.left, desc=""},
-	["<right>"] = {f=lfm.cmd.right, desc=""},
-	["<up>"] = {f=history_prev, desc=""},
-	["<down>"] = {f=history_next, desc=""},
-	["<home>"] = {f=lfm.cmd.home, desc=""},
-	["<end>"] = {f=lfm.cmd._end, desc=""},
-	["<delete>"] = {f=cmddeleteright, desc=""},
-	["<tab>"] = {f=complete_next},
-}
+local cmap = lfm.cmap
+cmap("<enter>", cmdenter, {desc=""})
+cmap("<esc>", cmdesc, {desc=""})
+cmap("<backspace>", cmddelete, {desc=""})
+cmap("<left>", lfm.cmd.left, {desc=""})
+cmap("j", lfm.cmd.left, {desc=""})
+cmap("<right>", lfm.cmd.right, {desc=""})
+cmap("<up>", history_prev, {desc=""})
+cmap("<down>", history_next, {desc=""})
+cmap("<home>", lfm.cmd.home, {desc=""})
+cmap("<end>", lfm.cmd._end, {desc=""})
+cmap("<delete>", cmddeleteright, {desc=""})
+-- cmap("<tab>", complete_next)
 
 nmaps = {}
 

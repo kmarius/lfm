@@ -3,6 +3,9 @@
 #include <wchar.h>
 
 #include "keys.h"
+#include "util.h"
+#include "app.h"
+#include "log.h"
 
 /* KEY_DL          Delete line */
 /* KEY_IL          Insert line */
@@ -284,4 +287,110 @@ const char *keytrans(int key)
 			return buf;
 		}
 	}
+}
+
+int keytrans_inv(char *key)
+{
+	(void) key;
+	return 0;
+}
+
+int *keytrans_inv_str(const char *keys, int *buf)
+{
+	wchar_t w;
+	const char *c = keys;
+	int l, i = 0;
+
+	while (*c) {
+		if (*c == '<') {
+			c++;
+			if (hasprefix(c, "a-")) {
+				c += 2;
+				l = mbtowc(&w, c, 10);
+				if (l == -1) {
+					// unrecognized key
+					break;
+				}
+				buf[i++] = ALT(w);
+				c += l + 1;
+			} else if (hasprefix(c, "c-")) {
+				c += 2;
+				l = mbtowc(&w, c, 10);
+				if (l == -1) {
+					// unrecognized key
+					break;
+				}
+				buf[i++] = CTRL(w);
+				c += l + 1;
+			} else if (hasprefix(c, "f-")) {
+				c += 2;
+				int n = *c - '0';
+				c++;
+				if (*c != '>') {
+					n *= 10;
+					n += *c - '0';
+					c++;
+				}
+				c++;
+			} else if (hasprefix(c, "backspace>")) {
+				buf[i++] = NCKEY_BACKSPACE;
+				c += 10;
+			} else if (hasprefix(c, "backtab>")) {
+				buf[i++] = KEY_BTAB;
+				c += 8;
+			} else if (hasprefix(c, "break>")) {
+				buf[i++] = KEY_BREAK;
+				c += 6;
+			} else if (hasprefix(c, "delete>")) {
+				buf[i++] = NCKEY_DEL;
+				c += 7;
+			} else if (hasprefix(c, "down>")) {
+				buf[i++] = NCKEY_DOWN;
+				c += 5;
+			} else if (hasprefix(c, "end>")) {
+				buf[i++] = NCKEY_END;
+				c += 4;
+			} else if (hasprefix(c, "enter>")) {
+				buf[i++] = NCKEY_ENTER;
+				c += 6;
+			} else if (hasprefix(c, "esc>")) {
+				buf[i++] = 27;
+				c += 4;
+			} else if (hasprefix(c, "home>")) {
+				buf[i++] = NCKEY_HOME;
+				c += 5;
+			} else if (hasprefix(c, "left>")) {
+				buf[i++] = NCKEY_LEFT;
+				c += 5;
+			} else if (hasprefix(c, "lt>")) {
+				buf[i++] = '<';
+				c += 3;
+			} else if (hasprefix(c, "right>")) {
+				buf[i++] = NCKEY_RIGHT;
+				c += 6;
+			} else if (hasprefix(c, "space>")) {
+				buf[i++] = ' ';
+				c += 6;
+			} else if (hasprefix(c, "tab>")) {
+				buf[i++] = CTRL('i');
+				c += 4;
+			} else if (hasprefix(c, "up>")) {
+				buf[i++] = NCKEY_UP;
+				c += 3;
+			} else {
+				error("unrecognized key: %s", c);
+				break;
+			}
+		} else {
+			l = mbtowc(buf + i, c, 10);
+			if (l == -1) {
+				// unrecognized key
+				break;
+			}
+			i++; c += l;
+		}
+	}
+
+	buf[i] = 0;
+	return buf;
 }
