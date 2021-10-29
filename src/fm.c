@@ -249,7 +249,6 @@ static void copy_attrs(dir_t *dir, dir_t *olddir) {
 	strncpy(dir->filter, olddir->filter, sizeof(dir->filter));
 	dir->hidden = cfg.hidden;
 	dir->pos = olddir->pos;
-	/* dir->sorted = olddir->sorted && (dir->sorttype == olddir->sorttype); */
 	dir->sorted = false;
 	dir->sorttype = olddir->sorttype;
 	dir->dirfirst = olddir->dirfirst;

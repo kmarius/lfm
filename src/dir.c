@@ -173,6 +173,8 @@ void dir_sort(dir_t *dir)
 			}
 		}
 	}
+	dir->sortedlen = j;
+	dir->len = j;
 	if (dir->reverse) {
 		for (i = 0; i < ndirs / 2; i++) {
 			swap(dir->sortedfiles+i,
@@ -183,8 +185,6 @@ void dir_sort(dir_t *dir)
 					dir->sortedfiles + dir->sortedlen - i - 1);
 		}
 	}
-	dir->sortedlen = j;
-	dir->len = j;
 
 	apply_filter(dir);
 }
