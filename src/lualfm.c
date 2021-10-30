@@ -10,6 +10,7 @@
 #include <notcurses/notcurses.h>
 #include <string.h>
 #include <wchar.h>
+#include <wctype.h>
 
 #include "app.h"
 #include "async.h"
@@ -139,14 +140,16 @@ void lua_handle_key(lua_State *L, app_t *app, ncinput *in)
 	cur = trie_find_child(cur, key);
 	if (prefix) {
 		if (!cur) {
-			char buf[8] = {key, 0}; /* hope that fits */
-			int n = wctomb(buf, key);
-			if (n < 0) {
-				// invalid character
-				n = 0;
+			if (iswprint(key)) {
+				char buf[8] = {key, 0}; /* hope that fits */
+				int n = wctomb(buf, key);
+				if (n < 0) {
+					// invalid character
+					n = 0;
+				}
+				buf[n] = '\0';
+				ui_cmd_insert(&app->ui, buf);
 			}
-			buf[n] = '\0';
-			ui_cmd_insert(&app->ui, buf);
 			lua_getglobal(L, "lfm");
 			if (lua_type(L, -1) == LUA_TTABLE) {
 				lua_getfield(L, -1, "modes");
