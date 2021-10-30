@@ -35,7 +35,7 @@ do
 	})
 end
 
-print = function(...)
+function print(...)
 	local t = {}
 	for _, e in pairs({...}) do
 		table.insert(t, tostring(e))
@@ -43,6 +43,7 @@ print = function(...)
 	lfm.echo(table.concat(t, " "))
 end
 
+---@return table selection The currently selected files or the file at the current cursor position
 function lfm.sel_or_cur()
 	local sel = fm.selection
 	if not sel[1] then
@@ -59,12 +60,25 @@ local hooks = {
 	SelectionChanged = {},
 }
 
+---Register a function to hook into events. Curruntly supported hooks are
+---```
+--- LfmEnter         lfm has started and read all configuration
+--- ExitPre          lfm is about to exit
+--- ChdirPre         emitted before changing directories
+--- ChdirPost        emitted after changin directories
+--- SelectionChanged the selection changed
+---
+---```
+---@param name string
+---@param f function
 function lfm.register_hook(name, f)
 	if hooks[name] then
 		table.insert(hooks[name], f)
 	end
 end
 
+---Execute all functions registered to a hook.
+---@param name string
 function lfm.run_hook(name)
 	log.debug("running hook: " .. name)
 	if hooks[name] then
@@ -75,30 +89,36 @@ function lfm.run_hook(name)
 end
 
 local commands = {}
-local cmaps = {}
-local nmaps = {}
 lfm.modes = {}
-modes = lfm.modes
+local modes = lfm.modes
 
+---Register a function as a lfm command. Supported options
+---```
+--- tokenize: tokenize the argument by whitespace and pass them as a table (default: false)
+---
+---```
+---@param name string Command name, can not contain whitespace.
+---@param f function The function to execute
+---@param t table Additional options.
 function lfm.register_command(name, f, t)
 	t = t or {}
 	commands[name] = {f=f, tokenize=t.tokenize == nil and true or t.tokenize}
 end
 
--- function lfm.map(keys, f, t)
--- 	t = t or {}
--- 	nmaps[keys] = {f=f, d=t.desc or ""}
--- end
-
--- function lfm.cmap(keys, f, t)
--- 	t = t or {}
--- 	cmaps[keys] = {f=f, desc=t.desc or ""}
--- end
-
+---Register a mode to lfm. A mode is given by a table t that should contain the following fields:
+---```
+--- t.prefix  The prefix, a string, shown in the command line and used to distinguish modes.
+--- t.enter   A function that is executed when pressing enter while the mode is active.
+--- t.esc     A function that is executed when pressing esc while the mode is active.
+--- t.change  A function that is executed when the command line changes, e.g. keys are typed/deleted.
+---
+---```
+---@param t table
 function lfm.register_mode(t)
 	modes[t.prefix] = t
 end
 
+---Function for <enter> in command mode. Clears the command line and calls `mode.enter`.
 local function cmdenter()
 	local line = lfm.cmd.line
 	local prefix = lfm.cmd.prefix
@@ -110,6 +130,7 @@ local function cmdenter()
 	end
 end
 
+---Function for <esc> in command mode. Clears the command line and calls `mode.esc`.
 local function cmdesc()
 	local mode = modes[lfm.cmd.prefix]
 	if mode then
@@ -118,6 +139,7 @@ local function cmdesc()
 	lfm.cmd.clear()
 end
 
+---Function for <delete> in command mode. Deletes to the left and calls `mode.change`.
 local function cmddelete()
 	lfm.cmd.delete()
 	local mode = modes[lfm.cmd.prefix]
@@ -126,6 +148,7 @@ local function cmddelete()
 	end
 end
 
+---Function for <deleteright> in command mode. Deletes to the right and calls `mode.change`.
 local function cmddeleteright()
 	lfm.cmd.delete_right()
 	local mode = modes[lfm.cmd.prefix]
@@ -134,11 +157,14 @@ local function cmddeleteright()
 	end
 end
 
+---Change directory.
+---@param dir string Target destination (default: $HOME).
 local function cd(dir)
 	fm.chdir(dir or os.getenv("HOME"))
 end
 
--- should return true a file has been opened
+---Navigate into the directory at the current cursor position.
+---@return boolean false
 local function open()
 	local file = fm.open()
 	if file then
@@ -147,88 +173,12 @@ local function open()
 	return false
 end
 
--- do
--- 	local ansi = {
--- 		bold = string.char(27).."[1m",
--- 		normal = string.char(27).."[0m",
--- 	}
--- 	local matches = {}
--- 	local acc = ""
--- 	function lfm.handle_key(key)
--- 		if lfm.cmd.prefix ~= "" then
--- 			local cmap = cmaps[key]
--- 			if cmap then
--- 				cmap.f()
--- 			else
--- 				if key == "<space>" then
--- 					key = " "
--- 				end
--- 				lfm.cmd.insert(key)
--- 				local mode = modes[lfm.cmd.prefix]
--- 				if mode then
--- 					mode.change()
--- 				end
--- 			end
--- 		else
--- 			if key == "<esc>" then
--- 				lfm.cmd.clear()
--- 				if acc == "" then
--- 					local map = nmaps["<esc>"]
--- 					if map then
--- 						map.f()
--- 					end
--- 				else
--- 					matches = {}
--- 					acc = ""
--- 				end
--- 			else
--- 				local tmp
--- 				acc = acc..key
--- 				if next(matches) then
--- 					tmp = matches
--- 					matches = {}
--- 				else
--- 					tmp = nmaps
--- 				end
--- 				local map = tmp[key]
--- 				if map then
--- 					acc = ""
--- 					matches = {}
--- 					ui.menu()
--- 					map.f()
--- 				else
--- 					local menu = {}
--- 					for keys, t in pairs(tmp) do
--- 						if string.find(keys, "^"..key) then
--- 							local tail = string.sub(keys, #key+1, #keys)
--- 							matches[tail] = t
--- 							menu[#menu+1] = acc .. tail .. "\t" .. t.d
--- 						end
--- 					end
--- 					if not next(matches) then
--- 						ui.menu()
--- 						lfm.error("no such bind: " .. acc)
--- 						acc = ""
--- 					else
--- 						if #menu > 0 then
--- 							ui.menu("keys\tcommand", unpack(menu))
--- 						end
--- 					end
--- 				end
--- 			end
--- 		end
--- 	end
--- end
-
--- TODO: handle <special> keys (on 2021-07-18)
--- handle <
---
-do
-	local hk = lfm.handle_key
-	function lfm.feedkeys(...)
-		for _, seq in pairs({...}) do
-			hk(seq)
-		end
+local handle_key = lfm.handle_key
+---Feed keys into the key handler.
+---@vararg string keys
+function lfm.feedkeys(...)
+	for _, seq in pairs({...}) do
+		handle_key(seq)
 	end
 end
 
@@ -237,6 +187,7 @@ commands = {
 	quit = {f=lfm.quit, tokenize=true},
 }
 
+---Fill command line with the previous history item.
 local function history_prev()
 	if lfm.cmd.prefix ~= ":" then
 		return
@@ -246,6 +197,8 @@ local function history_prev()
 		lfm.cmd.line = line
 	end
 end
+
+---Fill command line with the next history item.
 local function history_next()
 	if lfm.cmd.prefix ~= ":" then
 		return
@@ -267,9 +220,6 @@ cmap("<down>", history_next, {desc=""})
 cmap("<home>", lfm.cmd.home, {desc=""})
 cmap("<end>", lfm.cmd._end, {desc=""})
 cmap("<delete>", cmddeleteright, {desc=""})
--- cmap("<tab>", complete_next)
-
-nmaps = {}
 
 local map = lfm.map
 map("f", function() lfm.cmd.prefix = "find: " end, {desc="find"})
@@ -299,7 +249,16 @@ local mode_filter = {
 	change = function() fm.filter(lfm.cmd.line) end,
 }
 
--- exposed to c
+---Executes line. If the first whitespace delimited token is a registered
+---command it is executed with the following text as arguments. Otherwise line
+---is assumed to be lua code and is executed. Example:
+---```
+---
+--- lfm.exec_expr("cd /home") -- expression is not lua as "cd" is a registered command
+--- lfm.exec_expr('print(2+2)') -- executed as lua code
+---
+---```
+---@param line string
 function lfm.exec_expr(line)
 	log.debug(line)
 	local cmd, args = lfm.tokenize(line)
@@ -334,25 +293,24 @@ local mode_cmd = {
 
 local mode_search = {
 	prefix = "/",
-	enter = function(line) lfm.search_next(true) end, -- apply search, keep highlights, move cursor to next match  or stay on current
+	enter = function() lfm.search_next(true) end, -- apply search, keep highlights, move cursor to next match  or stay on current
 	esc = function() lfm.search("") end, -- delete everything
 	change = function() lfm.search(lfm.cmd.line) end, -- highlight match in UI
 }
 
 local mode_search_back = {
 	prefix = "?",
-	enter = function(line) lfm.search_next(true) end,
+	enter = function() lfm.search_next(true) end,
 	esc = function() lfm.search_back("") end,
 	change = function() lfm.search_back(lfm.cmd.line) end,
 }
 
 local mode_find = {
 	prefix = "find: ",
-	enter = function(line) lfm.exec_expr("open") end,
+	enter = function() lfm.exec_expr("open") end,
 	esc = function() end,
 	change = function()
-		found = lfm.find(lfm.cmd.line)
-		if found then
+		if lfm.find(lfm.cmd.line) then
 			lfm.cmd.clear()
 			lfm.timeout(250)
 			commands.open.f()
@@ -362,11 +320,10 @@ local mode_find = {
 
 local mode_travel = {
 	prefix = "travel: ",
-	enter = function(line) end,
+	enter = function() end,
 	esc = function() end,
 	change = function()
-		found = lfm.find(lfm.cmd.line)
-		if found then
+		if lfm.find(lfm.cmd.line) then
 			lfm.timeout(250)
 			lfm.cmd.line = ""
 			if commands.open.f() then
@@ -382,8 +339,5 @@ lfm.register_mode(mode_cmd)
 lfm.register_mode(mode_filter)
 lfm.register_mode(mode_find)
 lfm.register_mode(mode_travel)
-
--- package.loaded.config = nil
--- require("/home/marius/.config/lfm/config.lua")
 
 dofile(config.configpath)
