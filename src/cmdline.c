@@ -1,4 +1,5 @@
 #include <notcurses/notcurses.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
@@ -41,7 +42,7 @@ void cmdline_init(cmdline_t *t)
 	vstr_init(t->buf, 8);
 }
 
-int cmdline_prefix_set(T *t, const char *prefix)
+bool cmdline_prefix_set(T *t, const char *prefix)
 {
 	if (!prefix) {
 		return 0;
@@ -58,7 +59,7 @@ const char *cmdline_prefix_get(T *t)
 	return t->prefix.str[0] == 0 ? NULL : t->prefix.str;
 }
 
-int cmdline_insert(T *t, const char *key)
+bool cmdline_insert(T *t, const char *key)
 {
 	if (t->prefix.len == 0) {
 		return 0;
@@ -70,7 +71,7 @@ int cmdline_insert(T *t, const char *key)
 	return 1;
 }
 
-int cmdline_delete(T *t)
+bool cmdline_delete(T *t)
 {
 	if (t->prefix.len == 0) {
 		return 0;
@@ -82,7 +83,7 @@ int cmdline_delete(T *t)
 	return 1;
 }
 
-int cmdline_delete_right(T *t)
+bool cmdline_delete_right(T *t)
 {
 	int i;
 	if (t->prefix.len == 0) {
@@ -98,7 +99,7 @@ int cmdline_delete_right(T *t)
 }
 
 /* pass a ct argument to move over words? */
-int cmdline_left(T *t)
+bool cmdline_left(T *t)
 {
 	int i;
 	if (t->prefix.len == 0) {
@@ -117,7 +118,7 @@ int cmdline_left(T *t)
 	return 1;
 }
 
-int cmdline_right(T *t)
+bool cmdline_right(T *t)
 {
 	int i;
 	if (t->prefix.str[0] == 0) {
@@ -136,7 +137,7 @@ int cmdline_right(T *t)
 	return 1;
 }
 
-int cmdline_home(T *t)
+bool cmdline_home(T *t)
 {
 	int i;
 	if (t->prefix.len == 0) {
@@ -156,7 +157,7 @@ int cmdline_home(T *t)
 	return 1;
 }
 
-int cmdline_end(T *t)
+bool cmdline_end(T *t)
 {
 	if (t->prefix.len == 0) {
 		return 0;
@@ -172,7 +173,7 @@ int cmdline_end(T *t)
 	return 1;
 }
 
-int cmdline_clear(T *t)
+bool cmdline_clear(T *t)
 {
 	t->prefix.str[0] = 0;
 	t->prefix.len = 0;
@@ -183,7 +184,7 @@ int cmdline_clear(T *t)
 	return 1;
 }
 
-int cmdline_set(T *t, const char *line)
+bool cmdline_set(T *t, const char *line)
 {
 	if (t->prefix.len == 0) {
 		return 0;
@@ -219,7 +220,7 @@ const char *cmdline_get(T *t)
 	return t->buf.str;
 }
 
-int cmdline_print(cmdline_t *t, struct ncplane *n)
+bool cmdline_print(cmdline_t *t, struct ncplane *n)
 {
 	int ret = 0;
 	ret += ncplane_putstr_yx(n, 0, 0, t->prefix.str);
