@@ -76,18 +76,6 @@ static void async_result_cb(EV_P_ ev_async *w, int revents)
 	app_restart_redraw_watcher(app);
 }
 
-static void sigwinch_cb(EV_P_ ev_signal *w, int revents)
-{
-	(void) revents;
-	app_t *app = (app_t *)w->data;
-	ui_resize(&app->ui);
-	/* for some reason the dimensions returning this call are those prior to
-	 * resizing. ui_resize also gets called from a resize callback in ui.c.
-	 * However, if we don't resize here, the first line gets corrupted. */
-	ui_clear(&app->ui);
-	app_restart_redraw_watcher(app);
-}
-
 static void timer_cb(EV_P_ ev_timer *w, int revents)
 {
 	(void) w;
@@ -112,8 +100,8 @@ static void stdin_cb(EV_P_ ev_io *w, int revents)
 	if (current_millis() > input_timeout) {
 		/* log_debug("%u", in.id); */
 		lua_handle_key(app->L, app, &in);
+		app_restart_redraw_watcher(app);
 	}
-	app_restart_redraw_watcher(app);
 }
 
 static void read_fifo(app_t *app)
@@ -126,8 +114,8 @@ static void read_fifo(app_t *app)
 			buf[nbytes-1] = 0;
 			lua_exec_expr(app->L, app, buf);
 		}
+		app_restart_redraw_watcher(app);
 	}
-	app_restart_redraw_watcher(app);
 }
 
 struct tup_t {
@@ -213,7 +201,6 @@ static void inotify_cb(EV_P_ ev_io *w, int revents)
 			}
 		}
 	}
-	app_restart_redraw_watcher(app);
 }
 
 /* To run command line cmds after loop starts. I think it is called back before
@@ -233,6 +220,14 @@ static void prepare_cb(struct ev_loop *loop, ev_prepare *w, int revents)
 	}
 	lua_run_hook(app->L, "LfmEnter");
 	ev_prepare_stop(loop, w);
+}
+
+static void sigwinch_cb(EV_P_ ev_signal *w, int revents)
+{
+	(void) revents;
+	app_t *app = (app_t *)w->data;
+	ui_clear(&app->ui);
+	app_restart_redraw_watcher(app);
 }
 
 static void redraw_cb(struct ev_loop *loop, ev_idle *w, int revents)
@@ -261,7 +256,7 @@ void app_init(app_t *app)
 
 	const size_t nthreads = min(get_nprocs()+1, max_threads);
 	async_tm = tpool_create(nthreads);
-	log_debug("initialized pool of %d threads", nthreads);
+	log_info("initialized pool of %d threads", nthreads);
 
 	if (pthread_mutex_init(&async_results.mutex, NULL) != 0) {
 		exit(EXIT_FAILURE);

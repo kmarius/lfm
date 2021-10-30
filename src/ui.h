@@ -58,8 +58,6 @@ void kbblocking(bool blocking);
 
 void ui_init(ui_t *ui, fm_t *fm);
 
-void ui_resize(ui_t *ui);
-
 void ui_recol(ui_t *ui);
 
 void ui_deinit(ui_t *ui);

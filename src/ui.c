@@ -25,25 +25,24 @@
 
 static bool initialized = false;
 
+static void draw_dirs(ui_t *ui);
+static void plane_draw_dir(struct ncplane *n, dir_t *dir, char **sel,
+		char **load, enum movemode_e mode, const char *highlight);
+static void draw_cmdline(ui_t *ui);
+static void draw_preview(ui_t *ui);
+static void draw_file_preview(ui_t *ui);
+static void plane_draw_file_preview(struct ncplane *n, preview_t *pv);
+static void update_file_preview(ui_t *ui);
+static void draw_menu(struct ncplane *n, cvector_vector_type(char *) menu);
+static void draw_info(ui_t *ui);
+static char *readable_fs(double size, char *buf);
+static void menu_resize(ui_t *ui);
+static char *ansi_consoom(struct ncplane *w, char *s);
+static void ansi_addstr(struct ncplane *w, char *s);
 inline static struct ncplane *wpreview(ui_t *ui)
 {
 	return ui->wdirs[ui->ndirs-1];
 }
-
-static void ui_draw_dirs(ui_t *ui);
-static void ui_draw_cmdline(ui_t *ui);
-static void ui_draw_file_preview(ui_t *ui);
-static void draw_preview(ui_t *ui);
-static void draw_info(ui_t *ui);
-static char *readable_fs(double size, char *buf);
-static void menu_resize(ui_t *ui);
-static char *wansi_consoom(struct ncplane *w, char *s);
-static void wdraw_file_preview(struct ncplane *n, preview_t *pv);
-static void wansi_addstr(struct ncplane *w, char *s);
-static void draw_menu(struct ncplane *n, cvector_vector_type(char *) menu);
-static void update_file_preview(ui_t *ui);
-static void wdraw_dir(struct ncplane *n, dir_t *dir, char **sel, char **load,
-		enum movemode_e mode, const char *highlight);
 
 static struct notcurses *nc;
 static struct ncplane *ncstd;
@@ -52,7 +51,16 @@ static struct ncplane *ncstd;
 
 static int resize_cb(struct ncplane *n)
 {
-	ui_resize(ncplane_userptr(n));
+	ui_t *ui = ncplane_userptr(n);
+	notcurses_stddim_yx(nc, &ui->nrow, &ui->ncol);
+	log_debug("resize %d %d", ui->nrow, ui->ncol);
+	ncplane_resize(ui->infoline, 0, 0, 0, 0, 0, 0, 1, ui->ncol);
+	ncplane_resize(ui->plane_cmdline, 0, 0, 0, 0, 0, 0, 1, ui->ncol);
+	ncplane_move_yx(ui->plane_cmdline, ui->nrow - 1, 0);
+	menu_resize(ui);
+	ui_recol(ui);
+	ui->fm->height = ui->nrow - 2;
+	ui_clear(ui);
 	return 0;
 }
 
@@ -151,19 +159,6 @@ void ui_recol(ui_t *ui)
 	cvector_push_back(ui->wdirs, ncplane_create(ncstd, &opts));
 }
 
-void ui_resize(ui_t *ui)
-{
-	notcurses_stddim_yx(nc, &ui->nrow, &ui->ncol);
-	log_debug("ui_resize %d %d", ui->nrow, ui->ncol);
-	ncplane_resize(ui->infoline, 0, 0, 0, 0, 0, 0, 1, ui->ncol);
-	ncplane_resize(ui->plane_cmdline, 0, 0, 0, 0, 0, 0, 1, ui->ncol);
-	ncplane_move_yx(ui->plane_cmdline, ui->nrow - 1, 0);
-	menu_resize(ui);
-	ui_recol(ui);
-	ui->fm->height = ui->nrow - 2;
-	ui_clear(ui);
-}
-
 /* }}} */
 
 /* main drawing/echo/err {{{ */
@@ -171,13 +166,13 @@ void ui_resize(ui_t *ui)
 void ui_draw(ui_t *ui)
 {
 	if (ui->redraw.fm) {
-		ui_draw_dirs(ui);
+		draw_dirs(ui);
 	}
 	if (ui->redraw.fm | ui->redraw.menu) {
 		draw_menu(ui->menu, ui->menubuf);
 	}
 	if (ui->redraw.fm | ui->redraw.cmdline) {
-		ui_draw_cmdline(ui);
+		draw_cmdline(ui);
 	}
 	if (ui->redraw.fm | ui->redraw.info) {
 		draw_info(ui);
@@ -198,6 +193,7 @@ void ui_draw(ui_t *ui)
 
 void ui_clear(ui_t *ui)
 {
+	log_debug("clear");
 	/* infoline and dirs have to be cleared *and* rendered, otherwise they will
 	 * bleed into the first row */
 	ncplane_erase(ncstd);
@@ -217,14 +213,13 @@ void ui_clear(ui_t *ui)
 	ui->redraw.fm = 1;
 }
 
-/* to not overwrite errors */
-static void ui_draw_dirs(ui_t *ui)
+static void draw_dirs(ui_t *ui)
 {
+	log_debug("draw_dirs");
 	int i;
-
 	const int l = ui->fm->ndirs;
 	for (i = 0; i < l; i++) {
-		wdraw_dir(ui->wdirs[l-i-1],
+		plane_draw_dir(ui->wdirs[l-i-1],
 				ui->fm->dirs[i],
 				ui->fm->selection,
 				ui->fm->load,
@@ -238,11 +233,11 @@ static void draw_preview(ui_t *ui)
 	dir_t *preview_dir;
 	if (cfg.preview && ui->ndirs > 1) {
 		if ((preview_dir = ui->fm->preview)) {
-			wdraw_dir(wpreview(ui), ui->fm->preview, ui->fm->selection,
+			plane_draw_dir(wpreview(ui), ui->fm->preview, ui->fm->selection,
 					ui->fm->load, ui->fm->mode, NULL);
 		} else {
 			update_file_preview(ui);
-			ui_draw_file_preview(ui);
+			draw_file_preview(ui);
 		}
 	}
 }
@@ -496,7 +491,7 @@ static int int_sz(int n)
 	return i;
 }
 
-void ui_draw_cmdline(ui_t *ui)
+void draw_cmdline(ui_t *ui)
 {
 	char nums[16];
 	char size[32];
@@ -639,11 +634,11 @@ static void draw_info(ui_t *ui)
 
 /* menu {{{ */
 
-static void wansi_addstr(struct ncplane *w, char *s)
+static void ansi_addstr(struct ncplane *w, char *s)
 {
 	while (*s) {
 		if (*s == '\033') {
-			s = wansi_consoom(w, s);
+			s = ansi_consoom(w, s);
 		} else {
 			if (ncplane_putchar(w, *(s++)) == -1) {
 				// EOL
@@ -655,6 +650,7 @@ static void wansi_addstr(struct ncplane *w, char *s)
 
 static void draw_menu(struct ncplane *n, cvector_vector_type(char*) menubuf)
 {
+	log_debug("draw_menu");
 	size_t i;
 
 	if (!menubuf) {
@@ -691,6 +687,7 @@ static void draw_menu(struct ncplane *n, cvector_vector_type(char*) menubuf)
 
 static void menu_resize(ui_t *ui)
 {
+	/* TODO: find out why, after resizing, the menu is behind the dirs (on 2021-10-30) */
 	const int h = max(1, min(cvector_size(ui->menubuf), ui->nrow - 2));
 	ncplane_resize(ui->menu, 0, 0, 0, 0, 0, 0, h, ui->ncol);
 	ncplane_move_yx(ui->menu, ui->nrow - 1 - h, 0);
@@ -707,7 +704,6 @@ static void menu_clear(ui_t *ui)
 
 void ui_showmenu(ui_t *ui, char **vec, int len)
 {
-	/* TODO: lazy menu? (on 2021-10-28) */
 	if (ui->menubuf) {
 		menu_clear(ui);
 		cvector_ffree(ui->menubuf, free);
@@ -717,8 +713,8 @@ void ui_showmenu(ui_t *ui, char **vec, int len)
 		ui->menubuf = vec;
 		menu_resize(ui);
 		ncplane_move_top(ui->menu);
-		draw_menu(ui->menu, ui->menubuf);
 	}
+	ui->redraw.menu = 1;
 }
 
 /* }}} */
@@ -840,7 +836,7 @@ static void print_file(struct ncplane *n, const file_t *file,
 	ncplane_set_styles(n, NCSTYLE_NONE);
 }
 
-static void wdraw_dir(struct ncplane *n, dir_t *dir, char **sel, char **load,
+static void plane_draw_dir(struct ncplane *n, dir_t *dir, char **sel, char **load,
 		enum movemode_e mode, const char *highlight)
 {
 	int nrow, i, offset;
@@ -900,9 +896,9 @@ preview_t *ui_load_preview(ui_t *ui, file_t *file)
 	return pv;
 }
 
-static void ui_draw_file_preview(ui_t *ui)
+static void draw_file_preview(ui_t *ui)
 {
-	wdraw_file_preview(wpreview(ui), ui->file_preview);
+	plane_draw_file_preview(wpreview(ui), ui->file_preview);
 }
 
 static void update_file_preview(ui_t *ui)
@@ -994,7 +990,7 @@ static void wansi_matchattr(struct ncplane *w, int a)
  * Consooms ansi color escape sequences and sets ATTRS
  * should be called with a pointer at \033
  */
-static char *wansi_consoom(struct ncplane *w, char *s)
+static char *ansi_consoom(struct ncplane *w, char *s)
 {
 	char c;
 	int acc = 0;
@@ -1064,7 +1060,7 @@ static char *wansi_consoom(struct ncplane *w, char *s)
 	return s;
 }
 
-static void wdraw_file_preview(struct ncplane *n, preview_t *pv)
+static void plane_draw_file_preview(struct ncplane *n, preview_t *pv)
 {
 	int i, nrow;
 
@@ -1079,7 +1075,7 @@ static void wdraw_file_preview(struct ncplane *n, preview_t *pv)
 		const int l = cvector_size(pv->lines);
 		for (i = 0; i < l && i < nrow; i++) {
 			ncplane_cursor_move_yx(n, i, 0);
-			wansi_addstr(n, pv->lines[i]);
+			ansi_addstr(n, pv->lines[i]);
 		}
 	}
 }
