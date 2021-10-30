@@ -217,7 +217,7 @@ const char *cmdline_get(T *t)
 	return t->buf.str;
 }
 
-bool cmdline_print(cmdline_t *t, struct ncplane *n)
+int cmdline_print(cmdline_t *t, struct ncplane *n)
 {
 	int ret = 0;
 	ret += ncplane_putstr_yx(n, 0, 0, t->prefix.str);

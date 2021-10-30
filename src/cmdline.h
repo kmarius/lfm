@@ -38,6 +38,6 @@ bool cmdline_end(cmdline_t *t);
 bool cmdline_clear(cmdline_t *t);
 bool cmdline_set(cmdline_t *t, const char *line);
 const char *cmdline_get(cmdline_t *t);
-bool cmdline_print(cmdline_t *t, struct ncplane *n);
+int cmdline_print(cmdline_t *t, struct ncplane *n);
 
 #endif /* CMDLINE_H */
