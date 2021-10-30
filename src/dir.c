@@ -227,11 +227,12 @@ dir_t *new_dir(const char *path)
 	dir_t *dir = malloc(sizeof(dir_t));
 
 	if (path[0] != '/') {
-		realpath(path, dir->path);
+		char buf[PATH_MAX + 1];
+		realpath(path, buf);
+		dir->path = strdup(buf);
 	} else {
 		/* to preserve symlinks we don't use realpath */
-		/* TODO: deal with ~, ., .. at some point (on 2021-07-20) */
-		strncpy(dir->path, path, sizeof(dir->path)-1);
+		dir->path = strdup(path);
 	}
 
 	dir->allfiles = NULL;
@@ -375,6 +376,7 @@ void dir_free(dir_t *dir)
 		free(dir->sortedfiles);
 		free(dir->files);
 		free(dir->sel);
+		free(dir->path);
 		free(dir);
 	}
 }

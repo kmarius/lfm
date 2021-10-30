@@ -21,7 +21,7 @@ typedef struct file_t {
 } file_t;
 
 typedef struct dir_t {
-	char path[PATH_MAX + 1];
+	char *path;
 	char *name;	/* a substring of path */
 
 	cvector_vector_type(file_t) allfiles;    /* files including hidden/filtered */
