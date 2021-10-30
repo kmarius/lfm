@@ -296,7 +296,7 @@ static int l_config_index(lua_State *L)
 		lua_pushinteger(L, app->fm.dircache.capacity);
 		return 1;
 	} else if (streq(key, "previewcache_size")) {
-		lua_pushinteger(L, app->ui.previewcache.capacity);
+		lua_pushinteger(L, app->ui.preview.cache.capacity);
 		return 1;
 	} else {
 		luaL_error(L, "unexpected key %s", key);
@@ -370,7 +370,7 @@ static int l_config_newindex(lua_State *L)
 		if (capacity < 0) {
 			luaL_argerror(L, 3, "size must be non-negative");
 		}
-		cache_resize(&app->ui.previewcache, capacity);
+		cache_resize(&app->ui.preview.cache, capacity);
 	} else {
 		luaL_error(L, "unexpected key %s", key);
 	}
@@ -1046,7 +1046,7 @@ static int l_search_next_forward(lua_State *L)
 	fm_t *fm = &app->fm;
 	ui_t *ui = &app->ui;
 
-	if (!(dir = fm_current_dir(fm)) || !ui->highlight) {
+	if (!(dir = fm_current_dir(fm)) || !ui->search.string) {
 		return 0;
 	}
 	ui_search_highlight(ui, NULL, true);
@@ -1056,7 +1056,7 @@ static int l_search_next_forward(lua_State *L)
 	}
 	for (int i = 0; i < dir->len; i++) {
 		if (strcasestr(dir->files[(start + i) % dir->len]->name,
-					ui->highlight)) {
+					ui->search.string)) {
 			if ((start + i) % dir->len < dir->ind) {
 				fm_up(fm, dir->ind - (start + i) % dir->len);
 			} else {
@@ -1076,7 +1076,7 @@ static int l_search_next_backwards(lua_State *L)
 	fm_t *fm = &app->fm;
 	ui_t *ui = &app->ui;
 
-	if (!(dir = fm_current_dir(fm)) || !ui->highlight) {
+	if (!(dir = fm_current_dir(fm)) || !ui->search.string) {
 		return 0;
 	}
 	ui_search_highlight(ui, NULL, false);
@@ -1087,7 +1087,7 @@ static int l_search_next_backwards(lua_State *L)
 	for (int i = 0; i < dir->len; i++) {
 		if (strcasestr(
 					dir->files[(dir->len + start - i) % dir->len]->name,
-					ui->highlight)) {
+					ui->search.string)) {
 			if ((dir->len + start - i) % dir->len < dir->ind) {
 				fm_up(fm, dir->ind - (dir->len + start - i) %
 						dir->len);
@@ -1106,7 +1106,7 @@ static int l_search_next_backwards(lua_State *L)
 static int l_search_next(lua_State *L)
 {
 	ui_t *ui = &app->ui;
-	if (ui->search_forward) {
+	if (ui->search.forward) {
 		return l_search_next_forward(L);
 	} else {
 		return l_search_next_backwards(L);
@@ -1116,7 +1116,7 @@ static int l_search_next(lua_State *L)
 static int l_search_prev(lua_State *L)
 {
 	ui_t *ui = &app->ui;
-	if (ui->search_forward) {
+	if (ui->search.forward) {
 		return l_search_next_backwards(L);
 	} else {
 		return l_search_next_forward(L);

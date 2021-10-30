@@ -302,7 +302,7 @@ void app_init(app_t *app)
 	timer_watcher.data = app;
 	ev_timer_start(app->loop, &timer_watcher);
 
-	ev_io_init(&stdin_watcher, stdin_cb, app->ui.input_ready_fd, EV_READ);
+	ev_io_init(&stdin_watcher, stdin_cb, notcurses_inputready_fd(app->ui.nc), EV_READ);
 	stdin_watcher.data = app;
 	ev_io_start(app->loop, &stdin_watcher);
 
