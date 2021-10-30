@@ -1,15 +1,11 @@
-#ifndef NAV_H
-#define NAV_H
+#ifndef FM_H
+#define FM_H
 
-#include <dirent.h>
-#include <linux/limits.h>
 #include <stdbool.h>
-#include <sys/stat.h>
-#include <sys/types.h>
 
+#include "cache.h"
 #include "cvector.h"
 #include "dir.h"
-#include "cache.h"
 
 enum movemode_e {
 	MODE_MOVE,
@@ -22,38 +18,43 @@ typedef struct mark_t {
 } mark_t;
 
 typedef struct fm_t {
-	/* All loaded directories, not only visible ones */
-	cache_t dircache;
-
-	/* Visible directories excluding preview, vector of dir_t* */
-	cvector_vector_type(dir_t *) dirs;
-	int ndirs;
-
-	/* preview directory, NULL if there is none, e.g. if a file is selected */
-	dir_t *preview;
-
-	/* List of quickmarks including "'" */
-	cvector_vector_type(mark_t) marklist;
-
-	/* Current selection, as a vector of paths */
-	cvector_vector_type(char *) selection;
-	int selection_len;
-
-	/* Previous seletction, needed for visual selection mode */
-	cvector_vector_type(char *) prev_selection;
-
-	/* Copy/move buffer, vector of paths */
-	cvector_vector_type(char *) load;
-	enum movemode_e mode;
 
 	/* Height of the fm in the ui, needed to adjust pos for each dir */
 	int height;
 
-	/* Visual selection mode active */
-	bool visual;
-	/* Index of the beginning of the visual selection */
-	int visual_anchor;
+	struct {
+		/* Visible directories excluding preview, vector of dir_t* */
+		cvector_vector_type(dir_t *) visible;
+		int len;
 
+		cache_t cache;
+
+		/* preview directory, NULL if there is none, e.g. if the cursor is resting on a file */
+		dir_t *preview;
+	} dirs;
+
+	/* List of quickmarks including "'" */
+	cvector_vector_type(mark_t) marks;
+
+	struct {
+		/* Current selection, as a vector of paths */
+		cvector_vector_type(char *) files;
+		int len;
+
+		/* Previous seletction, needed for visual selection mode */
+		cvector_vector_type(char *) previous;
+	} selection;
+
+	struct {
+		/* Copy/move buffer, vector of paths */
+		cvector_vector_type(char *) files;
+		enum movemode_e mode;
+	} load;
+
+	struct {
+		bool active : 1;
+		int anchor;
+	} visual;
 } fm_t;
 
 /*
@@ -229,7 +230,7 @@ bool cvector_contains(const char *path, cvector_vector_type(char*) selection);
  */
 void fm_drop_cache(fm_t *fm);
 
-#define fm_current_dir(fm) (fm)->dirs[0]
+#define fm_current_dir(fm) (fm)->dirs.visible[0]
 
 #define fm_preview_dir(fm) (fm)->preview
 
@@ -237,4 +238,4 @@ void fm_selection_add_file(fm_t *fm, const char *path);
 
 void fm_selection_set(fm_t *fm, cvector_vector_type(char*) selection);
 
-#endif /* NAV_H */
+#endif /* FM_H */

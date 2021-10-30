@@ -234,11 +234,11 @@ static int l_fm_index(lua_State *L)
 		lua_pushinteger(L, app->fm.height);
 		return 1;
 	} else if (streq(key, "selection")) {
-		lua_createtable(L, fm->selection_len, 0);
+		lua_createtable(L, fm->selection.len, 0);
 		size_t i, j;
-		for (i = 0, j = 1; i < cvector_size(fm->selection); i++) {
-			if (fm->selection[i]) {
-				lua_pushstring(L, fm->selection[i]);
+		for (i = 0, j = 1; i < cvector_size(fm->selection.files); i++) {
+			if (fm->selection.files[i]) {
+				lua_pushstring(L, fm->selection.files[i]);
 				lua_rawseti(L, -2, j++);
 			}
 		}
@@ -293,7 +293,7 @@ static int l_config_index(lua_State *L)
 		lua_pushstring(L, cfg.configpath);
 		return 1;
 	} else if (streq(key, "dircache_size")) {
-		lua_pushinteger(L, app->fm.dircache.capacity);
+		lua_pushinteger(L, app->fm.dirs.cache.capacity);
 		return 1;
 	} else if (streq(key, "previewcache_size")) {
 		lua_pushinteger(L, app->ui.preview.cache.capacity);
@@ -364,7 +364,7 @@ static int l_config_newindex(lua_State *L)
 		if (capacity < 0) {
 			luaL_argerror(L, 3, "size must be non-negative");
 		}
-		cache_resize(&app->fm.dircache, capacity);
+		cache_resize(&app->fm.dirs.cache, capacity);
 	} else if (streq(key, "previewcache_size")) {
 		int capacity = luaL_checkinteger(L, 3);
 		if (capacity < 0) {
@@ -820,7 +820,7 @@ static int l_fm_get_load(lua_State *L)
 {
 	size_t i;
 	fm_t *fm = &app->fm;
-	switch (fm->mode) {
+	switch (fm->load.mode) {
 		case MODE_MOVE:
 			lua_pushstring(L, "move");
 			break;
@@ -828,9 +828,9 @@ static int l_fm_get_load(lua_State *L)
 			lua_pushstring(L, "copy");
 			break;
 	}
-	lua_createtable(L, cvector_size(fm->load), 0);
-	for (i = 0; i < cvector_size(fm->load); i++) {
-		lua_pushstring(L, fm->load[i]);
+	lua_createtable(L, cvector_size(fm->load.files), 0);
+	for (i = 0; i < cvector_size(fm->load.files); i++) {
+		lua_pushstring(L, fm->load.files[i]);
 		lua_rawseti(L, -2, i+1);
 	}
 	return 2;
@@ -844,15 +844,15 @@ static int l_fm_load_set(lua_State *L)
 	const char *mode = luaL_checkstring(L, 1);
 	fm_load_clear(fm);
 	if (streq(mode, "move")) {
-		fm->mode = MODE_MOVE;
+		fm->load.mode = MODE_MOVE;
 	} else {
 		// mode == "copy" is the safe alternative
-		fm->mode = MODE_COPY;
+		fm->load.mode = MODE_COPY;
 	}
 	const int l = lua_objlen(L, 2);
 	for (i = 0; i < l; i++) {
 		lua_rawgeti(L, 2, i + 1);
-		cvector_push_back(fm->load, strdup(lua_tostring(L, -1)));
+		cvector_push_back(fm->load.files, strdup(lua_tostring(L, -1)));
 		lua_pop(L, 1);
 	}
 	return 0;

@@ -214,13 +214,13 @@ void ui_clear(ui_t *ui)
 static void draw_dirs(ui_t *ui)
 {
 	int i;
-	const int l = ui->fm->ndirs;
+	const int l = ui->fm->dirs.len;
 	for (i = 0; i < l; i++) {
 		plane_draw_dir(ui->planes.dirs[l-i-1],
-				ui->fm->dirs[i],
-				ui->fm->selection,
-				ui->fm->load,
-				ui->fm->mode,
+				ui->fm->dirs.visible[i],
+				ui->fm->selection.files,
+				ui->fm->load.files,
+				ui->fm->load.mode,
 				i == 0 && ui->search.active ? ui->search.string : NULL);
 	}
 }
@@ -229,9 +229,9 @@ static void draw_preview(ui_t *ui)
 {
 	dir_t *preview_dir;
 	if (cfg.preview && ui->ndirs > 1) {
-		if ((preview_dir = ui->fm->preview)) {
-			plane_draw_dir(wpreview(ui), ui->fm->preview, ui->fm->selection,
-					ui->fm->load, ui->fm->mode, NULL);
+		if ((preview_dir = ui->fm->dirs.preview)) {
+			plane_draw_dir(wpreview(ui), ui->fm->dirs.preview, ui->fm->selection.files,
+					ui->fm->load.files, ui->fm->load.mode, NULL);
 		} else {
 			update_file_preview(ui);
 			draw_file_preview(ui);
@@ -504,7 +504,7 @@ void draw_cmdline(ui_t *ui)
 	int lhs_sz = 0;
 
 	if (!cmdline_prefix_get(&ui->cmdline)) {
-		if ((dir = fm_current_dir(ui->fm))) {
+		if ((dir = ui->fm->dirs.visible[0])) {
 			if((file = dir_current_file(dir))) {
 				/* TODO: for empty directories, show the stat of the
 				 * directory instead (on 2021-07-18) */
@@ -530,21 +530,21 @@ void draw_cmdline(ui_t *ui)
 				ncplane_set_fg_default(ui->planes.cmdline);
 				ncplane_putchar(ui->planes.cmdline, ' ');
 			}
-			if (cvector_size(ui->fm->load) > 0) {
-				if (ui->fm->mode == MODE_COPY) {
+			if (cvector_size(ui->fm->load.files) > 0) {
+				if (ui->fm->load.mode == MODE_COPY) {
 					ncplane_set_channels(ui->planes.cmdline, cfg.colors.copy);
 				} else {
 					ncplane_set_channels(ui->planes.cmdline, cfg.colors.delete);
 				}
-				rhs_sz += int_sz(cvector_size(ui->fm->load)) + 3;
-				ncplane_printf_yx(ui->planes.cmdline, 0, ui->ncol-rhs_sz+1, " %lu ", cvector_size(ui->fm->load));
+				rhs_sz += int_sz(cvector_size(ui->fm->load.files)) + 3;
+				ncplane_printf_yx(ui->planes.cmdline, 0, ui->ncol-rhs_sz+1, " %lu ", cvector_size(ui->fm->load.files));
 				ncplane_set_bg_default(ui->planes.cmdline);
 				ncplane_putchar(ui->planes.cmdline, ' ');
 			}
-			if (ui->fm->selection_len > 0) {
+			if (ui->fm->selection.len > 0) {
 				ncplane_set_channels(ui->planes.cmdline, cfg.colors.selection);
-				rhs_sz += int_sz(ui->fm->selection_len) + 3;
-				ncplane_printf_yx(ui->planes.cmdline, 0, ui->ncol-rhs_sz+1, " %d ", ui->fm->selection_len);
+				rhs_sz += int_sz(ui->fm->selection.len) + 3;
+				ncplane_printf_yx(ui->planes.cmdline, 0, ui->ncol-rhs_sz+1, " %d ", ui->fm->selection.len);
 				ncplane_set_bg_default(ui->planes.cmdline);
 				ncplane_putchar(ui->planes.cmdline, ' ');
 			}
@@ -593,7 +593,7 @@ static void draw_info(ui_t *ui)
 	ncplane_putchar(ui->planes.info, ':');
 	ncplane_set_styles(ui->planes.info, NCSTYLE_BOLD);
 
-	if ((dir = ui->fm->dirs[0])) {
+	if ((dir = ui->fm->dirs.visible[0])) {
 		// shortening should work fine with ascii only names
 		const char *end = dir->path + strlen(dir->path);
 		int remaining;
@@ -907,7 +907,7 @@ static void update_file_preview(ui_t *ui)
 	/* struct ncplane *w = wpreview(ui); */
 	// ncplane_erase(w); /* TODO: why (on 2021-10-30) */
 
-	if ((dir = ui->fm->dirs[0]) && dir->ind < dir->len) {
+	if ((dir = ui->fm->dirs.visible[0]) && dir->ind < dir->len) {
 		file = dir->files[dir->ind];
 		if (ui->preview.file) {
 			if (streq(ui->preview.file->path, file->path)) {
