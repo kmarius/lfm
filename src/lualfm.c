@@ -186,11 +186,11 @@ void lua_handle_key(lua_State *L, app_t *app, ncinput *in)
 			}
 			cvector_push_back(seq_str, 0);
 			error("no such map: %s", seq_str);
-			ui_showmenu(&app->ui, NULL, 0);
+			ui_showmenu(&app->ui, NULL);
 			return;
 		}
 		if (cur->keys) {
-			ui_showmenu(&app->ui, NULL, 0);
+			ui_showmenu(&app->ui, NULL);
 			lua_pushlightuserdata(L, (void *)cur);
 			lua_gettable(L, LUA_REGISTRYINDEX);
 			cur = NULL;
@@ -207,7 +207,7 @@ void lua_handle_key(lua_State *L, app_t *app, ncinput *in)
 			cvector_vector_type(char*) menu = NULL;
 			cvector_push_back(menu, strdup("keys\tcommand"));
 			trie_collect_leaves(cur, &menu);
-			ui_showmenu(&app->ui, menu, cvector_size(menu));
+			ui_showmenu(&app->ui, menu);
 		}
 	}
 }
@@ -424,7 +424,7 @@ static int l_ui_menu(lua_State *L)
 		s = luaL_checkstring(L, i + 1);
 		cvector_push_back(menubuf, strdup(s));
 	}
-	ui_showmenu(&app->ui, menubuf, l);
+	ui_showmenu(&app->ui, menubuf);
 	return 0;
 }
 

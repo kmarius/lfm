@@ -16,9 +16,9 @@
 #include "config.h"
 #include "cvector.h"
 #include "dir.h"
+#include "fm.h"
 #include "history.h"
 #include "log.h"
-#include "fm.h"
 #include "preview.h"
 #include "ui.h"
 #include "util.h"
@@ -363,7 +363,7 @@ void ui_cmd_clear(ui_t *ui)
 	cmdline_clear(&ui->cmdline);
 	history_reset(&ui->history);
 	notcurses_cursor_disable(nc);
-	ui_showmenu(ui, NULL, 0);
+	ui_showmenu(ui, NULL);
 	ui->redraw.cmdline = 1;
 	ui->redraw.menu = 1;
 }
@@ -702,14 +702,14 @@ static void menu_clear(ui_t *ui)
 	ncplane_move_bottom(ui->menu);
 }
 
-void ui_showmenu(ui_t *ui, char **vec, int len)
+void ui_showmenu(ui_t *ui, cvector_vector_type(char*) vec)
 {
 	if (ui->menubuf) {
 		menu_clear(ui);
 		cvector_ffree(ui->menubuf, free);
 		ui->menubuf = NULL;
 	}
-	if (len > 0) {
+	if (cvector_size(vec) > 0) {
 		ui->menubuf = vec;
 		menu_resize(ui);
 		ncplane_move_top(ui->menu);

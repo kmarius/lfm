@@ -74,7 +74,7 @@ void ui_verror(ui_t *ui, const char *format, va_list args);
 
 void ui_vechom(ui_t *ui, const char *format, va_list args);
 
-void ui_showmenu(ui_t *ui, char **vec, int len);
+void ui_showmenu(ui_t *ui, cvector_vector_type(char*) vec);
 
 void ui_cmd_clear(ui_t *ui);
 
