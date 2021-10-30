@@ -21,7 +21,6 @@ typedef struct file_t {
 } file_t;
 
 typedef struct dir_t {
-	time_t access; /* last acces, keep as first field */
 	char path[PATH_MAX + 1];
 	char *name;	/* a substring of path */
 

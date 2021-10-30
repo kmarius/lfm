@@ -253,7 +253,6 @@ dir_t *new_dir(const char *path)
 	dir->sortedlen = 0;
 	dir->sorttype = SORT_NATURAL;
 	dir->loading = false;
-	dir->access = 0;
 
 	return dir;
 }

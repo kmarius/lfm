@@ -254,7 +254,6 @@ static void copy_attrs(dir_t *dir, dir_t *olddir) {
 	dir->dirfirst = olddir->dirfirst;
 	dir->reverse = olddir->reverse;
 	dir->ind = olddir->ind;
-	dir->access = olddir->access;
 	dir_sort(dir);
 
 	if (olddir->sel) {
