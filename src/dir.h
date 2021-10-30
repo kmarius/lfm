@@ -34,7 +34,7 @@ typedef struct dir_t {
 	time_t loadtime; /* load time, used to check for changes on disk and
 			    reload if necessary */
 	int error;	 /* for now, true if any error occurs when loading */
-	bool loading;
+	bool loading : 1;
 
 	int ind;	 /* index of currently selected file */
 	int pos;	 /* position of the cursor in fm */
@@ -42,10 +42,10 @@ typedef struct dir_t {
 
 	char filter[64]; /* filter string */
 
-	bool sorted;
-	bool hidden; /* show hidden files */
-	bool dirfirst;
-	bool reverse;
+	bool sorted : 1;
+	bool hidden : 1; /* show hidden files */
+	bool dirfirst : 1;
+	bool reverse : 1;
 	enum sorttype_e sorttype;
 } dir_t;
 
