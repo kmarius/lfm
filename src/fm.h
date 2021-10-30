@@ -116,7 +116,7 @@ void fm_updir(fm_t *fm);
  * cursor at the closest valid position (i.e. after the number of files
  * decreases)
  */
-void fm_sel(fm_t *fm, const char *filename);
+void fm_move_to(fm_t *fm, const char *filename);
 
 /*
  * Apply the filter string given by FILTER to the current directory.

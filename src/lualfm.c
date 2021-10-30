@@ -1001,7 +1001,7 @@ static int l_fm_check(lua_State *L)
 
 static int l_fm_sel(lua_State *L)
 {
-	fm_sel(&app->fm, luaL_checkstring(L, 1));
+	fm_move_to(&app->fm, luaL_checkstring(L, 1));
 	app->ui.redraw.fm = 1;
 	return 0;
 }

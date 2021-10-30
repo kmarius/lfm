@@ -102,7 +102,7 @@ void fm_init(fm_t *fm)
 	update_watchers(fm);
 
 	if (cfg.startfile) {
-		fm_sel(fm, cfg.startfile);
+		fm_move_to(fm, cfg.startfile);
 	}
 
 	fm_update_preview(fm);
@@ -614,7 +614,7 @@ bool fm_bot(fm_t *fm)
 	return fm_down(fm, fm->dirs.visible[0]->len - fm->dirs.visible[0]->ind);
 }
 
-void fm_sel(fm_t *fm, const char *name)
+void fm_move_to(fm_t *fm, const char *name)
 {
 	/* TODO: use fm_move to set the pos offset (on 2021-10-29) */
 	dir_sel(fm->dirs.visible[0], name);
@@ -643,7 +643,7 @@ void fm_updir(fm_t *fm)
 	}
 	const char *name = fm->dirs.visible[0]->name;
 	fm_chdir(fm, dir_parent(fm->dirs.visible[0]), false);
-	fm_sel(fm, name);
+	fm_move_to(fm, name);
 	fm_update_preview(fm);
 }
 
