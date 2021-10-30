@@ -174,6 +174,11 @@ void lua_handle_key(lua_State *L, app_t *app, ncinput *in)
 		}
 	}
 	if (!prefix) {
+		if (key == 27) {
+			cur = NULL;
+			ui_cmd_clear(&app->ui);
+			return;
+		}
 		if (!cur) {
 			cvector_push_back(seq, key);
 			cvector_set_size(seq_str, 0);
