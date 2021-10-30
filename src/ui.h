@@ -45,9 +45,16 @@ typedef struct ui_t {
 	bool highlight_active;
 	bool search_forward;
 
-	bool needs_redraw;
-	bool needs_redraw_cmdline;
+	struct {
+		unsigned int info : 1;
+		unsigned int fm : 1;
+		unsigned int cmdline : 1;
+		unsigned int menu : 1;
+		unsigned int preview : 1;
+	} redraw;
 } ui_t;
+
+void kbblocking(bool blocking);
 
 void ui_init(ui_t *ui, fm_t *fm);
 
@@ -59,15 +66,7 @@ void ui_deinit(ui_t *ui);
 
 void ui_clear(ui_t *ui);
 
-void ui_request_draw(ui_t *ui);
-
 void ui_draw(ui_t *ui);
-
-void ui_draw_lazy(ui_t *ui);
-
-void ui_draw_dirs(ui_t *ui);
-
-void ui_draw_cmdline(ui_t *ui);
 
 void ui_error(ui_t *ui, const char *format, ...);
 
@@ -108,10 +107,6 @@ const char *ui_history_prev(ui_t *ui);
 const char *ui_history_next(ui_t *ui);
 
 bool ui_insert_preview(ui_t *ui, preview_t *pv);
-
-void ui_draw_preview(ui_t *ui);
-
-void kbblocking(bool blocking);
 
 void ui_search_nohighlight(ui_t *ui);
 

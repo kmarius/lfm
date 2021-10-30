@@ -23,61 +23,67 @@
 #include "ui.h"
 #include "util.h"
 
-static bool init = false;
+static bool initialized = false;
 
 inline static struct ncplane *wpreview(ui_t *ui)
 {
 	return ui->wdirs[ui->ndirs-1];
 }
 
-void request_draw_cmdline(ui_t *ui);
+static void ui_draw_dirs(ui_t *ui);
+static void ui_draw_cmdline(ui_t *ui);
+static void ui_draw_file_preview(ui_t *ui);
+static void draw_preview(ui_t *ui);
 static void draw_info(ui_t *ui);
 static char *readable_fs(double size, char *buf);
 static void menu_resize(ui_t *ui);
 static char *wansi_consoom(struct ncplane *w, char *s);
 static void wdraw_file_preview(struct ncplane *n, preview_t *pv);
 static void wansi_addstr(struct ncplane *w, char *s);
-static int rsize(struct ncplane *n);
+static void draw_menu(struct ncplane *n, cvector_vector_type(char *) menu);
+static void update_file_preview(ui_t *ui);
+static void wdraw_dir(struct ncplane *n, dir_t *dir, char **sel, char **load,
+		enum movemode_e mode, const char *highlight);
 
 static struct notcurses *nc;
 static struct ncplane *ncstd;
 
 /* init/resize {{{ */
-static void ncsetup()
-{
-	struct notcurses_options opts = {
-		.flags = NCOPTION_NO_WINCH_SIGHANDLER | NCOPTION_SUPPRESS_BANNERS,
-	};
-	if (!(nc = notcurses_core_init(&opts, NULL))) {
-		exit(EXIT_FAILURE);
-	}
-	ncstd = notcurses_stdplane(nc);
-}
 
-void kbblocking(bool blocking)
+static int resize_cb(struct ncplane *n)
 {
-	int val = fcntl(STDIN_FILENO, F_GETFL, 0);
-	if (val != -1) {
-		fcntl(STDIN_FILENO, F_SETFL, blocking ? val & ~O_NONBLOCK : val | O_NONBLOCK);
-	}
+	ui_resize(ncplane_userptr(n));
+	return 0;
 }
 
 void ui_init(ui_t *ui, fm_t *fm)
 {
-	ui->fm = fm;
+	struct notcurses_options ncopts = {
+		.flags = NCOPTION_NO_WINCH_SIGHANDLER | NCOPTION_SUPPRESS_BANNERS,
+	};
+	if (!(nc = notcurses_core_init(&ncopts, NULL))) {
+		exit(EXIT_FAILURE);
+	}
+	ncstd = notcurses_stdplane(nc);
 
 	cache_init(&ui->previewcache, PREVIEW_CACHE_SIZE, (void(*)(void*)) preview_free);
+	cmdline_init(&ui->cmdline);
+	history_load(&ui->history, cfg.historypath);
 
-	ncsetup();
+	ncplane_dim_yx(ncstd, &ui->nrow, &ui->ncol);
 	ui->input_ready_fd = notcurses_inputready_fd(nc);
 	ui->nc = nc;
-	ncplane_dim_yx(ncstd, &ui->nrow, &ui->ncol);
 	fm->height = ui->nrow - 2;
+	ui->fm = fm;
 
 	ui->wdirs = NULL;
 	ui->ndirs = 0;
 
-	cmdline_init(&ui->cmdline);
+	ui->file_preview = NULL;
+
+	ui->highlight = NULL;
+	ui->highlight_active = false;
+	ui->search_forward = true;
 
 	struct ncplane_options opts = {
 		.y = 0,
@@ -87,7 +93,7 @@ void ui_init(ui_t *ui, fm_t *fm)
 		.userptr = ui,
 	};
 
-	opts.resizecb = rsize;
+	opts.resizecb = resize_cb;
 	ui->infoline = ncplane_create(ncstd, &opts);
 	opts.resizecb = NULL;
 
@@ -103,18 +109,16 @@ void ui_init(ui_t *ui, fm_t *fm)
 	ui->menu = ncplane_create(ncstd, &opts);
 	ncplane_move_bottom(ui->menu);
 
-	ui->file_preview = NULL;
-
-	history_load(&ui->history, cfg.historypath);
-
-	/* ui->messages = NULL; */
-
-	ui->highlight = NULL;
-	ui->highlight_active = false;
-	ui->search_forward = true;
-
-	init = true;
+	initialized = true;
 	log_info("initialized ui");
+}
+
+void kbblocking(bool blocking)
+{
+	int val = fcntl(STDIN_FILENO, F_GETFL, 0);
+	if (val != -1) {
+		fcntl(STDIN_FILENO, F_SETFL, blocking ? val & ~O_NONBLOCK : val | O_NONBLOCK);
+	}
 }
 
 void ui_recol(ui_t *ui)
@@ -154,370 +158,143 @@ void ui_resize(ui_t *ui)
 	ncplane_resize(ui->infoline, 0, 0, 0, 0, 0, 0, 1, ui->ncol);
 	ncplane_resize(ui->plane_cmdline, 0, 0, 0, 0, 0, 0, 1, ui->ncol);
 	ncplane_move_yx(ui->plane_cmdline, ui->nrow - 1, 0);
-	/* if (ui->file_preview) { */
-	/* 	preview_free(ui->file_preview); */
-	/* 	ui->file_preview = NULL; */
-	/* } */
 	menu_resize(ui);
 	ui_recol(ui);
 	ui->fm->height = ui->nrow - 2;
 	ui_clear(ui);
 }
 
-static int rsize(struct ncplane *n)
-{
-	ui_resize(ncplane_userptr(n));
-	return 0;
-}
-
 /* }}} */
 
-/* preview {{{ */
+/* main drawing/echo/err {{{ */
 
-preview_t *ui_load_preview(ui_t *ui, file_t *file)
+void ui_draw(ui_t *ui)
 {
-	int ncol, nrow;
-	preview_t *pv;
-
-	struct ncplane *w = wpreview(ui);
-	ncplane_dim_yx(w, &nrow, &ncol);
-
-	if ((pv = cache_take(&ui->previewcache, file->path))) {
-		/* TODO: vv (on 2021-08-10) */
-		/* might be checking too often here? or is it capped by inotify
-		 * timeout? */
-		if (!preview_check(pv) || pv->nrow < ui->nrow - 2) {
-			async_preview_load(pv->path, file, nrow, ncol);
-		}
-	} else {
-		pv = preview_new_loading(file->path, file, nrow, ncol);
-		async_preview_load(file->path, file, nrow, ncol);
+	if (ui->redraw.fm) {
+		ui_draw_dirs(ui);
 	}
-	return pv;
-}
-
-void ui_draw_preview(ui_t *ui)
-{
-	wdraw_file_preview(wpreview(ui), ui->file_preview);
-}
-
-static void update_preview(ui_t *ui)
-{
-	int ncol, nrow;
-	ncplane_dim_yx(wpreview(ui), &nrow, &ncol);
-	dir_t *dir;
-	file_t *file;
-
-	struct ncplane *w = wpreview(ui);
-	ncplane_erase(w);
-
-	if ((dir = ui->fm->dirs[0]) && dir->ind < dir->len) {
-		file = dir->files[dir->ind];
-		if (ui->file_preview) {
-			if (streq(ui->file_preview->path, file->path)) {
-				if ((!preview_check(ui->file_preview)
-							|| ui->file_preview->nrow < nrow)
-						&& !ui->file_preview->loading){
-					// avoid loading more previews when drawing
-					ui->file_preview->loading = true;
-					async_preview_load(file->path, file, nrow, ncol);
-				}
-			} else {
-				cache_insert(&ui->previewcache, ui->file_preview, ui->file_preview->path);
-				ui->file_preview = ui_load_preview(ui, file);
-			}
-		} else {
-			ui->file_preview = ui_load_preview(ui, file);
-		}
-	} else {
-		if (ui->file_preview) {
-			cache_insert(&ui->previewcache, ui->file_preview, ui->file_preview->path);
-			ui->file_preview = NULL;
-		}
-	}
-}
-
-static void wansi_matchattr(struct ncplane *w, int a)
-{
-	if (a >= 0 && a <= 9) {
-		switch (a) {
-			case 0:
-				ncplane_set_styles(w, NCSTYLE_NONE);
-				ncplane_set_fg_default(w);
-				ncplane_set_bg_default(w);
-				break;
-			case 1:
-				ncplane_on_styles(w, NCSTYLE_BOLD);
-				break;
-			case 2:
-				/* not supported by notcurses */
-				/* ncplane_on_styles(w, WA_DIM); */
-				break;
-			case 3:
-				ncplane_on_styles(w, NCSTYLE_ITALIC);
-				break;
-			case 4:
-				ncplane_on_styles(w, NCSTYLE_UNDERLINE);
-				break;
-			case 5:
-				ncplane_on_styles(w, NCSTYLE_BLINK);
-				break;
-			case 6: /* nothing */
-				break;
-			case 7:
-				/* not supported, needs workaround */
-				/* ncplane_on_styles(w, WA_REVERSE); */
-				break;
-			case 8:
-				ncplane_on_styles(w, NCSTYLE_INVIS);
-				break;
-			case 9: /* strikethrough */
-				break;
-			default:
-				break;
-		}
-	} else if (a >= 30 && a <= 37) {
-		ncplane_set_fg_palindex(w, a-30);
-	} else if (a >= 40 && a <= 47) {
-		ncplane_set_bg_palindex(w, a-40);
-	}
-}
-
-/*
- * Consooms ansi color escape sequences and sets ATTRS
- * should be called with a pointer at \033
- */
-static char *wansi_consoom(struct ncplane *w, char *s)
-{
-	char c;
-	int acc = 0;
-	int nnums = 0;
-	int nums[6];
-	s++; // first char guaranteed to be \033
-	if (!(*s == '[')) {
-		log_error("there should be a [ here");
-		return s;
-	}
-	s++;
-	bool fin = false;
-	while (!fin) {
-		switch (c = *s) {
-			case 'm':
-				nums[nnums++] = acc;
-				acc = 0;
-				fin = true;
-				break;
-			case ';':
-				nums[nnums++] = acc;
-				acc = 0;
-				break;
-			case '\0':
-				log_error("escape ended prematurely");
-				return s;
-			default:
-				if (!(c >= '0' && c <= '9')) {
-					log_error("not a number? %c", c);
-				}
-				acc = 10 * acc + (c - '0');
-		}
-		if (nnums > 5) {
-			log_error("malformed ansi: too many numbers");
-			/* TODO: seek to 'm' (on 2021-07-29) */
-			return s;
-		}
-		s++;
-	}
-	if (nnums == 0) {
-		/* highlight actually does this, but it will be recognized as \e[0m instead */
-	} else if (nnums == 1) {
-		wansi_matchattr(w, nums[0]);
-	} else if (nnums == 2) {
-		wansi_matchattr(w, nums[0]);
-		wansi_matchattr(w, nums[1]);
-	} else if (nnums == 3) {
-		if (nums[0] == 38 && nums[1] == 5) {
-			ncplane_set_fg_palindex(w, nums[2]);
-		} else if (nums[0] == 48 && nums[1] == 5) {
-			log_error("trying to set background color per ansi code");
-		}
-	} else if (nnums == 4) {
-		wansi_matchattr(w, nums[0]);
-		ncplane_set_fg_palindex(w, nums[3]);
-	} else if (nnums == 5) {
-		log_error("using unsupported ansi code with 5 numbers");
-		/* log_debug("%d %d %d %d %d", nums[0], nums[1], nums[2],
-		 * nums[3], nums[4]);
-		 */
-	} else if (nnums == 6) {
-		log_error("using unsupported ansi code with 6 numbers");
-		/* log_debug("%d %d %d %d %d %d", nums[0], nums[1], nums[2],
-		 * nums[3], nums[4], nums[5]); */
-	}
-
-	return s;
-}
-
-static void wdraw_file_preview(struct ncplane *n, preview_t *pv)
-{
-	int i, nrow;
-
-	ncplane_erase(n);
-
-	if (pv) {
-		ncplane_dim_yx(n, &nrow, NULL);
-		ncplane_set_styles(n, NCSTYLE_NONE);
-		ncplane_set_fg_default(n);
-		ncplane_set_bg_default(n);
-
-		const int l = cvector_size(pv->lines);
-		for (i = 0; i < l && i < nrow; i++) {
-			ncplane_cursor_move_yx(n, i, 0);
-			wansi_addstr(n, pv->lines[i]);
-		}
-	}
-
-	notcurses_render(nc);
-}
-
-bool ui_insert_preview(ui_t *ui, preview_t *pv)
-{
-	preview_t *oldpv;
-	const file_t *file;
-
-	if ((file = fm_current_file(ui->fm)) && (file == pv->fptr || streq(pv->path, file->path))) {
-		preview_free(ui->file_preview);
-		ui->file_preview = pv;
-		return true;
-	} else {
-		if ((oldpv = cache_take(&ui->previewcache, pv->path))) {
-			if (pv->mtime >= oldpv->mtime) {
-				preview_free(oldpv);
-				cache_insert(&ui->previewcache, pv, pv->path);
-			} else {
-				/* discard */
-				preview_free(pv);
-			}
-		} else {
-			cache_insert(&ui->previewcache, pv, pv->path);
-		}
-	}
-	return false;
-}
-
-void ui_drop_cache(ui_t *ui)
-{
-	preview_free(ui->file_preview);
-	ui->file_preview = NULL;
-	cache_clear(&ui->previewcache);
-	update_preview(ui);
-	ui_request_draw(ui);
-}
-
-/* }}} */
-
-/* search {{{ */
-void ui_search_nohighlight(ui_t *ui)
-{
-	ui->highlight_active = false;
-}
-
-void ui_search_highlight(ui_t *ui, const char *search, bool forward)
-{
-	if (search) {
-		ui->search_forward = forward;
-		if (ui->highlight) {
-			free(ui->highlight);
-		}
-		ui->highlight = strdup(search);
-	}
-	ui->highlight_active = true;
-}
-/* }}} */
-
-/* menu {{{ */
-
-static void wansi_addstr(struct ncplane *w, char *s)
-{
-	while (*s) {
-		if (*s == '\033') {
-			s = wansi_consoom(w, s);
-		} else {
-			if (ncplane_putchar(w, *(s++)) == -1) {
-				// EOL
-				return;
-			}
-		}
-	}
-}
-
-static void draw_menu(struct ncplane *n, cvector_vector_type(char*) menubuf)
-{
-	size_t i;
-
-	if (!menubuf) {
-		return;
-	}
-
-	ncplane_erase(n);
-
-	/* otherwise this doesn't draw over the directories */
-	/* Still needed as of 2021-08-18 */
-	ncplane_set_base(n, 0, 0, ' ');
-
-	for (i = 0; i < cvector_size(menubuf); i++) {
-		ncplane_cursor_move_yx(n, i, 0);
-		const char *s = menubuf[i];
-		int xpos = 0;
-
-		while (*s) {
-			while (*s && *s != '\t') {
-				ncplane_putchar(n, *(s++));
-				xpos++;
-			}
-			if (*s == '\t') {
-				ncplane_putchar(n, ' ');
-				s++;
-				xpos++;
-				for (const int l = ((xpos/8)+1)*8; xpos < l; xpos++) {
-					ncplane_putchar(n, ' ');
-				}
-			}
-		}
-	}
-
-	notcurses_render(nc);
-}
-
-static void menu_resize(ui_t *ui)
-{
-	const int h = max(1, min(cvector_size(ui->menubuf), ui->nrow - 2));
-	ncplane_resize(ui->menu, 0, 0, 0, 0, 0, 0, h, ui->ncol);
-	ncplane_move_yx(ui->menu, ui->nrow - 1 - h, 0);
-}
-
-static void menu_clear(ui_t *ui)
-{
-	if (!ui->menubuf) {
-		return;
-	}
-	ncplane_erase(ui->menu);
-	ncplane_move_bottom(ui->menu);
-	notcurses_render(nc);
-}
-
-void ui_showmenu(ui_t *ui, char **vec, int len)
-{
-	/* TODO: lazy menu? (on 2021-10-28) */
-	if (ui->menubuf) {
-		menu_clear(ui);
-		cvector_ffree(ui->menubuf, free);
-		ui->menubuf = NULL;
-	}
-	if (len > 0) {
-		ui->menubuf = vec;
-		menu_resize(ui);
-		ncplane_move_top(ui->menu);
+	if (ui->redraw.fm | ui->redraw.menu) {
 		draw_menu(ui->menu, ui->menubuf);
+	}
+	if (ui->redraw.fm | ui->redraw.cmdline) {
+		ui_draw_cmdline(ui);
+	}
+	if (ui->redraw.fm | ui->redraw.info) {
+		draw_info(ui);
+	}
+	if (ui->redraw.fm | ui->redraw.preview) {
+		draw_preview(ui);
+	}
+	if (ui->redraw.fm | ui->redraw.cmdline | ui->redraw.info
+			| ui->redraw.menu | ui->redraw.preview) {
+		notcurses_render(nc);
+	}
+	ui->redraw.fm = 0;
+	ui->redraw.info = 0;
+	ui->redraw.cmdline = 0;
+	ui->redraw.menu = 0;
+	ui->redraw.preview = 0;
+}
+
+void ui_clear(ui_t *ui)
+{
+	/* infoline and dirs have to be cleared *and* rendered, otherwise they will
+	 * bleed into the first row */
+	ncplane_erase(ncstd);
+	ncplane_erase(ui->infoline);
+	for (int i = 0; i < ui->ndirs; i++) {
+		ncplane_erase(ui->wdirs[i]);
+	}
+	ncplane_erase(ui->plane_cmdline);
+
+	notcurses_render(nc);
+
+	notcurses_refresh(nc, NULL, NULL);
+
+	notcurses_cursor_enable(nc, 0, 0);
+	notcurses_cursor_disable(nc);
+
+	ui->redraw.fm = 1;
+}
+
+/* to not overwrite errors */
+static void ui_draw_dirs(ui_t *ui)
+{
+	int i;
+
+	const int l = ui->fm->ndirs;
+	for (i = 0; i < l; i++) {
+		wdraw_dir(ui->wdirs[l-i-1],
+				ui->fm->dirs[i],
+				ui->fm->selection,
+				ui->fm->load,
+				ui->fm->mode,
+				i == 0 && ui->highlight_active ? ui->highlight : NULL);
+	}
+}
+
+static void draw_preview(ui_t *ui)
+{
+	dir_t *preview_dir;
+	if (cfg.preview && ui->ndirs > 1) {
+		if ((preview_dir = ui->fm->preview)) {
+			wdraw_dir(wpreview(ui), ui->fm->preview, ui->fm->selection,
+					ui->fm->load, ui->fm->mode, NULL);
+		} else {
+			update_file_preview(ui);
+			ui_draw_file_preview(ui);
+		}
+	}
+}
+
+void ui_echom(ui_t *ui, const char *format, ...)
+{
+	va_list args;
+	va_start(args, format);
+	ui_vechom(ui, format, args);
+	va_end(args);
+}
+
+void ui_error(ui_t *ui, const char *format, ...)
+{
+	va_list args;
+	va_start(args, format);
+	ui_verror(ui, format, args);
+	va_end(args);
+}
+
+void ui_verror(ui_t *ui, const char *format, va_list args)
+{
+	char *msg;
+	vasprintf(&msg, format, args);
+
+	log_error(msg);
+
+	cvector_push_back(ui->messages, msg);
+
+	/* TODO: show messages after initialization (on 2021-10-30) */
+	if (initialized) {
+		ncplane_erase(ui->plane_cmdline);
+		ncplane_set_fg_palindex(ui->plane_cmdline, COLOR_RED);
+		ncplane_putstr_yx(ui->plane_cmdline, 0, 0, msg);
+		ncplane_set_fg_default(ui->plane_cmdline);
+		notcurses_render(nc);
+	}
+}
+
+void ui_vechom(ui_t *ui, const char *format, va_list args)
+{
+	char *msg;
+	vasprintf(&msg, format, args);
+
+	cvector_push_back(ui->messages, msg);
+
+	if (initialized) {
+		ncplane_erase(ui->plane_cmdline);
+		ncplane_set_fg_palindex(ui->plane_cmdline, 15);
+		ncplane_putstr_yx(ui->plane_cmdline, 0, 0, msg);
+		ncplane_set_fg_default(ui->plane_cmdline);
+		notcurses_render(nc);
 	}
 }
 
@@ -532,28 +309,28 @@ void ui_cmd_prefix_set(ui_t *ui, const char *prefix)
 	}
 	notcurses_cursor_enable(nc, 0, 0);
 	cmdline_prefix_set(&ui->cmdline, prefix);
-	request_draw_cmdline(ui);
+	ui->redraw.cmdline = 1;
 }
 
 /* inserts only the first mbchar of the argument */
 void ui_cmd_insert(ui_t *ui, const char *key)
 {
 	if (cmdline_insert(&ui->cmdline, key)) {
-		request_draw_cmdline(ui);
+		ui->redraw.cmdline = 1;
 	}
 }
 
 void ui_cmd_delete(ui_t *ui)
 {
 	if (cmdline_delete(&ui->cmdline)) {
-		request_draw_cmdline(ui);
+		ui->redraw.cmdline = 1;
 	}
 }
 
 void ui_cmd_delete_right(ui_t *ui)
 {
 	if (cmdline_delete_right(&ui->cmdline)) {
-		request_draw_cmdline(ui);
+		ui->redraw.cmdline = 1;
 	}
 }
 
@@ -561,28 +338,28 @@ void ui_cmd_delete_right(ui_t *ui)
 void ui_cmd_left(ui_t *ui)
 {
 	if (cmdline_left(&ui->cmdline)) {
-		request_draw_cmdline(ui);
+		ui->redraw.cmdline = 1;
 	}
 }
 
 void ui_cmd_right(ui_t *ui)
 {
 	if (cmdline_right(&ui->cmdline)) {
-		request_draw_cmdline(ui);
+		ui->redraw.cmdline = 1;
 	}
 }
 
 void ui_cmd_home(ui_t *ui)
 {
 	if (cmdline_home(&ui->cmdline)) {
-		request_draw_cmdline(ui);
+		ui->redraw.cmdline = 1;
 	}
 }
 
 void ui_cmd_end(ui_t *ui)
 {
 	if (cmdline_end(&ui->cmdline)) {
-		request_draw_cmdline(ui);
+		ui->redraw.cmdline = 1;
 	}
 }
 
@@ -591,14 +368,15 @@ void ui_cmd_clear(ui_t *ui)
 	cmdline_clear(&ui->cmdline);
 	history_reset(&ui->history);
 	notcurses_cursor_disable(nc);
-	ui_draw_cmdline(ui);
 	ui_showmenu(ui, NULL, 0);
+	ui->redraw.cmdline = 1;
+	ui->redraw.menu = 1;
 }
 
 void ui_cmdline_set(ui_t *ui, const char *line)
 {
 	if (cmdline_set(&ui->cmdline, line)) {
-		request_draw_cmdline(ui);
+		ui->redraw.cmdline = 1;
 	}
 }
 
@@ -718,14 +496,8 @@ static int int_sz(int n)
 	return i;
 }
 
-void request_draw_cmdline(ui_t *ui)
-{
-	ui->needs_redraw_cmdline = true;
-}
-
 void ui_draw_cmdline(ui_t *ui)
 {
-	ui->needs_redraw_cmdline = false;
 	char nums[16];
 	char size[32];
 	char mtime[32];
@@ -793,7 +565,6 @@ void ui_draw_cmdline(ui_t *ui)
 		const int cursor_pos = cmdline_print(&ui->cmdline, ui->plane_cmdline);
 		notcurses_cursor_enable(nc, ui->nrow - 1, cursor_pos);
 	}
-	notcurses_render(nc);
 }
 /* }}} */
 
@@ -862,14 +633,99 @@ static void draw_info(ui_t *ui)
 			ncplane_putstr(ui->infoline, file->name);
 		}
 	}
-	notcurses_render(nc);
+}
+
+/* }}} */
+
+/* menu {{{ */
+
+static void wansi_addstr(struct ncplane *w, char *s)
+{
+	while (*s) {
+		if (*s == '\033') {
+			s = wansi_consoom(w, s);
+		} else {
+			if (ncplane_putchar(w, *(s++)) == -1) {
+				// EOL
+				return;
+			}
+		}
+	}
+}
+
+static void draw_menu(struct ncplane *n, cvector_vector_type(char*) menubuf)
+{
+	size_t i;
+
+	if (!menubuf) {
+		return;
+	}
+
+	ncplane_erase(n);
+
+	/* otherwise this doesn't draw over the directories */
+	/* Still needed as of 2021-08-18 */
+	ncplane_set_base(n, 0, 0, ' ');
+
+	for (i = 0; i < cvector_size(menubuf); i++) {
+		ncplane_cursor_move_yx(n, i, 0);
+		const char *s = menubuf[i];
+		int xpos = 0;
+
+		while (*s) {
+			while (*s && *s != '\t') {
+				ncplane_putchar(n, *(s++));
+				xpos++;
+			}
+			if (*s == '\t') {
+				ncplane_putchar(n, ' ');
+				s++;
+				xpos++;
+				for (const int l = ((xpos/8)+1)*8; xpos < l; xpos++) {
+					ncplane_putchar(n, ' ');
+				}
+			}
+		}
+	}
+}
+
+static void menu_resize(ui_t *ui)
+{
+	const int h = max(1, min(cvector_size(ui->menubuf), ui->nrow - 2));
+	ncplane_resize(ui->menu, 0, 0, 0, 0, 0, 0, h, ui->ncol);
+	ncplane_move_yx(ui->menu, ui->nrow - 1 - h, 0);
+}
+
+static void menu_clear(ui_t *ui)
+{
+	if (!ui->menubuf) {
+		return;
+	}
+	ncplane_erase(ui->menu);
+	ncplane_move_bottom(ui->menu);
+}
+
+void ui_showmenu(ui_t *ui, char **vec, int len)
+{
+	/* TODO: lazy menu? (on 2021-10-28) */
+	if (ui->menubuf) {
+		menu_clear(ui);
+		cvector_ffree(ui->menubuf, free);
+		ui->menubuf = NULL;
+	}
+	if (len > 0) {
+		ui->menubuf = vec;
+		menu_resize(ui);
+		ncplane_move_top(ui->menu);
+		draw_menu(ui->menu, ui->menubuf);
+	}
 }
 
 /* }}} */
 
 /* wdraw_dir {{{ */
 
-unsigned long ext_channel_find(const char *ext)
+static unsigned long ext_channel_find(const char *ext)
 {
 	size_t i;
 	if (ext) {
@@ -1020,134 +876,268 @@ static void wdraw_dir(struct ncplane *n, dir_t *dir, char **sel, char **load,
 }
 /* }}} */
 
-/* main drawing/echo/err {{{ */
+/* preview {{{ */
 
-void ui_request_draw(ui_t *ui)
+preview_t *ui_load_preview(ui_t *ui, file_t *file)
 {
-	ui->needs_redraw = true;
-}
+	int ncol, nrow;
+	preview_t *pv;
 
-void ui_draw_lazy(ui_t *ui)
-{
-	if (ui->needs_redraw) {
-		ui_draw(ui);
+	struct ncplane *w = wpreview(ui);
+	ncplane_dim_yx(w, &nrow, &ncol);
+
+	if ((pv = cache_take(&ui->previewcache, file->path))) {
+		/* TODO: vv (on 2021-08-10) */
+		/* might be checking too often here? or is it capped by inotify
+		 * timeout? */
+		if (!preview_check(pv) || pv->nrow < ui->nrow - 2) {
+			async_preview_load(pv->path, file, nrow, ncol);
+		}
 	} else {
-		if (ui->needs_redraw_cmdline) {
-			ui_draw_cmdline(ui);
-		}
-		// redraw dirs here
+		pv = preview_new_loading(file->path, file, nrow, ncol);
+		async_preview_load(file->path, file, nrow, ncol);
 	}
+	return pv;
 }
 
-void ui_draw(ui_t *ui)
+static void ui_draw_file_preview(ui_t *ui)
 {
-	ui->needs_redraw = false;
-	ui_draw_dirs(ui);
-	draw_menu(ui->menu, ui->menubuf);
-	ui_draw_cmdline(ui);
+	wdraw_file_preview(wpreview(ui), ui->file_preview);
 }
 
-/* to not overwrite errors */
-void ui_draw_dirs(ui_t *ui)
+static void update_file_preview(ui_t *ui)
 {
-	int i;
-	dir_t *pdir;
+	int ncol, nrow;
+	ncplane_dim_yx(wpreview(ui), &nrow, &ncol);
+	dir_t *dir;
+	file_t *file;
 
-	draw_info(ui);
+	/* struct ncplane *w = wpreview(ui); */
+	// ncplane_erase(w); /* TODO: why (on 2021-10-30) */
 
-	const int l = ui->fm->ndirs;
-	for (i = 0; i < l; i++) {
-		wdraw_dir(ui->wdirs[l-i-1],
-				ui->fm->dirs[i],
-				ui->fm->selection,
-				ui->fm->load,
-				ui->fm->mode,
-				i == 0 && ui->highlight_active ? ui->highlight : NULL);
-	}
-
-	if (cfg.preview && ui->ndirs > 1) {
-		if ((pdir = ui->fm->preview)) {
-			wdraw_dir(wpreview(ui), ui->fm->preview, ui->fm->selection,
-					ui->fm->load, ui->fm->mode, NULL);
+	if ((dir = ui->fm->dirs[0]) && dir->ind < dir->len) {
+		file = dir->files[dir->ind];
+		if (ui->file_preview) {
+			if (streq(ui->file_preview->path, file->path)) {
+				if ((!preview_check(ui->file_preview)
+							|| ui->file_preview->nrow < nrow)
+						&& !ui->file_preview->loading){
+					// avoid loading more previews when drawing
+					ui->file_preview->loading = true;
+					async_preview_load(file->path, file, nrow, ncol);
+				}
+			} else {
+				cache_insert(&ui->previewcache, ui->file_preview, ui->file_preview->path);
+				ui->file_preview = ui_load_preview(ui, file);
+				ui->redraw.preview = 1;
+			}
 		} else {
-			update_preview(ui);
-			ui_draw_preview(ui);
+			ui->file_preview = ui_load_preview(ui, file);
+			ui->redraw.preview = 1;
+		}
+	} else {
+		if (ui->file_preview) {
+			cache_insert(&ui->previewcache, ui->file_preview, ui->file_preview->path);
+			ui->file_preview = NULL;
+			ui->redraw.preview = 1;
 		}
 	}
-	notcurses_render(nc);
 }
 
-void ui_clear(ui_t *ui)
+static void wansi_matchattr(struct ncplane *w, int a)
 {
-	/* infoline and dirs have to be cleared *and* rendered, otherwise they will
-	 * bleed into the first row */
-	ncplane_erase(ncstd);
-	ncplane_erase(ui->infoline);
-	for (int i = 0; i < ui->ndirs; i++) {
-		ncplane_erase(ui->wdirs[i]);
-	}
-	ncplane_erase(ui->plane_cmdline);
-
-	notcurses_render(nc);
-
-	notcurses_refresh(nc, NULL, NULL);
-
-	notcurses_cursor_enable(nc, 0, 0);
-	notcurses_cursor_disable(nc);
-
-	ui_request_draw(ui);
-}
-
-void ui_echom(ui_t *ui, const char *format, ...)
-{
-	va_list args;
-	va_start(args, format);
-	ui_vechom(ui, format, args);
-	va_end(args);
-}
-
-void ui_error(ui_t *ui, const char *format, ...)
-{
-	va_list args;
-	va_start(args, format);
-	ui_verror(ui, format, args);
-	va_end(args);
-}
-
-void ui_verror(ui_t *ui, const char *format, va_list args)
-{
-	char *msg;
-	vasprintf(&msg, format, args);
-
-	log_error(msg);
-
-	cvector_push_back(ui->messages, msg);
-
-	if (init) {
-		ncplane_erase(ui->plane_cmdline);
-		ncplane_set_fg_palindex(ui->plane_cmdline, COLOR_RED);
-		ncplane_putstr_yx(ui->plane_cmdline, 0, 0, msg);
-		ncplane_set_fg_default(ui->plane_cmdline);
-		notcurses_render(nc);
+	if (a >= 0 && a <= 9) {
+		switch (a) {
+			case 0:
+				ncplane_set_styles(w, NCSTYLE_NONE);
+				ncplane_set_fg_default(w);
+				ncplane_set_bg_default(w);
+				break;
+			case 1:
+				ncplane_on_styles(w, NCSTYLE_BOLD);
+				break;
+			case 2:
+				/* not supported by notcurses */
+				/* ncplane_on_styles(w, WA_DIM); */
+				break;
+			case 3:
+				ncplane_on_styles(w, NCSTYLE_ITALIC);
+				break;
+			case 4:
+				ncplane_on_styles(w, NCSTYLE_UNDERLINE);
+				break;
+			case 5:
+				ncplane_on_styles(w, NCSTYLE_BLINK);
+				break;
+			case 6: /* nothing */
+				break;
+			case 7:
+				/* not supported, needs workaround */
+				/* ncplane_on_styles(w, WA_REVERSE); */
+				break;
+			case 8:
+				ncplane_on_styles(w, NCSTYLE_INVIS);
+				break;
+			case 9: /* strikethrough */
+				break;
+			default:
+				break;
+		}
+	} else if (a >= 30 && a <= 37) {
+		ncplane_set_fg_palindex(w, a-30);
+	} else if (a >= 40 && a <= 47) {
+		ncplane_set_bg_palindex(w, a-40);
 	}
 }
 
-void ui_vechom(ui_t *ui, const char *format, va_list args)
+/*
+ * Consooms ansi color escape sequences and sets ATTRS
+ * should be called with a pointer at \033
+ */
+static char *wansi_consoom(struct ncplane *w, char *s)
 {
-	char *msg;
-	vasprintf(&msg, format, args);
+	char c;
+	int acc = 0;
+	int nnums = 0;
+	int nums[6];
+	s++; // first char guaranteed to be \033
+	if (!(*s == '[')) {
+		log_error("there should be a [ here");
+		return s;
+	}
+	s++;
+	bool fin = false;
+	while (!fin) {
+		switch (c = *s) {
+			case 'm':
+				nums[nnums++] = acc;
+				acc = 0;
+				fin = true;
+				break;
+			case ';':
+				nums[nnums++] = acc;
+				acc = 0;
+				break;
+			case '\0':
+				log_error("escape ended prematurely");
+				return s;
+			default:
+				if (!(c >= '0' && c <= '9')) {
+					log_error("not a number? %c", c);
+				}
+				acc = 10 * acc + (c - '0');
+		}
+		if (nnums > 5) {
+			log_error("malformed ansi: too many numbers");
+			/* TODO: seek to 'm' (on 2021-07-29) */
+			return s;
+		}
+		s++;
+	}
+	if (nnums == 0) {
+		/* highlight actually does this, but it will be recognized as \e[0m instead */
+	} else if (nnums == 1) {
+		wansi_matchattr(w, nums[0]);
+	} else if (nnums == 2) {
+		wansi_matchattr(w, nums[0]);
+		wansi_matchattr(w, nums[1]);
+	} else if (nnums == 3) {
+		if (nums[0] == 38 && nums[1] == 5) {
+			ncplane_set_fg_palindex(w, nums[2]);
+		} else if (nums[0] == 48 && nums[1] == 5) {
+			log_error("trying to set background color per ansi code");
+		}
+	} else if (nnums == 4) {
+		wansi_matchattr(w, nums[0]);
+		ncplane_set_fg_palindex(w, nums[3]);
+	} else if (nnums == 5) {
+		log_error("using unsupported ansi code with 5 numbers");
+		/* log_debug("%d %d %d %d %d", nums[0], nums[1], nums[2],
+		 * nums[3], nums[4]);
+		 */
+	} else if (nnums == 6) {
+		log_error("using unsupported ansi code with 6 numbers");
+		/* log_debug("%d %d %d %d %d %d", nums[0], nums[1], nums[2],
+		 * nums[3], nums[4], nums[5]); */
+	}
 
-	cvector_push_back(ui->messages, msg);
+	return s;
+}
 
-	if (init) {
-		ncplane_erase(ui->plane_cmdline);
-		ncplane_set_fg_palindex(ui->plane_cmdline, 15);
-		ncplane_putstr_yx(ui->plane_cmdline, 0, 0, msg);
-		ncplane_set_fg_default(ui->plane_cmdline);
-		notcurses_render(nc);
+static void wdraw_file_preview(struct ncplane *n, preview_t *pv)
+{
+	int i, nrow;
+
+	ncplane_erase(n);
+
+	if (pv) {
+		ncplane_dim_yx(n, &nrow, NULL);
+		ncplane_set_styles(n, NCSTYLE_NONE);
+		ncplane_set_fg_default(n);
+		ncplane_set_bg_default(n);
+
+		const int l = cvector_size(pv->lines);
+		for (i = 0; i < l && i < nrow; i++) {
+			ncplane_cursor_move_yx(n, i, 0);
+			wansi_addstr(n, pv->lines[i]);
+		}
 	}
 }
 
+bool ui_insert_preview(ui_t *ui, preview_t *pv)
+{
+	preview_t *oldpv;
+	const file_t *file;
+
+	if ((file = fm_current_file(ui->fm)) && (file == pv->fptr || streq(pv->path, file->path))) {
+		preview_free(ui->file_preview);
+		ui->file_preview = pv;
+		return true;
+	} else {
+		if ((oldpv = cache_take(&ui->previewcache, pv->path))) {
+			if (pv->mtime >= oldpv->mtime) {
+				preview_free(oldpv);
+				cache_insert(&ui->previewcache, pv, pv->path);
+			} else {
+				/* discard */
+				preview_free(pv);
+			}
+		} else {
+			cache_insert(&ui->previewcache, pv, pv->path);
+		}
+	}
+	return false;
+}
+
+void ui_drop_cache(ui_t *ui)
+{
+	preview_free(ui->file_preview);
+	ui->file_preview = NULL;
+	cache_clear(&ui->previewcache);
+	update_file_preview(ui);
+	ui->redraw.cmdline = 1;
+	ui->redraw.preview = 1;
+}
+
+/* }}} */
+
+/* search {{{ */
+void ui_search_nohighlight(ui_t *ui)
+{
+	ui->highlight_active = false;
+}
+
+void ui_search_highlight(ui_t *ui, const char *search, bool forward)
+{
+	if (search) {
+		ui->search_forward = forward;
+		if (ui->highlight) {
+			free(ui->highlight);
+		}
+		ui->highlight = strdup(search);
+	}
+	ui->highlight_active = true;
+}
 /* }}} */
 
 /* history {{{ */

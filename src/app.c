@@ -69,9 +69,9 @@ static void async_result_cb(EV_P_ ev_async *w, int revents)
 	pthread_mutex_unlock(&async_results.mutex);
 
 	if (redraw) {
-		ui_request_draw(&app->ui);
+		app->ui.redraw.fm = 1;
 	} else if (redraw_preview) {
-		ui_draw_preview(&app->ui);
+		app->ui.redraw.preview = 1;
 	}
 	app_restart_redraw_watcher(app);
 }
@@ -239,7 +239,7 @@ static void redraw_cb(struct ev_loop *loop, ev_idle *w, int revents)
 {
 	(void) revents;
 	app_t *app = (app_t*) w->data;
-	ui_draw_lazy(&app->ui);
+	ui_draw(&app->ui);
 	ev_idle_stop(loop, w);
 }
 
@@ -326,12 +326,6 @@ void app_init(app_t *app)
 void app_restart_redraw_watcher(app_t *app)
 {
 	ev_idle_start(app->loop, &redraw_watcher);
-}
-
-void app_request_draw(app_t *app)
-{
-	app->ui.needs_redraw = true;
-	app_restart_redraw_watcher(app);
 }
 
 void app_run(app_t *app)
