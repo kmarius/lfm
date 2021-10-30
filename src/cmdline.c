@@ -20,19 +20,16 @@
 
 #define ensure_capacity(vec, sz) \
 	do { \
-		while ((vec).cap + 1 < sz) { \
+		if ((vec).cap + 1 < sz) { \
+			while ((vec).cap + 1 < sz) { \
+				(vec).cap *= 2; \
+			} \
 			(vec).str = realloc((vec).str, sizeof(*vec.str) * (vec).cap * 2 + 1); \
-			(vec).cap *= 2; \
 		} \
 	} while (0)
 
 #define ensure_space(vec, sz) \
-	do { \
-		while ((vec).cap + 1 < (vec).len + (int) sz) { \
-			(vec).str = realloc((vec).str, sizeof(*vec.str) * (vec).cap * 2 + 1); \
-			(vec).cap *= 2; \
-		} \
-	} while (0)
+		ensure_capacity(vec, (size_t) (vec).len + sz)
 
 void cmdline_init(cmdline_t *t)
 {
@@ -48,7 +45,7 @@ bool cmdline_prefix_set(T *t, const char *prefix)
 		return 0;
 	}
 	const int l = strlen(prefix);
-	ensure_capacity(t->prefix, l);
+	ensure_capacity(t->prefix, (size_t) l);
 	strcpy(t->prefix.str, prefix);
 	t->prefix.len = l;
 	return 1;
@@ -144,7 +141,7 @@ bool cmdline_home(T *t)
 		return 0;
 	}
 	if (t->left.len > 0) {
-		ensure_space(t->right, t->left.len + t->right.len);
+		ensure_space(t->right, (size_t) t->left.len + t->right.len);
 		t->right.str[t->right.len + t->left.len] = 0;
 		for (i = t->right.len; i >= 0; i--) {
 			t->right.str[i + t->left.len] = t->right.str[i];
@@ -163,7 +160,7 @@ bool cmdline_end(T *t)
 		return 0;
 	}
 	if (t->right.len > 0) {
-		ensure_space(t->left, t->right.len);
+		ensure_space(t->left, (size_t) t->right.len);
 		wcscpy(t->left.str + t->left.len, t->right.str);
 		/* t->left.str[t->left.len + t->right.len] = 0; */
 		t->left.len += t->right.len;
@@ -206,7 +203,7 @@ const char *cmdline_get(T *t)
 {
 	t->buf.str[0] = 0;
 	if (t->prefix.len != 0) {
-		ensure_space(t->buf, t->left.len + t->right.len);
+		ensure_space(t->buf, (size_t) t->left.len + t->right.len);
 		size_t n = wcstombs(t->buf.str, t->left.str, t->left.len);
 		if (n == (size_t) -1) {
 			return "";

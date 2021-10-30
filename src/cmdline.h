@@ -7,13 +7,13 @@
 
 struct vstr {
 	char *str;
-	int cap;
+	size_t cap;
 	int len;
 };
 
 struct vwstr {
 	wchar_t *str;
-	int cap;
+	size_t cap;
 	int len;
 };
 
