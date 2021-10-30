@@ -193,7 +193,6 @@ void ui_draw(ui_t *ui)
 
 void ui_clear(ui_t *ui)
 {
-	log_debug("clear");
 	/* infoline and dirs have to be cleared *and* rendered, otherwise they will
 	 * bleed into the first row */
 	ncplane_erase(ncstd);
@@ -215,7 +214,6 @@ void ui_clear(ui_t *ui)
 
 static void draw_dirs(ui_t *ui)
 {
-	log_debug("draw_dirs");
 	int i;
 	const int l = ui->fm->ndirs;
 	for (i = 0; i < l; i++) {
@@ -650,7 +648,6 @@ static void ansi_addstr(struct ncplane *w, char *s)
 
 static void draw_menu(struct ncplane *n, cvector_vector_type(char*) menubuf)
 {
-	log_debug("draw_menu");
 	size_t i;
 
 	if (!menubuf) {
