@@ -9,19 +9,20 @@
 
 #include "app.h"
 #include "async.h"
+#include "cache.h"
 #include "config.h"
 #include "dir.h"
-#include "cache.h"
-#include "lualfm.h"
-#include "log.h"
 #include "fm.h"
+#include "log.h"
+#include "lualfm.h"
 #include "notify.h"
 #include "util.h"
 
 #define DIRCACHE_SIZE 31
 
 void fm_update_preview(fm_t *fm);
-
+static void ind_move(dir_t *dir, int ct, int height, int scrolloff);
+static void ind_move_to(dir_t *dir, const char *name, int height);
 static dir_t *load_dir(fm_t *fm, const char *path);
 static void update_watchers(fm_t *fm);
 static void remove_preview(fm_t *fm);
@@ -63,7 +64,7 @@ static void populate(fm_t *fm)
 		if ((s = dir_parent(d))) {
 			d = load_dir(fm, s);
 			fm->dirs.visible[i] = d;
-			dir_sel(d, fm->dirs.visible[i-1]->name);
+			ind_move_to(d, fm->dirs.visible[i-1]->name, fm->height);
 		} else {
 			fm->dirs.visible[i] = NULL;
 		}
@@ -193,7 +194,7 @@ void fm_sort(fm_t *fm)
 			if (fm->dirs.visible[i]->len > 0) {
 				const char *name = dir_current_file(fm->dirs.visible[i])->name;
 				dir_sort(fm->dirs.visible[i]);
-				dir_sel(fm->dirs.visible[i], name);
+				ind_move_to(fm->dirs.visible[i], name, fm->height);
 			}
 		}
 	}
@@ -202,7 +203,7 @@ void fm_sort(fm_t *fm)
 		if (fm->dirs.preview->len > 0) {
 			const char *name = dir_current_file(fm->dirs.preview)->name;
 			dir_sort(fm->dirs.preview);
-			dir_sel(fm->dirs.preview, name);
+			ind_move_to(fm->dirs.preview, name, fm->height);
 		}
 	}
 }
@@ -245,7 +246,7 @@ file_t *fm_current_file(const fm_t *fm)
 	return dir_current_file(fm->dirs.visible[0]);
 }
 
-static void copy_attrs(dir_t *dir, dir_t *olddir) {
+static void copy_attrs(dir_t *dir, dir_t *olddir, int height) {
 	strncpy(dir->filter, olddir->filter, sizeof(dir->filter));
 	dir->hidden = cfg.hidden;
 	dir->pos = olddir->pos;
@@ -257,11 +258,11 @@ static void copy_attrs(dir_t *dir, dir_t *olddir) {
 	dir_sort(dir);
 
 	if (olddir->sel) {
-		dir_sel(dir, olddir->sel);
+		ind_move_to(dir, olddir->sel, height);
 		free(olddir->sel);
 		olddir->sel = NULL;
 	} else if (olddir->ind < olddir->len) {
-		dir_sel(dir, olddir->files[olddir->ind]->name);
+		ind_move_to(dir, olddir->files[olddir->ind]->name, height);
 	}
 }
 
@@ -274,20 +275,20 @@ bool fm_insert_dir(fm_t *fm, dir_t *dir)
 
 	if ((olddir = cache_take(&fm->dirs.cache, dir->path))) {
 		/* replace in dir cache */
-		copy_attrs(dir, olddir);
+		copy_attrs(dir, olddir, fm->height);
 		dir_free(olddir);
 		cache_insert(&fm->dirs.cache, dir, dir->path);
 	} else {
 		/* check if it an active directory */
 		if (fm->dirs.preview && streq(fm->dirs.preview->path, dir->path)) {
-			copy_attrs(dir, fm->dirs.preview);
+			copy_attrs(dir, fm->dirs.preview, fm->height);
 			dir_free(fm->dirs.preview);
 			fm->dirs.preview = dir;
 			return true;
 		} else {
 			for (i = 0; i < fm->dirs.len; i++) {
 				if (fm->dirs.visible[i] && streq(fm->dirs.visible[i]->path, dir->path)) {
-					copy_attrs(dir, fm->dirs.visible[i]);
+					copy_attrs(dir, fm->dirs.visible[i], fm->height);
 					dir_free(fm->dirs.visible[i]);
 					fm->dirs.visible[i] = dir;
 					if (i == 0) {
@@ -577,18 +578,43 @@ void fm_selection_write(const fm_t *fm, const char *path)
 /* }}} */
 
 /* navigation {{{ */
+
+/* Move the index pointer of a directory and the pos accordingly. This is in
+ * here because I don't want to introduce height/scrolloff parameters everywhere
+ * or include config.h in dir.h */
+static void ind_move(dir_t *dir, int ct, int height, int scrolloff)
+{
+	dir->ind = max(min(dir->ind + ct, dir->len - 1), 0);
+	if (ct < 0) {
+		dir->pos = min(max(scrolloff, dir->pos + ct), dir->ind);
+	} else {
+		dir->pos = max(min(height - 1 - scrolloff, dir->pos + ct), height - dir->len + dir->ind);
+	}
+}
+
+static void ind_move_to(dir_t *dir, const char *name, int height)
+{
+	if (!name) {
+		return;
+	}
+	if (!dir->files) {
+		dir->sel = strdup(name);
+		return;
+	}
+	for (int i = 0; i < dir->len; i++) {
+		if (streq(dir->files[i]->name, name)) {
+			ind_move(dir, i - dir->ind, height, cfg.scrolloff);
+			return;
+		}
+	}
+	dir->ind = min(dir->ind, dir->len);
+}
+
 static bool fm_move(fm_t *fm, int ct)
 {
 	dir_t *dir = fm->dirs.visible[0];
 	const int cur = dir->ind;
-
-	dir->ind = max(min(dir->ind + ct, dir->len - 1), 0);
-	if (ct < 0) {
-		dir->pos = min(max(cfg.scrolloff, dir->pos + ct), dir->ind);
-	} else {
-		dir->pos = max(min(fm->height - 1 - cfg.scrolloff, dir->pos + ct), fm->height - dir->len + dir->ind);
-	}
-
+	ind_move(dir, ct, fm->height, cfg.scrolloff);
 	if (dir->ind != cur) {
 		if (fm->visual.active) {
 			selection_visual_update(fm, fm->visual.anchor, cur,
@@ -616,8 +642,7 @@ bool fm_bot(fm_t *fm)
 
 void fm_move_to(fm_t *fm, const char *name)
 {
-	/* TODO: use fm_move to set the pos offset (on 2021-10-29) */
-	dir_sel(fm->dirs.visible[0], name);
+	ind_move_to(fm->dirs.visible[0], name, fm->height);
 	fm_update_preview(fm);
 }
 
@@ -740,7 +765,7 @@ void fm_filter(fm_t *fm, const char *filter)
 	d = fm->dirs.visible[0];
 	f = dir_current_file(d);
 	dir_filter(d, filter);
-	dir_sel(d, f ? f->name : NULL);
+	ind_move_to(d, f ? f->name : NULL, fm->height);
 	fm_update_preview(fm);
 }
 

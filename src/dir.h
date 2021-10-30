@@ -95,12 +95,6 @@ void dir_sort(dir_t *dir);
 const char *dir_parent(const dir_t *dir);
 
 /*
- * Select the file with name FILE in DIR if it exists, otherwise leave the
- * cursor position in a valid state.
- */
-void dir_sel(dir_t *dir, const char *file);
-
-/*
  * Applies the filter string FILTER to DIR.
  */
 void dir_filter(dir_t *dir, const char *filter);

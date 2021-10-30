@@ -23,35 +23,6 @@ file_t *dir_current_file(const dir_t *dir)
 	return dir->files[dir->ind];
 }
 
-void dir_sel(dir_t *dir, const char *file)
-{
-	/* TODO: Allow NULL for now to reset ind and pos (on 2021-08-01) */
-	if (!file) {
-		dir->ind = min(dir->ind, dir->len);
-		dir->pos = dir->ind;
-		log_error("dir_sel: selecting NULL %s", dir->path);
-		return;
-	}
-	if (!dir->files) {
-		/* This happens because we are lazily loading dirs. Leave this
-		 * marker and select in the actual dir later */
-		dir->sel = strdup(file);
-		return;
-	}
-	for (int i = 0; i < dir->len; i++) {
-		if (streq(dir->files[i]->name, file)) {
-			if (i == dir->ind) {
-				return;
-			}
-			/* TODO: this cant be right, dir->pos should be limited by fm height (on 2021-08-09) */
-			dir->ind = i;
-			dir->pos = dir->ind;
-			return;
-		}
-	}
-	dir->ind = min(dir->ind, dir->len);
-}
-
 const char *dir_parent(const dir_t *dir)
 {
 	static char tmp[PATH_MAX + 1];

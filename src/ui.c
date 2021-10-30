@@ -50,6 +50,7 @@ static struct notcurses *nc;
 
 static int resize_cb(struct ncplane *n)
 {
+	/* TODO: dir->pos needs to be changed for all directories (on 2021-10-30) */
 	ui_t *ui = ncplane_userptr(n);
 	notcurses_stddim_yx(nc, &ui->nrow, &ui->ncol);
 	log_debug("resize %d %d", ui->nrow, ui->ncol);
