@@ -5,7 +5,6 @@
 #include <lua.h>
 #include <luajit.h>
 #include <lualib.h>
-#include <ncurses.h>
 #include <stdlib.h>
 #include <notcurses/notcurses.h>
 #include <string.h>
@@ -24,21 +23,21 @@
 #include "log.h"
 #include "lualfm.h"
 #include "tokenize.h"
+#include "trie.h"
 #include "tpool.h"
 #include "util.h"
 
-#include "trie.h"
-
 static app_t *app = NULL;
 
-static trie_node_t *cur;
-static trie_node_t *maps;
-static trie_node_t *cmaps;
+static struct {
+	struct trie_node_t *normal;
+	struct trie_node_t *cmd;
+	struct trie_node_t *cur;
+	int *seq;
+	char *str;
+} maps;
 
-static int *seq = NULL;
-static char *seq_str = NULL;
-
-int l_map_key(lua_State *L)
+static int l_map_key(lua_State *L)
 {
 	const char *desc = NULL;
 	if (lua_type(L, 3) == LUA_TTABLE) {
@@ -53,14 +52,14 @@ int l_map_key(lua_State *L)
 		luaL_argerror(L, 2, "expected function");
 	}
 	int buf[strlen(keys)+1];
-	trie_node_t *k = trie_insert(maps, keytrans_inv_str(keys, buf), keys, desc);
+	trie_node_t *k = trie_insert(maps.normal, keytrans_inv_str(keys, buf), keys, desc);
 	lua_pushlightuserdata(L, (void *)k);
 	lua_pushvalue(L, 2);
 	lua_settable(L, LUA_REGISTRYINDEX);
 	return 0;
 }
 
-int l_cmap_key(lua_State *L)
+static int l_cmap_key(lua_State *L)
 {
 	const char *desc = NULL;
 	if (lua_type(L, 3) == LUA_TTABLE) {
@@ -75,7 +74,7 @@ int l_cmap_key(lua_State *L)
 		luaL_argerror(L, 2, "expected function");
 	}
 	int buf[strlen(keys)+1];
-	trie_node_t *k = trie_insert(cmaps, keytrans_inv_str(keys, buf), keys, desc);
+	trie_node_t *k = trie_insert(maps.cmd, keytrans_inv_str(keys, buf), keys, desc);
 	lua_pushlightuserdata(L, (void *)k);
 	lua_pushvalue(L, 2);
 	lua_settable(L, LUA_REGISTRYINDEX);
@@ -133,13 +132,13 @@ void lua_handle_key(lua_State *L, app_t *app, ncinput *in)
 		return;
 	}
 	const char *prefix = cmdline_prefix_get(&app->ui.cmdline);
-	if (!cur) {
-		cur = prefix ? cmaps : maps;
-		cvector_set_size(seq, 0);
+	if (!maps.cur) {
+		maps.cur = prefix ? maps.cmd : maps.normal;
+		cvector_set_size(maps.seq, 0);
 	}
-	cur = trie_find_child(cur, key);
+	maps.cur = trie_find_child(maps.cur, key);
 	if (prefix) {
-		if (!cur) {
+		if (!maps.cur) {
 			if (iswprint(key)) {
 				char buf[8] = {key, 0}; /* hope that fits */
 				int n = wctomb(buf, key);
@@ -164,10 +163,10 @@ void lua_handle_key(lua_State *L, app_t *app, ncinput *in)
 				}
 			}
 		} else {
-			if (cur->keys) {
-				lua_pushlightuserdata(L, (void *)cur);
+			if (maps.cur->keys) {
+				lua_pushlightuserdata(L, (void *)maps.cur);
 				lua_gettable(L, LUA_REGISTRYINDEX);
-				cur = NULL;
+				maps.cur = NULL;
 				if (lua_pcall(L, 0, 0, 0)) {
 					error("handle_key: %s", lua_tostring(L, -1));
 				}
@@ -178,7 +177,7 @@ void lua_handle_key(lua_State *L, app_t *app, ncinput *in)
 	}
 	if (!prefix) {
 		if (key == 27) {
-			cur = NULL;
+			maps.cur = NULL;
 			ui_cmd_clear(&app->ui);
 			ui_search_nohighlight(&app->ui);
 			fm_selection_visual_stop(&app->fm);
@@ -187,26 +186,26 @@ void lua_handle_key(lua_State *L, app_t *app, ncinput *in)
 			app->ui.redraw.fm = 1;
 			return;
 		}
-		if (!cur) {
-			cvector_push_back(seq, key);
-			cvector_set_size(seq_str, 0);
+		if (!maps.cur) {
+			cvector_push_back(maps.seq, key);
+			cvector_set_size(maps.str, 0);
 			/* TODO: Use a string builder (on 2021-10-29) */
-			for (size_t i = 0; i < cvector_size(seq); i++) {
-				const char *s = keytrans(seq[i]);
+			for (size_t i = 0; i < cvector_size(maps.seq); i++) {
+				const char *s = keytrans(maps.seq[i]);
 				while (*s) {
-					cvector_push_back(seq_str, *s++);
+					cvector_push_back(maps.str, *s++);
 				}
 			}
-			cvector_push_back(seq_str, 0);
-			error("no such map: %s", seq_str);
+			cvector_push_back(maps.str, 0);
+			error("no such map: %s", maps.str);
 			ui_showmenu(&app->ui, NULL);
 			return;
 		}
-		if (cur->keys) {
+		if (maps.cur->keys) {
 			ui_showmenu(&app->ui, NULL);
-			lua_pushlightuserdata(L, (void *)cur);
+			lua_pushlightuserdata(L, (void *)maps.cur);
 			lua_gettable(L, LUA_REGISTRYINDEX);
-			cur = NULL;
+			maps.cur = NULL;
 			if (lua_pcall(L, 0, 0, 0)) {
 				error("handle_key: %s", lua_tostring(L, -1));
 				if (key == 'q') {
@@ -216,10 +215,10 @@ void lua_handle_key(lua_State *L, app_t *app, ncinput *in)
 				}
 			}
 		} else {
-			cvector_push_back(seq, key);
+			cvector_push_back(maps.seq, key);
 			cvector_vector_type(char*) menu = NULL;
 			cvector_push_back(menu, strdup("keys\tcommand"));
-			trie_collect_leaves(cur, &menu);
+			trie_collect_leaves(maps.cur, &menu);
 			ui_showmenu(&app->ui, menu);
 		}
 	}
@@ -328,7 +327,6 @@ static int l_config_newindex(lua_State *L)
 		app->ui.redraw.fm = 1;
 	} else if (streq(key, "ratios")) {
 		const int l = lua_objlen(L, 3);
-		log_debug("%d", l);
 		if (l == 0) {
 			luaL_argerror(L, 3, "no ratios given");
 		}
@@ -346,8 +344,6 @@ static int l_config_newindex(lua_State *L)
 		config_ratios_set(l, ratios);
 		fm_recol(&app->fm);
 		ui_recol(&app->ui);
-		erase();
-		refresh();
 		app->ui.redraw.fm = 1;
 		free(ratios);
 	} else if (streq(key, "scrolloff")) {
@@ -388,21 +384,21 @@ static int l_config_newindex(lua_State *L)
 static int l_log_debug(lua_State *L)
 {
 	const char *msg = luaL_checkstring(L, 1);
-	log_debug(msg);
+	log_debug("%s", msg);
 	return 0;
 }
 
 static int l_log_info(lua_State *L)
 {
 	const char *msg = luaL_checkstring(L, 1);
-	log_info(msg);
+	log_info("%s", msg);
 	return 0;
 }
 
 static int l_log_trace(lua_State *L)
 {
 	const char *msg = luaL_checkstring(L, 1);
-	log_trace(msg);
+	log_trace("%s", msg);
 	return 0;
 }
 
@@ -848,7 +844,6 @@ static int l_fm_load_set(lua_State *L)
 {
 	int i;
 	fm_t *fm = &app->fm;
-	log_debug("l_fm_load_set %p %p %p", app, &app->ui, fm);
 	const char *mode = luaL_checkstring(L, 1);
 	fm_load_clear(fm);
 	if (streq(mode, "move")) {
@@ -1312,9 +1307,12 @@ void lua_init(lua_State *L, app_t *_app)
 {
 	app = _app;
 
-	maps = trie_new();
-	cmaps = trie_new();
-	cvector_push_back(seq_str, 0);
+	maps.normal = trie_new();
+	maps.cmd = trie_new();
+	maps.cur = NULL;
+	maps.str = NULL;
+	maps.seq = NULL;
+	cvector_push_back(maps.str, 0);
 
 	luaL_openlibs(L);
 	luaopen_jit(L);
@@ -1324,8 +1322,8 @@ void lua_init(lua_State *L, app_t *_app)
 void lua_deinit(lua_State *L)
 {
 	lua_close(L);
-	trie_destroy(maps);
-	trie_destroy(cmaps);
-	cvector_free(seq_str);
-	cvector_free(seq);
+	trie_destroy(maps.normal);
+	trie_destroy(maps.cmd);
+	cvector_free(maps.str);
+	cvector_free(maps.seq);
 }
