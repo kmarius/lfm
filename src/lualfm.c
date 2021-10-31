@@ -180,6 +180,7 @@ void lua_handle_key(lua_State *L, app_t *app, ncinput *in)
 		if (key == 27) {
 			cur = NULL;
 			ui_cmd_clear(&app->ui);
+			ui_search_nohighlight(&app->ui);
 			fm_selection_visual_stop(&app->fm);
 			fm_selection_clear(&app->fm);
 			fm_load_clear(&app->fm);
