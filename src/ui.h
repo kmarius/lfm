@@ -53,6 +53,8 @@ typedef struct ui_t {
 		bool menu : 1;
 		bool preview : 1;
 	} redraw;
+
+	bool message : 1;
 } ui_t;
 
 void kbblocking(bool blocking);

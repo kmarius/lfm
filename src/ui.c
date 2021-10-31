@@ -272,6 +272,7 @@ void ui_verror(ui_t *ui, const char *format, va_list args)
 		ncplane_putstr_yx(ui->planes.cmdline, 0, 0, msg);
 		ncplane_set_fg_default(ui->planes.cmdline);
 		notcurses_render(nc);
+		ui->message = 1;
 	}
 }
 
@@ -288,6 +289,7 @@ void ui_vechom(ui_t *ui, const char *format, va_list args)
 		ncplane_putstr_yx(ui->planes.cmdline, 0, 0, msg);
 		ncplane_set_fg_default(ui->planes.cmdline);
 		notcurses_render(nc);
+		ui->message = 1;
 	}
 }
 
@@ -300,6 +302,7 @@ void ui_cmd_prefix_set(ui_t *ui, const char *prefix)
 	if (!prefix) {
 		return;
 	}
+	ui->message = 0;
 	notcurses_cursor_enable(nc, 0, 0);
 	cmdline_prefix_set(&ui->cmdline, prefix);
 	ui->redraw.cmdline = 1;
@@ -496,6 +499,10 @@ void draw_cmdline(ui_t *ui)
 	char mtime[32];
 	const dir_t *dir;
 	const file_t *file;
+
+	if (ui->message) {
+		return;
+	}
 
 	ncplane_erase(ui->planes.cmdline);
 	ncplane_set_bg_default(ui->planes.cmdline);

@@ -180,6 +180,7 @@ void lua_handle_key(lua_State *L, app_t *app, ncinput *in)
 	if (!prefix) {
 		if (key == 27) {
 			maps.cur = NULL;
+			app->ui.message = 0;
 			ui_cmd_clear(&app->ui);
 			ui_search_nohighlight(&app->ui);
 			fm_selection_visual_stop(&app->fm);
