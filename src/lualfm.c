@@ -1222,7 +1222,8 @@ static const struct luaL_Reg fm_lib[] = {
 	{"get_height", l_fm_height},
 	{NULL, NULL}};
 
-static const struct luaL_Reg cmd_lib[] = {{"clear", l_cmd_clear},
+static const struct luaL_Reg cmd_lib[] = {
+	{"clear", l_cmd_clear},
 	{"delete", l_cmd_delete},
 	{"delete_right", l_cmd_delete_right},
 	{"_end", l_cmd_end},
@@ -1236,12 +1237,13 @@ static const struct luaL_Reg cmd_lib[] = {{"clear", l_cmd_clear},
 	{"setprefix", l_cmd_prefix_set},
 	{NULL, NULL}};
 
-static const struct luaL_Reg ui_lib[] = {{"clear", l_ui_clear},
+static const struct luaL_Reg ui_lib[] = {
+	{"clear", l_ui_clear},
+	{"draw", l_ui_draw},
 	{"history_append", l_history_append},
 	{"history_next", l_history_next},
 	{"history_prev", l_history_prev},
 	{"menu", l_ui_menu},
-	{"draw", l_ui_draw},
 	{"messages", l_ui_messages},
 	{NULL, NULL}};
 
