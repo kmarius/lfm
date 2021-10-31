@@ -118,6 +118,15 @@ function lfm.fm.selection_set(files) end
 ---@return string[] files table of files as strings.
 function lfm.fm.selection_get() end
 
+---@alias sortoption
+---| '"natural"'
+---| '"ctime"'
+---| '"size"'
+---| '"dirfirst"'
+---| '"nodirfirst"'
+---| '"reverse"'
+---| '"noreverse"'
+
 ---Set the sort method. Multiple options can be set at once. Later options may override previous ones.
 ---
 ---```
@@ -127,7 +136,7 @@ function lfm.fm.selection_get() end
 --- lfm.fm.sortby("ctime", "nodirfirst", "reverse")
 ---
 ---```
----@vararg string sort options
+---@vararg sortoption
 function lfm.fm.sortby(...) end
 
 ---Start visual selection mode.
@@ -141,14 +150,18 @@ function lfm.fm.visual_toggle() end
 ---Change directory to the parent of the current directory, unless in "/".
 function lfm.fm.updir() end
 
+---@alias movemode
+---| '"copy"'
+---| '"move"'
+
 ---Get the current load and mode.
----@return string mode `"copy"` or `"move"`
----@return string[] files table of absolute paths
+---@return movemode mode
+---@return string[] files
 function lfm.fm.load_get() end
 
 ---Set the current load and mode.
----@param mode string `"move"` or `"copy"`
----@param files string[] Table of absolute paths.
+---@param mode movemode
+---@param files string[]
 function lfm.fm.load_set(mode, files) end
 
 ---Add the current selection to the load and change mode to MODE_MOVE.

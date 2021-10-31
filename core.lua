@@ -1,4 +1,4 @@
----@import lfm.lua
+---@import 'lfm'
 local home = os.getenv("HOME")
 package.path = string.gsub(package.path, "./%?.lua;", "")
 if not string.match(package.path, home.."/.config/lfm/lua/") then
