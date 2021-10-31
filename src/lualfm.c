@@ -131,6 +131,8 @@ void lua_handle_key(lua_State *L, app_t *app, ncinput *in)
 		app_quit(app);
 		return;
 	}
+	/* TODO: Deal with ncinputs properly. It is currently not possible to map
+	 * ctrl-tab (aka backtab) (on 2021-10-31) */
 	const char *prefix = cmdline_prefix_get(&app->ui.cmdline);
 	if (!maps.cur) {
 		maps.cur = prefix ? maps.cmd : maps.normal;

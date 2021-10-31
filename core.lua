@@ -1,3 +1,4 @@
+---@import lfm.lua
 local home = os.getenv("HOME")
 package.path = string.gsub(package.path, "./%?.lua;", "")
 if not string.match(package.path, home.."/.config/lfm/lua/") then
@@ -11,29 +12,6 @@ local fm = lfm.fm
 local log = lfm.log
 local ui = lfm.ui
 local config = lfm.config
-
-do
-	setmetatable(lfm.cmd, {
-		__index = function(table, key)
-			if key == "prefix" then
-				return lfm.cmd.getprefix()
-			elseif key == "line" then
-				return lfm.cmd.getline()
-			end
-			return nil
-		end,
-		__newindex = function(table, key, value)
-			if key == "prefix" then
-				return lfm.cmd.setprefix(value)
-			elseif key == "line" then
-				if lfm.cmd.prefix ~= "" then
-					lfm.cmd.setline(value)
-				end
-			end
-			return nil
-		end,
-	})
-end
 
 function print(...)
 	local t = {}
@@ -88,7 +66,7 @@ function lfm.run_hook(name)
 	end
 end
 
-local commands = {}
+local commands = lfm.commands
 lfm.modes = {}
 local modes = lfm.modes
 
@@ -102,7 +80,7 @@ local modes = lfm.modes
 ---@param t table Additional options.
 function lfm.register_command(name, f, t)
 	t = t or {}
-	commands[name] = {f=f, tokenize=t.tokenize == nil and true or t.tokenize}
+	lfm.commands[name] = {f=f, tokenize=t.tokenize == nil and true or t.tokenize}
 end
 
 ---Register a mode to lfm. A mode is given by a table t that should contain the following fields:
@@ -120,8 +98,8 @@ end
 
 ---Function for <enter> in command mode. Clears the command line and calls `mode.enter`.
 local function cmdenter()
-	local line = lfm.cmd.line
-	local prefix = lfm.cmd.prefix
+	local line = lfm.cmd.getline()
+	local prefix = lfm.cmd.getprefix()
 	lfm.cmd.clear()
 	local mode = modes[prefix]
 	-- TODO: allow line to be "" ? (on 2021-07-23)
@@ -132,7 +110,7 @@ end
 
 ---Function for <esc> in command mode. Clears the command line and calls `mode.esc`.
 local function cmdesc()
-	local mode = modes[lfm.cmd.prefix]
+	local mode = modes[lfm.cmd.getprefix()]
 	if mode then
 		mode.esc()
 	end
@@ -142,7 +120,7 @@ end
 ---Function for <delete> in command mode. Deletes to the left and calls `mode.change`.
 local function cmddelete()
 	lfm.cmd.delete()
-	local mode = modes[lfm.cmd.prefix]
+	local mode = modes[lfm.cmd.getprefix()]
 	if mode then
 		mode.change()
 	end
@@ -151,7 +129,7 @@ end
 ---Function for <deleteright> in command mode. Deletes to the right and calls `mode.change`.
 local function cmddeleteright()
 	lfm.cmd.delete_right()
-	local mode = modes[lfm.cmd.prefix]
+	local mode = modes[lfm.cmd.getprefix()]
 	if mode then
 		mode.change()
 	end
@@ -182,32 +160,34 @@ function lfm.feedkeys(...)
 	end
 end
 
-commands = {
+lfm.commands = {
 	cd = {f=cd, tokenize=true},
 	quit = {f=lfm.quit, tokenize=true},
 }
 
 ---Fill command line with the previous history item.
 local function history_prev()
-	if lfm.cmd.prefix ~= ":" then
+	if lfm.cmd.getprefix() ~= ":" then
 		return
 	end
 	local line = ui.history_prev()
 	if line then
-		lfm.cmd.line = line
+		lfm.cmd.setline(line)
 	end
 end
 
 ---Fill command line with the next history item.
 local function history_next()
-	if lfm.cmd.prefix ~= ":" then
+	if lfm.cmd.getprefix() ~= ":" then
 		return
 	end
 	local line = ui.history_next()
 	if line then
-		lfm.cmd.line = line
+		lfm.cmd.setline(line)
 	end
 end
+
+local compl = require("compl")
 
 local cmap = lfm.cmap
 cmap("<enter>", cmdenter, {desc=""})
@@ -220,11 +200,13 @@ cmap("<down>", history_next, {desc=""})
 cmap("<home>", lfm.cmd.home, {desc=""})
 cmap("<end>", lfm.cmd._end, {desc=""})
 cmap("<delete>", cmddeleteright, {desc=""})
+cmap("<tab>", compl.next, {desc=""})
+cmap("<backtab>", compl.prev, {desc=""})
 
 local map = lfm.map
-map("f", function() lfm.cmd.prefix = "find: " end, {desc="find"})
-map("F", function() lfm.cmd.prefix = "travel: " end, {desc="travel"})
-map("zf", function() lfm.cmd.prefix = "filter: " lfm.cmd.line = fm.getfilter() end, {desc="filter"})
+map("f", function() lfm.cmd.setprefix("find: ") end, {desc="find"})
+map("F", function() lfm.cmd.setprefix("travel: ") end, {desc="travel"})
+map("zf", function() lfm.cmd.setprefix("filter: ") lfm.cmd.setline(fm.getfilter()) end, {desc="filter"})
 map("l", open)
 map("q", lfm.quit)
 map("j", fm.down)
@@ -235,9 +217,9 @@ map("G", fm.bottom, {desc="bottom"})
 map("R", function() loadfile("/home/marius/Sync/programming/lfm/core.lua")() end, {desc="reload config"})
 map("''", function() fm.mark_load("'") end)
 map("zh", function() lfm.config.hidden = not lfm.config.hidden end, {desc="toggle hidden"})
-map(":", function() lfm.cmd.prefix = ":" end)
-map("/", function() lfm.cmd.prefix = "/" lfm.search("") end)
-map("?", function() lfm.cmd.prefix = "?" lfm.search("") end)
+map(":", function() lfm.cmd.setprefix(":") end)
+map("/", function() lfm.cmd.setprefix("/") lfm.search("") end)
+map("?", function() lfm.cmd.setprefix("?") lfm.search("") end)
 map("n", lfm.search_next)
 map("N", lfm.search_prev)
 
@@ -246,7 +228,7 @@ local mode_filter = {
 	prefix = "filter: ",
 	enter = function(line) fm.filter(line) end,
 	esc = function() fm.filter("") end,
-	change = function() fm.filter(lfm.cmd.line) end,
+	change = function() fm.filter(lfm.cmd.getline()) end,
 }
 
 ---Executes line. If the first whitespace delimited token is a registered
@@ -265,7 +247,7 @@ function lfm.exec_expr(line)
 	if not cmd then
 		return
 	end
-	local command = commands[cmd]
+	local command = lfm.commands[cmd]
 	if command then
 		if command.tokenize then
 			command.f(unpack(args))
@@ -295,14 +277,14 @@ local mode_search = {
 	prefix = "/",
 	enter = function() lfm.search_next(true) end, -- apply search, keep highlights, move cursor to next match  or stay on current
 	esc = function() lfm.search("") end, -- delete everything
-	change = function() lfm.search(lfm.cmd.line) end, -- highlight match in UI
+	change = function() lfm.search(lfm.cmd.getline()) end, -- highlight match in UI
 }
 
 local mode_search_back = {
 	prefix = "?",
 	enter = function() lfm.search_next(true) end,
 	esc = function() lfm.search_back("") end,
-	change = function() lfm.search_back(lfm.cmd.line) end,
+	change = function() lfm.search_back(lfm.cmd.getline()) end,
 }
 
 local mode_find = {
@@ -310,7 +292,7 @@ local mode_find = {
 	enter = function() lfm.exec_expr("open") end,
 	esc = function() end,
 	change = function()
-		if lfm.find(lfm.cmd.line) then
+		if lfm.find(lfm.cmd.getline()) then
 			lfm.cmd.clear()
 			lfm.timeout(250)
 			commands.open.f()
@@ -323,9 +305,9 @@ local mode_travel = {
 	enter = function() end,
 	esc = function() end,
 	change = function()
-		if lfm.find(lfm.cmd.line) then
+		if lfm.find(lfm.cmd.getline()) then
 			lfm.timeout(250)
-			lfm.cmd.line = ""
+			lfm.cmd.setline("")
 			if commands.open.f() then
 				lfm.cmd.clear()
 			end
