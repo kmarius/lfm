@@ -189,7 +189,7 @@ bool cmdline_set(T *t, const char *line)
 	t->right.str[0] = 0;
 	t->right.len = 0;
 	ensure_space(t->left, strlen(line));
-	const int n = mbstowcs(t->left.str, line, t->left.cap);
+	const int n = mbstowcs(t->left.str, line, t->left.cap + 1);
 	if (n == -1) {
 		t->left.len = 0;
 		t->left.str[0] = 0;
