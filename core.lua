@@ -23,9 +23,9 @@ end
 
 ---@return table selection The currently selected files or the file at the current cursor position
 function lfm.sel_or_cur()
-	local sel = fm.selection
+	local sel = fm.selection_get()
 	if not sel[1] then
-		sel = {fm.current}
+		sel = {fm.current_file()}
 	end
 	return sel
 end

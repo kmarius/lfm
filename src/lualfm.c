@@ -235,36 +235,6 @@ bool lua_load_file(lua_State *L, app_t *app, const char *path)
 	return true;
 }
 
-static int l_fm_index(lua_State *L)
-{
-	fm_t *fm = &app->fm;
-	const char *key = luaL_checkstring(L, 2);
-	if (streq(key, "height")) {
-		lua_pushinteger(L, app->fm.height);
-		return 1;
-	} else if (streq(key, "selection")) {
-		lua_createtable(L, fm->selection.len, 0);
-		size_t i, j;
-		for (i = 0, j = 1; i < cvector_size(fm->selection.files); i++) {
-			if (fm->selection.files[i]) {
-				lua_pushstring(L, fm->selection.files[i]);
-				lua_rawseti(L, -2, j++);
-			}
-		}
-		return 1;
-	} else if (streq(key, "current")) {
-		/* TODO: current file or current dir (on 2021-07-21) */
-		file_t *file;
-		if ((file = fm_current_file(&app->fm))) {
-			lua_pushstring(L, file->path);
-			return 1;
-		} else {
-			return 0;
-		}
-	}
-	return 0;
-}
-
 static int l_config_index(lua_State *L)
 {
 	const char *key = luaL_checkstring(L, 2);
@@ -676,6 +646,16 @@ static int l_fm_open(lua_State *L)
 	}
 }
 
+static int l_fm_current_file(lua_State *L)
+{
+	file_t *file = fm_current_file(&app->fm);
+	if (file) {
+		lua_pushstring(L, file->path);
+		return 1;
+	}
+	return 0;
+}
+
 static int l_fm_current_dir(lua_State *L)
 {
 	const dir_t *dir = fm_current_dir(&app->fm);
@@ -792,6 +772,19 @@ static int l_selection_set(lua_State *L)
 	}
 	fm_selection_set(&app->fm, selection);
 	return 0;
+}
+
+static int l_selection_get(lua_State *L)
+{
+	lua_createtable(L, app->fm.selection.len, 0);
+	size_t i, j = 1;
+	for (i = 0; i < cvector_size(app->fm.selection.files); i++) {
+		if (app->fm.selection.files[i]) {
+			lua_pushstring(L, app->fm.selection.files[i]);
+			lua_rawseti(L, -2, j++);
+		}
+	}
+	return 1;
 }
 
 static int l_selection_clear(lua_State *L)
@@ -986,13 +979,6 @@ static int l_fm_drop_cache(lua_State *L)
 	return 0;
 }
 
-static int l_fm_watchers(lua_State *L)
-{
-	(void) L;
-	log_watchers();
-	return 0;
-}
-
 static int l_fm_check(lua_State *L)
 {
 	(void) L;
@@ -1174,6 +1160,12 @@ static int l_timeout(lua_State *L)
 	return 0;
 }
 
+static int l_fm_height(lua_State *L)
+{
+	lua_pushnumber(L, app->fm.height);
+	return 1;
+}
+
 static const struct luaL_Reg lfm_lib[] = {
 	{"map", l_map_key},
 	{"cmap", l_cmap_key},
@@ -1204,11 +1196,13 @@ static const struct luaL_Reg fm_lib[] = {
 	{"mark_load", l_fm_mark_load},
 	{"open", l_fm_open},
 	{"current_dir", l_fm_current_dir},
+	{"current_file", l_fm_current_file},
 	{"selection_clear", l_selection_clear},
 	{"selection_reverse", l_selection_reverse},
 	{"selection_toggle", l_selection_toggle_current},
 	{"selection_add", l_selection_add},
 	{"selection_set", l_selection_set},
+	{"selection_get", l_selection_get},
 	{"sortby", l_sortby},
 	{"top", l_fm_top},
 	{"visual_start", l_sel_visual_start},
@@ -1224,10 +1218,8 @@ static const struct luaL_Reg fm_lib[] = {
 	{"check", l_fm_check},
 	{"drop_cache", l_fm_drop_cache},
 	{"sel", l_fm_sel},
-	{"debug_watchers", l_fm_watchers},
+	{"get_height", l_fm_height},
 	{NULL, NULL}};
-
-static const struct luaL_Reg fm_mt[] = {{"__index", l_fm_index}, {NULL, NULL}};
 
 static const struct luaL_Reg cmd_lib[] = {{"clear", l_cmd_clear},
 	{"delete", l_cmd_delete},
@@ -1297,9 +1289,6 @@ int luaopen_lfm(lua_State *L)
 
 	lua_newtable(L);	       /* lfm.fm */
 	luaL_register(L, NULL, fm_lib);
-	luaL_newmetatable(L, "mtNav");
-	luaL_register(L, NULL, fm_mt);
-	lua_setmetatable(L, -2);
 	lua_setfield(L, -2, "fm"); /* lfm.fm = {...} */
 
 	return 1;
