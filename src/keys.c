@@ -382,7 +382,7 @@ int *keytrans_inv_str(const char *keys, int *buf)
 				break;
 			}
 		} else {
-			l = mbtowc(buf + i, c, 10);
+			l = mbtowc(buf + i, c, 8);
 			if (l == -1) {
 				// unrecognized key
 				break;

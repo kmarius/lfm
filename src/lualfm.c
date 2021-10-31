@@ -107,7 +107,7 @@ void lua_exec_expr(lua_State *L, app_t *app, const char *cmd)
 int l_handle_key(lua_State *L)
 {
 	const char *keys = luaL_checkstring(L, 1);
-	int buf[strlen(keys)];
+	int buf[strlen(keys) + 1];
 	keytrans_inv_str(keys, buf);
 	for (int *i = buf; *i; i++) {
 		struct ncinput in = {
