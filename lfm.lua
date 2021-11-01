@@ -112,9 +112,11 @@ function lfm.fm.selection_set(files) end
 function lfm.fm.selection_get() end
 
 ---@alias sortoption
+---| '"name"'
 ---| '"natural"'
 ---| '"ctime"'
 ---| '"size"'
+---| '"random"'
 ---| '"dirfirst"'
 ---| '"nodirfirst"'
 ---| '"reverse"'

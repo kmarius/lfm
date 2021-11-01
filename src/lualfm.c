@@ -733,6 +733,8 @@ static int l_sortby(lua_State *L)
 			dir->sorttype = SORT_CTIME;
 		} else if (streq(op, "size")) {
 			dir->sorttype = SORT_SIZE;
+		} else if (streq(op, "random")) {
+			dir->sorttype = SORT_RAND;
 		} else if (streq(op, "dirfirst")) {
 			dir->dirfirst = true;
 		} else if (streq(op, "nodirfirst")) {

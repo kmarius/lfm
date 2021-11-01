@@ -9,7 +9,7 @@
 #include "cvector.h"
 #include "sort.h"
 
-enum sorttype_e { SORT_NATURAL, SORT_NAME, SORT_SIZE, SORT_CTIME, };
+enum sorttype_e { SORT_NATURAL, SORT_NAME, SORT_SIZE, SORT_CTIME, SORT_RAND, };
 
 typedef struct file_t {
 	struct stat stat;
