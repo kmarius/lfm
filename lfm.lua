@@ -1,10 +1,6 @@
 ---@meta
 local lfm = {}
 
----Get the process id of the current instance.
----@return number PID
-function lfm.getpid() end
-
 ---Set the timeout in milliseconds from now in which lfm will ignore keyboard input.
 ---@param duration integer in milliseconds.
 function lfm.timeout(duration) end
@@ -40,11 +36,6 @@ function lfm.shell_post() end
 
 ---Prepare for a shell command to take over the output.
 function lfm.shell_pre() end
-
----Tokenize a string. For convenience, the first token is returned separately.
----@param str string
----@return string, string[]
-function lfm.tokenize(str) end
 
 ---@param keys string
 function lfm.handle_key(keys) end
@@ -130,16 +121,15 @@ function lfm.fm.selection_get() end
 ---| '"noreverse"'
 
 ---Set the sort method. Multiple options can be set at once. Later options may override previous ones.
+---#Example:
 ---
 ---```
----sort methods: "natural", "ctime", "size"
----sort options: "dirfirst", "nodirfirst", "reverse", "noreverse"
----example:
 --- lfm.fm.sortby("ctime", "nodirfirst", "reverse")
 ---
 ---```
+---@param opt1? sortoption
 ---@vararg sortoption
-function lfm.fm.sortby(...) end
+function lfm.fm.sortby(opt1, ...) end
 
 ---Start visual selection mode.
 function lfm.fm.visual_start() end
@@ -294,5 +284,29 @@ function lfm.cmd.setline(line) end
 ---Set the command line prefix.
 ---@param prefix string
 function lfm.cmd.setprefix(prefix) end
+
+lfm.fn = {}
+
+---Get the process id of the current instance.
+---@return number PID
+function lfm.fn.getpid() end
+
+---Tokenize a string. For convenience, the first token is returned separately.
+---@param str string
+---@return string, string[]
+function lfm.fn.tokenize(str) end
+
+---@class configlib
+---@field ratios integer[] assignable
+---@field truncatechar string assignable, only the first character is used
+---@field scrolloff integer assignable
+---@field hidden boolean assignable
+---@field preview boolean assignable
+---@field previewer string assignable
+---@field configpath string
+---@field fifopath string
+---@field dircache_size integer assignable
+---@field previewcache_size integer assignable
+lfm.config = {}
 
 return lfm
