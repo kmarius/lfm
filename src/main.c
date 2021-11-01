@@ -1,18 +1,18 @@
 #include <errno.h>
+#include <ev.h>
 #include <libgen.h>
 #include <locale.h>
-#include <ev.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/time.h>
 #include <sys/stat.h>
+#include <sys/time.h>
 
 #include "app.h"
 #include "config.h"
 #include "cvector.h"
+#include "fm.h"
 #include "log.h"
 #include "lualfm.h"
-#include "fm.h"
 #include "ui.h"
 #include "util.h"
 

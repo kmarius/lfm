@@ -1,13 +1,13 @@
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-#include <errno.h>
 
 #include "config.h"
 #include "dir.h"
 #include "log.h"
-#include "preview.h"
 #include "popen_arr.h"
+#include "preview.h"
 
 preview_t *preview_new(const char *path, const file_t *fptr, int nrow, int ncol)
 {

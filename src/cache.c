@@ -1,8 +1,6 @@
 #include <stdlib.h>
 
-#include "dir.h"
 #include "cache.h"
-#include "log.h"
 #include "util.h"
 #include "time.h"
 

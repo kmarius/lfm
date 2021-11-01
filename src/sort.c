@@ -1,6 +1,4 @@
 #include "dir.h"
-#include "string.h"
-
 #include "strnatcmp.h"
 
 int compare_name(const void *a, const void *b)

@@ -2,10 +2,9 @@
 #include <notcurses/notcurses.h>
 #include <wchar.h>
 
+#include "app.h" /* error() */
 #include "keys.h"
 #include "util.h"
-#include "app.h"
-#include "log.h"
 
 /* KEY_DL          Delete line */
 /* KEY_IL          Insert line */

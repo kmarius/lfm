@@ -5,8 +5,8 @@
 #include <lua.h>
 #include <luajit.h>
 #include <lualib.h>
-#include <stdlib.h>
 #include <notcurses/notcurses.h>
+#include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
 #include <wctype.h>

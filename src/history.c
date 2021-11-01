@@ -1,5 +1,5 @@
-#include <stdio.h>
 #include <libgen.h>
+#include <stdio.h>
 
 #include "history.h"
 #include "log.h"

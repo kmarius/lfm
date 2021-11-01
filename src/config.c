@@ -1,16 +1,15 @@
 #define _GNU_SOURCE
-#include <stdio.h>
+#include <linux/limits.h>
+#include <notcurses/notcurses.h>
 #include <stdarg.h>
 #include <stdbool.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
-#include <linux/limits.h>
-#include <notcurses/notcurses.h>
 
 #include "config.h"
 #include "cvector.h"
-#include "log.h"
 
 config cfg = {
 	.truncatechar = L'~',

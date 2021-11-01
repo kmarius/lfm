@@ -3,19 +3,19 @@
 #include <ev.h>
 #include <fcntl.h>
 #include <lauxlib.h>
-#include <pthread.h>
 #include <notcurses/notcurses.h>
+#include <pthread.h>
 #include <signal.h>
 #include <sys/inotify.h>
 #include <sys/sysinfo.h>
 
 #include "app.h"
-#include "notify.h"
 #include "async.h"
 #include "config.h"
 #include "keys.h"
 #include "log.h"
 #include "lualfm.h"
+#include "notify.h"
 #include "tpool.h"
 #include "ui.h"
 #include "util.h"
