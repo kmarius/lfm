@@ -6,88 +6,6 @@
 #include "keys.h"
 #include "util.h"
 
-/* KEY_DL          Delete line */
-/* KEY_IL          Insert line */
-/* KEY_IC          Insert char or enter insert mode */
-/* KEY_EIC         Exit insert char mode */
-/* KEY_CLEAR       Clear screen */
-/* KEY_EOS         Clear to end of screen */
-/* KEY_EOL         Clear to end of line */
-/* KEY_SF          Scroll 1 line forward */
-/* KEY_SR          Scroll 1 line backward (reverse) */
-/* KEY_NPAGE       Next page */
-/* KEY_PPAGE       Previous page */
-/* KEY_STAB        Set tab */
-/* KEY_CTAB        Clear tab */
-/* KEY_CATAB       Clear all tabs */
-/* case KEY_ENTER:  #<{(| not enter? |)}># */
-/* 	return "<enter>"; */
-/* KEY_SRESET      Soft (partial) reset */
-/* KEY_RESET       Reset or hard reset */
-/* KEY_PRINT       Print or copy */
-/* KEY_LL          Home down or bottom (lower left) */
-/* KEY_A1          Upper left of keypad */
-/* KEY_A3          Upper right of keypad */
-/* KEY_B2          Center of keypad */
-/* KEY_C1          Lower left of keypad */
-/* KEY_C3          Lower right of keypad */
-/* KEY_BEG         Beg(inning) key */
-/* KEY_CANCEL      Cancel key */
-/* KEY_CLOSE       Close key */
-/* KEY_COMMAND     Cmd (command) key */
-/* KEY_COPY        Copy key */
-/* KEY_CREATE      Create key */
-/* KEY_EXIT        Exit key */
-/* KEY_FIND        Find key */
-/* KEY_HELP        Help key */
-/* KEY_MARK        Mark key */
-/* KEY_MESSAGE     Message key */
-/* KEY_MOUSE       Mouse event read */
-/* KEY_MOVE        Move key */
-/* KEY_NEXT        Next object key */
-/* KEY_OPEN        Open key */
-/* KEY_OPTIONS     Options key */
-/* KEY_PREVIOUS    Previous object key */
-/* KEY_REDO        Redo key */
-/* KEY_REFERENCE   Ref(erence) key */
-/* KEY_REFRESH     Refresh key */
-/* KEY_REPLACE     Replace key */
-/* KEY_RESIZE      Screen resized */
-/* KEY_RESTART     Restart key */
-/* KEY_RESUME      Resume key */
-/* KEY_SAVE        Save key */
-/* KEY_SBEG        Shifted beginning key */
-/* KEY_SCANCEL     Shifted cancel key */
-/* KEY_SCOMMAND    Shifted command key */
-/* KEY_SCOPY       Shifted copy key */
-/* KEY_SCREATE     Shifted create key */
-/* KEY_SDC         Shifted delete char key */
-/* KEY_SDL         Shifted delete line key */
-/* KEY_SELECT      Select key */
-/* KEY_SEND        Shifted end key */
-/* KEY_SEOL        Shifted clear line key */
-/* KEY_SEXIT       Shifted exit key */
-/* KEY_SFIND       Shifted find key */
-/* KEY_SHELP       Shifted help key */
-/* KEY_SHOME       Shifted home key */
-/* KEY_SIC         Shifted input key */
-/* KEY_SLEFT       Shifted left arrow key */
-/* KEY_SMESSAGE    Shifted message key */
-/* KEY_SMOVE       Shifted move key */
-/* KEY_SNEXT       Shifted next key */
-/* KEY_SOPTIONS    Shifted options key */
-/* KEY_SPREVIOUS   Shifted prev key */
-/* KEY_SPRINT      Shifted print key */
-/* KEY_SREDO       Shifted redo key */
-/* KEY_SREPLACE    Shifted replace key */
-/* KEY_SRIGHT      Shifted right arrow */
-/* KEY_SRSUME      Shifted resume key */
-/* KEY_SSAVE       Shifted save key */
-/* KEY_SSUSPEND    Shifted suspend key */
-/* KEY_SUNDO       Shifted undo key */
-/* KEY_SUSPEND     Suspend key */
-/* KEY_UNDO        Undo key */
-
 const char *keytrans(int key)
 {
 	static char buf[8]; /* hope that fits */
@@ -114,29 +32,33 @@ const char *keytrans(int key)
 		return "<backspace>";
 	case 127: /* tmux sends this instead */
 		return "<backspace>";
-	case KEY_F(1):
+	case NCKEY_PGUP:
+		return "<pageup>";
+	case NCKEY_PGDOWN:
+		return "<pagedown>";
+	case NCKEY_F01:
 		return "<f-1>";
-	case KEY_F(2):
+	case NCKEY_F02:
 		return "<f-2>";
-	case KEY_F(3):
+	case NCKEY_F03:
 		return "<f-3>";
-	case KEY_F(4):
+	case NCKEY_F04:
 		return "<f-4>";
-	case KEY_F(5):
+	case NCKEY_F05:
 		return "<f-5>";
-	case KEY_F(6):
+	case NCKEY_F06:
 		return "<f-6>";
-	case KEY_F(7):
+	case NCKEY_F07:
 		return "<f-7>";
-	case KEY_F(8):
+	case NCKEY_F08:
 		return "<f-8>";
-	case KEY_F(9):
+	case NCKEY_F09:
 		return "<f-9>";
-	case KEY_F(10):
+	case NCKEY_F10:
 		return "<f-10>";
-	case KEY_F(11):
+	case NCKEY_F11:
 		return "<f-11>";
-	case KEY_F(12):
+	case NCKEY_F12:
 		return "<f-12>";
 	case KEY_DC:
 	case NCKEY_DEL:
@@ -294,6 +216,22 @@ int keytrans_inv(char *key)
 	return 0;
 }
 
+static const int fkeys[] = {
+	NCKEY_F00,
+	NCKEY_F01,
+	NCKEY_F02,
+	NCKEY_F03,
+	NCKEY_F04,
+	NCKEY_F05,
+	NCKEY_F06,
+	NCKEY_F07,
+	NCKEY_F08,
+	NCKEY_F09,
+	NCKEY_F10,
+	NCKEY_F11,
+	NCKEY_F12,
+};
+
 int *keytrans_inv_str(const char *keys, int *buf)
 {
 	wchar_t w;
@@ -330,6 +268,10 @@ int *keytrans_inv_str(const char *keys, int *buf)
 					n += *c - '0';
 					c++;
 				}
+				/* TODO: support more f keys? (on 2021-11-01) */
+				if (n <= 12) {
+					buf[i++] = fkeys[n];
+				}
 				c++;
 			} else if (hasprefix(c, "backspace>")) {
 				buf[i++] = NCKEY_BACKSPACE;
@@ -361,6 +303,12 @@ int *keytrans_inv_str(const char *keys, int *buf)
 			} else if (hasprefix(c, "left>")) {
 				buf[i++] = NCKEY_LEFT;
 				c += 5;
+			} else if (hasprefix(c, "pageup>")) {
+				buf[i++] = NCKEY_PGUP;
+				c += 7;
+			} else if (hasprefix(c, "pagedown>")) {
+				buf[i++] = NCKEY_PGDOWN;
+				c += 9;
 			} else if (hasprefix(c, "lt>")) {
 				buf[i++] = '<';
 				c += 3;
