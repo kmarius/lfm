@@ -192,7 +192,8 @@ void fm_sort(fm_t *fm)
 			/* TODO: maybe we can select the closest non-hidden file in case the
 			 * current one will be hidden (on 2021-10-17) */
 			if (fm->dirs.visible[i]->len > 0) {
-				const char *name = dir_current_file(fm->dirs.visible[i])->name;
+				const file_t *file = dir_current_file(fm->dirs.visible[i]);
+				const char *name = file ? file->name : NULL;
 				dir_sort(fm->dirs.visible[i]);
 				ind_move_to(fm->dirs.visible[i], name, fm->height);
 			}
@@ -201,7 +202,8 @@ void fm_sort(fm_t *fm)
 	if (fm->dirs.preview) {
 		fm->dirs.preview->hidden = cfg.hidden;
 		if (fm->dirs.preview->len > 0) {
-			const char *name = dir_current_file(fm->dirs.preview)->name;
+			const file_t *file = dir_current_file(fm->dirs.preview);
+			const char *name = file ? file->name : NULL;
 			dir_sort(fm->dirs.preview);
 			ind_move_to(fm->dirs.preview, name, fm->height);
 		}

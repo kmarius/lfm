@@ -749,7 +749,10 @@ static int l_sortby(lua_State *L)
 		}
 	}
 	dir->sorted = false;
+	const file_t *file = dir_current_file(dir);
+	const char *name = file ? file->name : NULL;
 	dir_sort(dir);
+	fm_move_to(&app->fm, name);
 	app->ui.redraw.fm = 1;
 	return 0;
 }
