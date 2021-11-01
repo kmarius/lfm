@@ -1,4 +1,3 @@
----@import 'lfm'
 local home = os.getenv("HOME")
 package.path = string.gsub(package.path, "./%?.lua;", "")
 if not string.match(package.path, home.."/.config/lfm/lua/") then
@@ -295,7 +294,7 @@ local mode_find = {
 		if lfm.find(lfm.cmd.getline()) then
 			lfm.cmd.clear()
 			lfm.timeout(250)
-			commands.open.f()
+			lfm.commands.open.f()
 		end
 	end,
 }

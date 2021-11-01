@@ -24,10 +24,12 @@ function lfm.search(name) end
 function lfm.search_back(name) end
 
 ---Go to the next search result.
-function lfm.search_next() end
+---@param include boolean Don't move away if the current file matches.
+function lfm.search_next(include) end
 
 ---Go to the previous search result.
-function lfm.search_prev() end
+---@param include boolean Don't move away if the current file matches.
+function lfm.search_prev(include) end
 
 ---Show an error in the UI.
 ---@param msg string
