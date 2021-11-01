@@ -242,7 +242,7 @@ local mode_filter = {
 ---@param line string
 function lfm.exec_expr(line)
 	log.debug(line)
-	local cmd, args = lfm.tokenize(line)
+	local cmd, args = lfm.fn.tokenize(line)
 	if not cmd then
 		return
 	end

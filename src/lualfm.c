@@ -1173,7 +1173,6 @@ static const struct luaL_Reg lfm_lib[] = {
 	{"map", l_map_key},
 	{"cmap", l_cmap_key},
 	{"handle_key", l_handle_key},
-	{"getpid", l_getpid},
 	{"timeout", l_timeout},
 	{"find", l_find},
 	{"search", l_search},
@@ -1187,7 +1186,6 @@ static const struct luaL_Reg lfm_lib[] = {
 	{"quit", l_quit},
 	{"shell_post", l_shell_post},
 	{"shell_pre", l_shell_pre},
-	{"tokenize", l_tokenize},
 	{NULL, NULL}};
 
 static const struct luaL_Reg fm_lib[] = {
@@ -1249,7 +1247,13 @@ static const struct luaL_Reg ui_lib[] = {
 	{"messages", l_ui_messages},
 	{NULL, NULL}};
 
-static const struct luaL_Reg log_lib[] = {{"debug", l_log_debug},
+static const struct luaL_Reg fn_lib[] = {
+	{"tokenize", l_tokenize},
+	{"getpid", l_getpid},
+	{NULL, NULL}};
+
+static const struct luaL_Reg log_lib[] = {
+	{"debug", l_log_debug},
 	{"info", l_log_info},
 	{"trace", l_log_trace},
 	{NULL, NULL}};
@@ -1295,6 +1299,10 @@ int luaopen_lfm(lua_State *L)
 	lua_newtable(L);	       /* lfm.fm */
 	luaL_register(L, NULL, fm_lib);
 	lua_setfield(L, -2, "fm"); /* lfm.fm = {...} */
+
+	lua_newtable(L);	       /* lfm.fn */
+	luaL_register(L, NULL, fn_lib);
+	lua_setfield(L, -2, "fn"); /* lfm.fn = {...} */
 
 	return 1;
 }
