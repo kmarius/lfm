@@ -200,7 +200,7 @@ cmap("<home>", lfm.cmd.home, {desc=""})
 cmap("<end>", lfm.cmd._end, {desc=""})
 cmap("<delete>", cmddeleteright, {desc=""})
 cmap("<tab>", compl.next, {desc=""})
-cmap("<backtab>", compl.prev, {desc=""})
+cmap("<s-tab>", compl.prev, {desc=""})
 
 local map = lfm.map
 map("f", function() lfm.cmd.setprefix("find: ") end, {desc="find"})
