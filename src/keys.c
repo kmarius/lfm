@@ -1,343 +1,233 @@
-#include <ncurses.h>
 #include <notcurses/notcurses.h>
 #include <wchar.h>
+#include <wctype.h> /* towlower towlupper */
 
-#include "app.h" /* error() */
 #include "keys.h"
 #include "util.h"
 
-const char *keytrans(int key)
+#define MAX_KEY_NAME_LEN 2 + 9 + 2 + 2 + 2 /* <> + backspace + c- + a- + s- */
+
+static struct {
+	int id;
+	const char *name;
+} key_names_map[] = {
+	{'<', "lt"},
+	{9, "Tab"},
+	{27, "Esc"},
+	/* {27, "Escape"}, */ // doesn't work because we are matching on prefixes and i wan't <Esc> to be the key
+	{NCKEY_INVALID, "invalid"},
+	{NCKEY_SIGNAL , "signal"},
+	{NCKEY_UP, "Up"},
+	{NCKEY_RIGHT, "Right"},
+	{NCKEY_DOWN, "Down"},
+	{NCKEY_LEFT, "Left"},
+	{NCKEY_INS, "Insert"},
+	{NCKEY_DEL, "Delete"},
+	{NCKEY_BACKSPACE, "Backspace"},
+	{NCKEY_BACKSPACE, "BS"}, // alias
+	{NCKEY_PGDOWN, "PageDown"},
+	{NCKEY_PGUP, "PageUp"},
+	{NCKEY_HOME, "Home"},
+	{NCKEY_END, "End"},
+	{NCKEY_F00, "F0"},
+	{NCKEY_F01, "F1"},
+	{NCKEY_F02, "F2"},
+	{NCKEY_F03, "F3"},
+	{NCKEY_F04, "F4"},
+	{NCKEY_F05, "F5"},
+	{NCKEY_F06, "F6"},
+	{NCKEY_F07, "F7"},
+	{NCKEY_F08, "F8"},
+	{NCKEY_F09, "F9"},
+	{NCKEY_F10, "F10"},
+	{NCKEY_F11, "F11"},
+	{NCKEY_F12, "F12"},
+	{NCKEY_F13, "F13"}, // notcurses seems to map shift/ctrl/alt+f keys to higher f keys
+	{NCKEY_F14, "F14"},
+	{NCKEY_F15, "F15"},
+	{NCKEY_F16, "F16"},
+	{NCKEY_F17, "F17"},
+	{NCKEY_F18, "F18"},
+	{NCKEY_F19, "F19"},
+	{NCKEY_F20, "F20"},
+	{NCKEY_F21, "F21"},
+	{NCKEY_F22, "F22"},
+	{NCKEY_F23, "F23"},
+	{NCKEY_F24, "F24"},
+	{NCKEY_F25, "F25"},
+	{NCKEY_F26, "F26"},
+	{NCKEY_F27, "F27"},
+	{NCKEY_F28, "F28"},
+	{NCKEY_F29, "F29"},
+	{NCKEY_F30, "F30"},
+	{NCKEY_F31, "F31"},
+	{NCKEY_F32, "F32"},
+	{NCKEY_F33, "F33"},
+	{NCKEY_F34, "F34"},
+	{NCKEY_F35, "F35"},
+	{NCKEY_F36, "F36"},
+	{NCKEY_F37, "F37"},
+	{NCKEY_F38, "F38"},
+	{NCKEY_F39, "F39"},
+	{NCKEY_F40, "F40"},
+	{NCKEY_F41, "F41"},
+	{NCKEY_F42, "F42"},
+	{NCKEY_F43, "F43"},
+	{NCKEY_F44, "F44"},
+	{NCKEY_F45, "F45"},
+	{NCKEY_F46, "F46"},
+	{NCKEY_F47, "F47"},
+	{NCKEY_F48, "F48"},
+	{NCKEY_F49, "F49"},
+	{NCKEY_F50, "F50"},
+	{NCKEY_F51, "F51"},
+	{NCKEY_F52, "F52"},
+	{NCKEY_F53, "F53"},
+	{NCKEY_F54, "F54"},
+	{NCKEY_F55, "F55"},
+	{NCKEY_F56, "F56"},
+	{NCKEY_F57, "F57"},
+	{NCKEY_F58, "F58"},
+	{NCKEY_F59, "F59"},
+	{NCKEY_F60, "F60"},
+	{NCKEY_ENTER, "Enter"},
+	{NCKEY_CLS   , "Clear"}, // ctrl-l / formfeed?
+	{NCKEY_DLEFT , "DownLeft"},
+	{NCKEY_DRIGHT, "DownRight"},
+	{NCKEY_ULEFT , "UpLeft"},
+	{NCKEY_URIGHT, "UpRight"},
+	{NCKEY_CENTER, "Center"},
+	{NCKEY_BEGIN, "Begin"},
+	{NCKEY_CANCEL, "Cancel"},
+	{NCKEY_CLOSE, "Close"},
+	{NCKEY_COMMAND, "command"},
+	{NCKEY_COPY, "Copy"},
+	{NCKEY_EXIT, "Exit"},
+	{NCKEY_PRINT, "Print"},
+	{NCKEY_REFRESH, "Refresh"}};
+
+static const int key_names_len = sizeof(key_names_map) / sizeof(key_names_map[0]);
+
+const char *long_to_key_name(const long u)
 {
-	static char buf[8]; /* hope that fits */
-	switch (key) {
-	case KEY_BREAK:
-		return "<break>";
-	case KEY_DOWN:
-	case NCKEY_DOWN:
-		return "<down>";
-	case KEY_UP:
-	case NCKEY_UP:
-		return "<up>";
-	case KEY_LEFT:
-	case NCKEY_LEFT:
-		return "<left>";
-	case KEY_RIGHT:
-	case NCKEY_RIGHT:
-		return "<right>";
-	case KEY_HOME:
-	case NCKEY_HOME:
-		return "<home>";
-	case KEY_BACKSPACE:
-	case NCKEY_BACKSPACE:
-		return "<backspace>";
-	case 127: /* tmux sends this instead */
-		return "<backspace>";
-	case NCKEY_PGUP:
-		return "<pageup>";
-	case NCKEY_PGDOWN:
-		return "<pagedown>";
-	case NCKEY_F01:
-		return "<f-1>";
-	case NCKEY_F02:
-		return "<f-2>";
-	case NCKEY_F03:
-		return "<f-3>";
-	case NCKEY_F04:
-		return "<f-4>";
-	case NCKEY_F05:
-		return "<f-5>";
-	case NCKEY_F06:
-		return "<f-6>";
-	case NCKEY_F07:
-		return "<f-7>";
-	case NCKEY_F08:
-		return "<f-8>";
-	case NCKEY_F09:
-		return "<f-9>";
-	case NCKEY_F10:
-		return "<f-10>";
-	case NCKEY_F11:
-		return "<f-11>";
-	case NCKEY_F12:
-		return "<f-12>";
-	case KEY_DC:
-	case NCKEY_DEL:
-		return "<delete>";
-	case NCKEY_END:
-	case KEY_END:
-		return "<end>";
-	case CTRL('a'):
-		return "<c-a>";
-	case CTRL('b'):
-		return "<c-a>";
-	case CTRL('c'):
-		return "<c-c>";
-	case CTRL('d'):
-		return "<c-d>";
-	case CTRL('e'):
-		return "<c-e>";
-	case CTRL('f'):
-		return "<c-f>";
-	case CTRL('g'):
-		return "<c-g>";
-	case CTRL('h'):
-		return "<c-h>";
-	case CTRL('i'):
-		return "<tab>";
-	case KEY_BTAB:
-		return "<backtab>";
-	case CTRL('j'):
-		return "<c-j>";
-	case CTRL('k'):
-		return "<c-k>";
-	case CTRL('l'):
-		return "<c-l>";
-	case NCKEY_ENTER:
-	/* case CTRL('m'): */
-		return "<enter>";
-	case CTRL('n'):
-		return "<c-n>";
-	case CTRL('o'):
-		return "<c-o>";
-	case CTRL('p'):
-		return "<c-p>";
-	case CTRL('q'):
-		return "<c-q>";
-	case CTRL('r'):
-		return "<c-r>";
-	case CTRL('s'):
-		return "<c-s>";
-	case CTRL('t'):
-		return "<c-t>";
-	case CTRL('u'):
-		return "<c-u>";
-	case CTRL('v'):
-		return "<c-v>";
-	case CTRL('w'):
-		return "<c-w>";
-	case CTRL('x'):
-		return "<c-x>";
-	case CTRL('y'):
-		return "<c-y>";
-	case CTRL('z'):
-		return "<c-z>";
-	case ALT('a'):
-		return "<a-a>";
-	case ALT('b'):
-		return "<a-a>";
-	case ALT('c'):
-		return "<a-c>";
-	case ALT('d'):
-		return "<a-d>";
-	case ALT('e'):
-		return "<a-e>";
-	case ALT('f'):
-		return "<a-f>";
-	case ALT('g'):
-		return "<a-g>";
-	case ALT('h'):
-		return "<a-h>";
-	case ALT('i'):
-		return "<a-i>";
-	case ALT('j'):
-		return "<a-j>";
-	case ALT('k'):
-		return "<a-k>";
-	case ALT('l'):
-		return "<a-l>";
-	case ALT('m'):
-		return "<enter>";
-	case ALT('n'):
-		return "<a-n>";
-	case ALT('o'):
-		return "<a-o>";
-	case ALT('p'):
-		return "<a-p>";
-	case ALT('q'):
-		return "<a-q>";
-	case ALT('r'):
-		return "<a-r>";
-	case ALT('s'):
-		return "<a-s>";
-	case ALT('t'):
-		return "<a-t>";
-	case ALT('u'):
-		return "<a-u>";
-	case ALT('v'):
-		return "<a-v>";
-	case ALT('w'):
-		return "<a-w>";
-	case ALT('x'):
-		return "<a-x>";
-	case ALT('y'):
-		return "<a-y>";
-	case ALT('z'):
-		return "<a-z>";
-	case ALT('0'):
-		return "<a-0>";
-	case ALT('1'):
-		return "<a-1>";
-	case ALT('2'):
-		return "<a-2>";
-	case ALT('3'):
-		return "<a-3>";
-	case ALT('4'):
-		return "<a-4>";
-	case ALT('5'):
-		return "<a-5>";
-	case ALT('6'):
-		return "<a-6>";
-	case ALT('7'):
-		return "<a-7>";
-	case ALT('8'):
-		return "<a-8>";
-	case ALT('9'):
-		return "<a-9>";
-	case 27:
-		return "<esc>";
-	case ' ':
-		return "<space>";
-	default:
-		{
-			int n = wctomb(buf, key);
-			if (n < 0) {
-				// invalid character
-				n = 0;
-			}
-			buf[n] = '\0';
-			return buf;
+	static char buf[MAX_KEY_NAME_LEN + 1];
+	int i;
+	const char *name = NULL;
+	for (i = 0; i < key_names_len; i++) {
+		if (key_names_map[i].id == KEY(u)) {
+			name = key_names_map[i].name;
+			break;
 		}
 	}
+	int ind = 0;
+	if (ISSHIFT(u)|ISALT(u)|ISCTRL(u) || name) {
+		buf[ind++] = '<';
+	}
+	if (ISSHIFT(u)) {
+		buf[ind++] = 'S';
+		buf[ind++] = '-';
+	}
+	if (ISCTRL(u)) {
+		buf[ind++] = 'C';
+		buf[ind++] = '-';
+	}
+	if (ISALT(u)) {
+		buf[ind++] = 'A';
+		buf[ind++] = '-';
+	}
+	if (name) {
+		strcpy(buf+ind, name);
+		ind += strlen(name);
+	} else {
+		// not a special key
+		// check if printable?
+		int n = wctomb(buf+ind, KEY(u));
+		if (n < 0) {
+			buf[ind++] = '?';
+		} else {
+			ind += n;
+		}
+	}
+	if (ISSHIFT(u)|ISALT(u)|ISCTRL(u) || name) {
+		buf[ind++] = '>';
+	}
+	buf[ind++] = 0;
+	return buf;
 }
 
-int keytrans_inv(char *key)
-{
-	(void) key;
-	return 0;
-}
-
-static const int fkeys[] = {
-	NCKEY_F00,
-	NCKEY_F01,
-	NCKEY_F02,
-	NCKEY_F03,
-	NCKEY_F04,
-	NCKEY_F05,
-	NCKEY_F06,
-	NCKEY_F07,
-	NCKEY_F08,
-	NCKEY_F09,
-	NCKEY_F10,
-	NCKEY_F11,
-	NCKEY_F12,
-};
-
-int *keytrans_inv_str(const char *keys, int *buf)
+long *key_names_to_longs(const char *keys, long *buf)
 {
 	wchar_t w;
-	const char *c = keys;
-	int l, i = 0;
+	int l, i, ind;
+	const char *pos;
 
-	while (*c) {
-		if (*c == '<') {
-			c++;
-			if (hasprefix(c, "a-")) {
-				c += 2;
-				l = mbtowc(&w, c, 10);
-				if (l == -1) {
-					// unrecognized key
-					break;
-				}
-				buf[i++] = ALT(w);
-				c += l + 1;
-			} else if (hasprefix(c, "c-")) {
-				c += 2;
-				l = mbtowc(&w, c, 10);
-				if (l == -1) {
-					// unrecognized key
-					break;
-				}
-				buf[i++] = CTRL(w);
-				c += l + 1;
-			} else if (hasprefix(c, "f-")) {
-				c += 2;
-				int n = *c - '0';
-				c++;
-				if (*c != '>') {
-					n *= 10;
-					n += *c - '0';
-					c++;
-				}
-				/* TODO: support more f keys? (on 2021-11-01) */
-				if (n <= 12) {
-					buf[i++] = fkeys[n];
-				}
-				c++;
-			} else if (hasprefix(c, "backspace>")) {
-				buf[i++] = NCKEY_BACKSPACE;
-				c += 10;
-			} else if (hasprefix(c, "backtab>")) {
-				buf[i++] = KEY_BTAB;
-				c += 8;
-			} else if (hasprefix(c, "break>")) {
-				buf[i++] = KEY_BREAK;
-				c += 6;
-			} else if (hasprefix(c, "delete>")) {
-				buf[i++] = NCKEY_DEL;
-				c += 7;
-			} else if (hasprefix(c, "down>")) {
-				buf[i++] = NCKEY_DOWN;
-				c += 5;
-			} else if (hasprefix(c, "end>")) {
-				buf[i++] = NCKEY_END;
-				c += 4;
-			} else if (hasprefix(c, "enter>")) {
-				buf[i++] = NCKEY_ENTER;
-				c += 6;
-			} else if (hasprefix(c, "esc>")) {
-				buf[i++] = 27;
-				c += 4;
-			} else if (hasprefix(c, "home>")) {
-				buf[i++] = NCKEY_HOME;
-				c += 5;
-			} else if (hasprefix(c, "left>")) {
-				buf[i++] = NCKEY_LEFT;
-				c += 5;
-			} else if (hasprefix(c, "pageup>")) {
-				buf[i++] = NCKEY_PGUP;
-				c += 7;
-			} else if (hasprefix(c, "pagedown>")) {
-				buf[i++] = NCKEY_PGDOWN;
-				c += 9;
-			} else if (hasprefix(c, "lt>")) {
-				buf[i++] = '<';
-				c += 3;
-			} else if (hasprefix(c, "right>")) {
-				buf[i++] = NCKEY_RIGHT;
-				c += 6;
-			} else if (hasprefix(c, "space>")) {
-				buf[i++] = ' ';
-				c += 6;
-			} else if (hasprefix(c, "tab>")) {
-				buf[i++] = CTRL('i');
-				c += 4;
-			} else if (hasprefix(c, "up>")) {
-				buf[i++] = NCKEY_UP;
-				c += 3;
-			} else {
-				error("unrecognized key: %s", c);
-				break;
+	bool shift = false;
+	bool ctrl = false;
+	bool alt = false;
+
+	ind = 0;
+	pos = keys;
+	while (*pos) {
+		if (*pos == '<') {
+			pos++;
+			if (hascaseprefix(pos, "a-")) {
+				pos += 2;
+				alt = true;
 			}
+			if (hascaseprefix(pos, "c-")) {
+				pos += 2;
+				ctrl = true;
+			}
+			if (hascaseprefix(pos, "s-")) {
+				pos += 2;
+				shift = true;
+			}
+
+			long u = -1;
+			for (i = 0; i < key_names_len; i++) {
+				if (hascaseprefix(pos, key_names_map[i].name)) {
+					u = key_names_map[i].id;
+					break;
+				}
+			}
+
+			if (u != -1) {
+				pos += strlen(key_names_map[i].name);
+			} else {
+				l = mbtowc(&w, pos, 8);
+				if (l == -1) {
+					// unrecognized key
+					break;
+				}
+				if (ctrl) {
+					u = towupper(w);
+				} else {
+					u = towlower(w);
+				}
+				pos += l;
+			}
+			if (shift) {
+				u = SHIFT(u);
+			}
+			if (ctrl) {
+				u = CTRL(u);
+			}
+			if (alt) {
+				u = ALT(u);
+			}
+			buf[ind++] = u;
+			pos++;
 		} else {
-			l = mbtowc(buf + i, c, 8);
+			l = mbtowc(&w, pos, 8);
 			if (l == -1) {
 				// unrecognized key
 				break;
 			}
-			i++; c += l;
+			buf[ind++] = w;
+			pos += l;
 		}
 	}
 
-	buf[i] = 0;
+	buf[ind] = 0;
 	return buf;
 }

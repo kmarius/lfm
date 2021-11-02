@@ -10,7 +10,7 @@
  * exists.
  */
 typedef struct trie_node_t {
-	int key;
+	long key;
 	char *keys; /* the full string of keys so we can print the menu */
 	char *desc; /* description of the command, can be NULL */
 	struct trie_node_t *child; /* can be NULL */
@@ -28,12 +28,12 @@ trie_node_t *trie_new();
  * an optional description of the command. Returns the pointer of the final
  * node the command is inserted in.
  */
-trie_node_t *trie_insert(trie_node_t* trie, const int *trie_keys, const char *keys, const char *desc);
+trie_node_t *trie_insert(trie_node_t* trie, const long *trie_keys, const char *keys, const char *desc);
 
 /*
  * Finds the top level child belonging to key if it exists, NULL otherwise.
  */
-trie_node_t *trie_find_child(const trie_node_t* trie, int key);
+trie_node_t *trie_find_child(const trie_node_t* trie, long key);
 
 /*
  * Collect all reachable leaves and puts for each a string with the full

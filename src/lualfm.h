@@ -21,7 +21,7 @@ bool lua_load_file(lua_State *L, app_t *app, const char *path);
  * Handles key input, called by the event listener, calls the lua function
  * handle_key
  */
-void lua_handle_key(lua_State *L, app_t *app, ncinput *in);
+void lua_handle_key(lua_State *L, app_t *app, long u);
 
 /*
  * Execute an expr, which is either a chunk of lua code or a registered command

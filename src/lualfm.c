@@ -35,7 +35,7 @@ static struct {
 	struct trie_node_t *normal;
 	struct trie_node_t *cmd;
 	struct trie_node_t *cur;
-	int *seq;
+	long *seq;
 	char *str;
 } maps;
 
@@ -53,8 +53,8 @@ static int l_map_key(lua_State *L)
 	if (!(lua_type(L, 2) == LUA_TFUNCTION)) {
 		luaL_argerror(L, 2, "expected function");
 	}
-	int buf[strlen(keys)+1];
-	trie_node_t *k = trie_insert(maps.normal, keytrans_inv_str(keys, buf), keys, desc);
+	long buf[strlen(keys)+1];
+	trie_node_t *k = trie_insert(maps.normal, key_names_to_longs(keys, buf), keys, desc);
 	lua_pushlightuserdata(L, (void *)k);
 	lua_pushvalue(L, 2);
 	lua_settable(L, LUA_REGISTRYINDEX);
@@ -75,8 +75,8 @@ static int l_cmap_key(lua_State *L)
 	if (!(lua_type(L, 2) == LUA_TFUNCTION)) {
 		luaL_argerror(L, 2, "expected function");
 	}
-	int buf[strlen(keys)+1];
-	trie_node_t *k = trie_insert(maps.cmd, keytrans_inv_str(keys, buf), keys, desc);
+	long buf[strlen(keys)+1];
+	trie_node_t *k = trie_insert(maps.cmd, key_names_to_longs(keys, buf), keys, desc);
 	lua_pushlightuserdata(L, (void *)k);
 	lua_pushvalue(L, 2);
 	lua_settable(L, LUA_REGISTRYINDEX);
@@ -109,27 +109,17 @@ void lua_exec_expr(lua_State *L, app_t *app, const char *cmd)
 int l_handle_key(lua_State *L)
 {
 	const char *keys = luaL_checkstring(L, 1);
-	int buf[strlen(keys) + 1];
-	keytrans_inv_str(keys, buf);
-	for (int *i = buf; *i; i++) {
-		struct ncinput in = {
-			.id = *i,
-		};
-		lua_handle_key(L, app, &in);
+	long buf[strlen(keys) + 1];
+	key_names_to_longs(keys, buf);
+	for (long *u = buf; *u; u++) {
+		lua_handle_key(L, app, *u);
 	}
 	return 0;
 }
 
-void lua_handle_key(lua_State *L, app_t *app, ncinput *in)
+void lua_handle_key(lua_State *L, app_t *app, long u)
 {
-	int key = in->id;
-	if (in->alt) {
-		key = ALT(key);
-	}
-	if (in->ctrl) {
-		key = CTRL(key);
-	}
-	if (key == CTRL('q')) {
+	if (u == CTRL('q')) {
 		app_quit(app);
 		return;
 	}
@@ -140,14 +130,14 @@ void lua_handle_key(lua_State *L, app_t *app, ncinput *in)
 		maps.cur = prefix ? maps.cmd : maps.normal;
 		cvector_set_size(maps.seq, 0);
 	}
-	maps.cur = trie_find_child(maps.cur, key);
+	maps.cur = trie_find_child(maps.cur, u);
 	if (prefix) {
 		if (!maps.cur) {
-			if (iswprint(key)) {
-				char buf[8] = {key, 0}; /* hope that fits */
-				int n = wctomb(buf, key);
+			if (iswprint(u)) {
+				char buf[8];
+				int n = wctomb(buf, u);
 				if (n < 0) {
-					// invalid character
+					// invalid character or borked shift/ctrl/alt
 					n = 0;
 				}
 				buf[n] = '\0';
@@ -180,7 +170,7 @@ void lua_handle_key(lua_State *L, app_t *app, ncinput *in)
 		}
 	}
 	if (!prefix) {
-		if (key == 27) {
+		if (u == 27) {
 			maps.cur = NULL;
 			app->ui.message = 0;
 			ui_cmd_clear(&app->ui);
@@ -192,18 +182,18 @@ void lua_handle_key(lua_State *L, app_t *app, ncinput *in)
 			return;
 		}
 		if (!maps.cur) {
-			cvector_push_back(maps.seq, key);
+			cvector_push_back(maps.seq, u);
 			cvector_set_size(maps.str, 0);
 			/* TODO: Use a string builder (on 2021-10-29) */
 			for (size_t i = 0; i < cvector_size(maps.seq); i++) {
-				const char *s = keytrans(maps.seq[i]);
+				const char *s = long_to_key_name(maps.seq[i]);
 				while (*s) {
 					cvector_push_back(maps.str, *s++);
 				}
 			}
 			cvector_push_back(maps.str, 0);
 			error("no such map: %s", maps.str);
-			log_debug("key: %d, id: %d, alt: %d, shift: %d ctrl %d", key, in->id, in->alt, in->shift, in->ctrl);
+			/* log_debug("key: %d, id: %d, shift: %d, ctrl: %d alt %d", u, KEY(u), ISSHIFT(u), ISCTRL(u), ISALT(u)); */
 			ui_showmenu(&app->ui, NULL);
 			return;
 		}
@@ -214,14 +204,14 @@ void lua_handle_key(lua_State *L, app_t *app, ncinput *in)
 			maps.cur = NULL;
 			if (lua_pcall(L, 0, 0, 0)) {
 				error("handle_key: %s", lua_tostring(L, -1));
-				if (key == 'q') {
+				if (u == 'q') {
 					app_quit(app);
-				} else if (key == 'r') {
+				} else if (u == 'r') {
 					lua_load_file(L, app, cfg.configpath);
 				}
 			}
 		} else {
-			cvector_push_back(maps.seq, key);
+			cvector_push_back(maps.seq, u);
 			cvector_vector_type(char*) menu = NULL;
 			cvector_push_back(menu, strdup("keys\tcommand"));
 			trie_collect_leaves(maps.cur, &menu);

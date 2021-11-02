@@ -5,7 +5,7 @@
 #include "cvector.h"
 #include "trie.h"
 
-static trie_node_t *trie_node_new(int key, trie_node_t *next)
+static trie_node_t *trie_node_new(long key, trie_node_t *next)
 {
 	trie_node_t *n = malloc(sizeof(*n));
 	n->key = key;
@@ -21,7 +21,7 @@ trie_node_t *trie_new()
 	return trie_node_new(0, NULL);
 }
 
-trie_node_t *trie_find_child(const trie_node_t* trie, int key)
+trie_node_t *trie_find_child(const trie_node_t* trie, long key)
 {
 	if (!trie) {
 		return NULL;
@@ -34,13 +34,13 @@ trie_node_t *trie_find_child(const trie_node_t* trie, int key)
 	return NULL;
 }
 
-trie_node_t *trie_insert(trie_node_t* trie, const int *trie_keys, const char *keys, const char *desc)
+trie_node_t *trie_insert(trie_node_t* trie, const long *trie_keys, const char *keys, const char *desc)
 {
 	trie_node_t *n;
 	if (!trie) {
 		return NULL;
 	}
-	for (const int *c = trie_keys; *c; c++) {
+	for (const long *c = trie_keys; *c; c++) {
 		n = trie_find_child(trie, *c);
 		if (!n) {
 			n = trie_node_new(*c, trie->child);

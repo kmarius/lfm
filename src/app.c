@@ -98,8 +98,8 @@ static void stdin_cb(EV_P_ ev_io *w, int revents)
 	ncinput in;
 	notcurses_getc_blocking(app->ui.nc, &in);
 	if (current_millis() > input_timeout) {
-		/* log_debug("%u", in.id); */
-		lua_handle_key(app->L, app, &in);
+		/* log_debug("id: %d, shift: %d, ctrl: %d alt %d", in.id, in.shift, in.ctrl, in.alt); */
+		lua_handle_key(app->L, app, ncinput_to_long(&in));
 		app_restart_redraw_watcher(app);
 	}
 }
