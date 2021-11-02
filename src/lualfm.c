@@ -532,6 +532,15 @@ static int l_cmd_delete_right(lua_State *L)
 	return 0;
 }
 
+static int l_cmd_delete_word(lua_State *L)
+{
+	(void) L;
+	if (cmdline_delete_word(&app->ui.cmdline)) {
+		app->ui.redraw.cmdline = 1;
+	}
+	return 0;
+}
+
 static int l_cmd_insert(lua_State *L)
 {
 	ui_cmd_insert(&app->ui, lua_tostring(L, 1));
@@ -1222,6 +1231,7 @@ static const struct luaL_Reg cmd_lib[] = {
 	{"clear", l_cmd_clear},
 	{"delete", l_cmd_delete},
 	{"delete_right", l_cmd_delete_right},
+	{"delete_word", l_cmd_delete_word},
 	{"_end", l_cmd_end},
 	{"getline", l_cmd_line_get},
 	{"getprefix", l_cmd_prefix_get},

@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
+#include <wctype.h>
 
 #include "cmdline.h"
 
@@ -92,6 +93,22 @@ bool cmdline_delete_right(T *t)
 		}
 		t->right.len--;
 	}
+	return 1;
+}
+
+bool cmdline_delete_word(cmdline_t *t)
+{
+	int i;
+	if (t->prefix.len == 0 || t->left.len == 0) {
+		return 0;
+	}
+	i = t->left.len - 1;
+	while (i > 0 && !iswalnum(t->left.str[i]))
+		i--;
+	while (i > 0 && !iswpunct(t->left.str[i-1]) && !iswspace(t->left.str[i-1]))
+		i--;
+	t->left.len = i;
+	t->left.str[i] = 0;
 	return 1;
 }
 

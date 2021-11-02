@@ -79,7 +79,9 @@ local modes = lfm.modes
 ---@param t table Additional options.
 function lfm.register_command(name, f, t)
 	t = t or {}
-	lfm.commands[name] = {f=f, tokenize=t.tokenize == nil and true or t.tokenize}
+	t.f = f
+	t.tokenize = t.tokenize == nil and true or t.tokenize
+	lfm.commands[name] = t
 end
 
 ---Register a mode to lfm. A mode is given by a table t that should contain the following fields:
@@ -201,6 +203,7 @@ cmap("<end>", lfm.cmd._end, {desc=""})
 cmap("<delete>", cmddeleteright, {desc=""})
 cmap("<tab>", compl.next, {desc=""})
 cmap("<s-tab>", compl.prev, {desc=""})
+cmap("<c-w>", lfm.cmd.delete_word, {desc=""})
 
 local map = lfm.map
 map("f", function() lfm.cmd.setprefix("find: ") end, {desc="find"})
