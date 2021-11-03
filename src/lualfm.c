@@ -499,7 +499,8 @@ static int l_colors_newindex(lua_State *L)
 static int l_cmd_line_get(lua_State *L)
 {
 	const char *line = ui_cmdline_get(&app->ui);
-	log_debug("%s", line);
+	const char *prefix = cmdline_prefix_get(&app->ui.cmdline);
+	log_debug("%s%s", prefix, line);
 	lua_pushstring(L, line);
 	return 1;
 }
