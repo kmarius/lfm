@@ -11,6 +11,7 @@ static struct {
 	int id;
 	const char *name;
 } key_names_map[] = {
+	{' ', "Space"},
 	{'<', "lt"},
 	{9, "Tab"},
 	{27, "Esc"},
