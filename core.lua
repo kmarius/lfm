@@ -13,10 +13,21 @@ local ui = lfm.ui
 local config = lfm.config
 local cmd = lfm.cmd
 
+-- enhance logging functions
+for k, f in pairs(log) do
+	log[k] = function(...)
+		local t = {...}
+		for i, e in pairs(t) do
+			t[i] = tostring(e)
+		end
+		f(table.concat(t, " "))
+	end
+end
+
 function print(...)
-	local t = {}
-	for _, e in pairs({...}) do
-		table.insert(t, tostring(e))
+	local t = {...}
+	for i, e in pairs(t) do
+		t[i] = tostring(e)
 	end
 	lfm.echo(table.concat(t, " "))
 end
