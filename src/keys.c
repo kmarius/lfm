@@ -114,10 +114,12 @@ const char *long_to_key_name(const long u)
 	static char buf[MAX_KEY_NAME_LEN + 1];
 	int i;
 	const char *name = NULL;
-	for (i = 0; i < key_names_len; i++) {
-		if (key_names_map[i].id == KEY(u)) {
-			name = key_names_map[i].name;
-			break;
+	if (KEY(u) <= '<' || (KEY(u) >= NCKEY_INVALID && KEY(u) <= NCKEY_REFRESH)) {
+		for (i = 0; i < key_names_len; i++) {
+			if (key_names_map[i].id == KEY(u)) {
+				name = key_names_map[i].name;
+				break;
+			}
 		}
 	}
 	int ind = 0;
