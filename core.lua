@@ -12,6 +12,7 @@ local log = lfm.log
 local ui = lfm.ui
 local config = lfm.config
 local cmd = lfm.cmd
+local nop = function() end
 
 -- enhance logging functions
 for k, f in pairs(log) do
@@ -35,10 +36,7 @@ end
 ---@return table selection The currently selected files or the file at the current cursor position
 function lfm.sel_or_cur()
 	local sel = fm.selection_get()
-	if not sel[1] then
-		sel = {fm.current_file()}
-	end
-	return sel
+	return #sel > 0 and sel or {fm.current_file()}
 end
 
 local hooks = {
@@ -228,7 +226,7 @@ map("k", fm.up)
 map("h", fm.updir)
 map("gg", fm.top, {desc="top"})
 map("G", fm.bottom, {desc="bottom"})
-map("R", function() loadfile("/home/marius/Sync/programming/lfm/core.lua")() end, {desc="reload config"})
+map("R", function() dofile("/home/marius/Sync/programming/lfm/core.lua") end, {desc="reload config"})
 map("''", function() fm.mark_load("'") end)
 map("zh", function() config.hidden = not config.hidden end, {desc="toggle hidden"})
 map(":", function() cmd.setprefix(":") end)
@@ -256,7 +254,6 @@ local mode_filter = {
 ---```
 ---@param line string
 function lfm.exec_expr(line)
-	log.debug(line)
 	local cmd, args = lfm.fn.tokenize(line)
 	if not cmd then
 		return
@@ -283,7 +280,7 @@ end
 local mode_cmd = {
 	prefix = ":",
 	enter = function(line) ui.history_append(line) lfm.exec_expr(line) end,
-	esc = function() end,
+	esc = nop,
 	change = function() compl.reset() end,
 }
 
@@ -304,7 +301,7 @@ local mode_search_back = {
 local mode_find = {
 	prefix = "find: ",
 	enter = function() lfm.exec_expr("open") end,
-	esc = function() end,
+	esc = nop,
 	change = function()
 		if lfm.find(cmd.getline()) then
 			cmd.clear()
@@ -316,8 +313,8 @@ local mode_find = {
 
 local mode_travel = {
 	prefix = "travel: ",
-	enter = function() end,
-	esc = function() end,
+	enter = nop,
+	esc = nop,
 	change = function()
 		if lfm.find(cmd.getline()) then
 			lfm.timeout(250)
