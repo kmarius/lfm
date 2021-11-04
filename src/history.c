@@ -33,11 +33,14 @@ void history_load(T *t, const char *path)
 	}
 
 	while ((read = getline(&line, &n, fp)) != -1) {
-		line[strlen(line) - 1] = 0; /* remove \n */
+		if (line[read-1] == '\n') {
+			line[read-1] = 0;
+		}
 		struct history_node_t n = { .line = line, .new = 0, };
 		cvector_push_back(t->vec, n);
 		line = NULL;
 	}
+	free(line);
 
 	fclose(fp);
 }
