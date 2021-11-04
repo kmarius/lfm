@@ -393,6 +393,18 @@ static int l_ui_clear(lua_State *L)
 	return 0;
 }
 
+static int l_ui_get_width(lua_State *L)
+{
+	lua_pushnumber(L, ui->ncol);
+	return 1;
+}
+
+static int l_ui_get_height(lua_State *L)
+{
+	lua_pushnumber(L, ui->nrow);
+	return 1;
+}
+
 static int l_ui_menu(lua_State *L)
 {
 	const int l = lua_gettop(L);
@@ -1251,6 +1263,8 @@ static const struct luaL_Reg cmd_lib[] = {
 	{NULL, NULL}};
 
 static const struct luaL_Reg ui_lib[] = {
+	{"get_width", l_ui_get_width},
+	{"get_height", l_ui_get_height},
 	{"clear", l_ui_clear},
 	{"draw", l_ui_draw},
 	{"history_append", l_history_append},

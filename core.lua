@@ -45,6 +45,7 @@ local hooks = {
 	ChdirPre = {},
 	ChdirPost = {},
 	SelectionChanged = {},
+	Resized = {},
 }
 
 ---Register a function to hook into events. Curruntly supported hooks are
@@ -54,6 +55,7 @@ local hooks = {
 --- ChdirPre         emitted before changing directories
 --- ChdirPost        emitted after changin directories
 --- SelectionChanged the selection changed
+--- Resized          the window was resized
 ---
 ---```
 ---@param name string

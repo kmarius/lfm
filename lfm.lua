@@ -212,6 +212,12 @@ function lfm.log.trace(msg) end
 
 lfm.ui = {}
 
+---Height of the UI.
+function lfm.ui.get_height() end
+
+---Width of the UI.
+function lfm.ui.get_width() end
+
 ---Clear the UI and redraw.
 function lfm.ui.clear() end
 

@@ -227,6 +227,7 @@ static void sigwinch_cb(EV_P_ ev_signal *w, int revents)
 	(void) revents;
 	app_t *app = (app_t *)w->data;
 	ui_clear(&app->ui);
+	lua_run_hook(app->L, "Resized");
 	app_restart_redraw_watcher(app);
 }
 
