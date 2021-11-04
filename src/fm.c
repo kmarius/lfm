@@ -118,9 +118,12 @@ void fm_recol(fm_t *fm)
 
 	remove_preview(fm);
 	for (i = 0; i < fm->dirs.len; i++) {
-		cache_insert(&fm->dirs.cache, fm->dirs.visible[i], fm->dirs.visible[i]->path);
+		if (fm->dirs.visible[i]) {
+			cache_insert(&fm->dirs.cache, fm->dirs.visible[i], fm->dirs.visible[i]->path);
+		}
 	}
 
+	cvector_grow(fm->dirs.visible, l);
 	cvector_set_size(fm->dirs.visible, l);
 	fm->dirs.len = l;
 
@@ -313,6 +316,7 @@ void fm_check_dirs(const fm_t *fm)
 		if (!fm->dirs.visible[i]) {
 			continue;
 		}
+		// stat is blocking on slow devices (nfs, sshfs, smb)
 		if (!dir_check(fm->dirs.visible[i])) {
 			async_dir_load(fm->dirs.visible[i]->path);
 		}
