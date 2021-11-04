@@ -12,7 +12,7 @@
 /* TODO: signal errors on load/write (on 2021-10-23) */
 /* TODO: limit history size (on 2021-10-24) */
 
-struct trie_node_t {
+struct history_node_t {
 	char *line;
 	int new;
 };
@@ -34,7 +34,7 @@ void history_load(T *t, const char *path)
 
 	while ((read = getline(&line, &n, fp)) != -1) {
 		line[strlen(line) - 1] = 0; /* remove \n */
-		struct trie_node_t n = { .line = line, .new = 0, };
+		struct history_node_t n = { .line = line, .new = 0, };
 		cvector_push_back(t->vec, n);
 		line = NULL;
 	}
@@ -70,12 +70,12 @@ void history_write(T *t, const char *path)
 
 void history_append(T *t, const char *line)
 {
-	struct trie_node_t *end = cvector_end(t->vec);
+	struct history_node_t *end = cvector_end(t->vec);
 	if (end && streq((end - 1)->line, line)) {
 		/* skip consecutive dupes */
 		return;
 	}
-	struct trie_node_t n = { .line = strdup(line), .new = 1, };
+	struct history_node_t n = { .line = strdup(line), .new = 1, };
 	cvector_push_back(t->vec, n);
 }
 
@@ -85,14 +85,13 @@ void history_reset(T *t)
 }
 
 /* does *not* free the vector */
-void history_clear(T *t)
+void history_deinit(T *t)
 {
 	size_t i;
 	for (i = 0; i < cvector_size(t->vec); i++) {
 		free(t->vec[i].line);
 	}
-	t->vec = NULL;
-	t->ptr = NULL;
+	free(t->vec);
 }
 
 /* TODO: only show history items with matching prefixes (on 2021-07-24) */

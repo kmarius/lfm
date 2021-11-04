@@ -1099,7 +1099,7 @@ const char *ui_history_next(ui_t *ui)
 void ui_deinit(ui_t *ui)
 {
 	history_write(&ui->history, cfg.historypath);
-	history_clear(&ui->history);
+	history_deinit(&ui->history);
 	cvector_ffree(ui->messages, free);
 	cvector_ffree(ui->menubuf, free);
 	cache_deinit(&ui->preview.cache);
