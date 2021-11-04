@@ -30,6 +30,8 @@
 #include "util.h"
 
 static app_t *app = NULL;
+static ui_t *ui = NULL;
+static fm_t *fm = NULL;
 
 static struct {
 	struct trie_node_t *normal;
@@ -141,7 +143,9 @@ void lua_handle_key(lua_State *L, app_t *app, long u)
 					n = 0;
 				}
 				buf[n] = '\0';
-				ui_cmd_insert(&app->ui, buf);
+				if (cmdline_insert(&app->ui.cmdline, buf)) {
+					ui->redraw.cmdline = 1;
+				}
 			}
 			lua_getglobal(L, "lfm");
 			if (lua_type(L, -1) == LUA_TTABLE) {
@@ -498,7 +502,7 @@ static int l_colors_newindex(lua_State *L)
 
 static int l_cmd_line_get(lua_State *L)
 {
-	const char *line = ui_cmdline_get(&app->ui);
+	const char *line = cmdline_get(&ui->cmdline);
 	const char *prefix = cmdline_prefix_get(&app->ui.cmdline);
 	log_debug("%s%s", prefix, line);
 	lua_pushstring(L, line);
@@ -508,7 +512,9 @@ static int l_cmd_line_get(lua_State *L)
 static int l_cmd_line_set(lua_State *L)
 {
 	const char *line = lua_tostring(L, 1);
-	ui_cmdline_set(&app->ui, line);
+	if (cmdline_set(&ui->cmdline, line)) {
+		ui->redraw.cmdline = 1;
+	}
 	return 0;
 }
 
@@ -522,14 +528,18 @@ static int l_cmd_clear(lua_State *L)
 static int l_cmd_delete(lua_State *L)
 {
 	(void) L;
-	ui_cmd_delete(&app->ui);
+	if (cmdline_delete(&ui->cmdline)) {
+		ui->redraw.cmdline = 1;
+	}
 	return 0;
 }
 
 static int l_cmd_delete_right(lua_State *L)
 {
 	(void) L;
-	ui_cmd_delete_right(&app->ui);
+	if (cmdline_delete_right(&ui->cmdline)) {
+		ui->redraw.cmdline = 1;
+	}
 	return 0;
 }
 
@@ -544,35 +554,45 @@ static int l_cmd_delete_word(lua_State *L)
 
 static int l_cmd_insert(lua_State *L)
 {
-	ui_cmd_insert(&app->ui, lua_tostring(L, 1));
+	if (cmdline_insert(&ui->cmdline, lua_tostring(L, 1))) {
+		ui->redraw.cmdline = 1;
+	}
 	return 0;
 }
 
 static int l_cmd_left(lua_State *L)
 {
 	(void) L;
-	ui_cmd_left(&app->ui);
+	if (cmdline_left(&ui->cmdline)) {
+		ui->redraw.cmdline = 1;
+	}
 	return 0;
 }
 
 static int l_cmd_right(lua_State *L)
 {
 	(void) L;
-	ui_cmd_right(&app->ui);
+	if (cmdline_right(&ui->cmdline)) {
+		ui->redraw.cmdline = 1;
+	}
 	return 0;
 }
 
 static int l_cmd_home(lua_State *L)
 {
 	(void) L;
-	ui_cmd_home(&app->ui);
+	if (cmdline_home(&ui->cmdline)) {
+		ui->redraw.cmdline = 1;
+	}
 	return 0;
 }
 
 static int l_cmd_end(lua_State *L)
 {
 	(void) L;
-	ui_cmd_end(&app->ui);
+	if (cmdline_end(&ui->cmdline)) {
+		ui->redraw.cmdline = 1;
+	}
 	return 0;
 }
 
@@ -1317,6 +1337,8 @@ int luaopen_lfm(lua_State *L)
 void lua_init(lua_State *L, app_t *_app)
 {
 	app = _app;
+	ui = &_app->ui;
+	fm = &_app->fm;
 
 	maps.normal = trie_new();
 	maps.cmd = trie_new();

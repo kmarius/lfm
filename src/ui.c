@@ -308,57 +308,6 @@ void ui_cmd_prefix_set(ui_t *ui, const char *prefix)
 	ui->redraw.cmdline = 1;
 }
 
-/* inserts only the first mbchar of the argument */
-void ui_cmd_insert(ui_t *ui, const char *key)
-{
-	if (cmdline_insert(&ui->cmdline, key)) {
-		ui->redraw.cmdline = 1;
-	}
-}
-
-void ui_cmd_delete(ui_t *ui)
-{
-	if (cmdline_delete(&ui->cmdline)) {
-		ui->redraw.cmdline = 1;
-	}
-}
-
-void ui_cmd_delete_right(ui_t *ui)
-{
-	if (cmdline_delete_right(&ui->cmdline)) {
-		ui->redraw.cmdline = 1;
-	}
-}
-
-/* pass a ct argument to move over words? */
-void ui_cmd_left(ui_t *ui)
-{
-	if (cmdline_left(&ui->cmdline)) {
-		ui->redraw.cmdline = 1;
-	}
-}
-
-void ui_cmd_right(ui_t *ui)
-{
-	if (cmdline_right(&ui->cmdline)) {
-		ui->redraw.cmdline = 1;
-	}
-}
-
-void ui_cmd_home(ui_t *ui)
-{
-	if (cmdline_home(&ui->cmdline)) {
-		ui->redraw.cmdline = 1;
-	}
-}
-
-void ui_cmd_end(ui_t *ui)
-{
-	if (cmdline_end(&ui->cmdline)) {
-		ui->redraw.cmdline = 1;
-	}
-}
-
 void ui_cmd_clear(ui_t *ui)
 {
 	cmdline_clear(&ui->cmdline);
@@ -367,18 +316,6 @@ void ui_cmd_clear(ui_t *ui)
 	ui_showmenu(ui, NULL);
 	ui->redraw.cmdline = 1;
 	ui->redraw.menu = 1;
-}
-
-void ui_cmdline_set(ui_t *ui, const char *line)
-{
-	if (cmdline_set(&ui->cmdline, line)) {
-		ui->redraw.cmdline = 1;
-	}
-}
-
-const char *ui_cmdline_get(ui_t *ui)
-{
-	return cmdline_get(&ui->cmdline);
 }
 
 static int filetypeletter(int mode)
