@@ -48,6 +48,8 @@ trie_node_t *trie_insert(trie_node_t* trie, const long *trie_keys, const char *k
 		}
 		trie = n;
 	}
+	free(trie->desc);
+	free(trie->keys);
 	trie->desc = desc ? strdup(desc) : NULL;
 	trie->keys = strdup(keys);
 	return trie;
