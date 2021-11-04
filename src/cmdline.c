@@ -94,9 +94,11 @@ bool cmdline_delete_word(T *t)
 		return 0;
 	}
 	i = t->left.len - 1;
-	while (i > 0 && !iswalnum(t->left.str[i]))
+	while (i > 0 && iswspace(t->left.str[i]))
 		i--;
-	while (i > 0 && !iswpunct(t->left.str[i-1]) && !iswspace(t->left.str[i-1]))
+	while (i > 0 && t->left.str[i] == '/' && !iswspace(t->left.str[i-1]))
+		i--;
+	while (i > 0 && !(iswspace(t->left.str[i-1]) || t->left.str[i-1] == '/'))
 		i--;
 	t->left.len = i;
 	t->left.str[i] = 0;
