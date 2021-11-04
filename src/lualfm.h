@@ -15,19 +15,19 @@ void lua_deinit(lua_State *L);
 /*
  * Loads a .lua file.
  */
-bool lua_load_file(lua_State *L, app_t *app, const char *path);
+bool lua_load_file(lua_State *L, const char *path);
 
 /*
  * Handles key input, called by the event listener, calls the lua function
  * handle_key
  */
-void lua_handle_key(lua_State *L, app_t *app, long u);
+void lua_handle_key(lua_State *L, long u);
 
 /*
  * Execute an expr, which is either a chunk of lua code or a registered command
  * (with arguments) as if typed in the command line.
  */
-void lua_exec_expr(lua_State *L, app_t *app, const char *cmd);
+void lua_exec_expr(lua_State *L, const char *cmd);
 
 /*
  * Run hooks. Hook need to be registered in core.lua.

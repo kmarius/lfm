@@ -99,7 +99,7 @@ static void stdin_cb(EV_P_ ev_io *w, int revents)
 	notcurses_getc_blocking(app->ui.nc, &in);
 	if (current_millis() > input_timeout) {
 		/* log_debug("id: %d, shift: %d, ctrl: %d alt %d", in.id, in.shift, in.ctrl, in.alt); */
-		lua_handle_key(app->L, app, ncinput_to_long(&in));
+		lua_handle_key(app->L, ncinput_to_long(&in));
 		app_restart_redraw_watcher(app);
 	}
 }
@@ -112,7 +112,7 @@ static void read_fifo(app_t *app)
 		/* TODO: allocate string or use readline or something (on 2021-08-17) */
 		while ((nbytes = read(fifo_fd, buf, sizeof(buf))) > 0) {
 			buf[nbytes-1] = 0;
-			lua_exec_expr(app->L, app, buf);
+			lua_exec_expr(app->L, buf);
 		}
 		app_restart_redraw_watcher(app);
 	}
@@ -212,7 +212,7 @@ static void prepare_cb(struct ev_loop *loop, ev_prepare *w, int revents)
 	app_t *app = (app_t*) w->data;
 	if (cfg.commands) {
 		for (size_t i = 0; i < cvector_size(cfg.commands); i++) {
-			lua_exec_expr(app->L, app, cfg.commands[i]);
+			lua_exec_expr(app->L, cfg.commands[i]);
 		}
 		/* commands are from argv, don't free them */
 		cvector_free(cfg.commands);
@@ -313,7 +313,7 @@ void app_init(app_t *app)
 	app->L = luaL_newstate();
 	lua_init(app->L, app);
 	/* TODO: show errors in ui (on 2021-08-04) */
-	lua_load_file(app->L, app, cfg.corepath);
+	lua_load_file(app->L, cfg.corepath);
 
 	log_info("initialized app");
 }
