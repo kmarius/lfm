@@ -590,6 +590,24 @@ static int l_cmd_right(lua_State *L)
 	return 0;
 }
 
+static int l_cmd_word_left(lua_State *L)
+{
+	(void) L;
+	if (cmdline_word_left(&ui->cmdline)) {
+		ui->redraw.cmdline = 1;
+	}
+	return 0;
+}
+
+static int l_cmd_word_right(lua_State *L)
+{
+	(void) L;
+	if (cmdline_word_right(&ui->cmdline)) {
+		ui->redraw.cmdline = 1;
+	}
+	return 0;
+}
+
 static int l_cmd_home(lua_State *L)
 {
 	(void) L;
@@ -1257,6 +1275,8 @@ static const struct luaL_Reg cmd_lib[] = {
 	{"home", l_cmd_home},
 	{"insert", l_cmd_insert},
 	{"left", l_cmd_left},
+	{"word_left", l_cmd_word_left},
+	{"word_right", l_cmd_word_right},
 	{"right", l_cmd_right},
 	{"setline", l_cmd_line_set},
 	{"setprefix", l_cmd_prefix_set},

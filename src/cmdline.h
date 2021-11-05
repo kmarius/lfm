@@ -34,6 +34,8 @@ bool cmdline_delete_right(cmdline_t *t);
 bool cmdline_delete_word(cmdline_t *t);
 bool cmdline_left(cmdline_t *t);
 bool cmdline_right(cmdline_t *t);
+bool cmdline_word_left(cmdline_t *t);
+bool cmdline_word_right(cmdline_t *t);
 bool cmdline_home(cmdline_t *t);
 bool cmdline_end(cmdline_t *t);
 bool cmdline_clear(cmdline_t *t);

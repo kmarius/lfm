@@ -201,14 +201,14 @@ function lfm.fm.load_clear() end
 
 lfm.log = {}
 
----@param msg string
-function lfm.log.debug(msg) end
+---@vararg any
+function lfm.log.debug(...) end
 
----@param msg string
-function lfm.log.info(msg) end
+---@vararg any
+function lfm.log.info(...) end
 
----@param msg string
-function lfm.log.trace(msg) end
+---@vararg any
+function lfm.log.trace(...) end
 
 lfm.ui = {}
 

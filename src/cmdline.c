@@ -20,15 +20,36 @@
 #define ENSURE_CAPACITY(vec, sz) \
 	do { \
 		if ((vec).cap < sz) { \
-			while ((vec).cap < sz) { \
+			while ((vec).cap < sz) \
 				(vec).cap *= 2; \
-			} \
 			(vec).str = realloc((vec).str, sizeof(*vec.str) * (vec).cap * 2 + 1); \
 		} \
 	} while (0)
 
 #define ENSURE_SPACE(vec, sz) \
 	ENSURE_CAPACITY(vec, (size_t) (vec).len + sz)
+
+#define SHIFT_RIGHT(t, _sz) \
+	do { \
+		int sz = _sz; \
+		ENSURE_SPACE((t)->right, sz); \
+		memmove((t)->right.str + (sz), (t)->right.str, sizeof(wchar_t)*((t)->right.len+1)); \
+		memcpy((t)->right.str, (t)->left.str + (t)->left.len - (sz), sizeof(wchar_t)*(sz)); \
+		(t)->right.len += (sz); \
+		(t)->left.len -= (sz); \
+		(t)->left.str[(t)->left.len] = 0; \
+	} while (0)
+
+#define SHIFT_LEFT(t, _sz) \
+	do { \
+		int sz = _sz; \
+		ENSURE_SPACE((t)->left, sz); \
+		memcpy((t)->left.str + (t)->left.len, (t)->right.str, sizeof(wchar_t)*(sz)); \
+		memmove((t)->right.str, (t)->right.str + (sz), sizeof(wchar_t)*((t)->right.len-(sz)+1)); \
+		(t)->right.len -= (sz); \
+		(t)->left.len += (sz); \
+		(t)->left.str[(t)->left.len] = 0; \
+	} while (0)
 
 void cmdline_init(T *t)
 {
@@ -62,8 +83,8 @@ bool cmdline_insert(T *t, const char *key)
 	}
 	ENSURE_SPACE(t->left, 1);
 	mbtowc(t->left.str+t->left.len, key, strlen(key));
-	t->left.str[t->left.len + 1] = 0;
 	t->left.len++;
+	t->left.str[t->left.len] = 0;
 	return 1;
 }
 
@@ -111,12 +132,45 @@ bool cmdline_left(T *t)
 	if (t->prefix.len == 0 || t->left.len == 0) {
 		return 0;
 	}
-	ENSURE_SPACE(t->right, 1);
-	memmove(t->right.str+1, t->right.str, sizeof(wchar_t)*(t->right.len+1));
-	t->right.len++;
-	t->right.str[0] = t->left.str[t->left.len-1];
-	t->left.str[t->left.len-1] = 0;
-	t->left.len--;
+	SHIFT_RIGHT(t, 1);
+	return 1;
+}
+
+bool cmdline_word_left(T *t)
+{
+	int i;
+	if (t->prefix.len == 0 || t->left.len == 0) {
+		return 0;
+	}
+	i = t->left.len;
+	if (i > 0 && iswpunct(t->left.str[i-1]))
+		i--;
+	if (i > 0 && iswspace(t->left.str[i-1]))
+		while (i > 0 && iswspace(t->left.str[i-1]))
+			i--;
+	else
+		while (i > 0 && !(iswspace(t->left.str[i-1]) || iswpunct(t->left.str[i-1])))
+			i--;
+	SHIFT_RIGHT(t, t->left.len-i);
+	return 1;
+}
+
+bool cmdline_word_right(T *t)
+{
+	int i;
+	if (t->prefix.len == 0 || t->right.len == 0) {
+		return 0;
+	}
+	i = 0;
+	if (i < t->right.len && iswpunct(t->right.str[i]))
+		i++;
+	if (i < t->right.len && iswspace(t->right.str[i]))
+		while (i < t->right.len && iswspace(t->right.str[i]))
+			i++;
+	else
+		while (i < t->right.len && !(iswspace(t->right.str[i]) || iswpunct(t->right.str[i])))
+			i++;
+	SHIFT_LEFT(t, i);
 	return 1;
 }
 
@@ -125,12 +179,7 @@ bool cmdline_right(T *t)
 	if (t->prefix.len == 0 || t->right.len == 0) {
 		return 0;
 	}
-	ENSURE_SPACE(t->left, 1);
-	t->left.str[t->left.len] = t->right.str[0];
-	t->left.str[t->left.len+1] = 0;
-	t->left.len++;
-	memmove(t->right.str, t->right.str+1, sizeof(wchar_t)*t->right.len);
-	t->right.len--;
+	SHIFT_LEFT(t, 1);
 	return 1;
 }
 
@@ -139,12 +188,7 @@ bool cmdline_home(T *t)
 	if (t->prefix.len == 0 || t->left.len == 0) {
 		return 0;
 	}
-	ENSURE_SPACE(t->right, (size_t) t->left.len);
-	memmove(t->right.str+t->left.len, t->right.str, sizeof(wchar_t)*(t->right.len + 1));
-	memcpy(t->right.str, t->left.str, sizeof(wchar_t)*t->left.len);
-	t->right.len += t->left.len;
-	t->left.str[0] = 0;
-	t->left.len = 0;
+	SHIFT_RIGHT(t, t->left.len);
 	return 1;
 }
 
@@ -153,11 +197,7 @@ bool cmdline_end(T *t)
 	if (t->prefix.len == 0 || t->right.len == 0) {
 		return 0;
 	}
-	ENSURE_SPACE(t->left, (size_t) t->right.len);
-	wcscpy(t->left.str + t->left.len, t->right.str);
-	t->left.len += t->right.len;
-	t->right.str[0] = 0;
-	t->right.len = 0;
+	SHIFT_LEFT(t, t->right.len);
 	return 1;
 }
 
@@ -223,8 +263,3 @@ void cmdline_deinit(T *t) {
 	free(t->right.str);
 	free(t->buf.str);
 }
-
-#undef VSTR_INIT
-#undef ENSURE_SPACE
-#undef ENSURE_CAPACITY
-#undef T
