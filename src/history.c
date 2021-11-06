@@ -94,7 +94,7 @@ void history_deinit(T *t)
 	for (i = 0; i < cvector_size(t->vec); i++) {
 		free(t->vec[i].line);
 	}
-	free(t->vec);
+	cvector_free(t->vec);
 }
 
 /* TODO: only show history items with matching prefixes (on 2021-07-24) */
