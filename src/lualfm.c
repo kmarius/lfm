@@ -351,24 +351,39 @@ static int l_config_newindex(lua_State *L)
 	return 0;
 }
 
+static int l_log_trace(lua_State *L)
+{
+	log_trace("%s", luaL_checkstring(L, 1));
+	return 0;
+}
+
 static int l_log_debug(lua_State *L)
 {
-	const char *msg = luaL_checkstring(L, 1);
-	log_debug("%s", msg);
+	log_debug("%s", luaL_checkstring(L, 1));
 	return 0;
 }
 
 static int l_log_info(lua_State *L)
 {
-	const char *msg = luaL_checkstring(L, 1);
-	log_info("%s", msg);
+	log_info("%s", luaL_checkstring(L, 1));
 	return 0;
 }
 
-static int l_log_trace(lua_State *L)
+static int l_log_warn(lua_State *L)
 {
-	const char *msg = luaL_checkstring(L, 1);
-	log_trace("%s", msg);
+	log_warn("%s", luaL_checkstring(L, 1));
+	return 0;
+}
+
+static int l_log_error(lua_State *L)
+{
+	log_error("%s", luaL_checkstring(L, 1));
+	return 0;
+}
+
+static int l_log_fatal(lua_State *L)
+{
+	log_fatal("%s", luaL_checkstring(L, 1));
 	return 0;
 }
 
@@ -1311,9 +1326,12 @@ static const struct luaL_Reg fn_lib[] = {
 	{NULL, NULL}};
 
 static const struct luaL_Reg log_lib[] = {
+	{"trace", l_log_trace},
 	{"debug", l_log_debug},
 	{"info", l_log_info},
-	{"trace", l_log_trace},
+	{"warn", l_log_warn},
+	{"error", l_log_error},
+	{"fatal", l_log_fatal},
 	{NULL, NULL}};
 
 static const struct luaL_Reg config_mt[] = {
