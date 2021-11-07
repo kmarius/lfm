@@ -126,6 +126,16 @@ bool cmdline_delete_word(T *t)
 	return true;
 }
 
+bool cmdline_delete_line_left(cmdline_t *t)
+{
+	if (t->prefix.len == 0 || t->left.len == 0) {
+		return false;
+	}
+	t->left.len = 0;
+	t->left.str[t->left.len] = 0;
+	return true;
+}
+
 /* pass a ct argument to move over words? */
 bool cmdline_left(T *t)
 {

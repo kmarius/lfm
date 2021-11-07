@@ -203,9 +203,11 @@ end
 local compl = require("compl")
 
 local cmap = lfm.cmap
+-- most of these should probably call mode.change
 cmap("<enter>", cmdenter, {desc=""})
 cmap("<esc>", cmdesc, {desc=""})
 cmap("<backspace>", cmddelete, {desc=""})
+cmap("<C-h>", cmddelete, {desc=""})
 cmap("<left>", cmd.left, {desc=""})
 cmap("<right>", cmd.right, {desc=""})
 cmap("<up>", history_prev, {desc=""})
@@ -218,6 +220,8 @@ cmap("<delete>", cmddeleteright, {desc=""})
 cmap("<tab>", compl.next, {desc=""})
 cmap("<s-tab>", compl.prev, {desc=""})
 cmap("<c-w>", cmd.delete_word, {desc=""})
+cmap("<c-backspace>", cmd.delete_word, {desc=""})
+cmap("<c-u>", cmd.delete_line_left, {desc=""})
 
 local map = lfm.map
 map("f", function() cmd.setprefix("find: ") end, {desc="find"})

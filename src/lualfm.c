@@ -634,6 +634,15 @@ static int l_cmd_word_right(lua_State *L)
 	return 0;
 }
 
+static int l_cmd_delete_line_left(lua_State *L)
+{
+	(void) L;
+	if (cmdline_delete_line_left(&ui->cmdline)) {
+		ui->redraw.cmdline = 1;
+	}
+	return 0;
+}
+
 static int l_cmd_home(lua_State *L)
 {
 	(void) L;
@@ -1305,6 +1314,7 @@ static const struct luaL_Reg cmd_lib[] = {
 	{"left", l_cmd_left},
 	{"word_left", l_cmd_word_left},
 	{"word_right", l_cmd_word_right},
+	{"delete_line_left", l_cmd_delete_line_left},
 	{"right", l_cmd_right},
 	{"setline", l_cmd_line_set},
 	{"setprefix", l_cmd_prefix_set},

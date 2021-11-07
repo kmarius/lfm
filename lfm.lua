@@ -270,6 +270,12 @@ function lfm.cmd.delete() end
 ---Delete the character to the right.
 function lfm.cmd.delete_right() end
 
+---Delete the word to the right.
+function lfm.cmd.delete_word() end
+
+---Delete to the beginning of the line.
+function lfm.cmd.delete_line_left() end
+
 ---Move cursor to the end.
 function lfm.cmd._end() end
 
