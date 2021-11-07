@@ -285,8 +285,10 @@ function lfm.cmd.left() end
 ---Move the cursor to the right.
 function lfm.cmd.right() end
 
----Set the command line.
+---Set the command line. If three arguments are provided, the first argument
+---sets the prefix. The cursor will be positioned between `left` and `right`.
 ---@param line string
+---@overload fun(prefix: string, left: string, right: string)
 function lfm.cmd.setline(line) end
 
 ---Set the command line prefix.

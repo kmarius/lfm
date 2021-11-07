@@ -212,6 +212,29 @@ bool cmdline_clear(T *t)
 	return 1;
 }
 
+bool cmdline_set_whole(T *t, const char *prefix, const char *left, const char *right)
+{
+	int n;
+	ENSURE_SPACE(t->left, strlen(left));
+	ENSURE_SPACE(t->right, strlen(right));
+	cmdline_prefix_set(t, prefix);
+	n = mbstowcs(t->left.str, left, t->left.cap + 1);
+	if (n == -1) {
+		t->left.len = 0;
+		t->left.str[0] = 0;
+	} else {
+		t->left.len = n;
+	}
+	n = mbstowcs(t->right.str, right, t->right.cap + 1);
+	if (n == -1) {
+		t->right.len = 0;
+		t->right.str[0] = 0;
+	} else {
+		t->right.len = n;
+	}
+	return 1;
+}
+
 bool cmdline_set(T *t, const char *line)
 {
 	if (t->prefix.len == 0) {

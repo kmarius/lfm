@@ -523,9 +523,21 @@ static int l_cmd_line_get(lua_State *L)
 
 static int l_cmd_line_set(lua_State *L)
 {
-	const char *line = lua_tostring(L, 1);
-	if (cmdline_set(&ui->cmdline, line)) {
-		ui->redraw.cmdline = 1;
+	switch (lua_gettop(L)) {
+		case 1:
+			{
+				if (cmdline_set(&ui->cmdline, lua_tostring(L, 1))) {
+					ui->redraw.cmdline = 1;
+				}
+			}
+			break;
+		case 3:
+			{
+				if(cmdline_set_whole(&ui->cmdline, lua_tostring(L, 1),
+							lua_tostring(L, 2), lua_tostring(L, 3))) {
+					ui->redraw.cmdline = 1;
+				}
+			}
 	}
 	return 0;
 }
