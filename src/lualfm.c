@@ -768,7 +768,7 @@ static int l_fm_current_dir(lua_State *L)
 	return 1;
 }
 
-static int l_sel_visual_start(lua_State *L)
+static int l_fm_visual_start(lua_State *L)
 {
 	(void) L;
 	fm_selection_visual_start(fm);
@@ -776,7 +776,7 @@ static int l_sel_visual_start(lua_State *L)
 	return 0;
 }
 
-static int l_sel_visual_end(lua_State *L)
+static int l_fm_visual_end(lua_State *L)
 {
 	(void) L;
 	fm_selection_visual_stop(fm);
@@ -784,7 +784,7 @@ static int l_sel_visual_end(lua_State *L)
 	return 0;
 }
 
-static int l_sel_visual_toggle(lua_State *L)
+static int l_fm_visual_toggle(lua_State *L)
 {
 	(void) L;
 	fm_selection_visual_toggle(fm);
@@ -809,7 +809,7 @@ static int l_shell_post(lua_State *L)
 	return 0;
 }
 
-static int l_sortby(lua_State *L)
+static int l_fm_sortby(lua_State *L)
 {
 	const int l = lua_gettop(L);
 	const char *op;
@@ -848,20 +848,20 @@ static int l_sortby(lua_State *L)
 	return 0;
 }
 
-static int l_selection_toggle_current(lua_State *L)
+static int l_fm_selection_toggle_current(lua_State *L)
 {
 	(void) L;
 	fm_selection_toggle_current(fm);
 	return 0;
 }
 
-static int l_selection_add(lua_State *L)
+static int l_fm_selection_add(lua_State *L)
 {
 	fm_selection_add_file(fm, luaL_checkstring(L, 1));
 	return 0;
 }
 
-static int l_selection_set(lua_State *L)
+static int l_fm_selection_set(lua_State *L)
 {
 	cvector_vector_type(char*) selection = NULL;
 	if (lua_istable(L, -1)) {
@@ -873,7 +873,7 @@ static int l_selection_set(lua_State *L)
 	return 0;
 }
 
-static int l_selection_get(lua_State *L)
+static int l_fm_selection_get(lua_State *L)
 {
 	size_t i, j = 1;
 	lua_createtable(L, fm->selection.len, 0);
@@ -886,7 +886,7 @@ static int l_selection_get(lua_State *L)
 	return 1;
 }
 
-static int l_selection_clear(lua_State *L)
+static int l_fm_selection_clear(lua_State *L)
 {
 	(void) L;
 	fm_selection_clear(fm);
@@ -894,7 +894,7 @@ static int l_selection_clear(lua_State *L)
 	return 0;
 }
 
-static int l_selection_reverse(lua_State *L)
+static int l_fm_selection_reverse(lua_State *L)
 {
 	(void) L;
 	fm_selection_reverse(fm);
@@ -976,7 +976,7 @@ static int l_fm_cut(lua_State *L)
 	return 0;
 }
 
-static int l_tokenize(lua_State *L)
+static int l_fn_tokenize(lua_State *L)
 {
 	const char *string = luaL_optstring(L, 1, "");
 	char buf[strlen(string) + 1];
@@ -1000,7 +1000,7 @@ static int l_fm_filter_get(lua_State *L)
 	return 1;
 }
 
-static int l_filter(lua_State *L)
+static int l_fm_filter(lua_State *L)
 {
 	const char *filter = lua_tostring(L, 1);
 	fm_filter(fm, filter);
@@ -1022,13 +1022,13 @@ static int l_fm_mark_load(lua_State *L)
 	return 0;
 }
 
-static int l_history_append(lua_State *L)
+static int l_ui_history_append(lua_State *L)
 {
 	history_append(&ui->history, luaL_checkstring(L, 1));
 	return 0;
 }
 
-static int l_history_prev(lua_State *L)
+static int l_ui_history_prev(lua_State *L)
 {
 	const char *line = history_prev(&ui->history);
 	if (!line) {
@@ -1038,7 +1038,7 @@ static int l_history_prev(lua_State *L)
 	return 1;
 }
 
-static int l_history_next(lua_State *L)
+static int l_ui_history_next(lua_State *L)
 {
 	const char *line = history_next(&ui->history);
 	if (!line) {
@@ -1230,7 +1230,7 @@ static int l_find(lua_State *L)
 	return 1;
 }
 
-static int l_getpid(lua_State *L)
+static int l_fn_getpid(lua_State *L)
 {
 	lua_pushinteger(L, getpid());
 	return 1;
@@ -1245,7 +1245,7 @@ static int l_timeout(lua_State *L)
 	return 0;
 }
 
-static int l_fm_height(lua_State *L)
+static int l_fm_get_height(lua_State *L)
 {
 	lua_pushnumber(L, fm->height);
 	return 1;
@@ -1274,23 +1274,23 @@ static const struct luaL_Reg fm_lib[] = {
 	{"bottom", l_fm_bot},
 	{"chdir", l_fm_chdir},
 	{"down", l_fm_down},
-	{"filter", l_filter},
+	{"filter", l_fm_filter},
 	{"getfilter", l_fm_filter_get},
 	{"mark_load", l_fm_mark_load},
 	{"open", l_fm_open},
 	{"current_dir", l_fm_current_dir},
 	{"current_file", l_fm_current_file},
-	{"selection_clear", l_selection_clear},
-	{"selection_reverse", l_selection_reverse},
-	{"selection_toggle", l_selection_toggle_current},
-	{"selection_add", l_selection_add},
-	{"selection_set", l_selection_set},
-	{"selection_get", l_selection_get},
-	{"sortby", l_sortby},
+	{"selection_clear", l_fm_selection_clear},
+	{"selection_reverse", l_fm_selection_reverse},
+	{"selection_toggle", l_fm_selection_toggle_current},
+	{"selection_add", l_fm_selection_add},
+	{"selection_set", l_fm_selection_set},
+	{"selection_get", l_fm_selection_get},
+	{"sortby", l_fm_sortby},
 	{"top", l_fm_top},
-	{"visual_start", l_sel_visual_start},
-	{"visual_end", l_sel_visual_end},
-	{"visual_toggle", l_sel_visual_toggle},
+	{"visual_start", l_fm_visual_start},
+	{"visual_end", l_fm_visual_end},
+	{"visual_toggle", l_fm_visual_toggle},
 	{"updir", l_fm_updir},
 	{"up", l_fm_up},
 	{"load_get", l_fm_get_load},
@@ -1301,7 +1301,7 @@ static const struct luaL_Reg fm_lib[] = {
 	{"check", l_fm_check},
 	{"drop_cache", l_fm_drop_cache},
 	{"sel", l_fm_sel},
-	{"get_height", l_fm_height},
+	{"get_height", l_fm_get_height},
 	{NULL, NULL}};
 
 static const struct luaL_Reg cmd_lib[] = {
@@ -1328,16 +1328,16 @@ static const struct luaL_Reg ui_lib[] = {
 	{"get_height", l_ui_get_height},
 	{"clear", l_ui_clear},
 	{"draw", l_ui_draw},
-	{"history_append", l_history_append},
-	{"history_next", l_history_next},
-	{"history_prev", l_history_prev},
+	{"history_append", l_ui_history_append},
+	{"history_next", l_ui_history_next},
+	{"history_prev", l_ui_history_prev},
 	{"menu", l_ui_menu},
 	{"messages", l_ui_messages},
 	{NULL, NULL}};
 
 static const struct luaL_Reg fn_lib[] = {
-	{"tokenize", l_tokenize},
-	{"getpid", l_getpid},
+	{"tokenize", l_fn_tokenize},
+	{"getpid", l_fn_getpid},
 	{NULL, NULL}};
 
 static const struct luaL_Reg log_lib[] = {
