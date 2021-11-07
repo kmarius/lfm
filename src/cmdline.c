@@ -62,13 +62,13 @@ void cmdline_init(T *t)
 bool cmdline_prefix_set(T *t, const char *prefix)
 {
 	if (!prefix) {
-		return 0;
+		return false;
 	}
 	const int l = strlen(prefix);
 	ENSURE_CAPACITY(t->prefix, (size_t) l);
 	strcpy(t->prefix.str, prefix);
 	t->prefix.len = l;
-	return 1;
+	return true;
 }
 
 const char *cmdline_prefix_get(T *t)
@@ -79,40 +79,40 @@ const char *cmdline_prefix_get(T *t)
 bool cmdline_insert(T *t, const char *key)
 {
 	if (t->prefix.len == 0) {
-		return 0;
+		return false;
 	}
 	ENSURE_SPACE(t->left, 1);
 	mbtowc(t->left.str+t->left.len, key, strlen(key));
 	t->left.len++;
 	t->left.str[t->left.len] = 0;
-	return 1;
+	return true;
 }
 
 bool cmdline_delete(T *t)
 {
 	if (t->prefix.len == 0 || t->left.len == 0) {
-		return 0;
+		return false;
 	}
 	t->left.str[t->left.len - 1] = 0;
 	t->left.len--;
-	return 1;
+	return true;
 }
 
 bool cmdline_delete_right(T *t)
 {
 	if (t->prefix.len == 0 || t->right.len == 0) {
-		return 0;
+		return false;
 	}
 	memmove(t->right.str, t->right.str+1, sizeof(wchar_t)*t->right.len);
 	t->right.len--;
-	return 1;
+	return true;
 }
 
 bool cmdline_delete_word(T *t)
 {
 	int i;
 	if (t->prefix.len == 0 || t->left.len == 0) {
-		return 0;
+		return false;
 	}
 	i = t->left.len - 1;
 	while (i > 0 && iswspace(t->left.str[i]))
@@ -123,24 +123,24 @@ bool cmdline_delete_word(T *t)
 		i--;
 	t->left.len = i;
 	t->left.str[i] = 0;
-	return 1;
+	return true;
 }
 
 /* pass a ct argument to move over words? */
 bool cmdline_left(T *t)
 {
 	if (t->prefix.len == 0 || t->left.len == 0) {
-		return 0;
+		return false;
 	}
 	SHIFT_RIGHT(t, 1);
-	return 1;
+	return true;
 }
 
 bool cmdline_word_left(T *t)
 {
 	int i;
 	if (t->prefix.len == 0 || t->left.len == 0) {
-		return 0;
+		return false;
 	}
 	i = t->left.len;
 	if (i > 0 && iswpunct(t->left.str[i-1]))
@@ -152,14 +152,14 @@ bool cmdline_word_left(T *t)
 		while (i > 0 && !(iswspace(t->left.str[i-1]) || iswpunct(t->left.str[i-1])))
 			i--;
 	SHIFT_RIGHT(t, t->left.len-i);
-	return 1;
+	return true;
 }
 
 bool cmdline_word_right(T *t)
 {
 	int i;
 	if (t->prefix.len == 0 || t->right.len == 0) {
-		return 0;
+		return false;
 	}
 	i = 0;
 	if (i < t->right.len && iswpunct(t->right.str[i]))
@@ -171,34 +171,34 @@ bool cmdline_word_right(T *t)
 		while (i < t->right.len && !(iswspace(t->right.str[i]) || iswpunct(t->right.str[i])))
 			i++;
 	SHIFT_LEFT(t, i);
-	return 1;
+	return true;
 }
 
 bool cmdline_right(T *t)
 {
 	if (t->prefix.len == 0 || t->right.len == 0) {
-		return 0;
+		return false;
 	}
 	SHIFT_LEFT(t, 1);
-	return 1;
+	return true;
 }
 
 bool cmdline_home(T *t)
 {
 	if (t->prefix.len == 0 || t->left.len == 0) {
-		return 0;
+		return false;
 	}
 	SHIFT_RIGHT(t, t->left.len);
-	return 1;
+	return true;
 }
 
 bool cmdline_end(T *t)
 {
 	if (t->prefix.len == 0 || t->right.len == 0) {
-		return 0;
+		return false;
 	}
 	SHIFT_LEFT(t, t->right.len);
-	return 1;
+	return true;
 }
 
 bool cmdline_clear(T *t)
@@ -209,7 +209,7 @@ bool cmdline_clear(T *t)
 	t->left.len = 0;
 	t->right.str[0] = 0;
 	t->right.len = 0;
-	return 1;
+	return true;
 }
 
 bool cmdline_set_whole(T *t, const char *prefix, const char *left, const char *right)
@@ -232,13 +232,13 @@ bool cmdline_set_whole(T *t, const char *prefix, const char *left, const char *r
 	} else {
 		t->right.len = n;
 	}
-	return 1;
+	return true;
 }
 
 bool cmdline_set(T *t, const char *line)
 {
 	if (t->prefix.len == 0) {
-		return 0;
+		return false;
 	}
 	t->right.str[0] = 0;
 	t->right.len = 0;
@@ -250,7 +250,7 @@ bool cmdline_set(T *t, const char *line)
 	} else {
 		t->left.len = n;
 	}
-	return 1;
+	return true;
 }
 
 const char *cmdline_get(T *t)
