@@ -407,13 +407,12 @@ static int l_ui_get_height(lua_State *L)
 
 static int l_ui_menu(lua_State *L)
 {
-	const int l = lua_gettop(L);
-	const char *s;
 	cvector_vector_type(char*) menubuf = NULL;
-	cvector_grow(menubuf, l);
-	for (int i = 0; i < l; i++) {
-		s = luaL_checkstring(L, i + 1);
-		cvector_push_back(menubuf, strdup(s));
+	if (lua_type(L, -1) == LUA_TTABLE) {
+		cvector_grow(menubuf, luaL_getn(L, -1));
+		for (lua_pushnil(L); lua_next(L, -2); lua_pop(L, 1)) {
+			cvector_push_back(menubuf, strdup(luaL_checkstring(L, -1)));
+		}
 	}
 	ui_showmenu(ui, menubuf);
 	return 0;

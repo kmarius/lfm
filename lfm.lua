@@ -240,11 +240,11 @@ function lfm.ui.history_prev() end
 ---```
 --
 --- lfm.ui.menu() -- hide menu
---- lfm.ui.menu("line1", "line2")
+--- lfm.ui.menu({"line1", "line2"})
 ---
 ---```
----@vararg string
-function lfm.ui.menu(...) end
+---@param menu string[]
+function lfm.ui.menu(menu) end
 
 ---Show all previously shown errors and messages.
 ---@return string[] messages
