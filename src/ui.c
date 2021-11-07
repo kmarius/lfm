@@ -64,7 +64,7 @@ static int resize_cb(struct ncplane *n)
 	return 0;
 }
 
-void ui_init(ui_t *ui, fm_t *fm)
+void ui_notcurses_init(ui_t *ui)
 {
 	struct notcurses_options ncopts = {
 		.flags = NCOPTION_NO_WINCH_SIGHANDLER | NCOPTION_SUPPRESS_BANNERS,
@@ -74,23 +74,9 @@ void ui_init(ui_t *ui, fm_t *fm)
 	}
 	struct ncplane *ncstd = notcurses_stdplane(nc);
 
-	cache_init(&ui->preview.cache, PREVIEW_CACHE_SIZE, (void(*)(void*)) preview_free);
-	cmdline_init(&ui->cmdline);
-	history_load(&ui->history, cfg.historypath);
-
 	ncplane_dim_yx(ncstd, &ui->nrow, &ui->ncol);
 	ui->nc = nc;
-	fm->height = ui->nrow - 2;
-	ui->fm = fm;
-
-	ui->planes.dirs = NULL;
-	ui->ndirs = 0;
-
-	ui->preview.file = NULL;
-
-	ui->search.string = NULL;
-	ui->search.active = false;
-	ui->search.forward = true;
+	ui->fm->height = ui->nrow - 2;
 
 	struct ncplane_options opts = {
 		.y = 0,
@@ -107,14 +93,49 @@ void ui_init(ui_t *ui, fm_t *fm)
 	opts.y = ui->nrow-1;
 	ui->planes.cmdline = ncplane_create(ncstd, &opts);
 
-	ui->menubuf = NULL;
-	ui->planes.menu = NULL;
-
 	ui_recol(ui);
 
 	opts.rows = opts.cols = 1;
 	ui->planes.menu = ncplane_create(ncstd, &opts);
 	ncplane_move_bottom(ui->planes.menu);
+}
+
+void ui_suspend(ui_t *ui)
+{
+	notcurses_stop(nc);
+	nc = NULL;
+	ui->planes.dirs = NULL;
+	ui->planes.cmdline = NULL;
+	ui->planes.menu = NULL;
+	ui->planes.info = NULL;
+}
+
+void ui_init(ui_t *ui, fm_t *fm)
+{
+	ui->fm = fm;
+
+	cache_init(&ui->preview.cache, PREVIEW_CACHE_SIZE, (void(*)(void*)) preview_free);
+	cmdline_init(&ui->cmdline);
+	history_load(&ui->history, cfg.historypath);
+
+	ui->planes.dirs = NULL;
+	ui->planes.cmdline = NULL;
+	ui->planes.menu = NULL;
+	ui->planes.info = NULL;
+
+	ui->ndirs = 0;
+
+	ui->preview.file = NULL;
+
+	ui->search.string = NULL;
+	ui->search.active = false;
+	ui->search.forward = true;
+
+	ui->menubuf = NULL;
+
+	ui_notcurses_init(ui);
+
+	ui_recol(ui);
 
 	initialized = true;
 	log_info("initialized ui");
@@ -904,7 +925,7 @@ static void wansi_matchattr(struct ncplane *w, int a)
 				ncplane_on_styles(w, NCSTYLE_UNDERLINE);
 				break;
 			case 5:
-				ncplane_on_styles(w, NCSTYLE_BLINK);
+				/* ncplane_on_styles(w, NCSTYLE_BLINK); */
 				break;
 			case 6: /* nothing */
 				break;
@@ -913,7 +934,7 @@ static void wansi_matchattr(struct ncplane *w, int a)
 				/* ncplane_on_styles(w, WA_REVERSE); */
 				break;
 			case 8:
-				ncplane_on_styles(w, NCSTYLE_INVIS);
+				/* ncplane_on_styles(w, NCSTYLE_INVIS); */
 				break;
 			case 9: /* strikethrough */
 				break;

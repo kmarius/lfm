@@ -100,4 +100,8 @@ void ui_search_nohighlight(ui_t *ui);
 
 void ui_drop_cache(ui_t *ui);
 
+void ui_notcurses_init(ui_t *ui);
+
+void ui_suspend(ui_t *ui);
+
 #endif /* UI_H */

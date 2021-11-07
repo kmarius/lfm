@@ -782,6 +782,7 @@ static int l_sel_visual_toggle(lua_State *L)
 static int l_shell_pre(lua_State *L)
 {
 	(void) L;
+	ui_suspend(ui);
 	kbblocking(true);
 	return 0;
 }
@@ -790,7 +791,8 @@ static int l_shell_post(lua_State *L)
 {
 	(void) L;
 	kbblocking(false);
-	ui_clear(ui);
+	ui_notcurses_init(ui);
+	ui->redraw.fm = 1;
 	return 0;
 }
 
