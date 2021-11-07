@@ -44,6 +44,7 @@ static struct {
 static int l_map_key(lua_State *L)
 {
 	const char *desc = NULL;
+
 	if (lua_type(L, 3) == LUA_TTABLE) {
 		lua_getfield(L, 3, "desc");
 		if (lua_type(L, -1) == LUA_TSTRING) {
@@ -396,8 +397,7 @@ static int l_quit(lua_State *L)
 
 static int l_error(lua_State *L)
 {
-	const char *msg = luaL_checkstring(L, 1);
-	ui_error(ui, msg);
+	ui_error(ui, luaL_checkstring(L, 1));
 	return 0;
 }
 
@@ -676,31 +676,35 @@ static int l_cmd_prefix_get(lua_State *L)
 
 static int l_fm_up(lua_State *L)
 {
-	if (fm_up(fm, luaL_optint(L, 1, 1)))
+	if (fm_up(fm, luaL_optint(L, 1, 1))) {
 		ui->redraw.fm = 1;
+	}
 	return 0;
 }
 
 static int l_fm_down(lua_State *L)
 {
-	if (fm_down(fm, luaL_optint(L, 1, 1)))
+	if (fm_down(fm, luaL_optint(L, 1, 1))) {
 		ui->redraw.fm = 1;
+	}
 	return 0;
 }
 
 static int l_fm_top(lua_State *L)
 {
 	(void) L;
-	if (fm_top(fm))
+	if (fm_top(fm)) {
 		ui->redraw.fm = 1;
+	}
 	return 0;
 }
 
 static int l_fm_bot(lua_State *L)
 {
 	(void) L;
-	if (fm_bot(fm))
+	if (fm_bot(fm)) {
 		ui->redraw.fm = 1;
+	}
 	return 0;
 }
 
@@ -715,8 +719,8 @@ static int l_fm_updir(lua_State *L)
 
 static int l_fm_open(lua_State *L)
 {
-	file_t *file;
-	if (!(file = fm_open(fm))) {
+	file_t *file = fm_open(fm);
+	if (!file) {
 		/* changed directory */
 		ui->redraw.fm = 1;
 		ui_search_nohighlight(ui);
@@ -727,10 +731,10 @@ static int l_fm_open(lua_State *L)
 			fm_selection_write(fm, cfg.selfile);
 			app_quit(app);
 			return 0;
-		} else {
-			lua_pushstring(L, file->path);
-			return 1;
 		}
+
+		lua_pushstring(L, file->path);
+		return 1;
 	}
 }
 
@@ -871,8 +875,8 @@ static int l_selection_set(lua_State *L)
 
 static int l_selection_get(lua_State *L)
 {
-	lua_createtable(L, fm->selection.len, 0);
 	size_t i, j = 1;
+	lua_createtable(L, fm->selection.len, 0);
 	for (i = 0; i < cvector_size(fm->selection.files); i++) {
 		if (fm->selection.files[i]) {
 			lua_pushstring(L, fm->selection.files[i]);
@@ -1020,14 +1024,13 @@ static int l_fm_mark_load(lua_State *L)
 
 static int l_history_append(lua_State *L)
 {
-	const char *line = luaL_checkstring(L, 1);
-	ui_history_append(ui, line);
+	history_append(&ui->history, luaL_checkstring(L, 1));
 	return 0;
 }
 
 static int l_history_prev(lua_State *L)
 {
-	const char *line = ui_history_prev(ui);
+	const char *line = history_prev(&ui->history);
 	if (!line) {
 		return 0;
 	}
@@ -1037,8 +1040,8 @@ static int l_history_prev(lua_State *L)
 
 static int l_history_next(lua_State *L)
 {
-	const char *line;
-	if (!(line = ui_history_next(ui))) {
+	const char *line = history_next(&ui->history);
+	if (!line) {
 		return 0;
 	}
 	lua_pushstring(L, line);

@@ -83,12 +83,6 @@ void ui_cmd_clear(ui_t *ui);
 
 void ui_cmd_prefix_set(ui_t *ui, const char *prefix);
 
-void ui_history_append(ui_t *ui, const char *line);
-
-const char *ui_history_prev(ui_t *ui);
-
-const char *ui_history_next(ui_t *ui);
-
 bool ui_insert_preview(ui_t *ui, preview_t *pv);
 
 /*

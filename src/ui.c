@@ -1098,25 +1098,6 @@ void ui_search_highlight(ui_t *ui, const char *search, bool forward)
 }
 /* }}} */
 
-/* history {{{ */
-
-void ui_history_append(ui_t *ui, const char *line)
-{
-	history_append(&ui->history, line);
-}
-
-const char *ui_history_prev(ui_t *ui)
-{
-	return history_prev(&ui->history);
-}
-
-const char *ui_history_next(ui_t *ui)
-{
-	return history_next(&ui->history);
-}
-
-/* }}} */
-
 void ui_deinit(ui_t *ui)
 {
 	history_write(&ui->history, cfg.historypath);
