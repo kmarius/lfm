@@ -239,9 +239,13 @@ static int l_config_index(lua_State *L)
 {
 	const char *key = luaL_checkstring(L, 2);
 	if (streq(key, "truncatechar")) {
-		char buf[2];
-		buf[0] = cfg.truncatechar;
-		buf[1] = 0;
+		char buf[MB_LEN_MAX + 1];
+		int l = wctomb(buf, cfg.truncatechar);
+		if (l == -1) {
+			log_error("converting truncatechar to mbs");
+			l = 0;
+		}
+		buf[l] = 0;
 		lua_pushstring(L, buf);
 		return 1;
 	} else if (streq(key, "hidden")) {
@@ -287,11 +291,14 @@ static int l_config_newindex(lua_State *L)
 {
 	const char *key = luaL_checkstring(L, 2);
 	if (streq(key, "truncatechar")) {
-		wchar_t buf[2];
+		wchar_t w;
 		const char *val = luaL_checkstring(L, 3);
-		const char *p = val;
-		mbsrtowcs(buf, &p, 1, NULL);
-		cfg.truncatechar = buf[0];
+		int l = mbtowc(&w, val, MB_LEN_MAX);
+		if (l == -1) {
+			log_error("converting truncatechar to wchar_t");
+			return 0;
+		}
+		cfg.truncatechar = w;
 		ui->redraw.fm = 1;
 	} else if (streq(key, "hidden")) {
 		bool hidden = lua_toboolean(L, 3);
