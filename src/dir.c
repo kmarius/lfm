@@ -195,25 +195,19 @@ void dir_filter(dir_t *dir, const char *filter)
 /* TODO: returns errors on broken symlinks (on 2021-08-23) */
 bool file_isdir(const file_t *file)
 {
-	struct stat statbuf;
-	int mode = file->stat.st_mode;
-	if (S_ISLNK(mode)) {
-		if (stat(file->path, &statbuf) == -1) {
-			log_error("%s", strerror(errno));
-			return false;
-		}
-		return S_ISDIR(statbuf.st_mode);
-	}
+	int mode = file->link_target && !file->broken ? file->stat.st_mode : file->lstat.st_mode;
 	return S_ISDIR(mode);
 }
 
 bool dir_check(const dir_t *dir)
 {
 	struct stat statbuf;
+	const unsigned long t0 = current_micros();
 	if (stat(dir->path, &statbuf) == -1) {
 		log_error("%s", strerror(errno));
 		return false;
 	}
+	log_info("stat call for %s took %.2fms", dir->path, (current_micros() - t0)/1000.0);
 	return statbuf.st_mtime <= dir->loadtime;
 }
 
@@ -283,7 +277,7 @@ static bool file_load(file_t *file, const char *basedir, const char *name)
 	bool isroot = basedir[0] == '/' && basedir[1] == 0;
 	asprintf(&file->path, "%s/%s", isroot ? "" : basedir, name);
 
-	if (lstat(file->path, &file->stat) == -1) {
+	if (lstat(file->path, &file->lstat) == -1) {
 		/* likely the file was deleted */
 		log_error("lstat: %s", strerror(errno));
 		free(file->path);
@@ -297,10 +291,15 @@ static bool file_load(file_t *file, const char *basedir, const char *name)
 		file->ext = NULL;
 	}
 	file->link_target = NULL;
+	file->broken = false;
 
-	if (S_ISLNK(file->stat.st_mode)) {
+	if (S_ISLNK(file->lstat.st_mode)) {
+		if (stat(file->path, &file->stat) == -1) {
+			file->broken = true;
+		}
 		if (readlink(file->path, buf, sizeof(buf)) == -1) {
 			log_error("readlink: %s", strerror(errno));
+			file->broken = true;
 			/* TODO: mark broken symlink? (on 2021-08-02) */
 		} else {
 			file->link_target = strdup(buf);

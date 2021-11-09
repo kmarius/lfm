@@ -23,6 +23,8 @@
 #include "ui.h"
 #include "util.h"
 
+#define PROFILE_DRAWING 0
+
 static void draw_dirs(ui_t *ui);
 static void plane_draw_dir(struct ncplane *n, dir_t *dir, char **sel,
 		char **load, enum movemode_e mode, const char *highlight);
@@ -130,6 +132,7 @@ void ui_init(ui_t *ui, fm_t *fm)
 	ui->search.forward = true;
 
 	ui->menubuf = NULL;
+	ui->message = false;
 
 	ui_notcurses_init(ui);
 
@@ -181,6 +184,9 @@ void ui_recol(ui_t *ui)
 
 void ui_draw(ui_t *ui)
 {
+#ifdef PROFILE_DRAWING
+	const unsigned long t0 = current_micros();
+#endif
 	if (ui->redraw.fm) {
 		draw_dirs(ui);
 	}
@@ -198,7 +204,13 @@ void ui_draw(ui_t *ui)
 	}
 	if (ui->redraw.fm | ui->redraw.cmdline | ui->redraw.info
 			| ui->redraw.menu | ui->redraw.preview) {
+#ifdef PROFILE_DRAWING
+		log_trace("drawing complete after %.2fms", (current_micros() - t0)/1000.0);
+#endif
 		notcurses_render(nc);
+#ifdef PROFILE_DRAWING
+		log_trace("render complete after %.2fms", (current_micros() - t0)/1000.0);
+#endif
 	}
 	ui->redraw.fm = 0;
 	ui->redraw.info = 0;
@@ -230,6 +242,9 @@ void ui_clear(ui_t *ui)
 
 static void draw_dirs(ui_t *ui)
 {
+#ifdef PROFILE_DRAWING
+	const unsigned long t0 = current_micros();
+#endif
 	int i;
 	const int l = ui->fm->dirs.len;
 	for (i = 0; i < l; i++) {
@@ -240,10 +255,16 @@ static void draw_dirs(ui_t *ui)
 				ui->fm->load.mode,
 				i == 0 && ui->search.active ? ui->search.string : NULL);
 	}
+#ifdef PROFILE_DRAWING
+	log_trace("draw_dirs complete after %.2fms", (current_micros() - t0)/1000.0);
+#endif
 }
 
 static void draw_preview(ui_t *ui)
 {
+#ifdef PROFILE_DRAWING
+	const unsigned long t0 = current_micros();
+#endif
 	dir_t *preview_dir;
 	if (cfg.preview && ui->ndirs > 1) {
 		if ((preview_dir = ui->fm->dirs.preview)) {
@@ -254,6 +275,9 @@ static void draw_preview(ui_t *ui)
 			draw_file_preview(ui);
 		}
 	}
+#ifdef PROFILE_DRAWING
+	log_trace("draw_preview complete after %.2fms", (current_micros() - t0)/1000.0);
+#endif
 }
 
 void ui_echom(ui_t *ui, const char *format, ...)
@@ -404,14 +428,23 @@ static char *owner(int uid)
 	return owner;
 }
 
+/* getgrgid() is somewhat slow, so we cache one call */
 static char *group(int gid)
 {
 	static char group[32];
+	static int cached_gid = INT_MAX;
 	struct group *grp;
+
+	if (gid == cached_gid) {
+		return group;
+	}
+
 	if ((grp = getgrgid(gid))) {
 		strncpy(group, grp->gr_name, sizeof(group)-1);
 		group[31] = 0;
+		cached_gid = gid;
 	} else {
+		cached_gid = INT_MAX;
 		group[0] = 0;
 	}
 	return group;
@@ -447,6 +480,10 @@ static int int_sz(int n)
 
 void draw_cmdline(ui_t *ui)
 {
+#ifdef PROFILE_DRAWING
+	const unsigned long t0 = current_micros();
+#endif
+
 	char nums[16];
 	char size[32];
 	char mtime[32];
@@ -458,8 +495,8 @@ void draw_cmdline(ui_t *ui)
 	}
 
 	ncplane_erase(ui->planes.cmdline);
-	ncplane_set_bg_default(ui->planes.cmdline);
-	ncplane_set_fg_default(ui->planes.cmdline);
+	/* ncplane_set_bg_default(ui->planes.cmdline); */
+	/* ncplane_set_fg_default(ui->planes.cmdline); */
 
 	int rhs_sz = 0;
 	int lhs_sz = 0;
@@ -471,10 +508,10 @@ void draw_cmdline(ui_t *ui)
 				 * directory instead (on 2021-07-18) */
 				lhs_sz = ncplane_printf_yx(ui->planes.cmdline, 0, 0,
 						"%s %2.ld %s %s %4s %s%s%s",
-						perms(file->stat.st_mode), file->stat.st_nlink,
-						owner(file->stat.st_uid), group(file->stat.st_gid),
-						readable_fs(file->stat.st_size, size),
-						print_time(file->stat.st_mtime, mtime, sizeof(mtime)),
+						perms(file->lstat.st_mode), file->lstat.st_nlink,
+						owner(file->lstat.st_uid), group(file->lstat.st_gid),
+						readable_fs(file->lstat.st_size, size),
+						print_time(file->lstat.st_mtime, mtime, sizeof(mtime)),
 						file->link_target ? " -> " : "",
 						file->link_target ? file->link_target : "");
 			}
@@ -518,6 +555,9 @@ void draw_cmdline(ui_t *ui)
 		const int cursor_pos = cmdline_print(&ui->cmdline, ui->planes.cmdline);
 		notcurses_cursor_enable(nc, ui->nrow - 1, cursor_pos);
 	}
+#ifdef PROFILE_DRAWING
+	log_trace("draw_cmdline complete after %.2fms", (current_micros() - t0)/1000.0);
+#endif
 }
 /* }}} */
 
@@ -525,6 +565,9 @@ void draw_cmdline(ui_t *ui)
 
 static void draw_info(ui_t *ui)
 {
+#ifdef PROFILE_DRAWING
+	const unsigned long t0 = current_micros();
+#endif
 	// arbitrary
 	static char user[32] = {0};
 	static char host[HOST_NAME_MAX + 1] = {0};
@@ -586,6 +629,9 @@ static void draw_info(ui_t *ui)
 			ncplane_putstr(ui->planes.info, file->name);
 		}
 	}
+#ifdef PROFILE_DRAWING
+	log_trace("draw_info complete after %.2fms", (current_micros() - t0)/1000.0);
+#endif
 }
 
 /* }}} */
@@ -614,6 +660,10 @@ static void draw_menu(struct ncplane *n, cvector_vector_type(char*) menubuf)
 		return;
 	}
 
+#ifdef PROFILE_DRAWING
+	const unsigned long t0 = current_micros();
+#endif
+
 	ncplane_erase(n);
 
 	/* otherwise this doesn't draw over the directories */
@@ -640,6 +690,9 @@ static void draw_menu(struct ncplane *n, cvector_vector_type(char*) menubuf)
 			}
 		}
 	}
+#ifdef PROFILE_DRAWING
+	log_trace("draw_menu complete after %.2fms", (current_micros() - t0)/1000.0);
+#endif
 }
 
 static void menu_resize(ui_t *ui)
@@ -706,7 +759,7 @@ static void print_file(struct ncplane *n, const file_t *file,
 	if ((isdir = file_isdir(file))) {
 		snprintf(size, sizeof(size), "%d", file->filecount);
 	} else {
-		readable_fs(file->stat.st_size, size);
+		readable_fs(file->lstat.st_size, size);
 	}
 
 	int rightmargin = strlen(size) + 2;

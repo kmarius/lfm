@@ -12,7 +12,9 @@
 enum sorttype_e { SORT_NATURAL, SORT_NAME, SORT_SIZE, SORT_CTIME, SORT_RAND, };
 
 typedef struct file_t {
+	struct stat lstat;
 	struct stat stat;
+	bool broken;
 	char *path;
 	char *name;
 	char *ext;
@@ -59,7 +61,7 @@ bool file_isdir(const file_t *file);
  * Returns true if the file is a executable or, if it is a link, if the link
  * target is.
  */
-#define file_isexec(f) ((f)->stat.st_mode & (1 | 8 | 64))
+#define file_isexec(f) ((f)->lstat.st_mode & (1 | 8 | 64))
 
 #define file_islink(f) ((f)->link_target != NULL)
 
