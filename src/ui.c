@@ -135,8 +135,6 @@ void ui_init(ui_t *ui, fm_t *fm)
 
 	ui_notcurses_init(ui);
 
-	ui_recol(ui);
-
 	initialized = true;
 	log_info("initialized ui");
 }
