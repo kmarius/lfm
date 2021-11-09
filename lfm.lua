@@ -321,6 +321,14 @@ function lfm.fn.getpid() end
 ---@return string, string[]
 function lfm.fn.tokenize(str) end
 
+---Get the current working directory (usually with symlinks resolved)
+---@return string
+function lfm.fn.getcwd() end
+
+---Get the present PWD, equivalent to `os.getenv("PWD")`.
+---@return string
+function lfm.fn.getpwd() end
+
 ---@class configlib
 ---@field ratios integer[] assignable
 ---@field truncatechar string assignable, only the first character is used

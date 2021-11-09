@@ -8,6 +8,7 @@
 #include <notcurses/notcurses.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include <wchar.h>
 #include <wctype.h>
 
@@ -1236,6 +1237,20 @@ static int l_fn_getpid(lua_State *L)
 	return 1;
 }
 
+static int l_fn_getcwd(lua_State *L)
+{
+	const char *cwd = getcwd(NULL, 0);
+	lua_pushstring(L, cwd ? cwd : "");
+	return 1;
+}
+
+static int l_fn_getpwd(lua_State *L)
+{
+	const char *pwd = getenv("PWD");
+	lua_pushstring(L, pwd ? pwd : "");
+	return 1;
+}
+
 static int l_timeout(lua_State *L)
 {
 	const int dur = luaL_checkinteger(L, 1);
@@ -1338,6 +1353,8 @@ static const struct luaL_Reg ui_lib[] = {
 static const struct luaL_Reg fn_lib[] = {
 	{"tokenize", l_fn_tokenize},
 	{"getpid", l_fn_getpid},
+	{"getcwd", l_fn_getcwd},
+	{"getpwd", l_fn_getpwd},
 	{NULL, NULL}};
 
 static const struct luaL_Reg log_lib[] = {
