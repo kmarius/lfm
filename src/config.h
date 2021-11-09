@@ -71,7 +71,7 @@ typedef struct config {
 
 extern config cfg;
 
-void config_ratios_set(size_t n, const int *ratios);
+void config_ratios_set(cvector_vector_type(int) ratios);
 
 void config_ext_channel_add(const char *ext, unsigned long channel);
 

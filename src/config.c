@@ -45,14 +45,11 @@ config cfg = {
 	}
 };
 
-void config_ratios_set(size_t n, const int *ratios)
+void config_ratios_set(cvector_vector_type(int) ratios)
 {
-	size_t i;
-	if (n > 0) {
-		cvector_set_size(cfg.ratios, 0);
-		for (i = 0; i < n; i++) {
-			cvector_push_back(cfg.ratios, ratios[i]);
-		}
+	if (cvector_size(ratios) > 0) {
+		cvector_free(cfg.ratios);
+		cfg.ratios = ratios;
 	}
 }
 
@@ -64,8 +61,11 @@ void config_ext_channel_add(const char *ext, unsigned long channel)
 
 void config_defaults()
 {
-	const int r[] = {1, 2, 3};
-	config_ratios_set(3, r);
+	cvector_vector_type(int) r = NULL;
+	cvector_push_back(r, 1);
+	cvector_push_back(r, 2);
+	cvector_push_back(r, 3);
+	config_ratios_set(r);
 
 #ifdef DEBUG
 	cfg.logpath = strdup("/tmp/lfm.debug.log");

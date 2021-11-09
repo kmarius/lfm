@@ -309,22 +309,22 @@ static int l_config_newindex(lua_State *L)
 		if (l == 0) {
 			luaL_argerror(L, 3, "no ratios given");
 		}
-		int *ratios = malloc(sizeof(int) * l);
+		int *ratios = NULL;
 		int i;
-		for (i = 0; i < l; i++) {
-			lua_rawgeti(L, 3, i + 1);
-			ratios[i] = lua_tointeger(L, -1);
-			if (ratios[i] <= 0) {
-				free(ratios);
+		for (i = 1; i <= l; i++) {
+			lua_rawgeti(L, 3, i);
+			cvector_push_back(ratios, lua_tointeger(L, -1));
+			if (ratios[i-1] <= 0) {
 				luaL_error(L, "ratio must be non-negative");
+				cvector_free(ratios);
+				return 0;
 			}
 			lua_pop(L, 1);
 		}
-		config_ratios_set(l, ratios);
+		config_ratios_set(ratios);
 		fm_recol(fm);
 		ui_recol(ui);
 		ui->redraw.fm = 1;
-		free(ratios);
 	} else if (streq(key, "scrolloff")) {
 		cfg.scrolloff = max(luaL_checkinteger(L, 3), 0);
 		return 0;
