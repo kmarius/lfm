@@ -66,6 +66,11 @@ ifeq ($(V),true)
 	CMD_PREFIX :=
 endif
 
+# Commit number
+COMMIT_COUNT = $(shell git rev-list --count HEAD)
+COMMIT_HASH = $(shell git rev-parse --short HEAD)
+COMPILE_FLAGS += -DVERSION=\"r$(COMMIT_COUNT).$(COMMIT_HASH)\"
+
 # Combine compiler and linker flags
 release: export CFLAGS := $(CFLAGS) $(COMPILE_FLAGS) $(RCOMPILE_FLAGS)
 release: export LDFLAGS := $(LDFLAGS) $(LINK_FLAGS) $(RLINK_FLAGS)

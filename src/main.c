@@ -29,9 +29,15 @@
 	"  -v           Print version information\n"
 
 #ifdef DEBUG
-#define VERSION_FMT "%s v0.epsilon-debug\n"
+#ifndef VERSION
+#define VERSION "?"
+#endif
+#define VERSION_FMT "%s v0." VERSION "-debug\n"
 #else
-#define VERSION_FMT "%s v0.epsilon\n"
+#ifndef VERSION
+#define VERSION "release"
+#endif
+#define VERSION_FMT "%s v0." VERSION "\n"
 #endif
 
 static void usage(const char *progname, int opt)
