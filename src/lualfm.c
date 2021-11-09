@@ -178,7 +178,7 @@ void lua_handle_key(lua_State *L, long u)
 	if (!prefix) {
 		if (u == 27) {
 			maps.cur = NULL;
-			ui->message = 0;
+			ui->message = false;
 			ui_cmd_clear(ui);
 			ui_search_nohighlight(ui);
 			fm_selection_visual_stop(fm);
