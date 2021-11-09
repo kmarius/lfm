@@ -23,8 +23,6 @@
 #include "ui.h"
 #include "util.h"
 
-static bool initialized = false;
-
 static void draw_dirs(ui_t *ui);
 static void plane_draw_dir(struct ncplane *n, dir_t *dir, char **sel,
 		char **load, enum movemode_e mode, const char *highlight);
@@ -44,7 +42,7 @@ inline static struct ncplane *wpreview(ui_t *ui)
 	return ui->planes.dirs[ui->ndirs-1];
 }
 
-static struct notcurses *nc;
+static struct notcurses *nc = NULL;
 
 /* init/resize {{{ */
 
@@ -135,7 +133,6 @@ void ui_init(ui_t *ui, fm_t *fm)
 
 	ui_notcurses_init(ui);
 
-	initialized = true;
 	log_info("initialized ui");
 }
 
@@ -285,7 +282,7 @@ void ui_verror(ui_t *ui, const char *format, va_list args)
 	cvector_push_back(ui->messages, msg);
 
 	/* TODO: show messages after initialization (on 2021-10-30) */
-	if (initialized) {
+	if (nc) {
 		ncplane_erase(ui->planes.cmdline);
 		ncplane_set_fg_palindex(ui->planes.cmdline, COLOR_RED);
 		ncplane_putstr_yx(ui->planes.cmdline, 0, 0, msg);
@@ -302,7 +299,7 @@ void ui_vechom(ui_t *ui, const char *format, va_list args)
 
 	cvector_push_back(ui->messages, msg);
 
-	if (initialized) {
+	if (nc) {
 		ncplane_erase(ui->planes.cmdline);
 		ncplane_set_fg_palindex(ui->planes.cmdline, 15);
 		ncplane_putstr_yx(ui->planes.cmdline, 0, 0, msg);
@@ -1105,5 +1102,5 @@ void ui_deinit(ui_t *ui)
 	cache_deinit(&ui->preview.cache);
 	free(ui->search.string);
 	cmdline_deinit(&ui->cmdline);
-	notcurses_stop(nc);
+	ui_suspend(ui);
 }
