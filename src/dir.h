@@ -109,4 +109,10 @@ bool dir_check(const dir_t *dir);
 
 #define dir_isroot(d) ((d)->path[0] == '/' && (d)->path[1] == 0)
 
+void dir_cursor_move(dir_t *dir, int ct, int height, int scrolloff);
+
+void dir_cursor_move_to(dir_t *dir, const char *name, int height, int scrolloff);
+
+void dir_update_with(dir_t *dir, dir_t *update, int height, int scrolloff);
+
 #endif /* DIR_H */

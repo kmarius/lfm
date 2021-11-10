@@ -359,6 +359,71 @@ dir_t *dir_load(const char *path, int filecount)
 	return dir;
 }
 
+void dir_cursor_move(dir_t *dir, int ct, int height, int scrolloff)
+{
+	dir->ind = max(min(dir->ind + ct, dir->len - 1), 0);
+	if (ct < 0) {
+		dir->pos = min(max(scrolloff, dir->pos + ct), dir->ind);
+	} else {
+		dir->pos = max(min(height - 1 - scrolloff, dir->pos + ct), height - dir->len + dir->ind);
+	}
+}
+
+void dir_cursor_move_to(dir_t *dir, const char *name, int height, int scrolloff)
+{
+	int i;
+	if (!name) {
+		return;
+	}
+	if (!dir->files) {
+		free(dir->sel);
+		dir->sel = strdup(name);
+		return;
+	}
+	for (i = 0; i < dir->len; i++) {
+		if (streq(dir->files[i]->name, name)) {
+			dir_cursor_move(dir, i - dir->ind, height, scrolloff);
+			return;
+		}
+	}
+	dir->ind = min(dir->ind, dir->len);
+}
+
+void dir_update_with(dir_t *dir, dir_t *update, int height, int scrolloff)
+{
+	// copy attributes to the update
+	strncpy(update->filter, dir->filter, sizeof(update->filter));
+	update->hidden = dir->hidden;
+	update->pos = dir->pos;
+	update->sorted = false;
+	update->sorttype = dir->sorttype;
+	update->dirfirst = dir->dirfirst;
+	update->reverse = dir->reverse;
+	update->ind = dir->ind;
+	dir_sort(update);
+
+	if (dir->sel) {
+		dir_cursor_move_to(update, dir->sel, height, scrolloff);
+	} else if (dir->ind < dir->len) {
+		dir_cursor_move_to(update, dir->files[dir->ind]->name, height, scrolloff);
+	}
+
+	// free resources, but not the struct itself
+	for (int i = 0; i < dir->alllen; i++) {
+		free(dir->allfiles[i].path);
+		free(dir->allfiles[i].link_target);
+	}
+	cvector_free(dir->allfiles);
+	free(dir->sortedfiles);
+	free(dir->files);
+	free(dir->sel);
+	free(dir->path);
+
+	// free only the struct of the update
+	*dir = *update;
+	free(update);
+}
+
 void dir_free(dir_t *dir)
 {
 	if (dir) {
