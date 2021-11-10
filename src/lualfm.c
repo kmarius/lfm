@@ -168,7 +168,7 @@ void lua_handle_key(lua_State *L, long u)
 				lua_gettable(L, LUA_REGISTRYINDEX);
 				maps.cur = NULL;
 				if (lua_pcall(L, 0, 0, 0)) {
-					error("handle_key: %s", lua_tostring(L, -1));
+					ui_error(ui, "handle_key: %s", lua_tostring(L, -1));
 				}
 			} else {
 				// ???
@@ -198,7 +198,7 @@ void lua_handle_key(lua_State *L, long u)
 				}
 			}
 			cvector_push_back(maps.str, 0);
-			error("no such map: %s", maps.str);
+			ui_error(ui, "no such map: %s", maps.str);
 			/* log_debug("key: %d, id: %d, shift: %d, ctrl: %d alt %d", u, KEY(u), ISSHIFT(u), ISCTRL(u), ISALT(u)); */
 			ui_showmenu(ui, NULL);
 			return;
@@ -209,7 +209,7 @@ void lua_handle_key(lua_State *L, long u)
 			lua_gettable(L, LUA_REGISTRYINDEX);
 			maps.cur = NULL;
 			if (lua_pcall(L, 0, 0, 0)) {
-				error("handle_key: %s", lua_tostring(L, -1));
+				ui_error(ui, "handle_key: %s", lua_tostring(L, -1));
 				if (u == 'q') {
 					app_quit(app);
 				} else if (u == 'r') {
