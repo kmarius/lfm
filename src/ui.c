@@ -494,8 +494,9 @@ void draw_cmdline(ui_t *ui)
 	}
 
 	ncplane_erase(ui->planes.cmdline);
-	/* ncplane_set_bg_default(ui->planes.cmdline); */
-	/* ncplane_set_fg_default(ui->planes.cmdline); */
+	/* sometimes the color is changed to grey */
+	ncplane_set_bg_default(ui->planes.cmdline);
+	ncplane_set_fg_default(ui->planes.cmdline);
 
 	int rhs_sz = 0;
 	int lhs_sz = 0;
