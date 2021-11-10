@@ -884,7 +884,7 @@ static void plane_draw_dir(struct ncplane *n, dir_t *dir, char **sel, char **loa
 
 /* preview {{{ */
 
-preview_t *ui_load_preview(ui_t *ui, file_t *file)
+static preview_t *load_preview(ui_t *ui, file_t *file)
 {
 	int ncol, nrow;
 	preview_t *pv;
@@ -934,11 +934,11 @@ static void update_file_preview(ui_t *ui)
 				}
 			} else {
 				cache_insert(&ui->preview.cache, ui->preview.file, ui->preview.file->path);
-				ui->preview.file = ui_load_preview(ui, file);
+				ui->preview.file = load_preview(ui, file);
 				ui->redraw.preview = 1;
 			}
 		} else {
-			ui->preview.file = ui_load_preview(ui, file);
+			ui->preview.file = load_preview(ui, file);
 			ui->redraw.preview = 1;
 		}
 	} else {
