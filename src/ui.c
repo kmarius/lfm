@@ -30,7 +30,6 @@ static void plane_draw_dir(struct ncplane *n, dir_t *dir, char **sel,
 		char **load, enum movemode_e mode, const char *highlight);
 static void draw_cmdline(ui_t *ui);
 static void draw_preview(ui_t *ui);
-static void draw_file_preview(ui_t *ui);
 static void plane_draw_file_preview(struct ncplane *n, preview_t *pv);
 static void update_file_preview(ui_t *ui);
 static void draw_menu(struct ncplane *n, cvector_vector_type(char *) menu);
@@ -272,7 +271,7 @@ static void draw_preview(ui_t *ui)
 					ui->fm->load.files, ui->fm->load.mode, NULL);
 		} else {
 			update_file_preview(ui);
-			draw_file_preview(ui);
+			plane_draw_file_preview(wpreview(ui), ui->preview.file);
 		}
 	}
 #ifdef PROFILE_DRAWING
@@ -904,11 +903,6 @@ static preview_t *load_preview(ui_t *ui, file_t *file)
 		async_preview_load(file->path, file, nrow, ncol);
 	}
 	return pv;
-}
-
-static void draw_file_preview(ui_t *ui)
-{
-	plane_draw_file_preview(wpreview(ui), ui->preview.file);
 }
 
 static void update_file_preview(ui_t *ui)
