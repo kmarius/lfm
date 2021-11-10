@@ -20,20 +20,25 @@
 
 #define DIRCACHE_SIZE 31
 
+static dir_t *load_dir(fm_t *fm, const char *path);
 static void update_preview(fm_t *fm);
 static void ind_move(dir_t *dir, int ct, int height, int scrolloff);
 static void ind_move_to(dir_t *dir, const char *name, int height);
-static dir_t *load_dir(fm_t *fm, const char *path);
 static void update_watchers(fm_t *fm);
 static void remove_preview(fm_t *fm);
 static void mark_save(fm_t *fm, char mark, const char *path);
+static void populate(fm_t *fm);
+static void copy_attrs(dir_t *dir, dir_t *olddir, int height);
+static bool cursor_move(fm_t *fm, int ct);
+static void cvector_unsparse(cvector_vector_type(char *) vec);
 
 bool cvector_contains(const char *path, cvector_vector_type(char*) selection)
 {
 	size_t i;
 	for (i = 0; i < cvector_size(selection); i++) {
-		if (selection[i] && streq(selection[i], path))
+		if (selection[i] && streq(selection[i], path)) {
 			return true;
+		}
 	}
 	return false;
 }
@@ -41,9 +46,9 @@ bool cvector_contains(const char *path, cvector_vector_type(char*) selection)
 static void populate(fm_t *fm)
 {
 	int i;
-
-	const char *s;
 	char pwd[PATH_MAX];
+	const char *s;
+
 	if ((s = getenv("PWD"))) {
 		strncpy(pwd, s, sizeof(pwd)-1);
 	} else {
@@ -73,8 +78,6 @@ void fm_init(fm_t *fm)
 		}
 	}
 
-	cache_init(&fm->dirs.cache, DIRCACHE_SIZE, (void (*)(void*)) dir_free);
-
 	fm->dirs.len = 0;
 	fm->dirs.visible = NULL;
 	fm->height = 0;
@@ -90,6 +93,7 @@ void fm_init(fm_t *fm)
 	fm->dirs.len = cvector_size(cfg.ratios) - (cfg.preview ? 1 : 0);
 	cvector_grow(fm->dirs.visible, fm->dirs.len);
 
+	cache_init(&fm->dirs.cache, DIRCACHE_SIZE, (void (*)(void*)) dir_free);
 	populate(fm);
 
 	update_watchers(fm);
@@ -104,8 +108,7 @@ void fm_init(fm_t *fm)
 void fm_recol(fm_t *fm)
 {
 	int i;
-	/* We silently disable previews without changing cfg.preview.
-	 * */
+
 	const int l = max(1, cvector_size(cfg.ratios) - (cfg.preview ? 1 : 0));
 
 	remove_preview(fm);
@@ -243,7 +246,8 @@ file_t *fm_current_file(const fm_t *fm)
 	return dir_current_file(fm->dirs.visible[0]);
 }
 
-static void copy_attrs(dir_t *dir, dir_t *olddir, int height) {
+static void copy_attrs(dir_t *dir, dir_t *olddir, int height)
+{
 	strncpy(dir->filter, olddir->filter, sizeof(dir->filter));
 	dir->hidden = cfg.hidden;
 	dir->pos = olddir->pos;
@@ -304,6 +308,7 @@ bool fm_insert_dir(fm_t *fm, dir_t *dir)
 void fm_check_dirs(const fm_t *fm)
 {
 	int i;
+
 	for (i = 0; i < fm->dirs.len; i++) {
 		if (!fm->dirs.visible[i]) {
 			continue;
@@ -348,6 +353,7 @@ static void remove_preview(fm_t *fm)
 static void update_preview(fm_t *fm)
 {
 	int i;
+
 	if (!cfg.preview) {
 		remove_preview(fm);
 		return;
@@ -441,9 +447,9 @@ void selection_toggle_file(fm_t *fm, const char *path)
 
 void fm_selection_toggle_current(fm_t *fm)
 {
-	file_t *file;
 	if (!fm->visual.active) {
-		if ((file = fm_current_file(fm))) {
+		file_t *file = fm_current_file(fm);
+		if (file) {
 			selection_toggle_file(fm, file->path);
 		}
 	}
@@ -592,6 +598,7 @@ static void ind_move(dir_t *dir, int ct, int height, int scrolloff)
 
 static void ind_move_to(dir_t *dir, const char *name, int height)
 {
+	int i;
 	if (!name) {
 		return;
 	}
@@ -600,7 +607,7 @@ static void ind_move_to(dir_t *dir, const char *name, int height)
 		dir->sel = strdup(name);
 		return;
 	}
-	for (int i = 0; i < dir->len; i++) {
+	for (i = 0; i < dir->len; i++) {
 		if (streq(dir->files[i]->name, name)) {
 			ind_move(dir, i - dir->ind, height, cfg.scrolloff);
 			return;
@@ -609,7 +616,7 @@ static void ind_move_to(dir_t *dir, const char *name, int height)
 	dir->ind = min(dir->ind, dir->len);
 }
 
-static bool fm_move(fm_t *fm, int ct)
+static bool cursor_move(fm_t *fm, int ct)
 {
 	dir_t *dir = fm->dirs.visible[0];
 	const int cur = dir->ind;
@@ -628,9 +635,9 @@ static bool fm_move(fm_t *fm, int ct)
 	return dir->ind == dir->len - 1;
 }
 
-bool fm_up(fm_t *fm, int ct) { return fm_move(fm, -ct); }
+bool fm_up(fm_t *fm, int ct) { return cursor_move(fm, -ct); }
 
-bool fm_down(fm_t *fm, int ct) { return fm_move(fm, ct); }
+bool fm_down(fm_t *fm, int ct) { return cursor_move(fm, ct); }
 
 bool fm_top(fm_t *fm) { return fm_up(fm, fm->dirs.visible[0]->ind); }
 
@@ -716,8 +723,8 @@ bool fm_mark_load(fm_t *fm, char mark)
 
 static void cvector_unsparse(cvector_vector_type(char *) vec)
 {
-	size_t i, j;
-	for (i = j = 0; i < cvector_size(vec); i++) {
+	size_t i, j = 0;
+	for (i = 0; i < cvector_size(vec); i++) {
 		if (vec[i]) {
 			vec[j++] = vec[i];
 		}
@@ -756,24 +763,23 @@ void fm_copy(fm_t *fm) { fm_load_files(fm, MODE_COPY); }
 /* }}} */
 
 /* filter {{{ */
+
 void fm_filter(fm_t *fm, const char *filter)
 {
-	dir_t *d;
-	file_t *f;
-
-	d = fm->dirs.visible[0];
-	f = dir_current_file(d);
+	dir_t *d = fm->dirs.visible[0];
+	file_t *f = dir_current_file(d);
 	dir_filter(d, filter);
 	ind_move_to(d, f ? f->name : NULL, fm->height);
 	update_preview(fm);
 }
 
-const char *fm_filter_get(const fm_t *fm) { return fm->dirs.visible[0]->filter; }
+const char *fm_filter_get(const fm_t *fm) {
+	return fm->dirs.visible[0]->filter;
+}
+
 /* }}} */
 
-#ifndef free_mark
 #define free_mark(mark) free((mark).path)
-#endif
 
 void fm_deinit(fm_t *fm)
 {
@@ -785,5 +791,3 @@ void fm_deinit(fm_t *fm)
 	cvector_ffree(fm->marks, free_mark);
 	cache_deinit(&fm->dirs.cache);
 }
-
-#undef free_mark
