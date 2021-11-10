@@ -29,6 +29,8 @@
 #define EVENT_SIZE (sizeof(struct inotify_event))
 #define EVENT_BUFLEN (EVENT_MAX * (EVENT_SIZE + EVENT_MAX_LEN))
 
+static inline void app_restart_redraw_watcher(app_t *app);
+
 static app_t *_app;
 static const size_t max_threads = 20;
 static int fifo_fd = -1;
@@ -319,7 +321,7 @@ void app_init(app_t *app)
 	log_info("initialized app");
 }
 
-void app_restart_redraw_watcher(app_t *app)
+static inline void app_restart_redraw_watcher(app_t *app)
 {
 	ev_idle_start(app->loop, &redraw_watcher);
 }

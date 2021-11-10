@@ -15,8 +15,6 @@ typedef struct app_t {
 	struct ev_loop *loop;
 } app_t;
 
-void app_restart_redraw_watcher(app_t *app);
-
 /*
  * Set input timout. Key input will be ignored for the next LEN ms.
  * */
