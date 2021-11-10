@@ -28,14 +28,6 @@ static void update_watchers(fm_t *fm);
 static void remove_preview(fm_t *fm);
 static void mark_save(fm_t *fm, char mark, const char *path);
 
-static const char *concatpath(const char *dir, const char *file)
-{
-	static char path[PATH_MAX + 1];
-	snprintf_nowarn(path, sizeof(path)-1, "%s%s%s", dir,
-			streq(dir, "/") ? "" : "/", file);
-	return path;
-}
-
 bool cvector_contains(const char *path, cvector_vector_type(char*) selection)
 {
 	size_t i;
@@ -655,16 +647,16 @@ void fm_move_to(fm_t *fm, const char *name)
 
 file_t *fm_open(fm_t *fm)
 {
-	file_t *file;
+	file_t *file = fm_current_file(fm);
 
-	if (!(file = fm_current_file(fm))) {
+	if (!file) {
 		return NULL;
 	}
 	fm_selection_visual_stop(fm); /* before or after chdir? */
 	if (!file_isdir(file)) {
 		return file;
 	}
-	fm_chdir(fm, concatpath(fm->dirs.visible[0]->path, file->name), false);
+	fm_chdir(fm, file->path, false);
 	return NULL;
 }
 
