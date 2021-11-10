@@ -496,8 +496,6 @@ static int l_colors_newindex(lua_State *L)
 	} else if (streq(key, "dir")) {
 		if (lua_istable(L, 3)) {
 			cfg.colors.dir = read_color_pair(L, 3);
-		} else {
-			log_debug("nop");
 		}
 	} else if (streq(key, "exec")) {
 		if (lua_istable(L, 3)) {
