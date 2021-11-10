@@ -357,7 +357,7 @@ void ui_cmd_clear(ui_t *ui)
 	ui->redraw.menu = 1;
 }
 
-static int filetypeletter(int mode)
+static char filetypeletter(int mode)
 {
 	char c;
 
