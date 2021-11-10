@@ -20,7 +20,7 @@
 
 #define DIRCACHE_SIZE 31
 
-void fm_update_preview(fm_t *fm);
+static void update_preview(fm_t *fm);
 static void ind_move(dir_t *dir, int ct, int height, int scrolloff);
 static void ind_move_to(dir_t *dir, const char *name, int height);
 static dir_t *load_dir(fm_t *fm, const char *path);
@@ -98,7 +98,7 @@ void fm_init(fm_t *fm)
 		fm_move_to(fm, cfg.startfile);
 	}
 
-	fm_update_preview(fm);
+	update_preview(fm);
 }
 
 void fm_recol(fm_t *fm)
@@ -123,7 +123,7 @@ void fm_recol(fm_t *fm)
 
 	update_watchers(fm);
 
-	fm_update_preview(fm);
+	update_preview(fm);
 }
 
 bool fm_chdir(fm_t *fm, const char *path, bool save)
@@ -160,7 +160,7 @@ bool fm_chdir(fm_t *fm, const char *path, bool save)
 	}
 	populate(fm);
 	update_watchers(fm);
-	fm_update_preview(fm);
+	update_preview(fm);
 
 	return true;
 }
@@ -209,7 +209,7 @@ void fm_hidden_set(fm_t *fm, bool hidden)
 {
 	cfg.hidden = hidden;
 	fm_sort(fm);
-	fm_update_preview(fm);
+	update_preview(fm);
 }
 
 /* TODO: It actually makes more sense to update dir access times when leaving
@@ -290,7 +290,7 @@ bool fm_insert_dir(fm_t *fm, dir_t *dir)
 					fm->dirs.visible[i] = dir;
 					if (i == 0) {
 						/* current dir */
-						fm_update_preview(fm);
+						update_preview(fm);
 					}
 					return true;
 				}
@@ -332,7 +332,7 @@ void fm_drop_cache(fm_t *fm)
 	cache_clear(&fm->dirs.cache);
 
 	populate(fm);
-	fm_update_preview(fm);
+	update_preview(fm);
 	update_watchers(fm);
 }
 
@@ -345,7 +345,7 @@ static void remove_preview(fm_t *fm)
 	}
 }
 
-void fm_update_preview(fm_t *fm)
+static void update_preview(fm_t *fm)
 {
 	int i;
 	if (!cfg.preview) {
@@ -620,7 +620,7 @@ static bool fm_move(fm_t *fm, int ct)
 					dir->ind);
 		}
 
-		fm_update_preview(fm);
+		update_preview(fm);
 		return true;
 	}
 	/* We actually have to redraw becuase we could be selecting the last
@@ -642,7 +642,7 @@ bool fm_bot(fm_t *fm)
 void fm_move_to(fm_t *fm, const char *name)
 {
 	ind_move_to(fm->dirs.visible[0], name, fm->height);
-	fm_update_preview(fm);
+	update_preview(fm);
 }
 
 file_t *fm_open(fm_t *fm)
@@ -668,7 +668,7 @@ void fm_updir(fm_t *fm)
 	const char *name = fm->dirs.visible[0]->name;
 	fm_chdir(fm, dir_parent(fm->dirs.visible[0]), false);
 	fm_move_to(fm, name);
-	fm_update_preview(fm);
+	update_preview(fm);
 }
 
 /* }}} */
@@ -765,7 +765,7 @@ void fm_filter(fm_t *fm, const char *filter)
 	f = dir_current_file(d);
 	dir_filter(d, filter);
 	ind_move_to(d, f ? f->name : NULL, fm->height);
-	fm_update_preview(fm);
+	update_preview(fm);
 }
 
 const char *fm_filter_get(const fm_t *fm) { return fm->dirs.visible[0]->filter; }
