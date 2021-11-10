@@ -329,6 +329,26 @@ function lfm.fn.getcwd() end
 ---@return string
 function lfm.fn.getpwd() end
 
+---@alias Color string|integer
+
+---@class ColorPair
+---@field fg Color
+---@field bg Color
+
+---@class ExtColor
+---@field ext string[]
+---@field color ColorPair
+
+---@class ColorLib
+---@field patterns ExtColor[]
+---@field copy ColorPair
+---@field delete ColorPair
+---@field dir ColorPair
+---@field exec ColorPair
+---@field search ColorPair
+---@field normal ColorPair
+---@field current ColorPair
+
 ---@class configlib
 ---@field ratios integer[] assignable
 ---@field truncatechar string assignable, only the first character is used
@@ -340,6 +360,7 @@ function lfm.fn.getpwd() end
 ---@field fifopath string
 ---@field dircache_size integer assignable
 ---@field previewcache_size integer assignable
+---@field colors colorlib
 lfm.config = {}
 
 return lfm
