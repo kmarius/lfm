@@ -1156,4 +1156,5 @@ void ui_deinit(ui_t *ui)
 	free(ui->search.string);
 	cmdline_deinit(&ui->cmdline);
 	ui_suspend(ui);
+	cvector_free(ui->planes.dirs);
 }

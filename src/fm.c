@@ -604,6 +604,7 @@ static void ind_move_to(dir_t *dir, const char *name, int height)
 		return;
 	}
 	if (!dir->files) {
+		free(dir->sel);
 		dir->sel = strdup(name);
 		return;
 	}
