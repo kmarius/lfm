@@ -15,6 +15,15 @@
 #include "log.h"
 #include "util.h"
 
+static bool file_filtered(file_t *file, const char *filter);
+static void apply_filter(dir_t *dir);
+static void file_deinit(file_t *file);
+static bool file_hidden(file_t *file);
+static inline void swap(file_t **a, file_t **b);
+static void shuffle(void *arr, size_t n, size_t size);
+static int file_count(const char *path);
+static bool file_load(file_t *file, const char *basedir, const char *name);
+
 file_t *dir_current_file(const dir_t *dir)
 {
 	if (!dir || dir->ind >= dir->len) {
@@ -60,6 +69,14 @@ static void apply_filter(dir_t *dir)
 
 static bool file_hidden(file_t *file) { return file->name[0] == '.'; }
 
+static void file_deinit(file_t *file)
+{
+	if (file) {
+		free(file->path);
+		free(file->link_target);
+	}
+}
+
 static inline void swap(file_t **a, file_t **b)
 {
 	file_t *t = *a;
@@ -72,7 +89,8 @@ static inline void swap(file_t **a, file_t **b)
  * Only effective if N is much smaller than RAND_MAX;
  * if this may not be the case, use a better random
  * number generator. */
-static void shuffle(void *arr, size_t n, size_t size) {
+static void shuffle(void *arr, size_t n, size_t size)
+{
     char tmp[size];
     size_t stride = size * sizeof(char);
 
@@ -391,45 +409,42 @@ void dir_cursor_move_to(dir_t *dir, const char *name, int height, int scrolloff)
 
 void dir_update_with(dir_t *dir, dir_t *update, int height, int scrolloff)
 {
-	// copy attributes to the update
-	strncpy(update->filter, dir->filter, sizeof(update->filter));
-	update->hidden = dir->hidden;
-	update->pos = dir->pos;
-	update->sorted = false;
-	update->sorttype = dir->sorttype;
-	update->dirfirst = dir->dirfirst;
-	update->reverse = dir->reverse;
-	update->ind = dir->ind;
-	dir_sort(update);
-
-	if (dir->sel) {
-		dir_cursor_move_to(update, dir->sel, height, scrolloff);
-	} else if (dir->ind < dir->len) {
-		dir_cursor_move_to(update, dir->files[dir->ind]->name, height, scrolloff);
+	if (!dir->sel && dir->ind < dir->len) {
+		dir->sel = strdup(dir->files[dir->ind]->name);
 	}
-
-	// free resources, but not the struct itself
 	for (int i = 0; i < dir->alllen; i++) {
-		free(dir->allfiles[i].path);
-		free(dir->allfiles[i].link_target);
+		file_deinit(dir->allfiles+i);
 	}
 	cvector_free(dir->allfiles);
 	free(dir->sortedfiles);
 	free(dir->files);
-	free(dir->sel);
-	free(dir->path);
 
-	// free only the struct of the update
-	*dir = *update;
+	dir->allfiles = update->allfiles;
+	dir->sortedfiles = update->sortedfiles;
+	dir->files = update->files;
+	dir->alllen = update->alllen;
+	dir->loadtime = update->loadtime;
+	dir->loading = update->loading;
+
+	free(update->sel);
+	free(update->path);
 	free(update);
+
+	dir->sorted = false;
+	dir_sort(dir);
+
+	if (dir->sel) {
+		dir_cursor_move_to(update, dir->sel, height, scrolloff);
+		free(dir->sel);
+		dir->sel = NULL;
+	}
 }
 
 void dir_free(dir_t *dir)
 {
 	if (dir) {
 		for (int i = 0; i < dir->alllen; i++) {
-			free(dir->allfiles[i].path);
-			free(dir->allfiles[i].link_target);
+			file_deinit(dir->allfiles+i);
 		}
 		cvector_free(dir->allfiles);
 		free(dir->sortedfiles);
