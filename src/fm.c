@@ -18,7 +18,7 @@
 #include "notify.h"
 #include "util.h"
 
-#define DIRCACHE_SIZE 31
+#define DIRCACHE_SIZE 128
 
 static dir_t *load_dir(fm_t *fm, const char *path);
 static void update_preview(fm_t *fm);
@@ -167,15 +167,8 @@ bool fm_chdir(fm_t *fm, const char *path, bool save)
 
 static void update_watchers(fm_t *fm)
 {
-	const int l = fm->dirs.len;
-	const char *w[l];
-
-	int i;
-	for (i = 0; i < l; i++) {
-		w[i] = fm->dirs.visible[i] != NULL ? fm->dirs.visible[i]->path : NULL;
-	}
-
-	notify_set_watchers(w, l);
+	// watcher for preview is updatein update_preview
+	notify_set_watchers(fm->dirs.visible, fm->dirs.len);
 }
 
 void fm_sort(fm_t *fm)
@@ -188,7 +181,7 @@ void fm_sort(fm_t *fm)
 			 * current one will be hidden (on 2021-10-17) */
 			if (fm->dirs.visible[i]->len > 0) {
 				const file_t *file = dir_current_file(fm->dirs.visible[i]);
-				const char *name = file ? file->name : NULL;
+				const char *name = file ? file->name : NULL; // dir_sort changes the files array
 				dir_sort(fm->dirs.visible[i]);
 				dir_cursor_move_to(fm->dirs.visible[i], name, fm->height, cfg.scrolloff);
 			}
@@ -227,13 +220,13 @@ static dir_t *load_dir(fm_t *fm, const char *path)
 
 	if ((dir = cache_take(&fm->dirs.cache, path))) {
 		if (!dir_check(dir)) {
-			async_dir_load(dir->path);
+			async_dir_load(dir);
 		}
 		dir->hidden = cfg.hidden;
 		dir_sort(dir);
 	} else {
 		dir = dir_new_loading(path);
-		async_dir_load(path);
+		async_dir_load(dir);
 	}
 	return dir;
 }
@@ -243,36 +236,26 @@ file_t *fm_current_file(const fm_t *fm)
 	return dir_current_file(fm->dirs.visible[0]);
 }
 
-/* TODO: compare load times in case of another thread being
- * faster (on 2021-07-28) */
-bool fm_insert_dir(fm_t *fm, dir_t *dir)
+bool fm_update_dir(fm_t *fm, dir_t *dir, dir_t *update)
 {
-	dir_t *olddir;
 	int i;
 
-	if ((olddir = cache_take(&fm->dirs.cache, dir->path))) {
-		dir_update_with(olddir, dir, fm->height, cfg.scrolloff);
+	dir_update_with(dir, update, fm->height, cfg.scrolloff);
+	if (fm->dirs.preview && fm->dirs.preview == dir) {
+		return true;
 	} else {
-		/* check if it an active directory */
-		if (fm->dirs.preview && streq(fm->dirs.preview->path, dir->path)) {
-			dir_update_with(fm->dirs.preview, dir, fm->height, cfg.scrolloff);
-			return true;
-		} else {
-			for (i = 0; i < fm->dirs.len; i++) {
-				if (fm->dirs.visible[i] && streq(fm->dirs.visible[i]->path, dir->path)) {
-					dir_update_with(fm->dirs.visible[i], dir, fm->height, cfg.scrolloff);
-					if (i == 0) {
-						/* current dir */
-						update_preview(fm);
-					}
-					return true;
+		for (i = 0; i < fm->dirs.len; i++) {
+			if (fm->dirs.visible[i] && fm->dirs.visible[i] == dir) {
+				if (i == 0) {
+					update_preview(fm);
 				}
+				return true;
 			}
 		}
-		dir_free(dir);
 	}
 	return false;
 }
+
 
 void fm_check_dirs(const fm_t *fm)
 {
@@ -284,11 +267,11 @@ void fm_check_dirs(const fm_t *fm)
 		}
 		// stat is blocking on slow devices (nfs, sshfs, smb)
 		if (!dir_check(fm->dirs.visible[i])) {
-			async_dir_load(fm->dirs.visible[i]->path);
+			async_dir_load(fm->dirs.visible[i]);
 		}
 	}
 	if (fm->dirs.preview && !dir_check(fm->dirs.preview)) {
-		async_dir_load(fm->dirs.preview->path);
+		async_dir_load(fm->dirs.preview);
 	}
 }
 
@@ -313,13 +296,13 @@ void fm_drop_cache(fm_t *fm)
 static void remove_preview(fm_t *fm)
 {
 	if (fm->dirs.preview) {
-		notify_remove_watcher(fm->dirs.preview->path);
+		notify_remove_watcher(fm->dirs.preview);
 		cache_insert(&fm->dirs.cache, fm->dirs.preview, fm->dirs.preview->path);
 		fm->dirs.preview = NULL;
 	}
 }
 
-static void update_preview(fm_t *fm)
+void update_preview(fm_t *fm)
 {
 	int i;
 
@@ -334,18 +317,19 @@ static void update_preview(fm_t *fm)
 			if (streq(fm->dirs.preview->path, file->path)) {
 				return;
 			}
+			/* don't remove watcher if it is a currently visible (non-preview) dir */
 			for (i = 0; i < fm->dirs.len; i++) {
 				if (fm->dirs.visible[i] && streq(fm->dirs.preview->path, fm->dirs.visible[i]->path)) {
 					break;
 				}
 			}
 			if (i == fm->dirs.len) {
-				notify_remove_watcher(fm->dirs.preview->path);
+				notify_remove_watcher(fm->dirs.preview);
 				cache_insert(&fm->dirs.cache, fm->dirs.preview, fm->dirs.preview->path);
 			}
 		}
 		fm->dirs.preview = load_dir(fm, file->path);
-		notify_add_watcher(fm->dirs.preview->path);
+		notify_add_watcher(fm->dirs.preview);
 	} else {
 		// file preview or empty
 		if (fm->dirs.preview) {
@@ -355,7 +339,7 @@ static void update_preview(fm_t *fm)
 				}
 			}
 			if (i == fm->dirs.len) {
-				notify_remove_watcher(fm->dirs.preview->path);
+				notify_remove_watcher(fm->dirs.preview);
 				cache_insert(&fm->dirs.cache, fm->dirs.preview, fm->dirs.preview->path);
 			}
 			fm->dirs.preview = NULL;

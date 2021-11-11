@@ -50,31 +50,26 @@ static void async_result_cb(EV_P_ ev_async *w, int revents)
 {
 	(void)revents;
 	app_t *app = (app_t*) w->data;
-	bool redraw, redraw_preview;
-	void *result;
-	enum result_e type;
+	res_t result;
 
-	redraw = false, redraw_preview = false;
 	pthread_mutex_lock(&async_results.mutex);
-	while (queue_get(&async_results, &type, &result)) {
-		switch (type) {
-		case RES_DIR:
-			redraw |= fm_insert_dir(&app->fm, result);
-			break;
-		case RES_PREVIEW:
-			redraw_preview |= ui_insert_preview(&app->ui, result);
-			break;
-		default:
-			break;
+	while (queue_get(&async_results, &result)) {
+		switch (result.type) {
+			case RES_DIR_UPDATE:
+				app->ui.redraw.fm |= fm_update_dir(&app->fm,
+						result.payload.dir_update.dir,
+						result.payload.dir_update.update);
+				break;
+			case RES_PREVIEW:
+				app->ui.redraw.preview |= ui_insert_preview(&app->ui,
+						result.payload.preview);
+				break;
+			default:
+				break;
 		}
 	}
 	pthread_mutex_unlock(&async_results.mutex);
 
-	if (redraw) {
-		app->ui.redraw.fm = 1;
-	} else if (redraw_preview) {
-		app->ui.redraw.preview = 1;
-	}
 	app_restart_redraw_watcher(app);
 }
 
@@ -165,11 +160,13 @@ static void inotify_cb(EV_P_ ev_io *w, int revents)
 			}
 			const unsigned long now = current_millis();
 			if (i >= l) {
-				const char *p = notify_get_path(event->wd);
-				if (p != NULL) {
-					async_dir_load(p);
+				dir_t *dir = notify_get_dir(event->wd);
+				if (dir) {
+					async_dir_load(dir);
 					struct tup_t t = { .next = now, .wd = event->wd, };
 					cvector_push_back(times, t);
+				} else {
+					log_warn("notify event for unloaded dir");
 				}
 			} else {
 				unsigned long next = now;
@@ -192,13 +189,12 @@ static void inotify_cb(EV_P_ ev_io *w, int revents)
 				 * three reloads are
 				 * scheduled when events come in in quick
 				 * succession */
-				const char *path = notify_get_path(event->wd);
-				if (path) {
-					async_dir_load_delayed(
-							path, next - now + NOTIFY_DELAY);
+				dir_t *dir = notify_get_dir(event->wd);
+				if (dir) {
+					async_dir_load_delayed( dir, next - now + NOTIFY_DELAY);
 					times[i].next = next + NOTIFY_DELAY;
-					/* log_debug("loading %s at %lu", p,
-					 * times[i].next); */
+				} else {
+					log_warn("notify event for unknown dir");
 				}
 			}
 		}
@@ -315,7 +311,6 @@ void app_init(app_t *app)
 
 	app->L = luaL_newstate();
 	lua_init(app->L, app);
-	/* TODO: show errors in ui (on 2021-08-04) */
 	lua_load_file(app->L, cfg.corepath);
 
 	log_info("initialized app");

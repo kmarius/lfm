@@ -18,12 +18,10 @@ resq_t async_results = {
 	.watcher = NULL,
 };
 
-void queue_put(resq_t *queue, enum result_e type, void *payload)
+void queue_put(resq_t *queue, res_t res)
 {
 	res_t *r = malloc(sizeof(res_t));
-	r->payload = payload;
-	r->next = NULL;
-	r->type = type;
+	*r = res;
 
 	if (!queue->head) {
 		queue->head = r;
@@ -34,7 +32,7 @@ void queue_put(resq_t *queue, enum result_e type, void *payload)
 	}
 }
 
-bool queue_get(resq_t *queue, enum result_e *type, void **r)
+bool queue_get(resq_t *queue, res_t *result)
 {
 	res_t *res;
 
@@ -42,37 +40,37 @@ bool queue_get(resq_t *queue, enum result_e *type, void **r)
 		return false;
 	}
 
-	*r = res->payload;
-	*type = res->type;
+	*result = *res;
+	result->next = NULL;
 
 	queue->head = res->next;
 	if (queue->tail == res) {
 		queue->tail = NULL;
 	}
 	free(res);
+
 	return true;
 }
 
 void queue_deinit(resq_t *queue)
 {
-	void *r;
-	enum result_e type;
-	while (queue_get(queue, &type, &r)) {
-		switch (type) {
-		case RES_DIR:
-			dir_free(r);
-			break;
-		case RES_PREVIEW:
-			preview_free(r);
-			break;
-		default:
-			break;
+	res_t result;
+	while (queue_get(queue, &result)) {
+		switch (result.type) {
+			case RES_DIR_UPDATE:
+				dir_free(result.payload.dir_update.update);
+				break;
+			case RES_PREVIEW:
+				preview_free(result.payload.preview);
+				break;
+			default:
+				break;
 		}
 	}
 }
 
 struct dir_work {
-	char *path;
+	dir_t *dir;
 	int delay;
 };
 
@@ -82,34 +80,29 @@ static void async_dir_load_worker(void *arg)
 	if (w->delay > 0) {
 		msleep(w->delay);
 	}
-	dir_t *d = dir_load(w->path, 1);
+	res_t r = {
+		.type = RES_DIR_UPDATE,
+		.payload = {{
+			.dir=w->dir,
+			.update=dir_load(w->dir->path, 1)
+		}},
+	};
 
 	pthread_mutex_lock(&async_results.mutex);
-	queue_put(&async_results, RES_DIR, d);
+	queue_put(&async_results, r);
 	pthread_mutex_unlock(&async_results.mutex);
 
 	if (async_results.watcher) {
 		ev_async_send(EV_DEFAULT_ async_results.watcher);
 	}
 
-	/* d = dir_load(w->path, 1); */
-    /*  */
-	/* pthread_mutex_lock(&async_results.mutex); */
-	/* queue_put(&async_results, RES_DIR, d); */
-	/* pthread_mutex_unlock(&async_results.mutex); */
-    /*  */
-	/* if (async_results.watcher) { */
-	/* 	ev_async_send(EV_DEFAULT_ async_results.watcher); */
-	/* } */
-
-	free(w->path);
 	free(w);
 }
 
-void async_dir_load_delayed(const char *path, int delay /* millis */)
+void async_dir_load_delayed(dir_t *dir, int delay /* millis */)
 {
 	struct dir_work *w = malloc(sizeof(struct dir_work));
-	w->path = strdup(path);
+	w->dir = dir;
 	w->delay = delay;
 	tpool_add_work(async_tm, async_dir_load_worker, w);
 }
@@ -124,9 +117,14 @@ struct pv_work {
 static void async_preview_load_worker(void *arg)
 {
 	struct pv_work *w = (struct pv_work*) arg;
-	preview_t *pv = preview_new_from_file(w->path, w->fptr, w->x, w->y);
+	res_t r = {
+		.type = RES_PREVIEW,
+		.payload = {
+			.preview = preview_new_from_file(w->path, w->fptr, w->x, w->y),
+		},
+	};
 	pthread_mutex_lock(&async_results.mutex);
-	queue_put(&async_results, RES_PREVIEW, pv);
+	queue_put(&async_results, r);
 	pthread_mutex_unlock(&async_results.mutex);
 	if (async_results.watcher) {
 		ev_async_send(EV_DEFAULT_ async_results.watcher);

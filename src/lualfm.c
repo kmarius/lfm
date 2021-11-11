@@ -1085,7 +1085,7 @@ static int l_fm_check(lua_State *L)
 	(void) L;
 	dir_t *d = fm_current_dir(fm);
 	if (!dir_check(d)) {
-		async_dir_load(d->path);
+		async_dir_load(d);
 	}
 	return 0;
 }

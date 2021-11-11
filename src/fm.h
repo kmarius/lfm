@@ -140,11 +140,6 @@ void fm_hidden_set(fm_t *fm, bool hidden);
 void fm_check_dirs(const fm_t *fm);
 
 /*
- * Insert a new DIR into the directory list.
- */
-bool fm_insert_dir(fm_t *fm, dir_t *dir);
-
-/*
  * Chdir to the directory saved as MARK.
  */
 bool fm_mark_load(fm_t *fm, char mark);
@@ -237,5 +232,7 @@ void fm_drop_cache(fm_t *fm);
 void fm_selection_add_file(fm_t *fm, const char *path);
 
 void fm_selection_set(fm_t *fm, cvector_vector_type(char*) selection);
+
+bool fm_update_dir(fm_t *fm, dir_t *dir, dir_t *update);
 
 #endif /* FM_H */

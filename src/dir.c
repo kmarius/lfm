@@ -434,7 +434,7 @@ void dir_update_with(dir_t *dir, dir_t *update, int height, int scrolloff)
 	dir_sort(dir);
 
 	if (dir->sel) {
-		dir_cursor_move_to(update, dir->sel, height, scrolloff);
+		dir_cursor_move_to(dir, dir->sel, height, scrolloff);
 		free(dir->sel);
 		dir->sel = NULL;
 	}

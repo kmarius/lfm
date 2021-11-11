@@ -96,6 +96,17 @@ void cache_insert(T *t, void *e, const char *key)
 	}
 }
 
+void *cache_find(T *t, const void *key)
+{
+	int i;
+	for (i = 0; i < t->size; i++) {
+		if (streq(t->nodes[i].search_key, key)) {
+			return t->nodes[i].data;
+		}
+	}
+	return NULL;
+}
+
 void *cache_take(T *t, const void *key)
 {
 	int i;

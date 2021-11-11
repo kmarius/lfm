@@ -6,7 +6,7 @@
 #include "cvector.h"
 #include "dir.h"
 
-typedef struct Preview {
+typedef struct preview_t {
 	time_t access; /* key for the cache/heap, keep as first field */
 	const file_t *fptr;
 	char *path;
