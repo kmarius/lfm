@@ -29,9 +29,7 @@
 #define EVENT_SIZE (sizeof(struct inotify_event))
 #define EVENT_BUFLEN (EVENT_MAX * (EVENT_SIZE + EVENT_MAX_LEN))
 
-static inline void app_restart_redraw_watcher(app_t *app);
-
-static app_t *_app;
+static app_t *_app; /* only needed for print/error */
 static const size_t max_threads = 20;
 static int fifo_fd = -1;
 static int fifo_wd = -1;
@@ -70,13 +68,13 @@ static void async_result_cb(EV_P_ ev_async *w, int revents)
 	}
 	pthread_mutex_unlock(&async_results.mutex);
 
-	app_restart_redraw_watcher(app);
+	ev_idle_start(app->loop, &redraw_watcher);
 }
 
 static void timer_cb(EV_P_ ev_timer *w, int revents)
 {
-	(void) w;
 	(void) revents;
+	(void) w;
 	static int tick_ct = 0;
 	/* app_t *app = (app_t *)w->data; */
 	tick_ct++;
@@ -90,14 +88,13 @@ static void timer_cb(EV_P_ ev_timer *w, int revents)
 static void stdin_cb(EV_P_ ev_io *w, int revents)
 {
 	(void)revents;
-	(void)w;
 	app_t *app = (app_t *)w->data;
 	ncinput in;
 	notcurses_getc_blocking(app->ui.nc, &in);
 	if (current_millis() > input_timeout) {
 		/* log_debug("id: %d, shift: %d, ctrl: %d alt %d", in.id, in.shift, in.ctrl, in.alt); */
 		lua_handle_key(app->L, ncinput_to_long(&in));
-		app_restart_redraw_watcher(app);
+		ev_idle_start(app->loop, &redraw_watcher);
 	}
 }
 
@@ -111,13 +108,12 @@ static void read_fifo(app_t *app)
 			buf[nbytes-1] = 0;
 			lua_exec_expr(app->L, buf);
 		}
-		app_restart_redraw_watcher(app);
+		ev_idle_start(app->loop, &redraw_watcher);
 	}
 }
 
 struct tup_t {
-	unsigned long
-		next; /* time of the next planned scan, could lie in the past */
+	unsigned long next; /* time of the last scheduled scan, could lie in the past or the future */
 	int wd;
 };
 
@@ -128,7 +124,6 @@ static cvector_vector_type(struct tup_t) times = NULL;
 static void inotify_cb(EV_P_ ev_io *w, int revents)
 {
 	(void)revents;
-	(void)w;
 	app_t *app = (app_t*) w->data;
 	int nread;
 	size_t i;
@@ -136,10 +131,6 @@ static void inotify_cb(EV_P_ ev_io *w, int revents)
 	struct inotify_event *event;
 
 	while ((nread = read(inotify_fd, buf, EVENT_BUFLEN)) > 0) {
-		/* if we log on every iteration we will get stuck in the directory
-		 * containing the log */
-		/* log_debug("inotify_cb %d bytes read", nread); */
-
 		for (p = buf; p < buf + nread; p += EVENT_SIZE + event->len) {
 			event = (struct inotify_event *)p;
 			if (event->len == 0) {
@@ -206,7 +197,6 @@ static void inotify_cb(EV_P_ ev_io *w, int revents)
 static void prepare_cb(struct ev_loop *loop, ev_prepare *w, int revents)
 {
 	(void) revents;
-	(void) loop;
 	app_t *app = (app_t*) w->data;
 	if (cfg.commands) {
 		for (size_t i = 0; i < cvector_size(cfg.commands); i++) {
@@ -226,7 +216,7 @@ static void sigwinch_cb(EV_P_ ev_signal *w, int revents)
 	app_t *app = (app_t *)w->data;
 	ui_clear(&app->ui);
 	lua_run_hook(app->L, "Resized");
-	app_restart_redraw_watcher(app);
+	ev_idle_start(app->loop, &redraw_watcher);
 }
 
 static void redraw_cb(struct ev_loop *loop, ev_idle *w, int revents)
@@ -314,11 +304,6 @@ void app_init(app_t *app)
 	lua_load_file(app->L, cfg.corepath);
 
 	log_info("initialized app");
-}
-
-static inline void app_restart_redraw_watcher(app_t *app)
-{
-	ev_idle_start(app->loop, &redraw_watcher);
 }
 
 void app_run(app_t *app)
