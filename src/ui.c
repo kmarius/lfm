@@ -1150,6 +1150,6 @@ void ui_deinit(ui_t *ui)
 	cache_deinit(&ui->preview.cache);
 	free(ui->search.string);
 	cmdline_deinit(&ui->cmdline);
+	cvector_ffree(ui->planes.dirs, ncplane_destroy);
 	ui_suspend(ui);
-	cvector_free(ui->planes.dirs);
 }
