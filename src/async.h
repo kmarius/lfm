@@ -37,18 +37,45 @@ typedef struct resq_t {
 extern tpool_t *async_tm;
 extern resq_t async_results;
 
-bool queue_get(resq_t *dirq, res_t *result);
+/*
+ * Get result from the result `queue`. Result will be written to `result`.
+ * Returns `true` if a result was received, `false` otherwise (i.e. if the
+ * queue was empty).
+ */
+bool queue_get(resq_t *queue, res_t *result);
 
-void queue_deinit(resq_t *dirq);
+/*
+ * Free all results that remain in the queue.
+ */
+void queue_deinit(resq_t *queue);
 
+/*
+ * Check the modification time of `dir` on disk. Generates a result of type
+ * `RES_DIR_CHECK` if the directory needs to be reloaded.
+ */
 void async_dir_check(dir_t *dir);
 
+/*
+ * Reloads `dir` from disk after `delay` milliseconds. Generates a result of
+ * type `RES_DIR_UPDATE`.
+ */
 void async_dir_load_delayed(dir_t *dir, int delay /* millis */);
 
+/*
+ * Reloads `dir` from disk. Generates a result of type `RES_DIR_UPDATE`.
+ */
 #define async_dir_load(dir) async_dir_load_delayed(dir, -1)
 
+/*
+ * Check the modification time of `pv` on disk. Generates a result of type
+ * `RES_PREVIEW_CHECK` if the preview needs to be reloaded.
+ */
 void async_preview_check(preview_t *pv);
 
+/*
+ * Reloads preview of the file at `path` with `nrow` lines from disk. Generates
+ * a result of type `RES_PREVIEW`.
+ */
 void async_preview_load(const char *path, int nrow);
 
 #endif /* ASYNC_H */
