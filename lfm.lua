@@ -344,6 +344,7 @@ function lfm.fn.getpwd() end
 ---@field copy ColorPair
 ---@field delete ColorPair
 ---@field dir ColorPair
+---@field broken ColorPair
 ---@field exec ColorPair
 ---@field search ColorPair
 ---@field normal ColorPair

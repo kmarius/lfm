@@ -792,6 +792,8 @@ static void print_file(struct ncplane *n, const file_t *file,
 	if (isdir) {
 		ncplane_set_channels(n, cfg.colors.dir);
 		ncplane_set_styles(n, NCSTYLE_BOLD);
+	} else if (file->broken) {
+		ncplane_set_channels(n, cfg.colors.broken);
 	} else if (file_isexec(file)) {
 		ncplane_set_channels(n, cfg.colors.exec);
 	} else {

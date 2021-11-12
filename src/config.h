@@ -63,6 +63,7 @@ typedef struct config {
 		unsigned long copy;
 		unsigned long delete;
 		unsigned long search;
+		unsigned long broken;
 		unsigned long exec;
 		unsigned long dir;
 		unsigned current; /* bg channel index only */

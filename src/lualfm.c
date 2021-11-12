@@ -497,6 +497,10 @@ static int l_colors_newindex(lua_State *L)
 		if (lua_istable(L, 3)) {
 			cfg.colors.dir = read_color_pair(L, 3);
 		}
+	} else if (streq(key, "broken")) {
+		if (lua_istable(L, 3)) {
+			cfg.colors.broken = read_color_pair(L, 3);
+		}
 	} else if (streq(key, "exec")) {
 		if (lua_istable(L, 3)) {
 			cfg.colors.exec = read_color_pair(L, 3);
