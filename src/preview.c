@@ -9,33 +9,29 @@
 #include "popen_arr.h"
 #include "preview.h"
 
-preview_t *preview_new(const char *path, const file_t *fptr, int nrow, int ncol)
+preview_t *preview_new(const char *path, int nrow)
 {
 	preview_t *pv = malloc(sizeof(preview_t));
-	pv->fptr = fptr;
-	pv->lines = NULL;
 	pv->path = strdup(path);
+	pv->lines = NULL;
 	pv->mtime = 0;
-	pv->access = 0;
-	pv->ncol = ncol;
 	pv->nrow = nrow;
 	pv->loading = false;
 	return pv;
 }
 
-preview_t *preview_new_loading(const char *path, const file_t *fptr, int nrow,
-			       int ncol)
+preview_t *preview_new_loading(const char *path, int nrow)
 {
-	preview_t *pv = preview_new(path, fptr, nrow, ncol);
+	preview_t *pv = preview_new(path, nrow);
 	pv->loading = true;
 	/* cvector_push_back(pv->lines, strdup("loading")); */
 	return pv;
 }
 
 /* line length currently not limited */
-preview_t *preview_new_from_file(const char *path, const file_t *fptr, int nrow, int ncol)
+preview_t *preview_new_from_file(const char *path, int nrow)
 {
-	preview_t *pv = preview_new(path, fptr, nrow, ncol);
+	preview_t *pv = preview_new(path, nrow);
 
 	FILE *fp;
 	char buf[4096];
@@ -63,17 +59,6 @@ preview_t *preview_new_from_file(const char *path, const file_t *fptr, int nrow,
 	}
 
 	return pv;
-}
-
-bool preview_check(const preview_t *pv)
-{
-	struct stat statbuf;
-	if (stat(pv->path, &statbuf) == -1) {
-		// error, don't reload?
-		/* TODO: or give *error* preview? (on 2021-08-02) */
-		return true;
-	}
-	return pv->mtime >= statbuf.st_mtime;
 }
 
 void preview_free(preview_t *pv)

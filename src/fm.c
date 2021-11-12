@@ -128,7 +128,7 @@ void fm_recol(fm_t *fm)
 
 bool fm_chdir(fm_t *fm, const char *path, bool save)
 {
-	log_trace("fm_chdir: %s", path);
+	/* log_trace("fm_chdir: %s", path); */
 
 	fm_selection_visual_stop(fm);
 
@@ -224,6 +224,7 @@ static dir_t *load_dir(fm_t *fm, const char *path)
 		dir_sort(dir);
 	} else {
 		dir = dir_new_loading(path);
+		dir->hidden = cfg.hidden;
 		async_dir_load(dir);
 	}
 	return dir;

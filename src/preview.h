@@ -7,24 +7,18 @@
 #include "dir.h"
 
 typedef struct preview_t {
-	time_t access; /* key for the cache/heap, keep as first field */
-	const file_t *fptr;
 	char *path;
 	cvector_vector_type(char*) lines;
-	time_t mtime;
-	int ncol;
 	int nrow;
+	time_t mtime;
 	bool loading;
 } preview_t;
 
-preview_t *preview_new(const char *path, const file_t *fptr, int nrow, int ncol);
+preview_t *preview_new(const char *path, int nrow);
 
-preview_t *preview_new_loading(const char *path, const file_t *fptr, int nrow,
-			       int ncol);
+preview_t *preview_new_loading(const char *path, int nrow);
 
-preview_t *preview_new_from_file(const char *path, const file_t *fptr, int nrow, int ncol);
-
-bool preview_check(const preview_t *pv);
+preview_t *preview_new_from_file(const char *path, int nrow);
 
 void preview_free(preview_t *pv);
 

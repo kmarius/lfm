@@ -894,12 +894,15 @@ static preview_t *load_preview(ui_t *ui, file_t *file)
 		/* TODO: vv (on 2021-08-10) */
 		/* might be checking too often here? or is it capped by inotify
 		 * timeout? */
-		if (!preview_check(pv) || pv->nrow < ui->nrow - 2) {
-			async_preview_load(pv->path, file, nrow, ncol);
+		if (pv->nrow < ui->nrow - 2) {
+			async_preview_load(pv->path, nrow);
+			pv->loading = true;
+		} else {
+			async_preview_check(pv);
 		}
 	} else {
-		pv = preview_new_loading(file->path, file, nrow, ncol);
-		async_preview_load(file->path, file, nrow, ncol);
+		pv = preview_new_loading(file->path, nrow);
+		async_preview_load(file->path, nrow);
 	}
 	return pv;
 }
@@ -918,12 +921,13 @@ static void update_file_preview(ui_t *ui)
 		file = dir->files[dir->ind];
 		if (ui->preview.file) {
 			if (streq(ui->preview.file->path, file->path)) {
-				if ((!preview_check(ui->preview.file)
-							|| ui->preview.file->nrow < nrow)
-						&& !ui->preview.file->loading){
-					// avoid loading more previews when drawing
-					ui->preview.file->loading = true;
-					async_preview_load(file->path, file, nrow, ncol);
+				if (!ui->preview.file->loading) {
+					if (ui->preview.file->nrow < nrow) {
+						async_preview_load(file->path, nrow);
+						ui->preview.file->loading = true;
+					} else {
+						async_preview_check(ui->preview.file);
+					}
 				}
 			} else {
 				cache_insert(&ui->preview.cache, ui->preview.file, ui->preview.file->path);
@@ -1088,7 +1092,7 @@ bool ui_insert_preview(ui_t *ui, preview_t *pv)
 	preview_t *oldpv;
 	const file_t *file;
 
-	if ((file = fm_current_file(ui->fm)) && (file == pv->fptr || streq(pv->path, file->path))) {
+	if ((file = fm_current_file(ui->fm)) && streq(pv->path, file->path)) {
 		preview_free(ui->preview.file);
 		ui->preview.file = pv;
 		return true;

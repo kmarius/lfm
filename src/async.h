@@ -9,7 +9,7 @@
 #include "preview.h"
 #include "tpool.h"
 
-enum result_e { RES_DIR_UPDATE, RES_DIR_CHECK, RES_PREVIEW };
+enum result_e { RES_DIR_UPDATE, RES_DIR_CHECK, RES_PREVIEW, RES_PREVIEW_CHECK, };
 
 typedef struct res_t {
 	enum result_e type;
@@ -19,6 +19,10 @@ typedef struct res_t {
 			dir_t *update;
 		};
 		preview_t *preview;
+		struct {
+			char *path;
+			int nrow;
+		};
 	};
 	struct res_t *next;
 } res_t;
@@ -43,6 +47,8 @@ void async_dir_load_delayed(dir_t *dir, int delay /* millis */);
 
 #define async_dir_load(dir) async_dir_load_delayed(dir, -1)
 
-void async_preview_load(const char *path, const file_t *fptr, int x, int y);
+void async_preview_check(preview_t *pv);
+
+void async_preview_load(const char *path, int nrow);
 
 #endif /* ASYNC_H */

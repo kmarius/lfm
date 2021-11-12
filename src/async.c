@@ -65,6 +65,9 @@ void queue_deinit(resq_t *queue)
 			case RES_PREVIEW:
 				preview_free(result.preview);
 				break;
+			case RES_PREVIEW_CHECK:
+				free(result.path);
+				break;
 			default:
 				break;
 		}
@@ -151,19 +154,66 @@ void async_dir_load_delayed(dir_t *dir, int delay /* millis */)
 	tpool_add_work(async_tm, async_dir_load_worker, w);
 }
 
-struct pv_work {
+struct pv_check_work {
 	char *path;
-	const file_t *fptr;
-	int x;
-	int y;
+	int nrow;
+	time_t mtime;
+};
+
+static void async_preview_check_worker(void *arg)
+{
+	struct pv_check_work *w = arg;
+	struct stat statbuf;
+
+	if (stat(w->path, &statbuf) == -1) {
+		free(w->path);
+		free(w);
+		return;
+	}
+
+	if (statbuf.st_mtime <= w->mtime) {
+		free(w->path);
+		free(w);
+		return;
+	}
+
+	res_t r = {
+		.type = RES_PREVIEW_CHECK,
+		.path = w->path,
+		.nrow = w->nrow,
+	};
+
+	pthread_mutex_lock(&async_results.mutex);
+	queue_put(&async_results, r);
+	pthread_mutex_unlock(&async_results.mutex);
+
+	if (async_results.watcher) {
+		ev_async_send(EV_DEFAULT_ async_results.watcher);
+	}
+
+	free(w);
+}
+
+void async_preview_check(preview_t *pv)
+{
+	struct pv_check_work *w = malloc(sizeof(struct pv_check_work));
+	w->path = strdup(pv->path);
+	w->nrow = pv->nrow;
+	w->mtime = pv->mtime;
+	tpool_add_work(async_tm, async_preview_check_worker, w);
+}
+
+struct pv_load_work {
+	char *path;
+	int nrow;
 };
 
 static void async_preview_load_worker(void *arg)
 {
-	struct pv_work *w = (struct pv_work*) arg;
+	struct pv_load_work *w = (struct pv_load_work*) arg;
 	res_t r = {
 		.type = RES_PREVIEW,
-		.preview = preview_new_from_file(w->path, w->fptr, w->x, w->y),
+		.preview = preview_new_from_file(w->path, w->nrow),
 	};
 	pthread_mutex_lock(&async_results.mutex);
 	queue_put(&async_results, r);
@@ -175,12 +225,10 @@ static void async_preview_load_worker(void *arg)
 	free(w);
 }
 
-void async_preview_load(const char *path, const file_t *fptr, int x, int y)
+void async_preview_load(const char *path, int nrow)
 {
-	struct pv_work *w = malloc(sizeof(struct pv_work));
-	w->fptr = fptr;
+	struct pv_load_work *w = malloc(sizeof(struct pv_load_work));
 	w->path = strdup(path);
-	w->x = x;
-	w->y = y;
+	w->nrow = nrow;
 	tpool_add_work(async_tm, async_preview_load_worker, w);
 }

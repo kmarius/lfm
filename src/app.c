@@ -64,6 +64,10 @@ static void async_result_cb(EV_P_ ev_async *w, int revents)
 			case RES_PREVIEW:
 				app->ui.redraw.preview |= ui_insert_preview(&app->ui, result.preview);
 				break;
+			case RES_PREVIEW_CHECK:
+				async_preview_load(result.path, result.nrow);
+				free(result.path);
+				break;
 			default:
 				break;
 		}
