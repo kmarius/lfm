@@ -60,6 +60,8 @@ void queue_deinit(resq_t *queue)
 			case RES_DIR_UPDATE:
 				dir_free(result.payload.dir_update.update);
 				break;
+			case RES_DIR_CHECK:
+				break;
 			case RES_PREVIEW:
 				preview_free(result.payload.preview);
 				break;
@@ -67,6 +69,52 @@ void queue_deinit(resq_t *queue)
 				break;
 		}
 	}
+}
+
+struct dir_check_work {
+	dir_t *dir;
+	time_t loadtime;
+};
+
+static void async_dir_check_worker(void *arg)
+{
+	struct dir_check_work *w = arg;
+	struct stat statbuf;
+
+	if (stat(w->dir->path, &statbuf) == -1) {
+		free(w);
+		return;
+	}
+
+	if (statbuf.st_mtime <= w->loadtime) {
+		free(w);
+		return;
+	}
+
+	res_t r = {
+		.type = RES_DIR_CHECK,
+		.payload = {{
+			.dir=w->dir,
+		}},
+	};
+
+	pthread_mutex_lock(&async_results.mutex);
+	queue_put(&async_results, r);
+	pthread_mutex_unlock(&async_results.mutex);
+
+	if (async_results.watcher) {
+		ev_async_send(EV_DEFAULT_ async_results.watcher);
+	}
+
+	free(w);
+}
+
+void async_dir_check(dir_t *dir)
+{
+	struct dir_check_work *w = malloc(sizeof(struct dir_check_work));
+	w->dir = dir;
+	w->loadtime = dir->loadtime;
+	tpool_add_work(async_tm, async_dir_check_worker, w);
 }
 
 struct dir_work {

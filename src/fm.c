@@ -219,9 +219,7 @@ static dir_t *load_dir(fm_t *fm, const char *path)
 	}
 
 	if ((dir = cache_take(&fm->dirs.cache, path))) {
-		if (!dir_check(dir)) {
-			async_dir_load(dir);
-		}
+		async_dir_check(dir);
 		dir->hidden = cfg.hidden;
 		dir_sort(dir);
 	} else {

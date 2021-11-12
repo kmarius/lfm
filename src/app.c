@@ -58,6 +58,11 @@ static void async_result_cb(EV_P_ ev_async *w, int revents)
 						result.payload.dir_update.dir,
 						result.payload.dir_update.update);
 				break;
+			case RES_DIR_CHECK:
+				/* TODO: maybe on slow devices it is better to compare mtimes here? 2021-11-12 */
+				/* currently we could just schedule reload from the other thread */
+				async_dir_load(result.payload.dir);
+				break;
 			case RES_PREVIEW:
 				app->ui.redraw.preview |= ui_insert_preview(&app->ui,
 						result.payload.preview);
