@@ -77,12 +77,12 @@ void fm_deinit(fm_t *fm);
 void fm_recol(fm_t *fm);
 
 /*
- * Move cursor CT up in the current directory.
+ * Move cursor `ct` up in the current directory.
  */
 bool fm_up(fm_t *fm, int ct);
 
 /*
- * Move cursor CT down in the current directory.
+ * Move cursor `ct` down in the current directory.
  */
 bool fm_down(fm_t *fm, int ct);
 
@@ -97,7 +97,7 @@ bool fm_top(fm_t *fm);
 bool fm_bot(fm_t *fm);
 
 /*
- * Changes directory to the directory given by PATH. If SAVE then the current
+ * Changes directory to the directory given by `path`. If `save` then the current
  * directory will be saved as the special "'" mark.
  */
 bool fm_chdir(fm_t *fm, const char *path, bool save);
@@ -114,14 +114,14 @@ file_t *fm_open(fm_t *fm);
 void fm_updir(fm_t *fm);
 
 /*
- * Move the cursor the file with FILENAME if it exists. Otherwise leaves the
+ * Move the cursor the file with `name` if it exists. Otherwise leaves the
  * cursor at the closest valid position (i.e. after the number of files
  * decreases)
  */
-void fm_move_to(fm_t *fm, const char *filename);
+void fm_move_to(fm_t *fm, const char *name);
 
 /*
- * Apply the filter string given by FILTER to the current directory.
+ * Apply the filter string given by `filter` to the current directory.
  */
 void fm_filter(fm_t *fm, const char *filter);
 
@@ -142,7 +142,7 @@ void fm_hidden_set(fm_t *fm, bool hidden);
 void fm_check_dirs(const fm_t *fm);
 
 /*
- * Chdir to the directory saved as MARK.
+ * Chdir to the directory saved as `mark`.
  */
 bool fm_mark_load(fm_t *fm, char mark);
 
@@ -150,6 +150,16 @@ bool fm_mark_load(fm_t *fm, char mark);
  * Toggles the selection of the currently selected file.
  */
 void fm_selection_toggle_current(fm_t *fm);
+
+/*
+ * Add `path` to the current selection if not already contained.
+ */
+void fm_selection_add_file(fm_t *fm, const char *path);
+
+/*
+ * Replace the current selection.
+ */
+void fm_selection_set(fm_t *fm, cvector_vector_type(char*) selection);
 
 /*
  * Clear the selection completely.
@@ -177,7 +187,7 @@ void fm_selection_visual_stop(fm_t *fm);
 void fm_selection_visual_toggle(fm_t *fm);
 
 /*
- * Write the current celection to the file given as PATH.
+ * Write the current celection to the file given as `path`.
  * Directories are created as needed.
  */
 void fm_selection_write(const fm_t *fm, const char *path);
@@ -190,7 +200,7 @@ void fm_copy(fm_t *fm);
 /*
  * Move the current selection to the move buffer.
  */
-void fm_cut(fm_t *load);
+void fm_cut(fm_t *fm);
 
 /*
  * Clear copy/move buffer.
@@ -198,22 +208,22 @@ void fm_cut(fm_t *load);
 void fm_load_clear(fm_t *fm);
 
 /*
- * Get the list of files in copy/move buffer.
+ * Get the list of files in copy/move buffer. Returns a cvector of char*.
  */
 char * const* fm_get_load(const fm_t *fm);
 
 /*
- * Get the mode current load, one of MODE_COPY, MODE_MOVE.
+ * Get the mode current load, one of `MODE_COPY`, `MODE_MOVE`.
  */
 enum movemode_e fm_get_mode(const fm_t *fm);
 
 /*
- * Current file of the current directory. Can be NULL.
+ * Current file of the current directory. Can be `NULL`.
  */
 file_t *fm_current_file(const fm_t *fm);
 
 /*
- * Current directory. Never NULL.
+ * Current directory. Never `NULL`.
  */
 dir_t *fm_current_dir(const fm_t *fm);
 
@@ -231,10 +241,10 @@ void fm_drop_cache(fm_t *fm);
 
 #define fm_preview_dir(fm) (fm)->preview
 
-void fm_selection_add_file(fm_t *fm, const char *path);
-
-void fm_selection_set(fm_t *fm, cvector_vector_type(char*) selection);
-
+/*
+ * Apply an update to a directory. Returns `true` if the directory is visible
+ * and a redraw is necessary.
+ */
 bool fm_update_dir(fm_t *fm, dir_t *dir, dir_t *update);
 
 #endif /* FM_H */
