@@ -38,10 +38,6 @@ static char *readable_fs(double size, char *buf);
 static void menu_resize(ui_t *ui);
 static char *ansi_consoom(struct ncplane *w, char *s);
 static void ansi_addstr(struct ncplane *w, char *s);
-inline static struct ncplane *wpreview(ui_t *ui)
-{
-	return ui->planes.dirs[ui->ndirs-1];
-}
 
 static struct notcurses *nc = NULL;
 
@@ -175,6 +171,7 @@ void ui_recol(ui_t *ui)
 	opts.x = xpos;
 	opts.cols = ui->ncol - xpos - 1;
 	cvector_push_back(ui->planes.dirs, ncplane_create(ncstd, &opts));
+	ui->planes.preview = ui->planes.dirs[ui->ndirs-1];
 }
 
 /* }}} */
@@ -267,11 +264,11 @@ static void draw_preview(ui_t *ui)
 	dir_t *preview_dir;
 	if (cfg.preview && ui->ndirs > 1) {
 		if ((preview_dir = ui->fm->dirs.preview)) {
-			plane_draw_dir(wpreview(ui), ui->fm->dirs.preview, ui->fm->selection.files,
+			plane_draw_dir(ui->planes.preview, ui->fm->dirs.preview, ui->fm->selection.files,
 					ui->fm->load.files, ui->fm->load.mode, NULL);
 		} else {
 			update_file_preview(ui);
-			plane_draw_file_preview(wpreview(ui), ui->preview.file);
+			plane_draw_file_preview(ui->planes.preview, ui->preview.file);
 		}
 	}
 #ifdef PROFILE_DRAWING
@@ -891,8 +888,7 @@ static preview_t *load_preview(ui_t *ui, file_t *file)
 	int ncol, nrow;
 	preview_t *pv;
 
-	struct ncplane *w = wpreview(ui);
-	ncplane_dim_yx(w, &nrow, &ncol);
+	ncplane_dim_yx(ui->planes.preview, &nrow, &ncol);
 
 	if ((pv = cache_take(&ui->preview.cache, file->path))) {
 		/* TODO: vv (on 2021-08-10) */
@@ -911,7 +907,7 @@ static preview_t *load_preview(ui_t *ui, file_t *file)
 static void update_file_preview(ui_t *ui)
 {
 	int ncol, nrow;
-	ncplane_dim_yx(wpreview(ui), &nrow, &ncol);
+	ncplane_dim_yx(ui->planes.preview, &nrow, &ncol);
 	dir_t *dir;
 	file_t *file;
 

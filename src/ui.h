@@ -26,6 +26,7 @@ typedef struct ui_t {
 		struct ncplane *cmdline;
 		struct ncplane *info;
 		struct ncplane *menu;
+		struct ncplane *preview;
 		cvector_vector_type(struct ncplane*) dirs;
 	} planes;
 
