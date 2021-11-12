@@ -18,8 +18,6 @@
 #include "notify.h"
 #include "util.h"
 
-#define DIRCACHE_SIZE 128
-
 static dir_t *load_dir(fm_t *fm, const char *path);
 static void update_preview(fm_t *fm);
 static void update_watchers(fm_t *fm);

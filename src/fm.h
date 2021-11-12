@@ -7,6 +7,8 @@
 #include "cvector.h"
 #include "dir.h"
 
+#define DIRCACHE_SIZE 63
+
 enum movemode_e {
 	MODE_MOVE,
 	MODE_COPY,

@@ -12,7 +12,7 @@
 #include "history.h"
 #include "preview.h"
 
-#define PREVIEW_CACHE_SIZE 31
+#define PREVIEW_CACHE_SIZE 63
 
 typedef struct ui_t {
 	int nrow;
