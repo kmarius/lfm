@@ -13,14 +13,13 @@ enum result_e { RES_DIR_UPDATE, RES_DIR_CHECK, RES_PREVIEW };
 
 typedef struct res_t {
 	enum result_e type;
-	union payload{
-		struct dir_update_t {
+	union {
+		struct {
 			dir_t *dir;
 			dir_t *update;
-		} dir_update;
+		};
 		preview_t *preview;
-		dir_t *dir;
-	} payload;
+	};
 	struct res_t *next;
 } res_t;
 

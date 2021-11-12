@@ -58,12 +58,12 @@ void queue_deinit(resq_t *queue)
 	while (queue_get(queue, &result)) {
 		switch (result.type) {
 			case RES_DIR_UPDATE:
-				dir_free(result.payload.dir_update.update);
+				dir_free(result.update);
 				break;
 			case RES_DIR_CHECK:
 				break;
 			case RES_PREVIEW:
-				preview_free(result.payload.preview);
+				preview_free(result.preview);
 				break;
 			default:
 				break;
@@ -93,9 +93,7 @@ static void async_dir_check_worker(void *arg)
 
 	res_t r = {
 		.type = RES_DIR_CHECK,
-		.payload = {{
-			.dir=w->dir,
-		}},
+		.dir = w->dir,
 	};
 
 	pthread_mutex_lock(&async_results.mutex);
@@ -130,10 +128,8 @@ static void async_dir_load_worker(void *arg)
 	}
 	res_t r = {
 		.type = RES_DIR_UPDATE,
-		.payload = {{
-			.dir=w->dir,
-			.update=dir_load(w->dir->path, 1)
-		}},
+		.dir = w->dir,
+		.update = dir_load(w->dir->path, 1)
 	};
 
 	pthread_mutex_lock(&async_results.mutex);
@@ -167,9 +163,7 @@ static void async_preview_load_worker(void *arg)
 	struct pv_work *w = (struct pv_work*) arg;
 	res_t r = {
 		.type = RES_PREVIEW,
-		.payload = {
-			.preview = preview_new_from_file(w->path, w->fptr, w->x, w->y),
-		},
+		.preview = preview_new_from_file(w->path, w->fptr, w->x, w->y),
 	};
 	pthread_mutex_lock(&async_results.mutex);
 	queue_put(&async_results, r);
