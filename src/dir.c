@@ -213,8 +213,8 @@ void dir_filter(dir_t *dir, const char *filter)
 /* TODO: returns errors on broken symlinks (on 2021-08-23) */
 bool file_isdir(const file_t *file)
 {
-	int mode = file->link_target && !file->broken ? file->stat.st_mode : file->lstat.st_mode;
-	return S_ISDIR(mode);
+	/* int mode = file->link_target && !file->broken ? file->stat.st_mode : file->lstat.st_mode; */
+	return S_ISDIR(file->stat.st_mode);
 }
 
 bool dir_check(const dir_t *dir)
@@ -314,6 +314,7 @@ static bool file_load(file_t *file, const char *basedir, const char *name)
 	if (S_ISLNK(file->lstat.st_mode)) {
 		if (stat(file->path, &file->stat) == -1) {
 			file->broken = true;
+			file->stat = file->lstat;
 		}
 		if (readlink(file->path, buf, sizeof(buf)) == -1) {
 			log_error("readlink: %s", strerror(errno));
@@ -322,6 +323,8 @@ static bool file_load(file_t *file, const char *basedir, const char *name)
 		} else {
 			file->link_target = strdup(buf);
 		}
+	} else {
+		file->stat = file->lstat;
 	}
 
 	return true;

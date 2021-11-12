@@ -510,7 +510,7 @@ void draw_cmdline(ui_t *ui)
 						"%s %2.ld %s %s %4s %s%s%s",
 						perms(file->lstat.st_mode), file->lstat.st_nlink,
 						owner(file->lstat.st_uid), group(file->lstat.st_gid),
-						readable_fs(file->lstat.st_size, size),
+						readable_fs(file->stat.st_size, size),
 						print_time(file->lstat.st_mtime, mtime, sizeof(mtime)),
 						file->link_target ? " -> " : "",
 						file->link_target ? file->link_target : "");
@@ -759,7 +759,7 @@ static void print_file(struct ncplane *n, const file_t *file,
 	if ((isdir = file_isdir(file))) {
 		snprintf(size, sizeof(size), "%d", file->filecount);
 	} else {
-		readable_fs(file->lstat.st_size, size);
+		readable_fs(file->stat.st_size, size);
 	}
 
 	int rightmargin = strlen(size) + 2;
