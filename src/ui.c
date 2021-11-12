@@ -37,7 +37,7 @@ static void draw_info(ui_t *ui);
 static char *readable_fs(double size, char *buf);
 static void menu_resize(ui_t *ui);
 static char *ansi_consoom(struct ncplane *w, char *s);
-static void ansi_addstr(struct ncplane *w, char *s);
+static void ansi_addstr(struct ncplane *n, char *s);
 
 static struct notcurses *nc = NULL;
 
@@ -635,13 +635,16 @@ static void draw_info(ui_t *ui)
 
 /* menu {{{ */
 
-static void ansi_addstr(struct ncplane *w, char *s)
+static void ansi_addstr(struct ncplane *n, char *s)
 {
+	char *c;
+
 	while (*s) {
 		if (*s == '\033') {
-			s = ansi_consoom(w, s);
+			s = ansi_consoom(n, s);
 		} else {
-			if (ncplane_putchar(w, *(s++)) == -1) {
+			for (c = s; *s && *s != '\033'; s++);
+			if (ncplane_putnstr(n, s-c, c) == -1) {
 				// EOL
 				return;
 			}
