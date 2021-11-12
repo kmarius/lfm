@@ -330,7 +330,7 @@ static bool file_load(file_t *file, const char *basedir, const char *name)
 	return true;
 }
 
-dir_t *dir_load(const char *path, int filecount)
+dir_t *dir_load(const char *path, bool load_filecount)
 {
 	int i;
 	struct dirent *dp;
@@ -351,7 +351,7 @@ dir_t *dir_load(const char *path, int filecount)
 			continue;
 		}
 		if (file_load(&f, path, dp->d_name)) {
-			f.filecount = (filecount && file_isdir(&f)) ? file_count(f.path) : 0;
+			f.filecount = (load_filecount && file_isdir(&f)) ? file_count(f.path) : 0;
 			cvector_push_back(dir->allfiles, f);
 			i++;
 		}
