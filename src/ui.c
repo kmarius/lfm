@@ -23,7 +23,7 @@
 #include "ui.h"
 #include "util.h"
 
-/* #define PROFILE_DRAWING 1 */
+#define PROFILE_DRAWING 1
 
 static void draw_dirs(ui_t *ui);
 static void plane_draw_dir(struct ncplane *n, dir_t *dir, char **sel,

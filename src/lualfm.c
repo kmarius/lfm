@@ -862,6 +862,7 @@ static int l_fm_selection_toggle_current(lua_State *L)
 {
 	(void) L;
 	fm_selection_toggle_current(fm);
+	ui->redraw.fm = 1;
 	return 0;
 }
 

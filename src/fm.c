@@ -540,16 +540,11 @@ static bool cursor_move(fm_t *fm, int ct)
 	dir_cursor_move(dir, ct, fm->height, cfg.scrolloff);
 	if (dir->ind != cur) {
 		if (fm->visual.active) {
-			selection_visual_update(fm, fm->visual.anchor, cur,
-					dir->ind);
+			selection_visual_update(fm, fm->visual.anchor, cur, dir->ind);
 		}
-
 		update_preview(fm);
-		return true;
 	}
-	/* We actually have to redraw becuase we could be selecting the last
-	 * file in the directory but not actually moving. */
-	return dir->ind == dir->len - 1;
+	return dir->ind != cur;
 }
 
 bool fm_up(fm_t *fm, int ct) { return cursor_move(fm, -ct); }
