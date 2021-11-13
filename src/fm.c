@@ -203,10 +203,6 @@ void fm_hidden_set(fm_t *fm, bool hidden)
 	update_preview(fm);
 }
 
-/* TODO: It actually makes more sense to update dir access times when leaving
- * the directory, but we would have to find the directory in the heap first.
- * For now, we update when inserting/updating the dir.
- * (on 2021-08-03) */
 static dir_t *load_dir(fm_t *fm, const char *path)
 {
 	dir_t *dir;
@@ -226,11 +222,6 @@ static dir_t *load_dir(fm_t *fm, const char *path)
 		async_dir_load(dir);
 	}
 	return dir;
-}
-
-file_t *fm_current_file(const fm_t *fm)
-{
-	return dir_current_file(fm->dirs.visible[0]);
 }
 
 bool fm_update_dir(fm_t *fm, dir_t *dir, dir_t *update)

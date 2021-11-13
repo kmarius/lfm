@@ -218,14 +218,16 @@ char * const* fm_get_load(const fm_t *fm);
 enum movemode_e fm_get_mode(const fm_t *fm);
 
 /*
- * Current file of the current directory. Can be `NULL`.
- */
-file_t *fm_current_file(const fm_t *fm);
-
-/*
  * Current directory. Never `NULL`.
  */
-dir_t *fm_current_dir(const fm_t *fm);
+#define fm_current_dir(fm) (fm)->dirs.visible[0]
+
+/*
+ * Current file of the current directory. Can be `NULL`.
+ */
+#define fm_current_file(fm) dir_current_file(fm_current_dir(fm))
+
+#define fm_preview_dir(fm) (fm)->preview
 
 /*
  * Compare PATH against each path in SELECTION to check if it is contained.
@@ -236,10 +238,6 @@ bool cvector_contains(const char *path, cvector_vector_type(char*) selection);
  * Drop directory cache and reload visible directories from disk.
  */
 void fm_drop_cache(fm_t *fm);
-
-#define fm_current_dir(fm) (fm)->dirs.visible[0]
-
-#define fm_preview_dir(fm) (fm)->preview
 
 /*
  * Apply an update to a directory. Returns `true` if the directory is visible
