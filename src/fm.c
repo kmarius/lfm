@@ -237,12 +237,13 @@ bool fm_update_dir(fm_t *fm, dir_t *dir, dir_t *update)
 {
 	int i;
 
-	dir_update_with(dir, update, fm->height, cfg.scrolloff);
-	if (fm->dirs.preview && fm->dirs.preview == dir) {
+	if (fm->dirs.preview == dir) {
+		dir_update_with(dir, update, fm->height, cfg.scrolloff);
 		return true;
 	} else {
 		for (i = 0; i < fm->dirs.len; i++) {
-			if (fm->dirs.visible[i] && fm->dirs.visible[i] == dir) {
+			if (fm->dirs.visible[i] == dir) {
+				dir_update_with(dir, update, fm->height, cfg.scrolloff);
 				if (i == 0) {
 					update_preview(fm);
 				}
@@ -250,6 +251,8 @@ bool fm_update_dir(fm_t *fm, dir_t *dir, dir_t *update)
 			}
 		}
 	}
+
+	dir_free(update);
 	return false;
 }
 
@@ -275,6 +278,8 @@ void fm_check_dirs(const fm_t *fm)
 void fm_drop_cache(fm_t *fm)
 {
 	int i;
+
+	notify_set_watchers(NULL, 0);
 
 	for (i = 0; i < fm->dirs.len; i++) {
 		if (fm->dirs.visible[i]) {
