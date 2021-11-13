@@ -199,7 +199,7 @@ void lua_handle_key(lua_State *L, long u)
 			}
 			cvector_push_back(maps.str, 0);
 			ui_error(ui, "no such map: %s", maps.str);
-			/* log_debug("key: %d, id: %d, shift: %d, ctrl: %d alt %d", u, KEY(u), ISSHIFT(u), ISCTRL(u), ISALT(u)); */
+			log_debug("key: %d, id: %d, shift: %d, ctrl: %d alt %d", u, KEY(u), ISSHIFT(u), ISCTRL(u), ISALT(u));
 			ui_showmenu(ui, NULL);
 			return;
 		}
