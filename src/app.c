@@ -19,6 +19,11 @@
 #include "tpool.h"
 #include "ui.h"
 #include "util.h"
+#include "popen_arr.h"
+
+static void add_io_watcher(app_t *app, FILE* f);
+
+static cvector_vector_type(ev_io*) io_watchers = NULL;
 
 #define TICK 1  /* seconds */
 
@@ -101,6 +106,48 @@ static void stdin_cb(EV_P_ ev_io *w, int revents)
 		/* log_debug("id: %d, shift: %d, ctrl: %d alt %d", in.id, in.shift, in.ctrl, in.alt); */
 		lua_handle_key(app->L, ncinput_to_long(&in));
 		ev_idle_start(app->loop, &redraw_watcher);
+	}
+}
+
+static void command_stdout_cb(EV_P_ ev_io *w, int revents)
+{
+	(void) revents;
+	/* app_t *app = w->data; */
+	app_t *app = _app;
+	char *line = NULL;
+	int read;
+	size_t n;
+
+	while ((read = getline(&line, &n, w->data)) != -1) {
+		if (line[read-1] == '\n') {
+			line[read-1] = 0;
+		}
+		/* TODO: strip special chars? (on 2021-11-14) */
+		ui_echom(&app->ui, "%s", line);
+		log_debug("%s", line);
+		free(line);
+		line = NULL;
+	}
+	/* log_debug("%d %s %d", read, strerror(errno), errno); */
+	free(line);
+
+	if (errno == EAGAIN) {
+		/* this seems to prevent the callback being immediately called again */
+		clearerr(w->data);
+	}
+
+	if (errno == ECHILD || feof(w->data)) {
+		log_debug("removing watcher %d", w->fd);
+		ev_io_stop(app->loop, w);
+		size_t i;
+		for (i = 0; i < cvector_size(io_watchers); i++) {
+			if (io_watchers[i] == w) {
+				cvector_swap_erase(io_watchers, i);
+				break;
+			}
+		}
+		fclose(w->data);
+		free(w);
 	}
 }
 
@@ -323,6 +370,39 @@ void app_quit(app_t *app)
 	ev_break(app->loop, EVBREAK_ALL);
 }
 
+static void add_io_watcher(app_t *app, FILE* f)
+{
+	if (f == NULL) {
+		return;
+	}
+	log_debug("adding watcher %d", fileno(f));
+	ev_io *w = malloc(sizeof(ev_io));
+	int flags = fcntl(fileno(f), F_GETFL, 0);
+	fcntl(fileno(f), F_SETFL, flags | O_NONBLOCK);
+	ev_io_init(w, command_stdout_cb, fileno(f), EV_READ);
+	w->data = f;
+	ev_io_start(app->loop, w);
+	cvector_push_back(io_watchers, w);
+}
+
+int app_execute(app_t *app, const char *prog, const char **args, bool out, bool err)
+{
+	FILE *fout, *ferr;
+	log_debug("%s %d %d", prog, out, err);
+	int pid = popen2_arr_p(NULL, &fout, &ferr, prog, args, NULL);
+	if (err) {
+		add_io_watcher(app, ferr);
+	} else {
+		fclose(ferr);
+	}
+	if (out) {
+		add_io_watcher(app, fout);
+	} else {
+		fclose(fout);
+	}
+	return pid;
+}
+
 void print(const char *format, ...)
 {
 	if (!_app) {
@@ -353,6 +433,7 @@ void timeout_set(int duration)
 void app_deinit(app_t *app)
 {
 	cvector_free(times);
+	cvector_ffree(io_watchers, free);
 	notify_close();
 	lua_deinit(app->L);
 	ui_deinit(&app->ui);

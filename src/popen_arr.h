@@ -33,15 +33,16 @@ struct FILE;
  *
  * @arg in  stdin of the program, to be written to. If NULL then not redirected
  * @arg out stdout of the program, to be read from. If NULL then not redirected
+ * @arg err stderr of the program, to be read from. If NULL then not redirected
  * @arg program full path of the program, without reference to $PATH
  * @arg argv NULL terminated array of strings, program arguments (includiong program name)
  * @arg envp NULL terminated array of environment variables, NULL => preserve environment
  * @return PID of the program or -1 if failed
  */
-int popen2_arr  (FILE** in, FILE** out,  const char* program, const char* const argv[], const char* const envp[]);
+int popen2_arr(FILE** in, FILE** out, FILE** err, const char* program, const char* const argv[], const char* const envp[]);
 
 /** like popen2_arr, but uses execvp/execvpe instead of execve/execv, so looks up $PATH */
-int popen2_arr_p(FILE** in, FILE** out,  const char* program, const char* const argv[], const char* const envp[]);
+int popen2_arr_p(FILE** in, FILE** out, FILE** err, const char* program, const char* const argv[], const char* const envp[]);
 
 /**
  * Simplified interface to popen2_arr.
