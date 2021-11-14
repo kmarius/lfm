@@ -2,6 +2,18 @@
 local lfm = {}
 
 ---Set the timeout in milliseconds from now in which lfm will ignore keyboard input.
+---Supported options:
+--- `opts.out` should stdout be captured (default: `true`)
+--- `opts.err` should stderr be captured (default: `true`)
+---@param command string[]
+---@param opts table
+function lfm.execute(command, opts) end
+
+---Execute a shell command using `system()`.
+---@param line string
+function lfm.system(line) end
+
+---Set the timeout in milliseconds from now in which lfm will ignore keyboard input.
 ---@param duration integer in milliseconds.
 function lfm.timeout(duration) end
 
