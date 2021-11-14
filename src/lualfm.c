@@ -55,23 +55,6 @@ static int l_handle_key(lua_State *L)
 	return 0;
 }
 
-static int l_shell_pre(lua_State *L)
-{
-	(void) L;
-	ui_suspend(ui);
-	kbblocking(true);
-	return 0;
-}
-
-static int l_shell_post(lua_State *L)
-{
-	(void) L;
-	kbblocking(false);
-	ui_notcurses_init(ui);
-	ui->redraw.fm = 1;
-	return 0;
-}
-
 static int l_timeout(lua_State *L)
 {
 	const int dur = luaL_checkinteger(L, 1);
@@ -371,8 +354,6 @@ static const struct luaL_Reg lfm_lib[] = {
 	{"echo", l_echo},
 	{"error", l_error},
 	{"quit", l_quit},
-	{"shell_post", l_shell_post},
-	{"shell_pre", l_shell_pre},
 	{NULL, NULL}};
 
 /* }}} */

@@ -31,12 +31,6 @@ function lfm.search_prev(include) end
 ---@param msg string
 function lfm.error(msg) end
 
----Re-initialize UI after a shell command.
-function lfm.shell_post() end
-
----Prepare for a shell command to take over the output.
-function lfm.shell_pre() end
-
 ---@param keys string
 function lfm.handle_key(keys) end
 
