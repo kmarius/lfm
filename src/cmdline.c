@@ -61,7 +61,7 @@ void cmdline_init(T *t)
 
 bool cmdline_prefix_set(T *t, const char *prefix)
 {
-	if (!prefix) {
+	if (prefix == NULL) {
 		return false;
 	}
 	const int l = strlen(prefix);

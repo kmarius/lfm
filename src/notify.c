@@ -81,7 +81,7 @@ void notify_set_watchers(dir_t **dirs, int n)
 	cvector_fclear(watchers, unwatch);
 
 	for (i = 0; i < n; i++) {
-		if (dirs[i]) {
+		if (dirs[i] != NULL) {
 			notify_add_watcher(dirs[i]);
 		}
 	}

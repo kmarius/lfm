@@ -26,7 +26,7 @@ void history_load(T *t, const char *path)
 	t->vec = NULL;
 	t->ptr = NULL;
 
-	if (!(fp = fopen(path, "r"))) {
+	if ((fp = fopen(path, "r")) == NULL) {
 		return;
 	}
 
@@ -52,7 +52,7 @@ void history_write(T *t, const char *path)
 	mkdir_p(dir);
 	free(buf);
 
-	if (!(fp = fopen(path, "a"))) {
+	if ((fp = fopen(path, "a")) == NULL) {
 		return;
 	}
 
@@ -95,10 +95,10 @@ void history_deinit(T *t)
 /* TODO: only show history items with matching prefixes (on 2021-07-24) */
 const char *history_prev(T *t)
 {
-	if (!t->vec) {
+	if (t->vec == NULL) {
 		return NULL;
 	}
-	if (!t->ptr) {
+	if (t->ptr == NULL) {
 		t->ptr = cvector_end(t->vec);
 	}
 	if (t->ptr > cvector_begin(t->vec)) {
@@ -109,7 +109,7 @@ const char *history_prev(T *t)
 
 const char *history_next(T *t)
 {
-	if (!t->vec || !t->ptr) {
+	if (t->vec == NULL || t->ptr == NULL) {
 		return NULL;
 	}
 	if (t->ptr < cvector_end(t->vec)) {

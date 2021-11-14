@@ -1,7 +1,7 @@
 ---@meta
 local lfm = {}
 
----Set the timeout in milliseconds from now in which lfm will ignore keyboard input.
+---Execute a command and redirect output/error to the UI.
 ---Supported options:
 --- `opts.out` should stdout be captured (default: `true`)
 --- `opts.err` should stderr be captured (default: `true`)

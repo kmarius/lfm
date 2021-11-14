@@ -42,7 +42,7 @@ static int popen2_impl(FILE** in, FILE** out, FILE** err, const char* program,
 	int to_be_read = -1;
 	int to_be_read2 = -1;
 
-	if (in) {
+	if (in != NULL) {
 		int p[2] = {-1, -1};
 		int ret = pipe(p);
 		if (ret != 0) {
@@ -57,11 +57,11 @@ static int popen2_impl(FILE** in, FILE** out, FILE** err, const char* program,
 			return -1;
 		}
 	}
-	if (out) {
+	if (out != NULL) {
 		int p[2] = {-1, -1};
 		int ret = pipe(p);
 		if (ret != 0) {
-			if (in) {
+			if (in != NULL) {
 				close(child_stdin);
 				fclose(*in);
 				*in = NULL;
@@ -72,16 +72,16 @@ static int popen2_impl(FILE** in, FILE** out, FILE** err, const char* program,
 		child_stdout = p[1];
 		*out = fdopen(to_be_read, "r");
 	}
-	if (err) {
+	if (err != NULL) {
 		int p[2] = {-1, -1};
 		int ret = pipe(p);
 		if (ret != 0) {
-			if (in) {
+			if (in != NULL) {
 				close(child_stdin);
 				fclose(*in);
 				*in = NULL;
 			}
-			if (out) {
+			if (out != NULL) {
 				close(child_stdout);
 				fclose(*out);
 				*out = NULL;
@@ -114,13 +114,13 @@ static int popen2_impl(FILE** in, FILE** out, FILE** err, const char* program,
 			close(2);
 		}
 		if (lookup_path) {
-			if (envp) {
+			if (envp != NULL) {
 				execvpe(program, (char**) argv, (char**) envp);
 			} else {
 				execvp(program, (char**) argv);
 			}
 		} else {
-			if (envp) {
+			if (envp != NULL) {
 				execve(program, (char**) argv, (char**) envp);
 			} else {
 				execv(program, (char**) argv);

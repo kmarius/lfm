@@ -31,7 +31,7 @@ bool cvector_contains(const char *path, cvector_vector_type(char*) selection)
 {
 	size_t i;
 	for (i = 0; i < cvector_size(selection); i++) {
-		if (selection[i] && streq(selection[i], path)) {
+		if (selection[i] != NULL && streq(selection[i], path)) {
 			return true;
 		}
 	}
@@ -44,7 +44,7 @@ static void populate(fm_t *fm)
 	char pwd[PATH_MAX];
 	const char *s;
 
-	if ((s = getenv("PWD"))) {
+	if ((s = getenv("PWD")) != NULL) {
 		strncpy(pwd, s, sizeof(pwd)-1);
 	} else {
 		getcwd(pwd, sizeof(pwd));
@@ -53,7 +53,7 @@ static void populate(fm_t *fm)
 	fm->dirs.visible[0] = load_dir(fm, pwd); /* current dir */
 	dir_t *d = fm->dirs.visible[0];
 	for (i = 1; i < fm->dirs.len; i++) {
-		if ((s = dir_parent(d))) {
+		if ((s = dir_parent(d)) != NULL) {
 			d = load_dir(fm, s);
 			fm->dirs.visible[i] = d;
 			dir_cursor_move_to(d, fm->dirs.visible[i-1]->name, fm->height, cfg.scrolloff);
@@ -65,7 +65,7 @@ static void populate(fm_t *fm)
 
 void fm_init(fm_t *fm)
 {
-	if (cfg.startpath) {
+	if (cfg.startpath != NULL) {
 		if ((chdir(cfg.startpath)) != 0) {
 			error("chdir: %s", strerror(errno));
 		} else {
@@ -93,7 +93,7 @@ void fm_init(fm_t *fm)
 
 	update_watchers(fm);
 
-	if (cfg.startfile) {
+	if (cfg.startfile != NULL) {
 		fm_move_to(fm, cfg.startfile);
 	}
 
@@ -108,7 +108,7 @@ void fm_recol(fm_t *fm)
 
 	remove_preview(fm);
 	for (i = 0; i < fm->dirs.len; i++) {
-		if (fm->dirs.visible[i]) {
+		if (fm->dirs.visible[i] != NULL) {
 			cache_insert(&fm->dirs.cache, fm->dirs.visible[i], fm->dirs.visible[i]->path);
 		}
 	}
@@ -152,7 +152,7 @@ bool fm_chdir(fm_t *fm, const char *path, bool save)
 	remove_preview(fm);
 	int i;
 	for (i = 0; i < fm->dirs.len; i++) {
-		if (fm->dirs.visible[i]) {
+		if (fm->dirs.visible[i] != NULL) {
 			cache_insert(&fm->dirs.cache, fm->dirs.visible[i], fm->dirs.visible[i]->path);
 		}
 	}
@@ -173,7 +173,7 @@ void fm_sort(fm_t *fm)
 {
 	int i;
 	for (i = 0; i < fm->dirs.len; i++) {
-		if (fm->dirs.visible[i]) {
+		if (fm->dirs.visible[i] != NULL) {
 			fm->dirs.visible[i]->hidden = cfg.hidden;
 			/* TODO: maybe we can select the closest non-hidden file in case the
 			 * current one will be hidden (on 2021-10-17) */
@@ -185,7 +185,7 @@ void fm_sort(fm_t *fm)
 			}
 		}
 	}
-	if (fm->dirs.preview) {
+	if (fm->dirs.preview != NULL) {
 		fm->dirs.preview->hidden = cfg.hidden;
 		if (fm->dirs.preview->len > 0) {
 			const file_t *file = dir_current_file(fm->dirs.preview);
@@ -212,7 +212,7 @@ static dir_t *load_dir(fm_t *fm, const char *path)
 		path = fullpath;
 	}
 
-	if ((dir = cache_take(&fm->dirs.cache, path))) {
+	if ((dir = cache_take(&fm->dirs.cache, path)) != NULL) {
 		async_dir_check(dir);
 		dir->hidden = cfg.hidden;
 		dir_sort(dir);
@@ -253,7 +253,7 @@ void fm_check_dirs(const fm_t *fm)
 	int i;
 
 	for (i = 0; i < fm->dirs.len; i++) {
-		if (!fm->dirs.visible[i]) {
+		if (fm->dirs.visible[i] == NULL) {
 			continue;
 		}
 		// stat is blocking on slow devices (nfs, sshfs, smb)
@@ -261,7 +261,7 @@ void fm_check_dirs(const fm_t *fm)
 			async_dir_load(fm->dirs.visible[i]);
 		}
 	}
-	if (fm->dirs.preview && !dir_check(fm->dirs.preview)) {
+	if (fm->dirs.preview != NULL && !dir_check(fm->dirs.preview)) {
 		async_dir_load(fm->dirs.preview);
 	}
 }
@@ -273,7 +273,7 @@ void fm_drop_cache(fm_t *fm)
 	notify_set_watchers(NULL, 0);
 
 	for (i = 0; i < fm->dirs.len; i++) {
-		if (fm->dirs.visible[i]) {
+		if (fm->dirs.visible[i] != NULL) {
 			dir_free(fm->dirs.visible[i]);
 		}
 	}
@@ -288,7 +288,7 @@ void fm_drop_cache(fm_t *fm)
 
 static void remove_preview(fm_t *fm)
 {
-	if (fm->dirs.preview) {
+	if (fm->dirs.preview != NULL) {
 		notify_remove_watcher(fm->dirs.preview);
 		cache_insert(&fm->dirs.cache, fm->dirs.preview, fm->dirs.preview->path);
 		fm->dirs.preview = NULL;
@@ -305,14 +305,14 @@ void update_preview(fm_t *fm)
 	}
 
 	const file_t *file = fm_current_file(fm);
-	if (file && file_isdir(file)) {
-		if (fm->dirs.preview) {
+	if (file != NULL && file_isdir(file)) {
+		if (fm->dirs.preview != NULL) {
 			if (streq(fm->dirs.preview->path, file->path)) {
 				return;
 			}
 			/* don't remove watcher if it is a currently visible (non-preview) dir */
 			for (i = 0; i < fm->dirs.len; i++) {
-				if (fm->dirs.visible[i] && streq(fm->dirs.preview->path, fm->dirs.visible[i]->path)) {
+				if (fm->dirs.visible[i] != NULL && streq(fm->dirs.preview->path, fm->dirs.visible[i]->path)) {
 					break;
 				}
 			}
@@ -325,9 +325,9 @@ void update_preview(fm_t *fm)
 		notify_add_watcher(fm->dirs.preview);
 	} else {
 		// file preview or empty
-		if (fm->dirs.preview) {
+		if (fm->dirs.preview != NULL) {
 			for (i = 0; i < fm->dirs.len; i++) {
-				if (fm->dirs.visible[i] && streq(fm->dirs.preview->path, fm->dirs.visible[i]->path)) {
+				if (fm->dirs.visible[i] != NULL && streq(fm->dirs.preview->path, fm->dirs.visible[i]->path)) {
 					break;
 				}
 			}
@@ -351,7 +351,7 @@ void fm_selection_add_file(fm_t *fm, const char *path)
 {
 	size_t i;
 	for (i = 0; i < cvector_size(fm->selection.files); i++) {
-		if (!fm->selection.files[i]) {
+		if (fm->selection.files[i] == NULL) {
 			continue;
 		}
 		if (streq(fm->selection.files[i], path)) {
@@ -374,7 +374,7 @@ void selection_toggle_file(fm_t *fm, const char *path)
 {
 	size_t i;
 	for (i = 0; i < cvector_size(fm->selection.files); i++) {
-		if (!fm->selection.files[i]) {
+		if (fm->selection.files[i] == NULL) {
 			continue;
 		}
 		if (streq(fm->selection.files[i], path)) {
@@ -395,7 +395,7 @@ void fm_selection_toggle_current(fm_t *fm)
 {
 	if (!fm->visual.active) {
 		file_t *file = fm_current_file(fm);
-		if (file) {
+		if (file != NULL) {
 			selection_toggle_file(fm, file->path);
 		}
 	}
@@ -416,7 +416,7 @@ void fm_selection_visual_start(fm_t *fm)
 	if (fm->visual.active) {
 		return;
 	}
-	if (!(dir = fm->dirs.visible[0])) {
+	if ((dir = fm->dirs.visible[0]) == NULL) {
 		return;
 	}
 	if (dir->len == 0) {
@@ -426,7 +426,7 @@ void fm_selection_visual_start(fm_t *fm)
 	fm->visual.anchor = dir->ind;
 	fm_selection_add_file(fm, dir->files[dir->ind]->path);
 	for (i = 0; i < cvector_size(fm->selection.files); i++) {
-		if (!fm->selection.files[i]) {
+		if (fm->selection.files[i] == NULL) {
 			continue;
 		}
 		cvector_push_back(fm->selection.previous, fm->selection.files[i]);
@@ -502,7 +502,7 @@ void fm_selection_write(const fm_t *fm, const char *path)
 	mkdir_p(dir);
 	free(dir);
 
-	if (!(fp = fopen(path, "w"))) {
+	if ((fp = fopen(path, "w")) == NULL) {
 		error("selfile: %s", strerror(errno));
 		return;
 	}
@@ -510,14 +510,14 @@ void fm_selection_write(const fm_t *fm, const char *path)
 	if (fm->selection.len > 0) {
 		size_t i;
 		for (i = 0; i< cvector_size(fm->selection.files); i++) {
-			if (!fm->selection.files[i]) {
+			if (fm->selection.files[i] == NULL) {
 				continue;
 			}
 			fputs(fm->selection.files[i], fp);
 			fputc('\n', fp);
 		}
 	} else {
-		if ((f = fm_current_file(fm))) {
+		if ((f = fm_current_file(fm)) != NULL) {
 			fputs(f->path, fp);
 			fputc('\n', fp);
 		}
@@ -564,7 +564,7 @@ file_t *fm_open(fm_t *fm)
 {
 	file_t *file = fm_current_file(fm);
 
-	if (!file) {
+	if (file == NULL) {
 		return NULL;
 	}
 	fm_selection_visual_stop(fm); /* before or after chdir? */
@@ -633,7 +633,7 @@ static void cvector_unsparse(cvector_vector_type(char *) vec)
 {
 	size_t i, j = 0;
 	for (i = 0; i < cvector_size(vec); i++) {
-		if (vec[i]) {
+		if (vec[i] != NULL) {
 			vec[j++] = vec[i];
 		}
 	}

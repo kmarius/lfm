@@ -23,7 +23,7 @@ void queue_put(resq_t *queue, res_t res)
 	res_t *r = malloc(sizeof(res_t));
 	*r = res;
 
-	if (!queue->head) {
+	if (queue->head == NULL) {
 		queue->head = r;
 		queue->tail = r;
 	} else {
@@ -36,7 +36,7 @@ bool queue_get(resq_t *queue, res_t *result)
 {
 	res_t *res;
 
-	if (!(res = queue->head)) {
+	if ((res = queue->head) == NULL) {
 		return false;
 	}
 
@@ -103,7 +103,7 @@ static void async_dir_check_worker(void *arg)
 	queue_put(&async_results, r);
 	pthread_mutex_unlock(&async_results.mutex);
 
-	if (async_results.watcher) {
+	if (async_results.watcher != NULL) {
 		ev_async_send(EV_DEFAULT_ async_results.watcher);
 	}
 
@@ -139,7 +139,7 @@ static void async_dir_load_worker(void *arg)
 	queue_put(&async_results, r);
 	pthread_mutex_unlock(&async_results.mutex);
 
-	if (async_results.watcher) {
+	if (async_results.watcher != NULL) {
 		ev_async_send(EV_DEFAULT_ async_results.watcher);
 	}
 
@@ -187,7 +187,7 @@ static void async_preview_check_worker(void *arg)
 	queue_put(&async_results, r);
 	pthread_mutex_unlock(&async_results.mutex);
 
-	if (async_results.watcher) {
+	if (async_results.watcher != NULL) {
 		ev_async_send(EV_DEFAULT_ async_results.watcher);
 	}
 
@@ -218,7 +218,7 @@ static void async_preview_load_worker(void *arg)
 	pthread_mutex_lock(&async_results.mutex);
 	queue_put(&async_results, r);
 	pthread_mutex_unlock(&async_results.mutex);
-	if (async_results.watcher) {
+	if (async_results.watcher != NULL) {
 		ev_async_send(EV_DEFAULT_ async_results.watcher);
 	}
 	free(w->path);

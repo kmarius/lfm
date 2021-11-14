@@ -64,7 +64,7 @@ void ui_notcurses_init(ui_t *ui)
 	struct notcurses_options ncopts = {
 		.flags = NCOPTION_NO_WINCH_SIGHANDLER | NCOPTION_SUPPRESS_BANNERS,
 	};
-	if (!(nc = notcurses_core_init(&ncopts, NULL))) {
+	if ((nc = notcurses_core_init(&ncopts, NULL)) == NULL) {
 		exit(EXIT_FAILURE);
 	}
 	struct ncplane *ncstd = notcurses_stdplane(nc);
@@ -261,9 +261,8 @@ static void draw_preview(ui_t *ui)
 #if PROFILE_DRAWING
 	const unsigned long t0 = current_micros();
 #endif
-	dir_t *preview_dir;
 	if (cfg.preview && ui->ndirs > 1) {
-		if ((preview_dir = ui->fm->dirs.preview)) {
+		if (ui->fm->dirs.preview != NULL) {
 			plane_draw_dir(ui->planes.preview, ui->fm->dirs.preview, ui->fm->selection.files,
 					ui->fm->load.files, ui->fm->load.mode, NULL);
 		} else {
@@ -302,7 +301,7 @@ void ui_verror(ui_t *ui, const char *format, va_list args)
 	cvector_push_back(ui->messages, msg);
 
 	/* TODO: show messages after initialization (on 2021-10-30) */
-	if (nc) {
+	if (nc != NULL) {
 		ncplane_erase(ui->planes.cmdline);
 		ncplane_set_fg_palindex(ui->planes.cmdline, COLOR_RED);
 		ncplane_putstr_yx(ui->planes.cmdline, 0, 0, msg);
@@ -319,7 +318,7 @@ void ui_vechom(ui_t *ui, const char *format, va_list args)
 
 	cvector_push_back(ui->messages, msg);
 
-	if (nc) {
+	if (nc != NULL) {
 		ncplane_erase(ui->planes.cmdline);
 		ncplane_set_fg_palindex(ui->planes.cmdline, 15);
 		ncplane_putstr_yx(ui->planes.cmdline, 0, 0, msg);
@@ -335,7 +334,7 @@ void ui_vechom(ui_t *ui, const char *format, va_list args)
 
 void ui_cmd_prefix_set(ui_t *ui, const char *prefix)
 {
-	if (!prefix) {
+	if (prefix == NULL) {
 		return;
 	}
 	ui->message = false;
@@ -414,7 +413,7 @@ static char *owner(int uid)
 {
 	static char owner[32];
 	struct passwd *pwd;
-	if ((pwd = getpwuid(uid))) {
+	if ((pwd = getpwuid(uid)) != NULL) {
 		strncpy(owner, pwd->pw_name, sizeof(owner)-1);
 		owner[31] = 0;
 	} else {
@@ -435,7 +434,7 @@ static char *group(int gid)
 		return group;
 	}
 
-	if ((grp = getgrgid(gid))) {
+	if ((grp = getgrgid(gid)) != NULL) {
 		strncpy(group, grp->gr_name, sizeof(group)-1);
 		group[31] = 0;
 		cached_gid = gid;
@@ -498,9 +497,9 @@ void draw_cmdline(ui_t *ui)
 	int rhs_sz = 0;
 	int lhs_sz = 0;
 
-	if (!cmdline_prefix_get(&ui->cmdline)) {
-		if ((dir = ui->fm->dirs.visible[0])) {
-			if((file = dir_current_file(dir))) {
+	if (cmdline_prefix_get(&ui->cmdline) == NULL) {
+		if ((dir = ui->fm->dirs.visible[0]) != NULL) {
+			if ((file = dir_current_file(dir)) != NULL) {
 				/* TODO: for empty directories, show the stat of the
 				 * directory instead (on 2021-07-18) */
 				lhs_sz = ncplane_printf_yx(ui->planes.cmdline, 0, 0,
@@ -516,7 +515,7 @@ void draw_cmdline(ui_t *ui)
 			rhs_sz = snprintf(nums, sizeof(nums), " %d/%d", dir->len ? dir->ind + 1 : 0, dir->len);
 			ncplane_putstr_yx(ui->planes.cmdline, 0, ui->ncol - rhs_sz, nums);
 
-			if (dir->filter[0]) {
+			if (dir->filter[0] != 0) {
 				rhs_sz += strlen(dir->filter) + 3;
 				ncplane_set_bg_palindex(ui->planes.cmdline, COLOR_GREEN);
 				ncplane_set_fg_palindex(ui->planes.cmdline, COLOR_BLACK);
@@ -594,34 +593,34 @@ static void draw_info(ui_t *ui)
 	ncplane_putchar(ui->planes.info, ':');
 	ncplane_set_styles(ui->planes.info, NCSTYLE_BOLD);
 
-	if ((dir = ui->fm->dirs.visible[0])) {
+	if ((dir = ui->fm->dirs.visible[0]) != NULL) {
 		// shortening should work fine with ascii only names
 		const char *end = dir->path + strlen(dir->path);
 		int remaining;
 		ncplane_cursor_yx(ui->planes.info, NULL, &remaining);
 		remaining = ui->ncol - remaining;
-		if ((file = dir_current_file(dir))) {
+		if ((file = dir_current_file(dir)) != NULL) {
 			remaining -= strlen(file->name);
 		}
 		ncplane_set_fg_palindex(ui->planes.info, COLOR_BLUE);
 		const char *c = dir->path;
-		if (home && hasprefix(dir->path, home)) {
+		if (home != NULL && hasprefix(dir->path, home)) {
 			ncplane_putchar(ui->planes.info, '~');
 			remaining--;
 			c += home_len;
 		}
-		while (*c && end - c > remaining) {
+		while (*c != 0 && end - c > remaining) {
 			ncplane_putchar(ui->planes.info, '/');
 			ncplane_putchar(ui->planes.info, *(++c));
 			remaining -= 2;
-			while (*(++c) && (*c != '/'))
+			while (*(++c) != 0 && (*c != '/'))
 				;
 		}
 		ncplane_putstr(ui->planes.info, c);
 		if (!dir_isroot(dir)) {
 			ncplane_putchar(ui->planes.info, '/');
 		}
-		if (file) {
+		if (file != NULL) {
 			ncplane_set_fg_default(ui->planes.info);
 			ncplane_putstr(ui->planes.info, file->name);
 		}
@@ -639,11 +638,11 @@ static void ansi_addstr(struct ncplane *n, char *s)
 {
 	char *c;
 
-	while (*s) {
+	while (*s != 0) {
 		if (*s == '\033') {
 			s = ansi_consoom(n, s);
 		} else {
-			for (c = s; *s && *s != '\033'; s++);
+			for (c = s; *s != 0 && *s != '\033'; s++);
 			if (ncplane_putnstr(n, s-c, c) == -1) {
 				// EOL
 				return;
@@ -656,7 +655,7 @@ static void draw_menu(struct ncplane *n, cvector_vector_type(char*) menubuf)
 {
 	size_t i;
 
-	if (!menubuf) {
+	if (menubuf == NULL) {
 		return;
 	}
 
@@ -675,8 +674,8 @@ static void draw_menu(struct ncplane *n, cvector_vector_type(char*) menubuf)
 		const char *s = menubuf[i];
 		int xpos = 0;
 
-		while (*s) {
-			while (*s && *s != '\t') {
+		while (*s != 0) {
+			while (*s != 0 && *s != '\t') {
 				ncplane_putchar(n, *(s++));
 				xpos++;
 			}
@@ -705,7 +704,7 @@ static void menu_resize(ui_t *ui)
 
 static void menu_clear(ui_t *ui)
 {
-	if (!ui->menubuf) {
+	if (ui->menubuf == NULL) {
 		return;
 	}
 	ncplane_erase(ui->planes.menu);
@@ -714,7 +713,7 @@ static void menu_clear(ui_t *ui)
 
 void ui_showmenu(ui_t *ui, cvector_vector_type(char*) vec)
 {
-	if (ui->menubuf) {
+	if (ui->menubuf != NULL) {
 		menu_clear(ui);
 		cvector_ffree(ui->menubuf, free);
 		ui->menubuf = NULL;
@@ -734,9 +733,8 @@ void ui_showmenu(ui_t *ui, cvector_vector_type(char*) vec)
 static unsigned long ext_channel_find(const char *ext)
 {
 	size_t i;
-	if (ext) {
-		const size_t l = cvector_size(cfg.colors.ext_channels);
-		for (i = 0; i < l; i++) {
+	if (ext != NULL) {
+		for (i = 0; i < cvector_size(cfg.colors.ext_channels); i++) {
 			if (strcaseeq(ext, cfg.colors.ext_channels[i].ext)) {
 				return cfg.colors.ext_channels[i].channel;
 			}
@@ -755,15 +753,17 @@ static void print_file(struct ncplane *n, const file_t *file,
 	ncplane_dim_yx(n, NULL, &ncol);
 	ncplane_cursor_yx(n, &y0, NULL);
 
-	bool isdir, islink;
-	if ((isdir = file_isdir(file))) {
+	bool isdir = file_isdir(file);
+	bool islink = file_islink(file);
+
+	if (isdir) {
 		snprintf(size, sizeof(size), "%d", file->filecount);
 	} else {
 		readable_fs(file->stat.st_size, size);
 	}
 
 	int rightmargin = strlen(size) + 2;
-	if ((islink = file_islink(file))) {
+	if (islink) {
 		rightmargin += 3; /* " ->" */
 	}
 	if (rightmargin > ncol * 2 / 3) {
@@ -812,7 +812,7 @@ static void print_file(struct ncplane *n, const file_t *file,
 
 	char *hlsubstr;
 	ncplane_putchar(n, ' ');
-	if (highlight && (hlsubstr = strcasestr(file->name, highlight))) {
+	if (highlight != NULL && (hlsubstr = strcasestr(file->name, highlight)) != NULL) {
 		const int l = hlsubstr - file->name;
 		const unsigned long ch = ncplane_channels(n);
 		ncplane_putnstr(n, l, file->name);
@@ -857,7 +857,7 @@ static void plane_draw_dir(struct ncplane *n, dir_t *dir, char **sel, char **loa
 	ncplane_dim_yx(n, &nrow, NULL);
 	ncplane_cursor_move_yx(n, 0, 0);
 
-	if (dir) {
+	if (dir != NULL) {
 		if (dir->error) {
 			ncplane_putstr_yx(n, 0, 2, dir->error == -1 ? "malloc" : strerror(dir->error));
 		} else if (dir->loading) {
@@ -893,7 +893,7 @@ static preview_t *load_preview(ui_t *ui, file_t *file)
 
 	ncplane_dim_yx(ui->planes.preview, &nrow, &ncol);
 
-	if ((pv = cache_take(&ui->preview.cache, file->path))) {
+	if ((pv = cache_take(&ui->preview.cache, file->path)) != NULL) {
 		/* TODO: vv (on 2021-08-10) */
 		/* might be checking too often here? or is it capped by inotify
 		 * timeout? */
@@ -920,9 +920,9 @@ static void update_file_preview(ui_t *ui)
 	/* struct ncplane *w = wpreview(ui); */
 	// ncplane_erase(w); /* TODO: why (on 2021-10-30) */
 
-	if ((dir = ui->fm->dirs.visible[0]) && dir->ind < dir->len) {
+	if ((dir = ui->fm->dirs.visible[0]) != NULL && dir->ind < dir->len) {
 		file = dir->files[dir->ind];
-		if (ui->preview.file) {
+		if (ui->preview.file != NULL) {
 			if (streq(ui->preview.file->path, file->path)) {
 				if (!ui->preview.file->loading) {
 					if (ui->preview.file->nrow < nrow) {
@@ -942,7 +942,7 @@ static void update_file_preview(ui_t *ui)
 			ui->redraw.preview = 1;
 		}
 	} else {
-		if (ui->preview.file) {
+		if (ui->preview.file != NULL) {
 			cache_insert(&ui->preview.cache, ui->preview.file, ui->preview.file->path);
 			ui->preview.file = NULL;
 			ui->redraw.preview = 1;
@@ -1007,7 +1007,7 @@ static char *ansi_consoom(struct ncplane *w, char *s)
 	int nnums = 0;
 	int nums[6];
 	s++; // first char guaranteed to be \033
-	if (!(*s == '[')) {
+	if (*s != '[') {
 		log_error("there should be a [ here");
 		return s;
 	}
@@ -1072,18 +1072,18 @@ static char *ansi_consoom(struct ncplane *w, char *s)
 
 static void plane_draw_file_preview(struct ncplane *n, preview_t *pv)
 {
-	int i, nrow;
+	int nrow;
+	size_t i;
 
 	ncplane_erase(n);
 
-	if (pv) {
+	if (pv != NULL) {
 		ncplane_dim_yx(n, &nrow, NULL);
 		ncplane_set_styles(n, NCSTYLE_NONE);
 		ncplane_set_fg_default(n);
 		ncplane_set_bg_default(n);
 
-		const int l = cvector_size(pv->lines);
-		for (i = 0; i < l && i < nrow; i++) {
+		for (i = 0; i < cvector_size(pv->lines) && i < (size_t)nrow; i++) {
 			ncplane_cursor_move_yx(n, i, 0);
 			ansi_addstr(n, pv->lines[i]);
 		}
@@ -1092,15 +1092,15 @@ static void plane_draw_file_preview(struct ncplane *n, preview_t *pv)
 
 bool ui_insert_preview(ui_t *ui, preview_t *pv)
 {
-	preview_t *oldpv;
-	const file_t *file;
+	const file_t *file = fm_current_file(ui->fm);
 
-	if ((file = fm_current_file(ui->fm)) && streq(pv->path, file->path)) {
+	if (file != NULL && streq(pv->path, file->path)) {
 		preview_free(ui->preview.file);
 		ui->preview.file = pv;
 		return true;
 	} else {
-		if ((oldpv = cache_take(&ui->preview.cache, pv->path))) {
+		preview_t *oldpv = cache_take(&ui->preview.cache, pv->path);
+		if (oldpv != NULL) {
 			if (pv->mtime >= oldpv->mtime) {
 				preview_free(oldpv);
 				cache_insert(&ui->preview.cache, pv, pv->path);
@@ -1135,11 +1135,9 @@ void ui_search_nohighlight(ui_t *ui)
 
 void ui_search_highlight(ui_t *ui, const char *search, bool forward)
 {
-	if (search) {
+	if (search != NULL) {
 		ui->search.forward = forward;
-		if (ui->search.string) {
-			free(ui->search.string);
-		}
+		free(ui->search.string);
 		ui->search.string = strdup(search);
 	}
 	ui->search.active = true;

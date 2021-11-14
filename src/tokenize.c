@@ -4,18 +4,18 @@ char *tokenize(const char *s, char *buf, int *i, int *j)
 {
 	char c;
 	/* skip whitespace */
-	while ((c = s[*i]) && c == ' ') {
+	while ((c = s[*i]) != 0 && c == ' ') {
 		(*i)++;
 	}
 	if (c == 0) {
 		return NULL;
 	}
 	char *ret = buf + *j;
-	while ((c = s[*i])) {
+	while ((c = s[*i]) != 0) {
 		(*i)++;
 		switch (c) {
 		case '"':
-			while ((c = s[*i]) && c != '"') {
+			while ((c = s[*i]) != 0 && c != '"') {
 				buf[(*j)++] = c;
 				(*i)++;
 			}

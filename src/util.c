@@ -18,7 +18,7 @@ int max(int i, int j) { return i > j ? i : j; }
 
 bool hascaseprefix(const char *restrict string, const char *restrict prefix)
 {
-	while (*prefix) {
+	while (*prefix != 0) {
 		if (tolower(*prefix++) != tolower(*string++)) {
 			return false;
 		}
@@ -29,7 +29,7 @@ bool hascaseprefix(const char *restrict string, const char *restrict prefix)
 
 bool hasprefix(const char *restrict string, const char *restrict prefix)
 {
-	while (*prefix) {
+	while (*prefix != 0) {
 		if (*prefix++ != *string++) {
 			return false;
 		}
@@ -48,7 +48,7 @@ const char *strcaserchr(const char *str, char c)
 {
 	const char *last = NULL;
 	const char *s = str;
-	while (*s)
+	while (*s != 0)
 	{
 		if (*s == c) {
 			last = s;
@@ -80,7 +80,7 @@ int msleep(long msec)
 
 	do {
 		res = nanosleep(&ts, &ts);
-	} while (res && errno == EINTR);
+	} while (res != 0 && errno == EINTR);
 
 	return res;
 }
@@ -101,7 +101,7 @@ unsigned long current_millis(void)
 void mkdir_p(char *path)
 {
 	char *sep = strrchr(path, '/');
-	if (sep && sep != path) {
+	if (sep != NULL && sep != path) {
 		*sep = 0;
 		mkdir_p(path);
 		*sep = '/';

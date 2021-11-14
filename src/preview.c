@@ -36,15 +36,15 @@ preview_t *preview_new_from_file(const char *path, int nrow)
 	FILE *fp;
 	char buf[4096];
 
-	if (cfg.previewer) {
+	if (cfg.previewer != NULL) {
 		const char *args[3] = {cfg.previewer, path, NULL};
 		/* TODO: redirect stderr (on 2021-08-10) */
-		if (!(fp = popen_arr(cfg.previewer, args, false))) {
+		if ((fp = popen_arr(cfg.previewer, args, false)) == NULL) {
 			log_error("preview: %s", strerror(errno));
 			return pv;
 		}
 
-		for (int i = 0; fgets(buf, sizeof(buf), fp) && i < nrow; i++) {
+		for (int i = 0; fgets(buf, sizeof(buf), fp) != NULL && i < nrow; i++) {
 			cvector_push_back(pv->lines, strdup(buf));
 		}
 
@@ -63,7 +63,7 @@ preview_t *preview_new_from_file(const char *path, int nrow)
 
 void preview_free(preview_t *pv)
 {
-	if (pv) {
+	if (pv != NULL) {
 		cvector_ffree(pv->lines, free);
 		free(pv->path);
 		free(pv);

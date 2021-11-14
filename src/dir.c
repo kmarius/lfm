@@ -26,7 +26,7 @@ static bool file_load(file_t *file, const char *basedir, const char *name);
 
 file_t *dir_current_file(const dir_t *dir)
 {
-	if (!dir || dir->ind >= dir->len) {
+	if (dir == NULL || dir->ind >= dir->len) {
 		return NULL;
 	}
 	return dir->files[dir->ind];
@@ -71,7 +71,7 @@ static bool file_hidden(file_t *file) { return file->name[0] == '.'; }
 
 static void file_deinit(file_t *file)
 {
-	if (file) {
+	if (file != NULL) {
 		free(file->path);
 		free(file->link_target);
 	}
@@ -273,11 +273,11 @@ static int file_count(const char *path)
 	DIR *dirp;
 	struct dirent *dp;
 
-	if (!(dirp = opendir(path))) {
+	if ((dirp = opendir(path)) == NULL) {
 		return 0;
 	}
 
-	for (ct = 0; (dp = readdir(dirp)); ct++) ;
+	for (ct = 0; (dp = readdir(dirp)) != NULL; ct++) ;
 	closedir(dirp);
 	return ct - 2;
 }
@@ -338,13 +338,13 @@ dir_t *dir_load(const char *path, bool load_filecount)
 	file_t f;
 
 	DIR *dirp;
-	if (!(dirp = opendir(path))) {
+	if ((dirp = opendir(path)) == NULL) {
 		log_error("opendir: %s", strerror(errno));
 		dir->error = errno;
 		return dir;
 	}
 
-	for (i = 0; (dp = readdir(dirp));) {
+	for (i = 0; (dp = readdir(dirp)) != NULL;) {
 		if (dp->d_name[0] == '.' &&
 				(dp->d_name[1] == 0 ||
 				 (dp->d_name[1] == '.' && dp->d_name[2] == 0))) {
@@ -363,7 +363,7 @@ dir_t *dir_load(const char *path, bool load_filecount)
 	dir->sortedfiles = malloc(sizeof(file_t*) * dir->alllen);
 	dir->files = malloc(sizeof(file_t*) * dir->alllen);
 
-	if (!dir->files || !dir->sortedfiles) {
+	if (dir->files == NULL || !dir->sortedfiles) {
 		log_error("load_dir fucked up, malloc failed");
 		dir->error = -1;
 		return dir;
@@ -393,10 +393,10 @@ void dir_cursor_move(dir_t *dir, int ct, int height, int scrolloff)
 void dir_cursor_move_to(dir_t *dir, const char *name, int height, int scrolloff)
 {
 	int i;
-	if (!name) {
+	if (name == NULL) {
 		return;
 	}
-	if (!dir->files) {
+	if (dir->files == NULL) {
 		free(dir->sel);
 		dir->sel = strdup(name);
 		return;
@@ -412,7 +412,7 @@ void dir_cursor_move_to(dir_t *dir, const char *name, int height, int scrolloff)
 
 void dir_update_with(dir_t *dir, dir_t *update, int height, int scrolloff)
 {
-	if (!dir->sel && dir->ind < dir->len) {
+	if (dir->sel == NULL && dir->ind < dir->len) {
 		dir->sel = strdup(dir->files[dir->ind]->name);
 	}
 	for (int i = 0; i < dir->alllen; i++) {
@@ -436,7 +436,7 @@ void dir_update_with(dir_t *dir, dir_t *update, int height, int scrolloff)
 	dir->sorted = false;
 	dir_sort(dir);
 
-	if (dir->sel) {
+	if (dir->sel != NULL) {
 		dir_cursor_move_to(dir, dir->sel, height, scrolloff);
 		free(dir->sel);
 		dir->sel = NULL;
@@ -445,7 +445,7 @@ void dir_update_with(dir_t *dir, dir_t *update, int height, int scrolloff)
 
 void dir_free(dir_t *dir)
 {
-	if (dir) {
+	if (dir != NULL) {
 		for (int i = 0; i < dir->alllen; i++) {
 			file_deinit(dir->allfiles+i);
 		}

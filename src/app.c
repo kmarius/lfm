@@ -205,7 +205,7 @@ static void inotify_cb(EV_P_ ev_io *w, int revents)
 			const unsigned long now = current_millis();
 			if (i >= l) {
 				dir_t *dir = notify_get_dir(event->wd);
-				if (dir) {
+				if (dir != NULL) {
 					async_dir_load(dir);
 					struct tup_t t = { .next = now, .wd = event->wd, };
 					cvector_push_back(times, t);
@@ -234,7 +234,7 @@ static void inotify_cb(EV_P_ ev_io *w, int revents)
 				 * scheduled when events come in in quick
 				 * succession */
 				dir_t *dir = notify_get_dir(event->wd);
-				if (dir) {
+				if (dir != NULL) {
 					async_dir_load_delayed( dir, next - now + NOTIFY_DELAY);
 					times[i].next = next + NOTIFY_DELAY;
 				} else {
@@ -251,7 +251,7 @@ static void prepare_cb(struct ev_loop *loop, ev_prepare *w, int revents)
 {
 	(void) revents;
 	app_t *app = (app_t*) w->data;
-	if (cfg.commands) {
+	if (cfg.commands != NULL) {
 		for (size_t i = 0; i < cvector_size(cfg.commands); i++) {
 			lua_exec_expr(app->L, cfg.commands[i]);
 		}
@@ -405,7 +405,7 @@ int app_execute(app_t *app, const char *prog, const char **args, bool out, bool 
 
 void print(const char *format, ...)
 {
-	if (!_app) {
+	if (_app == NULL) {
 		return;
 	}
 	va_list args;
@@ -416,7 +416,7 @@ void print(const char *format, ...)
 
 void error(const char *format, ...)
 {
-	if (! _app) {
+	if (_app == NULL) {
 		return;
 	}
 	va_list args;

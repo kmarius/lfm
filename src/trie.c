@@ -23,10 +23,10 @@ trie_node_t *trie_new()
 
 trie_node_t *trie_find_child(const trie_node_t* trie, long key)
 {
-	if (!trie) {
+	if (trie == NULL) {
 		return NULL;
 	}
-	for (trie_node_t *n = trie->child; n; n = n->next) {
+	for (trie_node_t *n = trie->child; n != NULL; n = n->next) {
 		if (n->key == key) {
 			return n;
 		}
@@ -37,12 +37,12 @@ trie_node_t *trie_find_child(const trie_node_t* trie, long key)
 trie_node_t *trie_insert(trie_node_t* trie, const long *trie_keys, const char *keys, const char *desc)
 {
 	trie_node_t *n;
-	if (!trie) {
+	if (trie == NULL) {
 		return NULL;
 	}
-	for (const long *c = trie_keys; *c; c++) {
+	for (const long *c = trie_keys; *c != 0; c++) {
 		n = trie_find_child(trie, *c);
-		if (!n) {
+		if (n == NULL) {
 			n = trie_node_new(*c, trie->child);
 			trie->child = n;
 		}
@@ -57,7 +57,7 @@ trie_node_t *trie_insert(trie_node_t* trie, const long *trie_keys, const char *k
 
 void trie_collect_leaves(const trie_node_t *trie, cvector_vector_type(char*) *vec)
 {
-	for (trie_node_t *n = trie->child; n; n = n->next) {
+	for (trie_node_t *n = trie->child; n != NULL; n = n->next) {
 		if (n->keys) {
 			char *s;
 			asprintf(&s, "%s\t%s", n->keys, n->desc ? n->desc : "");
@@ -70,10 +70,10 @@ void trie_collect_leaves(const trie_node_t *trie, cvector_vector_type(char*) *ve
 
 void trie_destroy(trie_node_t *trie)
 {
-	if (!trie) {
+	if (trie == NULL) {
 		return;
 	}
-	for (trie_node_t* n = trie->child; n; n = n->next) {
+	for (trie_node_t* n = trie->child; n != NULL; n = n->next) {
 		trie_destroy(n);
 	}
 	free(trie->desc);

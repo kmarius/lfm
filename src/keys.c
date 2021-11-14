@@ -170,7 +170,7 @@ long *key_names_to_longs(const char *keys, long *buf)
 
 	ind = 0;
 	pos = keys;
-	while (*pos) {
+	while (*pos != 0) {
 		if (*pos == '<') {
 			pos++;
 			if (hascaseprefix(pos, "a-")) {
