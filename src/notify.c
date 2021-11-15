@@ -53,6 +53,8 @@ void notify_add_watcher(dir_t *dir)
 	}
 	const unsigned long t1 = current_millis();
 
+	/* TODO: inotify_add_watch can take over 200ms for example on samba shares.
+	 * the only way to work around it is to add notify watches asnc. (on 2021-11-15) */
 	if (t1-t0 > 10) {
 		log_warn("inotify_add_watch(fd, \"%s\", ...) took %ums", dir->path, t1 - t0);
 	}
