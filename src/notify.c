@@ -7,6 +7,7 @@
 #include "cvector.h"
 #include "dir.h"
 #include "log.h"
+#include "util.h"
 
 #define NOTIFY_EVENTS (IN_MODIFY | IN_CREATE | IN_DELETE | IN_MOVED_FROM | IN_MOVED_TO )
 
@@ -45,9 +46,15 @@ void notify_add_watcher(dir_t *dir)
 		}
 	}
 
+	const unsigned long t0 = current_millis();
 	if ((wd = inotify_add_watch(inotify_fd, dir->path, NOTIFY_EVENTS)) == -1) {
 		log_error("inotify: %s", strerror(errno));
 		return;
+	}
+	const unsigned long t1 = current_millis();
+
+	if (t1-t0 > 10) {
+		log_warn("inotify_add_watch(fd, \"%s\", ...) took %ums", dir->path, t1 - t0);
 	}
 
 	tup_t t = {dir, wd};

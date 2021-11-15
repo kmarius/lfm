@@ -322,6 +322,7 @@ void update_preview(fm_t *fm)
 			}
 		}
 		fm->dirs.preview = load_dir(fm, file->path);
+		// sometimes very slow on smb (> 200ms)
 		notify_add_watcher(fm->dirs.preview);
 	} else {
 		// file preview or empty
