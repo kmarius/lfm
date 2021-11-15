@@ -59,12 +59,12 @@ void async_dir_check(dir_t *dir);
  * Reloads `dir` from disk after `delay` milliseconds. Generates a result of
  * type `RES_DIR_UPDATE`.
  */
-void async_dir_load_delayed(dir_t *dir, int delay /* millis */);
+void async_dir_load_delayed(dir_t *dir, bool dircounts, int delay /* millis */);
 
 /*
  * Reloads `dir` from disk. Generates a result of type `RES_DIR_UPDATE`.
  */
-#define async_dir_load(dir) async_dir_load_delayed(dir, -1)
+#define async_dir_load(dir, dircounts) async_dir_load_delayed(dir, dircounts, -1)
 
 /*
  * Check the modification time of `pv` on disk. Generates a result of type

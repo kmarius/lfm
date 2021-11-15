@@ -64,7 +64,7 @@ static void async_result_cb(EV_P_ ev_async *w, int revents)
 			case RES_DIR_CHECK:
 				/* TODO: maybe on slow devices it is better to compare mtimes here? 2021-11-12 */
 				/* currently we could just schedule reload from the other thread */
-				async_dir_load(result.dir);
+				async_dir_load(result.dir, true);
 				break;
 			case RES_PREVIEW:
 				app->ui.redraw.preview |= ui_insert_preview(&app->ui, result.preview);
@@ -206,7 +206,7 @@ static void inotify_cb(EV_P_ ev_io *w, int revents)
 			if (i >= l) {
 				dir_t *dir = notify_get_dir(event->wd);
 				if (dir != NULL) {
-					async_dir_load(dir);
+					async_dir_load(dir, true);
 					struct tup_t t = { .next = now, .wd = event->wd, };
 					cvector_push_back(times, t);
 				} else {
@@ -235,7 +235,7 @@ static void inotify_cb(EV_P_ ev_io *w, int revents)
 				 * succession */
 				dir_t *dir = notify_get_dir(event->wd);
 				if (dir != NULL) {
-					async_dir_load_delayed( dir, next - now + NOTIFY_DELAY);
+					async_dir_load_delayed(dir, true, next - now + NOTIFY_DELAY);
 					times[i].next = next + NOTIFY_DELAY;
 				} else {
 					log_warn("notify event for unknown dir");

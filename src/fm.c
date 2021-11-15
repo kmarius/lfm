@@ -219,7 +219,7 @@ static dir_t *load_dir(fm_t *fm, const char *path)
 	} else {
 		dir = dir_new_loading(path);
 		dir->hidden = cfg.hidden;
-		async_dir_load(dir);
+		async_dir_load(dir, false);
 	}
 	return dir;
 }
@@ -258,11 +258,11 @@ void fm_check_dirs(const fm_t *fm)
 		}
 		// stat is blocking on slow devices (nfs, sshfs, smb)
 		if (!dir_check(fm->dirs.visible[i])) {
-			async_dir_load(fm->dirs.visible[i]);
+			async_dir_load(fm->dirs.visible[i], true);
 		}
 	}
 	if (fm->dirs.preview != NULL && !dir_check(fm->dirs.preview)) {
-		async_dir_load(fm->dirs.preview);
+		async_dir_load(fm->dirs.preview, true);
 	}
 }
 
