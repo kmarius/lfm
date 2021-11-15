@@ -1,6 +1,7 @@
 #ifndef PREVIEW_H
 #define PREVIEW_H
 
+#include <stdbool.h>
 #include <time.h>
 
 #include "cvector.h"
