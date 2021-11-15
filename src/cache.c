@@ -1,8 +1,9 @@
+#include <stdbool.h>
 #include <stdlib.h>
 
 #include "cache.h"
-#include "util.h"
 #include "time.h"
+#include "util.h"
 
 #define T cache_t
 #define PARENT(i) ((i)-1) / 2
@@ -94,6 +95,17 @@ void cache_insert(T *t, void *e, const char *key)
 		t->size++;
 		upheap(t->nodes, t->size - 1);
 	}
+}
+
+bool cache_contains(T *t, const void *e)
+{
+	int i;
+	for (i = 0; i < t->size; i++) {
+		if (t->nodes[i].data == e) {
+			return true;
+		}
+	}
+	return false;
 }
 
 void *cache_find(T *t, const void *key)

@@ -243,7 +243,14 @@ bool fm_update_dir(fm_t *fm, dir_t *dir, dir_t *update)
 		}
 	}
 
-	dir_free(update);
+	if (cache_contains(&fm->dirs.cache, dir)) {
+		dir_update_with(dir, update, fm->height, cfg.scrolloff);
+	} else {
+		// most likely the cache was dropped. Or the update took so long that
+		// dir was purged from the cache.
+		dir_free(update);
+	}
+
 	return false;
 }
 
