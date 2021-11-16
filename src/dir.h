@@ -102,7 +102,7 @@ void dir_sort(dir_t *dir);
 const char *dir_parent(const dir_t *dir);
 
 /*
- * Applies the filter string `filter` to `dir`.
+ * Applies the filter string `filter` to `dir`. `NULL` or "" clears the filter.
  */
 void dir_filter(dir_t *dir, const char *filter);
 

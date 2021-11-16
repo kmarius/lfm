@@ -18,7 +18,7 @@
 static bool file_filtered(file_t *file, const char *filter);
 static void apply_filter(dir_t *dir);
 static void file_deinit(file_t *file);
-static bool file_hidden(file_t *file);
+static inline bool file_hidden(file_t *file);
 static inline void swap(file_t **a, file_t **b);
 static void shuffle(void *arr, size_t n, size_t size);
 static int file_count(const char *path);
@@ -49,9 +49,9 @@ static bool file_filtered(file_t *file, const char *filter)
 
 static void apply_filter(dir_t *dir)
 {
-	int i, j;
+	int i, j = 0;
 	if (dir->filter[0] != 0) {
-		for (i = 0, j = 0; i < dir->sortedlen; i++) {
+		for (i = 0; i < dir->sortedlen; i++) {
 			if (file_filtered(dir->sortedfiles[i], dir->filter)) {
 				dir->files[j++] = dir->sortedfiles[i];
 			}
@@ -67,14 +67,17 @@ static void apply_filter(dir_t *dir)
 	dir->ind = max(min(dir->ind, dir->len - 1), 0);
 }
 
-static bool file_hidden(file_t *file) { return file->name[0] == '.'; }
+static inline bool file_hidden(file_t *file) {
+	return file->name[0] == '.';
+}
 
 static void file_deinit(file_t *file)
 {
-	if (file != NULL) {
-		free(file->path);
-		free(file->link_target);
+	if (file == NULL) {
+		return;
 	}
+	free(file->path);
+	free(file->link_target);
 }
 
 static inline void swap(file_t **a, file_t **b)
@@ -91,20 +94,20 @@ static inline void swap(file_t **a, file_t **b)
  * number generator. */
 static void shuffle(void *arr, size_t n, size_t size)
 {
-    char tmp[size];
-    size_t stride = size * sizeof(char);
+	char tmp[size];
+	size_t stride = size * sizeof(char);
 
-    if (n > 1) {
-        size_t i;
-        for (i = 0; i < n - 1; ++i) {
-            size_t rnd = (size_t) rand();
-            size_t j = i + rnd / (RAND_MAX / (n - i) + 1);
+	if (n > 1) {
+		size_t i;
+		for (i = 0; i < n - 1; ++i) {
+			size_t rnd = (size_t) rand();
+			size_t j = i + rnd / (RAND_MAX / (n - i) + 1);
 
-            memcpy(tmp, arr + j * stride, size);
-            memcpy(arr + j * stride, arr + i * stride, size);
-            memcpy(arr + i * stride, tmp, size);
-        }
-    }
+			memcpy(tmp, arr + j * stride, size);
+			memcpy(arr + j * stride, arr + i * stride, size);
+			memcpy(arr + i * stride, tmp, size);
+		}
+	}
 }
 
 /* sort allfiles and copy non-hidden ones to sortedfiles */
@@ -204,28 +207,26 @@ void dir_sort(dir_t *dir)
 
 void dir_filter(dir_t *dir, const char *filter)
 {
+	if (filter == NULL) {
+		filter = "";
+	}
 	strncpy(dir->filter, filter, sizeof(dir->filter));
 	dir->filter[sizeof(dir->filter)-1] = 0;
 	apply_filter(dir);
 }
 
-/* TODO: make isdir a field? (on 2021-08-23) */
-/* TODO: returns errors on broken symlinks (on 2021-08-23) */
 bool file_isdir(const file_t *file)
 {
-	/* int mode = file->link_target && !file->broken ? file->stat.st_mode : file->lstat.st_mode; */
 	return S_ISDIR(file->stat.st_mode);
 }
 
 bool dir_check(const dir_t *dir)
 {
 	struct stat statbuf;
-	const unsigned long t0 = current_micros();
 	if (stat(dir->path, &statbuf) == -1) {
-		log_error("%s", strerror(errno));
+		log_error("stat: %s", strerror(errno));
 		return false;
 	}
-	log_info("stat call for %s took %.2fms", dir->path, (current_micros() - t0)/1000.0);
 	return statbuf.st_mtime <= dir->loadtime;
 }
 
@@ -270,10 +271,10 @@ dir_t *new_dir(const char *path)
 static int file_count(const char *path)
 {
 	int ct;
-	DIR *dirp;
 	struct dirent *dp;
 
-	if ((dirp = opendir(path)) == NULL) {
+	DIR *dirp = opendir(path);
+	if (dirp == NULL) {
 		return 0;
 	}
 
@@ -313,17 +314,18 @@ static bool file_load(file_t *file, const char *basedir, const char *name)
 
 	if (S_ISLNK(file->lstat.st_mode)) {
 		if (stat(file->path, &file->stat) == -1) {
+			log_error("stat: %s", strerror(errno));
 			file->broken = true;
 			file->stat = file->lstat;
 		}
 		if (readlink(file->path, buf, sizeof(buf)) == -1) {
 			log_error("readlink: %s", strerror(errno));
 			file->broken = true;
-			/* TODO: mark broken symlink? (on 2021-08-02) */
 		} else {
 			file->link_target = strdup(buf);
 		}
 	} else {
+		// for non-symlinks: stat == lstat
 		file->stat = file->lstat;
 	}
 
@@ -334,11 +336,11 @@ dir_t *dir_load(const char *path, bool load_filecount)
 {
 	int i;
 	struct dirent *dp;
-	dir_t *dir = new_dir(path);
 	file_t f;
+	dir_t *dir = new_dir(path);
 
-	DIR *dirp;
-	if ((dirp = opendir(path)) == NULL) {
+	DIR *dirp = opendir(path);
+	if (dirp == NULL) {
 		log_error("opendir: %s", strerror(errno));
 		dir->error = errno;
 		return dir;
@@ -363,8 +365,7 @@ dir_t *dir_load(const char *path, bool load_filecount)
 	dir->sortedfiles = malloc(sizeof(file_t*) * dir->alllen);
 	dir->files = malloc(sizeof(file_t*) * dir->alllen);
 
-	if (dir->files == NULL || !dir->sortedfiles) {
-		log_error("load_dir fucked up, malloc failed");
+	if (dir->files == NULL || dir->sortedfiles == NULL) {
 		dir->error = -1;
 		return dir;
 	}
@@ -445,15 +446,16 @@ void dir_update_with(dir_t *dir, dir_t *update, int height, int scrolloff)
 
 void dir_free(dir_t *dir)
 {
-	if (dir != NULL) {
-		for (int i = 0; i < dir->alllen; i++) {
-			file_deinit(dir->allfiles+i);
-		}
-		cvector_free(dir->allfiles);
-		free(dir->sortedfiles);
-		free(dir->files);
-		free(dir->sel);
-		free(dir->path);
-		free(dir);
+	if (dir == NULL) {
+		return;
 	}
+	for (int i = 0; i < dir->alllen; i++) {
+		file_deinit(dir->allfiles+i);
+	}
+	cvector_free(dir->allfiles);
+	free(dir->sortedfiles);
+	free(dir->files);
+	free(dir->sel);
+	free(dir->path);
+	free(dir);
 }
