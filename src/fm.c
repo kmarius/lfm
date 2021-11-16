@@ -18,6 +18,9 @@
 #include "notify.h"
 #include "util.h"
 
+#define is_absolute(p) (*(p) == '/')
+#define is_relative(p) !is_absolute(p)
+
 static dir_t *load_dir(fm_t *fm, const char *path);
 static void update_preview(fm_t *fm);
 static void update_watchers(fm_t *fm);
@@ -130,7 +133,7 @@ bool fm_chdir(fm_t *fm, const char *path, bool save)
 	fm_selection_visual_stop(fm);
 
 	char fullpath[PATH_MAX];
-	if (path[0] != '/') {
+	if (is_relative(path)) {
 		realpath(path, fullpath);
 		path = fullpath;
 	}
@@ -204,7 +207,7 @@ void fm_hidden_set(fm_t *fm, bool hidden)
 static dir_t *load_dir(fm_t *fm, const char *path)
 {
 	char fullpath[PATH_MAX];
-	if (path[0] != '/') {
+	if (is_relative(path)) {
 		realpath(path, fullpath);
 		path = fullpath;
 	}
