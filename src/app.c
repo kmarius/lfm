@@ -159,7 +159,7 @@ static void read_fifo(app_t *app)
 		/* TODO: allocate string or use readline or something (on 2021-08-17) */
 		while ((nbytes = read(fifo_fd, buf, sizeof(buf))) > 0) {
 			buf[nbytes-1] = 0;
-			lua_exec_expr(app->L, buf);
+			lua_eval(app->L, buf);
 		}
 		ev_idle_start(app->loop, &redraw_watcher);
 	}
@@ -253,7 +253,7 @@ static void prepare_cb(struct ev_loop *loop, ev_prepare *w, int revents)
 	app_t *app = (app_t*) w->data;
 	if (cfg.commands != NULL) {
 		for (size_t i = 0; i < cvector_size(cfg.commands); i++) {
-			lua_exec_expr(app->L, cfg.commands[i]);
+			lua_eval(app->L, cfg.commands[i]);
 		}
 		/* commands are from argv, don't free them */
 		cvector_free(cfg.commands);

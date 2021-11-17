@@ -27,7 +27,7 @@ void lua_handle_key(lua_State *L, long u);
  * Execute an expr, which is either a chunk of lua code or a registered command
  * (with arguments) as if typed in the command line.
  */
-void lua_exec_expr(lua_State *L, const char *cmd);
+void lua_eval(lua_State *L, const char *cmd);
 
 /*
  * Run hooks. Hook need to be registered in core.lua.

@@ -1336,15 +1336,15 @@ void lua_run_hook(lua_State *L, const char *hook)
 	}
 }
 
-void lua_exec_expr(lua_State *L, const char *cmd)
+void lua_eval(lua_State *L, const char *cmd)
 {
-	log_debug("exec_expr %s", cmd);
+	log_debug("eval %s", cmd);
 	lua_getglobal(L, "lfm");
-	lua_pushliteral(L, "exec_expr");
+	lua_pushliteral(L, "eval");
 	lua_gettable(L, -2);
 	lua_pushstring(L, cmd);
 	if (lua_pcall(L, 1, 0, 0)) {
-		ui_error(ui, "exec_expr: %s", lua_tostring(L, -1));
+		ui_error(ui, "eval: %s", lua_tostring(L, -1));
 	}
 }
 

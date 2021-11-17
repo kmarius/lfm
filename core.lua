@@ -256,12 +256,12 @@ local mode_filter = {
 ---is assumed to be lua code and is executed. Example:
 ---```
 ---
---- lfm.exec_expr("cd /home") -- expression is not lua as "cd" is a registered command
---- lfm.exec_expr('print(2+2)') -- executed as lua code
+--- lfm.eval("cd /home") -- expression is not lua as "cd" is a registered command
+--- lfm.eval('print(2+2)') -- executed as lua code
 ---
 ---```
 ---@param line string
-function lfm.exec_expr(line)
+function lfm.eval(line)
 	local cmd, args = lfm.fn.tokenize(line)
 	if not cmd then
 		return
@@ -287,7 +287,7 @@ end
 
 local mode_cmd = {
 	prefix = ":",
-	enter = function(line) ui.history_append(line) lfm.exec_expr(line) end,
+	enter = function(line) ui.history_append(line) lfm.eval(line) end,
 	esc = nop,
 	change = function() compl.reset() end,
 }
@@ -308,7 +308,7 @@ local mode_search_back = {
 
 local mode_find = {
 	prefix = "find: ",
-	enter = function() lfm.exec_expr("open") end,
+	enter = function() lfm.eval("open") end,
 	esc = nop,
 	change = function()
 		if lfm.find(cmd.getline()) then
