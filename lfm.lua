@@ -43,6 +43,10 @@ function lfm.search_prev(include) end
 ---@param msg string
 function lfm.error(msg) end
 
+---Show a message in the UI.
+---@param msg string
+function lfm.echo(msg) end
+
 ---@param keys string
 function lfm.handle_key(keys) end
 
@@ -281,6 +285,12 @@ function lfm.cmd.delete_word() end
 
 ---Delete to the beginning of the line.
 function lfm.cmd.delete_line_left() end
+
+---Move cursor one word left.
+function lfm.cmd.word_left() end
+
+---Move cursor one word right.
+function lfm.cmd.word_right() end
 
 ---Move cursor to the end.
 function lfm.cmd._end() end

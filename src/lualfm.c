@@ -349,7 +349,6 @@ static const struct luaL_Reg lfm_lib[] = {
 	{"search_back", l_search_backwards},
 	{"search_next", l_search_next},
 	{"search_prev", l_search_prev},
-	{"echo", l_echo},
 	{"crash", l_crash},
 	{"echo", l_echo},
 	{"error", l_error},
