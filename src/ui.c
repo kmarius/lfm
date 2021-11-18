@@ -23,7 +23,17 @@
 #include "ui.h"
 #include "util.h"
 
-#define PROFILE_DRAWING 0
+#define PROFILE_ENABLE 0
+
+#if PROFILE_ENABLE
+#define PROFILE_BEGIN(__t0) \
+	const unsigned long (__t0) = current_micros();
+#define PROFILE_END(__t0) \
+	log_trace("%s finished after %.2fms", __FUNCTION__, (current_micros() - (__t0))/1000.0);
+#else
+#define PROFILE_BEGIN(__t0)
+#define PROFILE_END(__t0)
+#endif
 
 static void draw_dirs(ui_t *ui);
 static void plane_draw_dir(struct ncplane *n, dir_t *dir, char **sel,
@@ -180,9 +190,7 @@ void ui_recol(ui_t *ui)
 
 void ui_draw(ui_t *ui)
 {
-#if PROFILE_DRAWING
-	const unsigned long t0 = current_micros();
-#endif
+	PROFILE_BEGIN(t0);
 	if (ui->redraw.fm) {
 		draw_dirs(ui);
 	}
@@ -200,13 +208,8 @@ void ui_draw(ui_t *ui)
 	}
 	if (ui->redraw.fm | ui->redraw.cmdline | ui->redraw.info
 			| ui->redraw.menu | ui->redraw.preview) {
-#if PROFILE_DRAWING
-		log_trace("drawing complete after %.2fms", (current_micros() - t0)/1000.0);
-#endif
 		notcurses_render(nc);
-#if PROFILE_DRAWING
-		log_trace("render complete after %.2fms", (current_micros() - t0)/1000.0);
-#endif
+		PROFILE_END(t0);
 	}
 	ui->redraw.fm = 0;
 	ui->redraw.info = 0;
@@ -238,9 +241,7 @@ void ui_clear(ui_t *ui)
 
 static void draw_dirs(ui_t *ui)
 {
-#if PROFILE_DRAWING
-	const unsigned long t0 = current_micros();
-#endif
+	PROFILE_BEGIN(t0);
 	int i;
 	const int l = ui->fm->dirs.len;
 	for (i = 0; i < l; i++) {
@@ -251,16 +252,12 @@ static void draw_dirs(ui_t *ui)
 				ui->fm->load.mode,
 				i == 0 && ui->search.active ? ui->search.string : NULL);
 	}
-#if PROFILE_DRAWING
-	log_trace("draw_dirs complete after %.2fms", (current_micros() - t0)/1000.0);
-#endif
+	PROFILE_END(t0);
 }
 
 static void draw_preview(ui_t *ui)
 {
-#if PROFILE_DRAWING
-	const unsigned long t0 = current_micros();
-#endif
+	PROFILE_BEGIN(t0);
 	if (cfg.preview && ui->ndirs > 1) {
 		if (ui->fm->dirs.preview != NULL) {
 			plane_draw_dir(ui->planes.preview, ui->fm->dirs.preview, ui->fm->selection.files,
@@ -270,9 +267,7 @@ static void draw_preview(ui_t *ui)
 			plane_draw_file_preview(ui->planes.preview, ui->preview.file);
 		}
 	}
-#if PROFILE_DRAWING
-	log_trace("draw_preview complete after %.2fms", (current_micros() - t0)/1000.0);
-#endif
+	PROFILE_END(t0);
 }
 
 void ui_echom(ui_t *ui, const char *format, ...)
@@ -475,9 +470,7 @@ static int int_sz(int n)
 
 void draw_cmdline(ui_t *ui)
 {
-#if PROFILE_DRAWING
-	const unsigned long t0 = current_micros();
-#endif
+	PROFILE_BEGIN(t0);
 
 	char nums[16];
 	char size[32];
@@ -551,9 +544,7 @@ void draw_cmdline(ui_t *ui)
 		const int cursor_pos = cmdline_print(&ui->cmdline, ui->planes.cmdline);
 		notcurses_cursor_enable(nc, ui->nrow - 1, cursor_pos);
 	}
-#if PROFILE_DRAWING
-	log_trace("draw_cmdline complete after %.2fms", (current_micros() - t0)/1000.0);
-#endif
+	PROFILE_END(t0);
 }
 /* }}} */
 
@@ -561,9 +552,8 @@ void draw_cmdline(ui_t *ui)
 
 static void draw_info(ui_t *ui)
 {
-#if PROFILE_DRAWING
-	const unsigned long t0 = current_micros();
-#endif
+	PROFILE_BEGIN(t0);
+
 	// arbitrary
 	static char user[32] = {0};
 	static char host[HOST_NAME_MAX + 1] = {0};
@@ -625,9 +615,7 @@ static void draw_info(ui_t *ui)
 			ncplane_putstr(ui->planes.info, file->name);
 		}
 	}
-#if PROFILE_DRAWING
-	log_trace("draw_info complete after %.2fms", (current_micros() - t0)/1000.0);
-#endif
+	PROFILE_END(t0);
 }
 
 /* }}} */
@@ -659,9 +647,7 @@ static void draw_menu(struct ncplane *n, cvector_vector_type(char*) menubuf)
 		return;
 	}
 
-#if PROFILE_DRAWING
-	const unsigned long t0 = current_micros();
-#endif
+	PROFILE_BEGIN(t0);
 
 	ncplane_erase(n);
 
@@ -689,9 +675,7 @@ static void draw_menu(struct ncplane *n, cvector_vector_type(char*) menubuf)
 			}
 		}
 	}
-#if PROFILE_DRAWING
-	log_trace("draw_menu complete after %.2fms", (current_micros() - t0)/1000.0);
-#endif
+	PROFILE_END(t0);
 }
 
 static void menu_resize(ui_t *ui)
