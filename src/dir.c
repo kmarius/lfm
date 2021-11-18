@@ -429,6 +429,7 @@ void dir_update_with(dir_t *dir, dir_t *update, int height, int scrolloff)
 	dir->alllen = update->alllen;
 	dir->loadtime = update->loadtime;
 	dir->loading = update->loading;
+	dir->error = update->error;
 
 	free(update->sel);
 	free(update->path);

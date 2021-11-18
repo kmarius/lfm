@@ -174,6 +174,8 @@ struct tup_t {
  * at some point */
 static cvector_vector_type(struct tup_t) times = NULL;
 
+/* TODO: we currently don't notice if the current directory is delete while
+ * empty (on 2021-11-18) */
 static void inotify_cb(EV_P_ ev_io *w, int revents)
 {
 	(void)revents;

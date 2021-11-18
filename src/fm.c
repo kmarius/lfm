@@ -581,6 +581,8 @@ file_t *fm_open(fm_t *fm)
 	return NULL;
 }
 
+/* TODO: allow updir into directories that don't exist so we can move out of
+ * deleted directories (on 2021-11-18) */
 void fm_updir(fm_t *fm)
 {
 	if (dir_isroot(fm->dirs.visible[0])) {
