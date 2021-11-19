@@ -1,9 +1,9 @@
 #include <notcurses/notcurses.h>
 #include <wchar.h>
-#include <wctype.h> /* towlower towlupper */
+#include <wctype.h> /* towlower, towlupper */
 
 #include "keys.h"
-#include "util.h"
+#include "util.h" /* hascaseprefix */
 
 #define MAX_KEY_NAME_LEN 2 + 9 + 2 + 2 + 2 /* <> + backspace + c- + a- + s- */
 
@@ -15,7 +15,6 @@ static struct {
 	{'<', "lt"},
 	{9, "Tab"},
 	{27, "Esc"},
-	/* {27, "Escape"}, */ // doesn't work because we are matching on prefixes and i wan't <Esc> to be the key
 	{NCKEY_INVALID, "invalid"},
 	{NCKEY_SIGNAL , "signal"},
 	{NCKEY_UP, "Up"},
@@ -40,10 +39,19 @@ static struct {
 	{NCKEY_F07, "F7"},
 	{NCKEY_F08, "F8"},
 	{NCKEY_F09, "F9"},
+	{NCKEY_F01, "F01"},
+	{NCKEY_F02, "F02"},
+	{NCKEY_F03, "F03"},
+	{NCKEY_F04, "F04"},
+	{NCKEY_F05, "F05"},
+	{NCKEY_F06, "F06"},
+	{NCKEY_F07, "F07"},
+	{NCKEY_F08, "F08"},
+	{NCKEY_F09, "F09"},
 	{NCKEY_F10, "F10"},
 	{NCKEY_F11, "F11"},
 	{NCKEY_F12, "F12"},
-	{NCKEY_F13, "F13"}, // notcurses seems to map shift/ctrl/alt+f keys to higher f keys
+	{NCKEY_F13, "F13"}, // notcurses seems to map shift/ctrl/alt+f keys to higher f keys (apparently not in tmux)
 	{NCKEY_F14, "F14"},
 	{NCKEY_F15, "F15"},
 	{NCKEY_F16, "F16"},
@@ -92,16 +100,16 @@ static struct {
 	{NCKEY_F59, "F59"},
 	{NCKEY_F60, "F60"},
 	{NCKEY_ENTER, "Enter"},
-	{NCKEY_CLS   , "Clear"}, // ctrl-l / formfeed?
-	{NCKEY_DLEFT , "DownLeft"},
+	{NCKEY_CLS, "Clear"}, // ctrl-l / formfeed?
+	{NCKEY_DLEFT, "DownLeft"},
 	{NCKEY_DRIGHT, "DownRight"},
-	{NCKEY_ULEFT , "UpLeft"},
+	{NCKEY_ULEFT, "UpLeft"},
 	{NCKEY_URIGHT, "UpRight"},
 	{NCKEY_CENTER, "Center"},
 	{NCKEY_BEGIN, "Begin"},
 	{NCKEY_CANCEL, "Cancel"},
 	{NCKEY_CLOSE, "Close"},
-	{NCKEY_COMMAND, "command"},
+	{NCKEY_COMMAND, "Command"},
 	{NCKEY_COPY, "Copy"},
 	{NCKEY_EXIT, "Exit"},
 	{NCKEY_PRINT, "Print"},
@@ -143,7 +151,7 @@ const char *long_to_key_name(const long u)
 		ind += strlen(name);
 	} else {
 		// not a special key
-		// check if printable?
+		// check if printable? otherwise notcurses won't print '>'
 		int n = wctomb(buf+ind, KEY(u));
 		if (n < 0) {
 			buf[ind++] = '?';
