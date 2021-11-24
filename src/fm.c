@@ -218,6 +218,15 @@ static dir_t *load_dir(fm_t *fm, const char *path)
 		dir->hidden = cfg.hidden;
 		dir_sort(dir);
 	} else {
+		/* At this very point, we should not print this new directory, but
+		 * start a timer for, say, 250ms. When the timer runs out we draw the
+		 * "loading" directory regardless. The timer should be cancelled when:
+		 * 1. the actual directory arrives after loading from disk
+		 * 2. we navigate to a different directory (possibly restart a timer there)
+		 *
+		 * Check how this behaves in the preview pane when just scrolling over
+		 * directories.
+		 */
 		dir = dir_new_loading(path);
 		dir->hidden = cfg.hidden;
 		async_dir_load(dir, false);
