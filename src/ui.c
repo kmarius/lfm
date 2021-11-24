@@ -741,7 +741,11 @@ static void print_file(struct ncplane *n, const file_t *file,
 	bool islink = file_islink(file);
 
 	if (isdir) {
-		snprintf(size, sizeof(size), "%d", file->filecount);
+		if (file->filecount == -2) {
+			snprintf(size, sizeof(size), "?");
+		} else {
+			snprintf(size, sizeof(size), "%d", file->filecount);
+		}
 	} else {
 		readable_fs(file->stat.st_size, size);
 	}
