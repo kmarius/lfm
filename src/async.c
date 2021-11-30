@@ -120,6 +120,7 @@ void async_dir_check(dir_t *dir)
 
 struct dir_work {
 	dir_t *dir;
+	char *path;
 	int delay;
 	bool dircounts;
 };
@@ -133,8 +134,7 @@ static void async_dir_load_worker(void *arg)
 	res_t r = {
 		.type = RES_DIR_UPDATE,
 		.dir = w->dir,
-		/* TODO: this is unsafe when dropping cache since dir might be freed (on 2021-11-15) */
-		.update = dir_load(w->dir->path, w->dircounts)
+		.update = dir_load(w->path, w->dircounts)
 	};
 
 	pthread_mutex_lock(&async_results.mutex);
@@ -152,6 +152,7 @@ static void async_dir_load_worker(void *arg)
 		return;
 	}
 
+	free(w->path);
 	free(w);
 }
 
@@ -159,6 +160,7 @@ void async_dir_load_delayed(dir_t *dir, bool dircounts, int delay /* millis */)
 {
 	struct dir_work *w = malloc(sizeof(struct dir_work));
 	w->dir = dir;
+	w->path = strdup(dir->path);
 	w->delay = delay;
 	w->dircounts = dircounts;
 	tpool_add_work(async_tm, async_dir_load_worker, w);
