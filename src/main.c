@@ -140,14 +140,14 @@ int main(int argc, char **argv)
 		}
 	}
 
-	config_clear();
-
 	log_info("fin");
 	fclose(log_fp);
 
 #ifndef DEBUG
 	remove(cfg.logpath);
 #endif
+
+	config_clear();
 
 	exit(0);
 }
