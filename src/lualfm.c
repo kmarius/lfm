@@ -384,6 +384,15 @@ static int l_config_index(lua_State *L)
 			lua_rawseti(L, -2, i + 1);
 		}
 		return 1;
+	} else if (streq(key, "inotify_blacklist")) {
+		const size_t l = cvector_size(cfg.inotify_blacklist);
+		lua_createtable(L, l, 0);
+		size_t i;
+		for (i = 0; i < l; i++) {
+			lua_pushstring(L, cfg.inotify_blacklist[i]);
+			lua_rawseti(L, -2, i + 1);
+		}
+		return 1;
 	} else if (streq(key, "scrolloff")) {
 		lua_pushinteger(L, cfg.scrolloff);
 		return 1;
@@ -449,6 +458,17 @@ static int l_config_newindex(lua_State *L)
 		fm_recol(fm);
 		ui_recol(ui);
 		ui->redraw.fm = 1;
+	} else if (streq(key, "inotify_blacklist")) {
+		const int l = lua_objlen(L, 3);
+		cvector_ffree(cfg.inotify_blacklist, free);
+		cfg.inotify_blacklist = NULL;
+		int i;
+		for (i = 1; i <= l; i++) {
+			lua_rawgeti(L, 3, i);
+			cvector_push_back(cfg.inotify_blacklist, strdup(lua_tostring(L, -1)));
+			lua_pop(L, 1);
+		}
+		return 0;
 	} else if (streq(key, "scrolloff")) {
 		cfg.scrolloff = max(luaL_checkinteger(L, 3), 0);
 		return 0;

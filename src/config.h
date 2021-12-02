@@ -53,6 +53,7 @@ typedef struct config {
 	bool preview;
 	int scrolloff;
 	cvector_vector_type(char*) commands;
+	cvector_vector_type(char*) inotify_blacklist;
 	cvector_vector_type(int) ratios;
 
 	struct colors {

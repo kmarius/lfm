@@ -4,6 +4,7 @@
 #include <sys/inotify.h>
 #include <unistd.h>
 
+#include "config.h"
 #include "cvector.h"
 #include "dir.h"
 #include "log.h"
@@ -38,6 +39,11 @@ void notify_add_watcher(dir_t *dir)
 
 	if (inotify_fd == -1) {
 		return;
+	}
+	for (i = 0; i < cvector_size(cfg.inotify_blacklist); i++) {
+		if (hasprefix(dir->path, cfg.inotify_blacklist[i])) {
+			return;
+		}
 	}
 
 	for (i = 0; i < cvector_size(watchers); i++) {

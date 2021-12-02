@@ -31,6 +31,7 @@ config cfg = {
 	.ratios = NULL,
 	.preview = true,
 	.commands = NULL,
+	.inotify_blacklist = NULL,
 	.scrolloff = 4,
 	.colors = {
 		.ext_channels = NULL,
@@ -98,6 +99,7 @@ void config_defaults()
 void config_clear() {
 	cvector_free(cfg.ratios);
 	cvector_free(cfg.commands);
+	cvector_free(cfg.inotify_blacklist);
 	free(cfg.configdir);
 	free(cfg.configpath);
 	free(cfg.corepath);
