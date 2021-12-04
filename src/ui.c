@@ -72,7 +72,7 @@ static int resize_cb(struct ncplane *n)
 void ui_notcurses_init(ui_t *ui)
 {
 	struct notcurses_options ncopts = {
-		.flags = NCOPTION_NO_WINCH_SIGHANDLER | NCOPTION_SUPPRESS_BANNERS,
+		.flags = NCOPTION_NO_WINCH_SIGHANDLER | NCOPTION_SUPPRESS_BANNERS | NCOPTION_PRESERVE_CURSOR,
 	};
 	if ((nc = notcurses_core_init(&ncopts, NULL)) == NULL) {
 		exit(EXIT_FAILURE);
