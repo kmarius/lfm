@@ -377,7 +377,7 @@ function lfm.fn.getpwd() end
 ---@field fifopath string
 ---@field dircache_size integer assignable
 ---@field previewcache_size integer assignable
----@field colors colorlib
+---@field colors ColorLib
 lfm.config = {}
 
 return lfm
