@@ -1211,6 +1211,7 @@ static int l_fm_load_set(lua_State *L)
 		cvector_push_back(fm->load.files, strdup(lua_tostring(L, -1)));
 		lua_pop(L, 1);
 	}
+	ui->redraw.fm = 1;
 	return 0;
 }
 
@@ -1218,6 +1219,7 @@ static int l_fm_load_clear(lua_State *L)
 {
 	(void) L;
 	fm_load_clear(fm);
+	ui->redraw.fm = 1;
 	return 0;
 }
 
