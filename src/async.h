@@ -10,14 +10,13 @@
 #include "preview.h"
 #include "tpool.h"
 
-enum result_e { RES_DIR_UPDATE, RES_DIR_CHECK, RES_PREVIEW, RES_PREVIEW_CHECK, };
-
 typedef struct res_t res_t;
 typedef void (*async_cb)(struct res_t*, struct app_t*);
+typedef void (*async_free)(struct res_t*);
 
 struct res_t {
-	enum result_e type; /* only used to free on shutdown */
 	async_cb cb;
+	async_free free;
 	union {
 		struct {
 			dir_t *dir;

@@ -57,21 +57,8 @@ void queue_deinit(resq_t *queue)
 {
 	res_t result;
 	while (queue_get(queue, &result)) {
-		switch (result.type) {
-			case RES_DIR_UPDATE:
-				dir_free(result.update);
-				break;
-			case RES_DIR_CHECK:
-				break;
-			case RES_PREVIEW:
-				preview_free(result.preview);
-				break;
-			case RES_PREVIEW_CHECK:
-				free(result.path);
-				break;
-			default:
-				break;
-		}
+		if (result.free)
+			result.free(&result);
 	}
 }
 
@@ -104,8 +91,8 @@ static void async_dir_check_worker(void *arg)
 	}
 
 	res_t r = {
-		.type = RES_DIR_CHECK,
 		.cb = cb_dir_check,
+		.free = NULL,
 		.dir = w->dir,
 	};
 
@@ -140,6 +127,11 @@ static void cb_dir_update(struct res_t *result, app_t *app)
 	app->ui.redraw.fm |= fm_update_dir(&app->fm, result->dir, result->update);
 }
 
+static void free_dir_update(struct res_t *result)
+{
+	dir_free(result->dir);
+}
+
 static void async_dir_load_worker(void *arg)
 {
 	struct dir_work *w = arg;
@@ -147,8 +139,8 @@ static void async_dir_load_worker(void *arg)
 		msleep(w->delay);
 	}
 	res_t r = {
-		.type = RES_DIR_UPDATE,
 		.cb = cb_dir_update,
+		.free = free_dir_update,
 		.dir = w->dir,
 		.update = dir_load(w->path, w->dircounts)
 	};
@@ -195,6 +187,11 @@ static void cb_preview_check(struct res_t *result, app_t *app)
 	free(result->path);
 }
 
+static void free_preview_check(struct res_t *result)
+{
+	free(result->path);
+}
+
 static void async_preview_check_worker(void *arg)
 {
 	struct pv_check_work *w = arg;
@@ -213,8 +210,8 @@ static void async_preview_check_worker(void *arg)
 	}
 
 	res_t r = {
-		.type = RES_PREVIEW_CHECK,
 		.cb = cb_preview_check,
+		.free = free_preview_check,
 		.path = w->path,
 		.nrow = w->nrow,
 	};
@@ -249,12 +246,17 @@ static void cb_preview(struct res_t *result, app_t *app)
 	app->ui.redraw.preview |= ui_insert_preview(&app->ui, result->preview);
 }
 
+static void free_preview(struct res_t *result)
+{
+	preview_free(result->preview);
+}
+
 static void async_preview_load_worker(void *arg)
 {
 	struct pv_load_work *w = (struct pv_load_work*) arg;
 	res_t r = {
-		.type = RES_PREVIEW,
 		.cb = cb_preview,
+		.free = free_preview,
 		.preview = preview_new_from_file(w->path, w->nrow),
 	};
 	pthread_mutex_lock(&async_results.mutex);
