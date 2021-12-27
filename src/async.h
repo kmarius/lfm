@@ -5,14 +5,19 @@
 #include <pthread.h>
 #include <stdbool.h>
 
+#include "app.h"
 #include "dir.h"
 #include "preview.h"
 #include "tpool.h"
 
 enum result_e { RES_DIR_UPDATE, RES_DIR_CHECK, RES_PREVIEW, RES_PREVIEW_CHECK, };
 
-typedef struct res_t {
-	enum result_e type;
+typedef struct res_t res_t;
+typedef void (*async_cb)(struct res_t*, struct app_t*);
+
+struct res_t {
+	enum result_e type; /* only used to free on shutdown */
+	async_cb cb;
 	union {
 		struct {
 			dir_t *dir;
@@ -25,7 +30,7 @@ typedef struct res_t {
 		};
 	};
 	struct res_t *next;
-} res_t;
+};
 
 typedef struct resq_t {
 	struct res_t *head;
@@ -77,5 +82,7 @@ void async_preview_check(preview_t *pv);
  * a result of type `RES_PREVIEW`.
  */
 void async_preview_load(const char *path, int nrow);
+
+#undef cb
 
 #endif /* ASYNC_H */

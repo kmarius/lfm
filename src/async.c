@@ -4,6 +4,7 @@
 
 #include "async.h"
 #include "dir.h"
+#include "fm.h"
 #include "log.h"
 #include "preview.h"
 #include "tpool.h"
@@ -79,6 +80,14 @@ struct dir_check_work {
 	time_t loadtime;
 };
 
+static void cb_dir_check(struct res_t *result, app_t *app)
+{
+	/* TODO: maybe on slow devices it is better to compare mtimes here? 2021-11-12 */
+	/* currently we could just schedule reload from the other thread */
+	(void) app;
+	async_dir_load(result->dir, true);
+}
+
 static void async_dir_check_worker(void *arg)
 {
 	struct dir_check_work *w = arg;
@@ -96,6 +105,7 @@ static void async_dir_check_worker(void *arg)
 
 	res_t r = {
 		.type = RES_DIR_CHECK,
+		.cb = cb_dir_check,
 		.dir = w->dir,
 	};
 
@@ -125,6 +135,11 @@ struct dir_work {
 	bool dircounts;
 };
 
+static void cb_dir_update(struct res_t *result, app_t *app)
+{
+	app->ui.redraw.fm |= fm_update_dir(&app->fm, result->dir, result->update);
+}
+
 static void async_dir_load_worker(void *arg)
 {
 	struct dir_work *w = arg;
@@ -133,6 +148,7 @@ static void async_dir_load_worker(void *arg)
 	}
 	res_t r = {
 		.type = RES_DIR_UPDATE,
+		.cb = cb_dir_update,
 		.dir = w->dir,
 		.update = dir_load(w->path, w->dircounts)
 	};
@@ -172,6 +188,13 @@ struct pv_check_work {
 	time_t mtime;
 };
 
+static void cb_preview_check(struct res_t *result, app_t *app)
+{
+	(void) app;
+	async_preview_load(result->path, result->nrow);
+	free(result->path);
+}
+
 static void async_preview_check_worker(void *arg)
 {
 	struct pv_check_work *w = arg;
@@ -191,6 +214,7 @@ static void async_preview_check_worker(void *arg)
 
 	res_t r = {
 		.type = RES_PREVIEW_CHECK,
+		.cb = cb_preview_check,
 		.path = w->path,
 		.nrow = w->nrow,
 	};
@@ -220,11 +244,17 @@ struct pv_load_work {
 	int nrow;
 };
 
+static void cb_preview(struct res_t *result, app_t *app)
+{
+	app->ui.redraw.preview |= ui_insert_preview(&app->ui, result->preview);
+}
+
 static void async_preview_load_worker(void *arg)
 {
 	struct pv_load_work *w = (struct pv_load_work*) arg;
 	res_t r = {
 		.type = RES_PREVIEW,
+		.cb = cb_preview,
 		.preview = preview_new_from_file(w->path, w->nrow),
 	};
 	pthread_mutex_lock(&async_results.mutex);

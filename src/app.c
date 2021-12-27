@@ -56,27 +56,8 @@ static void async_result_cb(EV_P_ ev_async *w, int revents)
 	res_t result;
 
 	pthread_mutex_lock(&async_results.mutex);
-	while (queue_get(&async_results, &result)) {
-		switch (result.type) {
-			case RES_DIR_UPDATE:
-				app->ui.redraw.fm |= fm_update_dir(&app->fm, result.dir, result.update);
-				break;
-			case RES_DIR_CHECK:
-				/* TODO: maybe on slow devices it is better to compare mtimes here? 2021-11-12 */
-				/* currently we could just schedule reload from the other thread */
-				async_dir_load(result.dir, true);
-				break;
-			case RES_PREVIEW:
-				app->ui.redraw.preview |= ui_insert_preview(&app->ui, result.preview);
-				break;
-			case RES_PREVIEW_CHECK:
-				async_preview_load(result.path, result.nrow);
-				free(result.path);
-				break;
-			default:
-				break;
-		}
-	}
+	while (queue_get(&async_results, &result))
+		result.cb(&result, app);
 	pthread_mutex_unlock(&async_results.mutex);
 
 	ev_idle_start(app->loop, &redraw_watcher);
