@@ -10,7 +10,7 @@
 #include "log.h"
 #include "util.h"
 
-#define NOTIFY_EVENTS (IN_MODIFY | IN_CREATE | IN_DELETE | IN_MOVED_FROM | IN_MOVED_TO )
+#define NOTIFY_EVENTS (IN_MODIFY | IN_CREATE | IN_DELETE | IN_MOVED_FROM | IN_MOVED_TO | IN_ATTRIB)
 
 typedef struct tup_t {
 	dir_t *dir;
