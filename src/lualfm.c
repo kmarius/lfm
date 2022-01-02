@@ -228,28 +228,13 @@ static int l_error(lua_State *L)
 	return 0;
 }
 
-static int l_system(lua_State *L)
-{
-	const char *line = luaL_checkstring(L, 1);
-	ui_suspend(ui);
-	kbblocking(true);
-	int ret = system(line);
-	kbblocking(false);
-	ui_notcurses_init(ui);
-	ui->redraw.fm = 1;
-	if (ret != 0) {
-		/* TODO: ret is not actually the exit status (on 2021-11-14) */
-		ui_error(ui, "command failed with exit status %d", ret);
-	}
-	return 0;
-}
-
 static int l_execute(lua_State *L)
 {
 	(void) L;
 	int i;
 	bool out = true;
 	bool err = true;
+	bool fork = true;
 
 	luaL_checktype(L, 1, LUA_TTABLE);
 
@@ -275,19 +260,23 @@ static int l_execute(lua_State *L)
 		if (!lua_isnoneornil(L, -1)) {
 			err = lua_toboolean(L, -1);
 		}
+		lua_getfield(L, 2, "fork");
+		if (!lua_isnoneornil(L, -1)) {
+			fork = lua_toboolean(L, -1);
+		}
 		lua_pop(L, 2);
 	}
-	int pid = app_execute(app, args[0], (const char**) args, out, err);
+	int ret = app_execute(app, args[0], (const char* const*) args, fork, out, err);
 	for (i = 0; i < n+1; i++) {
 		free(args[i]);
 	}
 	free(args);
-	if (pid) {
+	if (ret) {
 		lua_pushboolean(L, true);
 		return 1;
 	} else {
 		lua_pushnil(L);
-		lua_pushstring(L, strerror(errno)); // not sure if something sets errno
+		lua_pushstring(L, strerror(errno)); // not sure if something even sets errno
 		return 2;
 	}
 }
@@ -339,7 +328,6 @@ static int l_cmap_key(lua_State *L)
 
 static const struct luaL_Reg lfm_lib[] = {
 	{"execute", l_execute},
-	{"system", l_system},
 	{"map", l_map_key},
 	{"cmap", l_cmap_key},
 	{"handle_key", l_handle_key},

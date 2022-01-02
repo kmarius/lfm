@@ -6,8 +6,12 @@
 #include <notcurses/notcurses.h>
 #include <pthread.h>
 #include <signal.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <sys/inotify.h>
 #include <sys/sysinfo.h>
+#include <sys/wait.h>
+#include <unistd.h>
 
 #include "app.h"
 #include "async.h"
@@ -368,22 +372,46 @@ static void add_io_watcher(app_t *app, FILE* f)
 	cvector_push_back(io_watchers, w);
 }
 
-int app_execute(app_t *app, const char *prog, const char **args, bool out, bool err)
+bool app_execute(app_t *app, const char *prog, const char *const *args, bool forking, bool out, bool err)
 {
 	FILE *fout, *ferr;
-	log_debug("%s %d %d", prog, out, err);
-	int pid = popen2_arr_p(NULL, &fout, &ferr, prog, args, NULL);
-	if (err) {
-		add_io_watcher(app, ferr);
+	int pid, status, rc;
+	log_debug("execute: %s %d %d", prog, out, err);
+	if (forking) {
+		pid = popen2_arr_p(NULL, &fout, &ferr, prog, args, NULL);
+		if (err) {
+			add_io_watcher(app, ferr);
+		} else {
+			fclose(ferr);
+		}
+		if (out) {
+			add_io_watcher(app, fout);
+		} else {
+			fclose(fout);
+		}
+		/* TODO: for native callbacks, enable a watcher for the child here (on 2022-01-01) */
+		return pid != -1;
 	} else {
-		fclose(ferr);
+		ui_suspend(&app->ui);
+		kbblocking(true);
+		/* TODO: probably needs signal handling of some kind (on 2022-01-02) */
+		if ((pid = fork()) < 0) {
+			status = -1;
+		} else if (pid == 0) {
+			/* child */
+			execvp(prog, (char* const*) args);
+			_exit(127); /* execl error */
+		} else {
+			/* parent */
+			do {
+				rc = waitpid(pid, &status, 0);
+			} while ((rc == -1) && (errno == EINTR));
+		}
+		kbblocking(false);
+		ui_notcurses_init(&app->ui);
+		app->ui.redraw.fm = 1;
+		return status == 0;
 	}
-	if (out) {
-		add_io_watcher(app, fout);
-	} else {
-		fclose(fout);
-	}
-	return pid;
 }
 
 void print(const char *format, ...)

@@ -44,9 +44,7 @@ void app_deinit(app_t *app);
  * Execute a command in the background and redirect its output/error to the ui
  * if `out` or `err` are set to `true`.
  */
-int app_execute(app_t *app, const char *prog, const char **args, bool out, bool err);
-/* TODO: make a variation of system() that takes an array and allows capture of stderr
- * so that it can be printed in the UI (on 2021-11-14) */
+bool app_execute(app_t *app, const char *prog, const char *const *args, bool fork, bool out, bool err);
 
 /*
  * Print a message in the UI. `printf` formatting applies.

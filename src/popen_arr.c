@@ -32,7 +32,7 @@
 #include "popen_arr.h"
 
 static int popen2_impl(FILE** in, FILE** out, FILE** err, const char* program,
-		const char* const argv[], const char* const envp[], int lookup_path)
+		char* const argv[], char* const envp[], int lookup_path)
 {
 	int child_stdout = -1;
 	int child_stdin = -1;
