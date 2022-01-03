@@ -24,6 +24,7 @@
 #include "log.h"
 #include "lualfm.h"
 #include "notify.h"
+#include "search.h"
 #include "tokenize.h"
 #include "tpool.h"
 #include "trie.h"
@@ -41,6 +42,9 @@ static struct {
 	long *seq;
 	char *str;
 } maps;
+
+#define luaL_optbool(L, i, d) \
+	lua_isnoneornil(L, i) ? d : lua_toboolean(L, i)
 
 /* lfm lib {{{ */
 
@@ -66,111 +70,35 @@ static int l_timeout(lua_State *L)
 
 static int l_search(lua_State *L)
 {
-	if (!lua_toboolean(L, 1)) {
-		ui_search_nohighlight(ui);
-	} else {
-		const char *search = luaL_checkstring(L, 1);
-		if (search[0] == 0) {
-			ui_search_nohighlight(ui);
-		} else {
-			ui_search_highlight(ui, search, true);
-		}
-	}
-	ui->redraw.fm = 1;
+	search(ui, luaL_optstring(L, 1, NULL), true);
 	return 0;
 }
 
 static int l_search_backwards(lua_State *L)
 {
-	if (!lua_toboolean(L, 1)) {
-		ui_search_nohighlight(ui);
-	} else {
-		const char *search = luaL_checkstring(L, 1);
-		if (search[0] == 0) {
-			ui_search_nohighlight(ui);
-		} else {
-			ui_search_highlight(ui, search, false);
-		}
-	}
-	ui->redraw.fm = 1;
+	search(ui, luaL_optstring(L, 1, NULL), false);
 	return 0;
 }
 
-static int l_search_next_forward(lua_State *L)
+static int l_nohighlight(lua_State *L)
 {
-	dir_t *dir;
-
-	if (!(dir = fm_current_dir(fm)) || !ui->search.string) {
-		return 0;
-	}
-	ui_search_highlight(ui, NULL, true);
-	int start = dir->ind;
-	if (!lua_toboolean(L, 1)) {
-		start++;
-	}
-	for (int i = 0; i < dir->len; i++) {
-		if (strcasestr(dir->files[(start + i) % dir->len]->name,
-					ui->search.string)) {
-			if ((start + i) % dir->len < dir->ind) {
-				fm_up(fm, dir->ind - (start + i) % dir->len);
-			} else {
-				fm_down(fm,
-						(start + i) % dir->len - dir->ind);
-			}
-			ui->redraw.fm = 1;
-			break;
-		}
-	}
-	return 0;
-}
-
-static int l_search_next_backwards(lua_State *L)
-{
-	dir_t *dir;
-
-	if (!(dir = fm_current_dir(fm)) || !ui->search.string) {
-		return 0;
-	}
-	ui_search_highlight(ui, NULL, false);
-	int start = dir->ind;
-	if (!lua_toboolean(L, 1)) {
-		start--;
-	}
-	for (int i = 0; i < dir->len; i++) {
-		if (strcasestr(
-					dir->files[(dir->len + start - i) % dir->len]->name,
-					ui->search.string)) {
-			if ((dir->len + start - i) % dir->len < dir->ind) {
-				fm_up(fm, dir->ind - (dir->len + start - i) %
-						dir->len);
-			} else {
-				fm_down(fm,
-						(dir->len + start - i) % dir->len -
-						dir->ind);
-			}
-			ui->redraw.fm = 1;
-			break;
-		}
-	}
+	(void) L;
+	nohighlight(ui);
 	return 0;
 }
 
 static int l_search_next(lua_State *L)
 {
-	if (ui->search.forward) {
-		return l_search_next_forward(L);
-	} else {
-		return l_search_next_backwards(L);
-	}
+	(void) L;
+	search_next(ui, fm, luaL_optbool(L, 1, false));
+	return 0;
 }
 
 static int l_search_prev(lua_State *L)
 {
-	if (ui->search.forward) {
-		return l_search_next_backwards(L);
-	} else {
-		return l_search_next_forward(L);
-	}
+	(void) L;
+	search_prev(ui, fm, luaL_optbool(L, 1, false));
+	return 0;
 }
 
 static int l_find(lua_State *L)
@@ -266,7 +194,7 @@ static int l_execute(lua_State *L)
 		}
 		lua_pop(L, 2);
 	}
-	int ret = app_execute(app, args[0], (const char* const*) args, fork, out, err);
+	int ret = app_execute(app, args[0], args, fork, out, err);
 	for (i = 0; i < n+1; i++) {
 		free(args[i]);
 	}
@@ -333,6 +261,7 @@ static const struct luaL_Reg lfm_lib[] = {
 	{"handle_key", l_handle_key},
 	{"timeout", l_timeout},
 	{"find", l_find},
+	{"nohighlight", l_nohighlight},
 	{"search", l_search},
 	{"search_back", l_search_backwards},
 	{"search_next", l_search_next},
@@ -978,7 +907,7 @@ static int l_fm_updir(lua_State *L)
 {
 	(void) L;
 	fm_updir(fm);
-	ui_search_nohighlight(ui);
+	nohighlight(ui);
 	ui->redraw.fm = 1;
 	return 0;
 }
@@ -989,7 +918,7 @@ static int l_fm_open(lua_State *L)
 	if (file == NULL) {
 		/* changed directory */
 		ui->redraw.fm = 1;
-		ui_search_nohighlight(ui);
+		nohighlight(ui);
 		return 0;
 	} else {
 		if (cfg.selfile != NULL) {
@@ -1154,7 +1083,7 @@ static int l_fm_selection_reverse(lua_State *L)
 static int l_fm_chdir(lua_State *L)
 {
 	const char *path = lua_tostring(L, 1);
-	ui_search_nohighlight(ui);
+	nohighlight(ui);
 	lua_run_hook(L, "ChdirPre");
 	if (fm_chdir(fm, path, true)) {
 		lua_run_hook(L, "ChdirPost");
@@ -1414,7 +1343,7 @@ void lua_handle_key(lua_State *L, long u)
 			maps.cur = NULL;
 			ui->message = false;
 			ui_cmd_clear(ui);
-			ui_search_nohighlight(ui);
+			nohighlight(ui);
 			fm_selection_visual_stop(fm);
 			fm_selection_clear(fm);
 			fm_load_clear(fm);

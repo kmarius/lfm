@@ -132,9 +132,7 @@ void ui_init(ui_t *ui, fm_t *fm)
 
 	ui->preview.file = NULL;
 
-	ui->search.string = NULL;
-	ui->search.active = false;
-	ui->search.forward = true;
+	ui->highlight = NULL;
 
 	ui->menubuf = NULL;
 	ui->message = false;
@@ -250,7 +248,7 @@ static void draw_dirs(ui_t *ui)
 				ui->fm->selection.files,
 				ui->fm->load.files,
 				ui->fm->load.mode,
-				i == 0 && ui->search.active ? ui->search.string : NULL);
+				i == 0 ? ui->highlight : NULL);
 	}
 	PROFILE_END(t0);
 }
@@ -1115,23 +1113,6 @@ void ui_drop_cache(ui_t *ui)
 
 /* }}} */
 
-/* search {{{ */
-void ui_search_nohighlight(ui_t *ui)
-{
-	ui->search.active = false;
-}
-
-void ui_search_highlight(ui_t *ui, const char *search, bool forward)
-{
-	if (search != NULL) {
-		ui->search.forward = forward;
-		free(ui->search.string);
-		ui->search.string = strdup(search);
-	}
-	ui->search.active = true;
-}
-/* }}} */
-
 void ui_deinit(ui_t *ui)
 {
 	history_write(&ui->history, cfg.historypath);
@@ -1139,7 +1120,6 @@ void ui_deinit(ui_t *ui)
 	cvector_ffree(ui->messages, free);
 	cvector_ffree(ui->menubuf, free);
 	cache_deinit(&ui->preview.cache);
-	free(ui->search.string);
 	cmdline_deinit(&ui->cmdline);
 	cvector_ffree(ui->planes.dirs, ncplane_destroy);
 	ui_suspend(ui);

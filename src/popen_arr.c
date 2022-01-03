@@ -143,20 +143,20 @@ static int popen2_impl(FILE** in, FILE** out, FILE** err, const char* program,
 }
 
 int popen2_arr(FILE **in, FILE **out, FILE **err, const char *program,
-		const char *const argv[], const char *const envp[])
+		char *const argv[], char *const envp[])
 {
 	signal(SIGPIPE, SIG_IGN);
 	return popen2_impl(in, out, err, program, argv, envp, 0);
 }
 
 int popen2_arr_p(FILE **in, FILE **out, FILE **err, const char *program,
-		const char *const argv[], const char *const envp[])
+		char *const argv[], char *const envp[])
 {
 	signal(SIGPIPE, SIG_IGN);
 	return popen2_impl(in, out, err, program, argv, envp, 1);
 }
 
-FILE* popen_arr(const char* program, const char *const argv[], int pipe_into_program)
+FILE* popen_arr(const char* program, char *const argv[], int pipe_into_program)
 {
 	FILE* f = NULL;
 	if (pipe_into_program) {

@@ -372,7 +372,7 @@ static void add_io_watcher(app_t *app, FILE* f)
 	cvector_push_back(io_watchers, w);
 }
 
-bool app_execute(app_t *app, const char *prog, const char *const *args, bool forking, bool out, bool err)
+bool app_execute(app_t *app, const char *prog, char *const *args, bool forking, bool out, bool err)
 {
 	FILE *fout, *ferr;
 	int pid, status, rc;

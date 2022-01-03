@@ -585,6 +585,11 @@ void fm_move_to(fm_t *fm, const char *name)
 	update_preview(fm);
 }
 
+void fm_move_to_ind(fm_t *fm, int ind)
+{
+	cursor_move(fm, ind - fm->dirs.visible[0]->ind);
+}
+
 file_t *fm_open(fm_t *fm)
 {
 	file_t *file = fm_current_file(fm);

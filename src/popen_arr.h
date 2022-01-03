@@ -39,10 +39,10 @@ struct FILE;
  * @arg envp NULL terminated array of environment variables, NULL => preserve environment
  * @return PID of the program or -1 if failed
  */
-int popen2_arr(FILE** in, FILE** out, FILE** err, const char* program, const char* const argv[], const char* const envp[]);
+int popen2_arr(FILE** in, FILE** out, FILE** err, const char* program, char* const argv[], char* const envp[]);
 
 /** like popen2_arr, but uses execvp/execvpe instead of execve/execv, so looks up $PATH */
-int popen2_arr_p(FILE** in, FILE** out, FILE** err, const char* program, const char* const argv[], const char* const envp[]);
+int popen2_arr_p(FILE** in, FILE** out, FILE** err, const char* program, char* const argv[], char* const envp[]);
 
 /**
  * Simplified interface to popen2_arr.
@@ -55,6 +55,6 @@ int popen2_arr_p(FILE** in, FILE** out, FILE** err, const char* program, const c
  * @arg pipe_into_program 1 to be like popen(...,"w"), 0 to be like popen(...,"r")
  * @return FILE* instance or NULL if error
  */
-FILE* popen_arr(const char* program, const char* const argv[], int pipe_into_program);
+FILE* popen_arr(const char* program, char* const argv[], int pipe_into_program);
 
 #endif /* POPEN_ARR_H */

@@ -121,6 +121,11 @@ void fm_updir(fm_t *fm);
 void fm_move_to(fm_t *fm, const char *name);
 
 /*
+ * Move the cursor the file at index `ind`.
+ */
+void fm_move_to_ind(fm_t *fm, int ind);
+
+/*
  * Apply the filter string given by `filter` to the current directory.
  */
 void fm_filter(fm_t *fm, const char *filter);

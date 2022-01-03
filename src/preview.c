@@ -37,7 +37,7 @@ preview_t *preview_new_from_file(const char *path, int nrow)
 	char buf[4096];
 
 	if (cfg.previewer != NULL) {
-		const char *const args[3] = {cfg.previewer, path, NULL};
+		char *const args[3] = {cfg.previewer, (char*) path, NULL};
 		/* TODO: redirect stderr (on 2021-08-10) */
 		if ((fp = popen_arr(cfg.previewer, args, false)) == NULL) {
 			log_error("preview: %s", strerror(errno));

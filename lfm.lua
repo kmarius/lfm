@@ -21,20 +21,23 @@ function lfm.timeout(duration) end
 function lfm.find(prefix) end
 
 ---Search files in the current directory.
----@param name? string Omitting will remove highlighting.
-function lfm.search(name) end
+---@param string? string Omitting will remove highlighting.
+function lfm.search(string) end
 
 ---Search files in the current directory, backwards.
----@param name? string Omitting will remove highlighting.
-function lfm.search_back(name) end
+---@param string? string Omitting will remove highlighting.
+function lfm.search_back(string) end
 
 ---Go to the next search result.
----@param include boolean Don't move away if the current file matches.
-function lfm.search_next(include) end
+---@param inclusive? bool default: `false`
+function lfm.search_next(inclusive) end
 
 ---Go to the previous search result.
----@param include boolean Don't move away if the current file matches.
-function lfm.search_prev(include) end
+---@param inclusive? bool default: `false`
+function lfm.search_prev(inclusive) end
+
+---Disable highlights.
+function lfm.nohighlight() end
 
 ---Show an error in the UI.
 ---@param msg string

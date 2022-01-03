@@ -41,11 +41,7 @@ typedef struct ui_t {
 		cache_t cache;
 	} preview;
 
-	struct {
-		char *string; /* search */
-		bool active : 1;
-		bool forward : 1;
-	} search;
+	const char *highlight;
 
 	struct {
 		bool info : 1;
@@ -85,13 +81,6 @@ void ui_cmd_clear(ui_t *ui);
 void ui_cmd_prefix_set(ui_t *ui, const char *prefix);
 
 bool ui_insert_preview(ui_t *ui, preview_t *pv);
-
-/*
- * Pass NULL as search string to re-enable highlighting with the previous search.
- */
-void ui_search_highlight(ui_t *ui, const char *search, bool forward);
-
-void ui_search_nohighlight(ui_t *ui);
 
 void ui_drop_cache(ui_t *ui);
 

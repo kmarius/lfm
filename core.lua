@@ -238,8 +238,8 @@ map("R", function() dofile("/home/marius/Sync/programming/lfm/core.lua") end, {d
 map("''", function() fm.mark_load("'") end)
 map("zh", function() config.hidden = not config.hidden end, {desc="toggle hidden"})
 map(":", function() cmd.setprefix(":") end)
-map("/", function() cmd.setprefix("/") lfm.search("") end)
-map("?", function() cmd.setprefix("?") lfm.search("") end)
+map("/", function() cmd.setprefix("/") lfm.nohighlight() end)
+map("?", function() cmd.setprefix("?") lfm.nohighlight() end)
 map("n", lfm.search_next)
 map("N", lfm.search_prev)
 
@@ -295,14 +295,14 @@ local mode_cmd = {
 local mode_search = {
 	prefix = "/",
 	enter = function() lfm.search_next(true) end, -- apply search, keep highlights, move cursor to next match  or stay on current
-	esc = function() lfm.search("") end, -- delete everything
+	esc = lfm.nohighlight, -- delete everything
 	change = function() lfm.search(cmd.getline()) end, -- highlight match in UI
 }
 
 local mode_search_back = {
 	prefix = "?",
 	enter = function() lfm.search_next(true) end,
-	esc = function() lfm.search_back("") end,
+	esc = lfm.nohighlight,
 	change = function() lfm.search_back(cmd.getline()) end,
 }
 
