@@ -345,6 +345,9 @@ static int l_config_index(lua_State *L)
 	} else if (streq(key, "fifopath")) {
 		lua_pushstring(L, cfg.fifopath);
 		return 1;
+	} else if (streq(key, "logpath")) {
+		lua_pushstring(L, cfg.logpath);
+		return 1;
 	} else if (streq(key, "configpath")) {
 		lua_pushstring(L, cfg.configpath);
 		return 1;

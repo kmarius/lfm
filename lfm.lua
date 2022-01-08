@@ -374,6 +374,7 @@ function lfm.fn.getpwd() end
 ---@field preview boolean assignable
 ---@field previewer string assignable
 ---@field configpath string
+---@field logpath string
 ---@field fifopath string
 ---@field dircache_size integer assignable
 ---@field previewcache_size integer assignable
