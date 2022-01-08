@@ -173,7 +173,7 @@ static void inotify_cb(EV_P_ ev_io *w, int revents)
 			}
 
 			// we use inotify for the fifo because io watchers dont seem to work properly
-			// with the fifo, the callback gets called every loop.
+			// with the fifo, the callback gets called every loop, even with clearerr
 			if (event->wd == fifo_wd) {
 				/* TODO: could filter for our pipe here (on 2021-08-13) */
 				read_fifo(app);
@@ -193,8 +193,6 @@ static void inotify_cb(EV_P_ ev_io *w, int revents)
 					async_dir_load(dir, true);
 					struct tup_t t = { .next = now, .wd = event->wd, };
 					cvector_push_back(times, t);
-				} else {
-					log_warn("notify event for unloaded dir");
 				}
 			} else {
 				unsigned long next = now;
@@ -221,8 +219,6 @@ static void inotify_cb(EV_P_ ev_io *w, int revents)
 				if (dir != NULL) {
 					async_dir_load_delayed(dir, true, next - now + NOTIFY_DELAY);
 					times[i].next = next + NOTIFY_DELAY;
-				} else {
-					log_warn("notify event for unknown dir");
 				}
 			}
 		}
