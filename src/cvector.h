@@ -239,6 +239,22 @@
 	} while (0)
 
 /**
+ * @brief cvector_swap_remove - removes the element from the vector and replaces it with the last. equality is checked via ==
+ * @param vec - the vector
+ * @param e - the element to remove
+ * @return void
+ */
+#define cvector_swap_remove(vec, e) \
+	do { \
+		for (size_t i = 0; i < cvector_size((vec)); i++) { \
+			if ((vec)[i] == w) { \
+				cvector_swap_erase((vec), i); \
+					break; \
+			} \
+		} \
+	} while (0)
+
+/**
  * @brief cvector_free - frees all memory associated with the vector
  * @param vec - the vector
  * @return void

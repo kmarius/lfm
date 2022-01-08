@@ -28,6 +28,7 @@
 static void add_io_watcher(app_t *app, FILE* f);
 
 static cvector_vector_type(ev_io*) io_watchers = NULL;
+static cvector_vector_type(ev_child*) child_watchers = NULL;
 
 #define TICK 1  /* seconds */
 
@@ -124,13 +125,7 @@ static void command_stdout_cb(EV_P_ ev_io *w, int revents)
 	if (errno == ECHILD || feof(w->data)) {
 		log_debug("removing watcher %d", w->fd);
 		ev_io_stop(app->loop, w);
-		size_t i;
-		for (i = 0; i < cvector_size(io_watchers); i++) {
-			if (io_watchers[i] == w) {
-				cvector_swap_erase(io_watchers, i);
-				break;
-			}
-		}
+		cvector_swap_remove(io_watchers, w);
 		fclose(w->data);
 		free(w);
 	}
@@ -259,6 +254,17 @@ static void sigwinch_cb(EV_P_ ev_signal *w, int revents)
 	ev_idle_start(app->loop, &redraw_watcher);
 }
 
+static void child_cb(EV_P_ ev_child *w, int revents)
+{
+	(void) revents;
+	log_debug("child_cb: %d %d", w->pid, w->rstatus);
+	ev_child_stop (EV_A_ w);
+	cvector_swap_remove(child_watchers, w);
+	lua_run_callback(_app->L, *(int*) w->data, w->rstatus);
+	free(w->data);
+	free(w);
+}
+
 static void redraw_cb(struct ev_loop *loop, ev_idle *w, int revents)
 {
 	(void) revents;
@@ -372,7 +378,18 @@ static void add_io_watcher(app_t *app, FILE* f)
 	cvector_push_back(io_watchers, w);
 }
 
-bool app_execute(app_t *app, const char *prog, char *const *args, bool forking, bool out, bool err)
+static void add_child_watcher(app_t *app, int pid, int key)
+{
+	log_debug("adding child watcher %d", pid);
+	ev_child *w = malloc(sizeof(ev_child));
+	ev_child_init(w, child_cb, pid, 0);
+	w->data = malloc(sizeof(int));
+	*((int*) w->data) = key;
+	ev_child_start(app->loop, w);
+	cvector_push_back(child_watchers, w);
+}
+
+bool app_execute(app_t *app, const char *prog, char *const *args, bool forking, bool out, bool err, int key)
 {
 	FILE *fout, *ferr;
 	int pid, status, rc;
@@ -389,7 +406,9 @@ bool app_execute(app_t *app, const char *prog, char *const *args, bool forking, 
 		} else {
 			fclose(fout);
 		}
-		/* TODO: for native callbacks, enable a watcher for the child here (on 2022-01-01) */
+		if (key > 0) {
+			add_child_watcher(app, pid, key);
+		}
 		return pid != -1;
 	} else {
 		ui_suspend(&app->ui);
@@ -445,6 +464,7 @@ void app_deinit(app_t *app)
 {
 	cvector_free(times);
 	cvector_ffree(io_watchers, free);
+	cvector_ffree(child_watchers, free);
 	notify_close();
 	lua_deinit(app->L);
 	ui_deinit(&app->ui);

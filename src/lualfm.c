@@ -31,6 +31,8 @@
 #include "ui.h"
 #include "util.h"
 
+#define TABLE_CALLBACKS "callbacks"
+
 static app_t *app = NULL;
 static ui_t *ui = NULL;
 static fm_t *fm = NULL;
@@ -163,6 +165,7 @@ static int l_execute(lua_State *L)
 	bool out = true;
 	bool err = true;
 	bool fork = true;
+	int key = 0;
 
 	luaL_checktype(L, 1, LUA_TTABLE);
 
@@ -192,9 +195,18 @@ static int l_execute(lua_State *L)
 		if (!lua_isnoneornil(L, -1)) {
 			fork = lua_toboolean(L, -1);
 		}
-		lua_pop(L, 2);
+		lua_pop(L, 3);
+		lua_getfield(L, 2, "callback");
+		if (!lua_isnoneornil(L, -1)) {
+			lua_getfield(L, LUA_REGISTRYINDEX, TABLE_CALLBACKS);
+			key = luaL_getn(L, -1) + 1;
+			lua_pushvalue(L, -2);
+			lua_rawseti(L, -2, key);
+			lua_pop(L, 1);
+		}
+		lua_pop(L, 1);
 	}
-	int ret = app_execute(app, args[0], args, fork, out, err);
+	int ret = app_execute(app, args[0], args, fork, out, err, key);
 	for (i = 0; i < n+1; i++) {
 		free(args[i]);
 	}
@@ -207,6 +219,17 @@ static int l_execute(lua_State *L)
 		lua_pushstring(L, strerror(errno)); // not sure if something even sets errno
 		return 2;
 	}
+}
+
+void lua_run_callback(lua_State *L, int key, int rstatus)
+{
+	lua_getfield(L, LUA_REGISTRYINDEX, TABLE_CALLBACKS);
+	lua_rawgeti(L, -1, key);
+	lua_pushnumber(L, rstatus);
+	lua_call(L, 1, 0);
+	lua_pushnil(L);
+	lua_rawseti(L, -2, key);
+	lua_pop(L, 1);
 }
 
 static int l_map_key(lua_State *L)
@@ -1455,6 +1478,9 @@ void lua_init(lua_State *L, app_t *_app)
 	luaL_openlibs(L);
 	luaopen_jit(L);
 	luaopen_lfm(L);
+
+	lua_newtable(L);
+	lua_setfield(L, LUA_REGISTRYINDEX, TABLE_CALLBACKS);
 }
 
 void lua_deinit(lua_State *L)

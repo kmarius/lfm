@@ -44,7 +44,7 @@ void app_deinit(app_t *app);
  * Execute a command in the background and redirect its output/error to the ui
  * if `out` or `err` are set to `true`.
  */
-bool app_execute(app_t *app, const char *prog, char *const *args, bool fork, bool out, bool err);
+bool app_execute(app_t *app, const char *prog, char *const *args, bool fork, bool out, bool err, int key);
 
 /*
  * Print a message in the UI. `printf` formatting applies.
