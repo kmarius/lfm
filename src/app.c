@@ -172,6 +172,8 @@ static void inotify_cb(EV_P_ ev_io *w, int revents)
 				continue;
 			}
 
+			// we use inotify for the fifo because io watchers dont seem to work properly
+			// with the fifo, the callback gets called every loop.
 			if (event->wd == fifo_wd) {
 				/* TODO: could filter for our pipe here (on 2021-08-13) */
 				read_fifo(app);
