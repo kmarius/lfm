@@ -3,9 +3,9 @@ local lfm = {}
 
 ---Execute a command and redirect output/error to the UI.
 ---Supported options:
---- `opts.fork` should the command run in background (default: `true`)
---- `opts.out`  should stdout be captured (default: `true`)
---- `opts.err`  should stderr be captured (default: `true`)
+--- `opts.fork` should the command run in background (default: `false`)
+--- `opts.out`  should stdout be captured, ignored with fork=false (default: `true`)
+--- `opts.err`  should stderr be captured, ignored with fork=false (default: `true`)
 ---@param command string[]
 ---@param opts table
 function lfm.execute(command, opts) end

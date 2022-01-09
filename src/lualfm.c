@@ -164,7 +164,7 @@ static int l_execute(lua_State *L)
 	int i;
 	bool out = true;
 	bool err = true;
-	bool fork = true;
+	bool fork = false;
 	int key = 0;
 
 	luaL_checktype(L, 1, LUA_TTABLE);
