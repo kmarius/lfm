@@ -1182,24 +1182,6 @@ static int l_fm_cut(lua_State *L)
 	return 0;
 }
 
-static int l_fn_tokenize(lua_State *L)
-{
-	const char *string = luaL_optstring(L, 1, "");
-	char buf[strlen(string) + 1];
-	int pos1 = 0, pos2 = 0;
-	const char *tok;
-	if ((tok = tokenize(string, buf, &pos1, &pos2)) != NULL) {
-		lua_pushstring(L, tok);
-	}
-	lua_newtable(L);
-	int i = 1;
-	while ((tok = tokenize(string, buf, &pos1, &pos2)) != NULL) {
-		lua_pushstring(L, tok);
-		lua_rawseti(L, -2, i++);
-	}
-	return 2;
-}
-
 static int l_fm_filter_get(lua_State *L)
 {
 	lua_pushstring(L, fm_filter_get(fm));
@@ -1260,6 +1242,75 @@ static const struct luaL_Reg fm_lib[] = {
 
 /* fn lib {{{ */
 
+static int l_fn_tokenize(lua_State *L)
+{
+	const char *string = luaL_optstring(L, 1, "");
+	char buf[strlen(string) + 1];
+	int pos1 = 0, pos2 = 0;
+	const char *tok;
+	if ((tok = tokenize(string, buf, &pos1, &pos2)) != NULL) {
+		lua_pushstring(L, tok);
+	}
+	lua_newtable(L);
+	int i = 1;
+	while ((tok = tokenize(string, buf, &pos1, &pos2)) != NULL) {
+		lua_pushstring(L, tok);
+		lua_rawseti(L, -2, i++);
+	}
+	return 2;
+}
+
+static int l_fn_split_last(lua_State *L)
+{
+	const char *s, *string = luaL_checkstring(L, 1);
+	const char *last = string; /* beginning of last token */
+	bool esc = false;
+	for (s = string; *s != 0; s++) {
+		if (*s == '\\') {
+			esc = !esc;
+		} else {
+			if (*s == ' ' && !esc) {
+				last = s + 1;
+			}
+			esc = false;
+		}
+	}
+	lua_pushlstring(L, string, last - string);
+	lua_pushstring(L, last);
+	return 2;
+}
+
+static int l_fn_unquote_space(lua_State *L)
+{
+	const char *string = luaL_checkstring(L, 1);
+	char buf[strlen(string)  + 1];
+	const char *s = string;
+	char *t = buf;
+	for (s = string; *s != 0; s++) {
+		if (*s != '\\' || *(s+1) != ' ') {
+			*t++ = *s;
+		}
+	}
+	lua_pushlstring(L, buf, t-buf);
+	return 1;
+}
+
+static int l_fn_quote_space(lua_State *L)
+{
+	const char *string = luaL_checkstring(L, 1);
+	char buf[strlen(string) * 2 + 1];
+	const char *s = string;
+	char *t = buf;
+	while (*s) {
+		if (*s == ' ') {
+			*t++ = '\\';
+		}
+		*t++ = *s++;
+	}
+	lua_pushlstring(L, buf, t-buf);
+	return 1;
+}
+
 static int l_fn_getpid(lua_State *L)
 {
 	lua_pushinteger(L, getpid());
@@ -1281,6 +1332,9 @@ static int l_fn_getpwd(lua_State *L)
 }
 
 static const struct luaL_Reg fn_lib[] = {
+	{"split_last", l_fn_split_last},
+	{"quote_space", l_fn_quote_space},
+	{"unquote_space", l_fn_unquote_space},
 	{"tokenize", l_fn_tokenize},
 	{"getpid", l_fn_getpid},
 	{"getcwd", l_fn_getcwd},

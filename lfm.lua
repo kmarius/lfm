@@ -337,6 +337,22 @@ function lfm.fn.getpid() end
 ---@return string, string[]
 function lfm.fn.tokenize(str) end
 
+---Split a string into prefix, rest, where rest is the last space delimited token.
+---Respects escaped spaces.
+---@param str string
+---@return string, string
+function lfm.fn.split_last(str) end
+
+---Escapes spaces in a string.
+---@param str string
+---@return string
+function lfm.fn.quote_space(str) end
+
+---Replaces "\\ " with " " in `str`.
+---@param str string
+---@return string
+function lfm.fn.unquote_space(str) end
+
 ---Get the current working directory (usually with symlinks resolved)
 ---@return string
 function lfm.fn.getcwd() end
