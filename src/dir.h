@@ -3,30 +3,19 @@
 
 #include <linux/limits.h>
 #include <stdbool.h>
-#include <sys/stat.h>
 #include <sys/types.h>
 
 #include "cvector.h"
+#include "file.h"
 #include "sort.h"
 
 enum sorttype_e { SORT_NATURAL, SORT_NAME, SORT_SIZE, SORT_CTIME, SORT_RAND, };
-
-typedef struct file_t {
-	struct stat lstat;
-	struct stat stat;
-	bool broken;
-	char *path;
-	char *name;
-	char *ext;
-	char *link_target;
-	int filecount; /* in case of dir */
-} file_t;
 
 typedef struct dir_t {
 	char *path;
 	char *name;	/* a substring of path */
 
-	cvector_vector_type(file_t) allfiles;    /* files including hidden/filtered */
+	cvector_vector_type(file_t*) allfiles;    /* files including hidden/filtered */
 	file_t **sortedfiles; /* files excluding hidden */
 	file_t **files;	     /* visible files */
 	int alllen;	 /* length of the array of all files */
@@ -50,23 +39,6 @@ typedef struct dir_t {
 	bool reverse : 1;
 	enum sorttype_e sorttype;
 } dir_t;
-
-/*
- * Returns `true` if the file is a directory or, if it is a link, if the link
- * target is one.
- */
-bool file_isdir(const file_t *file);
-
-/*
- * Returns `true` if the file is a executable or, if it is a link, if the link
- * target is.
- */
-#define file_isexec(f) ((f)->lstat.st_mode & (1 | 8 | 64))
-
-/*
- * Returns `true` if the file is a symbolic link.
- */
-#define file_islink(f) ((f)->link_target != NULL)
 
 /*
  * New directory with a 'loading' marker.

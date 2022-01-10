@@ -15,14 +15,10 @@
 #include "log.h"
 #include "util.h"
 
-static bool file_filtered(file_t *file, const char *filter);
 static void apply_filter(dir_t *dir);
-static void file_deinit(file_t *file);
-static inline bool file_hidden(file_t *file);
 static inline void swap(file_t **a, file_t **b);
 static void shuffle(void *arr, size_t n, size_t size);
-static int file_count(const char *path);
-static bool file_load(file_t *file, const char *basedir, const char *name);
+static int get_file_count(const char *path);
 
 file_t *dir_current_file(const dir_t *dir)
 {
@@ -47,6 +43,10 @@ static bool file_filtered(file_t *file, const char *filter)
 	return strcasestr(file->name, filter) != NULL;
 }
 
+static inline bool file_hidden(file_t *file) {
+	return file->name[0] == '.';
+}
+
 static void apply_filter(dir_t *dir)
 {
 	int i, j = 0;
@@ -65,19 +65,6 @@ static void apply_filter(dir_t *dir)
 		dir->len = dir->sortedlen;
 	}
 	dir->ind = max(min(dir->ind, dir->len - 1), 0);
-}
-
-static inline bool file_hidden(file_t *file) {
-	return file->name[0] == '.';
-}
-
-static void file_deinit(file_t *file)
-{
-	if (file == NULL) {
-		return;
-	}
-	free(file->path);
-	free(file->link_target);
 }
 
 static inline void swap(file_t **a, file_t **b)
@@ -116,20 +103,16 @@ void dir_sort(dir_t *dir)
 	if (!dir->sorted) {
 		switch (dir->sorttype) {
 			case SORT_NATURAL:
-				qsort(dir->allfiles, dir->alllen, sizeof(file_t),
-						compare_natural);
+				qsort(dir->allfiles, dir->alllen, sizeof(file_t*), compare_natural);
 				break;
 			case SORT_NAME:
-				qsort(dir->allfiles, dir->alllen, sizeof(file_t),
-						compare_name);
+				qsort(dir->allfiles, dir->alllen, sizeof(file_t*), compare_name);
 				break;
 			case SORT_SIZE:
-				qsort(dir->allfiles, dir->alllen, sizeof(file_t),
-						compare_size);
+				qsort(dir->allfiles, dir->alllen, sizeof(file_t*), compare_size);
 				break;
 			case SORT_CTIME:
-				qsort(dir->allfiles, dir->alllen, sizeof(file_t),
-						compare_ctime);
+				qsort(dir->allfiles, dir->alllen, sizeof(file_t*), compare_ctime);
 				break;
 			case SORT_RAND:
 				shuffle(dir->allfiles, dir->alllen, sizeof(*dir->allfiles));
@@ -144,47 +127,42 @@ void dir_sort(dir_t *dir)
 		j = 0;
 		if (dir->dirfirst) {
 			for (i = 0; i < dir->alllen; i++) {
-				if (file_isdir(dir->allfiles + i)) {
-					dir->sortedfiles[j++] =
-						&dir->allfiles[i];
+				if (file_isdir(dir->allfiles[i])) {
+					dir->sortedfiles[j++] = dir->allfiles[i];
 				}
 			}
 			ndirs = j;
 			/* second pass: files */
 			for (i = 0; i < dir->alllen; i++) {
-				if (!file_isdir(dir->allfiles + i)) {
-					dir->sortedfiles[j++] =
-						&dir->allfiles[i];
+				if (!file_isdir(dir->allfiles[i])) {
+					dir->sortedfiles[j++] = dir->allfiles[i];
 				}
 			}
 		} else {
 			for (i = 0, j = 0; i < dir->alllen; i++) {
-				dir->sortedfiles[j++] = &dir->allfiles[i];
+				dir->sortedfiles[j++] = dir->allfiles[i];
 			}
 		}
 	} else {
 		j = 0;
 		if (dir->dirfirst) {
 			for (i = 0; i < dir->alllen; i++) {
-				if (!file_hidden(dir->allfiles + i) &&
-						file_isdir(dir->allfiles + i)) {
-					dir->sortedfiles[j++] =
-						&dir->allfiles[i];
+				if (!file_hidden(dir->allfiles[i]) &&
+						file_isdir(dir->allfiles[i])) {
+					dir->sortedfiles[j++] = dir->allfiles[i];
 				}
 			}
 			ndirs = j;
 			for (i = 0; i < dir->alllen; i++) {
-				if (!file_hidden(dir->allfiles + i) &&
-						!file_isdir(dir->allfiles + i)) {
-					dir->sortedfiles[j++] =
-						&dir->allfiles[i];
+				if (!file_hidden(dir->allfiles[i]) &&
+						!file_isdir(dir->allfiles[i])) {
+					dir->sortedfiles[j++] = dir->allfiles[i];
 				}
 			}
 		} else {
 			for (i = 0, j = 0; i < dir->alllen; i++) {
-				if (!file_hidden(dir->allfiles + i)) {
-					dir->sortedfiles[j++] =
-						&dir->allfiles[i];
+				if (!file_hidden(dir->allfiles[i])) {
+					dir->sortedfiles[j++] = dir->allfiles[i];
 				}
 			}
 		}
@@ -213,11 +191,6 @@ void dir_filter(dir_t *dir, const char *filter)
 	strncpy(dir->filter, filter, sizeof(dir->filter));
 	dir->filter[sizeof(dir->filter)-1] = 0;
 	apply_filter(dir);
-}
-
-bool file_isdir(const file_t *file)
-{
-	return S_ISDIR(file->stat.st_mode);
 }
 
 bool dir_check(const dir_t *dir)
@@ -266,9 +239,7 @@ dir_t *new_dir(const char *path)
 	return dir;
 }
 
-/* this causes directories that contain slow mountpoints to also load slowly */
-/* TODO: check that this doesn't get stuck e.g. on nfs (on 2021-10-25) */
-static int file_count(const char *path)
+static int get_file_count(const char *path)
 {
 	int ct;
 	struct dirent *dp;
@@ -290,53 +261,9 @@ dir_t *dir_new_loading(const char *path)
 	return d;
 }
 
-static bool file_load(file_t *file, const char *basedir, const char *name)
-{
-	char buf[PATH_MAX] = {0};
-	bool isroot = basedir[0] == '/' && basedir[1] == 0;
-	asprintf(&file->path, "%s/%s", isroot ? "" : basedir, name);
-
-	if (lstat(file->path, &file->lstat) == -1) {
-		/* likely the file was deleted */
-		log_error("lstat: %s", strerror(errno));
-		free(file->path);
-		return false;
-	}
-
-	file->name = basename(file->path);
-	file->ext = strrchr(file->name, '.');
-	if (file->ext == file->name) {
-		/* hidden file, name begins with '.'  */
-		file->ext = NULL;
-	}
-	file->link_target = NULL;
-	file->broken = false;
-
-	if (S_ISLNK(file->lstat.st_mode)) {
-		if (stat(file->path, &file->stat) == -1) {
-			log_error("stat: %s", strerror(errno));
-			file->broken = true;
-			file->stat = file->lstat;
-		}
-		if (readlink(file->path, buf, sizeof(buf)) == -1) {
-			log_error("readlink: %s", strerror(errno));
-			file->broken = true;
-		} else {
-			file->link_target = strdup(buf);
-		}
-	} else {
-		// for non-symlinks: stat == lstat
-		file->stat = file->lstat;
-	}
-
-	return true;
-}
-
 dir_t *dir_load(const char *path, bool load_filecount)
 {
-	int i;
 	struct dirent *dp;
-	file_t f;
 	dir_t *dir = new_dir(path);
 
 	DIR *dirp = opendir(path);
@@ -346,37 +273,31 @@ dir_t *dir_load(const char *path, bool load_filecount)
 		return dir;
 	}
 
-	for (i = 0; (dp = readdir(dirp)) != NULL;) {
+	while ((dp = readdir(dirp)) != NULL) {
 		if (dp->d_name[0] == '.' &&
 				(dp->d_name[1] == 0 ||
 				 (dp->d_name[1] == '.' && dp->d_name[2] == 0))) {
 			continue;
 		}
-		if (file_load(&f, path, dp->d_name)) {
-			f.filecount = (load_filecount && file_isdir(&f)) ? file_count(f.path) : 0;
-			cvector_push_back(dir->allfiles, f);
-			i++;
+		file_t *file = file_create(path, dp->d_name);
+		if (file != NULL) {
+			if (load_filecount && file_isdir(file)) {
+				file->filecount = get_file_count(file->path);
+			}
+			cvector_push_back(dir->allfiles, file);
 		}
 	}
 	closedir(dirp);
 
-	dir->alllen = i;
+	dir->alllen = cvector_size(dir->allfiles);
+	dir->sortedlen = dir->alllen;
+	dir->len = dir->alllen;
 
 	dir->sortedfiles = malloc(sizeof(file_t*) * dir->alllen);
 	dir->files = malloc(sizeof(file_t*) * dir->alllen);
 
-	if (dir->files == NULL || dir->sortedfiles == NULL) {
-		dir->error = -1;
-		return dir;
-	}
-
-	dir->sortedlen = dir->alllen;
-	dir->len = dir->alllen;
-
-	for (i = 0; i < dir->alllen; i++) {
-		dir->sortedfiles[i] = dir->allfiles + i;
-		dir->files[i] = dir->allfiles + i;
-	}
+	memcpy(dir->sortedfiles, dir->allfiles, sizeof(file_t*)*dir->alllen);
+	memcpy(dir->files, dir->allfiles, sizeof(file_t*)*dir->alllen);
 
 	return dir;
 }
@@ -416,10 +337,7 @@ void dir_update_with(dir_t *dir, dir_t *update, int height, int scrolloff)
 	if (dir->sel == NULL && dir->ind < dir->len) {
 		dir->sel = strdup(dir->files[dir->ind]->name);
 	}
-	for (int i = 0; i < dir->alllen; i++) {
-		file_deinit(dir->allfiles+i);
-	}
-	cvector_free(dir->allfiles);
+	cvector_ffree(dir->allfiles, file_destroy);
 	free(dir->sortedfiles);
 	free(dir->files);
 
@@ -450,10 +368,7 @@ void dir_free(dir_t *dir)
 	if (dir == NULL) {
 		return;
 	}
-	for (int i = 0; i < dir->alllen; i++) {
-		file_deinit(dir->allfiles+i);
-	}
-	cvector_free(dir->allfiles);
+	cvector_ffree(dir->allfiles, file_destroy);
 	free(dir->sortedfiles);
 	free(dir->files);
 	free(dir->sel);
