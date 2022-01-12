@@ -65,8 +65,7 @@ void notify_add_watcher(dir_t *dir)
 		log_warn("inotify_add_watch(fd, \"%s\", ...) took %ums", dir->path, t1 - t0);
 	}
 
-	tup_t t = {dir, wd};
-	cvector_push_back(watchers, t);
+	cvector_push_back(watchers, ((tup_t) {dir, wd}));
 }
 
 void notify_remove_watcher(dir_t *dir)

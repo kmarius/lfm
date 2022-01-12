@@ -191,8 +191,7 @@ static void inotify_cb(EV_P_ ev_io *w, int revents)
 				dir_t *dir = notify_get_dir(event->wd);
 				if (dir != NULL) {
 					async_dir_load(dir, true);
-					struct tup_t t = { .next = now, .wd = event->wd, };
-					cvector_push_back(times, t);
+					cvector_push_back(times, ((struct tup_t) {now, event->wd}));
 				}
 			} else {
 				unsigned long next = now;
