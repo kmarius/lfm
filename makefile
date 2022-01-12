@@ -2,7 +2,7 @@
 # The name of the executable to be created
 BIN_NAME := lfm
 # Compiler used
-CC ?= gcc
+CC ?= clang
 # Extension of source files used in the project
 SRC_EXT = c
 # Path to the source directory, relative to the makefile
@@ -10,17 +10,17 @@ SRC_PATH = src
 # Space-separated pkg-config libraries used by this project
 LIBS = luajit ncursesw notcurses
 # General compiler flags
-COMPILE_FLAGS = -std=gnu11 -Wall -Wextra -g -O2 -pthread -pthread
+COMPILE_FLAGS = -std=gnu11 -Wall -Wextra -g -pthread
 # Additional release-specific flags
-RCOMPILE_FLAGS = -D NDEBUG
+RCOMPILE_FLAGS = -D NDEBUG -flto -O2
 # Additional debug-specific flags
 DCOMPILE_FLAGS = -D DEBUG
 # Add additional include paths
-INCLUDES = -I $(SRC_PATH) -I/usr/include/libev -I/usr/include/luajit-2.0
+INCLUDES = -I$(SRC_PATH) -I/usr/include/libev
 # General linker settings
-LINK_FLAGS = -lev -lpthread -pthread
+LINK_FLAGS = -lev -lpthread
 # Additional release-specific linker settings
-RLINK_FLAGS =
+RLINK_FLAGS = -flto
 # Additional debug-specific linker settings
 DLINK_FLAGS =
 # Destination directory, like a jail or mounted system
