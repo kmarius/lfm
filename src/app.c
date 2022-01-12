@@ -58,11 +58,11 @@ static void async_result_cb(EV_P_ ev_async *w, int revents)
 {
 	(void)revents;
 	app_t *app = (app_t*) w->data;
-	res_t result;
+	struct res_t *res;
 
 	pthread_mutex_lock(&async_results.mutex);
-	while (queue_get(&async_results, &result))
-		result.cb(&result, app);
+	while ((res = queue_get(&async_results)) != NULL)
+		res_callback(res, app);
 	pthread_mutex_unlock(&async_results.mutex);
 
 	ev_idle_start(app->loop, &redraw_watcher);

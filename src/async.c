@@ -19,61 +19,101 @@ resq_t async_results = {
 	.watcher = NULL,
 };
 
-void queue_put(resq_t *queue, res_t res)
-{
-	res_t *r = malloc(sizeof(res_t));
-	*r = res;
+struct res_vtable {
+	void (*callback)(struct res_t *, struct app_t *);
+	void (*destroy)(struct res_t *);
+};
 
+struct res_t {
+	struct res_vtable *vtable;
+	struct res_t *next;
+};
+
+void res_callback(struct res_t *res, app_t *app)
+{
+	res->vtable->callback(res, app);
+}
+
+static void res_destroy(struct res_t *res)
+{
+	res->vtable->destroy(res);
+}
+
+/* result queue {{{ */
+void queue_put(resq_t *queue, struct res_t *res)
+{
 	if (queue->head == NULL) {
-		queue->head = r;
-		queue->tail = r;
+		queue->head = res;
+		queue->tail = res;
 	} else {
-		queue->tail->next = r;
-		queue->tail = r;
+		queue->tail->next = res;
+		queue->tail = res;
 	}
 }
 
-bool queue_get(resq_t *queue, res_t *result)
+struct res_t *queue_get(resq_t *queue)
 {
-	res_t *res;
+	struct res_t *res = queue->head;
 
-	if ((res = queue->head) == NULL) {
-		return false;
+	if (res == NULL) {
+		return NULL;
 	}
 
-	*result = *res;
-	result->next = NULL;
-
 	queue->head = res->next;
+	res->next = NULL;
 	if (queue->tail == res) {
 		queue->tail = NULL;
 	}
-	free(res);
 
-	return true;
+	return res;
 }
 
 void queue_deinit(resq_t *queue)
 {
-	res_t result;
-	while (queue_get(queue, &result)) {
-		if (result.free)
-			result.free(&result);
+	struct res_t *res;
+	while ((res = queue_get(queue)) != NULL) {
+		res_destroy(res);
 	}
+}
+/* }}} */
+
+/* dir_check {{{ */
+
+struct res_dir_check {
+	struct res_t super;
+	dir_t *dir;
+};
+
+/* TODO: maybe on slow devices it is better to compare mtimes here? 2021-11-12 */
+/* currently we could just schedule reload from the other thread */
+static void res_dir_check_callback(struct res_dir_check *result, app_t *app)
+{
+	(void) app;
+	async_dir_load(result->dir, true);
+	free(result);
+}
+
+static void res_dir_check_destroy(struct res_dir_check *result) {
+	free(result);
+}
+
+static struct res_vtable res_dir_check_vtable = {
+	(void (*)(struct res_t *, app_t *)) &res_dir_check_callback,
+	(void (*)(struct res_t *)) &res_dir_check_destroy,
+};
+
+static inline struct res_dir_check *res_dir_check_create(dir_t *dir)
+{
+	struct res_dir_check *res = malloc(sizeof(struct res_dir_check));
+	res->super.vtable = &res_dir_check_vtable;
+	res->dir = dir;
+	return res;
 }
 
 struct dir_check_work {
 	dir_t *dir;
 	time_t loadtime;
 };
-
-static void cb_dir_check(struct res_t *result, app_t *app)
-{
-	/* TODO: maybe on slow devices it is better to compare mtimes here? 2021-11-12 */
-	/* currently we could just schedule reload from the other thread */
-	(void) app;
-	async_dir_load(result->dir, true);
-}
 
 static void async_dir_check_worker(void *arg)
 {
@@ -90,14 +130,10 @@ static void async_dir_check_worker(void *arg)
 		return;
 	}
 
-	res_t r = {
-		.cb = cb_dir_check,
-		.free = NULL,
-		.dir = w->dir,
-	};
+	struct res_dir_check *res = res_dir_check_create(w->dir);
 
 	pthread_mutex_lock(&async_results.mutex);
-	queue_put(&async_results, r);
+	queue_put(&async_results, (struct res_t *) res);
 	pthread_mutex_unlock(&async_results.mutex);
 
 	if (async_results.watcher != NULL) {
@@ -115,38 +151,61 @@ void async_dir_check(dir_t *dir)
 	tpool_add_work(async_tm, async_dir_check_worker, w);
 }
 
-struct dir_work {
+/* }}} */
+
+/* dir_update {{{ */
+
+struct res_dir_update {
+	struct res_t super;
+	dir_t *dir;
+	dir_t *update;
+};
+
+static void res_dir_update_callback(struct res_dir_update *result, app_t *app)
+{
+	app->ui.redraw.fm |= fm_update_dir(&app->fm, result->dir, result->update);
+	free(result);
+}
+
+static void res_dir_update_destroy(struct res_dir_update *result)
+{
+	dir_free(result->dir);
+	free(result);
+}
+
+static struct res_vtable res_dir_update_vtable = {
+	(void (*)(struct res_t *, app_t *)) &res_dir_update_callback,
+	(void (*)(struct res_t *)) &res_dir_update_destroy,
+};
+
+static inline struct res_dir_update *res_dir_update_create(dir_t *dir, dir_t *update)
+{
+	struct res_dir_update *res = malloc(sizeof(struct res_dir_update));
+	res->super.vtable = &res_dir_update_vtable;
+	res->super.next = NULL;
+	res->dir = dir;
+	res->update = update;
+	return res;
+}
+
+struct dir_load_work {
 	dir_t *dir;
 	char *path;
 	int delay;
 	bool dircounts;
 };
 
-static void cb_dir_update(struct res_t *result, app_t *app)
-{
-	app->ui.redraw.fm |= fm_update_dir(&app->fm, result->dir, result->update);
-}
-
-static void free_dir_update(struct res_t *result)
-{
-	dir_free(result->dir);
-}
-
 static void async_dir_load_worker(void *arg)
 {
-	struct dir_work *w = arg;
+	struct dir_load_work *w = arg;
 	if (w->delay > 0) {
 		msleep(w->delay);
 	}
-	res_t r = {
-		.cb = cb_dir_update,
-		.free = free_dir_update,
-		.dir = w->dir,
-		.update = dir_load(w->path, w->dircounts)
-	};
+
+	struct res_dir_update *res = res_dir_update_create(w->dir, dir_load(w->path, w->dircounts));
 
 	pthread_mutex_lock(&async_results.mutex);
-	queue_put(&async_results, r);
+	queue_put(&async_results, (struct res_t *) res);
 	pthread_mutex_unlock(&async_results.mutex);
 
 	if (async_results.watcher != NULL) {
@@ -166,7 +225,7 @@ static void async_dir_load_worker(void *arg)
 
 void async_dir_load_delayed(dir_t *dir, bool dircounts, int delay /* millis */)
 {
-	struct dir_work *w = malloc(sizeof(struct dir_work));
+	struct dir_load_work *w = malloc(sizeof(struct dir_load_work));
 	w->dir = dir;
 	w->path = strdup(dir->path);
 	w->delay = delay;
@@ -174,27 +233,54 @@ void async_dir_load_delayed(dir_t *dir, bool dircounts, int delay /* millis */)
 	tpool_add_work(async_tm, async_dir_load_worker, w);
 }
 
-struct pv_check_work {
+/* }}} */
+
+/* preview_check {{{ */
+
+struct res_preview_check {
+	struct res_t super;
+	char *path;
+	int nrow;
+};
+
+static void res_preview_check_callback(struct res_preview_check *result, app_t *app)
+{
+	(void) app;
+	async_preview_load(result->path, result->nrow);
+	free(result->path);
+	free(result);
+}
+
+static void res_preview_check_destroy(struct res_preview_check *result)
+{
+	free(result->path);
+	free(result);
+}
+
+static struct res_vtable res_preview_check_vtable = {
+	(void (*)(struct res_t *, app_t *)) &res_preview_check_callback,
+	(void (*)(struct res_t *)) &res_preview_check_destroy,
+};
+
+static inline struct res_preview_check *res_preview_check_create(char *path, int nrow)
+{
+	struct res_preview_check *res = malloc(sizeof(struct res_preview_check));
+	res->super.vtable = &res_preview_check_vtable;
+	res->super.next = NULL;
+	res->path = path;
+	res->nrow = nrow;
+	return res;
+}
+
+struct preview_check_work {
 	char *path;
 	int nrow;
 	time_t mtime;
 };
 
-static void cb_preview_check(struct res_t *result, app_t *app)
-{
-	(void) app;
-	async_preview_load(result->path, result->nrow);
-	free(result->path);
-}
-
-static void free_preview_check(struct res_t *result)
-{
-	free(result->path);
-}
-
 static void async_preview_check_worker(void *arg)
 {
-	struct pv_check_work *w = arg;
+	struct preview_check_work *w = arg;
 	struct stat statbuf;
 
 	if (stat(w->path, &statbuf) == -1) {
@@ -209,15 +295,10 @@ static void async_preview_check_worker(void *arg)
 		return;
 	}
 
-	res_t r = {
-		.cb = cb_preview_check,
-		.free = free_preview_check,
-		.path = w->path,
-		.nrow = w->nrow,
-	};
+	struct res_preview_check *res = res_preview_check_create(w->path, w->nrow);
 
 	pthread_mutex_lock(&async_results.mutex);
-	queue_put(&async_results, r);
+	queue_put(&async_results, (struct res_t *) res);
 	pthread_mutex_unlock(&async_results.mutex);
 
 	if (async_results.watcher != NULL) {
@@ -229,38 +310,61 @@ static void async_preview_check_worker(void *arg)
 
 void async_preview_check(preview_t *pv)
 {
-	struct pv_check_work *w = malloc(sizeof(struct pv_check_work));
+	struct preview_check_work *w = malloc(sizeof(struct preview_check_work));
 	w->path = strdup(pv->path);
 	w->nrow = pv->nrow;
 	w->mtime = pv->mtime;
 	tpool_add_work(async_tm, async_preview_check_worker, w);
 }
 
-struct pv_load_work {
+/* }}} */
+
+/* preview_load {{{ */
+
+struct res_preview_load {
+	struct res_t super;
+	preview_t *preview;
+};
+
+static void res_preview_load_callback(struct res_preview_load *result, app_t *app)
+{
+	app->ui.redraw.preview |= ui_insert_preview(&app->ui, result->preview);
+	free(result);
+}
+
+static void res_preview_load_deinit(struct res_preview_load *result)
+{
+	preview_free(result->preview);
+	free(result);
+}
+
+static struct res_vtable res_preview_load_vtable = {
+	(void (*)(struct res_t *, app_t *)) &res_preview_load_callback,
+	(void (*)(struct res_t *)) &res_preview_load_deinit,
+};
+
+static inline struct res_preview_load *res_preview_load_create(preview_t *preview)
+{
+	struct res_preview_load *res = malloc(sizeof(struct res_preview_load));
+	res->super.vtable = &res_preview_load_vtable;
+	res->super.next = NULL;
+	res->preview = preview;
+	return res;
+}
+
+struct preview_load_work {
 	char *path;
 	int nrow;
 };
 
-static void cb_preview(struct res_t *result, app_t *app)
-{
-	app->ui.redraw.preview |= ui_insert_preview(&app->ui, result->preview);
-}
-
-static void free_preview(struct res_t *result)
-{
-	preview_free(result->preview);
-}
-
 static void async_preview_load_worker(void *arg)
 {
-	struct pv_load_work *w = (struct pv_load_work*) arg;
-	res_t r = {
-		.cb = cb_preview,
-		.free = free_preview,
-		.preview = preview_new_from_file(w->path, w->nrow),
-	};
+	struct preview_load_work *w = (struct preview_load_work*) arg;
+
+	struct res_preview_load *res = res_preview_load_create(preview_new_from_file(w->path, w->nrow));
+
 	pthread_mutex_lock(&async_results.mutex);
-	queue_put(&async_results, r);
+	queue_put(&async_results, (struct res_t *) res);
 	pthread_mutex_unlock(&async_results.mutex);
 	if (async_results.watcher != NULL) {
 		ev_async_send(EV_DEFAULT_ async_results.watcher);
@@ -271,8 +375,9 @@ static void async_preview_load_worker(void *arg)
 
 void async_preview_load(const char *path, int nrow)
 {
-	struct pv_load_work *w = malloc(sizeof(struct pv_load_work));
+	struct preview_load_work *w = malloc(sizeof(struct preview_load_work));
 	w->path = strdup(path);
 	w->nrow = nrow;
 	tpool_add_work(async_tm, async_preview_load_worker, w);
 }
+/* }}} */
