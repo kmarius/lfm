@@ -1,5 +1,4 @@
-#ifndef PREVIEW_H
-#define PREVIEW_H
+#pragma once
 
 #include <stdbool.h>
 #include <time.h>
@@ -22,5 +21,3 @@ preview_t *preview_new_loading(const char *path, int nrow);
 preview_t *preview_new_from_file(const char *path, int nrow);
 
 void preview_free(preview_t *pv);
-
-#endif /* PREVIEW_H */

@@ -26,8 +26,7 @@
  *          add macro cvector_ffree to pass a function/macro to free elements
  */
 
-#ifndef CVECTOR_H
-#define CVECTOR_H
+#pragma once
 
 #include <assert.h> /* for assert */
 #include <stdlib.h> /* for malloc/realloc/free */
@@ -330,8 +329,6 @@
 		cvector_set_size((vec), cvector_size(vec) + 1); \
 	} while (0)
 
-#else
-
 /**
  * @brief cvector_copy - copy a vector
  * @param from - the original vector
@@ -344,5 +341,3 @@
 		cvector_set_size(to, cvector_size(from)); \
 		memcpy(to, from, cvector_size(from) * sizeof(*(from))); \
 	} while (0)
-
-#endif /* CVECTOR_H */

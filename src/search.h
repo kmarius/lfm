@@ -1,5 +1,4 @@
-#ifndef SEARCH_H
-#define SEARCH_H
+#pragma once
 
 #include <stdbool.h>
 
@@ -25,5 +24,3 @@ void search_prev(ui_t *ui, fm_t *fm, bool inclusive);
  * Disable highlighting of current search results.
  */
 void nohighlight(ui_t *ui);
-
-#endif /* SEARCH_H */

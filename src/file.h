@@ -1,5 +1,4 @@
-#ifndef FILE_H
-#define FILE_H
+#pragma once
 
 #include <stdbool.h>
 #include <sys/stat.h>
@@ -35,5 +34,3 @@ bool file_isdir(const file_t *file);
  * Returns `true` if the file is a symbolic link.
  */
 #define file_islink(f) ((f)->link_target != NULL)
-
-#endif /* FILE_H */

@@ -5,8 +5,7 @@
  * under the terms of the MIT license. See `log.c` for details.
  */
 
-#ifndef LOG_H
-#define LOG_H
+#pragma once
 
 #include <stdarg.h>
 #include <stdbool.h>
@@ -45,5 +44,3 @@ int log_add_callback(log_LogFn fn, void *udata, int level);
 int log_add_fp(FILE *fp, int level);
 
 void log_log(int level, const char *file, int line, const char *fmt, ...);
-
-#endif /* LOG_H */

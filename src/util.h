@@ -1,5 +1,4 @@
-#ifndef UTIL_H
-#define UTIL_H
+#pragma once
 
 #include <stdbool.h>
 #include <string.h>
@@ -52,5 +51,3 @@ char *sdirname(const char *p);
 #define abasename(p) strdup(sbasename(p))
 
 #define adirname(p) strdup(sdirname(p))
-
-#endif /* UTIL_H */

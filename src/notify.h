@@ -1,5 +1,4 @@
-#ifndef NOTIFY_H
-#define NOTIFY_H
+#pragma once
 
 #include <stdbool.h>
 #include <stdlib.h>
@@ -25,5 +24,3 @@ dir_t *notify_get_dir(int wd);
 void notify_close();
 
 void log_watchers();
-
-#endif /* NOTIFY_H */

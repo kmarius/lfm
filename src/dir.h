@@ -1,5 +1,4 @@
-#ifndef DIR_H
-#define DIR_H
+#pragma once
 
 #include <linux/limits.h>
 #include <stdbool.h>
@@ -105,5 +104,3 @@ void dir_cursor_move_to(dir_t *dir, const char *name, int height, int scrolloff)
  * Replace files and metadata of `dir` with those of `update`. Frees `update`.
  */
 void dir_update_with(dir_t *dir, dir_t *update, int height, int scrolloff);
-
-#endif /* DIR_H */

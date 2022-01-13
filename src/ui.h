@@ -1,5 +1,4 @@
-#ifndef UI_H
-#define UI_H
+#pragma once
 
 #include <lua.h>
 #include <notcurses/notcurses.h>
@@ -87,5 +86,3 @@ void ui_drop_cache(ui_t *ui);
 void ui_notcurses_init(ui_t *ui);
 
 void ui_suspend(ui_t *ui);
-
-#endif /* UI_H */

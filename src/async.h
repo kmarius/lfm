@@ -1,5 +1,4 @@
-#ifndef ASYNC_H
-#define ASYNC_H
+#pragma once
 
 #include <ev.h>
 #include <pthread.h>
@@ -63,5 +62,3 @@ void async_preview_check(preview_t *pv);
  * Reloads preview of the file at `path` with `nrow` lines from disk.
  */
 void async_preview_load(const char *path, int nrow);
-
-#endif /* ASYNC_H */

@@ -19,8 +19,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#ifndef TPOOL_H
-#define TPOOL_H
+#pragma once
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -37,5 +36,3 @@ void tpool_destroy(tpool_t *tm);
 bool tpool_add_work(tpool_t *tm, thread_func_t func, void *arg);
 
 void tpool_wait(tpool_t *tm);
-
-#endif /* TPOOL_H */

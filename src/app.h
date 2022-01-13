@@ -1,5 +1,4 @@
-#ifndef APP_H
-#define APP_H
+#pragma once
 
 #include <ev.h>
 #include <lua.h>
@@ -55,5 +54,3 @@ void print(const char *format, ...);
  * Print an error in the UI. `printf` formatting applies.
  */
 void error(const char *format, ...);
-
-#endif /* APP_H */

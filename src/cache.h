@@ -1,5 +1,4 @@
-#ifndef CACHE_H
-#define CACHE_H
+#pragma once
 
 #include <stdbool.h>
 
@@ -20,5 +19,3 @@ void *cache_find(cache_t *cache, const void *key);
 void *cache_take(cache_t *cache, const void *key);
 void cache_clear(cache_t *cache);
 void cache_deinit(cache_t *cache);
-
-#endif /* CACHE_H */

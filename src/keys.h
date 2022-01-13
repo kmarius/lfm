@@ -1,5 +1,4 @@
-#ifndef KEYS_H
-#define KEYS_H
+#pragma once
 
 #include <notcurses/notcurses.h>
 
@@ -24,5 +23,3 @@
 
 const char *long_to_key_name(const long u);
 long *key_names_to_longs(const char *keys, long *buf);
-
-#endif /* KEYS_H */

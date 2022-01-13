@@ -1,5 +1,4 @@
-#ifndef TRIE_H
-#define TRIE_H
+#pragma once
 
 #include "cvector.h"
 
@@ -45,5 +44,3 @@ void trie_collect_leaves(const trie_node_t *trie, cvector_vector_type(char*) *ve
  * Free all resources belonging to the trie.
  */
 void trie_destroy(trie_node_t *trie);
-
-#endif /* TRIE_H */

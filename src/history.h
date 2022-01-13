@@ -1,5 +1,4 @@
-#ifndef HISTORY_H
-#define HISTORY_H
+#pragma once
 
 #include "cvector.h"
 
@@ -15,5 +14,3 @@ void history_reset(history_t *h);
 void history_deinit(history_t *h);
 const char *history_next(history_t *h);
 const char *history_prev(history_t *h);
-
-#endif /* HISTORY_H */

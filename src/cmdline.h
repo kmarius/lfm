@@ -1,5 +1,4 @@
-#ifndef CMDLINE_H
-#define CMDLINE_H
+#pragma once
 
 #include <notcurses/notcurses.h>
 #include <stdbool.h>
@@ -130,5 +129,3 @@ const char *cmdline_get(cmdline_t *t);
  * Draw the command line into an ncplane.
  */
 int cmdline_print(cmdline_t *t, struct ncplane *n);
-
-#endif /* CMDLINE_H */

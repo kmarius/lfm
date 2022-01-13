@@ -1,5 +1,4 @@
-#ifndef FM_H
-#define FM_H
+#pragma once
 
 #include <stdbool.h>
 
@@ -249,5 +248,3 @@ void fm_drop_cache(fm_t *fm);
  * and a redraw is necessary.
  */
 bool fm_update_dir(fm_t *fm, dir_t *dir, dir_t *update);
-
-#endif /* FM_H */

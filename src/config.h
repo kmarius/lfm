@@ -1,5 +1,4 @@
-#ifndef CONFIG_H
-#define CONFIG_H
+#pragma once
 
 #include <stdbool.h>
 #include <unistd.h>
@@ -80,5 +79,3 @@ void config_ext_channel_add(const char *ext, unsigned long channel);
 void config_defaults();
 
 void config_clear();
-
-#endif /* CONFIG_H */
