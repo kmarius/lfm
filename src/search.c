@@ -39,7 +39,7 @@ inline void search(ui_t *ui, const char *string, bool forward)
 	}
 }
 
-static void search_next_forward(ui_t *ui, fm_t *fm, bool inclusive)
+static void search_next_forward(ui_t *ui, Fm *fm, bool inclusive)
 {
 	if (search_string == NULL) {
 		return;
@@ -55,7 +55,7 @@ static void search_next_forward(ui_t *ui, fm_t *fm, bool inclusive)
 	}
 }
 
-static void search_next_backwards(ui_t *ui, fm_t *fm, bool inclusive)
+static void search_next_backwards(ui_t *ui, Fm *fm, bool inclusive)
 {
 	if (search_string == NULL) {
 		return;
@@ -71,7 +71,7 @@ static void search_next_backwards(ui_t *ui, fm_t *fm, bool inclusive)
 	}
 }
 
-void search_next(ui_t *ui, fm_t *fm, bool inclusive)
+void search_next(ui_t *ui, Fm *fm, bool inclusive)
 {
 	if (search_forward) {
 		search_next_forward(ui, fm, inclusive);
@@ -80,7 +80,7 @@ void search_next(ui_t *ui, fm_t *fm, bool inclusive)
 	}
 }
 
-void search_prev(ui_t *ui, fm_t *fm, bool inclusive)
+void search_prev(ui_t *ui, Fm *fm, bool inclusive)
 {
 	if (search_forward) {
 		search_next_backwards(ui, fm, inclusive);

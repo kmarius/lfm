@@ -9,7 +9,7 @@
 
 typedef struct {
 	ui_t ui;
-	fm_t fm;
+	Fm fm;
 	lua_State *L;
 	struct ev_loop *loop;
 } App;

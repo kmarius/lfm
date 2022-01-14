@@ -18,7 +18,7 @@ typedef struct ui_t {
 	int ncol;
 	int ndirs; /* number of columns including the preview */
 
-	fm_t *fm;
+	Fm *fm;
 
 	struct notcurses *nc;
 	struct {
@@ -55,7 +55,7 @@ typedef struct ui_t {
 
 void kbblocking(bool blocking);
 
-void ui_init(ui_t *ui, fm_t *fm);
+void ui_init(ui_t *ui, Fm *fm);
 
 void ui_recol(ui_t *ui);
 

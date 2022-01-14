@@ -35,7 +35,7 @@
 
 static App *app = NULL;
 static ui_t *ui = NULL;
-static fm_t *fm = NULL;
+static Fm *fm = NULL;
 
 static struct {
 	struct trie_node_t *normal;
@@ -906,7 +906,7 @@ static int l_fm_check(lua_State *L)
 
 static int l_fm_sel(lua_State *L)
 {
-	fm_move_to(fm, luaL_checkstring(L, 1));
+	fm_move_cursor_to(fm, luaL_checkstring(L, 1));
 	ui->redraw.fm = 1;
 	return 0;
 }
@@ -1046,7 +1046,7 @@ static int l_fm_sortby(lua_State *L)
 	const File *file = dir_current_file(dir);
 	const char *name = file ? file->name : NULL;
 	dir_sort(dir);
-	fm_move_to(fm, name);
+	fm_move_cursor_to(fm, name);
 	ui->redraw.fm = 1;
 	return 0;
 }
@@ -1080,7 +1080,7 @@ static int l_fm_selection_set(lua_State *L)
 static int l_fm_selection_get(lua_State *L)
 {
 	size_t i, j = 1;
-	lua_createtable(L, fm->selection.len, 0);
+	lua_createtable(L, fm->selection.length, 0);
 	for (i = 0; i < cvector_size(fm->selection.files); i++) {
 		if (fm->selection.files[i] != NULL) {
 			lua_pushstring(L, fm->selection.files[i]);

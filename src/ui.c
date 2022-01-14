@@ -116,7 +116,7 @@ void ui_suspend(ui_t *ui)
 	ui->planes.info = NULL;
 }
 
-void ui_init(ui_t *ui, fm_t *fm)
+void ui_init(ui_t *ui, Fm *fm)
 {
 	ui->fm = fm;
 
@@ -242,7 +242,7 @@ static void draw_dirs(ui_t *ui)
 {
 	PROFILE_BEGIN(t0);
 	int i;
-	const int l = ui->fm->dirs.len;
+	const int l = ui->fm->dirs.length;
 	for (i = 0; i < l; i++) {
 		plane_draw_dir(ui->planes.dirs[l-i-1],
 				ui->fm->dirs.visible[i],
@@ -527,10 +527,10 @@ void draw_cmdline(ui_t *ui)
 				ncplane_set_bg_default(ui->planes.cmdline);
 				ncplane_putchar(ui->planes.cmdline, ' ');
 			}
-			if (ui->fm->selection.len > 0) {
+			if (ui->fm->selection.length > 0) {
 				ncplane_set_channels(ui->planes.cmdline, cfg.colors.selection);
-				rhs_sz += int_sz(ui->fm->selection.len) + 3;
-				ncplane_printf_yx(ui->planes.cmdline, 0, ui->ncol-rhs_sz+1, " %d ", ui->fm->selection.len);
+				rhs_sz += int_sz(ui->fm->selection.length) + 3;
+				ncplane_printf_yx(ui->planes.cmdline, 0, ui->ncol-rhs_sz+1, " %d ", ui->fm->selection.length);
 				ncplane_set_bg_default(ui->planes.cmdline);
 				ncplane_putchar(ui->planes.cmdline, ' ');
 			}
