@@ -11,10 +11,11 @@
 #include <time.h>
 
 #include "log.h"
+#include "util.h"
 
-int min(int i, int j) { return i < j ? i : j; }
+int min(int i, int j);
 
-int max(int i, int j) { return i > j ? i : j; }
+int max(int i, int j);
 
 bool hascaseprefix(const char *restrict string, const char *restrict prefix)
 {

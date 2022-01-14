@@ -15,9 +15,15 @@
 #define snprintf_nowarn(...) (snprintf(__VA_ARGS__) < 0 ? abort() : (void)0)
 #endif
 
-int min(int i, int j);
+inline int min(int i, int j)
+{
+	return i < j ? i : j;
+}
 
-int max(int i, int j);
+inline int max(int i, int j)
+{
+	return i > j ? i : j;
+}
 
 const char *strcaserchr(const char *str, char c);
 
