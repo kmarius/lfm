@@ -53,9 +53,9 @@ static struct {
 static int l_handle_key(lua_State *L)
 {
 	const char *keys = luaL_checkstring(L, 1);
-	long buf[strlen(keys) + 1];
-	key_names_to_longs(keys, buf);
-	for (long *u = buf; *u; u++) {
+	input_t buf[strlen(keys) + 1];
+	key_names_to_input(keys, buf);
+	for (input_t *u = buf; *u; u++) {
 		lua_handle_key(L, *u);
 	}
 	return 0;
@@ -247,8 +247,8 @@ static int l_map_key(lua_State *L)
 	if (!(lua_type(L, 2) == LUA_TFUNCTION)) {
 		luaL_argerror(L, 2, "expected function");
 	}
-	long buf[strlen(keys)+1];
-	trie_node_t *k = trie_insert(maps.normal, key_names_to_longs(keys, buf), keys, desc);
+	input_t buf[strlen(keys)+1];
+	trie_node_t *k = trie_insert(maps.normal, key_names_to_input(keys, buf), keys, desc);
 	lua_pushlightuserdata(L, (void *)k);
 	lua_pushvalue(L, 2);
 	lua_settable(L, LUA_REGISTRYINDEX);
@@ -269,8 +269,8 @@ static int l_cmap_key(lua_State *L)
 	if (!(lua_type(L, 2) == LUA_TFUNCTION)) {
 		luaL_argerror(L, 2, "expected function");
 	}
-	long buf[strlen(keys)+1];
-	trie_node_t *k = trie_insert(maps.cmd, key_names_to_longs(keys, buf), keys, desc);
+	input_t buf[strlen(keys)+1];
+	trie_node_t *k = trie_insert(maps.cmd, key_names_to_input(keys, buf), keys, desc);
 	lua_pushlightuserdata(L, (void *)k);
 	lua_pushvalue(L, 2);
 	lua_settable(L, LUA_REGISTRYINDEX);
@@ -1366,7 +1366,7 @@ void lua_eval(lua_State *L, const char *cmd)
 	}
 }
 
-void lua_handle_key(lua_State *L, long u)
+void lua_handle_key(lua_State *L, input_t u)
 {
 	if (u == CTRL('q')) {
 		app_quit(app);
@@ -1434,13 +1434,13 @@ void lua_handle_key(lua_State *L, long u)
 			cvector_push_back(maps.seq, u);
 			cvector_set_size(maps.str, 0);
 			for (size_t i = 0; i < cvector_size(maps.seq); i++) {
-				for (const char *s = long_to_key_name(maps.seq[i]); *s; s++) {
+				for (const char *s = input_to_key_name(maps.seq[i]); *s; s++) {
 					cvector_push_back(maps.str, *s);
 				}
 			}
 			cvector_push_back(maps.str, 0);
 			ui_error(ui, "no such map: %s", maps.str);
-			log_debug("key: %d, id: %d, shift: %d, ctrl: %d alt %d", u, KEY(u), ISSHIFT(u), ISCTRL(u), ISALT(u));
+			log_debug("key: %d, id: %d, shift: %d, ctrl: %d alt %d", u, ID(u), ISSHIFT(u), ISCTRL(u), ISALT(u));
 			ui_showmenu(ui, NULL);
 			return;
 		}

@@ -3,6 +3,7 @@
 #include <lua.h>
 
 #include "app.h"
+#include "keys.h"
 
 /*
  * Initialize lua state, load libraries.
@@ -20,7 +21,7 @@ bool lua_load_file(lua_State *L, const char *path);
  * Handles key input, called by the event listener, calls the lua function
  * handle_key
  */
-void lua_handle_key(lua_State *L, long u);
+void lua_handle_key(lua_State *L, input_t u);
 
 /*
  * Execute an expr, which is either a chunk of lua code or a registered command

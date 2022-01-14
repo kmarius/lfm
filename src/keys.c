@@ -8,7 +8,7 @@
 #define MAX_KEY_NAME_LEN 2 + 9 + 2 + 2 + 2 /* <> + backspace + c- + a- + s- */
 
 static struct {
-	int id;
+	uint32_t id;
 	const char *name;
 } key_names_map[] = {
 	{' ', "Space"},
@@ -115,130 +115,127 @@ static struct {
 	{NCKEY_PRINT, "Print"},
 	{NCKEY_REFRESH, "Refresh"}};
 
-static const int key_names_len = sizeof(key_names_map) / sizeof(key_names_map[0]);
+static const uint32_t key_names_len = sizeof(key_names_map) / sizeof(key_names_map[0]);
 
-const char *long_to_key_name(const long u)
+const char *input_to_key_name(input_t in)
 {
 	static char buf[MAX_KEY_NAME_LEN + 1];
-	int i;
+	uint32_t j = 0;
 	const char *name = NULL;
-	if (KEY(u) <= '<' || (KEY(u) >= NCKEY_INVALID && KEY(u) <= NCKEY_REFRESH)) {
-		for (i = 0; i < key_names_len; i++) {
-			if (key_names_map[i].id == KEY(u)) {
+	if (ID(in) <= '<' || (ID(in) >= NCKEY_INVALID && ID(in) <= NCKEY_REFRESH)) {
+		for (uint32_t i = 0; i < key_names_len; i++) {
+			if (key_names_map[i].id == ID(in)) {
 				name = key_names_map[i].name;
 				break;
 			}
 		}
 	}
-	int ind = 0;
-	if (ISSHIFT(u)|ISALT(u)|ISCTRL(u) || name) {
-		buf[ind++] = '<';
+	if (ISSHIFT(in)|ISALT(in)|ISCTRL(in) || name != NULL) {
+		buf[j++] = '<';
 	}
-	if (ISSHIFT(u)) {
-		buf[ind++] = 'S';
-		buf[ind++] = '-';
+	if (ISSHIFT(in)) {
+		buf[j++] = 'S';
+		buf[j++] = '-';
 	}
-	if (ISCTRL(u)) {
-		buf[ind++] = 'C';
-		buf[ind++] = '-';
+	if (ISCTRL(in)) {
+		buf[j++] = 'C';
+		buf[j++] = '-';
 	}
-	if (ISALT(u)) {
-		buf[ind++] = 'A';
-		buf[ind++] = '-';
+	if (ISALT(in)) {
+		buf[j++] = 'A';
+		buf[j++] = '-';
 	}
 	if (name) {
-		strcpy(buf+ind, name);
-		ind += strlen(name);
+		strcpy(buf+j, name);
+		j += strlen(name);
 	} else {
 		// not a special key
 		// check if printable? otherwise notcurses won't print '>'
-		int n = wctomb(buf+ind, KEY(u));
+		int n = wctomb(buf+j, ID(in));
 		if (n < 0) {
-			buf[ind++] = '?';
+			buf[j++] = '?';
 		} else {
-			ind += n;
+			j += n;
 		}
 	}
-	if (ISSHIFT(u)|ISALT(u)|ISCTRL(u) || name) {
-		buf[ind++] = '>';
+	if (ISSHIFT(in)|ISALT(in)|ISCTRL(in) || name) {
+		buf[j++] = '>';
 	}
-	buf[ind++] = 0;
+	buf[j++] = 0;
 	return buf;
 }
 
-long *key_names_to_longs(const char *keys, long *buf)
+input_t *key_names_to_input(const char *keys, input_t *buf)
 {
-	wchar_t w;
-	int l, i, ind;
-	const char *pos;
-
-	bool shift = false;
-	bool ctrl = false;
-	bool alt = false;
-
-	ind = 0;
-	pos = keys;
+	const char *pos = keys;
+	uint32_t j = 0;
 	while (*pos != 0) {
+		bool shift = false;
+		bool ctrl = false;
+		bool alt = false;
+
 		if (*pos == '<') {
 			pos++;
 			if (hascaseprefix(pos, "a-")) {
-				pos += 2;
 				alt = true;
+				pos += 2;
 			}
 			if (hascaseprefix(pos, "c-")) {
-				pos += 2;
 				ctrl = true;
+				pos += 2;
 			}
 			if (hascaseprefix(pos, "s-")) {
-				pos += 2;
 				shift = true;
+				pos += 2;
 			}
 
-			long u = -1;
-			for (i = 0; i < key_names_len; i++) {
+			uint32_t in = NCKEY_INVALID;
+			for (uint32_t i = 0; i < key_names_len; i++) {
 				if (hascaseprefix(pos, key_names_map[i].name)) {
-					u = key_names_map[i].id;
+					in = key_names_map[i].id;
+					pos += strlen(key_names_map[i].name);
 					break;
 				}
 			}
 
-			if (u != -1) {
-				pos += strlen(key_names_map[i].name);
-			} else {
-				l = mbtowc(&w, pos, 8);
+			if (in == NCKEY_INVALID) {
+				wchar_t w;
+				int l = mbtowc(&w, pos, 8);
 				if (l == -1) {
 					// unrecognized key
 					break;
 				}
 				if (ctrl) {
-					u = towupper(w);
+					in = towupper(w);
 				} else {
-					u = towlower(w);
+					in = towlower(w);
 				}
 				pos += l;
 			}
+
 			if (shift) {
-				u = SHIFT(u);
+				in = SHIFT(in);
 			}
 			if (ctrl) {
-				u = CTRL(u);
+				in = CTRL(in);
 			}
 			if (alt) {
-				u = ALT(u);
+				in = ALT(in);
 			}
-			buf[ind++] = u;
+			buf[j++] = in;
 			pos++;
 		} else {
-			l = mbtowc(&w, pos, 8);
+			wchar_t w;
+			int l = mbtowc(&w, pos, 8);
 			if (l == -1) {
 				// unrecognized key
 				break;
 			}
-			buf[ind++] = w;
+			buf[j++] = w;
 			pos += l;
 		}
 	}
 
-	buf[ind] = 0;
+	buf[j] = 0;
 	return buf;
 }
