@@ -262,7 +262,7 @@ bool fm_update_dir(fm_t *fm, Dir *dir, Dir *update)
 		}
 	}
 
-	if (cache_contains(&fm->dirs.cache, dir)) {
+	if (cache_contains_ptr(&fm->dirs.cache, dir)) {
 		dir_update_with(dir, update, fm->height, cfg.scrolloff);
 	} else {
 		// most likely the cache was dropped. Or the update took so long that

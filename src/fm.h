@@ -28,7 +28,7 @@ typedef struct fm_t {
 		cvector_vector_type(Dir *) visible;
 		int len;
 
-		cache_t cache;
+		Cache cache;
 
 		/* preview directory, NULL if there is none, e.g. if the cursor is resting on a file */
 		Dir *preview;

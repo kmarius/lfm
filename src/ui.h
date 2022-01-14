@@ -37,7 +37,7 @@ typedef struct ui_t {
 
 	struct {
 		preview_t *file;
-		cache_t cache;
+		Cache cache;
 	} preview;
 
 	const char *highlight;

@@ -1,21 +1,20 @@
 #pragma once
 
 #include <stdbool.h>
+#include <stdint.h>
 
-typedef struct cache_t cache_t;
-
-struct cache_t {
-	struct node_t *nodes;
-	int size;
-	int capacity;
+typedef struct {
+	struct node *nodes;
+	uint16_t size;
+	uint16_t capacity;
 	void (*free)(void*);
-};
+} Cache;
 
-void cache_init(cache_t *cache, int capacity, void (*free)(void*));
-void cache_resize(cache_t *cache, int capacity);
-void cache_insert(cache_t *cache, void *e, const char *key);
-bool cache_contains(cache_t *cache, const void *e);
-void *cache_find(cache_t *cache, const void *key);
-void *cache_take(cache_t *cache, const void *key);
-void cache_clear(cache_t *cache);
-void cache_deinit(cache_t *cache);
+void cache_init(Cache *cache, uint16_t capacity, void (*free)(void*));
+void cache_resize(Cache *cache, uint16_t capacity);
+void cache_insert(Cache *cache, void *e, const char *key);
+bool cache_contains_ptr(Cache *cache, const void *ptr);
+void *cache_find(Cache *cache, const void *key);
+void *cache_take(Cache *cache, const void *key);
+void cache_clear(Cache *cache);
+void cache_deinit(Cache *cache);
