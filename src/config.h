@@ -42,10 +42,10 @@ typedef struct config {
 	char *previewer;
 	bool hidden;
 	bool preview;
-	int scrolloff;
+	u_int8_t scrolloff;
 	cvector_vector_type(char*) commands;
 	cvector_vector_type(char*) inotify_blacklist;
-	cvector_vector_type(int) ratios;
+	cvector_vector_type(u_int16_t) ratios;
 
 	struct colors {
 		ext_channel_tup *ext_channels;
@@ -68,6 +68,6 @@ void config_init();
 
 void config_deinit();
 
-void config_ratios_set(cvector_vector_type(int) ratios);
+void config_ratios_set(cvector_vector_type(u_int16_t) ratios);
 
 void config_ext_channel_add(const char *ext, unsigned long channel);

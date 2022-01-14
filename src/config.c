@@ -30,7 +30,7 @@ config cfg = {
 	}
 };
 
-void config_ratios_set(cvector_vector_type(int) ratios)
+void config_ratios_set(cvector_vector_type(uint16_t) ratios)
 {
 	if (cvector_size(ratios) > 0) {
 		cvector_free(cfg.ratios);
@@ -47,7 +47,7 @@ void config_ext_channel_add(const char *ext, unsigned long channel)
 
 void config_init()
 {
-	cvector_vector_type(int) r = NULL;
+	cvector_vector_type(uint16_t) r = NULL;
 	cvector_push_back(r, 1);
 	cvector_push_back(r, 2);
 	cvector_push_back(r, 3);
