@@ -32,7 +32,7 @@ typedef struct ui_t {
 	cvector_vector_type(char*) menubuf;
 	cvector_vector_type(char*) messages;
 
-	cmdline_t cmdline;
+	Cmdline cmdline;
 	history_t history;
 
 	struct {

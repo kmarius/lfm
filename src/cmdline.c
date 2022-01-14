@@ -7,7 +7,7 @@
 
 #include "cmdline.h"
 
-#define T cmdline_t
+#define T Cmdline
 
 #define VSTR_INIT(vec, c) \
 	do { \
@@ -31,7 +31,7 @@
 
 #define SHIFT_RIGHT(t, _sz) \
 	do { \
-		int sz = _sz; \
+		size_t sz = _sz; \
 		ENSURE_SPACE((t)->right, sz); \
 		memmove((t)->right.str + (sz), (t)->right.str, sizeof(wchar_t)*((t)->right.len+1)); \
 		memcpy((t)->right.str, (t)->left.str + (t)->left.len - (sz), sizeof(wchar_t)*(sz)); \
@@ -42,7 +42,7 @@
 
 #define SHIFT_LEFT(t, _sz) \
 	do { \
-		int sz = _sz; \
+		size_t sz = _sz; \
 		ENSURE_SPACE((t)->left, sz); \
 		memcpy((t)->left.str + (t)->left.len, (t)->right.str, sizeof(wchar_t)*(sz)); \
 		memmove((t)->right.str, (t)->right.str + (sz), sizeof(wchar_t)*((t)->right.len-(sz)+1)); \
@@ -59,13 +59,23 @@ void cmdline_init(T *t)
 	VSTR_INIT(t->buf, 8);
 }
 
+void cmdline_deinit(T *t) {
+	if (t == NULL) {
+		return;
+	}
+	free(t->prefix.str);
+	free(t->left.str);
+	free(t->right.str);
+	free(t->buf.str);
+}
+
 bool cmdline_prefix_set(T *t, const char *prefix)
 {
 	if (prefix == NULL) {
 		return false;
 	}
-	const int l = strlen(prefix);
-	ENSURE_CAPACITY(t->prefix, (size_t) l);
+	const unsigned long l = strlen(prefix);
+	ENSURE_CAPACITY(t->prefix, l);
 	strcpy(t->prefix.str, prefix);
 	t->prefix.len = l;
 	return true;
@@ -110,11 +120,10 @@ bool cmdline_delete_right(T *t)
 
 bool cmdline_delete_word(T *t)
 {
-	int i;
 	if (t->prefix.len == 0 || t->left.len == 0) {
 		return false;
 	}
-	i = t->left.len - 1;
+	int16_t i = t->left.len - 1;
 	while (i > 0 && iswspace(t->left.str[i]))
 		i--;
 	while (i > 0 && t->left.str[i] == '/' && !iswspace(t->left.str[i-1]))
@@ -126,7 +135,7 @@ bool cmdline_delete_word(T *t)
 	return true;
 }
 
-bool cmdline_delete_line_left(cmdline_t *t)
+bool cmdline_delete_line_left(T *t)
 {
 	if (t->prefix.len == 0 || t->left.len == 0) {
 		return false;
@@ -148,11 +157,10 @@ bool cmdline_left(T *t)
 
 bool cmdline_word_left(T *t)
 {
-	int i;
 	if (t->prefix.len == 0 || t->left.len == 0) {
 		return false;
 	}
-	i = t->left.len;
+	int16_t i = t->left.len;
 	if (i > 0 && iswpunct(t->left.str[i-1]))
 		i--;
 	if (i > 0 && iswspace(t->left.str[i-1]))
@@ -167,11 +175,10 @@ bool cmdline_word_left(T *t)
 
 bool cmdline_word_right(T *t)
 {
-	int i;
 	if (t->prefix.len == 0 || t->right.len == 0) {
 		return false;
 	}
-	i = 0;
+	int16_t i = 0;
 	if (i < t->right.len && iswpunct(t->right.str[i]))
 		i++;
 	if (i < t->right.len && iswspace(t->right.str[i]))
@@ -224,19 +231,18 @@ bool cmdline_clear(T *t)
 
 bool cmdline_set_whole(T *t, const char *prefix, const char *left, const char *right)
 {
-	int n;
 	ENSURE_SPACE(t->left, strlen(left));
 	ENSURE_SPACE(t->right, strlen(right));
 	cmdline_prefix_set(t, prefix);
-	n = mbstowcs(t->left.str, left, t->left.cap + 1);
-	if (n == -1) {
+	size_t n = mbstowcs(t->left.str, left, t->left.cap + 1);
+	if (n == (size_t) -1) {
 		t->left.len = 0;
 		t->left.str[0] = 0;
 	} else {
 		t->left.len = n;
 	}
 	n = mbstowcs(t->right.str, right, t->right.cap + 1);
-	if (n == -1) {
+	if (n == (size_t) -1) {
 		t->right.len = 0;
 		t->right.str[0] = 0;
 	} else {
@@ -253,8 +259,8 @@ bool cmdline_set(T *t, const char *line)
 	t->right.str[0] = 0;
 	t->right.len = 0;
 	ENSURE_SPACE(t->left, strlen(line));
-	const int n = mbstowcs(t->left.str, line, t->left.cap + 1);
-	if (n == -1) {
+	const size_t n = mbstowcs(t->left.str, line, t->left.cap + 1);
+	if (n == (size_t) -1) {
 		t->left.len = 0;
 		t->left.str[0] = 0;
 	} else {
@@ -281,18 +287,13 @@ const char *cmdline_get(T *t)
 	return t->buf.str;
 }
 
-int cmdline_print(T *t, struct ncplane *n)
+uint16_t cmdline_print(T *t, struct ncplane *n)
 {
-	int ret = 0;
+	uint16_t ret = 0;
 	ret += ncplane_putstr_yx(n, 0, 0, t->prefix.str);
 	ret += ncplane_putwstr(n, t->left.str);
 	ncplane_putwstr(n, t->right.str);
 	return ret;
 }
 
-void cmdline_deinit(T *t) {
-	free(t->prefix.str);
-	free(t->left.str);
-	free(t->right.str);
-	free(t->buf.str);
-}
+#undef T
