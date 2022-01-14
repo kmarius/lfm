@@ -17,10 +17,8 @@ void notify_add_watcher(Dir *dir);
 
 void notify_remove_watcher(Dir *dir);
 
-void notify_set_watchers(Dir **dirs, int n);
+void notify_set_watchers(Dir **dirs, uint16_t n);
 
 Dir *notify_get_dir(int wd);
 
 void notify_close();
-
-void log_watchers();
