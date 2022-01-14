@@ -62,11 +62,11 @@ static void async_result_cb(EV_P_ ev_async *w, int revents)
 {
 	(void) revents;
 	App *app = (App *) w->data;
-	struct res_t *res;
+	struct Result *res;
 
 	pthread_mutex_lock(&async_results.mutex);
-	while ((res = queue_get(&async_results)) != NULL) {
-		res_callback(res, app);
+	while ((res = resultqueue_get(&async_results)) != NULL) {
+		result_callback(res, app);
 	}
 	pthread_mutex_unlock(&async_results.mutex);
 
@@ -329,7 +329,7 @@ void app_init(T *t)
 	async_res_watcher.data = t;
 	ev_async_start(t->loop, &async_res_watcher);
 
-	async_results.watcher = &async_res_watcher;
+	resultqueue_init(&async_results, &async_res_watcher);
 	ev_async_send(EV_DEFAULT_ &async_res_watcher); /* results will arrive before the loop starts */
 
 	ev_timer_init(&timer_watcher, timer_cb, 0., TICK);
@@ -472,7 +472,7 @@ void app_deinit(T *t)
 	fm_deinit(&t->fm);
 	tpool_wait(async_tm);
 	tpool_destroy(async_tm);
-	queue_deinit(&async_results);
+	resultqueue_deinit(&async_results);
 	pthread_mutex_destroy(&async_results.mutex);
 	if (fifo_fd > 0) {
 		close(fifo_fd);

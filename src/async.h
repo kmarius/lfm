@@ -3,38 +3,41 @@
 #include <ev.h>
 #include <pthread.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 #include "app.h"
 #include "dir.h"
 #include "preview.h"
 #include "tpool.h"
 
-struct res_t;
+struct Result;
 
-typedef struct resq_t {
-	struct res_t *head;
-	struct res_t *tail;
+typedef struct {
+	struct Result *head;
+	struct Result *tail;
 	pthread_mutex_t mutex;
 	ev_async *watcher;
-} resq_t;
+} ResultQueue;
 
 extern tpool_t *async_tm;
-extern resq_t async_results;
+extern ResultQueue async_results;
+
+void resultqueue_init(ResultQueue *queue, ev_async *watcher);
 
 /*
  * Returns a `res_t` from `queue` if it is non-empty, `NULL` otherwise.
  */
-struct res_t *queue_get(resq_t *queue);
+struct Result *resultqueue_get(ResultQueue *queue);
 
 /*
  * Destroy all results that remain in the queue.
  */
-void queue_deinit(resq_t *queue);
+void resultqueue_deinit(ResultQueue *queue);
 
 /*
  * Process the result and free its resources.
  */
-void res_callback(struct res_t *res, App *app);
+void result_callback(struct Result *res, App *app);
 
 /*
  * Check the modification time of `dir` on disk. Possibly generates a `res_t`
@@ -45,12 +48,12 @@ void async_dir_check(Dir *dir);
 /*
  * Reloads `dir` from disk after `delay` milliseconds.
  */
-void async_dir_load_delayed(Dir *dir, bool dircounts, int delay /* millis */);
+void async_dir_load_delayed(Dir *dir, bool dircounts, uint16_t delay /* millis */);
 
 /*
  * Loads `dir` from disk.
  */
-#define async_dir_load(dir, dircounts) async_dir_load_delayed(dir, dircounts, -1)
+#define async_dir_load(dir, dircounts) async_dir_load_delayed(dir, dircounts, 0)
 
 /*
  * Check the modification time of `pv` on disk. Possibly generates a `res_t` to
@@ -61,4 +64,4 @@ void async_preview_check(preview_t *pv);
 /*
  * Reloads preview of the file at `path` with `nrow` lines from disk.
  */
-void async_preview_load(const char *path, int nrow);
+void async_preview_load(const char *path, uint16_t nrow);
