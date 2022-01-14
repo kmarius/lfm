@@ -2,15 +2,15 @@
 
 #include "cvector.h"
 
-typedef struct history_t {
-	cvector_vector_type(struct history_node_t) vec;
-	struct history_node_t *ptr;
-} history_t;
+typedef struct {
+	cvector_vector_type(struct history_entry) vec;
+	struct history_entry *ptr;
+} History;
 
-void history_load(history_t *h, const char *path);
-void history_write(history_t *h, const char *path);
-void history_append(history_t *h, const char *line);
-void history_reset(history_t *h);
-void history_deinit(history_t *h);
-const char *history_next(history_t *h);
-const char *history_prev(history_t *h);
+void history_load(History *h, const char *path);
+void history_write(History *h, const char *path);
+void history_append(History *h, const char *line);
+void history_reset(History *h);
+void history_deinit(History *h);
+const char *history_next(History *h);
+const char *history_prev(History *h);

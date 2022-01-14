@@ -33,7 +33,7 @@ typedef struct ui_t {
 	cvector_vector_type(char*) messages;
 
 	Cmdline cmdline;
-	history_t history;
+	History history;
 
 	struct {
 		preview_t *file;
