@@ -8,7 +8,7 @@
 /*
  * Initialize lua state, load libraries.
  */
-void lua_init(lua_State *L, app_t *app);
+void lua_init(lua_State *L, App *app);
 
 void lua_deinit(lua_State *L);
 

@@ -54,7 +54,7 @@ static void version()
 
 int main(int argc, char **argv)
 {
-	app_t app;
+	App app;
 
 	const unsigned long t0 = current_micros();
 

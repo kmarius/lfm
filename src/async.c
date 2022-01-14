@@ -2,6 +2,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
+#include "app.h"
 #include "async.h"
 #include "dir.h"
 #include "fm.h"
@@ -20,7 +21,7 @@ resq_t async_results = {
 };
 
 struct res_vtable {
-	void (*callback)(struct res_t *, struct app_t *);
+	void (*callback)(struct res_t *, App *);
 	void (*destroy)(struct res_t *);
 };
 
@@ -29,7 +30,7 @@ struct res_t {
 	struct res_t *next;
 };
 
-void res_callback(struct res_t *res, app_t *app)
+void res_callback(struct res_t *res, App *app)
 {
 	res->vtable->callback(res, app);
 }
@@ -86,7 +87,7 @@ struct res_dir_check {
 
 /* TODO: maybe on slow devices it is better to compare mtimes here? 2021-11-12 */
 /* currently we could just schedule reload from the other thread */
-static void res_dir_check_callback(struct res_dir_check *result, app_t *app)
+static void res_dir_check_callback(struct res_dir_check *result, App *app)
 {
 	(void) app;
 	async_dir_load(result->dir, true);
@@ -98,7 +99,7 @@ static void res_dir_check_destroy(struct res_dir_check *result) {
 }
 
 static struct res_vtable res_dir_check_vtable = {
-	(void (*)(struct res_t *, app_t *)) &res_dir_check_callback,
+	(void (*)(struct res_t *, App *)) &res_dir_check_callback,
 	(void (*)(struct res_t *)) &res_dir_check_destroy,
 };
 
@@ -161,7 +162,7 @@ struct res_dir_update {
 	Dir *update;
 };
 
-static void res_dir_update_callback(struct res_dir_update *result, app_t *app)
+static void res_dir_update_callback(struct res_dir_update *result, App *app)
 {
 	app->ui.redraw.fm |= fm_update_dir(&app->fm, result->dir, result->update);
 	free(result);
@@ -174,7 +175,7 @@ static void res_dir_update_destroy(struct res_dir_update *result)
 }
 
 static struct res_vtable res_dir_update_vtable = {
-	(void (*)(struct res_t *, app_t *)) &res_dir_update_callback,
+	(void (*)(struct res_t *, App *)) &res_dir_update_callback,
 	(void (*)(struct res_t *)) &res_dir_update_destroy,
 };
 
@@ -243,7 +244,7 @@ struct res_preview_check {
 	int nrow;
 };
 
-static void res_preview_check_callback(struct res_preview_check *result, app_t *app)
+static void res_preview_check_callback(struct res_preview_check *result, App *app)
 {
 	(void) app;
 	async_preview_load(result->path, result->nrow);
@@ -258,7 +259,7 @@ static void res_preview_check_destroy(struct res_preview_check *result)
 }
 
 static struct res_vtable res_preview_check_vtable = {
-	(void (*)(struct res_t *, app_t *)) &res_preview_check_callback,
+	(void (*)(struct res_t *, App *)) &res_preview_check_callback,
 	(void (*)(struct res_t *)) &res_preview_check_destroy,
 };
 
@@ -326,7 +327,7 @@ struct res_preview_load {
 	preview_t *preview;
 };
 
-static void res_preview_load_callback(struct res_preview_load *result, app_t *app)
+static void res_preview_load_callback(struct res_preview_load *result, App *app)
 {
 	app->ui.redraw.preview |= ui_insert_preview(&app->ui, result->preview);
 	free(result);
@@ -339,7 +340,7 @@ static void res_preview_load_deinit(struct res_preview_load *result)
 }
 
 static struct res_vtable res_preview_load_vtable = {
-	(void (*)(struct res_t *, app_t *)) &res_preview_load_callback,
+	(void (*)(struct res_t *, App *)) &res_preview_load_callback,
 	(void (*)(struct res_t *)) &res_preview_load_deinit,
 };
 

@@ -34,7 +34,7 @@ void queue_deinit(resq_t *queue);
 /*
  * Process the result and free its resources.
  */
-void res_callback(struct res_t *res, app_t *app);
+void res_callback(struct res_t *res, App *app);
 
 /*
  * Check the modification time of `dir` on disk. Possibly generates a `res_t`

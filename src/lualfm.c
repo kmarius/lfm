@@ -33,7 +33,7 @@
 
 #define TABLE_CALLBACKS "callbacks"
 
-static app_t *app = NULL;
+static App *app = NULL;
 static ui_t *ui = NULL;
 static fm_t *fm = NULL;
 
@@ -1519,7 +1519,7 @@ int luaopen_lfm(lua_State *L)
 	return 1;
 }
 
-void lua_init(lua_State *L, app_t *_app)
+void lua_init(lua_State *L, App *_app)
 {
 	app = _app;
 	ui = &_app->ui;

@@ -7,43 +7,43 @@
 #include "tpool.h"
 #include "ui.h"
 
-typedef struct app_t {
+typedef struct {
 	ui_t ui;
 	fm_t fm;
 	lua_State *L;
 	struct ev_loop *loop;
-} app_t;
+} App;
 
 /*
  * Set input timout. Key input will be ignored for the next `duration` ms.
  */
-void timeout_set(int duration);
+void timeout_set(uint16_t duration);
 
 /*
  * Initialize ui, fm and the lua_State.
  */
-void app_init(app_t *app);
+void app_init(App *app);
 
 /*
  * Start the main event loop.
  */
-void app_run(app_t *app);
+void app_run(App *app);
 
 /*
  * Stop the main event loop.
  */
-void app_quit(app_t *app);
+void app_quit(App *app);
 
 /*
  * Free all recources i.e. ui, fm and the lua_State.
  */
-void app_deinit(app_t *app);
+void app_deinit(App *app);
 
 /*
  * Execute a command in the background and redirect its output/error to the ui
  * if `out` or `err` are set to `true`.
  */
-bool app_execute(app_t *app, const char *prog, char *const *args, bool fork, bool out, bool err, int key);
+bool app_execute(App *app, const char *prog, char *const *args, bool fork, bool out, bool err, int key);
 
 /*
  * Print a message in the UI. `printf` formatting applies.
