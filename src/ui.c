@@ -3,6 +3,7 @@
 #include <fcntl.h>
 #include <grp.h>
 #include <libgen.h>
+#include <ncurses.h>
 #include <notcurses/notcurses.h>
 #include <pwd.h>
 #include <stdlib.h>

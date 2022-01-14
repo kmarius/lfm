@@ -58,7 +58,7 @@ int main(int argc, char **argv)
 
 	const unsigned long t0 = current_micros();
 
-	config_defaults();
+	config_init();
 
 	FILE *log_fp = fopen(cfg.logpath, "w");
 
@@ -147,7 +147,7 @@ int main(int argc, char **argv)
 	remove(cfg.logpath);
 #endif
 
-	config_clear();
+	config_deinit();
 
 	exit(EXIT_SUCCESS);
 }

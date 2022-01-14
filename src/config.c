@@ -1,5 +1,6 @@
 #define _GNU_SOURCE
 #include <linux/limits.h>
+#include <ncurses.h> // COLOR_ constants
 #include <notcurses/notcurses.h>
 #include <stdarg.h>
 #include <stdbool.h>
@@ -13,25 +14,7 @@
 
 config cfg = {
 	.truncatechar = L'~',
-	.fifopath = NULL,
-	.rundir = NULL,
-	.corepath = NULL,
-	.configdir = NULL,
-	.datadir = NULL,
-	.logpath = NULL,
-	.configpath = NULL,
-	.historypath = NULL,
-	.startpath = NULL,
-	.startfile = NULL,
-	.previewer = NULL,
-	/* TODO: is hidden the wrong way around? (on 2021-07-22) */
-	.hidden = false, /* show hidden files */
-	.lastdir = NULL,
-	.selfile = NULL,
-	.ratios = NULL,
 	.preview = true,
-	.commands = NULL,
-	.inotify_blacklist = NULL,
 	.scrolloff = 4,
 	.colors = {
 		.ext_channels = NULL,
@@ -43,7 +26,7 @@ config cfg = {
 		.broken = NCCHANNELS_INITIALIZER_PALINDEX(COLOR_RED, -1),
 		.exec = NCCHANNELS_INITIALIZER_PALINDEX(COLOR_GREEN, -1),
 		.search = NCCHANNELS_INITIALIZER_PALINDEX(COLOR_BLACK, COLOR_YELLOW),
-		.selection = NCCHANNELS_INITIALIZER_PALINDEX(COLOR_BLACK, COLOR_PINK),
+		.selection = NCCHANNELS_INITIALIZER_PALINDEX(COLOR_BLACK, COLOR_MAGENTA),
 	}
 };
 
@@ -57,11 +40,12 @@ void config_ratios_set(cvector_vector_type(int) ratios)
 
 void config_ext_channel_add(const char *ext, unsigned long channel)
 {
-	chtup_t t = { .ext = strdup(ext), .channel = channel };
-	cvector_push_back(cfg.colors.ext_channels, t);
+	/* TODO: should overwrite existing tuples or something (on 2022-01-14) */
+	cvector_push_back(cfg.colors.ext_channels,
+			((ext_channel_tup) { strdup(ext), channel, }));
 }
 
-void config_defaults()
+void config_init()
 {
 	cvector_vector_type(int) r = NULL;
 	cvector_push_back(r, 1);
@@ -94,9 +78,9 @@ void config_defaults()
 	asprintf(&cfg.corepath, "%s/lua/core.lua", cfg.datadir);
 }
 
-#define chtup_free(t) free((t).ext)
+#define tup_free(t) free((t).ext)
 
-void config_clear() {
+void config_deinit() {
 	cvector_free(cfg.ratios);
 	cvector_free(cfg.commands);
 	cvector_free(cfg.inotify_blacklist);
@@ -110,5 +94,7 @@ void config_clear() {
 	free(cfg.previewer);
 	free(cfg.startfile);
 	free(cfg.startpath);
-	cvector_ffree(cfg.colors.ext_channels, chtup_free);
+	cvector_ffree(cfg.colors.ext_channels, tup_free);
 }
+
+#undef tup_free

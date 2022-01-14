@@ -6,14 +6,6 @@
 
 #include "cvector.h"
 
-#define COLOR_BLACK 0
-#define COLOR_RED 1
-#define COLOR_GREEN 2
-#define COLOR_YELLOW 3
-#define COLOR_BLUE 4
-#define COLOR_PINK 5
-#define COLOR_TEAL 6
-
 #define NCCHANNEL_INITIALIZER_PALINDEX(ind) \
 	(ind < 0 \
 	 ? ~NC_BGDEFAULT_MASK & 0xff000000lu \
@@ -28,10 +20,10 @@
 	((NCCHANNEL_INITIALIZER_PALINDEX(fg) << 32lu) \
 	 | NCCHANNEL_INITIALIZER_PALINDEX(bg))
 
-typedef struct chtup_t {
+typedef struct {
 	char *ext;
 	unsigned long channel;
-} chtup_t;
+} ext_channel_tup;
 
 typedef struct config {
 	wchar_t truncatechar; /* '~' */
@@ -41,7 +33,7 @@ typedef struct config {
 	char *configdir;      /* ~/.config/lfm */
 	char *datadir;        /* ~/.local/share/lfm */
 	char *fifopath;       /* $rundir/$PID.fifo */
-	char *logpath;       /* /tmp/lfm.$PID.log */
+	char *logpath;        /* /tmp/lfm.$PID.log */
 	char *rundir;         /* /run/media/user/N/lfm */
 	char *lastdir;
 	char *selfile;
@@ -56,7 +48,7 @@ typedef struct config {
 	cvector_vector_type(int) ratios;
 
 	struct colors {
-		chtup_t *ext_channels;
+		ext_channel_tup *ext_channels;
 
 		unsigned long normal;
 		unsigned long selection;
@@ -72,10 +64,10 @@ typedef struct config {
 
 extern config cfg;
 
+void config_init();
+
+void config_deinit();
+
 void config_ratios_set(cvector_vector_type(int) ratios);
 
 void config_ext_channel_add(const char *ext, unsigned long channel);
-
-void config_defaults();
-
-void config_clear();
