@@ -1238,7 +1238,7 @@ static int l_fn_tokenize(lua_State *L)
 {
 	const char *string = luaL_optstring(L, 1, "");
 	char buf[strlen(string) + 1];
-	int pos1 = 0, pos2 = 0;
+	uint16_t pos1 = 0, pos2 = 0;
 	const char *tok;
 	if ((tok = tokenize(string, buf, &pos1, &pos2)) != NULL) {
 		lua_pushstring(L, tok);

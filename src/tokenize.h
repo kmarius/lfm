@@ -1,5 +1,7 @@
 #pragma once
 
+#include <stdint.h>
+
 /* Tokenizes a string separated by whitespace. Simple quoting works.
  * Parameters: s:    0 terminated char* to tokenize
  *             buf:  Buffer of length >= sizeof(s)
@@ -9,4 +11,4 @@
  *
  * example: tokenize("abc d \"ef g\"  ", buf, &i, &j) returns
  *          "abc", "d", "ef g", NULL on 4 consecutive calls */
-char *tokenize(const char *s, char *buf, int *i, int *j);
+char *tokenize(const char *s, char *buf, uint16_t *i, uint16_t *j);

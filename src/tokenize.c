@@ -1,6 +1,9 @@
-#include <stdlib.h> /* NULL */
+#include <stdint.h>
+#include <stdlib.h> // NULL
 
-char *tokenize(const char *s, char *buf, int *i, int *j)
+#include "tokenize.h"
+
+char *tokenize(const char *s, char *buf, uint16_t *i, uint16_t *j)
 {
 	char c;
 	/* skip whitespace */
