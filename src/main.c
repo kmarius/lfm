@@ -149,5 +149,5 @@ int main(int argc, char **argv)
 
 	config_clear();
 
-	exit(0);
+	exit(EXIT_SUCCESS);
 }
