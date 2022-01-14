@@ -38,9 +38,9 @@ static ui_t *ui = NULL;
 static Fm *fm = NULL;
 
 static struct {
-	struct trie_node_t *normal;
-	struct trie_node_t *cmd;
-	struct trie_node_t *cur;
+	Trie *normal;
+	Trie *cmd;
+	Trie *cur;
 	input_t *seq;
 	char *str;
 } maps;
@@ -245,7 +245,7 @@ static int l_map_key(lua_State *L)
 		luaL_argerror(L, 2, "expected function");
 	}
 	input_t buf[strlen(keys)+1];
-	trie_node_t *k = trie_insert(maps.normal, key_names_to_input(keys, buf), keys, desc);
+	Trie *k = trie_insert(maps.normal, key_names_to_input(keys, buf), keys, desc);
 	lua_pushlightuserdata(L, (void *)k);
 	lua_pushvalue(L, 2);
 	lua_settable(L, LUA_REGISTRYINDEX);
@@ -267,7 +267,7 @@ static int l_cmap_key(lua_State *L)
 		luaL_argerror(L, 2, "expected function");
 	}
 	input_t buf[strlen(keys)+1];
-	trie_node_t *k = trie_insert(maps.cmd, key_names_to_input(keys, buf), keys, desc);
+	Trie *k = trie_insert(maps.cmd, key_names_to_input(keys, buf), keys, desc);
 	lua_pushlightuserdata(L, (void *)k);
 	lua_pushvalue(L, 2);
 	lua_settable(L, LUA_REGISTRYINDEX);
@@ -1515,8 +1515,8 @@ void lua_init(lua_State *L, App *_app)
 	ui = &_app->ui;
 	fm = &_app->fm;
 
-	maps.normal = trie_new();
-	maps.cmd = trie_new();
+	maps.normal = trie_create();
+	maps.cmd = trie_create();
 	maps.cur = NULL;
 	maps.str = NULL;
 	maps.seq = NULL;

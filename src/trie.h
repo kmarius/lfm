@@ -9,18 +9,26 @@
  * trie_node.keys is the indicator that a command for the current key sequence
  * exists.
  */
-typedef struct trie_node_t {
+
+struct Trie;
+
+typedef struct Trie {
 	input_t key;
 	char *keys; /* the full string of keys so we can print the menu */
 	char *desc; /* description of the command, can be NULL */
-	struct trie_node_t *child; /* can be NULL */
-	struct trie_node_t *next; /* next sibling, can be NULL */
-} trie_node_t;
+	struct Trie *child; /* can be NULL */
+	struct Trie *next; /* next sibling, can be NULL */
+} Trie;
 
 /*
- * Allocate a new trie root
+ * Allocate a new trie root.
  */
-trie_node_t *trie_new();
+Trie *trie_create();
+
+/*
+ * Free all resources belonging to the trie.
+ */
+void trie_destroy(Trie *trie);
 
 /*
  * Insert a new key sequence into the tree. keys should be the (printable) key
@@ -28,20 +36,15 @@ trie_node_t *trie_new();
  * an optional description of the command. Returns the pointer of the final
  * node the command is inserted in.
  */
-trie_node_t *trie_insert(trie_node_t* trie, const input_t *trie_keys, const char *keys, const char *desc);
+Trie *trie_insert(Trie* trie, const input_t *trie_keys, const char *keys, const char *desc);
 
 /*
  * Finds the top level child belonging to key if it exists, NULL otherwise.
  */
-trie_node_t *trie_find_child(const trie_node_t* trie, input_t key);
+Trie *trie_find_child(const Trie* trie, input_t key);
 
 /*
  * Collect all reachable leaves and puts for each a string with the full
  * sequence and the command description into vec.
  */
-void trie_collect_leaves(const trie_node_t *trie, cvector_vector_type(char*) *vec);
-
-/*
- * Free all resources belonging to the trie.
- */
-void trie_destroy(trie_node_t *trie);
+void trie_collect_leaves(const Trie *trie, cvector_vector_type(char*) *vec);

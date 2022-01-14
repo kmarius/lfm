@@ -5,9 +5,11 @@
 #include "cvector.h"
 #include "trie.h"
 
-static trie_node_t *trie_node_new(input_t key, trie_node_t *next)
+#define T Trie
+
+static inline T *trie_node_create(input_t key, T *next)
 {
-	trie_node_t *n = malloc(sizeof(*n));
+	T *n = malloc(sizeof(*n));
 	n->key = key;
 	n->keys = NULL;
 	n->desc = NULL;
@@ -16,17 +18,17 @@ static trie_node_t *trie_node_new(input_t key, trie_node_t *next)
 	return n;
 }
 
-trie_node_t *trie_new()
+T *trie_create()
 {
-	return trie_node_new(0, NULL);
+	return trie_node_create(0, NULL);
 }
 
-trie_node_t *trie_find_child(const trie_node_t* trie, input_t key)
+T *trie_find_child(const T* t, input_t key)
 {
-	if (trie == NULL) {
+	if (t == NULL) {
 		return NULL;
 	}
-	for (trie_node_t *n = trie->child; n != NULL; n = n->next) {
+	for (T *n = t->child; n != NULL; n = n->next) {
 		if (n->key == key) {
 			return n;
 		}
@@ -34,30 +36,30 @@ trie_node_t *trie_find_child(const trie_node_t* trie, input_t key)
 	return NULL;
 }
 
-trie_node_t *trie_insert(trie_node_t* trie, const input_t *trie_keys, const char *keys, const char *desc)
+T *trie_insert(T* t, const input_t *trie_keys, const char *keys, const char *desc)
 {
-	trie_node_t *n;
-	if (trie == NULL) {
+	if (t == NULL) {
 		return NULL;
 	}
 	for (const input_t *c = trie_keys; *c != 0; c++) {
-		n = trie_find_child(trie, *c);
+		T *n = trie_find_child(t, *c);
 		if (n == NULL) {
-			n = trie_node_new(*c, trie->child);
-			trie->child = n;
+			n = trie_node_create(*c, t->child);
+			t->child = n;
 		}
-		trie = n;
+		t = n;
 	}
-	free(trie->desc);
-	free(trie->keys);
-	trie->desc = desc ? strdup(desc) : NULL;
-	trie->keys = strdup(keys);
-	return trie;
+	free(t->desc);
+	free(t->keys);
+	t->desc = desc ? strdup(desc) : NULL;
+	t->keys = strdup(keys);
+	return t;
 }
 
-void trie_collect_leaves(const trie_node_t *trie, cvector_vector_type(char*) *vec)
+/* we need the address of the vector because we might reallocate when pushing  */
+void trie_collect_leaves(const T *t, cvector_vector_type(char*) *vec)
 {
-	for (trie_node_t *n = trie->child; n != NULL; n = n->next) {
+	for (T *n = t->child; n != NULL; n = n->next) {
 		if (n->keys) {
 			char *s;
 			asprintf(&s, "%s\t%s", n->keys, n->desc ? n->desc : "");
@@ -68,15 +70,17 @@ void trie_collect_leaves(const trie_node_t *trie, cvector_vector_type(char*) *ve
 	}
 }
 
-void trie_destroy(trie_node_t *trie)
+void trie_destroy(T *t)
 {
-	if (trie == NULL) {
+	if (t == NULL) {
 		return;
 	}
-	for (trie_node_t* n = trie->child; n != NULL; n = n->next) {
+	for (T* n = t->child; n != NULL; n = n->next) {
 		trie_destroy(n);
 	}
-	free(trie->desc);
-	free(trie->keys);
-	free(trie);
+	free(t->desc);
+	free(t->keys);
+	free(t);
 }
+
+#undef T
