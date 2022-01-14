@@ -105,7 +105,7 @@ bool fm_chdir(fm_t *fm, const char *path, bool save);
  * Open the currently selected file: if it is a directory, chdir into it.
  * Otherwise return the file so that the caller can open it.
  */
-file_t *fm_open(fm_t *fm);
+File *fm_open(fm_t *fm);
 
 /*
  * Chdir to the parent of the current directory.

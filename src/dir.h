@@ -14,9 +14,9 @@ typedef struct dir_t {
 	char *path;
 	char *name;	/* a substring of path */
 
-	cvector_vector_type(file_t*) allfiles;    /* files including hidden/filtered */
-	file_t **sortedfiles; /* files excluding hidden */
-	file_t **files;	     /* visible files */
+	cvector_vector_type(File*) allfiles;    /* files including hidden/filtered */
+	File **sortedfiles; /* files excluding hidden */
+	File **files;	     /* visible files */
 	int alllen;	 /* length of the array of all files */
 	int sortedlen;	 /* length of the array of sorted files */
 	int len;	 /* length of the array of visible files */
@@ -59,7 +59,7 @@ void dir_free(dir_t *dir);
  * Current file of `dir`. Can be `NULL` if it is empty or not yet loaded, or
  * if files are filtered/hidden.
  */
-file_t *dir_current_file(const dir_t *dir);
+File *dir_current_file(const dir_t *dir);
 
 /*
  * Sort `dir` with respect to `dir->hidden`, `dir->dirfirst`, `dir->reverse`,

@@ -474,7 +474,7 @@ void draw_cmdline(ui_t *ui)
 	char size[32];
 	char mtime[32];
 	const dir_t *dir;
-	const file_t *file;
+	const File *file;
 
 	if (ui->message) {
 		return;
@@ -559,7 +559,7 @@ static void draw_info(ui_t *ui)
 	static int home_len;
 
 	const dir_t *dir;
-	const file_t *file;
+	const File *file;
 
 	ncplane_erase(ui->planes.info);
 
@@ -725,7 +725,7 @@ static unsigned long ext_channel_find(const char *ext)
 	return 0;
 }
 
-static void print_file(struct ncplane *n, const file_t *file,
+static void print_file(struct ncplane *n, const File *file,
 		bool iscurrent, char **sel, char **load, enum movemode_e mode,
 		const char *highlight)
 {
@@ -872,7 +872,7 @@ static void plane_draw_dir(struct ncplane *n, dir_t *dir, char **sel, char **loa
 
 /* preview {{{ */
 
-static preview_t *load_preview(ui_t *ui, file_t *file)
+static preview_t *load_preview(ui_t *ui, File *file)
 {
 	int ncol, nrow;
 	preview_t *pv;
@@ -901,7 +901,7 @@ static void update_file_preview(ui_t *ui)
 	int ncol, nrow;
 	ncplane_dim_yx(ui->planes.preview, &nrow, &ncol);
 	dir_t *dir;
-	file_t *file;
+	File *file;
 
 	/* struct ncplane *w = wpreview(ui); */
 	// ncplane_erase(w); /* TODO: why (on 2021-10-30) */
@@ -1078,7 +1078,7 @@ static void plane_draw_file_preview(struct ncplane *n, preview_t *pv)
 
 bool ui_insert_preview(ui_t *ui, preview_t *pv)
 {
-	const file_t *file = fm_current_file(ui->fm);
+	const File *file = fm_current_file(ui->fm);
 
 	if (file != NULL && streq(pv->path, file->path)) {
 		preview_free(ui->preview.file);

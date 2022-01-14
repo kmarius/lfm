@@ -16,11 +16,11 @@
 #include "util.h"
 
 static void apply_filter(dir_t *dir);
-static inline void swap(file_t **a, file_t **b);
+static inline void swap(File **a, File **b);
 static void shuffle(void *arr, size_t n, size_t size);
 static int get_file_count(const char *path);
 
-file_t *dir_current_file(const dir_t *dir)
+File *dir_current_file(const dir_t *dir)
 {
 	if (dir == NULL || dir->ind >= dir->len) {
 		return NULL;
@@ -38,12 +38,12 @@ const char *dir_parent(const dir_t *dir)
 	return dirname(tmp);
 }
 
-static bool file_filtered(file_t *file, const char *filter)
+static bool file_filtered(File *file, const char *filter)
 {
 	return strcasestr(file->name, filter) != NULL;
 }
 
-static inline bool file_hidden(file_t *file) {
+static inline bool file_hidden(File *file) {
 	return file->name[0] == '.';
 }
 
@@ -61,15 +61,15 @@ static void apply_filter(dir_t *dir)
 		/* TODO: try to select previously selected file
 		 * note that on the first call dir->files is not yet valid */
 		memcpy(dir->files, dir->sortedfiles,
-				sizeof(file_t *) * dir->sortedlen);
+				sizeof(File *) * dir->sortedlen);
 		dir->len = dir->sortedlen;
 	}
 	dir->ind = max(min(dir->ind, dir->len - 1), 0);
 }
 
-static inline void swap(file_t **a, file_t **b)
+static inline void swap(File **a, File **b)
 {
-	file_t *t = *a;
+	File *t = *a;
 	*a = *b;
 	*b = t;
 }
@@ -103,16 +103,16 @@ void dir_sort(dir_t *dir)
 	if (!dir->sorted) {
 		switch (dir->sorttype) {
 			case SORT_NATURAL:
-				qsort(dir->allfiles, dir->alllen, sizeof(file_t*), compare_natural);
+				qsort(dir->allfiles, dir->alllen, sizeof(File*), compare_natural);
 				break;
 			case SORT_NAME:
-				qsort(dir->allfiles, dir->alllen, sizeof(file_t*), compare_name);
+				qsort(dir->allfiles, dir->alllen, sizeof(File*), compare_name);
 				break;
 			case SORT_SIZE:
-				qsort(dir->allfiles, dir->alllen, sizeof(file_t*), compare_size);
+				qsort(dir->allfiles, dir->alllen, sizeof(File*), compare_size);
 				break;
 			case SORT_CTIME:
-				qsort(dir->allfiles, dir->alllen, sizeof(file_t*), compare_ctime);
+				qsort(dir->allfiles, dir->alllen, sizeof(File*), compare_ctime);
 				break;
 			case SORT_RAND:
 				shuffle(dir->allfiles, dir->alllen, sizeof(*dir->allfiles));
@@ -279,7 +279,7 @@ dir_t *dir_load(const char *path, bool load_filecount)
 				 (dp->d_name[1] == '.' && dp->d_name[2] == 0))) {
 			continue;
 		}
-		file_t *file = file_create(path, dp->d_name);
+		File *file = file_create(path, dp->d_name);
 		if (file != NULL) {
 			if (load_filecount && file_isdir(file)) {
 				file->filecount = get_file_count(file->path);
@@ -293,11 +293,11 @@ dir_t *dir_load(const char *path, bool load_filecount)
 	dir->sortedlen = dir->alllen;
 	dir->len = dir->alllen;
 
-	dir->sortedfiles = malloc(sizeof(file_t*) * dir->alllen);
-	dir->files = malloc(sizeof(file_t*) * dir->alllen);
+	dir->sortedfiles = malloc(sizeof(File*) * dir->alllen);
+	dir->files = malloc(sizeof(File*) * dir->alllen);
 
-	memcpy(dir->sortedfiles, dir->allfiles, sizeof(file_t*)*dir->alllen);
-	memcpy(dir->files, dir->allfiles, sizeof(file_t*)*dir->alllen);
+	memcpy(dir->sortedfiles, dir->allfiles, sizeof(File*)*dir->alllen);
+	memcpy(dir->files, dir->allfiles, sizeof(File*)*dir->alllen);
 
 	return dir;
 }

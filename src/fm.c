@@ -188,7 +188,7 @@ void fm_sort(fm_t *fm)
 			/* TODO: maybe we can select the closest non-hidden file in case the
 			 * current one will be hidden (on 2021-10-17) */
 			if (fm->dirs.visible[i]->len > 0) {
-				const file_t *file = dir_current_file(fm->dirs.visible[i]);
+				const File *file = dir_current_file(fm->dirs.visible[i]);
 				const char *name = file ? file->name : NULL; // dir_sort changes the files array
 				dir_sort(fm->dirs.visible[i]);
 				dir_cursor_move_to(fm->dirs.visible[i], name, fm->height, cfg.scrolloff);
@@ -198,7 +198,7 @@ void fm_sort(fm_t *fm)
 	if (fm->dirs.preview != NULL) {
 		fm->dirs.preview->hidden = cfg.hidden;
 		if (fm->dirs.preview->len > 0) {
-			const file_t *file = dir_current_file(fm->dirs.preview);
+			const File *file = dir_current_file(fm->dirs.preview);
 			const char *name = file ? file->name : NULL;
 			dir_sort(fm->dirs.preview);
 			dir_cursor_move_to(fm->dirs.preview, name, fm->height, cfg.scrolloff);
@@ -330,7 +330,7 @@ void update_preview(fm_t *fm)
 		return;
 	}
 
-	const file_t *file = fm_current_file(fm);
+	const File *file = fm_current_file(fm);
 	if (file != NULL && file_isdir(file)) {
 		if (fm->dirs.preview != NULL) {
 			if (streq(fm->dirs.preview->path, file->path)) {
@@ -417,7 +417,7 @@ void fm_selection_toggle_current(fm_t *fm)
 	if (fm->visual.active) {
 		return;
 	}
-	file_t *file = fm_current_file(fm);
+	File *file = fm_current_file(fm);
 	if (file != NULL) {
 		selection_toggle_file(fm, file->path);
 	}
@@ -514,7 +514,7 @@ void selection_visual_update(fm_t *fm, int origin, int from, int to)
 
 void fm_selection_write(const fm_t *fm, const char *path)
 {
-	file_t *f;
+	File *f;
 	size_t i;
 
 	char *dir, *buf = strdup(path);
@@ -590,9 +590,9 @@ void fm_move_to_ind(fm_t *fm, int ind)
 	cursor_move(fm, ind - fm->dirs.visible[0]->ind);
 }
 
-file_t *fm_open(fm_t *fm)
+File *fm_open(fm_t *fm)
 {
-	file_t *file = fm_current_file(fm);
+	File *file = fm_current_file(fm);
 	if (file == NULL) {
 		return NULL;
 	}
@@ -713,7 +713,7 @@ void fm_copy(fm_t *fm) {
 void fm_filter(fm_t *fm, const char *filter)
 {
 	dir_t *d = fm->dirs.visible[0];
-	file_t *f = dir_current_file(d);
+	File *f = dir_current_file(d);
 	dir_filter(d, filter);
 	dir_cursor_move_to(d, f ? f->name : NULL, fm->height, cfg.scrolloff);
 	update_preview(fm);

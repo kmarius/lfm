@@ -940,7 +940,7 @@ static int l_fm_updir(lua_State *L)
 
 static int l_fm_open(lua_State *L)
 {
-	file_t *file = fm_open(fm);
+	File *file = fm_open(fm);
 	if (file == NULL) {
 		/* changed directory */
 		ui->redraw.fm = 1;
@@ -961,7 +961,7 @@ static int l_fm_open(lua_State *L)
 
 static int l_fm_current_file(lua_State *L)
 {
-	file_t *file = fm_current_file(fm);
+	File *file = fm_current_file(fm);
 	if (file != NULL) {
 		lua_pushstring(L, file->path);
 		return 1;
@@ -1043,7 +1043,7 @@ static int l_fm_sortby(lua_State *L)
 		}
 	}
 	dir->sorted = false;
-	const file_t *file = dir_current_file(dir);
+	const File *file = dir_current_file(dir);
 	const char *name = file ? file->name : NULL;
 	dir_sort(dir);
 	fm_move_to(fm, name);
