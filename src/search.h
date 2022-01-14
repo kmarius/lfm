@@ -5,6 +5,8 @@
 #include "fm.h"
 #include "ui.h"
 
+/* TODO: add some prefix to these functions (on 2022-01-14) */
+
 /*
  * Start a search for `string`. `NULL` or an empty string disables highlighting. Does not move the cursor.
  */
