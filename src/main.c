@@ -131,12 +131,12 @@ int main(int argc, char **argv)
 
 	/* selection is written in lualfm.c */
 	if (cfg.lastdir != NULL) {
-		FILE *fp;
-		if ((fp = fopen(cfg.lastdir, "w")) != NULL) {
+		FILE *fp = fopen(cfg.lastdir, "w");
+		if (fp == NULL) {
+			log_error("lastdir: %s", strerror(errno));
+		} else {
 			fputs(getenv("PWD"), fp);
 			fclose(fp);
-		} else {
-			log_error("lastdir: %s", strerror(errno));
 		}
 	}
 
