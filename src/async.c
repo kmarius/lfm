@@ -322,7 +322,7 @@ static void async_preview_check_worker(void *arg)
 	free(w);
 }
 
-void async_preview_check(preview_t *pv)
+void async_preview_check(Preview *pv)
 {
 	struct preview_check_work *w = malloc(sizeof(struct preview_check_work));
 	w->path = strdup(pv->path);
@@ -337,7 +337,7 @@ void async_preview_check(preview_t *pv)
 
 struct PreviewLoadResult {
 	struct Result super;
-	preview_t *preview;
+	Preview *preview;
 };
 
 static void PreviewLoadResult_callback(struct PreviewLoadResult *result, App *app)
@@ -348,7 +348,7 @@ static void PreviewLoadResult_callback(struct PreviewLoadResult *result, App *ap
 
 static void PreviewLoadResult_destroy(struct PreviewLoadResult *result)
 {
-	preview_free(result->preview);
+	preview_destroy(result->preview);
 	free(result);
 }
 
@@ -357,7 +357,7 @@ static struct Result_vtable PreviewLoadResult_vtable = {
 	(void (*)(struct Result *)) &PreviewLoadResult_destroy,
 };
 
-static inline struct PreviewLoadResult *PreviewLoadResult_create(preview_t *preview)
+static inline struct PreviewLoadResult *PreviewLoadResult_create(Preview *preview)
 {
 	struct PreviewLoadResult *res = malloc(sizeof(struct PreviewLoadResult));
 	res->super.vtable = &PreviewLoadResult_vtable;
@@ -375,7 +375,7 @@ static void async_preview_load_worker(void *arg)
 {
 	struct preview_load_work *w = (struct preview_load_work*) arg;
 
-	struct PreviewLoadResult *res = PreviewLoadResult_create(preview_new_from_file(w->path, w->nrow));
+	struct PreviewLoadResult *res = PreviewLoadResult_create(preview_create_from_file(w->path, w->nrow));
 
 	pthread_mutex_lock(&async_results.mutex);
 	resultqueue_put(&async_results, (struct Result *) res);

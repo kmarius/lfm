@@ -59,7 +59,7 @@ void async_dir_load_delayed(Dir *dir, bool dircounts, uint16_t delay /* millis *
  * Check the modification time of `pv` on disk. Possibly generates a `res_t` to
  * trigger reloading the preview.
  */
-void async_preview_check(preview_t *pv);
+void async_preview_check(Preview *pv);
 
 /*
  * Reloads preview of the file at `path` with `nrow` lines from disk.

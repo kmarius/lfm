@@ -9,9 +9,8 @@
 #include "popen_arr.h"
 #include "preview.h"
 
-preview_t *preview_new(const char *path, int nrow)
+static inline Preview *preview_init(Preview *pv, const char *path, uint8_t nrow)
 {
-	preview_t *pv = malloc(sizeof(preview_t));
 	pv->path = strdup(path);
 	pv->lines = NULL;
 	pv->mtime = 0;
@@ -20,36 +19,42 @@ preview_t *preview_new(const char *path, int nrow)
 	return pv;
 }
 
-preview_t *preview_new_loading(const char *path, int nrow)
+static inline Preview *preview_create(const char *path, uint8_t nrow)
 {
-	preview_t *pv = preview_new(path, nrow);
+	return preview_init(malloc(sizeof(Preview)), path, nrow);
+}
+
+Preview *preview_create_loading(const char *path, uint8_t nrow)
+{
+	Preview *pv = preview_create(path, nrow);
 	pv->loading = true;
-	/* cvector_push_back(pv->lines, strdup("loading")); */
 	return pv;
 }
 
-/* line length currently not limited */
-preview_t *preview_new_from_file(const char *path, int nrow)
+Preview *preview_create_from_file(const char *path, uint8_t nrow)
 {
-	preview_t *pv = preview_new(path, nrow);
-
-	FILE *fp;
 	char buf[4096];
 
-	if (cfg.previewer != NULL) {
-		char *const args[3] = {cfg.previewer, (char*) path, NULL};
-		/* TODO: redirect stderr (on 2021-08-10) */
-		if ((fp = popen_arr(cfg.previewer, args, false)) == NULL) {
-			log_error("preview: %s", strerror(errno));
-			return pv;
-		}
+	Preview *pv = preview_create(path, nrow);
 
-		for (int i = 0; fgets(buf, sizeof(buf), fp) != NULL && i < nrow; i++) {
-			cvector_push_back(pv->lines, strdup(buf));
-		}
-
-		pclose(fp);
+	if (cfg.previewer == NULL) {
+		return pv;
 	}
+
+	/* TODO: redirect stderr? (on 2021-08-10) */
+	char *const args[3] = {cfg.previewer, (char*) path, NULL};
+	FILE *fp = popen_arr(cfg.previewer, args, false);
+	if (fp == NULL) {
+		log_error("preview: %s", strerror(errno));
+		return pv;
+	}
+
+	while (fgets(buf, sizeof(buf), fp) != NULL && nrow > 0) {
+		cvector_push_back(pv->lines, strdup(buf));
+	}
+	pv->nrow -= nrow;
+
+	pclose(fp);
 
 	struct stat statbuf;
 	if (stat(path, &statbuf) == -1) {
@@ -61,11 +66,17 @@ preview_t *preview_new_from_file(const char *path, int nrow)
 	return pv;
 }
 
-void preview_free(preview_t *pv)
+static inline void preview_deinit(Preview *pv)
 {
-	if (pv != NULL) {
-		cvector_ffree(pv->lines, free);
-		free(pv->path);
-		free(pv);
+	if (pv == NULL) {
+		return;
 	}
+	cvector_ffree(pv->lines, free);
+	free(pv->path);
+}
+
+void preview_destroy(Preview *pv)
+{
+	preview_deinit(pv);
+	free(pv);
 }

@@ -41,7 +41,7 @@ static void plane_draw_dir(struct ncplane *n, Dir *dir, char **sel,
 		char **load, enum movemode_e mode, const char *highlight);
 static void draw_cmdline(ui_t *ui);
 static void draw_preview(ui_t *ui);
-static void plane_draw_file_preview(struct ncplane *n, preview_t *pv);
+static void plane_draw_file_preview(struct ncplane *n, Preview *pv);
 static void update_file_preview(ui_t *ui);
 static void draw_menu(struct ncplane *n, cvector_vector_type(char *) menu);
 static void draw_info(ui_t *ui);
@@ -120,7 +120,7 @@ void ui_init(ui_t *ui, Fm *fm)
 {
 	ui->fm = fm;
 
-	cache_init(&ui->preview.cache, PREVIEW_CACHE_SIZE, (void(*)(void*)) preview_free);
+	cache_init(&ui->preview.cache, PREVIEW_CACHE_SIZE, (void(*)(void*)) preview_destroy);
 	cmdline_init(&ui->cmdline);
 	history_load(&ui->history, cfg.historypath);
 
@@ -873,10 +873,10 @@ static void plane_draw_dir(struct ncplane *n, Dir *dir, char **sel, char **load,
 
 /* preview {{{ */
 
-static preview_t *load_preview(ui_t *ui, File *file)
+static Preview *load_preview(ui_t *ui, File *file)
 {
 	int ncol, nrow;
-	preview_t *pv;
+	Preview *pv;
 
 	ncplane_dim_yx(ui->planes.preview, &nrow, &ncol);
 
@@ -891,7 +891,7 @@ static preview_t *load_preview(ui_t *ui, File *file)
 			async_preview_check(pv);
 		}
 	} else {
-		pv = preview_new_loading(file->path, nrow);
+		pv = preview_create_loading(file->path, nrow);
 		async_preview_load(file->path, nrow);
 	}
 	return pv;
@@ -1057,7 +1057,7 @@ static char *ansi_consoom(struct ncplane *w, char *s)
 	return s;
 }
 
-static void plane_draw_file_preview(struct ncplane *n, preview_t *pv)
+static void plane_draw_file_preview(struct ncplane *n, Preview *pv)
 {
 	int nrow;
 	size_t i;
@@ -1077,23 +1077,23 @@ static void plane_draw_file_preview(struct ncplane *n, preview_t *pv)
 	}
 }
 
-bool ui_insert_preview(ui_t *ui, preview_t *pv)
+bool ui_insert_preview(ui_t *ui, Preview *pv)
 {
 	const File *file = fm_current_file(ui->fm);
 
 	if (file != NULL && streq(pv->path, file->path)) {
-		preview_free(ui->preview.file);
+		preview_destroy(ui->preview.file);
 		ui->preview.file = pv;
 		return true;
 	} else {
-		preview_t *oldpv = cache_take(&ui->preview.cache, pv->path);
+		Preview *oldpv = cache_take(&ui->preview.cache, pv->path);
 		if (oldpv != NULL) {
 			if (pv->mtime >= oldpv->mtime) {
-				preview_free(oldpv);
+				preview_destroy(oldpv);
 				cache_insert(&ui->preview.cache, pv, pv->path);
 			} else {
 				/* discard */
-				preview_free(pv);
+				preview_destroy(pv);
 			}
 		} else {
 			cache_insert(&ui->preview.cache, pv, pv->path);
@@ -1104,7 +1104,7 @@ bool ui_insert_preview(ui_t *ui, preview_t *pv)
 
 void ui_drop_cache(ui_t *ui)
 {
-	preview_free(ui->preview.file);
+	preview_destroy(ui->preview.file);
 	ui->preview.file = NULL;
 	cache_clear(&ui->preview.cache);
 	update_file_preview(ui);

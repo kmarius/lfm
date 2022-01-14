@@ -1,23 +1,22 @@
 #pragma once
 
 #include <stdbool.h>
+#include <stdint.h>
 #include <time.h>
 
 #include "cvector.h"
 #include "dir.h"
 
-typedef struct preview_t {
+typedef struct {
 	char *path;
 	cvector_vector_type(char*) lines;
-	int nrow;
+	uint8_t nrow;
 	time_t mtime;
 	bool loading;
-} preview_t;
+} Preview;
 
-preview_t *preview_new(const char *path, int nrow);
+Preview *preview_create_loading(const char *path, uint8_t nrow);
 
-preview_t *preview_new_loading(const char *path, int nrow);
+Preview *preview_create_from_file(const char *path, uint8_t nrow);
 
-preview_t *preview_new_from_file(const char *path, int nrow);
-
-void preview_free(preview_t *pv);
+void preview_destroy(Preview *pv);

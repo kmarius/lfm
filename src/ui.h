@@ -36,7 +36,7 @@ typedef struct ui_t {
 	History history;
 
 	struct {
-		preview_t *file;
+		Preview *file;
 		Cache cache;
 	} preview;
 
@@ -79,7 +79,7 @@ void ui_cmd_clear(ui_t *ui);
 
 void ui_cmd_prefix_set(ui_t *ui, const char *prefix);
 
-bool ui_insert_preview(ui_t *ui, preview_t *pv);
+bool ui_insert_preview(ui_t *ui, Preview *pv);
 
 void ui_drop_cache(ui_t *ui);
 
