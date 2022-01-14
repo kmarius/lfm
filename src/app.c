@@ -187,7 +187,7 @@ static void inotify_cb(EV_P_ ev_io *w, int revents)
 			}
 			const unsigned long now = current_millis();
 			if (i >= l) {
-				dir_t *dir = notify_get_dir(event->wd);
+				Dir *dir = notify_get_dir(event->wd);
 				if (dir != NULL) {
 					async_dir_load(dir, true);
 					cvector_push_back(times, ((struct tup_t) {now, event->wd}));
@@ -213,7 +213,7 @@ static void inotify_cb(EV_P_ ev_io *w, int revents)
 				 * three reloads are
 				 * scheduled when events come in in quick
 				 * succession */
-				dir_t *dir = notify_get_dir(event->wd);
+				Dir *dir = notify_get_dir(event->wd);
 				if (dir != NULL) {
 					async_dir_load_delayed(dir, true, next - now + NOTIFY_DELAY);
 					times[i].next = next + NOTIFY_DELAY;

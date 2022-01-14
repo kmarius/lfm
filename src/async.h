@@ -40,12 +40,12 @@ void res_callback(struct res_t *res, app_t *app);
  * Check the modification time of `dir` on disk. Possibly generates a `res_t`
  * to trigger reloading the directory.
  */
-void async_dir_check(dir_t *dir);
+void async_dir_check(Dir *dir);
 
 /*
  * Reloads `dir` from disk after `delay` milliseconds.
  */
-void async_dir_load_delayed(dir_t *dir, bool dircounts, int delay /* millis */);
+void async_dir_load_delayed(Dir *dir, bool dircounts, int delay /* millis */);
 
 /*
  * Loads `dir` from disk.

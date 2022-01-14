@@ -36,7 +36,7 @@
 #endif
 
 static void draw_dirs(ui_t *ui);
-static void plane_draw_dir(struct ncplane *n, dir_t *dir, char **sel,
+static void plane_draw_dir(struct ncplane *n, Dir *dir, char **sel,
 		char **load, enum movemode_e mode, const char *highlight);
 static void draw_cmdline(ui_t *ui);
 static void draw_preview(ui_t *ui);
@@ -473,7 +473,7 @@ void draw_cmdline(ui_t *ui)
 	char nums[16];
 	char size[32];
 	char mtime[32];
-	const dir_t *dir;
+	const Dir *dir;
 	const File *file;
 
 	if (ui->message) {
@@ -503,7 +503,7 @@ void draw_cmdline(ui_t *ui)
 						file->link_target ? file->link_target : "");
 			}
 
-			rhs_sz = snprintf(nums, sizeof(nums), " %d/%d", dir->len ? dir->ind + 1 : 0, dir->len);
+			rhs_sz = snprintf(nums, sizeof(nums), " %d/%d", dir->length ? dir->ind + 1 : 0, dir->length);
 			ncplane_putstr_yx(ui->planes.cmdline, 0, ui->ncol - rhs_sz, nums);
 
 			if (dir->filter[0] != 0) {
@@ -558,7 +558,7 @@ static void draw_info(ui_t *ui)
 	static char *home;
 	static int home_len;
 
-	const dir_t *dir;
+	const Dir *dir;
 	const File *file;
 
 	ncplane_erase(ui->planes.info);
@@ -834,7 +834,7 @@ static void print_file(struct ncplane *n, const File *file,
 	ncplane_set_styles(n, NCSTYLE_NONE);
 }
 
-static void plane_draw_dir(struct ncplane *n, dir_t *dir, char **sel, char **load,
+static void plane_draw_dir(struct ncplane *n, Dir *dir, char **sel, char **load,
 		enum movemode_e mode, const char *highlight)
 {
 	int nrow, i, offset;
@@ -848,18 +848,18 @@ static void plane_draw_dir(struct ncplane *n, dir_t *dir, char **sel, char **loa
 			ncplane_putstr_yx(n, 0, 2, dir->error == -1 ? "malloc" : strerror(dir->error));
 		} else if (dir->loading) {
 			ncplane_putstr_yx(n, 0, 2, "loading");
-		} else if (dir->len == 0) {
+		} else if (dir->length == 0) {
 			ncplane_putstr_yx(n, 0, 2, "empty");
 		} else {
 			dir->pos = min(min(dir->pos, nrow - 1), dir->ind);
 
 			offset = max(dir->ind - dir->pos, 0);
 
-			if (dir->len <= nrow) {
+			if (dir->length <= nrow) {
 				offset = 0;
 			}
 
-			const int l = min(dir->len - offset, nrow);
+			const int l = min(dir->length - offset, nrow);
 			for (i = 0; i < l; i++) {
 				ncplane_cursor_move_yx(n, i, 0);
 				print_file(n, dir->files[i + offset],
@@ -900,13 +900,13 @@ static void update_file_preview(ui_t *ui)
 {
 	int ncol, nrow;
 	ncplane_dim_yx(ui->planes.preview, &nrow, &ncol);
-	dir_t *dir;
+	Dir *dir;
 	File *file;
 
 	/* struct ncplane *w = wpreview(ui); */
 	// ncplane_erase(w); /* TODO: why (on 2021-10-30) */
 
-	if ((dir = ui->fm->dirs.visible[0]) != NULL && dir->ind < dir->len) {
+	if ((dir = ui->fm->dirs.visible[0]) != NULL && dir->ind < dir->length) {
 		file = dir->files[dir->ind];
 		if (ui->preview.file != NULL) {
 			if (streq(ui->preview.file->path, file->path)) {

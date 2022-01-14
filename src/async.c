@@ -81,7 +81,7 @@ void queue_deinit(resq_t *queue)
 
 struct res_dir_check {
 	struct res_t super;
-	dir_t *dir;
+	Dir *dir;
 };
 
 /* TODO: maybe on slow devices it is better to compare mtimes here? 2021-11-12 */
@@ -102,7 +102,7 @@ static struct res_vtable res_dir_check_vtable = {
 	(void (*)(struct res_t *)) &res_dir_check_destroy,
 };
 
-static inline struct res_dir_check *res_dir_check_create(dir_t *dir)
+static inline struct res_dir_check *res_dir_check_create(Dir *dir)
 {
 	struct res_dir_check *res = malloc(sizeof(struct res_dir_check));
 	res->super.vtable = &res_dir_check_vtable;
@@ -111,7 +111,7 @@ static inline struct res_dir_check *res_dir_check_create(dir_t *dir)
 }
 
 struct dir_check_work {
-	dir_t *dir;
+	Dir *dir;
 	time_t loadtime;
 };
 
@@ -143,11 +143,11 @@ static void async_dir_check_worker(void *arg)
 	free(w);
 }
 
-void async_dir_check(dir_t *dir)
+void async_dir_check(Dir *dir)
 {
 	struct dir_check_work *w = malloc(sizeof(struct dir_check_work));
 	w->dir = dir;
-	w->loadtime = dir->loadtime;
+	w->loadtime = dir->load_time;
 	tpool_add_work(async_tm, async_dir_check_worker, w);
 }
 
@@ -157,8 +157,8 @@ void async_dir_check(dir_t *dir)
 
 struct res_dir_update {
 	struct res_t super;
-	dir_t *dir;
-	dir_t *update;
+	Dir *dir;
+	Dir *update;
 };
 
 static void res_dir_update_callback(struct res_dir_update *result, app_t *app)
@@ -169,7 +169,7 @@ static void res_dir_update_callback(struct res_dir_update *result, app_t *app)
 
 static void res_dir_update_destroy(struct res_dir_update *result)
 {
-	dir_free(result->dir);
+	dir_destroy(result->dir);
 	free(result);
 }
 
@@ -178,7 +178,7 @@ static struct res_vtable res_dir_update_vtable = {
 	(void (*)(struct res_t *)) &res_dir_update_destroy,
 };
 
-static inline struct res_dir_update *res_dir_update_create(dir_t *dir, dir_t *update)
+static inline struct res_dir_update *res_dir_update_create(Dir *dir, Dir *update)
 {
 	struct res_dir_update *res = malloc(sizeof(struct res_dir_update));
 	res->super.vtable = &res_dir_update_vtable;
@@ -189,7 +189,7 @@ static inline struct res_dir_update *res_dir_update_create(dir_t *dir, dir_t *up
 }
 
 struct dir_load_work {
-	dir_t *dir;
+	Dir *dir;
 	char *path;
 	int delay;
 	bool dircounts;
@@ -223,7 +223,7 @@ static void async_dir_load_worker(void *arg)
 	free(w);
 }
 
-void async_dir_load_delayed(dir_t *dir, bool dircounts, int delay /* millis */)
+void async_dir_load_delayed(Dir *dir, bool dircounts, int delay /* millis */)
 {
 	struct dir_load_work *w = malloc(sizeof(struct dir_load_work));
 	w->dir = dir;

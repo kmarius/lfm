@@ -13,7 +13,7 @@
 #define NOTIFY_EVENTS (IN_MODIFY | IN_CREATE | IN_DELETE | IN_MOVED_FROM | IN_MOVED_TO | IN_ATTRIB)
 
 typedef struct tup_t {
-	dir_t *dir;
+	Dir *dir;
 	int wd;
 } tup_t;
 
@@ -32,7 +32,7 @@ bool notify_init()
 	return inotify_fd != -1;
 }
 
-void notify_add_watcher(dir_t *dir)
+void notify_add_watcher(Dir *dir)
 {
 	int wd;
 	size_t i;
@@ -68,7 +68,7 @@ void notify_add_watcher(dir_t *dir)
 	cvector_push_back(watchers, ((tup_t) {dir, wd}));
 }
 
-void notify_remove_watcher(dir_t *dir)
+void notify_remove_watcher(Dir *dir)
 {
 	size_t i;
 
@@ -84,7 +84,7 @@ void notify_remove_watcher(dir_t *dir)
 	}
 }
 
-void notify_set_watchers(dir_t **dirs, int n)
+void notify_set_watchers(Dir **dirs, int n)
 {
 	int i;
 
@@ -110,7 +110,7 @@ void log_watchers()
 	}
 }
 
-dir_t *notify_get_dir(int wd)
+Dir *notify_get_dir(int wd)
 {
 	size_t i;
 

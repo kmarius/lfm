@@ -13,13 +13,13 @@ extern int inotify_fd;
 
 bool notify_init();
 
-void notify_add_watcher(dir_t *dir);
+void notify_add_watcher(Dir *dir);
 
-void notify_remove_watcher(dir_t *dir);
+void notify_remove_watcher(Dir *dir);
 
-void notify_set_watchers(dir_t **dirs, int n);
+void notify_set_watchers(Dir **dirs, int n);
 
-dir_t *notify_get_dir(int wd);
+Dir *notify_get_dir(int wd);
 
 void notify_close();
 

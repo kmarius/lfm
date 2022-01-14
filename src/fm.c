@@ -21,7 +21,7 @@
 #define is_absolute(p) (*(p) == '/')
 #define is_relative(p) !is_absolute(p)
 
-static dir_t *load_dir(fm_t *fm, const char *path);
+static Dir *load_dir(fm_t *fm, const char *path);
 static void update_preview(fm_t *fm);
 static void update_watchers(fm_t *fm);
 static void remove_preview(fm_t *fm);
@@ -54,9 +54,9 @@ static void populate(fm_t *fm)
 	}
 
 	fm->dirs.visible[0] = load_dir(fm, pwd); /* current dir */
-	dir_t *d = fm->dirs.visible[0];
+	Dir *d = fm->dirs.visible[0];
 	for (i = 1; i < fm->dirs.len; i++) {
-		if ((s = dir_parent(d)) != NULL) {
+		if ((s = dir_parent_path(d)) != NULL) {
 			d = load_dir(fm, s);
 			fm->dirs.visible[i] = d;
 			dir_cursor_move_to(d, fm->dirs.visible[i-1]->name, fm->height, cfg.scrolloff);
@@ -91,7 +91,7 @@ void fm_init(fm_t *fm)
 	fm->dirs.len = cvector_size(cfg.ratios) - (cfg.preview ? 1 : 0);
 	cvector_grow(fm->dirs.visible, fm->dirs.len);
 
-	cache_init(&fm->dirs.cache, DIRCACHE_SIZE, (void (*)(void*)) dir_free);
+	cache_init(&fm->dirs.cache, DIRCACHE_SIZE, (void (*)(void*)) dir_destroy);
 	populate(fm);
 
 	update_watchers(fm);
@@ -187,7 +187,7 @@ void fm_sort(fm_t *fm)
 			fm->dirs.visible[i]->hidden = cfg.hidden;
 			/* TODO: maybe we can select the closest non-hidden file in case the
 			 * current one will be hidden (on 2021-10-17) */
-			if (fm->dirs.visible[i]->len > 0) {
+			if (fm->dirs.visible[i]->length > 0) {
 				const File *file = dir_current_file(fm->dirs.visible[i]);
 				const char *name = file ? file->name : NULL; // dir_sort changes the files array
 				dir_sort(fm->dirs.visible[i]);
@@ -197,7 +197,7 @@ void fm_sort(fm_t *fm)
 	}
 	if (fm->dirs.preview != NULL) {
 		fm->dirs.preview->hidden = cfg.hidden;
-		if (fm->dirs.preview->len > 0) {
+		if (fm->dirs.preview->length > 0) {
 			const File *file = dir_current_file(fm->dirs.preview);
 			const char *name = file ? file->name : NULL;
 			dir_sort(fm->dirs.preview);
@@ -213,7 +213,7 @@ void fm_hidden_set(fm_t *fm, bool hidden)
 	update_preview(fm);
 }
 
-static dir_t *load_dir(fm_t *fm, const char *path)
+static Dir *load_dir(fm_t *fm, const char *path)
 {
 	char fullpath[PATH_MAX];
 	if (is_relative(path)) {
@@ -221,7 +221,7 @@ static dir_t *load_dir(fm_t *fm, const char *path)
 		path = fullpath;
 	}
 
-	dir_t *dir = cache_take(&fm->dirs.cache, path);
+	Dir *dir = cache_take(&fm->dirs.cache, path);
 	if (dir != NULL) {
 		async_dir_check(dir);
 		dir->hidden = cfg.hidden;
@@ -243,7 +243,7 @@ static dir_t *load_dir(fm_t *fm, const char *path)
 	return dir;
 }
 
-bool fm_update_dir(fm_t *fm, dir_t *dir, dir_t *update)
+bool fm_update_dir(fm_t *fm, Dir *dir, Dir *update)
 {
 	int i;
 
@@ -267,7 +267,7 @@ bool fm_update_dir(fm_t *fm, dir_t *dir, dir_t *update)
 	} else {
 		// most likely the cache was dropped. Or the update took so long that
 		// dir was purged from the cache.
-		dir_free(update);
+		dir_destroy(update);
 	}
 
 	return false;
@@ -300,7 +300,7 @@ void fm_drop_cache(fm_t *fm)
 
 	for (i = 0; i < fm->dirs.len; i++) {
 		if (fm->dirs.visible[i] != NULL) {
-			dir_free(fm->dirs.visible[i]);
+			dir_destroy(fm->dirs.visible[i]);
 		}
 	}
 	remove_preview(fm);
@@ -425,8 +425,8 @@ void fm_selection_toggle_current(fm_t *fm)
 
 void fm_selection_reverse(fm_t *fm)
 {
-	const dir_t *dir = fm->dirs.visible[0];
-	for (int i = 0; i < dir->len; i++) {
+	const Dir *dir = fm->dirs.visible[0];
+	for (int i = 0; i < dir->length; i++) {
 		selection_toggle_file(fm, dir->files[i]->path);
 	}
 }
@@ -437,8 +437,8 @@ void fm_selection_visual_start(fm_t *fm)
 	if (fm->visual.active) {
 		return;
 	}
-	dir_t *dir = fm_current_dir(fm);
-	if (dir->len == 0) {
+	Dir *dir = fm_current_dir(fm);
+	if (dir->length == 0) {
 		return;
 	}
 	/* TODO: what actually happens if we change sortoptions while visual is
@@ -503,7 +503,7 @@ void selection_visual_update(fm_t *fm, int origin, int from, int to)
 			hi = to - 1;
 		}
 	}
-	const dir_t *dir = fm->dirs.visible[0];
+	const Dir *dir = fm->dirs.visible[0];
 	for (; lo <= hi; lo++) {
 		/* never unselect the old selection */
 		if (!cvector_contains(dir->files[lo]->path, fm->selection.previous)) {
@@ -550,7 +550,7 @@ void fm_selection_write(const fm_t *fm, const char *path)
 
 static bool cursor_move(fm_t *fm, int ct)
 {
-	dir_t *dir = fm->dirs.visible[0];
+	Dir *dir = fm->dirs.visible[0];
 	const int cur = dir->ind;
 	dir_cursor_move(dir, ct, fm->height, cfg.scrolloff);
 	if (dir->ind != cur) {
@@ -576,7 +576,7 @@ bool fm_top(fm_t *fm) {
 
 bool fm_bot(fm_t *fm)
 {
-	return fm_down(fm, fm->dirs.visible[0]->len - fm->dirs.visible[0]->ind);
+	return fm_down(fm, fm->dirs.visible[0]->length - fm->dirs.visible[0]->ind);
 }
 
 void fm_move_to(fm_t *fm, const char *name)
@@ -612,7 +612,7 @@ void fm_updir(fm_t *fm)
 		return;
 	}
 	const char *name = fm->dirs.visible[0]->name;
-	fm_chdir(fm, dir_parent(fm->dirs.visible[0]), false);
+	fm_chdir(fm, dir_parent_path(fm->dirs.visible[0]), false);
 	fm_move_to(fm, name);
 	update_preview(fm);
 }
@@ -712,7 +712,7 @@ void fm_copy(fm_t *fm) {
 
 void fm_filter(fm_t *fm, const char *filter)
 {
-	dir_t *d = fm->dirs.visible[0];
+	Dir *d = fm->dirs.visible[0];
 	File *f = dir_current_file(d);
 	dir_filter(d, filter);
 	dir_cursor_move_to(d, f ? f->name : NULL, fm->height, cfg.scrolloff);

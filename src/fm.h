@@ -24,14 +24,14 @@ typedef struct fm_t {
 	int height;
 
 	struct {
-		/* Visible directories excluding preview, vector of dir_t* */
-		cvector_vector_type(dir_t *) visible;
+		/* Visible directories excluding preview, vector of Dir* */
+		cvector_vector_type(Dir *) visible;
 		int len;
 
 		cache_t cache;
 
 		/* preview directory, NULL if there is none, e.g. if the cursor is resting on a file */
-		dir_t *preview;
+		Dir *preview;
 	} dirs;
 
 	/* List of quickmarks including "'" */
@@ -247,4 +247,4 @@ void fm_drop_cache(fm_t *fm);
  * Apply an update to a directory. Returns `true` if the directory is visible
  * and a redraw is necessary.
  */
-bool fm_update_dir(fm_t *fm, dir_t *dir, dir_t *update);
+bool fm_update_dir(fm_t *fm, Dir *dir, Dir *update);

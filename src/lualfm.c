@@ -105,7 +105,7 @@ static int l_search_prev(lua_State *L)
 
 static int l_find(lua_State *L)
 {
-	dir_t *dir;
+	Dir *dir;
 
 	if (!(dir = fm_current_dir(fm))) {
 		return 0;
@@ -113,15 +113,15 @@ static int l_find(lua_State *L)
 	const char *prefix = luaL_checkstring(L, 1);
 	int start = dir->ind;
 	int nmatches = 0;
-	for (int i = 0; i < dir->len; i++) {
-		if (hascaseprefix(dir->files[(start + i) % dir->len]->name,
+	for (int i = 0; i < dir->length; i++) {
+		if (hascaseprefix(dir->files[(start + i) % dir->length]->name,
 					prefix)) {
 			if (nmatches == 0) {
-				if ((start + i) % dir->len < dir->ind) {
+				if ((start + i) % dir->length < dir->ind) {
 					fm_up(fm, dir->ind -
-							(start + i) % dir->len);
+							(start + i) % dir->length);
 				} else {
-					fm_down(fm, (start + i) % dir->len -
+					fm_down(fm, (start + i) % dir->length -
 							dir->ind);
 				}
 				ui->redraw.fm = 1;
@@ -897,7 +897,7 @@ static int l_fm_drop_cache(lua_State *L)
 static int l_fm_check(lua_State *L)
 {
 	(void) L;
-	dir_t *d = fm_current_dir(fm);
+	Dir *d = fm_current_dir(fm);
 	if (!dir_check(d)) {
 		async_dir_load(d, true);
 	}
@@ -971,7 +971,7 @@ static int l_fm_current_file(lua_State *L)
 
 static int l_fm_current_dir(lua_State *L)
 {
-	const dir_t *dir = fm_current_dir(fm);
+	const Dir *dir = fm_current_dir(fm);
 	lua_newtable(L);
 	lua_pushstring(L, dir->path);
 	lua_setfield(L, -2, "path");
@@ -980,7 +980,7 @@ static int l_fm_current_dir(lua_State *L)
 
 	lua_newtable(L);
 	int i;
-	for (i = 0; i < dir->len; i++) {
+	for (i = 0; i < dir->length; i++) {
 		lua_pushstring(L, dir->files[i]->path);
 		lua_rawseti(L, -2, i+1);
 	}
@@ -1016,7 +1016,7 @@ static int l_fm_sortby(lua_State *L)
 {
 	const int l = lua_gettop(L);
 	const char *op;
-	dir_t *dir = fm_current_dir(fm);
+	Dir *dir = fm_current_dir(fm);
 	for (int i = 0; i < l; i++) {
 		op = luaL_checkstring(L, i + 1);
 		if (streq(op, "name")) {
