@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdbool.h>
+#include <stdint.h>
 #include <unistd.h>
 #include <wchar.h>
 
@@ -42,10 +43,10 @@ typedef struct config {
 	char *previewer;
 	bool hidden;
 	bool preview;
-	u_int8_t scrolloff;
+	uint8_t scrolloff;
 	cvector_vector_type(char*) commands;
 	cvector_vector_type(char*) inotify_blacklist;
-	cvector_vector_type(u_int16_t) ratios;
+	cvector_vector_type(uint16_t) ratios;
 
 	struct colors {
 		ext_channel_tup *ext_channels;
@@ -68,6 +69,6 @@ void config_init();
 
 void config_deinit();
 
-void config_ratios_set(cvector_vector_type(u_int16_t) ratios);
+void config_ratios_set(cvector_vector_type(uint16_t) ratios);
 
 void config_ext_channel_add(const char *ext, unsigned long channel);

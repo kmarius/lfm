@@ -8,7 +8,7 @@
 #include "ui.h"
 
 typedef struct {
-	ui_t ui;
+	Ui ui;
 	Fm fm;
 	lua_State *L;
 	struct ev_loop *loop;

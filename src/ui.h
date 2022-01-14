@@ -13,10 +13,10 @@
 
 #define PREVIEW_CACHE_SIZE 63
 
-typedef struct ui_t {
-	int nrow;
+typedef struct {
+	int nrow; // keep these as int for now until we can upgrade notcurses
 	int ncol;
-	int ndirs; /* number of columns including the preview */
+	uint16_t ndirs; /* number of columns including the preview */
 
 	Fm *fm;
 
@@ -50,39 +50,39 @@ typedef struct ui_t {
 		bool preview : 1;
 	} redraw;
 
-	bool message : 1;
-} ui_t;
+	bool message;
+} Ui;
 
 void kbblocking(bool blocking);
 
-void ui_init(ui_t *ui, Fm *fm);
+void ui_init(Ui *ui, Fm *fm);
 
-void ui_recol(ui_t *ui);
+void ui_recol(Ui *ui);
 
-void ui_deinit(ui_t *ui);
+void ui_deinit(Ui *ui);
 
-void ui_clear(ui_t *ui);
+void ui_clear(Ui *ui);
 
-void ui_draw(ui_t *ui);
+void ui_draw(Ui *ui);
 
-void ui_error(ui_t *ui, const char *format, ...);
+void ui_error(Ui *ui, const char *format, ...);
 
-void ui_echom(ui_t *ui, const char *format, ...);
+void ui_echom(Ui *ui, const char *format, ...);
 
-void ui_verror(ui_t *ui, const char *format, va_list args);
+void ui_verror(Ui *ui, const char *format, va_list args);
 
-void ui_vechom(ui_t *ui, const char *format, va_list args);
+void ui_vechom(Ui *ui, const char *format, va_list args);
 
-void ui_showmenu(ui_t *ui, cvector_vector_type(char*) vec);
+void ui_showmenu(Ui *ui, cvector_vector_type(char*) vec);
 
-void ui_cmd_clear(ui_t *ui);
+void ui_cmd_clear(Ui *ui);
 
-void ui_cmd_prefix_set(ui_t *ui, const char *prefix);
+void ui_cmd_prefix_set(Ui *ui, const char *prefix);
 
-bool ui_insert_preview(ui_t *ui, Preview *pv);
+bool ui_insert_preview(Ui *ui, Preview *pv);
 
-void ui_drop_cache(ui_t *ui);
+void ui_drop_cache(Ui *ui);
 
-void ui_notcurses_init(ui_t *ui);
+void ui_notcurses_init(Ui *ui);
 
-void ui_suspend(ui_t *ui);
+void ui_suspend(Ui *ui);

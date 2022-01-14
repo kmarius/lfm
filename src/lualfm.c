@@ -34,7 +34,7 @@
 #define TABLE_CALLBACKS "callbacks"
 
 static App *app = NULL;
-static ui_t *ui = NULL;
+static Ui *ui = NULL;
 static Fm *fm = NULL;
 
 static struct {

@@ -13,7 +13,7 @@ static char *search_string = NULL;
 static bool search_forward = true;
 
 /* pass NULL to highlight previous search */
-static inline void highlight(ui_t *ui, const char *string)
+static inline void highlight(Ui *ui, const char *string)
 {
 	if (string != NULL) {
 		free(search_string);
@@ -23,13 +23,13 @@ static inline void highlight(ui_t *ui, const char *string)
 	ui->redraw.fm = 1;
 }
 
-inline void nohighlight(ui_t *ui)
+inline void nohighlight(Ui *ui)
 {
 	ui->highlight = NULL;
 	ui->redraw.fm = 1;
 }
 
-inline void search(ui_t *ui, const char *string, bool forward)
+inline void search(Ui *ui, const char *string, bool forward)
 {
 	if (string == NULL || string[0] == 0) {
 		nohighlight(ui);
@@ -39,7 +39,7 @@ inline void search(ui_t *ui, const char *string, bool forward)
 	}
 }
 
-static void search_next_forward(ui_t *ui, Fm *fm, bool inclusive)
+static void search_next_forward(Ui *ui, Fm *fm, bool inclusive)
 {
 	if (search_string == NULL) {
 		return;
@@ -55,7 +55,7 @@ static void search_next_forward(ui_t *ui, Fm *fm, bool inclusive)
 	}
 }
 
-static void search_next_backwards(ui_t *ui, Fm *fm, bool inclusive)
+static void search_next_backwards(Ui *ui, Fm *fm, bool inclusive)
 {
 	if (search_string == NULL) {
 		return;
@@ -71,7 +71,7 @@ static void search_next_backwards(ui_t *ui, Fm *fm, bool inclusive)
 	}
 }
 
-void search_next(ui_t *ui, Fm *fm, bool inclusive)
+void search_next(Ui *ui, Fm *fm, bool inclusive)
 {
 	if (search_forward) {
 		search_next_forward(ui, fm, inclusive);
@@ -80,7 +80,7 @@ void search_next(ui_t *ui, Fm *fm, bool inclusive)
 	}
 }
 
-void search_prev(ui_t *ui, Fm *fm, bool inclusive)
+void search_prev(Ui *ui, Fm *fm, bool inclusive)
 {
 	if (search_forward) {
 		search_next_backwards(ui, fm, inclusive);
