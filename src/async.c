@@ -212,7 +212,7 @@ static void DirCountResult_callback(struct DirCountResult *res, App *app)
 {
 	/* TODO: we need to make sure that the original files/dir don't get freed (on 2022-01-15) */
 	for (size_t i = 0; i < cvector_size(res->dircounts); i++) {
-		res->dircounts[i].file->dircount = res->dircounts[i].count;
+		file_dircount_set(res->dircounts[i].file, res->dircounts[i].count);
 	}
 	app->ui.redraw.fm = 1;
 	if (res->last) {
@@ -253,7 +253,7 @@ static void async_load_dircounts(Dir *dir, uint16_t n, File *files[n])
 
 	/* TODO: we need to make sure that the original files/dir don't get freed (on 2022-01-15) */
 	for (uint16_t i = 0; i < n; i++) {
-		cvector_push_back(counts, ((struct dircount) {files[i], file_load_dircount(files[i])}));
+		cvector_push_back(counts, ((struct dircount) {files[i], file_dircount_load(files[i])}));
 
 		if (current_millis() - latest > DIRCOUNT_THRESHOLD) {
 			struct DirCountResult *res = DirCountResult_create(dir, counts, false);

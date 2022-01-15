@@ -259,7 +259,7 @@ T *dir_load(const char *path, bool load_dircount)
 		File *file = file_create(path, dp->d_name);
 		if (file != NULL) {
 			if (load_dircount && file_isdir(file)) {
-				file->dircount = file_load_dircount(file);
+				file->dircount = file_dircount_load(file);
 			}
 			cvector_push_back(dir->files_all, file);
 		}
