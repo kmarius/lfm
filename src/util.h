@@ -36,6 +36,8 @@ bool hassuffix(const char *suf, const char *str);
 
 bool hascasesuffix(const char *suf, const char *str);
 
+char *readable_filesize(double size, char *buf);
+
 int msleep(uint32_t msec);
 
 uint64_t current_micros(void);

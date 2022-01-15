@@ -52,7 +52,6 @@ Preview *preview_create_from_file(const char *path, uint8_t nrow)
 	while (fgets(buf, sizeof(buf), fp) != NULL && nrow > 0) {
 		cvector_push_back(pv->lines, strdup(buf));
 	}
-	pv->nrow -= nrow;
 
 	pclose(fp);
 

@@ -36,7 +36,7 @@ typedef struct {
 	History history;
 
 	struct {
-		Preview *file;
+		Preview *preview;
 		Cache cache;
 	} preview;
 

@@ -25,7 +25,6 @@
 static void apply_filter(T *t);
 static inline void swap(File **a, File **b);
 static void shuffle(void *arr, size_t n, size_t size);
-static uint16_t get_file_count(const char *path);
 
 File *dir_current_file(const T *t)
 {
@@ -47,11 +46,11 @@ const char *dir_parent_path(const T *t)
 
 static bool file_filtered(File *file, const char *filter)
 {
-	return strcasestr(file->name, filter) != NULL;
+	return strcasestr(file_name(file), filter) != NULL;
 }
 
 static inline bool file_hidden(File *file) {
-	return file->name[0] == '.';
+	return file_name(file)[0] == '.';
 }
 
 static void apply_filter(T *t)
@@ -110,19 +109,19 @@ void dir_sort(T *t)
 	if (!t->sorted) {
 		switch (t->sorttype) {
 			case SORT_NATURAL:
-				qsort(t->files_all, t->length_all, sizeof(File*), compare_natural);
+				qsort(t->files_all, t->length_all, sizeof(File *), compare_natural);
 				break;
 			case SORT_NAME:
-				qsort(t->files_all, t->length_all, sizeof(File*), compare_name);
+				qsort(t->files_all, t->length_all, sizeof(File *), compare_name);
 				break;
 			case SORT_SIZE:
-				qsort(t->files_all, t->length_all, sizeof(File*), compare_size);
+				qsort(t->files_all, t->length_all, sizeof(File *), compare_size);
 				break;
 			case SORT_CTIME:
-				qsort(t->files_all, t->length_all, sizeof(File*), compare_ctime);
+				qsort(t->files_all, t->length_all, sizeof(File *), compare_ctime);
 				break;
 			case SORT_RAND:
-				shuffle(t->files_all, t->length_all, sizeof(*t->files_all));
+				shuffle(t->files_all, t->length_all, sizeof(File *));
 			default:
 				break;
 		}
@@ -231,21 +230,6 @@ static T *dir_create(const char *path)
 	return dir_init(malloc(sizeof(T)), path);
 }
 
-static uint16_t get_file_count(const char *path)
-{
-	struct dirent *dp;
-
-	DIR *dirp = opendir(path);
-	if (dirp == NULL) {
-		return 0;
-	}
-
-	uint16_t ct;
-	for (ct = 0; (dp = readdir(dirp)) != NULL; ct++) ;
-	closedir(dirp);
-	return ct - 2;
-}
-
 T *dir_new_loading(const char *path)
 {
 	T *dir = dir_create(path);
@@ -274,7 +258,7 @@ T *dir_load(const char *path, bool load_filecount)
 		File *file = file_create(path, dp->d_name);
 		if (file != NULL) {
 			if (load_filecount && file_isdir(file)) {
-				file->filecount = get_file_count(file->path);
+				file_load_dircount(file);
 			}
 			cvector_push_back(dir->files_all, file);
 		}
@@ -315,7 +299,7 @@ void dir_cursor_move_to(T *t, const char *name, uint16_t height, uint16_t scroll
 		return;
 	}
 	for (uint16_t i = 0; i < t->length; i++) {
-		if (streq(t->files[i]->name, name)) {
+		if (streq(file_name(t->files[i]), name)) {
 			dir_cursor_move(t, i - t->ind, height, scrolloff);
 			return;
 		}
@@ -326,7 +310,7 @@ void dir_cursor_move_to(T *t, const char *name, uint16_t height, uint16_t scroll
 void dir_update_with(T *t, Dir *update, uint16_t height, uint16_t scrolloff)
 {
 	if (t->sel == NULL && t->ind < t->length) {
-		t->sel = strdup(t->files[t->ind]->name);
+		t->sel = strdup(file_name(t->files[t->ind]));
 	}
 	cvector_ffree(t->files_all, file_destroy);
 	free(t->files_sorted);

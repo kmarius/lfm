@@ -66,6 +66,18 @@ bool hascasesuffix(const char *suf, const char *str)
 	return s && strcasecmp(s, suf) == 0;
 }
 
+char *readable_filesize(double size, char *buf)
+{
+	int16_t i = 0;
+	const char *units[] = {"", "K", "M", "G", "T", "P", "E", "Z", "Y"};
+	while (size > 1024) {
+		size /= 1024;
+		i++;
+	}
+	snprintf(buf, sizeof(buf)-1, "%.*f%s", i > 0 ? 1 : 0, size, units[i]);
+	return buf;
+}
+
 // https://stackoverflow.com/questions/1157209/is-there-an-alternative-sleep-function-in-c-to-milliseconds
 int msleep(uint32_t msec)
 {

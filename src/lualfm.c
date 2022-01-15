@@ -114,7 +114,7 @@ static int l_find(lua_State *L)
 	uint16_t start = dir->ind;
 	uint16_t nmatches = 0;
 	for (uint16_t i = 0; i < dir->length; i++) {
-		if (hascaseprefix(dir->files[(start + i) % dir->length]->name, prefix)) {
+		if (hascaseprefix(file_name(dir->files[(start + i) % dir->length]), prefix)) {
 			if (nmatches == 0) {
 				if ((start + i) % dir->length < dir->ind) {
 					fm_up(fm, dir->ind - (start + i) % dir->length);
@@ -943,7 +943,7 @@ static int l_fm_open(lua_State *L)
 			return 0;
 		}
 
-		lua_pushstring(L, file->path);
+		lua_pushstring(L, file_path(file));
 		return 1;
 	}
 }
@@ -952,7 +952,7 @@ static int l_fm_current_file(lua_State *L)
 {
 	File *file = fm_current_file(fm);
 	if (file != NULL) {
-		lua_pushstring(L, file->path);
+		lua_pushstring(L, file_path(file));
 		return 1;
 	}
 	return 0;
@@ -969,7 +969,7 @@ static int l_fm_current_dir(lua_State *L)
 
 	lua_newtable(L);
 	for (uint16_t i = 0; i < dir->length; i++) {
-		lua_pushstring(L, dir->files[i]->path);
+		lua_pushstring(L, file_path(dir->files[i]));
 		lua_rawseti(L, -2, i+1);
 	}
 	lua_setfield(L, -2, "files");
@@ -1032,7 +1032,7 @@ static int l_fm_sortby(lua_State *L)
 	}
 	dir->sorted = false;
 	const File *file = dir_current_file(dir);
-	const char *name = file ? file->name : NULL;
+	const char *name = file ? file_name(file) : NULL;
 	dir_sort(dir);
 	fm_move_cursor_to(fm, name);
 	ui->redraw.fm = 1;

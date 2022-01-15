@@ -1,23 +1,23 @@
-#include "dir.h"
+#include "file.h"
 #include "strnatcmp.h"
 
 int compare_name(const void *a, const void *b)
 {
-	return strcasecmp(((File *) a)->name, ((File *) b)->name);
+	return strcasecmp(file_name(*(File **) a), file_name(*(File **) b));
 }
 
 int compare_size(const void *a, const void *b)
 {
-	const int64_t c = ((File *) a)->lstat.st_size - ((File *) b)->lstat.st_size;
+	const int64_t c = file_size(*(File **) a) - file_size(*(File **) b);
 	return c < 0 ? -1 : c > 0 ? 1 : 0;
 }
 
 int compare_natural(const void *a, const void *b)
 {
-	return strnatcasecmp((*(File **) a)->name, (*(File **) b)->name);
+	return strcasecmp(file_name(*(File **) a), file_name(*(File **) b));
 }
 
 int compare_ctime(const void *a, const void *b)
 {
-	return ((File *) b)->lstat.st_ctime - ((File *) a)->lstat.st_ctime;
+	return file_ctime(*(File **) b) - file_ctime(*(File **) a);
 }

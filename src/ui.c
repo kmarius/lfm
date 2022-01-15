@@ -1,11 +1,9 @@
 #define _GNU_SOURCE
 #include <errno.h>
 #include <fcntl.h>
-#include <grp.h>
 #include <libgen.h>
 #include <ncurses.h>
 #include <notcurses/notcurses.h>
-#include <pwd.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -46,7 +44,6 @@ static void plane_draw_file_preview(struct ncplane *n, Preview *pv);
 static void update_file_preview(Ui *ui);
 static void draw_menu(struct ncplane *n, cvector_vector_type(char *) menu);
 static void draw_info(Ui *ui);
-static char *readable_fs(double size, char *buf);
 static void menu_resize(Ui *ui);
 static char *ansi_consoom(struct ncplane *w, char *s);
 static void ansi_addstr(struct ncplane *n, char *s);
@@ -132,7 +129,7 @@ void ui_init(Ui *ui, Fm *fm)
 
 	ui->ndirs = 0;
 
-	ui->preview.file = NULL;
+	ui->preview.preview = NULL;
 
 	ui->highlight = NULL;
 
@@ -264,7 +261,7 @@ static void draw_preview(Ui *ui)
 					ui->fm->load.files, ui->fm->load.mode, NULL);
 		} else {
 			update_file_preview(ui);
-			plane_draw_file_preview(ui->planes.preview, ui->preview.file);
+			plane_draw_file_preview(ui->planes.preview, ui->preview.preview);
 		}
 	}
 	PROFILE_END(t0);
@@ -348,110 +345,6 @@ void ui_cmd_clear(Ui *ui)
 	ui->redraw.menu = 1;
 }
 
-static char filetypeletter(int mode)
-{
-	char c;
-
-	if (S_ISREG(mode))
-		c = '-';
-	else if (S_ISDIR(mode))
-		c = 'd';
-	else if (S_ISBLK(mode))
-		c = 'b';
-	else if (S_ISCHR(mode))
-		c = 'c';
-#ifdef S_ISFIFO
-	else if (S_ISFIFO(mode))
-		c = 'p';
-#endif /* S_ISFIFO */
-#ifdef S_ISLNK
-	else if (S_ISLNK(mode))
-		c = 'l';
-#endif /* S_ISLNK */
-#ifdef S_ISSOCK
-	else if (S_ISSOCK(mode))
-		c = 's';
-#endif /* S_ISSOCK */
-#ifdef S_ISDOOR
-	/* Solaris 2.6, etc. */
-	else if (S_ISDOOR(mode))
-		c = 'D';
-#endif /* S_ISDOOR */
-	else {
-		/* Unknown type -- possibly a regular file? */
-		c = '?';
-	}
-	return c;
-}
-
-static char *perms(int mode)
-{
-	static const char *rwx[] = {"---", "--x", "-w-", "-wx",
-		"r--", "r-x", "rw-", "rwx"};
-	static char bits[11];
-
-	bits[0] = filetypeletter(mode);
-	strcpy(&bits[1], rwx[(mode >> 6) & 7]);
-	strcpy(&bits[4], rwx[(mode >> 3) & 7]);
-	strcpy(&bits[7], rwx[(mode & 7)]);
-	if (mode & S_ISUID)
-		bits[3] = (mode & S_IXUSR) ? 's' : 'S';
-	if (mode & S_ISGID)
-		bits[6] = (mode & S_IXGRP) ? 's' : 'l';
-	if (mode & S_ISVTX)
-		bits[9] = (mode & S_IXOTH) ? 't' : 'T';
-	bits[10] = '\0';
-	return bits;
-}
-
-static char *owner(int uid)
-{
-	static char owner[32];
-	struct passwd *pwd;
-	if ((pwd = getpwuid(uid)) != NULL) {
-		strncpy(owner, pwd->pw_name, sizeof(owner)-1);
-		owner[31] = 0;
-	} else {
-		owner[0] = 0;
-	}
-
-	return owner;
-}
-
-/* getgrgid() is somewhat slow, so we cache one call */
-static char *group(int gid)
-{
-	static char group[32];
-	static int cached_gid = INT_MAX;
-	struct group *grp;
-
-	if (gid == cached_gid) {
-		return group;
-	}
-
-	if ((grp = getgrgid(gid)) != NULL) {
-		strncpy(group, grp->gr_name, sizeof(group)-1);
-		group[31] = 0;
-		cached_gid = gid;
-	} else {
-		cached_gid = INT_MAX;
-		group[0] = 0;
-	}
-	return group;
-}
-
-static char *readable_fs(double size, char *buf)
-{
-	int16_t i = 0;
-	const char *units[] = {"", "K", "M", "G", "T", "P", "E", "Z", "Y"};
-	while (size > 1024) {
-		size /= 1024;
-		i++;
-	}
-	snprintf(buf, sizeof(buf)-1, "%.*f%s", i > 0 ? 1 : 0, size, units[i]);
-	return buf;
-}
-
 static char *print_time(time_t time, char *buffer, size_t bufsz)
 {
 	strftime(buffer, bufsz, "%Y-%m-%d %H:%M:%S", localtime(&time));
@@ -497,12 +390,12 @@ void draw_cmdline(Ui *ui)
 				 * directory instead (on 2021-07-18) */
 				lhs_sz = ncplane_printf_yx(ui->planes.cmdline, 0, 0,
 						"%s %2.ld %s %s %4s %s%s%s",
-						perms(file->lstat.st_mode), file->lstat.st_nlink,
-						owner(file->lstat.st_uid), group(file->lstat.st_gid),
-						readable_fs(file->stat.st_size, size),
-						print_time(file->lstat.st_mtime, mtime, sizeof(mtime)),
-						file->link_target ? " -> " : "",
-						file->link_target ? file->link_target : "");
+						file_perms(file), file_nlink(file),
+						file_owner(file), file_group(file),
+						file_size_readable(file, size),
+						print_time(file_mtime(file), mtime, sizeof(mtime)),
+						file_islink(file) ? " -> " : "",
+						file_islink(file) ? file_link_target(file) : "");
 			}
 
 			rhs_sz = snprintf(nums, sizeof(nums), " %d/%d", dir->length ? dir->ind + 1 : 0, dir->length);
@@ -590,7 +483,7 @@ static void draw_info(Ui *ui)
 		ncplane_cursor_yx(ui->planes.info, NULL, &remaining);
 		remaining = ui->ncol - remaining;
 		if ((file = dir_current_file(dir)) != NULL) {
-			remaining -= strlen(file->name);
+			remaining -= strlen(file_name(file));
 		}
 		ncplane_set_fg_palindex(ui->planes.info, COLOR_BLUE);
 		const char *c = dir->path;
@@ -612,7 +505,7 @@ static void draw_info(Ui *ui)
 		}
 		if (file != NULL) {
 			ncplane_set_fg_default(ui->planes.info);
-			ncplane_putstr(ui->planes.info, file->name);
+			ncplane_putstr(ui->planes.info, file_name(file));
 		}
 	}
 	PROFILE_END(t0);
@@ -737,21 +630,18 @@ static void print_file(struct ncplane *n, const File *file,
 	ncplane_dim_yx(n, NULL, &ncol);
 	ncplane_cursor_yx(n, &y0, NULL);
 
-	bool isdir = file_isdir(file);
-	bool islink = file_islink(file);
-
-	if (isdir) {
-		if (file->filecount == -2) {
+	if (file_isdir(file)) {
+		if (file_dircount(file) < 0) {
 			snprintf(size, sizeof(size), "?");
 		} else {
-			snprintf(size, sizeof(size), "%d", file->filecount);
+			snprintf(size, sizeof(size), "%d", file_dircount(file));
 		}
 	} else {
-		readable_fs(file->stat.st_size, size);
+		file_size_readable(file, size);
 	}
 
 	int rightmargin = strlen(size) + 2;
-	if (islink) {
+	if (file_islink(file)) {
 		rightmargin += 3; /* " ->" */
 	}
 	if (rightmargin > ncol * 2 / 3) {
@@ -760,11 +650,11 @@ static void print_file(struct ncplane *n, const File *file,
 
 	ncplane_set_bg_default(n);
 
-	if (cvector_contains(file->path, sel)) {
+	if (cvector_contains(file_path(file), sel)) {
 		ncplane_set_channels(n, cfg.colors.selection);
-	} else if (mode == MODE_MOVE && cvector_contains(file->path, load)) {
+	} else if (mode == MODE_MOVE && cvector_contains(file_path(file), load)) {
 		ncplane_set_channels(n, cfg.colors.delete);
-	} else if (mode == MODE_COPY && cvector_contains(file->path, load)) {
+	} else if (mode == MODE_COPY && cvector_contains(file_path(file), load)) {
 		ncplane_set_channels(n, cfg.colors.copy);
 	}
 
@@ -777,15 +667,15 @@ static void print_file(struct ncplane *n, const File *file,
 	ncplane_set_fg_default(n);
 	ncplane_set_bg_default(n);
 
-	if (isdir) {
+	if (file_isdir(file)) {
 		ncplane_set_channels(n, cfg.colors.dir);
 		ncplane_set_styles(n, NCSTYLE_BOLD);
-	} else if (file->broken) {
+	} else if (file_isbroken(file)) {
 		ncplane_set_channels(n, cfg.colors.broken);
 	} else if (file_isexec(file)) {
 		ncplane_set_channels(n, cfg.colors.exec);
 	} else {
-		uint64_t ch = ext_channel_find(file->ext);
+		uint64_t ch = ext_channel_find(file_ext(file));
 		if (ch > 0) {
 			ncplane_set_channels(n, ch);
 		} else {
@@ -800,19 +690,19 @@ static void print_file(struct ncplane *n, const File *file,
 
 	char *hlsubstr;
 	ncplane_putchar(n, ' ');
-	if (highlight != NULL && (hlsubstr = strcasestr(file->name, highlight)) != NULL) {
-		const uint16_t l = hlsubstr - file->name;
+	if (highlight != NULL && (hlsubstr = strcasestr(file_name(file), highlight)) != NULL) {
+		const uint16_t l = hlsubstr - file_name(file);
 		const uint64_t ch = ncplane_channels(n);
-		ncplane_putnstr(n, l, file->name);
+		ncplane_putnstr(n, l, file_name(file));
 		ncplane_set_channels(n, cfg.colors.search);
-		ncplane_putnstr(n, strlen(highlight), file->name + l);
+		ncplane_putnstr(n, strlen(highlight), file_name(file) + l);
 		ncplane_set_channels(n, ch);
-		ncplane_putnstr(n, ncol-3, file->name + l + strlen(highlight));
+		ncplane_putnstr(n, ncol-3, file_name(file) + l + strlen(highlight));
 		ncplane_cursor_yx(n, NULL, &x);
 	} else {
-		const char *p = file->name;
+		const char *p = file_name(file);
 		x = mbsrtowcs(buf, &p, ncol-3, NULL);
-		ncplane_putnstr(n, ncol-3, file->name);
+		ncplane_putnstr(n, ncol-3, file_name(file));
 	}
 
 	for (uint16_t l = x; l < ncol - 3; l++) {
@@ -824,7 +714,7 @@ static void print_file(struct ncplane *n, const File *file,
 		ncplane_cursor_move_yx(n, y0, ncol - rightmargin);
 	}
 	if (rightmargin > 0) {
-		if (islink) {
+		if (file_islink(file)) {
 			ncplane_putstr(n, " ->");
 		}
 		ncplane_putchar(n, ' ');
@@ -881,7 +771,7 @@ static Preview *load_preview(Ui *ui, File *file)
 
 	ncplane_dim_yx(ui->planes.preview, &nrow, &ncol);
 
-	if ((pv = cache_take(&ui->preview.cache, file->path)) != NULL) {
+	if ((pv = cache_take(&ui->preview.cache, file_path(file))) != NULL) {
 		/* TODO: vv (on 2021-08-10) */
 		/* might be checking too often here? or is it capped by inotify
 		 * timeout? */
@@ -892,8 +782,8 @@ static Preview *load_preview(Ui *ui, File *file)
 			async_preview_check(pv);
 		}
 	} else {
-		pv = preview_create_loading(file->path, nrow);
-		async_preview_load(file->path, nrow);
+		pv = preview_create_loading(file_path(file), nrow);
+		async_preview_load(file_path(file), nrow);
 	}
 	return pv;
 }
@@ -910,29 +800,29 @@ static void update_file_preview(Ui *ui)
 
 	if ((dir = ui->fm->dirs.visible[0]) != NULL && dir->ind < dir->length) {
 		file = dir->files[dir->ind];
-		if (ui->preview.file != NULL) {
-			if (streq(ui->preview.file->path, file->path)) {
-				if (!ui->preview.file->loading) {
-					if (ui->preview.file->nrow < nrow) {
-						async_preview_load(file->path, nrow);
-						ui->preview.file->loading = true;
+		if (ui->preview.preview != NULL) {
+			if (streq(ui->preview.preview->path, file_path(file))) {
+				if (!ui->preview.preview->loading) {
+					if (ui->preview.preview->nrow < nrow) {
+						async_preview_load(file_path(file), nrow);
+						ui->preview.preview->loading = true;
 					} else {
-						async_preview_check(ui->preview.file);
+						async_preview_check(ui->preview.preview);
 					}
 				}
 			} else {
-				cache_insert(&ui->preview.cache, ui->preview.file, ui->preview.file->path);
-				ui->preview.file = load_preview(ui, file);
+				cache_insert(&ui->preview.cache, ui->preview.preview, ui->preview.preview->path);
+				ui->preview.preview = load_preview(ui, file);
 				ui->redraw.preview = 1;
 			}
 		} else {
-			ui->preview.file = load_preview(ui, file);
+			ui->preview.preview = load_preview(ui, file);
 			ui->redraw.preview = 1;
 		}
 	} else {
-		if (ui->preview.file != NULL) {
-			cache_insert(&ui->preview.cache, ui->preview.file, ui->preview.file->path);
-			ui->preview.file = NULL;
+		if (ui->preview.preview != NULL) {
+			cache_insert(&ui->preview.cache, ui->preview.preview, ui->preview.preview->path);
+			ui->preview.preview = NULL;
 			ui->redraw.preview = 1;
 		}
 	}
@@ -1082,9 +972,9 @@ bool ui_insert_preview(Ui *ui, Preview *pv)
 {
 	const File *file = fm_current_file(ui->fm);
 
-	if (file != NULL && streq(pv->path, file->path)) {
-		preview_destroy(ui->preview.file);
-		ui->preview.file = pv;
+	if (file != NULL && streq(pv->path, file_path(file))) {
+		preview_destroy(ui->preview.preview);
+		ui->preview.preview = pv;
 		return true;
 	} else {
 		Preview *oldpv = cache_take(&ui->preview.cache, pv->path);
@@ -1105,8 +995,8 @@ bool ui_insert_preview(Ui *ui, Preview *pv)
 
 void ui_drop_cache(Ui *ui)
 {
-	preview_destroy(ui->preview.file);
-	ui->preview.file = NULL;
+	preview_destroy(ui->preview.preview);
+	ui->preview.preview = NULL;
 	cache_clear(&ui->preview.cache);
 	update_file_preview(ui);
 	ui->redraw.cmdline = 1;

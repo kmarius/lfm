@@ -189,7 +189,7 @@ void fm_sort(T *t)
 			 * current one will be hidden (on 2021-10-17) */
 			if (t->dirs.visible[i]->length > 0) {
 				const File *file = dir_current_file(t->dirs.visible[i]);
-				const char *name = file ? file->name : NULL; // dir_sort changes the files array
+				const char *name = file ? file_name(file) : NULL; // dir_sort changes the files array
 				dir_sort(t->dirs.visible[i]);
 				dir_cursor_move_to(t->dirs.visible[i], name, t->height, cfg.scrolloff);
 			}
@@ -199,7 +199,7 @@ void fm_sort(T *t)
 		t->dirs.preview->hidden = cfg.hidden;
 		if (t->dirs.preview->length > 0) {
 			const File *file = dir_current_file(t->dirs.preview);
-			const char *name = file ? file->name : NULL;
+			const char *name = file ? file_name(file) : NULL;
 			dir_sort(t->dirs.preview);
 			dir_cursor_move_to(t->dirs.preview, name, t->height, cfg.scrolloff);
 		}
@@ -325,7 +325,7 @@ void fm_update_preview(T *t)
 	const File *file = fm_current_file(t);
 	if (file != NULL && file_isdir(file)) {
 		if (t->dirs.preview != NULL) {
-			if (streq(t->dirs.preview->path, file->path)) {
+			if (streq(t->dirs.preview->path, file_path(file))) {
 				return;
 			}
 			/* don't remove watcher if it is a currently visible (non-preview) dir */
@@ -340,7 +340,7 @@ void fm_update_preview(T *t)
 				cache_insert(&t->dirs.cache, t->dirs.preview, t->dirs.preview->path);
 			}
 		}
-		t->dirs.preview = fm_load_dir(t, file->path);
+		t->dirs.preview = fm_load_dir(t, file_path(file));
 		// sometimes very slow on smb (> 200ms)
 		notify_add_watcher(t->dirs.preview);
 	} else {
@@ -413,7 +413,7 @@ void fm_selection_toggle_current(T *t)
 	}
 	File *file = fm_current_file(t);
 	if (file != NULL) {
-		selection_toggle_file(t, file->path);
+		selection_toggle_file(t, file_path(file));
 	}
 }
 
@@ -421,7 +421,7 @@ void fm_selection_reverse(T *t)
 {
 	const Dir *dir = t->dirs.visible[0];
 	for (uint16_t i = 0; i < dir->length; i++) {
-		selection_toggle_file(t, dir->files[i]->path);
+		selection_toggle_file(t, file_path(dir->files[i]));
 	}
 }
 
@@ -438,7 +438,7 @@ void fm_selection_visual_start(T *t)
 	 * active? (on 2021-11-15) */
 	t->visual.active = true;
 	t->visual.anchor = dir->ind;
-	fm_selection_add_file(t, dir->files[dir->ind]->path);
+	fm_selection_add_file(t, file_path(dir->files[dir->ind]));
 	for (size_t i = 0; i < cvector_size(t->selection.files); i++) {
 		if (t->selection.files[i] != NULL) {
 			cvector_push_back(t->selection.previous, t->selection.files[i]);
@@ -499,8 +499,8 @@ static void selection_visual_update(T *t, uint16_t origin, uint16_t from, uint16
 	const Dir *dir = t->dirs.visible[0];
 	for (; lo <= hi; lo++) {
 		/* never unselect the old selection */
-		if (!cvector_contains(dir->files[lo]->path, t->selection.previous)) {
-			selection_toggle_file(t, dir->files[lo]->path);
+		if (!cvector_contains(file_path(dir->files[lo]), t->selection.previous)) {
+			selection_toggle_file(t, file_path(dir->files[lo]));
 		}
 	}
 }
@@ -527,9 +527,9 @@ void fm_selection_write(const T *t, const char *path)
 			}
 		}
 	} else {
-		const File *f = fm_current_file(t);
-		if (f != NULL) {
-			fputs(f->path, fp);
+		const File *file = fm_current_file(t);
+		if (file != NULL) {
+			fputs(file_path(file), fp);
 			fputc('\n', fp);
 		}
 	}
@@ -595,7 +595,7 @@ File *fm_open(T *t)
 	if (!file_isdir(file)) {
 		return file;
 	}
-	fm_chdir(t, file->path, false);
+	fm_chdir(t, file_path(file), false);
 	return NULL;
 }
 
@@ -700,7 +700,7 @@ void fm_filter(T *t, const char *filter)
 	Dir *dir = t->dirs.visible[0];
 	File *file = dir_current_file(dir);
 	dir_filter(dir, filter);
-	dir_cursor_move_to(dir, file ? file->name : NULL, t->height, cfg.scrolloff);
+	dir_cursor_move_to(dir, file ? file_name(file) : NULL, t->height, cfg.scrolloff);
 	fm_update_preview(t);
 }
 
