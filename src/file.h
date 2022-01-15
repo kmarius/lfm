@@ -136,7 +136,7 @@ static inline long file_nlink(const File *file)
  */
 static inline long file_size(const File *file)
 {
-	return file->lstat.st_size;
+	return file->stat.st_size;
 }
 
 /*
