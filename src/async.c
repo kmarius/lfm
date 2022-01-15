@@ -245,14 +245,14 @@ static inline struct DirCountResult *DirCountResult_create(Dir *dir, struct dirc
 }
 
 // Not a worker function because we just call it from async_dir_load_worker
-static void async_load_dircounts(Dir *dir, File **files, uint16_t nfiles)
+static void async_load_dircounts(Dir *dir, uint16_t n, File *files[n])
 {
 	cvector_vector_type(struct dircount) counts = NULL;
 
 	uint64_t latest = current_millis();
 
 	/* TODO: we need to make sure that the original files/dir don't get freed (on 2022-01-15) */
-	for (uint16_t i = 0; i < nfiles; i++) {
+	for (uint16_t i = 0; i < n; i++) {
 		cvector_push_back(counts, ((struct dircount) {files[i], file_load_dircount(files[i])}));
 
 		if (current_millis() - latest > DIRCOUNT_THRESHOLD) {
@@ -334,7 +334,7 @@ static void async_dir_load_worker(void *arg)
 	enqueue_and_signal((struct Result *) res);
 
 	if (!work->dircounts && nfiles > 0) {
-		async_load_dircounts(work->dir, files, nfiles);
+		async_load_dircounts(work->dir, nfiles, files);
 	}
 
 	free(work->path);
