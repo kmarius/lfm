@@ -3,6 +3,7 @@
 #include <libgen.h>
 #include <linux/limits.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
@@ -66,15 +67,15 @@ bool hascasesuffix(const char *suf, const char *str)
 }
 
 // https://stackoverflow.com/questions/1157209/is-there-an-alternative-sleep-function-in-c-to-milliseconds
-int msleep(long msec)
+int msleep(uint32_t msec)
 {
 	struct timespec ts;
 	int res;
 
-	if (msec < 0) {
-		errno = EINVAL;
-		return -1;
-	}
+	/* if (msec < 0) { */
+	/* 	errno = EINVAL; */
+	/* 	return -1; */
+	/* } */
 
 	ts.tv_sec = msec / 1000;
 	ts.tv_nsec = (msec % 1000) * 1000000;
@@ -86,17 +87,17 @@ int msleep(long msec)
 	return res;
 }
 
-unsigned long current_micros(void) {
+uint64_t current_micros(void) {
 	struct timeval tv;
 	gettimeofday(&tv, NULL);
-	return (((unsigned long)tv.tv_sec) * 1000 * 1000) + (tv.tv_usec);
+	return ((uint64_t) tv.tv_sec) * 1000 * 1000 + tv.tv_usec;
 }
 
-unsigned long current_millis(void)
+uint64_t current_millis(void)
 {
 	struct timeval tv;
 	gettimeofday(&tv, NULL);
-	return (((unsigned long)tv.tv_sec) * 1000) + (tv.tv_usec / 1000);
+	return ((uint64_t) tv.tv_sec) * 1000 + tv.tv_usec / 1000;
 }
 
 void mkdir_p(char *path)

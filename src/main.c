@@ -56,7 +56,7 @@ int main(int argc, char **argv)
 {
 	App app;
 
-	const unsigned long t0 = current_micros();
+	const uint64_t t0 = current_micros();
 
 	config_init();
 

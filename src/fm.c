@@ -139,16 +139,16 @@ bool fm_chdir(T *t, const char *path, bool save)
 		path = fullpath;
 	}
 
-	unsigned long t0 = current_millis();
+	uint64_t t0 = current_millis();
 	if (chdir(path) != 0) {
-		unsigned long t1 = current_millis();
+		uint64_t t1 = current_millis();
 		if (t1 - t0 > 10) {
 			log_debug("chdir(\"%s\") took %ums", path, t1-t0);
 		}
 		error("chdir: %s", strerror(errno));
 		return false;
 	}
-	unsigned long t1 = current_millis();
+	uint64_t t1 = current_millis();
 	if (t1 - t0 > 10) {
 		log_debug("chdir(\"%s\") took %ums", path, t1-t0);
 	}

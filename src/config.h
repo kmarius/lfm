@@ -23,7 +23,7 @@
 
 typedef struct {
 	char *ext;
-	unsigned long channel;
+	uint64_t channel;
 } ext_channel_tup;
 
 typedef struct config {
@@ -51,15 +51,15 @@ typedef struct config {
 	struct colors {
 		ext_channel_tup *ext_channels;
 
-		unsigned long normal;
-		unsigned long selection;
-		unsigned long copy;
-		unsigned long delete;
-		unsigned long search;
-		unsigned long broken;
-		unsigned long exec;
-		unsigned long dir;
-		unsigned current; /* bg channel index only */
+		uint64_t normal;
+		uint64_t selection;
+		uint64_t copy;
+		uint64_t delete;
+		uint64_t search;
+		uint64_t broken;
+		uint64_t exec;
+		uint64_t dir;
+		uint32_t current; /* bg channel index only */
 	} colors;
 } config;
 
@@ -71,4 +71,4 @@ void config_deinit();
 
 void config_ratios_set(cvector_vector_type(uint16_t) ratios);
 
-void config_ext_channel_add(const char *ext, unsigned long channel);
+void config_ext_channel_add(const char *ext, uint64_t channel);

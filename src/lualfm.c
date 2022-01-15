@@ -607,7 +607,7 @@ static uint32_t read_channel(lua_State *L, int idx)
 	}
 }
 
-static unsigned long read_color_pair(lua_State *L, int ind)
+static uint64_t read_color_pair(lua_State *L, int ind)
 {
 	uint32_t fg, bg;
 	ncchannel_set_default(&fg);
@@ -662,7 +662,7 @@ static int l_colors_newindex(lua_State *L)
 		if (lua_istable(L, 3)) {
 			for (lua_pushnil(L); lua_next(L, 3); lua_pop(L, 1)) {
 				lua_getfield(L, -1, "color");
-				unsigned long ch = read_color_pair(L, -1);
+				const uint64_t ch = read_color_pair(L, -1);
 				lua_pop(L, 1);
 
 				lua_getfield(L, -1, "ext");

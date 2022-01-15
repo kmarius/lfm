@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdbool.h>
+#include <stdint.h>
 #include <string.h>
 
 #ifndef streq
@@ -35,12 +36,11 @@ bool hassuffix(const char *suf, const char *str);
 
 bool hascasesuffix(const char *suf, const char *str);
 
-int msleep(long msec);
+int msleep(uint32_t msec);
 
-unsigned long current_micros(void);
+uint64_t current_micros(void);
 
-/* this might have been long long at some point */
-unsigned long current_millis(void);
+uint64_t current_millis(void);
 
 /* recursive mkdir */
 void mkdir_p(char *path);

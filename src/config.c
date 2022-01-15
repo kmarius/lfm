@@ -11,6 +11,7 @@
 
 #include "config.h"
 #include "cvector.h"
+#include "log.h"
 
 config cfg = {
 	.truncatechar = L'~',
@@ -38,11 +39,10 @@ void config_ratios_set(cvector_vector_type(uint16_t) ratios)
 	}
 }
 
-void config_ext_channel_add(const char *ext, unsigned long channel)
+void config_ext_channel_add(const char *ext, uint64_t channel)
 {
 	/* TODO: should overwrite existing tuples or something (on 2022-01-14) */
-	cvector_push_back(cfg.colors.ext_channels,
-			((ext_channel_tup) { strdup(ext), channel, }));
+	cvector_push_back(cfg.colors.ext_channels, ((ext_channel_tup) {strdup(ext), channel}));
 }
 
 void config_init()

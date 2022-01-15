@@ -44,7 +44,7 @@ static App *_app; /* only needed for print/error and some callbacks :/ */
 static const size_t max_threads = 20;
 static int fifo_fd = -1;
 static int fifo_wd = -1;
-static unsigned long input_timeout = 0; /* written by app_timeout, read by stdin_cb  */
+static uint64_t input_timeout = 0; /* written by app_timeout, read by stdin_cb  */
 
 static ev_async async_res_watcher;
 static ev_idle redraw_watcher;
@@ -152,7 +152,7 @@ static void app_read_fifo(T *t)
 /* seems like inotify increments watch discriptors, we might have to clean this
  * at some point */
 static cvector_vector_type(struct tup_t {
-		unsigned long next;
+		uint64_t next;
 		int wd;
 		}) times = NULL;
 
@@ -188,7 +188,7 @@ static void inotify_cb(EV_P_ ev_io *w, int revents)
 					break;
 				}
 			}
-			const unsigned long now = current_millis();
+			const uint64_t now = current_millis();
 			if (i >= l) {
 				Dir *dir = notify_get_dir(event->wd);
 				if (dir != NULL) {
@@ -196,8 +196,8 @@ static void inotify_cb(EV_P_ ev_io *w, int revents)
 					cvector_push_back(times, ((struct tup_t) {now, event->wd}));
 				}
 			} else {
-				unsigned long next = now;
-				const unsigned long latest = times[i].next;
+				uint64_t next = now;
+				const uint64_t latest = times[i].next;
 
 				if (latest >= now + NOTIFY_TIMEOUT) {
 					/* discard */

@@ -50,13 +50,13 @@ void notify_add_watcher(Dir *dir)
 		}
 	}
 
-	const unsigned long t0 = current_millis();
+	const uint64_t t0 = current_millis();
 	int wd = inotify_add_watch(inotify_fd, dir->path, NOTIFY_EVENTS);
 	if (wd == -1) {
 		log_error("inotify: %s", strerror(errno));
 		return;
 	}
-	const unsigned long t1 = current_millis();
+	const uint64_t t1 = current_millis();
 
 	/* TODO: inotify_add_watch can take over 200ms for example on samba shares.
 	 * the only way to work around it is to add notify watches asnc. (on 2021-11-15) */

@@ -6,6 +6,7 @@
 #include <ncurses.h>
 #include <notcurses/notcurses.h>
 #include <pwd.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -28,7 +29,7 @@
 
 #if PROFILE_ENABLE
 #define PROFILE_BEGIN(__t0) \
-	const unsigned long (__t0) = current_micros();
+	const uint64_t (__t0) = current_micros();
 #define PROFILE_END(__t0) \
 	log_trace("%s finished after %.2fms", __FUNCTION__, (current_micros() - (__t0))/1000.0);
 #else
@@ -713,7 +714,7 @@ void ui_showmenu(Ui *ui, cvector_vector_type(char*) vec)
 
 /* wdraw_dir {{{ */
 
-static uint32_t ext_channel_find(const char *ext)
+static uint64_t ext_channel_find(const char *ext)
 {
 	size_t i;
 	if (ext != NULL) {
@@ -784,7 +785,7 @@ static void print_file(struct ncplane *n, const File *file,
 	} else if (file_isexec(file)) {
 		ncplane_set_channels(n, cfg.colors.exec);
 	} else {
-		uint32_t ch = ext_channel_find(file->ext);
+		uint64_t ch = ext_channel_find(file->ext);
 		if (ch > 0) {
 			ncplane_set_channels(n, ch);
 		} else {
@@ -801,7 +802,7 @@ static void print_file(struct ncplane *n, const File *file,
 	ncplane_putchar(n, ' ');
 	if (highlight != NULL && (hlsubstr = strcasestr(file->name, highlight)) != NULL) {
 		const uint16_t l = hlsubstr - file->name;
-		const uint32_t ch = ncplane_channels(n);
+		const uint64_t ch = ncplane_channels(n);
 		ncplane_putnstr(n, l, file->name);
 		ncplane_set_channels(n, cfg.colors.search);
 		ncplane_putnstr(n, strlen(highlight), file->name + l);
