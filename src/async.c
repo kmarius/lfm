@@ -154,13 +154,11 @@ static void async_dir_check_worker(void *arg)
 	struct stat statbuf;
 
 	if (stat(work->dir->path, &statbuf) == -1) {
-		free(work);
-		return;
+		goto cleanup;
 	}
 
 	if (statbuf.st_mtime <= work->loadtime) {
-		free(work);
-		return;
+		goto cleanup;
 	}
 
 	struct DirCheckResult *res = DirCheckResult_create(work->dir);
@@ -173,6 +171,7 @@ static void async_dir_check_worker(void *arg)
 		ev_async_send(EV_DEFAULT_ async_results.watcher);
 	}
 
+cleanup:
 	free(work);
 }
 
@@ -403,20 +402,19 @@ static void async_preview_check_worker(void *arg)
 
 	if (stat(work->path, &statbuf) == -1) {
 		free(work->path);
-		free(work);
-		return;
+		goto cleanup;
 	}
 
 	if (statbuf.st_mtime <= work->mtime) {
 		free(work->path);
-		free(work);
-		return;
+		goto cleanup;
 	}
 
 	// takes ownership of work->path
 	struct PreviewCheckResult *res = PreviewCheckResult_create(work->path, work->nrow);
 	enqueue_and_signal((struct Result *) res);
 
+cleanup:
 	free(work);
 }
 
