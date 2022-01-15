@@ -315,8 +315,7 @@ static int l_config_index(lua_State *L)
 	} else if (streq(key, "ratios")) {
 		const size_t l = cvector_size(cfg.ratios);
 		lua_createtable(L, l, 0);
-		size_t i;
-		for (i = 0; i < l; i++) {
+		for (size_t i = 0; i < l; i++) {
 			lua_pushinteger(L, cfg.ratios[i]);
 			lua_rawseti(L, -2, i + 1);
 		}
@@ -324,8 +323,7 @@ static int l_config_index(lua_State *L)
 	} else if (streq(key, "inotify_blacklist")) {
 		const size_t l = cvector_size(cfg.inotify_blacklist);
 		lua_createtable(L, l, 0);
-		size_t i;
-		for (i = 0; i < l; i++) {
+		for (size_t i = 0; i < l; i++) {
 			lua_pushstring(L, cfg.inotify_blacklist[i]);
 			lua_rawseti(L, -2, i + 1);
 		}
@@ -528,10 +526,8 @@ static int l_ui_history_next(lua_State *L)
 
 static int l_ui_messages(lua_State *L)
 {
-	size_t i;
-
 	lua_newtable(L);
-	for (i = 0; i < cvector_size(ui->messages); i++) {
+	for (size_t i = 0; i < cvector_size(ui->messages); i++) {
 		lua_pushstring(L, ui->messages[i]);
 		lua_rawseti(L, -2, i+1);
 	}
@@ -1071,9 +1067,9 @@ static int l_fm_selection_set(lua_State *L)
 
 static int l_fm_selection_get(lua_State *L)
 {
-	size_t i, j = 1;
 	lua_createtable(L, fm->selection.length, 0);
-	for (i = 0; i < cvector_size(fm->selection.files); i++) {
+	size_t j = 1;
+	for (size_t i = 0; i < cvector_size(fm->selection.files); i++) {
 		if (fm->selection.files[i] != NULL) {
 			lua_pushstring(L, fm->selection.files[i]);
 			lua_rawseti(L, -2, j++);
@@ -1112,7 +1108,6 @@ static int l_fm_chdir(lua_State *L)
 
 static int l_fm_get_load(lua_State *L)
 {
-	size_t i;
 	switch (fm->load.mode) {
 		case MODE_MOVE:
 			lua_pushstring(L, "move");
@@ -1122,7 +1117,7 @@ static int l_fm_get_load(lua_State *L)
 			break;
 	}
 	lua_createtable(L, cvector_size(fm->load.files), 0);
-	for (i = 0; i < cvector_size(fm->load.files); i++) {
+	for (size_t i = 0; i < cvector_size(fm->load.files); i++) {
 		lua_pushstring(L, fm->load.files[i]);
 		lua_rawseti(L, -2, i+1);
 	}
