@@ -12,6 +12,8 @@
 #include "ui.h"
 #include "util.h"
 
+#define DIRCOUNT_THRESHOLD 200 /* in ms */
+
 tpool_t *async_tm;
 
 ResultQueue async_results = {
@@ -21,6 +23,12 @@ ResultQueue async_results = {
 	.mutex = PTHREAD_MUTEX_INITIALIZER,
 };
 
+/*
+ * `callback` is run on the main thread and should do whatever is necessary to process Result,
+ * consuming it (freeing whatever resources remain).
+ *
+ * `destroy` shall completely free all resources of a Result.
+ */
 struct Result_vtable {
 	void (*callback)(struct Result *, App *);
 	void (*destroy)(struct Result *);
@@ -90,6 +98,17 @@ struct Result *resultqueue_get(T *t)
 
 /* }}} */
 
+static inline void enqueue_and_signal(struct Result *res)
+{
+	pthread_mutex_lock(&async_results.mutex);
+	resultqueue_put(&async_results, res);
+	pthread_mutex_unlock(&async_results.mutex);
+
+	if (async_results.watcher != NULL) {
+		ev_async_send(EV_DEFAULT_ async_results.watcher);
+	}
+}
+
 /* dir_check {{{ */
 
 struct DirCheckResult {
@@ -99,16 +118,16 @@ struct DirCheckResult {
 
 /* TODO: maybe on slow devices it is better to compare mtimes here? 2021-11-12 */
 /* currently we could just schedule reload from the other thread */
-static void DirCheckResult_callback(struct DirCheckResult *result, App *app)
+static void DirCheckResult_callback(struct DirCheckResult *res, App *app)
 {
 	(void) app;
-	async_dir_load(result->dir, true);
-	free(result);
+	async_dir_load(res->dir, true);
+	free(res);
 }
 
-static void DirCheckResult_destroy(struct DirCheckResult *result)
+static void DirCheckResult_destroy(struct DirCheckResult *res)
 {
-	free(result);
+	free(res);
 }
 
 static struct Result_vtable res_dir_check_vtable = {
@@ -131,20 +150,20 @@ struct dir_check_work {
 
 static void async_dir_check_worker(void *arg)
 {
-	struct dir_check_work *w = arg;
+	struct dir_check_work *work = arg;
 	struct stat statbuf;
 
-	if (stat(w->dir->path, &statbuf) == -1) {
-		free(w);
+	if (stat(work->dir->path, &statbuf) == -1) {
+		free(work);
 		return;
 	}
 
-	if (statbuf.st_mtime <= w->loadtime) {
-		free(w);
+	if (statbuf.st_mtime <= work->loadtime) {
+		free(work);
 		return;
 	}
 
-	struct DirCheckResult *res = DirCheckResult_create(w->dir);
+	struct DirCheckResult *res = DirCheckResult_create(work->dir);
 
 	pthread_mutex_lock(&async_results.mutex);
 	resultqueue_put(&async_results, (struct Result *) res);
@@ -154,15 +173,101 @@ static void async_dir_check_worker(void *arg)
 		ev_async_send(EV_DEFAULT_ async_results.watcher);
 	}
 
-	free(w);
+	free(work);
 }
 
 void async_dir_check(Dir *dir)
 {
-	struct dir_check_work *w = malloc(sizeof(struct dir_check_work));
-	w->dir = dir;
-	w->loadtime = dir->load_time;
-	tpool_add_work(async_tm, async_dir_check_worker, w);
+	struct dir_check_work *work = malloc(sizeof(struct dir_check_work));
+	work->dir = dir;
+	work->loadtime = dir->load_time;
+	tpool_add_work(async_tm, async_dir_check_worker, work);
+}
+
+/* }}} */
+
+/* dircount {{{ */
+
+/*
+ * TODO: (on 2022-01-15)
+ * Counting contents of directories asyncronuously relies on the original directory
+ * and its files to exist during the whole process. If another dir update is somehow
+ * faster and the update gets applied, the old files get deleted (has not happened so far).
+ * If the dir gets deleted, either due to drop_caches or because it is purged from the cache,
+ * the files also get deleted.
+ *
+ * we could use the (currently useless) Dir.dircounts variable and also remove drop_caches.
+ */
+struct DirCountResult {
+	struct Result super;
+	Dir *dir;
+	struct dircount {
+		File *file;
+		uint16_t count;
+	} *dircounts;
+	bool last;
+};
+
+static void DirCountResult_callback(struct DirCountResult *res, App *app)
+{
+	/* TODO: we need to make sure that the original files/dir don't get freed (on 2022-01-15) */
+	for (size_t i = 0; i < cvector_size(res->dircounts); i++) {
+		res->dircounts[i].file->dircount = res->dircounts[i].count;
+	}
+	app->ui.redraw.fm = 1;
+	if (res->last) {
+		res->dir->dircounts = true;
+	}
+	cvector_free(res->dircounts);
+	free(res);
+}
+
+static void DirCountResult_destroy(struct DirCountResult *res)
+{
+	cvector_free(res->dircounts);
+	free(res);
+}
+
+static struct Result_vtable DirCountResult_vtable = {
+	(void (*)(struct Result *, App *)) &DirCountResult_callback,
+	(void (*)(struct Result *)) &DirCountResult_destroy,
+};
+
+static inline struct DirCountResult *DirCountResult_create(Dir *dir, struct dircount* files, bool last)
+{
+	struct DirCountResult *res = malloc(sizeof(struct DirCountResult));
+	res->super.vtable = &DirCountResult_vtable;
+	res->super.next = NULL;
+	res->dir = dir;
+	res->dircounts = files;
+	res->last = last;
+	return res;
+}
+
+// Not a worker function because we just call it from async_dir_load_worker
+static void async_load_dircounts(Dir *dir, File **files, uint16_t nfiles)
+{
+	cvector_vector_type(struct dircount) counts = NULL;
+
+	uint64_t latest = current_millis();
+
+	/* TODO: we need to make sure that the original files/dir don't get freed (on 2022-01-15) */
+	for (uint16_t i = 0; i < nfiles; i++) {
+		cvector_push_back(counts, ((struct dircount) {files[i], file_load_dircount(files[i])}));
+
+		if (current_millis() - latest > DIRCOUNT_THRESHOLD) {
+			struct DirCountResult *res = DirCountResult_create(dir, counts, false);
+			enqueue_and_signal((struct Result *) res);
+
+			counts = NULL;
+			latest = current_millis();
+		}
+	}
+
+	struct DirCountResult *res = DirCountResult_create(dir, counts, true);
+	enqueue_and_signal((struct Result *) res);
+
+	free(files);
 }
 
 /* }}} */
@@ -175,16 +280,16 @@ struct DirUpdateResult {
 	Dir *update;
 };
 
-static void DirUpdateResult_callback(struct DirUpdateResult *result, App *app)
+static void DirUpdateResult_callback(struct DirUpdateResult *res, App *app)
 {
-	app->ui.redraw.fm |= fm_update_dir(&app->fm, result->dir, result->update);
-	free(result);
+	app->ui.redraw.fm |= fm_update_dir(&app->fm, res->dir, res->update);
+	free(res);
 }
 
-static void DirUpdateResult_destroy(struct DirUpdateResult *result)
+static void DirUpdateResult_destroy(struct DirUpdateResult *res)
 {
-	dir_destroy(result->dir);
-	free(result);
+	dir_destroy(res->dir);
+	free(res);
 }
 
 static struct Result_vtable DirUpdateResult_vtable = {
@@ -205,46 +310,45 @@ static inline struct DirUpdateResult *DirUpdateResult_create(Dir *dir, Dir *upda
 struct dir_load_work {
 	Dir *dir;
 	char *path;
-	int delay;
+	uint16_t delay;
 	bool dircounts;
 };
 
 static void async_dir_load_worker(void *arg)
 {
-	struct dir_load_work *w = arg;
-	if (w->delay > 0) {
-		msleep(w->delay);
+	struct dir_load_work *work = arg;
+
+	if (work->delay > 0) {
+		msleep(work->delay);
 	}
 
-	struct DirUpdateResult *res = DirUpdateResult_create(w->dir, dir_load(w->path, w->dircounts));
+	struct DirUpdateResult *res = DirUpdateResult_create(work->dir, dir_load(work->path, work->dircounts));
 
-	pthread_mutex_lock(&async_results.mutex);
-	resultqueue_put(&async_results, (struct Result *) res);
-	pthread_mutex_unlock(&async_results.mutex);
-
-	if (async_results.watcher != NULL) {
-		ev_async_send(EV_DEFAULT_ async_results.watcher);
+	const uint16_t nfiles = res->update->length_all;
+	File **files = NULL;
+	if (!work->dircounts && nfiles > 0) {
+		files = malloc(sizeof(File *) * nfiles);
+		memcpy(files, res->update->files_all, sizeof(File *) * nfiles);
 	}
 
-	if (!w->dircounts) {
-		w->dircounts = true;
-		w->delay = -1;
-		async_dir_load_worker(w);
-		return;
+	enqueue_and_signal((struct Result *) res);
+
+	if (!work->dircounts && nfiles > 0) {
+		async_load_dircounts(work->dir, files, nfiles);
 	}
 
-	free(w->path);
-	free(w);
+	free(work->path);
+	free(work);
 }
 
 void async_dir_load_delayed(Dir *dir, bool dircounts, uint16_t delay /* millis */)
 {
-	struct dir_load_work *w = malloc(sizeof(struct dir_load_work));
-	w->dir = dir;
-	w->path = strdup(dir->path);
-	w->delay = delay;
-	w->dircounts = dircounts;
-	tpool_add_work(async_tm, async_dir_load_worker, w);
+	struct dir_load_work *work = malloc(sizeof(struct dir_load_work));
+	work->dir = dir;
+	work->path = strdup(dir->path);
+	work->delay = delay;
+	work->dircounts = dircounts;
+	tpool_add_work(async_tm, async_dir_load_worker, work);
 }
 
 /* }}} */
@@ -257,18 +361,18 @@ struct PreviewCheckResult {
 	int nrow;
 };
 
-static void PreviewCheckResult_callback(struct PreviewCheckResult *result, App *app)
+static void PreviewCheckResult_callback(struct PreviewCheckResult *res, App *app)
 {
 	(void) app;
-	async_preview_load(result->path, result->nrow);
-	free(result->path);
-	free(result);
+	async_preview_load(res->path, res->nrow);
+	free(res->path);
+	free(res);
 }
 
-static void PreviewCheckResult_destroy(struct PreviewCheckResult *result)
+static void PreviewCheckResult_destroy(struct PreviewCheckResult *res)
 {
-	free(result->path);
-	free(result);
+	free(res->path);
+	free(res);
 }
 
 static struct Result_vtable PrevewCheckResult_vtable = {
@@ -294,41 +398,35 @@ struct preview_check_work {
 
 static void async_preview_check_worker(void *arg)
 {
-	struct preview_check_work *w = arg;
+	struct preview_check_work *work = arg;
 	struct stat statbuf;
 
-	if (stat(w->path, &statbuf) == -1) {
-		free(w->path);
-		free(w);
+	if (stat(work->path, &statbuf) == -1) {
+		free(work->path);
+		free(work);
 		return;
 	}
 
-	if (statbuf.st_mtime <= w->mtime) {
-		free(w->path);
-		free(w);
+	if (statbuf.st_mtime <= work->mtime) {
+		free(work->path);
+		free(work);
 		return;
 	}
 
-	struct PreviewCheckResult *res = PreviewCheckResult_create(w->path, w->nrow);
+	// takes ownership of work->path
+	struct PreviewCheckResult *res = PreviewCheckResult_create(work->path, work->nrow);
+	enqueue_and_signal((struct Result *) res);
 
-	pthread_mutex_lock(&async_results.mutex);
-	resultqueue_put(&async_results, (struct Result *) res);
-	pthread_mutex_unlock(&async_results.mutex);
-
-	if (async_results.watcher != NULL) {
-		ev_async_send(EV_DEFAULT_ async_results.watcher);
-	}
-
-	free(w);
+	free(work);
 }
 
 void async_preview_check(Preview *pv)
 {
-	struct preview_check_work *w = malloc(sizeof(struct preview_check_work));
-	w->path = strdup(pv->path);
-	w->nrow = pv->nrow;
-	w->mtime = pv->mtime;
-	tpool_add_work(async_tm, async_preview_check_worker, w);
+	struct preview_check_work *work = malloc(sizeof(struct preview_check_work));
+	work->path = strdup(pv->path);
+	work->nrow = pv->nrow;
+	work->mtime = pv->mtime;
+	tpool_add_work(async_tm, async_preview_check_worker, work);
 }
 
 /* }}} */
@@ -340,16 +438,16 @@ struct PreviewLoadResult {
 	Preview *preview;
 };
 
-static void PreviewLoadResult_callback(struct PreviewLoadResult *result, App *app)
+static void PreviewLoadResult_callback(struct PreviewLoadResult *res, App *app)
 {
-	app->ui.redraw.preview |= ui_insert_preview(&app->ui, result->preview);
-	free(result);
+	app->ui.redraw.preview |= ui_insert_preview(&app->ui, res->preview);
+	free(res);
 }
 
-static void PreviewLoadResult_destroy(struct PreviewLoadResult *result)
+static void PreviewLoadResult_destroy(struct PreviewLoadResult *res)
 {
-	preview_destroy(result->preview);
-	free(result);
+	preview_destroy(res->preview);
+	free(res);
 }
 
 static struct Result_vtable PreviewLoadResult_vtable = {
@@ -373,25 +471,22 @@ struct preview_load_work {
 
 static void async_preview_load_worker(void *arg)
 {
-	struct preview_load_work *w = (struct preview_load_work*) arg;
+	struct preview_load_work *work = arg;
 
-	struct PreviewLoadResult *res = PreviewLoadResult_create(preview_create_from_file(w->path, w->nrow));
+	struct PreviewLoadResult *res = PreviewLoadResult_create(
+			preview_create_from_file(work->path, work->nrow));
+	enqueue_and_signal((struct Result *) res);
 
-	pthread_mutex_lock(&async_results.mutex);
-	resultqueue_put(&async_results, (struct Result *) res);
-	pthread_mutex_unlock(&async_results.mutex);
-	if (async_results.watcher != NULL) {
-		ev_async_send(EV_DEFAULT_ async_results.watcher);
-	}
-	free(w->path);
-	free(w);
+	free(work->path);
+	free(work);
 }
 
 void async_preview_load(const char *path, uint16_t nrow)
 {
-	struct preview_load_work *w = malloc(sizeof(struct preview_load_work));
-	w->path = strdup(path);
-	w->nrow = nrow;
-	tpool_add_work(async_tm, async_preview_load_worker, w);
+	struct preview_load_work *work = malloc(sizeof(struct preview_load_work));
+	work->path = strdup(path);
+	work->nrow = nrow;
+	tpool_add_work(async_tm, async_preview_load_worker, work);
 }
+
 /* }}} */

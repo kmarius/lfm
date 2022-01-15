@@ -96,7 +96,7 @@ static inline bool file_isbroken(const File *file)
 /*
  * Loads the number of files in a directory and saves it to `file`.
  */
-void file_load_dircount(File *file);
+uint16_t file_load_dircount(File *file);
 
 /*
  * Returns the number of files in the directory `file`. A negative

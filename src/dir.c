@@ -237,10 +237,11 @@ T *dir_new_loading(const char *path)
 	return dir;
 }
 
-T *dir_load(const char *path, bool load_filecount)
+T *dir_load(const char *path, bool load_dircount)
 {
 	struct dirent *dp;
 	T *dir = dir_create(path);
+	dir->dircounts = load_dircount;
 
 	DIR *dirp = opendir(path);
 	if (dirp == NULL) {
@@ -257,8 +258,8 @@ T *dir_load(const char *path, bool load_filecount)
 		}
 		File *file = file_create(path, dp->d_name);
 		if (file != NULL) {
-			if (load_filecount && file_isdir(file)) {
-				file_load_dircount(file);
+			if (load_dircount && file_isdir(file)) {
+				file->dircount = file_load_dircount(file);
 			}
 			cvector_push_back(dir->files_all, file);
 		}
