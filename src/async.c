@@ -64,6 +64,7 @@ void resultqueue_deinit(T *t)
 	while ((res = resultqueue_get(t)) != NULL) {
 		result_destroy(res);
 	}
+	pthread_mutex_destroy(&async_results.mutex);
 }
 
 static void resultqueue_put(T *t, struct Result *res)
