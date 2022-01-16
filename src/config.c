@@ -33,10 +33,11 @@ config cfg = {
 
 void config_ratios_set(cvector_vector_type(uint16_t) ratios)
 {
-	if (cvector_size(ratios) > 0) {
-		cvector_free(cfg.ratios);
-		cfg.ratios = ratios;
-	}
+	if (cvector_size(ratios) == 0)
+		return;
+	cvector_free(cfg.ratios);
+	cfg.ratios = ratios;
+
 }
 
 void config_ext_channel_add(const char *ext, uint64_t channel)

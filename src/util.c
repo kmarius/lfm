@@ -21,9 +21,8 @@ int max(int i, int j);
 bool hascaseprefix(const char *restrict string, const char *restrict prefix)
 {
 	while (*prefix != 0) {
-		if (tolower(*prefix++) != tolower(*string++)) {
+		if (tolower(*prefix++) != tolower(*string++))
 			return false;
-		}
 	}
 
 	return true;
@@ -32,9 +31,8 @@ bool hascaseprefix(const char *restrict string, const char *restrict prefix)
 bool hasprefix(const char *restrict string, const char *restrict prefix)
 {
 	while (*prefix != 0) {
-		if (*prefix++ != *string++) {
+		if (*prefix++ != *string++)
 			return false;
-		}
 	}
 
 	return true;
@@ -50,11 +48,9 @@ const char *strcaserchr(const char *str, char c)
 {
 	const char *last = NULL;
 	const char *s = str;
-	while (*s != 0)
-	{
-		if (*s == c) {
+	while (*s != 0) {
+		if (*s == c)
 			last = s;
-		}
 		s++;
 	}
 	return last;
@@ -115,14 +111,13 @@ uint64_t current_millis(void)
 void mkdir_p(char *path)
 {
 	char *sep = strrchr(path, '/');
-	if (sep != NULL && sep != path) {
+	if (sep && sep != path) {
 		*sep = 0;
 		mkdir_p(path);
 		*sep = '/';
 	}
-	if (mkdir(path, 0755) && errno != EEXIST) {
+	if (mkdir(path, 0755) && errno != EEXIST)
 		log_error("error while trying to create '%s'", path);
-	}
 }
 
 char *srealpath(const char *p)

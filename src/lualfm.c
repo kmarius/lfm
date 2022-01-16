@@ -55,18 +55,16 @@ static int l_handle_key(lua_State *L)
 	const char *keys = luaL_checkstring(L, 1);
 	input_t buf[strlen(keys) + 1];
 	key_names_to_input(keys, buf);
-	for (input_t *u = buf; *u; u++) {
+	for (input_t *u = buf; *u; u++)
 		lua_handle_key(L, *u);
-	}
 	return 0;
 }
 
 static int l_timeout(lua_State *L)
 {
 	const int16_t dur = luaL_checkinteger(L, 1);
-	if (dur > 0) {
+	if (dur > 0)
 		app_timeout_set(app, dur);
-	}
 	return 0;
 }
 
@@ -106,9 +104,8 @@ static int l_search_prev(lua_State *L)
 static int l_find(lua_State *L)
 {
 	Dir *dir = fm_current_dir(fm);
-	if (dir == NULL) {
+	if (!dir)
 		return 0;
-	}
 
 	const char *prefix = luaL_checkstring(L, 1);
 	uint16_t start = dir->ind;
@@ -116,11 +113,10 @@ static int l_find(lua_State *L)
 	for (uint16_t i = 0; i < dir->length; i++) {
 		if (hascaseprefix(file_name(dir->files[(start + i) % dir->length]), prefix)) {
 			if (nmatches == 0) {
-				if ((start + i) % dir->length < dir->ind) {
+				if ((start + i) % dir->length < dir->ind)
 					fm_up(fm, dir->ind - (start + i) % dir->length);
-				} else {
+				else
 					fm_down(fm, (start + i) % dir->length - dir->ind);
-				}
 				ui->redraw.fm = 1;
 			}
 			nmatches++;
@@ -165,10 +161,9 @@ static int l_execute(lua_State *L)
 	luaL_checktype(L, 1, LUA_TTABLE);
 
 	const uint16_t n = luaL_getn(L, 1);
-	if (n == 0) {
+	if (n == 0)
 		luaL_error(L, "no command given");
-		// not reached
-	}
+
 	char **args = malloc(sizeof(char*)*(n+1));
 	for (uint16_t i = 1; i <= n; i++) {
 		lua_rawgeti(L, 1, i);
@@ -178,21 +173,22 @@ static int l_execute(lua_State *L)
 	args[n] = NULL;
 	if (lua_gettop(L) >= 2) {
 		luaL_checktype(L, 2, LUA_TTABLE);
+
 		lua_getfield(L, 2, "out");
-		if (!lua_isnoneornil(L, -1)) {
+		if (!lua_isnoneornil(L, -1))
 			out = lua_toboolean(L, -1);
-		}
 		lua_pop(L, 1);
+
 		lua_getfield(L, 2, "err");
-		if (!lua_isnoneornil(L, -1)) {
+		if (!lua_isnoneornil(L, -1))
 			err = lua_toboolean(L, -1);
-		}
 		lua_pop(L, 1);
+
 		lua_getfield(L, 2, "fork");
-		if (!lua_isnoneornil(L, -1)) {
+		if (!lua_isnoneornil(L, -1))
 			fork = lua_toboolean(L, -1);
-		}
 		lua_pop(L, 1);
+
 		lua_getfield(L, 2, "callback");
 		if (!lua_isnoneornil(L, -1)) {
 			lua_getfield(L, LUA_REGISTRYINDEX, TABLE_CALLBACKS);
@@ -204,10 +200,10 @@ static int l_execute(lua_State *L)
 		lua_pop(L, 1);
 	}
 	bool ret = app_execute(app, args[0], args, fork, out, err, cb_index);
-	for (uint16_t i = 0; i < n+1; i++) {
+	for (uint16_t i = 0; i < n+1; i++)
 		free(args[i]);
-	}
 	free(args);
+
 	if (ret) {
 		lua_pushboolean(L, true);
 		return 1;
@@ -235,15 +231,15 @@ static int l_map_key(lua_State *L)
 
 	if (lua_type(L, 3) == LUA_TTABLE) {
 		lua_getfield(L, 3, "desc");
-		if (lua_type(L, -1) == LUA_TSTRING) {
+		if (!lua_isnoneornil(L, -1))
 			desc = lua_tostring(L, -1);
-		}
 		lua_pop(L, 1);
 	}
 	const char *keys = luaL_checkstring(L, 1);
-	if (!(lua_type(L, 2) == LUA_TFUNCTION)) {
+
+	if (!(lua_type(L, 2) == LUA_TFUNCTION))
 		luaL_argerror(L, 2, "expected function");
-	}
+
 	input_t buf[strlen(keys)+1];
 	Trie *k = trie_insert(maps.normal, key_names_to_input(keys, buf), keys, desc);
 	lua_pushlightuserdata(L, (void *)k);
@@ -257,15 +253,15 @@ static int l_cmap_key(lua_State *L)
 	const char *desc = NULL;
 	if (lua_type(L, 3) == LUA_TTABLE) {
 		lua_getfield(L, 3, "desc");
-		if (lua_type(L, -1) == LUA_TSTRING) {
+		if (!lua_isnoneornil(L, -1))
 			desc = lua_tostring(L, -1);
-		}
 		lua_pop(L, 1);
 	}
 	const char *keys = luaL_checkstring(L, 1);
-	if (!(lua_type(L, 2) == LUA_TFUNCTION)) {
+
+	if (!(lua_type(L, 2) == LUA_TFUNCTION))
 		luaL_argerror(L, 2, "expected function");
-	}
+
 	input_t buf[strlen(keys)+1];
 	Trie *k = trie_insert(maps.cmd, key_names_to_input(keys, buf), keys, desc);
 	lua_pushlightuserdata(L, (void *)k);
@@ -377,9 +373,8 @@ static int l_config_newindex(lua_State *L)
 		ui->redraw.fm = 1;
 	} else if (streq(key, "ratios")) {
 		const int l = lua_objlen(L, 3);
-		if (l == 0) {
+		if (l == 0)
 			luaL_argerror(L, 3, "no ratios given");
-		}
 		uint16_t *ratios = NULL;
 		for (uint16_t i = 1; i <= l; i++) {
 			lua_rawgeti(L, 3, i);
@@ -424,15 +419,13 @@ static int l_config_newindex(lua_State *L)
 		return 0;
 	} else if (streq(key, "dircache_size")) {
 		int capacity = luaL_checkinteger(L, 3);
-		if (capacity < 0) {
+		if (capacity < 0)
 			luaL_argerror(L, 3, "size must be non-negative");
-		}
 		cache_resize(&fm->dirs.cache, capacity);
 	} else if (streq(key, "previewcache_size")) {
 		int capacity = luaL_checkinteger(L, 3);
-		if (capacity < 0) {
+		if (capacity < 0)
 			luaL_argerror(L, 3, "size must be non-negative");
-		}
 		cache_resize(&ui->preview.cache, capacity);
 	} else {
 		luaL_error(L, "unexpected key %s", key);
@@ -507,9 +500,8 @@ static int l_ui_history_append(lua_State *L)
 static int l_ui_history_prev(lua_State *L)
 {
 	const char *line = history_prev(&ui->history);
-	if (line == NULL) {
+	if (!line)
 		return 0;
-	}
 	lua_pushstring(L, line);
 	return 1;
 }
@@ -517,9 +509,8 @@ static int l_ui_history_prev(lua_State *L)
 static int l_ui_history_next(lua_State *L)
 {
 	const char *line = history_next(&ui->history);
-	if (line == NULL) {
+	if (!line)
 		return 0;
-	}
 	lua_pushstring(L, line);
 	return 1;
 }
@@ -558,9 +549,8 @@ static int l_ui_menu(lua_State *L)
 	cvector_vector_type(char*) menubuf = NULL;
 	if (lua_type(L, -1) == LUA_TTABLE) {
 		cvector_grow(menubuf, luaL_getn(L, -1));
-		for (lua_pushnil(L); lua_next(L, -2); lua_pop(L, 1)) {
+		for (lua_pushnil(L); lua_next(L, -2); lua_pop(L, 1))
 			cvector_push_back(menubuf, strdup(luaL_checkstring(L, -1)));
-		}
 	}
 	ui_showmenu(ui, menubuf);
 	return 0;
@@ -608,16 +598,17 @@ static uint64_t read_color_pair(lua_State *L, int ind)
 	uint32_t fg, bg;
 	ncchannel_set_default(&fg);
 	ncchannel_set_default(&bg);
+
 	lua_getfield(L, ind, "fg");
-	if (!lua_isnoneornil(L, -1)) {
+	if (!lua_isnoneornil(L, -1))
 		fg = read_channel(L, -1);
-	}
 	lua_pop(L, 1);
+
 	lua_getfield(L, ind, "bg");
-	if (!lua_isnoneornil(L, -1)) {
+	if (!lua_isnoneornil(L, -1))
 		bg = read_channel(L, -1);
-	}
 	lua_pop(L, 1);
+
 	return ncchannels_combine(fg, bg);
 }
 
@@ -625,33 +616,26 @@ static int l_colors_newindex(lua_State *L)
 {
 	const char *key = luaL_checkstring(L, 2);
 	if (streq(key, "copy")) {
-		if (lua_istable(L, 3)) {
+		if (lua_istable(L, 3))
 			cfg.colors.copy = read_color_pair(L, 3);
-		}
 	} else if (streq(key, "delete")) {
-		if (lua_istable(L, 3)) {
+		if (lua_istable(L, 3))
 			cfg.colors.delete = read_color_pair(L, 3);
-		}
 	} else if (streq(key, "dir")) {
-		if (lua_istable(L, 3)) {
+		if (lua_istable(L, 3))
 			cfg.colors.dir = read_color_pair(L, 3);
-		}
 	} else if (streq(key, "broken")) {
-		if (lua_istable(L, 3)) {
+		if (lua_istable(L, 3))
 			cfg.colors.broken = read_color_pair(L, 3);
-		}
 	} else if (streq(key, "exec")) {
-		if (lua_istable(L, 3)) {
+		if (lua_istable(L, 3))
 			cfg.colors.exec = read_color_pair(L, 3);
-		}
 	} else if (streq(key, "search")) {
-		if (lua_istable(L, 3)) {
+		if (lua_istable(L, 3))
 			cfg.colors.search = read_color_pair(L, 3);
-		}
 	} else if (streq(key, "normal")) {
-		if (lua_istable(L, 3)) {
+		if (lua_istable(L, 3))
 			cfg.colors.normal = read_color_pair(L, 3);
-		}
 	} else if (streq(key, "current")) {
 		cfg.colors.current = read_channel(L, 3);
 	} else if (streq(key, "patterns")) {
@@ -662,9 +646,8 @@ static int l_colors_newindex(lua_State *L)
 				lua_pop(L, 1);
 
 				lua_getfield(L, -1, "ext");
-				for (lua_pushnil(L); lua_next(L, -2); lua_pop(L, 1)) {
+				for (lua_pushnil(L); lua_next(L, -2); lua_pop(L, 1))
 					config_ext_channel_add(lua_tostring(L, -1), ch);
-				}
 				lua_pop(L, 1);
 			}
 		}
@@ -697,17 +680,16 @@ static int l_cmd_line_set(lua_State *L)
 	switch (lua_gettop(L)) {
 		case 1:
 			{
-				if (cmdline_set(&ui->cmdline, lua_tostring(L, 1))) {
+				if (cmdline_set(&ui->cmdline, lua_tostring(L, 1)))
 					ui->redraw.cmdline = 1;
-				}
 			}
 			break;
 		case 3:
 			{
 				if(cmdline_set_whole(&ui->cmdline, lua_tostring(L, 1),
-							lua_tostring(L, 2), lua_tostring(L, 3))) {
+							lua_tostring(L, 2), lua_tostring(L, 3)))
 					ui->redraw.cmdline = 1;
-				}
+
 			}
 	}
 	return 0;
@@ -723,98 +705,87 @@ static int l_cmd_clear(lua_State *L)
 static int l_cmd_delete(lua_State *L)
 {
 	(void) L;
-	if (cmdline_delete(&ui->cmdline)) {
+	if (cmdline_delete(&ui->cmdline))
 		ui->redraw.cmdline = 1;
-	}
 	return 0;
 }
 
 static int l_cmd_delete_right(lua_State *L)
 {
 	(void) L;
-	if (cmdline_delete_right(&ui->cmdline)) {
+	if (cmdline_delete_right(&ui->cmdline))
 		ui->redraw.cmdline = 1;
-	}
 	return 0;
 }
 
 static int l_cmd_delete_word(lua_State *L)
 {
 	(void) L;
-	if (cmdline_delete_word(&ui->cmdline)) {
+	if (cmdline_delete_word(&ui->cmdline))
 		ui->redraw.cmdline = 1;
-	}
 	return 0;
 }
 
 static int l_cmd_insert(lua_State *L)
 {
-	if (cmdline_insert(&ui->cmdline, lua_tostring(L, 1))) {
+	if (cmdline_insert(&ui->cmdline, lua_tostring(L, 1)))
 		ui->redraw.cmdline = 1;
-	}
 	return 0;
 }
 
 static int l_cmd_left(lua_State *L)
 {
 	(void) L;
-	if (cmdline_left(&ui->cmdline)) {
+	if (cmdline_left(&ui->cmdline))
 		ui->redraw.cmdline = 1;
-	}
 	return 0;
 }
 
 static int l_cmd_right(lua_State *L)
 {
 	(void) L;
-	if (cmdline_right(&ui->cmdline)) {
+	if (cmdline_right(&ui->cmdline))
 		ui->redraw.cmdline = 1;
-	}
 	return 0;
 }
 
 static int l_cmd_word_left(lua_State *L)
 {
 	(void) L;
-	if (cmdline_word_left(&ui->cmdline)) {
+	if (cmdline_word_left(&ui->cmdline))
 		ui->redraw.cmdline = 1;
-	}
 	return 0;
 }
 
 static int l_cmd_word_right(lua_State *L)
 {
 	(void) L;
-	if (cmdline_word_right(&ui->cmdline)) {
+	if (cmdline_word_right(&ui->cmdline))
 		ui->redraw.cmdline = 1;
-	}
 	return 0;
 }
 
 static int l_cmd_delete_line_left(lua_State *L)
 {
 	(void) L;
-	if (cmdline_delete_line_left(&ui->cmdline)) {
+	if (cmdline_delete_line_left(&ui->cmdline))
 		ui->redraw.cmdline = 1;
-	}
 	return 0;
 }
 
 static int l_cmd_home(lua_State *L)
 {
 	(void) L;
-	if (cmdline_home(&ui->cmdline)) {
+	if (cmdline_home(&ui->cmdline))
 		ui->redraw.cmdline = 1;
-	}
 	return 0;
 }
 
 static int l_cmd_end(lua_State *L)
 {
 	(void) L;
-	if (cmdline_end(&ui->cmdline)) {
+	if (cmdline_end(&ui->cmdline))
 		ui->redraw.cmdline = 1;
-	}
 	return 0;
 }
 
@@ -833,17 +804,15 @@ static int l_cmd_prefix_get(lua_State *L)
 
 static int l_fm_up(lua_State *L)
 {
-	if (fm_up(fm, luaL_optint(L, 1, 1))) {
+	if (fm_up(fm, luaL_optint(L, 1, 1)))
 		ui->redraw.fm = 1;
-	}
 	return 0;
 }
 
 static int l_fm_down(lua_State *L)
 {
-	if (fm_down(fm, luaL_optint(L, 1, 1))) {
+	if (fm_down(fm, luaL_optint(L, 1, 1)))
 		ui->redraw.fm = 1;
-	}
 	return 0;
 }
 
@@ -887,9 +856,8 @@ static int l_fm_check(lua_State *L)
 {
 	(void) L;
 	Dir *d = fm_current_dir(fm);
-	if (!dir_check(d)) {
+	if (!dir_check(d))
 		async_dir_load(d, true);
-	}
 	return 0;
 }
 
@@ -903,18 +871,16 @@ static int l_fm_sel(lua_State *L)
 static int l_fm_top(lua_State *L)
 {
 	(void) L;
-	if (fm_top(fm)) {
+	if (fm_top(fm))
 		ui->redraw.fm = 1;
-	}
 	return 0;
 }
 
 static int l_fm_bot(lua_State *L)
 {
 	(void) L;
-	if (fm_bot(fm)) {
+	if (fm_bot(fm))
 		ui->redraw.fm = 1;
-	}
 	return 0;
 }
 
@@ -930,13 +896,13 @@ static int l_fm_updir(lua_State *L)
 static int l_fm_open(lua_State *L)
 {
 	File *file = fm_open(fm);
-	if (file == NULL) {
+	if (!file) {
 		/* changed directory */
 		ui->redraw.fm = 1;
 		nohighlight(ui);
 		return 0;
 	} else {
-		if (cfg.selfile != NULL) {
+		if (cfg.selfile) {
 			/* lastdir is written in main */
 			fm_selection_write(fm, cfg.selfile);
 			app_quit(app);
@@ -951,7 +917,7 @@ static int l_fm_open(lua_State *L)
 static int l_fm_current_file(lua_State *L)
 {
 	File *file = fm_current_file(fm);
-	if (file != NULL) {
+	if (file) {
 		lua_pushstring(L, file_path(file));
 		return 1;
 	}
@@ -1057,9 +1023,8 @@ static int l_fm_selection_set(lua_State *L)
 {
 	cvector_vector_type(char*) selection = NULL;
 	if (lua_istable(L, -1)) {
-		for (lua_pushnil(L); lua_next(L, -2); lua_pop(L, 1)) {
+		for (lua_pushnil(L); lua_next(L, -2); lua_pop(L, 1))
 			cvector_push_back(selection, strdup(luaL_checkstring(L, -1)));
-		}
 	}
 	fm_selection_set(fm, selection);
 	return 0;
@@ -1070,7 +1035,7 @@ static int l_fm_selection_get(lua_State *L)
 	lua_createtable(L, fm->selection.length, 0);
 	size_t j = 1;
 	for (size_t i = 0; i < cvector_size(fm->selection.files); i++) {
-		if (fm->selection.files[i] != NULL) {
+		if (fm->selection.files[i]) {
 			lua_pushstring(L, fm->selection.files[i]);
 			lua_rawseti(L, -2, j++);
 		}
@@ -1099,9 +1064,8 @@ static int l_fm_chdir(lua_State *L)
 	const char *path = lua_tostring(L, 1);
 	nohighlight(ui);
 	lua_run_hook(L, "ChdirPre");
-	if (fm_chdir(fm, path, true)) {
+	if (fm_chdir(fm, path, true))
 		lua_run_hook(L, "ChdirPost");
-	}
 	ui->redraw.fm = 1;
 	return 0;
 }
@@ -1128,12 +1092,11 @@ static int l_fm_load_set(lua_State *L)
 {
 	const char *mode = luaL_checkstring(L, 1);
 	fm_load_clear(fm);
-	if (streq(mode, "move")) {
+	if (streq(mode, "move"))
 		fm->load.mode = MODE_MOVE;
-	} else {
-		// mode == "copy" is the safe alternative
+	else
 		fm->load.mode = MODE_COPY;
-	}
+
 	const size_t l = lua_objlen(L, 2);
 	for (size_t i = 0; i < l; i++) {
 		lua_rawgeti(L, 2, i + 1);
@@ -1235,12 +1198,12 @@ static int l_fn_tokenize(lua_State *L)
 	char buf[strlen(string) + 1];
 	uint16_t pos1 = 0, pos2 = 0;
 	const char *tok;
-	if ((tok = tokenize(string, buf, &pos1, &pos2)) != NULL) {
+	if ((tok = tokenize(string, buf, &pos1, &pos2))) {
 		lua_pushstring(L, tok);
 	}
 	lua_newtable(L);
 	int i = 1;
-	while ((tok = tokenize(string, buf, &pos1, &pos2)) != NULL) {
+	while ((tok = tokenize(string, buf, &pos1, &pos2))) {
 		lua_pushstring(L, tok);
 		lua_rawseti(L, -2, i++);
 	}
@@ -1334,9 +1297,8 @@ void lua_run_hook(lua_State *L, const char *hook)
 	lua_pushliteral(L, "run_hook");
 	lua_gettable(L, -2);
 	lua_pushstring(L, hook);
-	if (lua_pcall(L, 1, 0, 0)) {
+	if (lua_pcall(L, 1, 0, 0))
 		ui_error(ui, "run_hook: %s", lua_tostring(L, -1));
-	}
 }
 
 void lua_eval(lua_State *L, const char *expr)
@@ -1346,9 +1308,8 @@ void lua_eval(lua_State *L, const char *expr)
 	lua_pushliteral(L, "eval");
 	lua_gettable(L, -2);
 	lua_pushstring(L, expr);
-	if (lua_pcall(L, 1, 0, 0)) {
+	if (lua_pcall(L, 1, 0, 0))
 		ui_error(ui, "eval: %s", lua_tostring(L, -1));
-	}
 }
 
 void lua_handle_key(lua_State *L, input_t in)
@@ -1358,24 +1319,21 @@ void lua_handle_key(lua_State *L, input_t in)
 		return;
 	}
 	const char *prefix = cmdline_prefix_get(&ui->cmdline);
-	if (maps.cur == NULL) {
+	if (!maps.cur) {
 		maps.cur = prefix ? maps.cmd : maps.normal;
 		cvector_set_size(maps.seq, 0);
 	}
 	maps.cur = trie_find_child(maps.cur, in);
-	if (prefix != NULL) {
-		if (maps.cur == NULL) {
+	if (prefix) {
+		if (!maps.cur) {
 			if (iswprint(in)) {
 				char buf[8];
 				int n = wctomb(buf, in);
-				if (n < 0) {
-					// invalid character or borked shift/ctrl/alt
-					n = 0;
-				}
+				if (n < 0)
+					n = 0; // invalid character or borked shift/ctrl/alt
 				buf[n] = '\0';
-				if (cmdline_insert(&ui->cmdline, buf)) {
+				if (cmdline_insert(&ui->cmdline, buf))
 					ui->redraw.cmdline = 1;
-				}
 			}
 			lua_getglobal(L, "lfm");
 			if (lua_type(L, -1) == LUA_TTABLE) {
@@ -1391,13 +1349,12 @@ void lua_handle_key(lua_State *L, input_t in)
 				}
 			}
 		} else {
-			if (maps.cur->keys != NULL) {
+			if (maps.cur->keys) {
 				lua_pushlightuserdata(L, (void *)maps.cur);
 				lua_gettable(L, LUA_REGISTRYINDEX);
 				maps.cur = NULL;
-				if (lua_pcall(L, 0, 0, 0)) {
+				if (lua_pcall(L, 0, 0, 0))
 					ui_error(ui, "handle_key: %s", lua_tostring(L, -1));
-				}
 			} else {
 				// ???
 			}
@@ -1415,13 +1372,12 @@ void lua_handle_key(lua_State *L, input_t in)
 			ui->redraw.fm = 1;
 			return;
 		}
-		if (maps.cur == NULL) {
+		if (!maps.cur) {
 			cvector_push_back(maps.seq, in);
 			cvector_set_size(maps.str, 0);
 			for (size_t i = 0; i < cvector_size(maps.seq); i++) {
-				for (const char *s = input_to_key_name(maps.seq[i]); *s; s++) {
+				for (const char *s = input_to_key_name(maps.seq[i]); *s; s++)
 					cvector_push_back(maps.str, *s);
-				}
 			}
 			cvector_push_back(maps.str, 0);
 			ui_error(ui, "no such map: %s", maps.str);
@@ -1429,18 +1385,17 @@ void lua_handle_key(lua_State *L, input_t in)
 			ui_showmenu(ui, NULL);
 			return;
 		}
-		if (maps.cur->keys != NULL) {
+		if (maps.cur->keys) {
 			ui_showmenu(ui, NULL);
 			lua_pushlightuserdata(L, (void *)maps.cur);
 			lua_gettable(L, LUA_REGISTRYINDEX);
 			maps.cur = NULL;
 			if (lua_pcall(L, 0, 0, 0)) {
 				ui_error(ui, "handle_key: %s", lua_tostring(L, -1));
-				if (in == 'q') {
+				if (in == 'q')
 					app_quit(app);
-				} else if (in == 'r') {
+				else if (in == 'r')
 					lua_load_file(L, cfg.configpath);
-				}
 			}
 		} else {
 			cvector_push_back(maps.seq, in);

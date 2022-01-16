@@ -130,9 +130,9 @@ int main(int argc, char **argv)
 	app_deinit(&app);
 
 	/* selection is written in lualfm.c */
-	if (cfg.lastdir != NULL) {
+	if (cfg.lastdir) {
 		FILE *fp = fopen(cfg.lastdir, "w");
-		if (fp == NULL) {
+		if (!fp) {
 			log_error("lastdir: %s", strerror(errno));
 		} else {
 			fputs(getenv("PWD"), fp);

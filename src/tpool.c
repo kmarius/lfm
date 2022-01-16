@@ -209,9 +209,9 @@ void tpool_wait(tpool_t *tm)
 	pthread_mutex_lock(&(tm->work_mutex));
 	while (1) {
 		if ((!tm->stop && tm->working_cnt != 0) ||
-		    (tm->stop && tm->thread_cnt != 0)) {
+				(tm->stop && tm->thread_cnt != 0)) {
 			pthread_cond_wait(&(tm->working_cond),
-					  &(tm->work_mutex));
+					&(tm->work_mutex));
 		} else {
 			break;
 		}

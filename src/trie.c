@@ -25,25 +25,25 @@ T *trie_create()
 
 T *trie_find_child(const T* t, input_t key)
 {
-	if (t == NULL) {
+	if (!t)
 		return NULL;
-	}
-	for (T *n = t->child; n != NULL; n = n->next) {
-		if (n->key == key) {
+
+	for (T *n = t->child; n; n = n->next) {
+		if (n->key == key)
 			return n;
-		}
 	}
+
 	return NULL;
 }
 
 T *trie_insert(T* t, const input_t *trie_keys, const char *keys, const char *desc)
 {
-	if (t == NULL) {
+	if (!t)
 		return NULL;
-	}
+
 	for (const input_t *c = trie_keys; *c != 0; c++) {
 		T *n = trie_find_child(t, *c);
-		if (n == NULL) {
+		if (!n) {
 			n = trie_node_create(*c, t->child);
 			t->child = n;
 		}
@@ -59,7 +59,7 @@ T *trie_insert(T* t, const input_t *trie_keys, const char *keys, const char *des
 /* we need the address of the vector because we might reallocate when pushing  */
 void trie_collect_leaves(const T *t, cvector_vector_type(char*) *vec)
 {
-	for (T *n = t->child; n != NULL; n = n->next) {
+	for (T *n = t->child; n; n = n->next) {
 		if (n->keys) {
 			char *s;
 			asprintf(&s, "%s\t%s", n->keys, n->desc ? n->desc : "");
@@ -72,12 +72,12 @@ void trie_collect_leaves(const T *t, cvector_vector_type(char*) *vec)
 
 void trie_destroy(T *t)
 {
-	if (t == NULL) {
+	if (!t)
 		return;
-	}
-	for (T* n = t->child; n != NULL; n = n->next) {
+
+	for (T* n = t->child; n; n = n->next)
 		trie_destroy(n);
-	}
+
 	free(t->desc);
 	free(t->keys);
 	free(t);

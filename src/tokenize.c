@@ -6,23 +6,23 @@
 char *tokenize(const char *s, char *buf, uint16_t *i, uint16_t *j)
 {
 	char c;
-	/* skip whitespace */
-	while ((c = s[*i]) != 0 && c == ' ') {
+
+	while ((c = s[*i]) && c == ' ')
 		(*i)++;
-	}
-	if (c == 0) {
+
+	if (!c)
 		return NULL;
-	}
+
 	char *ret = buf + *j;
-	while ((c = s[*i]) != 0) {
+	while ((c = s[*i])) {
 		(*i)++;
 		switch (c) {
 			case '"':
-				while ((c = s[*i]) != 0 && c != '"') {
+				while ((c = s[*i]) && c != '"') {
 					buf[(*j)++] = c;
 					(*i)++;
 				}
-				if (c == 0) {
+				if (!c) {
 					/* error: missing '"' */
 				} else {
 					/* skip closing '"' */

@@ -102,7 +102,7 @@ static inline void enqueue_and_signal(struct Result *res)
 	resultqueue_put(&async_results, res);
 	pthread_mutex_unlock(&async_results.mutex);
 
-	if (async_results.watcher != NULL) {
+	if (async_results.watcher) {
 		ev_async_send(EV_DEFAULT_ async_results.watcher);
 	}
 }
@@ -151,23 +151,14 @@ static void async_dir_check_worker(void *arg)
 	struct dir_check_work *work = arg;
 	struct stat statbuf;
 
-	if (stat(work->dir->path, &statbuf) == -1) {
+	if (stat(work->dir->path, &statbuf) == -1)
 		goto cleanup;
-	}
 
-	if (statbuf.st_mtime <= work->loadtime) {
+	if (statbuf.st_mtime <= work->loadtime)
 		goto cleanup;
-	}
 
 	struct DirCheckResult *res = DirCheckResult_create(work->dir);
-
-	pthread_mutex_lock(&async_results.mutex);
-	resultqueue_put(&async_results, (struct Result *) res);
-	pthread_mutex_unlock(&async_results.mutex);
-
-	if (async_results.watcher) {
-		ev_async_send(EV_DEFAULT_ async_results.watcher);
-	}
+	enqueue_and_signal((struct Result *) res);
 
 cleanup:
 	free(work);
@@ -208,13 +199,11 @@ struct DirCountResult {
 static void DirCountResult_callback(struct DirCountResult *res, App *app)
 {
 	/* TODO: we need to make sure that the original files/dir don't get freed (on 2022-01-15) */
-	for (size_t i = 0; i < cvector_size(res->dircounts); i++) {
+	for (size_t i = 0; i < cvector_size(res->dircounts); i++)
 		file_dircount_set(res->dircounts[i].file, res->dircounts[i].count);
-	}
 	app->ui.redraw.fm = 1;
-	if (res->last) {
+	if (res->last)
 		res->dir->dircounts = true;
-	}
 	cvector_free(res->dircounts);
 	free(res);
 }
@@ -315,9 +304,8 @@ static void async_dir_load_worker(void *arg)
 {
 	struct dir_load_work *work = arg;
 
-	if (work->delay > 0) {
+	if (work->delay > 0)
 		msleep(work->delay);
-	}
 
 	struct DirUpdateResult *res = DirUpdateResult_create(work->dir, dir_load(work->path, work->dircounts));
 
@@ -330,9 +318,8 @@ static void async_dir_load_worker(void *arg)
 
 	enqueue_and_signal((struct Result *) res);
 
-	if (!work->dircounts && nfiles > 0) {
+	if (!work->dircounts && nfiles > 0)
 		async_load_dircounts(work->dir, nfiles, files);
-	}
 
 	free(work->path);
 	free(work);

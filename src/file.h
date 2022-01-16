@@ -169,4 +169,3 @@ const char *file_group(const File *file);
  * Returns a readable string of the permissions, e.g. `rwxr--r--`.
  */
 const char *file_perms(const File *file);
-

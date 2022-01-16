@@ -25,7 +25,7 @@ typedef struct {
 	uint16_t length;	 /* length of the array of visible files */
 
 	time_t load_time; /* load time, used to check for changes on disk and
-			    reload if necessary */
+						 reload if necessary */
 	int16_t error;	 /* for now, true if any error occurs when loading */
 	bool loading;
 

@@ -39,13 +39,12 @@ static void downheap(struct node *a, uint16_t size, uint16_t i)
 
 	uint16_t largest = i;
 
-	if (lidx < size && a[lidx].sort_key < a[largest].sort_key) {
+	if (lidx < size && a[lidx].sort_key < a[largest].sort_key)
 		largest = lidx;
-	}
 
-	if (ridx < size && a[ridx].sort_key < a[largest].sort_key) {
+	if (ridx < size && a[ridx].sort_key < a[largest].sort_key)
 		largest = ridx;
-	}
+
 
 	if (largest != i) {
 		swap(a+i, a+largest);
@@ -66,9 +65,9 @@ void cache_resize(T *t, uint16_t capacity)
 	while (t->size > capacity) {
 		t->free(t->nodes[0].ptr);
 		t->nodes[0] = t->nodes[--t->size];
-		if (t->size > 0) {
+		if (t->size > 0)
 			downheap(t->nodes, t->size, 0);
-		}
+
 	}
 	t->nodes = realloc(t->nodes, sizeof(struct node) * capacity);
 	t->capacity = capacity;
@@ -76,9 +75,9 @@ void cache_resize(T *t, uint16_t capacity)
 
 void cache_insert(T *t, void *e, const char *key)
 {
-	if (t->capacity == 0) {
+	if (t->capacity == 0)
 		return;
-	}
+
 	if (t->size >= t->capacity) {
 		t->free(t->nodes[0].ptr);
 		t->nodes[0].ptr = e;
@@ -96,21 +95,17 @@ void cache_insert(T *t, void *e, const char *key)
 
 bool cache_contains_ptr(T *t, const void *ptr)
 {
-	for (uint16_t i = 0; i < t->size; i++) {
-		if (t->nodes[i].ptr == ptr) {
+	for (uint16_t i = 0; i < t->size; i++)
+		if (t->nodes[i].ptr == ptr)
 			return true;
-		}
-	}
 	return false;
 }
 
 void *cache_find(T *t, const void *key)
 {
-	for (uint16_t i = 0; i < t->size; i++) {
-		if (streq(t->nodes[i].search_key, key)) {
+	for (uint16_t i = 0; i < t->size; i++)
+		if (streq(t->nodes[i].search_key, key))
 			return t->nodes[i].ptr;
-		}
-	}
 	return NULL;
 }
 
@@ -123,11 +118,11 @@ void *cache_take(T *t, const void *key)
 				swap(t->nodes + i, t->nodes + t->size-1);
 				t->size--;
 
-				if (i == 0 || t->nodes[i].sort_key >= t->nodes[PARENT(i)].sort_key) {
+				if (i == 0 || t->nodes[i].sort_key >= t->nodes[PARENT(i)].sort_key)
 					downheap(t->nodes, t->size, i);
-				} else {
+				else
 					upheap(t->nodes, i);
-				}
+
 			} else {
 				t->size--;
 			}
@@ -139,9 +134,8 @@ void *cache_take(T *t, const void *key)
 
 void cache_clear(T *t)
 {
-	for (uint16_t i = 0; i < t->size; i++) {
+	for (uint16_t i = 0; i < t->size; i++)
 		t->free(t->nodes[i].ptr);
-	}
 	t->size = 0;
 }
 

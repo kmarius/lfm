@@ -21,6 +21,7 @@
 T *file_init(T *t, const char *dir, const char *name)
 {
 	char buf[PATH_MAX] = {0};
+
 	*t = FILE_INITIALIZER;
 
 	bool isroot = dir[1] == 0 && dir[0] == '/';
@@ -35,21 +36,18 @@ T *file_init(T *t, const char *dir, const char *name)
 
 	t->name = basename(t->path);
 	t->ext = strrchr(t->name, '.');
-	if (t->ext == t->name) {
-		/* hidden file */
-		t->ext = NULL;
-	}
+	if (t->ext == t->name)
+		t->ext = NULL; /* hidden file */
 
 	if (S_ISLNK(t->lstat.st_mode)) {
 		if (stat(t->path, &t->stat) == -1) {
 			t->isbroken = true;
 			t->stat = t->lstat;
 		}
-		if (readlink(t->path, buf, sizeof(buf)) == -1) {
+		if (readlink(t->path, buf, sizeof(buf)) == -1)
 			t->isbroken = true;
-		} else {
+		else
 			t->link_target = strdup(buf);
-		}
 	} else {
 		// for non-symlinks stat == lstat
 		t->stat = t->lstat;
@@ -67,9 +65,9 @@ T *file_create(const char *dir, const char *name)
 
 void file_deinit(T *t)
 {
-	if (t == NULL) {
+	if (!t)
 		return;
-	}
+
 	free(t->path);
 	free(t->link_target);
 }
@@ -85,12 +83,11 @@ uint16_t file_dircount_load(T *t)
 	struct dirent *dp;
 
 	DIR *dirp = opendir(t->path);
-	if (dirp == NULL) {
+	if (!dirp)
 		return 0;
-	}
 
 	uint16_t ct;
-	for (ct = 0; (dp = readdir(dirp)) != NULL; ct++) ;
+	for (ct = 0; (dp = readdir(dirp)); ct++) ;
 	closedir(dirp);
 	return ct - 2;
 }
@@ -157,7 +154,7 @@ const char* file_owner(const T *t)
 {
 	static char owner[32];
 	struct passwd *pwd;
-	if ((pwd = getpwuid(t->lstat.st_uid)) != NULL) {
+	if ((pwd = getpwuid(t->lstat.st_uid))) {
 		strncpy(owner, pwd->pw_name, sizeof(owner)-1);
 		owner[31] = 0;
 	} else {
@@ -174,11 +171,10 @@ const char *file_group(const T *t)
 	static unsigned int cached_gid = INT_MAX;
 	struct group *grp;
 
-	if (t->lstat.st_gid == cached_gid) {
+	if (t->lstat.st_gid == cached_gid)
 		return group;
-	}
 
-	if ((grp = getgrgid(t->lstat.st_gid)) != NULL) {
+	if ((grp = getgrgid(t->lstat.st_gid))) {
 		strncpy(group, grp->gr_name, sizeof(group)-1);
 		group[31] = 0;
 		cached_gid = t->lstat.st_gid;

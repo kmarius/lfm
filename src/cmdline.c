@@ -21,7 +21,7 @@
 	do { \
 		if ((vec).cap < sz) { \
 			while ((vec).cap < sz) \
-				(vec).cap *= 2; \
+			(vec).cap *= 2; \
 			(vec).str = realloc((vec).str, sizeof(*vec.str) * (vec).cap * 2 + 1); \
 		} \
 	} while (0)
@@ -60,9 +60,9 @@ void cmdline_init(T *t)
 }
 
 void cmdline_deinit(T *t) {
-	if (t == NULL) {
+	if (!t)
 		return;
-	}
+
 	free(t->prefix.str);
 	free(t->left.str);
 	free(t->right.str);
@@ -71,9 +71,9 @@ void cmdline_deinit(T *t) {
 
 bool cmdline_prefix_set(T *t, const char *prefix)
 {
-	if (prefix == NULL) {
+	if (!prefix)
 		return false;
-	}
+
 	const unsigned long l = strlen(prefix);
 	ENSURE_CAPACITY(t->prefix, l);
 	strcpy(t->prefix.str, prefix);
@@ -100,9 +100,9 @@ bool cmdline_insert(T *t, const char *key)
 
 bool cmdline_delete(T *t)
 {
-	if (t->prefix.len == 0 || t->left.len == 0) {
+	if (t->prefix.len == 0 || t->left.len == 0)
 		return false;
-	}
+
 	t->left.str[t->left.len - 1] = 0;
 	t->left.len--;
 	return true;
@@ -110,9 +110,9 @@ bool cmdline_delete(T *t)
 
 bool cmdline_delete_right(T *t)
 {
-	if (t->prefix.len == 0 || t->right.len == 0) {
+	if (t->prefix.len == 0 || t->right.len == 0)
 		return false;
-	}
+
 	memmove(t->right.str, t->right.str+1, sizeof(wchar_t)*t->right.len);
 	t->right.len--;
 	return true;
@@ -120,9 +120,9 @@ bool cmdline_delete_right(T *t)
 
 bool cmdline_delete_word(T *t)
 {
-	if (t->prefix.len == 0 || t->left.len == 0) {
+	if (t->prefix.len == 0 || t->left.len == 0)
 		return false;
-	}
+
 	int16_t i = t->left.len - 1;
 	while (i > 0 && iswspace(t->left.str[i]))
 		i--;
@@ -137,9 +137,9 @@ bool cmdline_delete_word(T *t)
 
 bool cmdline_delete_line_left(T *t)
 {
-	if (t->prefix.len == 0 || t->left.len == 0) {
+	if (t->prefix.len == 0 || t->left.len == 0)
 		return false;
-	}
+
 	t->left.len = 0;
 	t->left.str[t->left.len] = 0;
 	return true;
@@ -148,18 +148,18 @@ bool cmdline_delete_line_left(T *t)
 /* pass a ct argument to move over words? */
 bool cmdline_left(T *t)
 {
-	if (t->prefix.len == 0 || t->left.len == 0) {
+	if (t->prefix.len == 0 || t->left.len == 0)
 		return false;
-	}
+
 	SHIFT_RIGHT(t, 1);
 	return true;
 }
 
 bool cmdline_word_left(T *t)
 {
-	if (t->prefix.len == 0 || t->left.len == 0) {
+	if (t->prefix.len == 0 || t->left.len == 0)
 		return false;
-	}
+
 	int16_t i = t->left.len;
 	if (i > 0 && iswpunct(t->left.str[i-1]))
 		i--;
@@ -175,9 +175,9 @@ bool cmdline_word_left(T *t)
 
 bool cmdline_word_right(T *t)
 {
-	if (t->prefix.len == 0 || t->right.len == 0) {
+	if (t->prefix.len == 0 || t->right.len == 0)
 		return false;
-	}
+
 	int16_t i = 0;
 	if (i < t->right.len && iswpunct(t->right.str[i]))
 		i++;
@@ -193,27 +193,27 @@ bool cmdline_word_right(T *t)
 
 bool cmdline_right(T *t)
 {
-	if (t->prefix.len == 0 || t->right.len == 0) {
+	if (t->prefix.len == 0 || t->right.len == 0)
 		return false;
-	}
+
 	SHIFT_LEFT(t, 1);
 	return true;
 }
 
 bool cmdline_home(T *t)
 {
-	if (t->prefix.len == 0 || t->left.len == 0) {
+	if (t->prefix.len == 0 || t->left.len == 0)
 		return false;
-	}
+
 	SHIFT_RIGHT(t, t->left.len);
 	return true;
 }
 
 bool cmdline_end(T *t)
 {
-	if (t->prefix.len == 0 || t->right.len == 0) {
+	if (t->prefix.len == 0 || t->right.len == 0)
 		return false;
-	}
+
 	SHIFT_LEFT(t, t->right.len);
 	return true;
 }
@@ -253,9 +253,9 @@ bool cmdline_set_whole(T *t, const char *prefix, const char *left, const char *r
 
 bool cmdline_set(T *t, const char *line)
 {
-	if (t->prefix.len == 0) {
+	if (t->prefix.len == 0)
 		return false;
-	}
+
 	t->right.str[0] = 0;
 	t->right.len = 0;
 	ENSURE_SPACE(t->left, strlen(line));
@@ -275,13 +275,13 @@ const char *cmdline_get(T *t)
 	if (t->prefix.len != 0) {
 		ENSURE_SPACE(t->buf, (size_t) (t->left.len + t->right.len) * MB_CUR_MAX);
 		size_t n = wcstombs(t->buf.str, t->left.str, t->left.len * MB_CUR_MAX);
-		if (n == (size_t) -1) {
+		if (n == (size_t) -1)
 			return "";
-		}
+
 		size_t m = wcstombs(t->buf.str + n, t->right.str, t->right.len * MB_CUR_MAX);
-		if (m == (size_t) -1) {
+		if (m == (size_t) -1)
 			return "";
-		}
+
 		t->buf.str[n+m] = 0;
 	}
 	return t->buf.str;

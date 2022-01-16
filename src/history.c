@@ -24,9 +24,8 @@ void history_load(T *t, const char *path)
 	t->ptr = NULL;
 
 	FILE *fp = fopen(path, "r");
-	if (fp == NULL) {
+	if (!fp)
 		return;
-	}
 
 	ssize_t read;
 	size_t n;
@@ -52,9 +51,8 @@ void history_write(T *t, const char *path)
 	free(buf);
 
 	FILE *fp = fopen(path, "a");
-	if (fp == NULL) {
+	if (!fp)
 		return;
-	}
 
 	for (size_t i = 0; i < cvector_size(t->vec); i++) {
 		if (t->vec[i].is_new) {
@@ -67,19 +65,17 @@ void history_write(T *t, const char *path)
 
 void history_deinit(T *t)
 {
-	for (size_t i = 0; i < cvector_size(t->vec); i++) {
+	for (size_t i = 0; i < cvector_size(t->vec); i++)
 		free(t->vec[i].line);
-	}
+
 	cvector_free(t->vec);
 }
 
 void history_append(T *t, const char *line)
 {
 	struct history_entry *end = cvector_end(t->vec);
-	if (end && streq((end - 1)->line, line)) {
-		/* skip consecutive dupes */
-		return;
-	}
+	if (end && streq((end - 1)->line, line))
+		return; /* skip consecutive dupes */
 	cvector_push_back(t->vec, ((struct history_entry) {strdup(line), true}));
 }
 
@@ -91,30 +87,30 @@ void history_reset(T *t)
 /* TODO: only show history items with matching prefixes (on 2021-07-24) */
 const char *history_prev(T *t)
 {
-	if (t->vec == NULL) {
+	if (!t->vec)
 		return NULL;
-	}
-	if (t->ptr == NULL) {
+
+	if (!t->ptr)
 		t->ptr = cvector_end(t->vec);
-	}
-	if (t->ptr > cvector_begin(t->vec)) {
+
+	if (t->ptr > cvector_begin(t->vec))
 		--t->ptr;
-	}
+
 	return t->ptr->line;
 }
 
 const char *history_next(T *t)
 {
-	if (t->vec == NULL || t->ptr == NULL) {
+	if (!t->vec || !t->ptr)
 		return NULL;
-	}
-	if (t->ptr < cvector_end(t->vec)) {
+
+	if (t->ptr < cvector_end(t->vec))
 		++t->ptr;
-	}
-	if (t->ptr == cvector_end(t->vec)) {
-		/* TODO: could return the initial line here (on 2021-11-07) */
+
+	/* TODO: could return the initial line here (on 2021-11-07) */
+	if (t->ptr == cvector_end(t->vec))
 		return "";
-	}
+
 	return t->ptr->line;
 }
 

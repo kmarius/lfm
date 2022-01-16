@@ -44,8 +44,8 @@ typedef struct config {
 	bool hidden;
 	bool preview;
 	uint8_t scrolloff;
-	cvector_vector_type(char*) commands;
-	cvector_vector_type(char*) inotify_blacklist;
+	cvector_vector_type(char *) commands;
+	cvector_vector_type(char *) inotify_blacklist;
 	cvector_vector_type(uint16_t) ratios;
 
 	struct colors {

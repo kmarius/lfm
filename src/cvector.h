@@ -98,7 +98,7 @@
 #define cvector_grow(vec, count) \
 	do { \
 		const size_t cv_sz = \
-		    (count) * sizeof(*(vec)) + (sizeof(size_t) * 2); \
+		(count) * sizeof(*(vec)) + (sizeof(size_t) * 2); \
 		if (!(vec)) { \
 			size_t *cv_p = malloc(cv_sz); \
 			assert(cv_p); \
@@ -248,7 +248,7 @@
 		for (size_t i = 0; i < cvector_size((vec)); i++) { \
 			if ((vec)[i] == w) { \
 				cvector_swap_erase((vec), i); \
-					break; \
+				break; \
 			} \
 		} \
 	} while (0)

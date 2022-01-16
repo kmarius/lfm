@@ -37,39 +37,36 @@ Preview *preview_create_from_file(const char *path, uint8_t nrow)
 
 	Preview *pv = preview_create(path, nrow);
 
-	if (cfg.previewer == NULL) {
+	if (!cfg.previewer)
 		return pv;
-	}
 
 	/* TODO: redirect stderr? (on 2021-08-10) */
 	char *const args[3] = {cfg.previewer, (char*) path, NULL};
 	FILE *fp = popen_arr(cfg.previewer, args, false);
-	if (fp == NULL) {
+	if (!fp) {
 		log_error("preview: %s", strerror(errno));
 		return pv;
 	}
 
-	while (fgets(buf, sizeof(buf), fp) != NULL && nrow > 0) {
+	while (fgets(buf, sizeof(buf), fp) && nrow > 0)
 		cvector_push_back(pv->lines, strdup(buf));
-	}
 
 	pclose(fp);
 
 	struct stat statbuf;
-	if (stat(path, &statbuf) == -1) {
+	if (stat(path, &statbuf) == -1)
 		pv->mtime = 0;
-	} else {
+	else
 		pv->mtime = statbuf.st_mtime;
-	}
 
 	return pv;
 }
 
 static inline void preview_deinit(Preview *pv)
 {
-	if (pv == NULL) {
+	if (!pv)
 		return;
-	}
+
 	cvector_ffree(pv->lines, free);
 	free(pv->path);
 }
