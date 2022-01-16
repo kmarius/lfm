@@ -39,6 +39,7 @@ typedef struct {
 	bool hidden;
 	bool dirfirst;
 	bool reverse;
+	bool dircounts;
 	enum sorttype_e sorttype;
 } Dir;
 
@@ -51,7 +52,7 @@ Dir *dir_new_loading(const char *path);
  * Loads the directory at `path` from disk. Count the files in each
  * subdirectory if `load_filecount` is `true`.
  */
-Dir *dir_load(const char *path, bool load_filecount);
+Dir *dir_load(const char *path, bool load_dircount);
 
 /*
  * Free all resources belonging to DIR.

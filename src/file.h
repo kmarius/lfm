@@ -94,17 +94,25 @@ static inline bool file_isbroken(const File *file)
 }
 
 /*
- * Loads the number of files in a directory and saves it to `file`.
- */
-void file_load_dircount(File *file);
-
-/*
  * Returns the number of files in the directory `file`. A negative
  * number is returned when the count has not been loaded (yet).
  */
 static inline int16_t file_dircount(const File *file)
 {
 	return file->dircount;
+}
+
+/*
+ * Loads the number of files in a directory and saves it to `file`.
+ */
+uint16_t file_dircount_load(File *file);
+
+/*
+ * Set `file->dircount` to `count`.
+ */
+static inline void file_dircount_set(File *file, uint16_t ct)
+{
+	file->dircount = ct;
 }
 
 /*

@@ -80,19 +80,19 @@ void file_destroy(T *t)
 	free(t);
 }
 
-void file_load_dircount(T *t)
+uint16_t file_dircount_load(T *t)
 {
 	struct dirent *dp;
 
 	DIR *dirp = opendir(t->path);
 	if (dirp == NULL) {
-		return;
+		return 0;
 	}
 
 	uint16_t ct;
 	for (ct = 0; (dp = readdir(dirp)) != NULL; ct++) ;
 	closedir(dirp);
-	t->dircount = ct - 2;
+	return ct - 2;
 }
 
 static char filetypeletter(int mode)
@@ -199,8 +199,9 @@ const char *file_name(const T *t);
 const char *file_path(const T *t);
 const char *file_size_readable(const T *t, char *buf);
 int16_t file_dircount(const T *t);
+long file_mtime(const T *t);
 long file_nlink(const T *t);
 long file_size(const T *t);
-static inline long file_mtime(const T *t);
+void file_dircount_set(T *t, uint16_t ct);
 
 #undef T
