@@ -368,8 +368,6 @@ void draw_cmdline(Ui *ui)
 	char nums[16];
 	char size[32];
 	char mtime[32];
-	const Dir *dir;
-	const File *file;
 
 	if (ui->message) {
 		return;
@@ -384,8 +382,10 @@ void draw_cmdline(Ui *ui)
 	uint16_t lhs_sz = 0;
 
 	if (cmdline_prefix_get(&ui->cmdline) == NULL) {
-		if ((dir = ui->fm->dirs.visible[0]) != NULL) {
-			if ((file = dir_current_file(dir)) != NULL) {
+		const Dir *dir = ui->fm->dirs.visible[0];
+		if (dir != NULL) {
+			const File *file = dir_current_file(dir);
+			if (file != NULL) {
 				/* TODO: for empty directories, show the stat of the
 				 * directory instead (on 2021-07-18) */
 				lhs_sz = ncplane_printf_yx(ui->planes.cmdline, 0, 0,
@@ -453,9 +453,6 @@ static void draw_info(Ui *ui)
 	static char *home;
 	static uint16_t home_len;
 
-	const Dir *dir;
-	const File *file;
-
 	ncplane_erase(ui->planes.info);
 
 	if (user[0] == 0) {
@@ -476,13 +473,16 @@ static void draw_info(Ui *ui)
 	ncplane_putchar(ui->planes.info, ':');
 	ncplane_set_styles(ui->planes.info, NCSTYLE_BOLD);
 
-	if ((dir = ui->fm->dirs.visible[0]) != NULL) {
+
+	const Dir *dir = ui->fm->dirs.visible[0];
+	if (dir != NULL) {
 		// shortening should work fine with ascii only names
 		const char *end = dir->path + strlen(dir->path);
 		int remaining;
 		ncplane_cursor_yx(ui->planes.info, NULL, &remaining);
 		remaining = ui->ncol - remaining;
-		if ((file = dir_current_file(dir)) != NULL) {
+		const File *file = dir_current_file(dir);
+		if (file != NULL) {
 			remaining -= strlen(file_name(file));
 		}
 		ncplane_set_fg_palindex(ui->planes.info, COLOR_BLUE);
@@ -517,12 +517,11 @@ static void draw_info(Ui *ui)
 
 static void ansi_addstr(struct ncplane *n, char *s)
 {
-	char *c;
-
 	while (*s != 0) {
 		if (*s == '\033') {
 			s = ansi_consoom(n, s);
 		} else {
+			char *c;
 			for (c = s; *s != 0 && *s != '\033'; s++);
 			if (ncplane_putnstr(n, s-c, c) == -1) {
 				// EOL
@@ -532,10 +531,8 @@ static void ansi_addstr(struct ncplane *n, char *s)
 	}
 }
 
-static void draw_menu(struct ncplane *n, cvector_vector_type(char*) menubuf)
+static void draw_menu(struct ncplane *n, cvector_vector_type(char *) menubuf)
 {
-	size_t i;
-
 	if (menubuf == NULL) {
 		return;
 	}
@@ -545,10 +542,10 @@ static void draw_menu(struct ncplane *n, cvector_vector_type(char*) menubuf)
 	ncplane_erase(n);
 
 	/* otherwise this doesn't draw over the directories */
-	/* Still needed as of 2021-08-18 */
-	ncplane_set_base(n, 0, 0, ' ');
+	/* Still needed as of 2022-01-16 */
+	ncplane_set_base(n, " ", 0, 0);
 
-	for (i = 0; i < cvector_size(menubuf); i++) {
+	for (size_t i = 0; i < cvector_size(menubuf); i++) {
 		ncplane_cursor_move_yx(n, i, 0);
 		const char *s = menubuf[i];
 		uint16_t xpos = 0;
@@ -609,9 +606,8 @@ void ui_showmenu(Ui *ui, cvector_vector_type(char*) vec)
 
 static uint64_t ext_channel_find(const char *ext)
 {
-	size_t i;
 	if (ext != NULL) {
-		for (i = 0; i < cvector_size(cfg.colors.ext_channels); i++) {
+		for (size_t i = 0; i < cvector_size(cfg.colors.ext_channels); i++) {
 			if (strcaseeq(ext, cfg.colors.ext_channels[i].ext)) {
 				return cfg.colors.ext_channels[i].channel;
 			}
@@ -792,14 +788,10 @@ static void update_file_preview(Ui *ui)
 {
 	int ncol, nrow;
 	ncplane_dim_yx(ui->planes.preview, &nrow, &ncol);
-	Dir *dir;
-	File *file;
 
-	/* struct ncplane *w = wpreview(ui); */
-	// ncplane_erase(w); /* TODO: why (on 2021-10-30) */
-
-	if ((dir = ui->fm->dirs.visible[0]) != NULL && dir->ind < dir->length) {
-		file = dir->files[dir->ind];
+	const Dir *dir = ui->fm->dirs.visible[0];
+	if (dir != NULL && dir->ind < dir->length) {
+		File *file = dir->files[dir->ind];
 		if (ui->preview.preview != NULL) {
 			if (streq(ui->preview.preview->path, file_path(file))) {
 				if (!ui->preview.preview->loading) {
@@ -951,8 +943,6 @@ static char *ansi_consoom(struct ncplane *w, char *s)
 static void plane_draw_file_preview(struct ncplane *n, Preview *pv)
 {
 	int nrow;
-	size_t i;
-
 	ncplane_erase(n);
 
 	if (pv != NULL) {
@@ -961,7 +951,7 @@ static void plane_draw_file_preview(struct ncplane *n, Preview *pv)
 		ncplane_set_fg_default(n);
 		ncplane_set_bg_default(n);
 
-		for (i = 0; i < cvector_size(pv->lines) && i < (size_t)nrow; i++) {
+		for (size_t i = 0; i < cvector_size(pv->lines) && i < (size_t) nrow; i++) {
 			ncplane_cursor_move_yx(n, i, 0);
 			ansi_addstr(n, pv->lines[i]);
 		}
