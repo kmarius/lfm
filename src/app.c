@@ -61,13 +61,12 @@ static cvector_vector_type(ev_child *) child_watchers = NULL; /* to run callback
 static void async_result_cb(EV_P_ ev_async *w, int revents)
 {
 	(void) revents;
-	App *app = (App *) w->data;
+	App *app = w->data;
 	struct Result *res;
 
 	pthread_mutex_lock(&async_results.mutex);
-	while ((res = resultqueue_get(&async_results)) != NULL) {
+	while ((res = resultqueue_get(&async_results)))
 		result_callback(res, app);
-	}
 	pthread_mutex_unlock(&async_results.mutex);
 
 	ev_idle_start(app->loop, &redraw_watcher);
@@ -78,26 +77,28 @@ static void timer_cb(EV_P_ ev_timer *w, int revents)
 	(void) revents;
 	(void) w;
 	static uint16_t tick_ct = 0;
-	/* App *app = (App *) w->data; */
-	tick_ct++;
-	if (tick_ct == 1) {
+	/* App *app = w->data; */
+
+	if (tick_ct++ == 1)
 		return;
-	}
-	/* log_debug("tick"); */
-	/* fm_check_dirs(&app->fm); */
+
+	log_debug("tick");
 }
 
 static void stdin_cb(EV_P_ ev_io *w, int revents)
 {
 	(void) revents;
-	App *app = (App *) w->data;
+	App *app = w->data;
 	ncinput in;
+
 	notcurses_getc_blocking(app->ui.nc, &in);
-	if (current_millis() > input_timeout) {
-		/* log_debug("id: %d, shift: %d, ctrl: %d alt %d", in.id, in.shift, in.ctrl, in.alt); */
-		lua_handle_key(app->L, ncinput_to_input(&in));
-		ev_idle_start(app->loop, &redraw_watcher);
-	}
+
+	if (current_millis() <= input_timeout)
+		return;
+
+	/* log_debug("id: %d, shift: %d, ctrl: %d alt %d", in.id, in.shift, in.ctrl, in.alt); */
+	lua_handle_key(app->L, ncinput_to_input(&in));
+	ev_idle_start(app->loop, &redraw_watcher);
 }
 
 static void command_stdout_cb(EV_P_ ev_io *w, int revents)
@@ -109,25 +110,21 @@ static void command_stdout_cb(EV_P_ ev_io *w, int revents)
 	size_t n;
 
 	while ((read = getline(&line, &n, w->data)) != -1) {
-		if (line[read-1] == '\n') {
+		if (line[read-1] == '\n')
 			line[read-1] = 0;
-		}
+
 		/* TODO: strip special chars? (on 2021-11-14) */
 		ui_echom(&app->ui, "%s", line);
-		log_debug("%s", line);
 		free(line);
 		line = NULL;
 	}
-	/* log_debug("%d %s %d", read, strerror(errno), errno); */
 	free(line);
 
-	if (errno == EAGAIN) {
-		/* this seems to prevent the callback being immediately called again */
+	/* this seems to prevent the callback being immediately called again */
+	if (errno == EAGAIN)
 		clearerr(w->data);
-	}
 
 	if (errno == ECHILD || feof(w->data)) {
-		log_debug("removing watcher %d", w->fd);
 		ev_io_stop(app->loop, w);
 		cvector_swap_remove(io_watchers, w);
 		fclose(w->data);
@@ -139,14 +136,16 @@ static void app_read_fifo(T *t)
 {
 	char buf[8192 * 2];
 	int nbytes;
-	if (fifo_fd > 0) {
-		/* TODO: allocate string or use readline or something (on 2021-08-17) */
-		while ((nbytes = read(fifo_fd, buf, sizeof(buf))) > 0) {
-			buf[nbytes-1] = 0;
-			lua_eval(t->L, buf);
-		}
-		ev_idle_start(t->loop, &redraw_watcher);
+
+	if (fifo_fd <= 0)
+		return;
+
+	/* TODO: allocate string or use readline or something (on 2021-08-17) */
+	while ((nbytes = read(fifo_fd, buf, sizeof(buf))) > 0) {
+		buf[nbytes-1] = 0;
+		lua_eval(t->L, buf);
 	}
+	ev_idle_start(t->loop, &redraw_watcher);
 }
 
 /* seems like inotify increments watch discriptors, we might have to clean this
@@ -161,7 +160,7 @@ static cvector_vector_type(struct tup_t {
 static void inotify_cb(EV_P_ ev_io *w, int revents)
 {
 	(void) revents;
-	App *app = (App *) w->data;
+	App *app = w->data;
 	int nread;
 	char buf[EVENT_BUFLEN], *p;
 	struct inotify_event *event;
@@ -169,14 +168,14 @@ static void inotify_cb(EV_P_ ev_io *w, int revents)
 	while ((nread = read(inotify_fd, buf, EVENT_BUFLEN)) > 0) {
 		for (p = buf; p < buf + nread; p += EVENT_SIZE + event->len) {
 			event = (struct inotify_event *) p;
-			if (event->len == 0) {
+
+			if (event->len == 0)
 				continue;
-			}
 
 			// we use inotify for the fifo because io watchers dont seem to work properly
 			// with the fifo, the callback gets called every loop, even with clearerr
+			/* TODO: we could filter for our pipe here (on 2021-08-13) */
 			if (event->wd == fifo_wd) {
-				/* TODO: could filter for our pipe here (on 2021-08-13) */
 				app_read_fifo(app);
 				continue;
 			}
@@ -184,14 +183,13 @@ static void inotify_cb(EV_P_ ev_io *w, int revents)
 			const size_t l = cvector_size(times);
 			size_t i;
 			for (i = 0; i < l; i++) {
-				if (times[i].wd == event->wd) {
+				if (times[i].wd == event->wd)
 					break;
-				}
 			}
 			const uint64_t now = current_millis();
 			if (i >= l) {
 				Dir *dir = notify_get_dir(event->wd);
-				if (dir != NULL) {
+				if (dir) {
 					async_dir_load(dir, true);
 					cvector_push_back(times, ((struct tup_t) {now, event->wd}));
 				}
@@ -199,15 +197,12 @@ static void inotify_cb(EV_P_ ev_io *w, int revents)
 				uint64_t next = now;
 				const uint64_t latest = times[i].next;
 
-				if (latest >= now + NOTIFY_TIMEOUT) {
-					/* discard */
-					continue;
-				}
+				if (latest >= now + NOTIFY_TIMEOUT)
+					continue; /* discard */
 
 				if (now > latest) {
-					if (latest + NOTIFY_TIMEOUT > now) {
+					if (latest + NOTIFY_TIMEOUT > now)
 						next = latest + NOTIFY_TIMEOUT;
-					}
 				} else {
 					next = latest + NOTIFY_TIMEOUT;
 				}
@@ -217,7 +212,7 @@ static void inotify_cb(EV_P_ ev_io *w, int revents)
 				 * scheduled when events come in in quick
 				 * succession */
 				Dir *dir = notify_get_dir(event->wd);
-				if (dir != NULL) {
+				if (dir) {
 					async_dir_load_delayed(dir, true, next - now + NOTIFY_DELAY);
 					times[i].next = next + NOTIFY_DELAY;
 				}
@@ -231,15 +226,17 @@ static void inotify_cb(EV_P_ ev_io *w, int revents)
 static void prepare_cb(EV_P_ ev_prepare *w, int revents)
 {
 	(void) revents;
-	App *app = (App *) w->data;
-	if (cfg.commands != NULL) {
-		for (size_t i = 0; i < cvector_size(cfg.commands); i++) {
+	App *app = w->data;
+
+	if (cfg.commands) {
+		for (size_t i = 0; i < cvector_size(cfg.commands); i++)
 			lua_eval(app->L, cfg.commands[i]);
-		}
+
 		/* commands are from argv, don't free them */
 		cvector_free(cfg.commands);
 		cfg.commands = NULL;
 	}
+
 	lua_run_hook(app->L, "LfmEnter");
 	ev_prepare_stop(loop, w);
 }
@@ -247,7 +244,7 @@ static void prepare_cb(EV_P_ ev_prepare *w, int revents)
 static void sigwinch_cb(EV_P_ ev_signal *w, int revents)
 {
 	(void) revents;
-	App *app = (App *) w->data;
+	App *app = w->data;
 	ui_clear(&app->ui);
 	lua_run_hook(app->L, "Resized");
 	ev_idle_start(app->loop, &redraw_watcher);
@@ -256,7 +253,6 @@ static void sigwinch_cb(EV_P_ ev_signal *w, int revents)
 static void child_cb(EV_P_ ev_child *w, int revents)
 {
 	(void) revents;
-	log_debug("child_cb: %d %d", w->pid, w->rstatus);
 	ev_child_stop(EV_A_ w);
 	cvector_swap_remove(child_watchers, w);
 	lua_run_callback(_app->L, *(int *) w->data, w->rstatus);
@@ -267,7 +263,7 @@ static void child_cb(EV_P_ ev_child *w, int revents)
 static void redraw_cb(EV_P_ ev_idle *w, int revents)
 {
 	(void) revents;
-	App *app = (App *) w->data;
+	App *app = w->data;
 	ui_draw(&app->ui);
 	ev_idle_stop(loop, w);
 }
@@ -293,6 +289,7 @@ void app_init(T *t)
 	log_info("initialized pool of %d threads", nthreads);
 
 	if (pthread_mutex_init(&async_results.mutex, NULL) != 0) {
+		log_error("pthread_mutex_init: %s", strerror(errno));
 		exit(EXIT_FAILURE);
 	}
 
@@ -334,7 +331,7 @@ void app_init(T *t)
 
 	ev_timer_init(&timer_watcher, timer_cb, 0., TICK);
 	timer_watcher.data = t;
-	ev_timer_start(t->loop, &timer_watcher);
+	/* ev_timer_start(t->loop, &timer_watcher); */
 
 	ev_io_init(&stdin_watcher, stdin_cb, notcurses_inputready_fd(t->ui.nc), EV_READ);
 	stdin_watcher.data = t;
@@ -364,10 +361,9 @@ void app_quit(T *t)
 
 static void add_io_watcher(T *t, FILE* f)
 {
-	if (f == NULL) {
+	if (!f)
 		return;
-	}
-	log_debug("adding io watcher %d", fileno(f));
+
 	ev_io *w = malloc(sizeof(ev_io));
 	int flags = fcntl(fileno(f), F_GETFL, 0);
 	fcntl(fileno(f), F_SETFL, flags | O_NONBLOCK);
@@ -377,13 +373,12 @@ static void add_io_watcher(T *t, FILE* f)
 	cvector_push_back(io_watchers, w);
 }
 
-static void add_child_watcher(T *t, int pid, int key)
+static void add_child_watcher(T *t, int pid, int cb_index)
 {
-	log_debug("adding child watcher %d", pid);
 	ev_child *w = malloc(sizeof(ev_child));
 	ev_child_init(w, child_cb, pid, 0);
 	w->data = malloc(sizeof(int));
-	*(int *) w->data = key;
+	*(int *) w->data = cb_index;
 	ev_child_start(t->loop, w);
 	cvector_push_back(child_watchers, w);
 }
@@ -395,19 +390,20 @@ bool app_execute(T *t, const char *prog, char *const *args, bool forking, bool o
 	log_debug("execute: %s %d %d", prog, out, err);
 	if (forking) {
 		pid = popen2_arr_p(NULL, &fout, &ferr, prog, args, NULL);
-		if (err) {
+
+		if (err)
 			add_io_watcher(t, ferr);
-		} else {
+		else
 			fclose(ferr);
-		}
-		if (out) {
+
+		if (out)
 			add_io_watcher(t, fout);
-		} else {
+		else
 			fclose(fout);
-		}
-		if (key > 0) {
+
+		if (key > 0)
 			add_child_watcher(t, pid, key);
-		}
+
 		return pid != -1;
 	} else {
 		ui_suspend(&t->ui);
@@ -433,10 +429,11 @@ bool app_execute(T *t, const char *prog, char *const *args, bool forking, bool o
 
 void print(const char *format, ...)
 {
-	if (_app == NULL) {
-		return;
-	}
 	va_list args;
+
+	if (!_app)
+		return;
+
 	va_start(args, format);
 	ui_vechom(&_app->ui, format, args);
 	va_end(args);
@@ -444,25 +441,27 @@ void print(const char *format, ...)
 
 void error(const char *format, ...)
 {
-	if (_app == NULL) {
-		return;
-	}
 	va_list args;
+
+	if (!_app)
+		return;
+
 	va_start(args, format);
 	ui_verror(&_app->ui, format, args);
 	va_end(args);
 }
 
-void timeout_set(uint16_t duration)
+void app_timeout_set(T *t, uint16_t duration)
 {
+	(void) t;
 	input_timeout = current_millis() + duration;
 }
 
 void app_deinit(T *t)
 {
-	if (t == NULL) {
+	if (!t)
 		return;
-	}
+
 	cvector_free(times);
 	cvector_ffree(io_watchers, free);
 	cvector_ffree(child_watchers, free);
@@ -474,9 +473,8 @@ void app_deinit(T *t)
 	tpool_destroy(async_tm);
 	resultqueue_deinit(&async_results);
 	pthread_mutex_destroy(&async_results.mutex);
-	if (fifo_fd > 0) {
+	if (fifo_fd > 0)
 		close(fifo_fd);
-	}
 	remove(cfg.fifopath);
 }
 

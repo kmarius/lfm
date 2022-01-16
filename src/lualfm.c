@@ -65,7 +65,7 @@ static int l_timeout(lua_State *L)
 {
 	const int16_t dur = luaL_checkinteger(L, 1);
 	if (dur > 0) {
-		timeout_set(dur);
+		app_timeout_set(app, dur);
 	}
 	return 0;
 }

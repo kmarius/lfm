@@ -17,7 +17,7 @@ typedef struct {
 /*
  * Set input timout. Key input will be ignored for the next `duration` ms.
  */
-void timeout_set(uint16_t duration);
+void app_timeout_set(App *app, uint16_t duration);
 
 /*
  * Initialize ui, fm and the lua_State.
