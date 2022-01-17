@@ -186,6 +186,8 @@ void fm_sort(T *t)
 				const char *name = file ? file_name(file) : NULL; // dir_sort changes the files array
 				dir_sort(t->dirs.visible[i]);
 				dir_cursor_move_to(t->dirs.visible[i], name, t->height, cfg.scrolloff);
+			} else {
+				dir_sort(t->dirs.visible[i]);
 			}
 		}
 	}
@@ -196,6 +198,8 @@ void fm_sort(T *t)
 			const char *name = file ? file_name(file) : NULL;
 			dir_sort(t->dirs.preview);
 			dir_cursor_move_to(t->dirs.preview, name, t->height, cfg.scrolloff);
+		} else {
+			dir_sort(t->dirs.preview);
 		}
 	}
 }
