@@ -19,6 +19,7 @@
 #include "config.h"
 #include "cvector.h"
 #include "dir.h"
+#include "find.h"
 #include "fm.h"
 #include "keys.h"
 #include "log.h"
@@ -103,26 +104,7 @@ static int l_search_prev(lua_State *L)
 
 static int l_find(lua_State *L)
 {
-	Dir *dir = fm_current_dir(fm);
-	if (!dir)
-		return 0;
-
-	const char *prefix = luaL_checkstring(L, 1);
-	uint16_t start = dir->ind;
-	uint16_t nmatches = 0;
-	for (uint16_t i = 0; i < dir->length; i++) {
-		if (hascaseprefix(file_name(dir->files[(start + i) % dir->length]), prefix)) {
-			if (nmatches == 0) {
-				if ((start + i) % dir->length < dir->ind)
-					fm_up(fm, dir->ind - (start + i) % dir->length);
-				else
-					fm_down(fm, (start + i) % dir->length - dir->ind);
-				ui->redraw |= REDRAW_FM;
-			}
-			nmatches++;
-		}
-	}
-	lua_pushboolean(L, nmatches == 1);
+	lua_pushboolean(L, find(fm, ui, luaL_checkstring(L, 1)));
 	return 1;
 }
 
@@ -1198,9 +1180,8 @@ static int l_fn_tokenize(lua_State *L)
 	char buf[strlen(string) + 1];
 	uint16_t pos1 = 0, pos2 = 0;
 	const char *tok;
-	if ((tok = tokenize(string, buf, &pos1, &pos2))) {
+	if ((tok = tokenize(string, buf, &pos1, &pos2)))
 		lua_pushstring(L, tok);
-	}
 	lua_newtable(L);
 	int i = 1;
 	while ((tok = tokenize(string, buf, &pos1, &pos2))) {
@@ -1233,7 +1214,7 @@ static int l_fn_split_last(lua_State *L)
 static int l_fn_unquote_space(lua_State *L)
 {
 	const char *string = luaL_checkstring(L, 1);
-	char buf[strlen(string)  + 1];
+	char buf[strlen(string) + 1];
 	char *t = buf;
 	for (const char *s = string; *s != 0; s++) {
 		if (*s != '\\' || *(s+1) != ' ') {
