@@ -20,13 +20,13 @@ static inline void highlight(Ui *ui, const char *string)
 		search_string = strdup(string);
 	}
 	ui->highlight = search_string;
-	ui->redraw.fm = 1;
+	ui->redraw |= REDRAW_FM;
 }
 
 inline void nohighlight(Ui *ui)
 {
 	ui->highlight = NULL;
-	ui->redraw.fm = 1;
+	ui->redraw |= REDRAW_FM;
 }
 
 inline void search(Ui *ui, const char *string, bool forward)

@@ -201,7 +201,7 @@ static void DirCountResult_callback(struct DirCountResult *res, App *app)
 	/* TODO: we need to make sure that the original files/dir don't get freed (on 2022-01-15) */
 	for (size_t i = 0; i < cvector_size(res->dircounts); i++)
 		file_dircount_set(res->dircounts[i].file, res->dircounts[i].count);
-	app->ui.redraw.fm = 1;
+	app->ui.redraw |= REDRAW_FM;
 	if (res->last)
 		res->dir->dircounts = true;
 	cvector_free(res->dircounts);
@@ -268,7 +268,8 @@ struct DirUpdateResult {
 
 static void DirUpdateResult_callback(struct DirUpdateResult *res, App *app)
 {
-	app->ui.redraw.fm |= fm_update_dir(&app->fm, res->dir, res->update);
+	if (fm_update_dir(&app->fm, res->dir, res->update))
+		app->ui.redraw |= REDRAW_FM;
 	free(res);
 }
 
@@ -423,7 +424,8 @@ struct PreviewLoadResult {
 
 static void PreviewLoadResult_callback(struct PreviewLoadResult *res, App *app)
 {
-	app->ui.redraw.preview |= ui_insert_preview(&app->ui, res->preview);
+	if (ui_insert_preview(&app->ui, res->preview))
+		app->ui.redraw |= REDRAW_PREVIEW;
 	free(res);
 }
 

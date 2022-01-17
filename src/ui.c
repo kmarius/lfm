@@ -186,26 +186,21 @@ void ui_recol(Ui *ui)
 void ui_draw(Ui *ui)
 {
 	PROFILE_BEGIN(t0);
-	if (ui->redraw.fm)
+	if (ui->redraw & REDRAW_FM)
 		draw_dirs(ui);
-	if (ui->redraw.fm | ui->redraw.menu)
+	if (ui->redraw & (REDRAW_MENU | REDRAW_MENU))
 		draw_menu(ui->planes.menu, ui->menubuf);
-	if (ui->redraw.fm | ui->redraw.cmdline)
+	if (ui->redraw & (REDRAW_FM | REDRAW_CMDLINE))
 		draw_cmdline(ui);
-	if (ui->redraw.fm | ui->redraw.info)
+	if (ui->redraw & (REDRAW_FM | REDRAW_INFO))
 		draw_info(ui);
-	if (ui->redraw.fm | ui->redraw.preview)
+	if (ui->redraw & (REDRAW_FM | REDRAW_PREVIEW))
 		draw_preview(ui);
-	if (ui->redraw.fm | ui->redraw.cmdline | ui->redraw.info
-			| ui->redraw.menu | ui->redraw.preview) {
+	if (ui->redraw) {
 		notcurses_render(nc);
 		PROFILE_END(t0);
 	}
-	ui->redraw.fm = 0;
-	ui->redraw.info = 0;
-	ui->redraw.cmdline = 0;
-	ui->redraw.menu = 0;
-	ui->redraw.preview = 0;
+	ui->redraw = 0;
 }
 
 void ui_clear(Ui *ui)
@@ -226,7 +221,7 @@ void ui_clear(Ui *ui)
 	notcurses_cursor_enable(nc, 0, 0);
 	notcurses_cursor_disable(nc);
 
-	ui->redraw.fm = 1;
+	ui->redraw |= REDRAW_FM;
 }
 
 static void draw_dirs(Ui *ui)
@@ -329,7 +324,7 @@ void ui_cmd_prefix_set(Ui *ui, const char *prefix)
 	ui->message = false;
 	notcurses_cursor_enable(nc, 0, 0);
 	cmdline_prefix_set(&ui->cmdline, prefix);
-	ui->redraw.cmdline = 1;
+	ui->redraw |= REDRAW_CMDLINE;
 }
 
 void ui_cmd_clear(Ui *ui)
@@ -338,8 +333,8 @@ void ui_cmd_clear(Ui *ui)
 	history_reset(&ui->history);
 	notcurses_cursor_disable(nc);
 	ui_showmenu(ui, NULL);
-	ui->redraw.cmdline = 1;
-	ui->redraw.menu = 1;
+	ui->redraw |= REDRAW_CMDLINE;
+	ui->redraw |= REDRAW_MENU;
 }
 
 static char *print_time(time_t time, char *buffer, size_t bufsz)
@@ -587,7 +582,7 @@ void ui_showmenu(Ui *ui, cvector_vector_type(char*) vec)
 		menu_resize(ui);
 		ncplane_move_top(ui->planes.menu);
 	}
-	ui->redraw.menu = 1;
+	ui->redraw |= REDRAW_MENU;
 }
 
 /* }}} */
@@ -788,17 +783,17 @@ static void update_file_preview(Ui *ui)
 			} else {
 				cache_insert(&ui->preview.cache, ui->preview.preview, ui->preview.preview->path);
 				ui->preview.preview = load_preview(ui, file);
-				ui->redraw.preview = 1;
+				ui->redraw |= REDRAW_PREVIEW;
 			}
 		} else {
 			ui->preview.preview = load_preview(ui, file);
-			ui->redraw.preview = 1;
+			ui->redraw |= REDRAW_PREVIEW;
 		}
 	} else {
 		if (ui->preview.preview) {
 			cache_insert(&ui->preview.cache, ui->preview.preview, ui->preview.preview->path);
 			ui->preview.preview = NULL;
-			ui->redraw.preview = 1;
+			ui->redraw |= REDRAW_PREVIEW;
 		}
 	}
 }
@@ -971,8 +966,8 @@ void ui_drop_cache(Ui *ui)
 	ui->preview.preview = NULL;
 	cache_clear(&ui->preview.cache);
 	update_file_preview(ui);
-	ui->redraw.cmdline = 1;
-	ui->redraw.preview = 1;
+	ui->redraw |= REDRAW_CMDLINE;
+	ui->redraw |= REDRAW_PREVIEW;
 }
 
 /* }}} */

@@ -117,7 +117,7 @@ static int l_find(lua_State *L)
 					fm_up(fm, dir->ind - (start + i) % dir->length);
 				else
 					fm_down(fm, (start + i) % dir->length - dir->ind);
-				ui->redraw.fm = 1;
+				ui->redraw |= REDRAW_FM;
 			}
 			nmatches++;
 		}
@@ -366,11 +366,11 @@ static int l_config_newindex(lua_State *L)
 			return 0;
 		}
 		cfg.truncatechar = w;
-		ui->redraw.fm = 1;
+		ui->redraw |= REDRAW_FM;
 	} else if (streq(key, "hidden")) {
 		bool hidden = lua_toboolean(L, 3);
 		fm_hidden_set(fm, hidden);
-		ui->redraw.fm = 1;
+		ui->redraw |= REDRAW_FM;
 	} else if (streq(key, "ratios")) {
 		const int l = lua_objlen(L, 3);
 		if (l == 0)
@@ -389,7 +389,7 @@ static int l_config_newindex(lua_State *L)
 		config_ratios_set(ratios);
 		fm_recol(fm);
 		ui_recol(ui);
-		ui->redraw.fm = 1;
+		ui->redraw |= REDRAW_FM;
 	} else if (streq(key, "inotify_blacklist")) {
 		const size_t l = lua_objlen(L, 3);
 		cvector_ffree(cfg.inotify_blacklist, free);
@@ -406,7 +406,7 @@ static int l_config_newindex(lua_State *L)
 	} else if (streq(key, "preview")) {
 		cfg.preview = lua_toboolean(L, 3);
 		fm_recol(fm);
-		ui->redraw.fm = 1;
+		ui->redraw |= REDRAW_FM;
 		return 0;
 	} else if (streq(key, "previewer")) {
 		if (lua_isnoneornil(L, 3)) {
@@ -559,7 +559,7 @@ static int l_ui_menu(lua_State *L)
 static int l_ui_draw(lua_State *L)
 {
 	(void) L;
-	ui->redraw.fm = 1;
+	ui->redraw |= REDRAW_FM;
 	return 0;
 }
 
@@ -654,7 +654,7 @@ static int l_colors_newindex(lua_State *L)
 	} else {
 		luaL_error(L, "unexpected key %s", key);
 	}
-	ui->redraw.fm = 1;
+	ui->redraw |= REDRAW_FM;
 	return 0;
 }
 
@@ -681,14 +681,14 @@ static int l_cmd_line_set(lua_State *L)
 		case 1:
 			{
 				if (cmdline_set(&ui->cmdline, lua_tostring(L, 1)))
-					ui->redraw.cmdline = 1;
+					ui->redraw |= REDRAW_CMDLINE;
 			}
 			break;
 		case 3:
 			{
 				if(cmdline_set_whole(&ui->cmdline, lua_tostring(L, 1),
 							lua_tostring(L, 2), lua_tostring(L, 3)))
-					ui->redraw.cmdline = 1;
+					ui->redraw |= REDRAW_CMDLINE;
 
 			}
 	}
@@ -706,7 +706,7 @@ static int l_cmd_delete(lua_State *L)
 {
 	(void) L;
 	if (cmdline_delete(&ui->cmdline))
-		ui->redraw.cmdline = 1;
+		ui->redraw |= REDRAW_CMDLINE;
 	return 0;
 }
 
@@ -714,7 +714,7 @@ static int l_cmd_delete_right(lua_State *L)
 {
 	(void) L;
 	if (cmdline_delete_right(&ui->cmdline))
-		ui->redraw.cmdline = 1;
+		ui->redraw |= REDRAW_CMDLINE;
 	return 0;
 }
 
@@ -722,14 +722,14 @@ static int l_cmd_delete_word(lua_State *L)
 {
 	(void) L;
 	if (cmdline_delete_word(&ui->cmdline))
-		ui->redraw.cmdline = 1;
+		ui->redraw |= REDRAW_CMDLINE;
 	return 0;
 }
 
 static int l_cmd_insert(lua_State *L)
 {
 	if (cmdline_insert(&ui->cmdline, lua_tostring(L, 1)))
-		ui->redraw.cmdline = 1;
+		ui->redraw |= REDRAW_CMDLINE;
 	return 0;
 }
 
@@ -737,7 +737,7 @@ static int l_cmd_left(lua_State *L)
 {
 	(void) L;
 	if (cmdline_left(&ui->cmdline))
-		ui->redraw.cmdline = 1;
+		ui->redraw |= REDRAW_CMDLINE;
 	return 0;
 }
 
@@ -745,7 +745,7 @@ static int l_cmd_right(lua_State *L)
 {
 	(void) L;
 	if (cmdline_right(&ui->cmdline))
-		ui->redraw.cmdline = 1;
+		ui->redraw |= REDRAW_CMDLINE;
 	return 0;
 }
 
@@ -753,7 +753,7 @@ static int l_cmd_word_left(lua_State *L)
 {
 	(void) L;
 	if (cmdline_word_left(&ui->cmdline))
-		ui->redraw.cmdline = 1;
+		ui->redraw |= REDRAW_CMDLINE;
 	return 0;
 }
 
@@ -761,7 +761,7 @@ static int l_cmd_word_right(lua_State *L)
 {
 	(void) L;
 	if (cmdline_word_right(&ui->cmdline))
-		ui->redraw.cmdline = 1;
+		ui->redraw |= REDRAW_CMDLINE;
 	return 0;
 }
 
@@ -769,7 +769,7 @@ static int l_cmd_delete_line_left(lua_State *L)
 {
 	(void) L;
 	if (cmdline_delete_line_left(&ui->cmdline))
-		ui->redraw.cmdline = 1;
+		ui->redraw |= REDRAW_CMDLINE;
 	return 0;
 }
 
@@ -777,7 +777,7 @@ static int l_cmd_home(lua_State *L)
 {
 	(void) L;
 	if (cmdline_home(&ui->cmdline))
-		ui->redraw.cmdline = 1;
+		ui->redraw |= REDRAW_CMDLINE;
 	return 0;
 }
 
@@ -785,7 +785,7 @@ static int l_cmd_end(lua_State *L)
 {
 	(void) L;
 	if (cmdline_end(&ui->cmdline))
-		ui->redraw.cmdline = 1;
+		ui->redraw |= REDRAW_CMDLINE;
 	return 0;
 }
 
@@ -805,14 +805,14 @@ static int l_cmd_prefix_get(lua_State *L)
 static int l_fm_up(lua_State *L)
 {
 	if (fm_up(fm, luaL_optint(L, 1, 1)))
-		ui->redraw.fm = 1;
+		ui->redraw |= REDRAW_FM;
 	return 0;
 }
 
 static int l_fm_down(lua_State *L)
 {
 	if (fm_down(fm, luaL_optint(L, 1, 1)))
-		ui->redraw.fm = 1;
+		ui->redraw |= REDRAW_FM;
 	return 0;
 }
 
@@ -864,7 +864,7 @@ static int l_fm_check(lua_State *L)
 static int l_fm_sel(lua_State *L)
 {
 	fm_move_cursor_to(fm, luaL_checkstring(L, 1));
-	ui->redraw.fm = 1;
+	ui->redraw |= REDRAW_FM;
 	return 0;
 }
 
@@ -872,7 +872,7 @@ static int l_fm_top(lua_State *L)
 {
 	(void) L;
 	if (fm_top(fm))
-		ui->redraw.fm = 1;
+		ui->redraw |= REDRAW_FM;
 	return 0;
 }
 
@@ -880,7 +880,7 @@ static int l_fm_bot(lua_State *L)
 {
 	(void) L;
 	if (fm_bot(fm))
-		ui->redraw.fm = 1;
+		ui->redraw |= REDRAW_FM;
 	return 0;
 }
 
@@ -889,7 +889,7 @@ static int l_fm_updir(lua_State *L)
 	(void) L;
 	fm_updir(fm);
 	nohighlight(ui);
-	ui->redraw.fm = 1;
+	ui->redraw |= REDRAW_FM;
 	return 0;
 }
 
@@ -898,7 +898,7 @@ static int l_fm_open(lua_State *L)
 	File *file = fm_open(fm);
 	if (!file) {
 		/* changed directory */
-		ui->redraw.fm = 1;
+		ui->redraw |= REDRAW_FM;
 		nohighlight(ui);
 		return 0;
 	} else {
@@ -947,7 +947,7 @@ static int l_fm_visual_start(lua_State *L)
 {
 	(void) L;
 	fm_selection_visual_start(fm);
-	ui->redraw.fm = 1;
+	ui->redraw |= REDRAW_FM;
 	return 0;
 }
 
@@ -955,7 +955,7 @@ static int l_fm_visual_end(lua_State *L)
 {
 	(void) L;
 	fm_selection_visual_stop(fm);
-	ui->redraw.fm = 1;
+	ui->redraw |= REDRAW_FM;
 	return 0;
 }
 
@@ -963,7 +963,7 @@ static int l_fm_visual_toggle(lua_State *L)
 {
 	(void) L;
 	fm_selection_visual_toggle(fm);
-	ui->redraw.fm = 1;
+	ui->redraw |= REDRAW_FM;
 	return 0;
 }
 static int l_fm_sortby(lua_State *L)
@@ -1001,7 +1001,7 @@ static int l_fm_sortby(lua_State *L)
 	const char *name = file ? file_name(file) : NULL;
 	dir_sort(dir);
 	fm_move_cursor_to(fm, name);
-	ui->redraw.fm = 1;
+	ui->redraw |= REDRAW_FM;
 	return 0;
 }
 
@@ -1009,7 +1009,7 @@ static int l_fm_selection_toggle_current(lua_State *L)
 {
 	(void) L;
 	fm_selection_toggle_current(fm);
-	ui->redraw.fm = 1;
+	ui->redraw |= REDRAW_FM;
 	return 0;
 }
 
@@ -1047,7 +1047,7 @@ static int l_fm_selection_clear(lua_State *L)
 {
 	(void) L;
 	fm_selection_clear(fm);
-	ui->redraw.fm = 1;
+	ui->redraw |= REDRAW_FM;
 	return 0;
 }
 
@@ -1055,7 +1055,7 @@ static int l_fm_selection_reverse(lua_State *L)
 {
 	(void) L;
 	fm_selection_reverse(fm);
-	ui->redraw.fm = 1;
+	ui->redraw |= REDRAW_FM;
 	return 0;
 }
 
@@ -1066,7 +1066,7 @@ static int l_fm_chdir(lua_State *L)
 	lua_run_hook(L, "ChdirPre");
 	if (fm_chdir(fm, path, true))
 		lua_run_hook(L, "ChdirPost");
-	ui->redraw.fm = 1;
+	ui->redraw |= REDRAW_FM;
 	return 0;
 }
 
@@ -1103,7 +1103,7 @@ static int l_fm_load_set(lua_State *L)
 		cvector_push_back(fm->load.files, strdup(lua_tostring(L, -1)));
 		lua_pop(L, 1);
 	}
-	ui->redraw.fm = 1;
+	ui->redraw |= REDRAW_FM;
 	return 0;
 }
 
@@ -1111,7 +1111,7 @@ static int l_fm_load_clear(lua_State *L)
 {
 	(void) L;
 	fm_load_clear(fm);
-	ui->redraw.fm = 1;
+	ui->redraw |= REDRAW_FM;
 	return 0;
 }
 
@@ -1119,7 +1119,7 @@ static int l_fm_copy(lua_State *L)
 {
 	(void) L;
 	fm_copy(fm);
-	ui->redraw.fm = 1;
+	ui->redraw |= REDRAW_FM;
 	return 0;
 }
 
@@ -1127,7 +1127,7 @@ static int l_fm_cut(lua_State *L)
 {
 	(void) L;
 	fm_cut(fm);
-	ui->redraw.fm = 1;
+	ui->redraw |= REDRAW_FM;
 	return 0;
 }
 
@@ -1141,7 +1141,7 @@ static int l_fm_filter(lua_State *L)
 {
 	const char *filter = lua_tostring(L, 1);
 	fm_filter(fm, filter);
-	ui->redraw.fm = 1;
+	ui->redraw |= REDRAW_FM;
 	return 0;
 }
 
@@ -1150,7 +1150,7 @@ static int l_fm_mark_load(lua_State *L)
 	/* TODO: what about umlauts (on 2022-01-14) */
 	const char *b = lua_tostring(L, 1);
 	fm_mark_load(fm, b[0]);
-	ui->redraw.fm = 1;
+	ui->redraw |= REDRAW_FM;
 	return 0;
 }
 
@@ -1333,7 +1333,7 @@ void lua_handle_key(lua_State *L, input_t in)
 					n = 0; // invalid character or borked shift/ctrl/alt
 				buf[n] = '\0';
 				if (cmdline_insert(&ui->cmdline, buf))
-					ui->redraw.cmdline = 1;
+					ui->redraw |= REDRAW_CMDLINE;
 			}
 			lua_getglobal(L, "lfm");
 			if (lua_type(L, -1) == LUA_TTABLE) {
@@ -1369,7 +1369,7 @@ void lua_handle_key(lua_State *L, input_t in)
 			fm_selection_visual_stop(fm);
 			fm_selection_clear(fm);
 			fm_load_clear(fm);
-			ui->redraw.fm = 1;
+			ui->redraw |= REDRAW_FM;
 			return;
 		}
 		if (!maps.cur) {

@@ -13,6 +13,12 @@
 
 #define PREVIEW_CACHE_SIZE 63
 
+#define REDRAW_INFO 1
+#define REDRAW_FM 2
+#define REDRAW_CMDLINE 4
+#define REDRAW_MENU 8
+#define REDRAW_PREVIEW 16
+
 typedef struct {
 	int nrow; // keep these as int for now until we can upgrade notcurses
 	int ncol;
@@ -42,13 +48,7 @@ typedef struct {
 
 	const char *highlight;
 
-	struct {
-		bool info : 1;
-		bool fm : 1;
-		bool cmdline : 1;
-		bool menu : 1;
-		bool preview : 1;
-	} redraw;
+	uint8_t redraw;
 
 	bool message;
 } Ui;
