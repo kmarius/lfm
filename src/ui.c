@@ -717,7 +717,11 @@ static void plane_draw_dir(struct ncplane *n, Dir *dir, char **sel, char **load,
 	} else if (dir->loading) {
 		ncplane_putstr_yx(n, 0, 2, "loading");
 	} else if (dir->length == 0) {
-		ncplane_putstr_yx(n, 0, 2, "empty");
+		if (dir->length_all > 0) {
+			ncplane_putstr_yx(n, 0, 2, "contains hidden files");
+		} else {
+			ncplane_putstr_yx(n, 0, 2, "empty");
+		}
 	} else {
 		dir->pos = min(min(dir->pos, nrow - 1), dir->ind);
 
