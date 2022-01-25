@@ -65,6 +65,11 @@ void ui_clear(Ui *ui);
 
 void ui_draw(Ui *ui);
 
+static inline void ui_redraw(Ui *ui, uint8_t mode)
+{
+	ui->redraw |= mode;
+}
+
 void ui_error(Ui *ui, const char *format, ...);
 
 void ui_echom(Ui *ui, const char *format, ...);

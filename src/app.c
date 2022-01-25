@@ -417,7 +417,7 @@ bool app_execute(T *t, const char *prog, char *const *args, bool forking, bool o
 		}
 		kbblocking(false);
 		ui_notcurses_init(&t->ui);
-		t->ui.redraw |= REDRAW_FM;
+		ui_redraw(&t->ui, REDRAW_FM);
 		return status == 0;
 	}
 }

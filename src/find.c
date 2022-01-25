@@ -15,7 +15,7 @@ bool find(Fm *fm, Ui *ui, const char *prefix)
 					fm_up(fm, dir->ind - (start + i) % dir->length);
 				else
 					fm_down(fm, (start + i) % dir->length - dir->ind);
-				ui->redraw |= REDRAW_FM;
+				ui_redraw(ui, REDRAW_FM);
 			}
 			nmatches++;
 		}

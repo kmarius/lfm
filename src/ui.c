@@ -165,6 +165,8 @@ void ui_recol(Ui *ui)
 
 /* main drawing/echo/err {{{ */
 
+static inline void ui_redraw(Ui *ui, uint8_t mode);
+
 void ui_draw(Ui *ui)
 {
 	if (ui->redraw & REDRAW_FM)
@@ -201,7 +203,7 @@ void ui_clear(Ui *ui)
 	notcurses_cursor_enable(nc, 0, 0);
 	notcurses_cursor_disable(nc);
 
-	ui->redraw |= REDRAW_FM;
+	ui_redraw(ui, REDRAW_FM);
 }
 
 static void draw_dirs(Ui *ui)
@@ -300,7 +302,7 @@ void ui_cmd_prefix_set(Ui *ui, const char *prefix)
 	ui->message = false;
 	notcurses_cursor_enable(nc, 0, 0);
 	cmdline_prefix_set(&ui->cmdline, prefix);
-	ui->redraw |= REDRAW_CMDLINE;
+	ui_redraw(ui, REDRAW_CMDLINE);
 }
 
 void ui_cmd_clear(Ui *ui)
@@ -309,8 +311,8 @@ void ui_cmd_clear(Ui *ui)
 	history_reset(&ui->history);
 	notcurses_cursor_disable(nc);
 	ui_showmenu(ui, NULL);
-	ui->redraw |= REDRAW_CMDLINE;
-	ui->redraw |= REDRAW_MENU;
+	ui_redraw(ui, REDRAW_CMDLINE);
+	ui_redraw(ui, REDRAW_MENU);
 }
 
 static char *print_time(time_t time, char *buffer, size_t bufsz)
@@ -549,7 +551,7 @@ void ui_showmenu(Ui *ui, cvector_vector_type(char*) vec)
 		menu_resize(ui);
 		ncplane_move_top(ui->planes.menu);
 	}
-	ui->redraw |= REDRAW_MENU;
+	ui_redraw(ui, REDRAW_MENU);
 }
 
 /* }}} */
@@ -754,17 +756,17 @@ static void update_file_preview(Ui *ui)
 			} else {
 				cache_insert(&ui->preview.cache, ui->preview.preview, ui->preview.preview->path);
 				ui->preview.preview = load_preview(ui, file);
-				ui->redraw |= REDRAW_PREVIEW;
+				ui_redraw(ui, REDRAW_PREVIEW);
 			}
 		} else {
 			ui->preview.preview = load_preview(ui, file);
-			ui->redraw |= REDRAW_PREVIEW;
+			ui_redraw(ui, REDRAW_PREVIEW);
 		}
 	} else {
 		if (ui->preview.preview) {
 			cache_insert(&ui->preview.cache, ui->preview.preview, ui->preview.preview->path);
 			ui->preview.preview = NULL;
-			ui->redraw |= REDRAW_PREVIEW;
+			ui_redraw(ui, REDRAW_PREVIEW);
 		}
 	}
 }
@@ -937,8 +939,8 @@ void ui_drop_cache(Ui *ui)
 	ui->preview.preview = NULL;
 	cache_clear(&ui->preview.cache);
 	update_file_preview(ui);
-	ui->redraw |= REDRAW_CMDLINE;
-	ui->redraw |= REDRAW_PREVIEW;
+	ui_redraw(ui, REDRAW_CMDLINE);
+	ui_redraw(ui, REDRAW_PREVIEW);
 }
 
 /* }}} */
