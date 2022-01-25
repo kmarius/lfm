@@ -22,7 +22,6 @@ bool hascaseprefix(const char *restrict string, const char *restrict prefix)
 		if (tolower(*prefix++) != tolower(*string++))
 			return false;
 	}
-
 	return true;
 }
 
@@ -32,7 +31,6 @@ bool hasprefix(const char *restrict string, const char *restrict prefix)
 		if (*prefix++ != *string++)
 			return false;
 	}
-
 	return true;
 }
 
@@ -45,11 +43,9 @@ bool hassuffix(const char *suf, const char *str)
 const char *strcaserchr(const char *str, char c)
 {
 	const char *last = NULL;
-	const char *s = str;
-	while (*s != 0) {
-		if (*s == c)
-			last = s;
-		s++;
+	for (; *str != 0; str++) {
+		if (*str == c)
+			last = str;
 	}
 	return last;
 }
@@ -78,11 +74,6 @@ int msleep(uint32_t msec)
 	struct timespec ts;
 	int res;
 
-	/* if (msec < 0) { */
-	/* 	errno = EINVAL; */
-	/* 	return -1; */
-	/* } */
-
 	ts.tv_sec = msec / 1000;
 	ts.tv_nsec = (msec % 1000) * 1000000;
 
@@ -93,7 +84,8 @@ int msleep(uint32_t msec)
 	return res;
 }
 
-uint64_t current_micros(void) {
+uint64_t current_micros(void)
+{
 	struct timeval tv;
 	gettimeofday(&tv, NULL);
 	return ((uint64_t) tv.tv_sec) * 1000 * 1000 + tv.tv_usec;
