@@ -5,7 +5,6 @@
 
 bool find(Fm *fm, Ui *ui, const char *prefix)
 {
-
 	Dir *dir = fm_current_dir(fm);
 	uint16_t start = dir->ind;
 	uint16_t nmatches = 0;
@@ -21,5 +20,5 @@ bool find(Fm *fm, Ui *ui, const char *prefix)
 			nmatches++;
 		}
 	}
-	return nmatches;
+	return nmatches == 1;
 }
