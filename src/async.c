@@ -274,7 +274,7 @@ static void DirUpdateResult_callback(struct DirUpdateResult *res, App *app)
 
 static void DirUpdateResult_destroy(struct DirUpdateResult *res)
 {
-	dir_destroy(res->dir);
+	dir_destroy(res->update);
 	free(res);
 }
 
