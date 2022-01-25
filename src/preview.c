@@ -1,10 +1,9 @@
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <time.h>
+#include <sys/stat.h>
 
 #include "config.h"
-#include "dir.h"
 #include "log.h"
 #include "popen_arr.h"
 #include "preview.h"

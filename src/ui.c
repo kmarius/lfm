@@ -12,14 +12,8 @@
 
 #include "app.h"
 #include "async.h"
-#include "cache.h"
 #include "config.h"
-#include "cvector.h"
-#include "dir.h"
-#include "fm.h"
-#include "history.h"
 #include "log.h"
-#include "preview.h"
 #include "ui.h"
 #include "util.h"
 

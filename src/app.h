@@ -4,7 +4,6 @@
 #include <lua.h>
 
 #include "fm.h"
-#include "tpool.h"
 #include "ui.h"
 
 typedef struct {

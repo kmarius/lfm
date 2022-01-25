@@ -1,13 +1,10 @@
 #pragma once
 
-#include <linux/limits.h>
 #include <stdbool.h>
-#include <sys/types.h>
 #include <stdint.h>
 
 #include "cvector.h"
 #include "file.h"
-#include "sort.h"
 
 #define FILTER_LEN_MAX 64
 

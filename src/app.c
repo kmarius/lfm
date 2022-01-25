@@ -1,11 +1,7 @@
-#include <curses.h>
 #include <errno.h>
-#include <ev.h>
 #include <fcntl.h>
 #include <lauxlib.h>
 #include <notcurses/notcurses.h>
-#include <pthread.h>
-#include <signal.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -23,7 +19,6 @@
 #include "notify.h"
 #include "popen_arr.h"
 #include "tpool.h"
-#include "ui.h"
 #include "util.h"
 
 #define T App

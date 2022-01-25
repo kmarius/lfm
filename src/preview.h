@@ -5,7 +5,6 @@
 #include <time.h>
 
 #include "cvector.h"
-#include "dir.h"
 
 typedef struct {
 	char *path;

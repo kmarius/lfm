@@ -1,13 +1,12 @@
 #include <errno.h>
-#include <stdbool.h>
 #include <string.h>
 #include <sys/inotify.h>
 #include <unistd.h>
 
 #include "config.h"
 #include "cvector.h"
-#include "dir.h"
 #include "log.h"
+#include "notify.h"
 #include "util.h"
 
 #define NOTIFY_EVENTS (IN_MODIFY | IN_CREATE | IN_DELETE | IN_MOVED_FROM | IN_MOVED_TO | IN_ATTRIB)

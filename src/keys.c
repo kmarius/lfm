@@ -1,4 +1,3 @@
-#include <notcurses/notcurses.h>
 #include <wchar.h>
 #include <wctype.h> /* towlower, towlupper */
 

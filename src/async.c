@@ -1,12 +1,7 @@
-#include <pthread.h>
-#include <stdbool.h>
-#include <stdlib.h>
-
 #include "app.h"
 #include "async.h"
 #include "dir.h"
 #include "fm.h"
-#include "log.h"
 #include "preview.h"
 #include "tpool.h"
 #include "ui.h"

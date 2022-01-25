@@ -3,11 +3,9 @@
 #include <ncurses.h> // COLOR_ constants
 #include <notcurses/notcurses.h>
 #include <stdarg.h>
-#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <wchar.h>
 
 #include "config.h"
 #include "cvector.h"

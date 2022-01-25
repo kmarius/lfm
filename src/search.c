@@ -1,13 +1,10 @@
 #define _GNU_SOURCE
 
-#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "fm.h"
 #include "dir.h"
 #include "search.h"
-#include "ui.h"
 
 static char *search_string = NULL;
 static bool search_forward = true;

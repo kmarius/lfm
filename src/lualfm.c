@@ -2,7 +2,6 @@
 #include <errno.h>
 #include <lauxlib.h>
 #include <libgen.h>
-#include <lua.h>
 #include <luajit.h>
 #include <lualib.h>
 #include <notcurses/notcurses.h>
@@ -12,7 +11,6 @@
 #include <wchar.h>
 #include <wctype.h>
 
-#include "app.h"
 #include "async.h"
 #include "cache.h"
 #include "cmdline.h"
@@ -21,7 +19,6 @@
 #include "dir.h"
 #include "find.h"
 #include "fm.h"
-#include "keys.h"
 #include "log.h"
 #include "lualfm.h"
 #include "notify.h"

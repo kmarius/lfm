@@ -13,6 +13,7 @@
 #include "cvector.h"
 #include "dir.h"
 #include "log.h"
+#include "sort.h"
 #include "util.h"
 
 #define DIR_INITIALIZER ((T){ \

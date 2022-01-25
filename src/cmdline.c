@@ -1,8 +1,5 @@
-#include <notcurses/notcurses.h>
-#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
-#include <wchar.h>
 #include <wctype.h>
 
 #include "cmdline.h"
