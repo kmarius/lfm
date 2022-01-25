@@ -1,5 +1,6 @@
 #include "app.h"
 #include "async.h"
+#include "config.h"
 #include "dir.h"
 #include "fm.h"
 #include "preview.h"
@@ -265,7 +266,8 @@ struct DirUpdateResult {
 
 static void DirUpdateResult_callback(struct DirUpdateResult *res, App *app)
 {
-	if (fm_update_dir(&app->fm, res->dir, res->update)) {
+	dir_update_with(res->dir, res->update, app->fm.height, cfg.scrolloff);
+	if (res->dir->visible) {
 		ui_redraw(&app->ui, REDRAW_FM);
 		log_debug("redrawing after update of %s %d", res->dir->name, res->dir->length);
 	}

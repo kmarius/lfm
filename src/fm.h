@@ -244,9 +244,3 @@ bool cvector_contains(const char *path, cvector_vector_type(char*) selection);
  * Drop directory cache and reload visible directories from disk.
  */
 void fm_drop_cache(Fm *fm);
-
-/*
- * Apply an update to a directory. Returns `true` if the directory is visible
- * and a redraw is necessary.
- */
-bool fm_update_dir(Fm *fm, Dir *dir, Dir *update);

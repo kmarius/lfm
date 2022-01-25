@@ -64,10 +64,12 @@ static void fm_populate(T *t)
 		getcwd(pwd, sizeof(pwd));
 
 	t->dirs.visible[0] = fm_load_dir(t, pwd); /* current dir */
+	t->dirs.visible[0]->visible = true;
 	Dir *d = fm_current_dir(t);
 	for (uint16_t i = 1; i < t->dirs.length; i++) {
 		if ((s = dir_parent_path(d))) {
 			d = fm_load_dir(t, s);
+			d->visible = true;
 			t->dirs.visible[i] = d;
 			dir_cursor_move_to(d, t->dirs.visible[i-1]->name, t->height, cfg.scrolloff);
 		} else {
@@ -105,8 +107,10 @@ void fm_recol(T *t)
 {
 	fm_remove_preview(t);
 	for (uint16_t i = 0; i < t->dirs.length; i++) {
-		if (t->dirs.visible[i])
+		if (t->dirs.visible[i]) {
+			t->dirs.visible[i]->visible = false;
 			cache_insert(&t->dirs.cache, t->dirs.visible[i], t->dirs.visible[i]->path);
+		}
 	}
 
 	const uint16_t l = max(1, cvector_size(cfg.ratios) - (cfg.preview ? 1 : 0));
@@ -156,8 +160,10 @@ bool fm_chdir(T *t, const char *path, bool save)
 
 	fm_remove_preview(t);
 	for (uint16_t i = 0; i < t->dirs.length; i++) {
-		if (t->dirs.visible[i])
+		if (t->dirs.visible[i]) {
+			t->dirs.visible[i]->visible = false;
 			cache_insert(&t->dirs.cache, t->dirs.visible[i], t->dirs.visible[i]->path);
+		}
 	}
 	fm_populate(t);
 	fm_update_watchers(t);
@@ -239,32 +245,6 @@ static Dir *fm_load_dir(T *t, const char *path)
 	return dir;
 }
 
-bool fm_update_dir(T *t, Dir *dir, Dir *update)
-{
-	bool visible = t->dirs.preview == dir;
-	bool is_pwd = false;
-	if (!visible) {
-		for (uint16_t i = 0; i < t->dirs.length; i++) {
-			if (t->dirs.visible[i] == dir) {
-				is_pwd = i == 0;
-				visible = true;
-				break;
-			}
-		}
-	}
-
-	if (!visible && !cache_contains_ptr(&t->dirs.cache, dir)) {
-		dir_destroy(update);
-		return false;
-	}
-
-	dir_update_with(dir, update, t->height, cfg.scrolloff);
-	if (is_pwd)
-		fm_update_preview(t);
-
-	return visible;
-}
-
 void fm_check_dirs(const T *t)
 {
 	for (uint16_t i = 0; i < t->dirs.length; i++) {
@@ -281,6 +261,8 @@ void fm_check_dirs(const T *t)
 
 void fm_drop_cache(T *t)
 {
+	/* TODO: disabled, force reload everything instead? (on 2022-01-25) */
+	return;
 	notify_set_watchers(NULL, 0);
 
 	for (uint16_t i = 0; i < t->dirs.length; i++) {
@@ -302,6 +284,7 @@ static void fm_remove_preview(T *t)
 		return;
 
 	notify_remove_watcher(t->dirs.preview);
+	t->dirs.preview->visible = false;
 	cache_insert(&t->dirs.cache, t->dirs.preview, t->dirs.preview->path);
 	t->dirs.preview = NULL;
 }
@@ -327,10 +310,12 @@ void fm_update_preview(T *t)
 			}
 			if (i >= t->dirs.length) {
 				notify_remove_watcher(t->dirs.preview);
+				t->dirs.preview->visible = false;
 				cache_insert(&t->dirs.cache, t->dirs.preview, t->dirs.preview->path);
 			}
 		}
 		t->dirs.preview = fm_load_dir(t, file_path(file));
+		t->dirs.preview->visible = true;
 		// sometimes very slow on smb (> 200ms)
 		notify_add_watcher(t->dirs.preview);
 	} else {
@@ -343,6 +328,7 @@ void fm_update_preview(T *t)
 			}
 			if (i == t->dirs.length) {
 				notify_remove_watcher(t->dirs.preview);
+				t->dirs.preview->visible = false;
 				cache_insert(&t->dirs.cache, t->dirs.preview, t->dirs.preview->path);
 			}
 			t->dirs.preview = NULL;

@@ -21,8 +21,10 @@ typedef struct {
 	uint16_t length_sorted;	 /* length of the array of sorted files */
 	uint16_t length;	 /* length of the array of visible files */
 
-	time_t load_time; /* load time, used to check for changes on disk and
-						 reload if necessary */
+	bool visible;
+
+	time_t load_time; /* load time, used to check for changes on disk and reload if necessary */
+	uint8_t updates; /* number of incoming updates */
 	int16_t error;	 /* for now, true if any error occurs when loading */
 	bool loading;
 
