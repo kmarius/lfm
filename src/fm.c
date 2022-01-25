@@ -241,27 +241,28 @@ static Dir *fm_load_dir(T *t, const char *path)
 
 bool fm_update_dir(T *t, Dir *dir, Dir *update)
 {
-	if (t->dirs.preview == dir) {
-		dir_update_with(dir, update, t->height, cfg.scrolloff);
-		return true;
-	} else {
+	bool visible = t->dirs.preview == dir;
+	bool is_pwd = false;
+	if (!visible) {
 		for (uint16_t i = 0; i < t->dirs.length; i++) {
 			if (t->dirs.visible[i] == dir) {
-				dir_update_with(dir, update, t->height, cfg.scrolloff);
-				if (i == 0) {
-					fm_update_preview(t);
-				}
-				return true;
+				is_pwd = i == 0;
+				visible = true;
+				break;
 			}
 		}
 	}
 
-	if (cache_contains_ptr(&t->dirs.cache, dir))
-		dir_update_with(dir, update, t->height, cfg.scrolloff);
-	else
+	if (!visible && !cache_contains_ptr(&t->dirs.cache, dir)) {
 		dir_destroy(update);
+		return false;
+	}
 
-	return false;
+	dir_update_with(dir, update, t->height, cfg.scrolloff);
+	if (is_pwd)
+		fm_update_preview(t);
+
+	return visible;
 }
 
 void fm_check_dirs(const T *t)

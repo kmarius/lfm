@@ -7,6 +7,8 @@
 #include "ui.h"
 #include "util.h"
 
+#include "log.h"
+
 #define DIRCOUNT_THRESHOLD 200 /* in ms */
 
 tpool_t *async_tm;
@@ -263,8 +265,10 @@ struct DirUpdateResult {
 
 static void DirUpdateResult_callback(struct DirUpdateResult *res, App *app)
 {
-	if (fm_update_dir(&app->fm, res->dir, res->update))
+	if (fm_update_dir(&app->fm, res->dir, res->update)) {
 		app->ui.redraw |= REDRAW_FM;
+		log_debug("redrawing after update of %s %d", res->dir->name, res->dir->length);
+	}
 	free(res);
 }
 
