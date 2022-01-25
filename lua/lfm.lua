@@ -1,5 +1,7 @@
 ---@meta
-local lfm = {}
+
+---@class lfmlib
+lfm = {}
 
 ---Execute a command and redirect output/error to the UI.
 ---Supported options:
@@ -29,11 +31,11 @@ function lfm.search(string) end
 function lfm.search_back(string) end
 
 ---Go to the next search result.
----@param inclusive? bool default: `false`
+---@param inclusive? boolean default: `false`
 function lfm.search_next(inclusive) end
 
 ---Go to the previous search result.
----@param inclusive? bool default: `false`
+---@param inclusive? boolean default: `false`
 function lfm.search_prev(inclusive) end
 
 ---Disable highlights.

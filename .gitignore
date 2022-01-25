@@ -2,8 +2,6 @@ lfm
 test
 build
 bin
-config.lua
-lua
 .ccls-cache
 src/.ccls-cache
 src/.ccls
