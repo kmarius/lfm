@@ -268,6 +268,7 @@ static void DirUpdateResult_callback(struct DirUpdateResult *res, App *app)
 {
 	dir_update_with(res->dir, res->update, app->fm.height, cfg.scrolloff);
 	if (res->dir->visible) {
+		fm_update_preview(&app->fm);
 		ui_redraw(&app->ui, REDRAW_FM);
 		log_debug("redrawing after update of %s %d", res->dir->name, res->dir->length);
 	}

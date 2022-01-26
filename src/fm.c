@@ -26,7 +26,6 @@
 #define is_relative(path) !is_absolute(path)
 
 static Dir *fm_load_dir(T *t, const char *path);
-static void fm_update_preview(T *t);
 static void fm_update_watchers(T *t);
 static void fm_remove_preview(T *t);
 static void fm_mark_save(T *t, char mark, const char *path);

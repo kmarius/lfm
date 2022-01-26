@@ -244,3 +244,5 @@ bool cvector_contains(const char *path, cvector_vector_type(char*) selection);
  * Drop directory cache and reload visible directories from disk.
  */
 void fm_drop_cache(Fm *fm);
+
+void fm_update_preview(Fm *fm);
