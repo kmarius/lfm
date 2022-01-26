@@ -467,7 +467,6 @@ void app_deinit(T *t)
 	tpool_wait(async_tm);
 	tpool_destroy(async_tm);
 	resultqueue_deinit(&async_results);
-	pthread_mutex_destroy(&async_results.mutex);
 	if (fifo_fd > 0)
 		close(fifo_fd);
 	remove(cfg.fifopath);
