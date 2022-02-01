@@ -8,3 +8,4 @@ src/.ccls
 tags
 tags.lock
 tags.temp
+compile_commands.json
