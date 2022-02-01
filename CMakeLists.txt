@@ -6,7 +6,7 @@ set(CMAKE_C_STANDARD 11)
 
 set(CMAKE_C_COMPILER /usr/bin/clang)
 
-set(CMAKE_C_FLAGS "-std=gnu11 -Wall -Wextra -g -pthread")
+set(CMAKE_C_FLAGS "-std=gnu11 -Wall -Wextra -g -pthread -Wvla")
 set(CMAKE_C_FLAGS_DEBUG "-DDEBUG -O2")
 set(CMAKE_C_FLAGS_RELEASE "-DNDEBUG -O2 -flto")
 

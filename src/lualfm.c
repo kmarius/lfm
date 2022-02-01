@@ -51,10 +51,11 @@ static struct {
 static int l_handle_key(lua_State *L)
 {
 	const char *keys = luaL_checkstring(L, 1);
-	input_t buf[strlen(keys) + 1];
+	input_t *buf = malloc((strlen(keys) + 1) * sizeof(input_t));
 	key_names_to_input(keys, buf);
 	for (input_t *u = buf; *u; u++)
 		lua_handle_key(L, *u);
+	free(buf);
 	return 0;
 }
 
@@ -143,7 +144,7 @@ static int l_execute(lua_State *L)
 	if (n == 0)
 		luaL_error(L, "no command given");
 
-	char **args = malloc(sizeof(char*)*(n+1));
+	char **args = malloc((n + 1) * sizeof(char*));
 	for (uint16_t i = 1; i <= n; i++) {
 		lua_rawgeti(L, 1, i);
 		args[i-1] = strdup(lua_tostring(L, -1));
@@ -219,7 +220,7 @@ static int l_map_key(lua_State *L)
 	if (!(lua_type(L, 2) == LUA_TFUNCTION))
 		luaL_argerror(L, 2, "expected function");
 
-	input_t buf[strlen(keys)+1];
+	input_t *buf = malloc((strlen(keys) + 1) * sizeof(input_t));
 	Trie *k = trie_insert(maps.normal, key_names_to_input(keys, buf), keys, desc);
 	lua_pushlightuserdata(L, (void *)k);
 	lua_pushvalue(L, 2);
@@ -241,11 +242,12 @@ static int l_cmap_key(lua_State *L)
 	if (!(lua_type(L, 2) == LUA_TFUNCTION))
 		luaL_argerror(L, 2, "expected function");
 
-	input_t buf[strlen(keys)+1];
+	input_t *buf = malloc((strlen(keys)+1) * sizeof(input_t));
 	Trie *k = trie_insert(maps.cmd, key_names_to_input(keys, buf), keys, desc);
 	lua_pushlightuserdata(L, (void *)k);
 	lua_pushvalue(L, 2);
 	lua_settable(L, LUA_REGISTRYINDEX);
+	free(buf);
 	return 0;
 }
 
@@ -1174,7 +1176,7 @@ static const struct luaL_Reg fm_lib[] = {
 static int l_fn_tokenize(lua_State *L)
 {
 	const char *string = luaL_optstring(L, 1, "");
-	char buf[strlen(string) + 1];
+	char *buf = malloc((strlen(string) + 1) * sizeof(char));
 	uint16_t pos1 = 0, pos2 = 0;
 	const char *tok;
 	if ((tok = tokenize(string, buf, &pos1, &pos2)))
@@ -1185,6 +1187,7 @@ static int l_fn_tokenize(lua_State *L)
 		lua_pushstring(L, tok);
 		lua_rawseti(L, -2, i++);
 	}
+	free(buf);
 	return 2;
 }
 
@@ -1211,7 +1214,7 @@ static int l_fn_split_last(lua_State *L)
 static int l_fn_unquote_space(lua_State *L)
 {
 	const char *string = luaL_checkstring(L, 1);
-	char buf[strlen(string) + 1];
+	char *buf = malloc((strlen(string) + 1) * sizeof(char));
 	char *t = buf;
 	for (const char *s = string; *s != 0; s++) {
 		if (*s != '\\' || *(s+1) != ' ') {
@@ -1219,13 +1222,14 @@ static int l_fn_unquote_space(lua_State *L)
 		}
 	}
 	lua_pushlstring(L, buf, t-buf);
+	free(buf);
 	return 1;
 }
 
 static int l_fn_quote_space(lua_State *L)
 {
 	const char *string = luaL_checkstring(L, 1);
-	char buf[strlen(string) * 2 + 1];
+	char *buf = malloc((strlen(string) * 2 + 1) * sizeof(char));
 	char *t = buf;
 	for (const char *s = string; *s; s++) {
 		if (*s == ' ') {
@@ -1234,6 +1238,7 @@ static int l_fn_quote_space(lua_State *L)
 		*t++ = *s;
 	}
 	lua_pushlstring(L, buf, t-buf);
+	free(buf);
 	return 1;
 }
 

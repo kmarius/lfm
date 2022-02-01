@@ -64,11 +64,12 @@ static void async_result_cb(EV_P_ ev_async *w, int revents)
 		result_callback(res, app);
 	pthread_mutex_unlock(&async_results.mutex);
 
-	ev_idle_start(app->loop, &redraw_watcher);
+	ev_idle_start(loop, &redraw_watcher);
 }
 
 static void timer_cb(EV_P_ ev_timer *w, int revents)
 {
+	(void) loop;
 	(void) revents;
 	(void) w;
 	static uint16_t tick_ct = 0;
@@ -93,7 +94,7 @@ static void stdin_cb(EV_P_ ev_io *w, int revents)
 
 	/* log_debug("id: %d, shift: %d, ctrl: %d alt %d", in.id, in.shift, in.ctrl, in.alt); */
 	lua_handle_key(app->L, ncinput_to_input(&in));
-	ev_idle_start(app->loop, &redraw_watcher);
+	ev_idle_start(loop, &redraw_watcher);
 }
 
 static void command_stdout_cb(EV_P_ ev_io *w, int revents)
@@ -120,7 +121,7 @@ static void command_stdout_cb(EV_P_ ev_io *w, int revents)
 		clearerr(w->data);
 
 	if (errno == ECHILD || feof(w->data)) {
-		ev_io_stop(app->loop, w);
+		ev_io_stop(loop, w);
 		cvector_swap_remove(io_watchers, w);
 		fclose(w->data);
 		free(w);
@@ -154,6 +155,7 @@ static cvector_vector_type(struct tup_t {
  * empty (on 2021-11-18) */
 static void inotify_cb(EV_P_ ev_io *w, int revents)
 {
+	(void) loop;
 	(void) revents;
 	App *app = w->data;
 	int nread;
@@ -242,7 +244,7 @@ static void sigwinch_cb(EV_P_ ev_signal *w, int revents)
 	App *app = w->data;
 	ui_clear(&app->ui);
 	lua_run_hook(app->L, "Resized");
-	ev_idle_start(app->loop, &redraw_watcher);
+	ev_idle_start(loop, &redraw_watcher);
 }
 
 static void child_cb(EV_P_ ev_child *w, int revents)

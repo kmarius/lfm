@@ -229,7 +229,7 @@ static inline struct DirCountResult *DirCountResult_create(Dir *dir, struct dirc
 }
 
 // Not a worker function because we just call it from async_dir_load_worker
-static void async_load_dircounts(Dir *dir, uint16_t n, File *files[n])
+static void async_load_dircounts(Dir *dir, uint16_t n, File *files[])
 {
 	cvector_vector_type(struct dircount) counts = NULL;
 

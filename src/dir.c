@@ -86,8 +86,8 @@ static inline void swap(File **a, File **b)
  * number generator. */
 static void shuffle(void *arr, size_t n, size_t size)
 {
-	char tmp[size];
 	size_t stride = size * sizeof(char);
+	char *tmp = malloc(n * size);
 
 	if (n > 1) {
 		size_t i;
@@ -100,6 +100,8 @@ static void shuffle(void *arr, size_t n, size_t size)
 			memcpy(arr + i * stride, tmp, size);
 		}
 	}
+
+	free(tmp);
 }
 
 /* sort allfiles and copy non-hidden ones to sortedfiles */
