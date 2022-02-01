@@ -5,7 +5,7 @@
 #include <string.h>
 
 #ifndef streq
-#define streq(X, Y) (strcmp(X, Y) == 0)
+#define streq(X, Y) (*(char *)(X) == *(char *)(Y) && strcmp(X, Y) == 0)
 #endif
 
 #ifndef strcaseeq
