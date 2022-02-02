@@ -56,6 +56,8 @@ static int popen2_impl(FILE** in, FILE** out, FILE** err, const char* program,
 			close(child_stdin);
 			return -1;
 		}
+	} else {
+
 	}
 	if (out != NULL) {
 		int p[2] = {-1, -1};
@@ -100,6 +102,8 @@ static int popen2_impl(FILE** in, FILE** out, FILE** err, const char* program,
 			close(to_be_written);
 			dup2(child_stdin, 0);
 			close(child_stdin);
+		} else {
+			close(0);
 		}
 		if (child_stdout != -1) {
 			close(to_be_read);
