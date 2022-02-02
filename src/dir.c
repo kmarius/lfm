@@ -315,6 +315,7 @@ void dir_update_with(T *t, Dir *update, uint16_t height, uint16_t scrolloff)
 	t->load_time = update->load_time;
 	t->loading = update->loading;
 	t->error = update->error;
+	t->updates = true;
 
 	free(update->sel);
 	free(update->path);

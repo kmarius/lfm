@@ -197,11 +197,16 @@ struct DirCountResult {
 static void DirCountResult_callback(struct DirCountResult *res, App *app)
 {
 	/* TODO: we need to make sure that the original files/dir don't get freed (on 2022-01-15) */
-	for (size_t i = 0; i < cvector_size(res->dircounts); i++)
-		file_dircount_set(res->dircounts[i].file, res->dircounts[i].count);
-	ui_redraw(&app->ui, REDRAW_FM);
-	if (res->last)
-		res->dir->dircounts = true;
+	/* for now, just discard the dircount updates if any other update has been
+	 * applied in the meantime. This does not protect against the dir getting purged from
+	 * the cache.*/
+	if (!res->dir->updates)  {
+		for (size_t i = 0; i < cvector_size(res->dircounts); i++)
+			file_dircount_set(res->dircounts[i].file, res->dircounts[i].count);
+		ui_redraw(&app->ui, REDRAW_FM);
+		if (res->last)
+			res->dir->dircounts = true;
+	}
 	cvector_free(res->dircounts);
 	free(res);
 }
