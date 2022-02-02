@@ -24,7 +24,7 @@ typedef struct {
 	bool visible;
 
 	time_t load_time; /* load time, used to check for changes on disk and reload if necessary */
-	bool updates; /* number of applied updates */
+	uint16_t updates; /* number of applied updates */
 	int16_t error;	 /* for now, true if any error occurs when loading */
 	bool loading;
 

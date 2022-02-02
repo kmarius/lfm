@@ -246,7 +246,7 @@
 #define cvector_swap_remove(vec, e) \
 	do { \
 		for (size_t i = 0; i < cvector_size((vec)); i++) { \
-			if ((vec)[i] == w) { \
+			if ((vec)[i] == e) { \
 				cvector_swap_erase((vec), i); \
 				break; \
 			} \

@@ -313,9 +313,10 @@ void dir_update_with(T *t, Dir *update, uint16_t height, uint16_t scrolloff)
 	t->files = update->files;
 	t->length_all = update->length_all;
 	t->load_time = update->load_time;
-	t->loading = update->loading;
 	t->error = update->error;
-	t->updates = true;
+
+	t->loading = false;
+	t->updates++;
 
 	free(update->sel);
 	free(update->path);

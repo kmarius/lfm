@@ -107,6 +107,11 @@ static inline int16_t file_dircount(const File *file)
 uint16_t file_dircount_load(File *file);
 
 /*
+ * Loads the number of files in a directory and saves it to `file`.
+ */
+uint16_t path_dircount_load(const char *path);
+
+/*
  * Set `file->dircount` to `count`.
  */
 static inline void file_dircount_set(File *file, uint16_t ct)

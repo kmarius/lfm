@@ -194,18 +194,25 @@ struct DirCountResult {
 	bool last;
 };
 
+struct file_path {
+	File *file;
+	char *path;
+};
+
 static void DirCountResult_callback(struct DirCountResult *res, App *app)
 {
 	/* TODO: we need to make sure that the original files/dir don't get freed (on 2022-01-15) */
 	/* for now, just discard the dircount updates if any other update has been
 	 * applied in the meantime. This does not protect against the dir getting purged from
 	 * the cache.*/
-	if (!res->dir->updates)  {
+	if (res->dir->updates <= 1)  {
 		for (size_t i = 0; i < cvector_size(res->dircounts); i++)
 			file_dircount_set(res->dircounts[i].file, res->dircounts[i].count);
 		ui_redraw(&app->ui, REDRAW_FM);
 		if (res->last)
 			res->dir->dircounts = true;
+	} else {
+		log_debug("updates was %d, %s", res->dir->updates, res->dir->path);
 	}
 	cvector_free(res->dircounts);
 	free(res);
@@ -234,7 +241,7 @@ static inline struct DirCountResult *DirCountResult_create(Dir *dir, struct dirc
 }
 
 // Not a worker function because we just call it from async_dir_load_worker
-static void async_load_dircounts(Dir *dir, uint16_t n, File *files[])
+static void async_load_dircounts(Dir *dir, uint16_t n, struct file_path *files)
 {
 	cvector_vector_type(struct dircount) counts = NULL;
 
@@ -242,7 +249,7 @@ static void async_load_dircounts(Dir *dir, uint16_t n, File *files[])
 
 	/* TODO: we need to make sure that the original files/dir don't get freed (on 2022-01-15) */
 	for (uint16_t i = 0; i < n; i++) {
-		cvector_push_back(counts, ((struct dircount) {files[i], file_dircount_load(files[i])}));
+		cvector_push_back(counts, ((struct dircount) {files[i].file, path_dircount_load(files[i].path)}));
 
 		if (current_millis() - latest > DIRCOUNT_THRESHOLD) {
 			struct DirCountResult *res = DirCountResult_create(dir, counts, false);
@@ -275,7 +282,6 @@ static void DirUpdateResult_callback(struct DirUpdateResult *res, App *app)
 	if (res->dir->visible) {
 		fm_update_preview(&app->fm);
 		ui_redraw(&app->ui, REDRAW_FM);
-		log_debug("redrawing after update of %s %d", res->dir->name, res->dir->length);
 	}
 	free(res);
 }
@@ -318,10 +324,13 @@ static void async_dir_load_worker(void *arg)
 	struct DirUpdateResult *res = DirUpdateResult_create(work->dir, dir_load(work->path, work->dircounts));
 
 	const uint16_t nfiles = res->update->length_all;
-	File **files = NULL;
+	struct file_path *files = NULL;
 	if (!work->dircounts && nfiles > 0) {
-		files = malloc(sizeof(File *) * nfiles);
-		memcpy(files, res->update->files_all, sizeof(File *) * nfiles);
+		files = malloc(nfiles * sizeof(struct file_path));
+		for (uint16_t i = 0; i < nfiles; i++) {
+			files[i].file = res->update->files_all[i];
+			files[i].path = strdup(res->update->files_all[i]->path);
+		}
 	}
 
 	enqueue_and_signal((struct Result *) res);

@@ -23,7 +23,7 @@
 
 #define T App
 
-static void add_io_watcher(T *t, FILE* f);
+static ev_io *add_io_watcher(T *t, FILE* f);
 static void app_read_fifo(T *t);
 
 #define TICK 1  /* seconds */
@@ -116,16 +116,11 @@ static void command_stdout_cb(EV_P_ ev_io *w, int revents)
 	}
 	free(line);
 
-	/* this seems to prevent the callback being immediately called again */
+	/* this seems to prevent the callback being immediately called again by libev */
 	if (errno == EAGAIN)
 		clearerr(w->data);
 
-	if (errno == ECHILD || feof(w->data)) {
-		ev_io_stop(loop, w);
-		cvector_swap_remove(io_watchers, w);
-		fclose(w->data);
-		free(w);
-	}
+	ev_idle_start(loop, &redraw_watcher);
 }
 
 static void app_read_fifo(T *t)
@@ -247,13 +242,37 @@ static void sigwinch_cb(EV_P_ ev_signal *w, int revents)
 	ev_idle_start(loop, &redraw_watcher);
 }
 
+struct child_watcher_data {
+	App *app;
+	int cb_index;
+	ev_io *stdout_watcher;
+	ev_io *stderr_watcher;
+};
+
 static void child_cb(EV_P_ ev_child *w, int revents)
 {
 	(void) revents;
+	struct child_watcher_data *data = w->data;
+
 	ev_child_stop(EV_A_ w);
+
 	cvector_swap_remove(child_watchers, w);
-	lua_run_callback(_app->L, *(int *) w->data, w->rstatus);
-	free(w->data);
+	if (data->cb_index > 0)
+		lua_run_callback(data->app->L, data->cb_index, w->rstatus);
+
+	if (data->stdout_watcher) {
+		ev_io_stop(loop, data->stdout_watcher);
+		cvector_swap_remove(io_watchers, data->stdout_watcher);
+		free(data->stdout_watcher);
+	}
+
+	if (data->stderr_watcher) {
+		ev_io_stop(loop, data->stderr_watcher);
+		cvector_swap_remove(io_watchers, data->stderr_watcher);
+		free(data->stderr_watcher);
+	}
+
+	free(data);
 	free(w);
 }
 
@@ -356,10 +375,10 @@ void app_quit(T *t)
 	ev_break(t->loop, EVBREAK_ALL);
 }
 
-static void add_io_watcher(T *t, FILE* f)
+static ev_io *add_io_watcher(T *t, FILE* f)
 {
 	if (!f)
-		return;
+		return NULL;
 
 	ev_io *w = malloc(sizeof(ev_io));
 	int flags = fcntl(fileno(f), F_GETFL, 0);
@@ -368,14 +387,22 @@ static void add_io_watcher(T *t, FILE* f)
 	w->data = f;
 	ev_io_start(t->loop, w);
 	cvector_push_back(io_watchers, w);
+
+	return w;
 }
 
-static void add_child_watcher(T *t, int pid, int cb_index)
+static void add_child_watcher(T *t, int pid, int cb_index, ev_io *stdout_watcher, ev_io *stderr_watcher)
 {
 	ev_child *w = malloc(sizeof(ev_child));
 	ev_child_init(w, child_cb, pid, 0);
-	w->data = malloc(sizeof(int));
-	*(int *) w->data = cb_index;
+
+	struct child_watcher_data *data = malloc(sizeof(struct child_watcher_data));
+	data->cb_index = cb_index > 0 ? cb_index : 0;
+	data->app = t;
+	data->stderr_watcher = stderr_watcher;
+	data->stdout_watcher = stdout_watcher;
+	w->data = data;
+
 	ev_child_start(t->loop, w);
 	cvector_push_back(child_watchers, w);
 }
@@ -386,20 +413,21 @@ bool app_execute(T *t, const char *prog, char *const *args, bool forking, bool o
 	int pid, status, rc;
 	log_debug("execute: %s %d %d", prog, out, err);
 	if (forking) {
+		ev_io *stderr_watcher = NULL;
+		ev_io *stdout_watcher = NULL;
 		pid = popen2_arr_p(NULL, &fout, &ferr, prog, args, NULL);
 
 		if (err)
-			add_io_watcher(t, ferr);
+			stderr_watcher = add_io_watcher(t, ferr);
 		else
 			fclose(ferr);
 
 		if (out)
-			add_io_watcher(t, fout);
+			stdout_watcher = add_io_watcher(t, fout);
 		else
 			fclose(fout);
 
-		if (key > 0)
-			add_child_watcher(t, pid, key);
+		add_child_watcher(t, pid, key, stdout_watcher, stderr_watcher);
 
 		return pid != -1;
 	} else {

@@ -78,11 +78,10 @@ void file_destroy(T *t)
 	free(t);
 }
 
-uint16_t file_dircount_load(T *t)
-{
+uint16_t path_dircount_load(const char *path) {
 	struct dirent *dp;
 
-	DIR *dirp = opendir(t->path);
+	DIR *dirp = opendir(path);
 	if (!dirp)
 		return 0;
 
@@ -90,6 +89,11 @@ uint16_t file_dircount_load(T *t)
 	for (ct = 0; (dp = readdir(dirp)); ct++) ;
 	closedir(dirp);
 	return ct - 2;
+}
+
+uint16_t file_dircount_load(T *t)
+{
+	return path_dircount_load(t->path);
 }
 
 static char filetypeletter(int mode)
