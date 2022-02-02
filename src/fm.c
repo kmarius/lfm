@@ -277,6 +277,13 @@ void fm_drop_cache(T *t)
 	fm_update_watchers(t);
 }
 
+void fm_reload(T *t) {
+	for (uint16_t i = 0; i < t->dirs.length; i++) {
+		if (t->dirs.visible[i])
+			async_dir_load(t->dirs.visible[i], true);
+	}
+}
+
 static void fm_remove_preview(T *t)
 {
 	if (!t->dirs.preview)

@@ -825,11 +825,19 @@ static int l_fm_get_height(lua_State *L)
 	lua_pushnumber(L, fm->height);
 	return 1;
 }
+
 static int l_fm_drop_cache(lua_State *L)
 {
 	(void) L;
 	fm_drop_cache(fm);
 	ui_drop_cache(ui);
+	return 0;
+}
+
+static int l_fm_reload(lua_State *L)
+{
+	(void) L;
+	fm_reload(fm);
 	return 0;
 }
 
@@ -1165,6 +1173,7 @@ static const struct luaL_Reg fm_lib[] = {
 	{"copy", l_fm_copy},
 	{"check", l_fm_check},
 	{"drop_cache", l_fm_drop_cache},
+	{"reload", l_fm_reload},
 	{"sel", l_fm_sel},
 	{"get_height", l_fm_get_height},
 	{NULL, NULL}};

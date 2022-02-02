@@ -180,7 +180,10 @@ function lfm.fm.copy() end
 function lfm.fm.check() end
 
 ---Drop directory cache and reload visible directories from disk.
-function lfm.fm.drop_cache() end
+-- function lfm.fm.drop_cache() end
+
+---Reload visible directories from disk.
+function lfm.fm.reload() end
 
 ---Move the cursor to a file in the current directory.
 ---@param name string

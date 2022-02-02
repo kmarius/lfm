@@ -245,4 +245,6 @@ bool cvector_contains(const char *path, cvector_vector_type(char*) selection);
  */
 void fm_drop_cache(Fm *fm);
 
+void fm_reload(Fm *fm);
+
 void fm_update_preview(Fm *fm);
