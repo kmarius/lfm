@@ -27,4 +27,4 @@ void notify_set_watchers(Dir **dirs, uint16_t n);
 
 struct watcher_data *notify_get_watcher_data(int wd);
 
-void notify_close();
+void notify_deinit();

@@ -95,7 +95,7 @@ struct watcher_data *notify_get_watcher_data(int wd)
 	return NULL;
 }
 
-void notify_close()
+void notify_deinit()
 {
 	cvector_ffree(watchers, unwatch);
 	close(inotify_fd);

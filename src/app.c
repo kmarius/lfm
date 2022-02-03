@@ -485,7 +485,7 @@ void app_deinit(T *t)
 		free(child_watchers[i]->data);
 		free(child_watchers[i]);
 	}
-	notify_close();
+	notify_deinit();
 	lua_deinit(t->L);
 	ui_deinit(&t->ui);
 	fm_deinit(&t->fm);
