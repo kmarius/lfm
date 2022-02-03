@@ -46,7 +46,7 @@ void result_callback(struct Result *res, App *app);
 void async_dir_check(Dir *dir);
 
 /*
- * Reloads `dir` from disk after `delay` milliseconds.
+ * Reloads `dir` from disk after `delay` milliseconds. Negative delays are ignored.
  */
 void async_dir_load_delayed(Dir *dir, bool dircounts, uint16_t delay /* millis */);
 

@@ -13,17 +13,12 @@
 
 int inotify_fd = -1;
 
-typedef struct {
-	Dir *dir;
-	int wd;
-} dir_wd_pair;
-
 #define unwatch(t) \
 	do { \
 		inotify_rm_watch(inotify_fd, (t).wd); \
 	} while (0)
 
-static cvector_vector_type(dir_wd_pair) watchers = NULL;
+static cvector_vector_type(struct watcher_data) watchers = NULL;
 
 bool notify_init()
 {
@@ -59,7 +54,7 @@ void notify_add_watcher(Dir *dir)
 	if (t1 - t0 > 10)
 		log_warn("inotify_add_watch(fd, \"%s\", ...) took %ums", dir->path, t1 - t0);
 
-	cvector_push_back(watchers, ((dir_wd_pair) {dir, wd}));
+	cvector_push_back(watchers, ((struct watcher_data) {wd, dir, 0}));
 }
 
 void notify_remove_watcher(Dir *dir)
@@ -88,14 +83,14 @@ void notify_set_watchers(Dir **dirs, uint16_t n)
 	}
 }
 
-Dir *notify_get_dir(int wd)
+struct watcher_data *notify_get_watcher_data(int wd)
 {
 	if (inotify_fd == -1)
 		return NULL;
 
 	for (size_t i = 0; i < cvector_size(watchers); i++) {
 		if (watchers[i].wd == wd)
-			return watchers[i].dir;
+			return &watchers[i];
 	}
 	return NULL;
 }

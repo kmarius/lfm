@@ -139,14 +139,7 @@ static void app_read_fifo(T *t)
 	ev_idle_start(t->loop, &redraw_watcher);
 }
 
-/* seems like inotify increments watch discriptors, we might have to clean this
- * at some point */
-static cvector_vector_type(struct tup_t {
-		uint64_t next;
-		int wd;
-		}) times = NULL;
-
-/* TODO: we currently don't notice if the current directory is delete while
+/* TODO: we currently don't notice if the current directory is deleted while
  * empty (on 2021-11-18) */
 static void inotify_cb(EV_P_ ev_io *w, int revents)
 {
@@ -172,43 +165,26 @@ static void inotify_cb(EV_P_ ev_io *w, int revents)
 				continue;
 			}
 
-			const size_t l = cvector_size(times);
-			size_t i;
-			for (i = 0; i < l; i++) {
-				if (times[i].wd == event->wd)
-					break;
-			}
+			struct watcher_data *data = notify_get_watcher_data(event->wd);
+			if (!data)
+				continue;
+
 			const uint64_t now = current_millis();
-			if (i >= l) {
-				Dir *dir = notify_get_dir(event->wd);
-				if (dir) {
-					async_dir_load(dir, true);
-					cvector_push_back(times, ((struct tup_t) {now, event->wd}));
-				}
-			} else {
-				uint64_t next = now;
-				const uint64_t latest = times[i].next;
 
-				if (latest >= now + NOTIFY_TIMEOUT)
-					continue; /* discard */
+			const uint64_t latest = data->next;
 
-				if (now > latest) {
-					if (latest + NOTIFY_TIMEOUT > now)
-						next = latest + NOTIFY_TIMEOUT;
-				} else {
-					next = latest + NOTIFY_TIMEOUT;
-				}
+			if (latest >= now + NOTIFY_TIMEOUT)
+				continue; /* discard */
 
-				/* add a small delay to address an issue where
-				 * three reloads are
-				 * scheduled when events come in in quick
-				 * succession */
-				Dir *dir = notify_get_dir(event->wd);
-				if (dir) {
-					async_dir_load_delayed(dir, true, next - now + NOTIFY_DELAY);
-					times[i].next = next + NOTIFY_DELAY;
-				}
-			}
+			/*
+			 * add a small delay to address an issue where three reloads are
+			 * scheduled when events come in in quick succession
+			 */
+			const uint64_t next = now < latest + NOTIFY_TIMEOUT
+				? latest + NOTIFY_TIMEOUT + NOTIFY_DELAY
+				: now + NOTIFY_DELAY;
+			async_dir_load_delayed(data->dir, true, next - now);
+			data->next = next;
 		}
 	}
 }
@@ -487,7 +463,6 @@ void app_deinit(T *t)
 	if (!t)
 		return;
 
-	cvector_free(times);
 	cvector_ffree(io_watchers, free);
 	cvector_ffree(child_watchers, free);
 	notify_close();
