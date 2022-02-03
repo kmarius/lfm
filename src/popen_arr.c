@@ -1,4 +1,4 @@
-//   Copyright John Schember <john@nachtimwald.com>
+// Implemented by Vitaly _Vi Shukela in 2013, License=MIT
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy of
 // this software and associated documentation files (the "Software"), to deal in
@@ -18,13 +18,12 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-// Implemented by Vitaly _Vi Shukela in 2013, License=MIT
-
-/* Changes: */
-/* capture stderr */
+/* minor changes:
+ *  - capture stderr
+ *  - close stdin
+ */
 
 #define _GNU_SOURCE // execvpe
-#include <stdio.h>
 #include <unistd.h>
 #include <errno.h>
 #include <signal.h>

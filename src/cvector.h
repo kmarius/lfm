@@ -24,6 +24,7 @@
  * Changes: always use logarithmic grow
  *          startsize is 4
  *          add macro cvector_ffree to pass a function/macro to free elements
+ *          ...
  */
 
 #pragma once
