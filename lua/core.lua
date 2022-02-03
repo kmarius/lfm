@@ -222,6 +222,9 @@ cmap("<s-tab>", compl.prev, {desc=""})
 cmap("<c-w>", cmd.delete_word, {desc=""})
 cmap("<c-backspace>", cmd.delete_word, {desc=""})
 cmap("<c-u>", cmd.delete_line_left, {desc=""})
+
+-- These two only make sense in find: mode. Maybe think about actually providing
+-- a way to set keybinds for modes.
 cmap("<c-n>", lfm.find_next, {desc=""})
 cmap("<c-p>", lfm.find_prev, {desc=""})
 
