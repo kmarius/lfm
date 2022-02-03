@@ -222,6 +222,8 @@ cmap("<s-tab>", compl.prev, {desc=""})
 cmap("<c-w>", cmd.delete_word, {desc=""})
 cmap("<c-backspace>", cmd.delete_word, {desc=""})
 cmap("<c-u>", cmd.delete_line_left, {desc=""})
+cmap("<c-n>", lfm.find_next, {desc=""})
+cmap("<c-p>", lfm.find_prev, {desc=""})
 
 local map = lfm.map
 map("f", function() cmd.setprefix("find: ") end, {desc="find"})
@@ -308,8 +310,8 @@ local mode_search_back = {
 
 local mode_find = {
 	prefix = "find: ",
-	enter = function() lfm.eval("open") end,
-	esc = nop,
+	enter = function() lfm.find_clear() lfm.eval("open") end,
+	esc = function() lfm.find_clear() end,
 	change = function()
 		if lfm.find(cmd.getline()) then
 			cmd.clear()

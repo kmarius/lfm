@@ -106,6 +106,27 @@ static int l_find(lua_State *L)
 	return 1;
 }
 
+static int l_find_clear(lua_State *L)
+{
+	(void) L;
+	find_clear(fm, ui);
+	return 0;
+}
+
+static int l_find_next(lua_State *L)
+{
+	(void) L;
+	find_next(fm, ui);
+	return 0;
+}
+
+static int l_find_prev(lua_State *L)
+{
+	(void) L;
+	find_prev(fm, ui);
+	return 0;
+}
+
 static int l_crash(lua_State *L)
 {
 	free(L);
@@ -258,6 +279,9 @@ static const struct luaL_Reg lfm_lib[] = {
 	{"handle_key", l_handle_key},
 	{"timeout", l_timeout},
 	{"find", l_find},
+	{"find_clear", l_find_clear},
+	{"find_next", l_find_next},
+	{"find_prev", l_find_prev},
 	{"nohighlight", l_nohighlight},
 	{"search", l_search},
 	{"search_back", l_search_backwards},

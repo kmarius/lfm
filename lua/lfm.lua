@@ -22,6 +22,15 @@ function lfm.timeout(duration) end
 ---@return boolean
 function lfm.find(prefix) end
 
+---Jumps to the next `lfm.find` match.
+function lfm.find_next() end
+
+---Jumps to the previous `lfm.find` match.
+function lfm.find_prev() end
+
+---Clear `lfm.find` matches.
+function lfm.find_clear() end
+
 ---Search files in the current directory.
 ---@param string? string Omitting will remove highlighting.
 function lfm.search(string) end
