@@ -2,6 +2,7 @@ lfm
 test
 build
 bin
+.idea
 .ccls-cache
 src/.ccls-cache
 src/.ccls
