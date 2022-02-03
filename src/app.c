@@ -35,7 +35,7 @@ static void app_read_fifo(T *t);
 #define EVENT_SIZE (sizeof(struct inotify_event))
 #define EVENT_BUFLEN (EVENT_MAX * (EVENT_SIZE + EVENT_MAX_LEN))
 
-static App *_app; /* only needed for print/error and some callbacks :/ */
+static App *_app; /* only needed for print/error */
 static const size_t max_threads = 20;
 static int fifo_fd = -1;
 static int fifo_wd = -1;
@@ -49,7 +49,6 @@ static ev_prepare prepare_watcher;
 static ev_signal signal_watcher;
 static ev_timer timer_watcher;
 
-static cvector_vector_type(ev_io *) io_watchers = NULL; /* to capture stdout and stderr of processes */
 static cvector_vector_type(ev_child *) child_watchers = NULL; /* to run callbacks when processes finish */
 
 /* callbacks {{{ */
@@ -97,20 +96,26 @@ static void stdin_cb(EV_P_ ev_io *w, int revents)
 	ev_idle_start(loop, &redraw_watcher);
 }
 
+struct stdout_watcher_data {
+	App *app;
+	FILE *stream;
+};
+
 static void command_stdout_cb(EV_P_ ev_io *w, int revents)
 {
 	(void) revents;
-	App *app = _app;
+	struct stdout_watcher_data *data = w->data;
+
 	char *line = NULL;
 	int read;
 	size_t n;
 
-	while ((read = getline(&line, &n, w->data)) != -1) {
+	while ((read = getline(&line, &n, data->stream)) != -1) {
 		if (line[read-1] == '\n')
 			line[read-1] = 0;
 
 		/* TODO: strip special chars? (on 2021-11-14) */
-		ui_echom(&app->ui, "%s", line);
+		ui_echom(&data->app->ui, "%s", line);
 		free(line);
 		line = NULL;
 	}
@@ -118,7 +123,7 @@ static void command_stdout_cb(EV_P_ ev_io *w, int revents)
 
 	/* this seems to prevent the callback being immediately called again by libev */
 	if (errno == EAGAIN)
-		clearerr(w->data);
+		clearerr(data->stream);
 
 	ev_idle_start(loop, &redraw_watcher);
 }
@@ -238,13 +243,13 @@ static void child_cb(EV_P_ ev_child *w, int revents)
 
 	if (data->stdout_watcher) {
 		ev_io_stop(loop, data->stdout_watcher);
-		cvector_swap_remove(io_watchers, data->stdout_watcher);
+		free(data->stdout_watcher->data);
 		free(data->stdout_watcher);
 	}
 
 	if (data->stderr_watcher) {
 		ev_io_stop(loop, data->stderr_watcher);
-		cvector_swap_remove(io_watchers, data->stderr_watcher);
+		free(data->stderr_watcher->data);
 		free(data->stderr_watcher);
 	}
 
@@ -360,9 +365,13 @@ static ev_io *add_io_watcher(T *t, FILE* f)
 	int flags = fcntl(fileno(f), F_GETFL, 0);
 	fcntl(fileno(f), F_SETFL, flags | O_NONBLOCK);
 	ev_io_init(w, command_stdout_cb, fileno(f), EV_READ);
-	w->data = f;
+
+	struct stdout_watcher_data *data = malloc(sizeof(struct stdout_watcher_data));
+	data->app = t;
+	data->stream = f;
+	w->data = data;
+
 	ev_io_start(t->loop, w);
-	cvector_push_back(io_watchers, w);
 
 	return w;
 }
@@ -463,8 +472,19 @@ void app_deinit(T *t)
 	if (!t)
 		return;
 
-	cvector_ffree(io_watchers, free);
-	cvector_ffree(child_watchers, free);
+	for (size_t i = 0; i < cvector_size(child_watchers); i++) {
+		struct child_watcher_data *data = child_watchers[i]->data;
+		if (data->stdout_watcher) {
+			free(data->stdout_watcher->data);
+			free(data->stdout_watcher);
+		}
+		if (data->stderr_watcher) {
+			free(data->stderr_watcher->data);
+			free(data->stderr_watcher);
+		}
+		free(child_watchers[i]->data);
+		free(child_watchers[i]);
+	}
 	notify_close();
 	lua_deinit(t->L);
 	ui_deinit(&t->ui);
