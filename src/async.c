@@ -1,14 +1,8 @@
-#include "app.h"
 #include "async.h"
 #include "config.h"
-#include "dir.h"
 #include "fm.h"
-#include "preview.h"
-#include "tpool.h"
 #include "ui.h"
 #include "util.h"
-
-#include "log.h"
 
 #define DIRCOUNT_THRESHOLD 200 /* in ms */
 
@@ -211,8 +205,6 @@ static void DirCountResult_callback(struct DirCountResult *res, App *app)
 		ui_redraw(&app->ui, REDRAW_FM);
 		if (res->last)
 			res->dir->dircounts = true;
-	} else {
-		log_debug("updates was %d, %s", res->dir->updates, res->dir->path);
 	}
 	cvector_free(res->dircounts);
 	free(res);
