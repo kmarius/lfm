@@ -17,6 +17,7 @@ struct history_entry {
 	bool is_new;
 };
 
+
 // don't call this on loaded history.
 void history_load(T *t, const char *path)
 {
@@ -43,6 +44,7 @@ void history_load(T *t, const char *path)
 	fclose(fp);
 }
 
+
 void history_write(T *t, const char *path)
 {
 	char *dir, *buf = strdup(path);
@@ -63,6 +65,7 @@ void history_write(T *t, const char *path)
 	fclose(fp);
 }
 
+
 void history_deinit(T *t)
 {
 	for (size_t i = 0; i < cvector_size(t->vec); i++)
@@ -70,6 +73,7 @@ void history_deinit(T *t)
 
 	cvector_free(t->vec);
 }
+
 
 void history_append(T *t, const char *line)
 {
@@ -79,10 +83,12 @@ void history_append(T *t, const char *line)
 	cvector_push_back(t->vec, ((struct history_entry) {strdup(line), true}));
 }
 
+
 void history_reset(T *t)
 {
 	t->ptr = NULL;
 }
+
 
 /* TODO: only show history items with matching prefixes (on 2021-07-24) */
 const char *history_prev(T *t)
@@ -98,6 +104,7 @@ const char *history_prev(T *t)
 
 	return t->ptr->line;
 }
+
 
 const char *history_next(T *t)
 {

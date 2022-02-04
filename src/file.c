@@ -1,4 +1,3 @@
-#define _GNU_SOURCE
 #include <dirent.h>
 #include <errno.h>
 #include <grp.h>
@@ -12,11 +11,28 @@
 
 #include "file.h"
 
+
 #define T File
+
 
 #define FILE_INITIALIZER ((T) { \
 		.dircount = -1,\
 		})
+
+bool file_isbroken(const T *t);
+bool file_isdir(const T *t);
+bool file_isexec(const T *t);
+bool file_islink(const T *t);
+const char *file_ext(const T *t);
+const char *file_link_target(const T *file);
+const char *file_name(const T *t);
+const char *file_path(const T *t);
+const char *file_size_readable(const T *t, char *buf);
+int16_t file_dircount(const T *t);
+long file_mtime(const T *t);
+long file_nlink(const T *t);
+long file_size(const T *t);
+void file_dircount_set(T *t, uint16_t ct);
 
 T *file_init(T *t, const char *dir, const char *name)
 {
@@ -34,7 +50,7 @@ T *file_init(T *t, const char *dir, const char *name)
 		return NULL;
 	}
 
-	t->name = basename(t->path);
+	t->name = strrchr(t->path, '/') + 1;
 	t->ext = strrchr(t->name, '.');
 	if (t->ext == t->name)
 		t->ext = NULL; /* hidden file */
@@ -58,10 +74,12 @@ T *file_init(T *t, const char *dir, const char *name)
 	return t;
 }
 
+
 T *file_create(const char *dir, const char *name)
 {
 	return file_init(malloc(sizeof(T)), dir, name);
 }
+
 
 void file_deinit(T *t)
 {
@@ -72,11 +90,13 @@ void file_deinit(T *t)
 	free(t->link_target);
 }
 
+
 void file_destroy(T *t)
 {
 	file_deinit(t);
 	free(t);
 }
+
 
 uint16_t path_dircount_load(const char *path) {
 	struct dirent *dp;
@@ -91,10 +111,12 @@ uint16_t path_dircount_load(const char *path) {
 	return ct - 2;
 }
 
+
 uint16_t file_dircount_load(T *t)
 {
 	return path_dircount_load(t->path);
 }
+
 
 static char filetypeletter(int mode)
 {
@@ -132,6 +154,7 @@ static char filetypeletter(int mode)
 	return c;
 }
 
+
 const char *file_perms(const T *t)
 {
 	static const char *rwx[] = {
@@ -154,6 +177,7 @@ const char *file_perms(const T *t)
 	return bits;
 }
 
+
 const char* file_owner(const T *t)
 {
 	static char owner[32];
@@ -167,6 +191,7 @@ const char* file_owner(const T *t)
 
 	return owner;
 }
+
 
 /* getgrgid() is somewhat slow, so we cache one call */
 const char *file_group(const T *t)
@@ -189,19 +214,5 @@ const char *file_group(const T *t)
 	return group;
 }
 
-bool file_isbroken(const T *t);
-bool file_isdir(const T *t);
-bool file_isexec(const T *t);
-bool file_islink(const T *t);
-const char *file_ext(const T *t);
-const char *file_link_target(const T *file);
-const char *file_name(const T *t);
-const char *file_path(const T *t);
-const char *file_size_readable(const T *t, char *buf);
-int16_t file_dircount(const T *t);
-long file_mtime(const T *t);
-long file_nlink(const T *t);
-long file_size(const T *t);
-void file_dircount_set(T *t, uint16_t ct);
 
 #undef T

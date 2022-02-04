@@ -1,4 +1,3 @@
-#define _GNU_SOURCE
 #include <dirent.h>
 #include <errno.h>
 #include <libgen.h>
@@ -16,16 +15,21 @@
 #include "sort.h"
 #include "util.h"
 
+
+#define T Dir
+
+
 #define DIR_INITIALIZER ((T){ \
 		.dirfirst = true, \
 		.sorttype = SORT_NATURAL, \
 		})
 
-#define T Dir
 
+bool dir_isroot(const T *t);
 static void apply_filter(T *t);
 static inline void swap(File **a, File **b);
 static void shuffle(void *arr, size_t n, size_t size);
+
 
 File *dir_current_file(const T *t)
 {
@@ -34,6 +38,7 @@ File *dir_current_file(const T *t)
 
 	return t->files[t->ind];
 }
+
 
 const char *dir_parent_path(const T *t)
 {
@@ -45,14 +50,18 @@ const char *dir_parent_path(const T *t)
 	return dirname(tmp);
 }
 
+
 static bool file_filtered(File *file, const char *filter)
 {
 	return strcasestr(file_name(file), filter) != NULL;
 }
 
-static inline bool file_hidden(File *file) {
+
+static inline bool file_hidden(File *file)
+{
 	return file_name(file)[0] == '.';
 }
+
 
 static void apply_filter(T *t)
 {
@@ -71,6 +80,7 @@ static void apply_filter(T *t)
 	}
 	t->ind = max(min(t->ind, t->length - 1), 0);
 }
+
 
 static inline void swap(File **a, File **b)
 {
@@ -103,6 +113,7 @@ static void shuffle(void *arr, size_t n, size_t size)
 
 	free(tmp);
 }
+
 
 /* sort allfiles and copy non-hidden ones to sortedfiles */
 void dir_sort(T *t)
@@ -177,6 +188,7 @@ void dir_sort(T *t)
 	apply_filter(t);
 }
 
+
 void dir_filter(T *t, const char *filter)
 {
 	if (!filter)
@@ -187,6 +199,7 @@ void dir_filter(T *t, const char *filter)
 	apply_filter(t);
 }
 
+
 bool dir_check(const T *t)
 {
 	struct stat statbuf;
@@ -196,6 +209,7 @@ bool dir_check(const T *t)
 	}
 	return statbuf.st_mtime <= t->load_time;
 }
+
 
 static T *dir_init(T *t, const char *path)
 {
@@ -216,10 +230,12 @@ static T *dir_init(T *t, const char *path)
 	return t;
 }
 
+
 static T *dir_create(const char *path)
 {
 	return dir_init(malloc(sizeof(T)), path);
 }
+
 
 T *dir_new_loading(const char *path)
 {
@@ -227,6 +243,7 @@ T *dir_new_loading(const char *path)
 	dir->loading = true;
 	return dir;
 }
+
 
 T *dir_load(const char *path, bool load_dircount)
 {
@@ -270,6 +287,7 @@ T *dir_load(const char *path, bool load_dircount)
 	return dir;
 }
 
+
 void dir_cursor_move(T *t, int16_t ct, uint16_t height, uint16_t scrolloff)
 {
 	t->ind = max(min(t->ind + ct, t->length - 1), 0);
@@ -278,6 +296,7 @@ void dir_cursor_move(T *t, int16_t ct, uint16_t height, uint16_t scrolloff)
 	else
 		t->pos = max(min(height - 1 - scrolloff, t->pos + ct), height - t->length + t->ind);
 }
+
 
 void dir_cursor_move_to(T *t, const char *name, uint16_t height, uint16_t scrolloff)
 {
@@ -298,6 +317,7 @@ void dir_cursor_move_to(T *t, const char *name, uint16_t height, uint16_t scroll
 	}
 	t->ind = min(t->ind, t->length);
 }
+
 
 void dir_update_with(T *t, Dir *update, uint16_t height, uint16_t scrolloff)
 {
@@ -332,6 +352,7 @@ void dir_update_with(T *t, Dir *update, uint16_t height, uint16_t scrolloff)
 	}
 }
 
+
 static void dir_deinit(T *t)
 {
 	if (!t)
@@ -344,12 +365,11 @@ static void dir_deinit(T *t)
 	free(t->path);
 }
 
+
 void dir_destroy(T *t)
 {
 	dir_deinit(t);
 	free(t);
 }
-
-bool dir_isroot(const T *t);
 
 #undef T

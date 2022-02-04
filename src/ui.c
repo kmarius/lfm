@@ -1,4 +1,3 @@
-#define _GNU_SOURCE
 #include <errno.h>
 #include <fcntl.h>
 #include <libgen.h>
@@ -19,6 +18,7 @@
 
 #define T Ui
 
+
 static void draw_dirs(T *t);
 static void plane_draw_dir(struct ncplane *n, Dir *dir, char **sel,
 		char **load, enum movemode_e mode, const char *highlight);
@@ -36,6 +36,7 @@ static struct notcurses *nc = NULL;
 
 /* init/resize {{{ */
 
+
 static int resize_cb(struct ncplane *n)
 {
 	/* TODO: dir->pos needs to be changed for all directories (on 2021-10-30) */
@@ -51,6 +52,7 @@ static int resize_cb(struct ncplane *n)
 	ui_clear(ui);
 	return 0;
 }
+
 
 void ui_notcurses_init(T *ui)
 {
@@ -89,6 +91,7 @@ void ui_notcurses_init(T *ui)
 	ncplane_move_bottom(ui->planes.menu);
 }
 
+
 void ui_suspend(T *ui)
 {
 	notcurses_stop(nc);
@@ -98,6 +101,7 @@ void ui_suspend(T *ui)
 	ui->planes.menu = NULL;
 	ui->planes.info = NULL;
 }
+
 
 void ui_init(T *ui, Fm *fm)
 {
@@ -126,12 +130,14 @@ void ui_init(T *ui, Fm *fm)
 	log_info("initialized ui");
 }
 
+
 void kbblocking(bool blocking)
 {
 	int val = fcntl(STDIN_FILENO, F_GETFL, 0);
 	if (val != -1)
 		fcntl(STDIN_FILENO, F_SETFL, blocking ? val & ~O_NONBLOCK : val | O_NONBLOCK);
 }
+
 
 void ui_recol(T *ui)
 {
@@ -163,11 +169,13 @@ void ui_recol(T *ui)
 	ui->planes.preview = ui->planes.dirs[ui->ndirs-1];
 }
 
+
 /* }}} */
 
 /* main drawing/echo/err {{{ */
 
 static inline void ui_redraw(T *t, uint8_t mode);
+
 
 void ui_draw(T *t)
 {
@@ -186,6 +194,7 @@ void ui_draw(T *t)
 	}
 	t->redraw = 0;
 }
+
 
 void ui_clear(T *t)
 {
@@ -208,6 +217,7 @@ void ui_clear(T *t)
 	ui_redraw(t, REDRAW_FM);
 }
 
+
 static void draw_dirs(T *t)
 {
 	const uint16_t l = t->fm->dirs.length;
@@ -220,6 +230,7 @@ static void draw_dirs(T *t)
 				i == 0 ? t->highlight : NULL);
 	}
 }
+
 
 static void draw_preview(T *t)
 {
@@ -234,6 +245,7 @@ static void draw_preview(T *t)
 	}
 }
 
+
 void ui_echom(T *t, const char *format, ...)
 {
 	va_list args;
@@ -242,6 +254,7 @@ void ui_echom(T *t, const char *format, ...)
 	va_end(args);
 }
 
+
 void ui_error(T *t, const char *format, ...)
 {
 	va_list args;
@@ -249,6 +262,7 @@ void ui_error(T *t, const char *format, ...)
 	ui_verror(t, format, args);
 	va_end(args);
 }
+
 
 void ui_verror(T *t, const char *format, va_list args)
 {
@@ -271,6 +285,7 @@ void ui_verror(T *t, const char *format, va_list args)
 	t->message = true;
 }
 
+
 void ui_vechom(T *t, const char *format, va_list args)
 {
 	char *msg;
@@ -290,9 +305,11 @@ void ui_vechom(T *t, const char *format, va_list args)
 
 }
 
+
 /* }}} */
 
 /* cmd line {{{ */
+
 
 void ui_cmd_prefix_set(T *t, const char *prefix)
 {
@@ -305,6 +322,7 @@ void ui_cmd_prefix_set(T *t, const char *prefix)
 	ui_redraw(t, REDRAW_CMDLINE);
 }
 
+
 void ui_cmd_clear(T *t)
 {
 	cmdline_clear(&t->cmdline);
@@ -315,11 +333,13 @@ void ui_cmd_clear(T *t)
 	ui_redraw(t, REDRAW_MENU);
 }
 
+
 static char *print_time(time_t time, char *buffer, size_t bufsz)
 {
 	strftime(buffer, bufsz, "%Y-%m-%d %H:%M:%S", localtime(&time));
 	return buffer;
 }
+
 
 static uint16_t int_sz(uint16_t n)
 {
@@ -330,6 +350,7 @@ static uint16_t int_sz(uint16_t n)
 	}
 	return i;
 }
+
 
 void draw_cmdline(T *t)
 {
@@ -405,6 +426,7 @@ void draw_cmdline(T *t)
 		notcurses_cursor_enable(nc, t->nrow - 1, cursor_pos);
 	}
 }
+
 /* }}} */
 
 /* info line {{{ */
@@ -490,6 +512,7 @@ static void ansi_addstr(struct ncplane *n, char *s)
 	}
 }
 
+
 static void draw_menu(struct ncplane *n, cvector_vector_type(char *) menubuf)
 {
 	if (!menubuf)
@@ -522,6 +545,7 @@ static void draw_menu(struct ncplane *n, cvector_vector_type(char *) menubuf)
 	}
 }
 
+
 static void menu_resize(T *t)
 {
 	/* TODO: find out why, after resizing, the menu is behind the dirs (on 2021-10-30) */
@@ -529,6 +553,7 @@ static void menu_resize(T *t)
 	ncplane_resize(t->planes.menu, 0, 0, 0, 0, 0, 0, h, t->ncol);
 	ncplane_move_yx(t->planes.menu, t->nrow - 1 - h, 0);
 }
+
 
 static void menu_clear(T *t)
 {
@@ -538,6 +563,7 @@ static void menu_clear(T *t)
 	ncplane_erase(t->planes.menu);
 	ncplane_move_bottom(t->planes.menu);
 }
+
 
 void ui_showmenu(T *t, cvector_vector_type(char*) vec)
 {
@@ -568,6 +594,7 @@ static uint64_t ext_channel_find(const char *ext)
 	}
 	return 0;
 }
+
 
 static void print_file(struct ncplane *n, const File *file,
 		bool iscurrent, char **sel, char **load, enum movemode_e mode,
@@ -632,7 +659,7 @@ static void print_file(struct ncplane *n, const File *file,
 	if (iscurrent)
 		ncplane_set_bchannel(n, cfg.colors.current);
 
-	char *hlsubstr;
+	const char *hlsubstr;
 	ncplane_putchar(n, ' ');
 	if (highlight && (hlsubstr = strcasestr(file_name(file), highlight))) {
 		const uint16_t l = hlsubstr - file_name(file);
@@ -668,6 +695,7 @@ static void print_file(struct ncplane *n, const File *file,
 	ncplane_set_bg_default(n);
 	ncplane_set_styles(n, NCSTYLE_NONE);
 }
+
 
 static void plane_draw_dir(struct ncplane *n, Dir *dir, char **sel, char **load,
 		enum movemode_e mode, const char *highlight)
@@ -735,6 +763,7 @@ static Preview *load_preview(T *t, File *file)
 	return pv;
 }
 
+
 static void update_file_preview(T *t)
 {
 	int ncol, nrow;
@@ -770,6 +799,7 @@ static void update_file_preview(T *t)
 		}
 	}
 }
+
 
 static void wansi_matchattr(struct ncplane *w, uint16_t a)
 {
@@ -816,6 +846,7 @@ static void wansi_matchattr(struct ncplane *w, uint16_t a)
 		ncplane_set_bg_palindex(w, a-40);
 	}
 }
+
 
 /*
  * Consooms ansi color escape sequences and sets ATTRS
@@ -890,6 +921,7 @@ static char *ansi_consoom(struct ncplane *w, char *s)
 	return s;
 }
 
+
 static void plane_draw_file_preview(struct ncplane *n, Preview *pv)
 {
 	int nrow;
@@ -907,6 +939,7 @@ static void plane_draw_file_preview(struct ncplane *n, Preview *pv)
 		}
 	}
 }
+
 
 bool ui_insert_preview(T *t, Preview *pv)
 {
@@ -932,6 +965,7 @@ bool ui_insert_preview(T *t, Preview *pv)
 	}
 	return false;
 }
+
 
 void ui_drop_cache(T *t)
 {

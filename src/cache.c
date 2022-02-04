@@ -9,11 +9,13 @@
 #define LCHILD(i) (2 * (i) + 1)
 #define RCHILD(i) (2 * (i) + 2)
 
+
 struct node {
 	void *ptr;
 	uint16_t sort_key;
 	const char *search_key;
 };
+
 
 static inline void swap(struct node *x, struct node *y)
 {
@@ -21,6 +23,7 @@ static inline void swap(struct node *x, struct node *y)
 	*x = *y;
 	*y = tmp;
 }
+
 
 static inline void upheap(struct node *nodes, int16_t i)
 {
@@ -30,6 +33,7 @@ static inline void upheap(struct node *nodes, int16_t i)
 		i = p;
 	}
 }
+
 
 static void downheap(struct node *a, uint16_t size, uint16_t i)
 {
@@ -51,6 +55,7 @@ static void downheap(struct node *a, uint16_t size, uint16_t i)
 	}
 }
 
+
 void cache_init(T *t, uint16_t capacity, void (*free)(void*))
 {
 	t->nodes = malloc(sizeof(struct node) * capacity);
@@ -58,6 +63,7 @@ void cache_init(T *t, uint16_t capacity, void (*free)(void*))
 	t->size = 0;
 	t->free = free;
 }
+
 
 void cache_resize(T *t, uint16_t capacity)
 {
@@ -71,6 +77,7 @@ void cache_resize(T *t, uint16_t capacity)
 	t->nodes = realloc(t->nodes, sizeof(struct node) * capacity);
 	t->capacity = capacity;
 }
+
 
 void cache_insert(T *t, void *e, const char *key)
 {
@@ -92,6 +99,7 @@ void cache_insert(T *t, void *e, const char *key)
 	}
 }
 
+
 bool cache_contains_ptr(T *t, const void *ptr)
 {
 	for (uint16_t i = 0; i < t->size; i++)
@@ -100,6 +108,7 @@ bool cache_contains_ptr(T *t, const void *ptr)
 	return false;
 }
 
+
 void *cache_find(T *t, const void *key)
 {
 	for (uint16_t i = 0; i < t->size; i++)
@@ -107,6 +116,7 @@ void *cache_find(T *t, const void *key)
 			return t->nodes[i].ptr;
 	return NULL;
 }
+
 
 void *cache_take(T *t, const void *key)
 {
@@ -131,6 +141,7 @@ void *cache_take(T *t, const void *key)
 	return NULL;
 }
 
+
 void cache_clear(T *t)
 {
 	for (uint16_t i = 0; i < t->size; i++)
@@ -138,10 +149,12 @@ void cache_clear(T *t)
 	t->size = 0;
 }
 
+
 void cache_deinit(T *t) {
 	cache_clear(t);
 	free(t->nodes);
 }
+
 
 #undef T
 #undef RCHILD

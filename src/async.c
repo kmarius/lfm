@@ -15,6 +15,7 @@ ResultQueue async_results = {
 	.mutex = PTHREAD_MUTEX_INITIALIZER,
 };
 
+
 /*
  * `callback` is run on the main thread and should do whatever is necessary to process Result,
  * consuming it (freeing whatever resources remain).
@@ -26,29 +27,35 @@ struct Result_vtable {
 	void (*destroy)(struct Result *);
 };
 
+
 struct Result {
 	struct Result_vtable *vtable;
 	struct Result *next;
 };
+
 
 void result_callback(struct Result *res, App *app)
 {
 	res->vtable->callback(res, app);
 }
 
+
 static void result_destroy(struct Result *res)
 {
 	res->vtable->destroy(res);
 }
 
+
 /* result queue {{{ */
 
 #define T ResultQueue
+
 
 void resultqueue_init(T *t, ev_async *watcher)
 {
 	t->watcher = watcher;
 }
+
 
 void resultqueue_deinit(T *t)
 {
@@ -57,6 +64,7 @@ void resultqueue_deinit(T *t)
 		result_destroy(res);
 	pthread_mutex_destroy(&async_results.mutex);
 }
+
 
 static void resultqueue_put(T *t, struct Result *res)
 {
@@ -68,6 +76,7 @@ static void resultqueue_put(T *t, struct Result *res)
 		t->tail = res;
 	}
 }
+
 
 struct Result *resultqueue_get(T *t)
 {
@@ -83,6 +92,7 @@ struct Result *resultqueue_get(T *t)
 
 	return res;
 }
+
 
 #undef T
 
@@ -101,10 +111,12 @@ static inline void enqueue_and_signal(struct Result *res)
 
 /* dir_check {{{ */
 
+
 struct DirCheckResult {
 	struct Result super;
 	Dir *dir;
 };
+
 
 /* TODO: maybe on slow devices it is better to compare mtimes here? 2021-11-12 */
 /* currently we could just schedule reload from the other thread */
@@ -115,15 +127,18 @@ static void DirCheckResult_callback(struct DirCheckResult *res, App *app)
 	free(res);
 }
 
+
 static void DirCheckResult_destroy(struct DirCheckResult *res)
 {
 	free(res);
 }
 
+
 static struct Result_vtable res_dir_check_vtable = {
 	(void (*)(struct Result *, App *)) &DirCheckResult_callback,
 	(void (*)(struct Result *)) &DirCheckResult_destroy,
 };
+
 
 static inline struct DirCheckResult *DirCheckResult_create(Dir *dir)
 {
@@ -133,10 +148,12 @@ static inline struct DirCheckResult *DirCheckResult_create(Dir *dir)
 	return res;
 }
 
+
 struct dir_check_work {
 	Dir *dir;
 	time_t loadtime;
 };
+
 
 static void async_dir_check_worker(void *arg)
 {
@@ -156,6 +173,7 @@ cleanup:
 	free(work);
 }
 
+
 void async_dir_check(Dir *dir)
 {
 	struct dir_check_work *work = malloc(sizeof(struct dir_check_work));
@@ -163,6 +181,7 @@ void async_dir_check(Dir *dir)
 	work->loadtime = dir->load_time;
 	tpool_add_work(async_tm, async_dir_check_worker, work);
 }
+
 
 /* }}} */
 
@@ -188,10 +207,12 @@ struct DirCountResult {
 	bool last;
 };
 
+
 struct file_path {
 	File *file;
 	char *path;
 };
+
 
 static void DirCountResult_callback(struct DirCountResult *res, App *app)
 {
@@ -210,16 +231,19 @@ static void DirCountResult_callback(struct DirCountResult *res, App *app)
 	free(res);
 }
 
+
 static void DirCountResult_destroy(struct DirCountResult *res)
 {
 	cvector_free(res->dircounts);
 	free(res);
 }
 
+
 static struct Result_vtable DirCountResult_vtable = {
 	(void (*)(struct Result *, App *)) &DirCountResult_callback,
 	(void (*)(struct Result *)) &DirCountResult_destroy,
 };
+
 
 static inline struct DirCountResult *DirCountResult_create(Dir *dir, struct dircount* files, bool last)
 {
@@ -231,6 +255,7 @@ static inline struct DirCountResult *DirCountResult_create(Dir *dir, struct dirc
 	res->last = last;
 	return res;
 }
+
 
 // Not a worker function because we just call it from async_dir_load_worker
 static void async_load_dircounts(Dir *dir, uint16_t n, struct file_path *files)
@@ -262,11 +287,13 @@ static void async_load_dircounts(Dir *dir, uint16_t n, struct file_path *files)
 
 /* dir_update {{{ */
 
+
 struct DirUpdateResult {
 	struct Result super;
 	Dir *dir;
 	Dir *update;
 };
+
 
 static void DirUpdateResult_callback(struct DirUpdateResult *res, App *app)
 {
@@ -278,16 +305,19 @@ static void DirUpdateResult_callback(struct DirUpdateResult *res, App *app)
 	free(res);
 }
 
+
 static void DirUpdateResult_destroy(struct DirUpdateResult *res)
 {
 	dir_destroy(res->update);
 	free(res);
 }
 
+
 static struct Result_vtable DirUpdateResult_vtable = {
 	(void (*)(struct Result *, App *)) &DirUpdateResult_callback,
 	(void (*)(struct Result *)) &DirUpdateResult_destroy,
 };
+
 
 static inline struct DirUpdateResult *DirUpdateResult_create(Dir *dir, Dir *update)
 {
@@ -299,12 +329,14 @@ static inline struct DirUpdateResult *DirUpdateResult_create(Dir *dir, Dir *upda
 	return res;
 }
 
+
 struct dir_load_work {
 	Dir *dir;
 	char *path;
 	uint16_t delay;
 	bool dircounts;
 };
+
 
 static void async_dir_load_worker(void *arg)
 {
@@ -334,6 +366,7 @@ static void async_dir_load_worker(void *arg)
 	free(work);
 }
 
+
 void async_dir_load_delayed(Dir *dir, bool dircounts, uint16_t delay /* millis */)
 {
 	struct dir_load_work *work = malloc(sizeof(struct dir_load_work));
@@ -343,6 +376,7 @@ void async_dir_load_delayed(Dir *dir, bool dircounts, uint16_t delay /* millis *
 	work->dircounts = dircounts;
 	tpool_add_work(async_tm, async_dir_load_worker, work);
 }
+
 
 /* }}} */
 
@@ -354,6 +388,7 @@ struct PreviewCheckResult {
 	int nrow;
 };
 
+
 static void PreviewCheckResult_callback(struct PreviewCheckResult *res, App *app)
 {
 	(void) app;
@@ -362,16 +397,19 @@ static void PreviewCheckResult_callback(struct PreviewCheckResult *res, App *app
 	free(res);
 }
 
+
 static void PreviewCheckResult_destroy(struct PreviewCheckResult *res)
 {
 	free(res->path);
 	free(res);
 }
 
+
 static struct Result_vtable PrevewCheckResult_vtable = {
 	(void (*)(struct Result *, App *)) &PreviewCheckResult_callback,
 	(void (*)(struct Result *)) &PreviewCheckResult_destroy,
 };
+
 
 static inline struct PreviewCheckResult *PreviewCheckResult_create(char *path, int nrow)
 {
@@ -383,11 +421,13 @@ static inline struct PreviewCheckResult *PreviewCheckResult_create(char *path, i
 	return res;
 }
 
+
 struct preview_check_work {
 	char *path;
 	int nrow;
 	time_t mtime;
 };
+
 
 static void async_preview_check_worker(void *arg)
 {
@@ -412,6 +452,7 @@ cleanup:
 	free(work);
 }
 
+
 void async_preview_check(Preview *pv)
 {
 	struct preview_check_work *work = malloc(sizeof(struct preview_check_work));
@@ -430,6 +471,7 @@ struct PreviewLoadResult {
 	Preview *preview;
 };
 
+
 static void PreviewLoadResult_callback(struct PreviewLoadResult *res, App *app)
 {
 	if (ui_insert_preview(&app->ui, res->preview))
@@ -437,16 +479,19 @@ static void PreviewLoadResult_callback(struct PreviewLoadResult *res, App *app)
 	free(res);
 }
 
+
 static void PreviewLoadResult_destroy(struct PreviewLoadResult *res)
 {
 	preview_destroy(res->preview);
 	free(res);
 }
 
+
 static struct Result_vtable PreviewLoadResult_vtable = {
 	(void (*)(struct Result *, App *)) &PreviewLoadResult_callback,
 	(void (*)(struct Result *)) &PreviewLoadResult_destroy,
 };
+
 
 static inline struct PreviewLoadResult *PreviewLoadResult_create(Preview *preview)
 {
@@ -457,10 +502,12 @@ static inline struct PreviewLoadResult *PreviewLoadResult_create(Preview *previe
 	return res;
 }
 
+
 struct preview_load_work {
 	char *path;
 	int nrow;
 };
+
 
 static void async_preview_load_worker(void *arg)
 {
@@ -473,6 +520,7 @@ static void async_preview_load_worker(void *arg)
 	free(work->path);
 	free(work);
 }
+
 
 void async_preview_load(const char *path, uint16_t nrow)
 {

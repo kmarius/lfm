@@ -1,4 +1,3 @@
-#define _GNU_SOURCE
 #include <linux/limits.h>
 #include <ncurses.h> // COLOR_ constants
 #include <notcurses/notcurses.h>
@@ -10,8 +9,10 @@
 #include "config.h"
 #include "cvector.h"
 #include "log.h"
+#include "util.h"
 
-config cfg = {
+
+Config cfg = {
 	.truncatechar = L'~',
 	.preview = true,
 	.scrolloff = 4,
@@ -29,6 +30,7 @@ config cfg = {
 	}
 };
 
+
 void config_ratios_set(cvector_vector_type(uint16_t) ratios)
 {
 	if (cvector_size(ratios) == 0)
@@ -38,11 +40,13 @@ void config_ratios_set(cvector_vector_type(uint16_t) ratios)
 
 }
 
+
 void config_ext_channel_add(const char *ext, uint64_t channel)
 {
 	/* TODO: should overwrite existing tuples or something (on 2022-01-14) */
 	cvector_push_back(cfg.colors.ext_channels, ((ext_channel_tup) {strdup(ext), channel}));
 }
+
 
 void config_init()
 {
@@ -76,6 +80,7 @@ void config_init()
 
 	asprintf(&cfg.corepath, "%s/lua/core.lua", cfg.datadir);
 }
+
 
 #define tup_free(t) free((t).ext)
 

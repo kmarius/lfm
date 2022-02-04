@@ -6,7 +6,7 @@
 
 #include "util.h"
 
-typedef struct {
+typedef struct File {
 	char *path;
 	char *name;
 	char *ext;

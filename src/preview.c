@@ -8,6 +8,7 @@
 #include "popen_arr.h"
 #include "preview.h"
 
+
 static inline Preview *preview_init(Preview *pv, const char *path, uint8_t nrow)
 {
 	pv->path = strdup(path);
@@ -18,10 +19,12 @@ static inline Preview *preview_init(Preview *pv, const char *path, uint8_t nrow)
 	return pv;
 }
 
+
 static inline Preview *preview_create(const char *path, uint8_t nrow)
 {
 	return preview_init(malloc(sizeof(Preview)), path, nrow);
 }
+
 
 Preview *preview_create_loading(const char *path, uint8_t nrow)
 {
@@ -29,6 +32,7 @@ Preview *preview_create_loading(const char *path, uint8_t nrow)
 	pv->loading = true;
 	return pv;
 }
+
 
 Preview *preview_create_from_file(const char *path, uint8_t nrow)
 {
@@ -61,6 +65,7 @@ Preview *preview_create_from_file(const char *path, uint8_t nrow)
 	return pv;
 }
 
+
 static inline void preview_deinit(Preview *pv)
 {
 	if (!pv)
@@ -69,6 +74,7 @@ static inline void preview_deinit(Preview *pv)
 	cvector_ffree(pv->lines, free);
 	free(pv->path);
 }
+
 
 void preview_destroy(Preview *pv)
 {

@@ -1,4 +1,3 @@
-#define _GNU_SOURCE
 #include <errno.h>
 #include <lauxlib.h>
 #include <libgen.h>
@@ -31,6 +30,9 @@
 
 #define TABLE_CALLBACKS "callbacks"
 
+#define luaL_optbool(L, i, d) \
+	lua_isnoneornil(L, i) ? d : lua_toboolean(L, i)
+
 static App *app = NULL;
 static Ui *ui = NULL;
 static Fm *fm = NULL;
@@ -42,9 +44,6 @@ static struct {
 	input_t *seq;
 	char *str;
 } maps;
-
-#define luaL_optbool(L, i, d) \
-	lua_isnoneornil(L, i) ? d : lua_toboolean(L, i)
 
 /* lfm lib {{{ */
 
@@ -59,6 +58,7 @@ static int l_handle_key(lua_State *L)
 	return 0;
 }
 
+
 static int l_timeout(lua_State *L)
 {
 	const int16_t dur = luaL_checkinteger(L, 1);
@@ -67,17 +67,20 @@ static int l_timeout(lua_State *L)
 	return 0;
 }
 
+
 static int l_search(lua_State *L)
 {
 	search(ui, luaL_optstring(L, 1, NULL), true);
 	return 0;
 }
 
+
 static int l_search_backwards(lua_State *L)
 {
 	search(ui, luaL_optstring(L, 1, NULL), false);
 	return 0;
 }
+
 
 static int l_nohighlight(lua_State *L)
 {
@@ -86,12 +89,14 @@ static int l_nohighlight(lua_State *L)
 	return 0;
 }
 
+
 static int l_search_next(lua_State *L)
 {
 	(void) L;
 	search_next(ui, fm, luaL_optbool(L, 1, false));
 	return 0;
 }
+
 
 static int l_search_prev(lua_State *L)
 {
@@ -100,11 +105,13 @@ static int l_search_prev(lua_State *L)
 	return 0;
 }
 
+
 static int l_find(lua_State *L)
 {
 	lua_pushboolean(L, find(fm, ui, luaL_checkstring(L, 1)));
 	return 1;
 }
+
 
 static int l_find_clear(lua_State *L)
 {
@@ -113,12 +120,14 @@ static int l_find_clear(lua_State *L)
 	return 0;
 }
 
+
 static int l_find_next(lua_State *L)
 {
 	(void) L;
 	find_next(fm, ui);
 	return 0;
 }
+
 
 static int l_find_prev(lua_State *L)
 {
@@ -127,11 +136,13 @@ static int l_find_prev(lua_State *L)
 	return 0;
 }
 
+
 static int l_crash(lua_State *L)
 {
 	free(L);
 	return 0;
 }
+
 
 static int l_quit(lua_State *L)
 {
@@ -140,17 +151,20 @@ static int l_quit(lua_State *L)
 	return 0;
 }
 
+
 static int l_echo(lua_State *L)
 {
 	ui_echom(ui, luaL_optstring(L, 1, ""));
 	return 0;
 }
 
+
 static int l_error(lua_State *L)
 {
 	ui_error(ui, luaL_checkstring(L, 1));
 	return 0;
 }
+
 
 static int l_execute(lua_State *L)
 {
@@ -215,6 +229,7 @@ static int l_execute(lua_State *L)
 	}
 }
 
+
 void lua_run_callback(lua_State *L, int cb_index, int rstatus)
 {
 	lua_getfield(L, LUA_REGISTRYINDEX, TABLE_CALLBACKS);
@@ -225,6 +240,7 @@ void lua_run_callback(lua_State *L, int cb_index, int rstatus)
 	lua_rawseti(L, -2, cb_index);
 	lua_pop(L, 1);
 }
+
 
 static int l_map_key(lua_State *L)
 {
@@ -249,6 +265,7 @@ static int l_map_key(lua_State *L)
 	return 0;
 }
 
+
 static int l_cmap_key(lua_State *L)
 {
 	const char *desc = NULL;
@@ -271,6 +288,7 @@ static int l_cmap_key(lua_State *L)
 	free(buf);
 	return 0;
 }
+
 
 static const struct luaL_Reg lfm_lib[] = {
 	{"execute", l_execute},
@@ -359,6 +377,7 @@ static int l_config_index(lua_State *L)
 	return 0;
 }
 
+
 static int l_config_newindex(lua_State *L)
 {
 	const char *key = luaL_checkstring(L, 2);
@@ -438,6 +457,7 @@ static int l_config_newindex(lua_State *L)
 	return 0;
 }
 
+
 static const struct luaL_Reg config_mt[] = {
 	{"__index", l_config_index},
 	{"__newindex", l_config_newindex},
@@ -453,11 +473,13 @@ static int l_log_trace(lua_State *L)
 	return 0;
 }
 
+
 static int l_log_debug(lua_State *L)
 {
 	log_debug("%s", luaL_checkstring(L, 1));
 	return 0;
 }
+
 
 static int l_log_info(lua_State *L)
 {
@@ -465,11 +487,13 @@ static int l_log_info(lua_State *L)
 	return 0;
 }
 
+
 static int l_log_warn(lua_State *L)
 {
 	log_warn("%s", luaL_checkstring(L, 1));
 	return 0;
 }
+
 
 static int l_log_error(lua_State *L)
 {
@@ -477,11 +501,13 @@ static int l_log_error(lua_State *L)
 	return 0;
 }
 
+
 static int l_log_fatal(lua_State *L)
 {
 	log_fatal("%s", luaL_checkstring(L, 1));
 	return 0;
 }
+
 
 static const struct luaL_Reg log_lib[] = {
 	{"trace", l_log_trace},
@@ -502,6 +528,7 @@ static int l_ui_history_append(lua_State *L)
 	return 0;
 }
 
+
 static int l_ui_history_prev(lua_State *L)
 {
 	const char *line = history_prev(&ui->history);
@@ -511,6 +538,7 @@ static int l_ui_history_prev(lua_State *L)
 	return 1;
 }
 
+
 static int l_ui_history_next(lua_State *L)
 {
 	const char *line = history_next(&ui->history);
@@ -519,6 +547,7 @@ static int l_ui_history_next(lua_State *L)
 	lua_pushstring(L, line);
 	return 1;
 }
+
 
 static int l_ui_messages(lua_State *L)
 {
@@ -530,6 +559,7 @@ static int l_ui_messages(lua_State *L)
 	return 1;
 }
 
+
 static int l_ui_clear(lua_State *L)
 {
 	(void) L;
@@ -537,17 +567,20 @@ static int l_ui_clear(lua_State *L)
 	return 0;
 }
 
+
 static int l_ui_get_width(lua_State *L)
 {
 	lua_pushnumber(L, ui->ncol);
 	return 1;
 }
 
+
 static int l_ui_get_height(lua_State *L)
 {
 	lua_pushnumber(L, ui->nrow);
 	return 1;
 }
+
 
 static int l_ui_menu(lua_State *L)
 {
@@ -561,12 +594,14 @@ static int l_ui_menu(lua_State *L)
 	return 0;
 }
 
+
 static int l_ui_draw(lua_State *L)
 {
 	(void) L;
 	ui_redraw(ui, REDRAW_FM);
 	return 0;
 }
+
 
 static const struct luaL_Reg ui_lib[] = {
 	{"get_width", l_ui_get_width},
@@ -598,6 +633,7 @@ static uint32_t read_channel(lua_State *L, int idx)
 	}
 }
 
+
 static uint64_t read_color_pair(lua_State *L, int ind)
 {
 	uint32_t fg, bg;
@@ -616,6 +652,7 @@ static uint64_t read_color_pair(lua_State *L, int ind)
 
 	return ncchannels_combine(fg, bg);
 }
+
 
 static int l_colors_newindex(lua_State *L)
 {
@@ -663,6 +700,7 @@ static int l_colors_newindex(lua_State *L)
 	return 0;
 }
 
+
 static const struct luaL_Reg colors_mt[] = {
 	{"__newindex", l_colors_newindex},
 	{NULL, NULL}};
@@ -679,6 +717,7 @@ static int l_cmd_line_get(lua_State *L)
 	lua_pushstring(L, line);
 	return 1;
 }
+
 
 static int l_cmd_line_set(lua_State *L)
 {
@@ -700,12 +739,14 @@ static int l_cmd_line_set(lua_State *L)
 	return 0;
 }
 
+
 static int l_cmd_clear(lua_State *L)
 {
 	(void) L;
 	ui_cmd_clear(ui);
 	return 0;
 }
+
 
 static int l_cmd_delete(lua_State *L)
 {
@@ -715,6 +756,7 @@ static int l_cmd_delete(lua_State *L)
 	return 0;
 }
 
+
 static int l_cmd_delete_right(lua_State *L)
 {
 	(void) L;
@@ -722,6 +764,7 @@ static int l_cmd_delete_right(lua_State *L)
 		ui_redraw(ui, REDRAW_CMDLINE);
 	return 0;
 }
+
 
 static int l_cmd_delete_word(lua_State *L)
 {
@@ -731,12 +774,14 @@ static int l_cmd_delete_word(lua_State *L)
 	return 0;
 }
 
+
 static int l_cmd_insert(lua_State *L)
 {
 	if (cmdline_insert(&ui->cmdline, lua_tostring(L, 1)))
 		ui_redraw(ui, REDRAW_CMDLINE);
 	return 0;
 }
+
 
 static int l_cmd_left(lua_State *L)
 {
@@ -746,6 +791,7 @@ static int l_cmd_left(lua_State *L)
 	return 0;
 }
 
+
 static int l_cmd_right(lua_State *L)
 {
 	(void) L;
@@ -753,6 +799,7 @@ static int l_cmd_right(lua_State *L)
 		ui_redraw(ui, REDRAW_CMDLINE);
 	return 0;
 }
+
 
 static int l_cmd_word_left(lua_State *L)
 {
@@ -762,6 +809,7 @@ static int l_cmd_word_left(lua_State *L)
 	return 0;
 }
 
+
 static int l_cmd_word_right(lua_State *L)
 {
 	(void) L;
@@ -769,6 +817,7 @@ static int l_cmd_word_right(lua_State *L)
 		ui_redraw(ui, REDRAW_CMDLINE);
 	return 0;
 }
+
 
 static int l_cmd_delete_line_left(lua_State *L)
 {
@@ -778,6 +827,7 @@ static int l_cmd_delete_line_left(lua_State *L)
 	return 0;
 }
 
+
 static int l_cmd_home(lua_State *L)
 {
 	(void) L;
@@ -785,6 +835,7 @@ static int l_cmd_home(lua_State *L)
 		ui_redraw(ui, REDRAW_CMDLINE);
 	return 0;
 }
+
 
 static int l_cmd_end(lua_State *L)
 {
@@ -794,11 +845,13 @@ static int l_cmd_end(lua_State *L)
 	return 0;
 }
 
+
 static int l_cmd_prefix_set(lua_State *L)
 {
 	ui_cmd_prefix_set(ui, luaL_optstring(L, 1, ""));
 	return 0;
 }
+
 
 static int l_cmd_prefix_get(lua_State *L)
 {
@@ -807,6 +860,7 @@ static int l_cmd_prefix_get(lua_State *L)
 	return 1;
 }
 
+
 static int l_fm_up(lua_State *L)
 {
 	if (fm_up(fm, luaL_optint(L, 1, 1)))
@@ -814,12 +868,14 @@ static int l_fm_up(lua_State *L)
 	return 0;
 }
 
+
 static int l_fm_down(lua_State *L)
 {
 	if (fm_down(fm, luaL_optint(L, 1, 1)))
 		ui_redraw(ui, REDRAW_FM);
 	return 0;
 }
+
 
 static const struct luaL_Reg cmd_lib[] = {
 	{"clear", l_cmd_clear},
@@ -850,6 +906,7 @@ static int l_fm_get_height(lua_State *L)
 	return 1;
 }
 
+
 static int l_fm_drop_cache(lua_State *L)
 {
 	(void) L;
@@ -858,12 +915,14 @@ static int l_fm_drop_cache(lua_State *L)
 	return 0;
 }
 
+
 static int l_fm_reload(lua_State *L)
 {
 	(void) L;
 	fm_reload(fm);
 	return 0;
 }
+
 
 static int l_fm_check(lua_State *L)
 {
@@ -874,12 +933,14 @@ static int l_fm_check(lua_State *L)
 	return 0;
 }
 
+
 static int l_fm_sel(lua_State *L)
 {
 	fm_move_cursor_to(fm, luaL_checkstring(L, 1));
 	ui_redraw(ui, REDRAW_FM);
 	return 0;
 }
+
 
 static int l_fm_top(lua_State *L)
 {
@@ -889,6 +950,7 @@ static int l_fm_top(lua_State *L)
 	return 0;
 }
 
+
 static int l_fm_bot(lua_State *L)
 {
 	(void) L;
@@ -896,6 +958,7 @@ static int l_fm_bot(lua_State *L)
 		ui_redraw(ui, REDRAW_FM);
 	return 0;
 }
+
 
 static int l_fm_updir(lua_State *L)
 {
@@ -905,6 +968,7 @@ static int l_fm_updir(lua_State *L)
 	ui_redraw(ui, REDRAW_FM);
 	return 0;
 }
+
 
 static int l_fm_open(lua_State *L)
 {
@@ -927,6 +991,7 @@ static int l_fm_open(lua_State *L)
 	}
 }
 
+
 static int l_fm_current_file(lua_State *L)
 {
 	File *file = fm_current_file(fm);
@@ -936,6 +1001,7 @@ static int l_fm_current_file(lua_State *L)
 	}
 	return 0;
 }
+
 
 static int l_fm_current_dir(lua_State *L)
 {
@@ -956,6 +1022,7 @@ static int l_fm_current_dir(lua_State *L)
 	return 1;
 }
 
+
 static int l_fm_visual_start(lua_State *L)
 {
 	(void) L;
@@ -963,6 +1030,7 @@ static int l_fm_visual_start(lua_State *L)
 	ui_redraw(ui, REDRAW_FM);
 	return 0;
 }
+
 
 static int l_fm_visual_end(lua_State *L)
 {
@@ -972,6 +1040,7 @@ static int l_fm_visual_end(lua_State *L)
 	return 0;
 }
 
+
 static int l_fm_visual_toggle(lua_State *L)
 {
 	(void) L;
@@ -979,6 +1048,8 @@ static int l_fm_visual_toggle(lua_State *L)
 	ui_redraw(ui, REDRAW_FM);
 	return 0;
 }
+
+
 static int l_fm_sortby(lua_State *L)
 {
 	const int l = lua_gettop(L);
@@ -1018,6 +1089,7 @@ static int l_fm_sortby(lua_State *L)
 	return 0;
 }
 
+
 static int l_fm_selection_toggle_current(lua_State *L)
 {
 	(void) L;
@@ -1026,11 +1098,13 @@ static int l_fm_selection_toggle_current(lua_State *L)
 	return 0;
 }
 
+
 static int l_fm_selection_add(lua_State *L)
 {
 	fm_selection_add_file(fm, luaL_checkstring(L, 1));
 	return 0;
 }
+
 
 static int l_fm_selection_set(lua_State *L)
 {
@@ -1042,6 +1116,7 @@ static int l_fm_selection_set(lua_State *L)
 	fm_selection_set(fm, selection);
 	return 0;
 }
+
 
 static int l_fm_selection_get(lua_State *L)
 {
@@ -1056,6 +1131,7 @@ static int l_fm_selection_get(lua_State *L)
 	return 1;
 }
 
+
 static int l_fm_selection_clear(lua_State *L)
 {
 	(void) L;
@@ -1064,6 +1140,7 @@ static int l_fm_selection_clear(lua_State *L)
 	return 0;
 }
 
+
 static int l_fm_selection_reverse(lua_State *L)
 {
 	(void) L;
@@ -1071,6 +1148,7 @@ static int l_fm_selection_reverse(lua_State *L)
 	ui_redraw(ui, REDRAW_FM);
 	return 0;
 }
+
 
 static int l_fm_chdir(lua_State *L)
 {
@@ -1082,6 +1160,7 @@ static int l_fm_chdir(lua_State *L)
 	ui_redraw(ui, REDRAW_FM);
 	return 0;
 }
+
 
 static int l_fm_get_load(lua_State *L)
 {
@@ -1100,6 +1179,7 @@ static int l_fm_get_load(lua_State *L)
 	}
 	return 2;
 }
+
 
 static int l_fm_load_set(lua_State *L)
 {
@@ -1120,6 +1200,7 @@ static int l_fm_load_set(lua_State *L)
 	return 0;
 }
 
+
 static int l_fm_load_clear(lua_State *L)
 {
 	(void) L;
@@ -1127,6 +1208,7 @@ static int l_fm_load_clear(lua_State *L)
 	ui_redraw(ui, REDRAW_FM);
 	return 0;
 }
+
 
 static int l_fm_copy(lua_State *L)
 {
@@ -1136,6 +1218,7 @@ static int l_fm_copy(lua_State *L)
 	return 0;
 }
 
+
 static int l_fm_cut(lua_State *L)
 {
 	(void) L;
@@ -1144,11 +1227,13 @@ static int l_fm_cut(lua_State *L)
 	return 0;
 }
 
+
 static int l_fm_filter_get(lua_State *L)
 {
 	lua_pushstring(L, fm_filter_get(fm));
 	return 1;
 }
+
 
 static int l_fm_filter(lua_State *L)
 {
@@ -1158,6 +1243,7 @@ static int l_fm_filter(lua_State *L)
 	return 0;
 }
 
+
 static int l_fm_mark_load(lua_State *L)
 {
 	/* TODO: what about umlauts (on 2022-01-14) */
@@ -1166,6 +1252,7 @@ static int l_fm_mark_load(lua_State *L)
 	ui_redraw(ui, REDRAW_FM);
 	return 0;
 }
+
 
 static const struct luaL_Reg fm_lib[] = {
 	{"bottom", l_fm_bot},
@@ -1224,6 +1311,7 @@ static int l_fn_tokenize(lua_State *L)
 	return 2;
 }
 
+
 static int l_fn_split_last(lua_State *L)
 {
 	const char *s, *string = luaL_checkstring(L, 1);
@@ -1244,6 +1332,7 @@ static int l_fn_split_last(lua_State *L)
 	return 2;
 }
 
+
 static int l_fn_unquote_space(lua_State *L)
 {
 	const char *string = luaL_checkstring(L, 1);
@@ -1258,6 +1347,7 @@ static int l_fn_unquote_space(lua_State *L)
 	free(buf);
 	return 1;
 }
+
 
 static int l_fn_quote_space(lua_State *L)
 {
@@ -1275,11 +1365,13 @@ static int l_fn_quote_space(lua_State *L)
 	return 1;
 }
 
+
 static int l_fn_getpid(lua_State *L)
 {
 	lua_pushinteger(L, getpid());
 	return 1;
 }
+
 
 static int l_fn_getcwd(lua_State *L)
 {
@@ -1288,12 +1380,14 @@ static int l_fn_getcwd(lua_State *L)
 	return 1;
 }
 
+
 static int l_fn_getpwd(lua_State *L)
 {
 	const char *pwd = getenv("PWD");
 	lua_pushstring(L, pwd ? pwd : "");
 	return 1;
 }
+
 
 static const struct luaL_Reg fn_lib[] = {
 	{"split_last", l_fn_split_last},
@@ -1317,6 +1411,7 @@ void lua_run_hook(lua_State *L, const char *hook)
 		ui_error(ui, "run_hook: %s", lua_tostring(L, -1));
 }
 
+
 void lua_eval(lua_State *L, const char *expr)
 {
 	log_debug("eval %s", expr);
@@ -1327,6 +1422,7 @@ void lua_eval(lua_State *L, const char *expr)
 	if (lua_pcall(L, 1, 0, 0))
 		ui_error(ui, "eval: %s", lua_tostring(L, -1));
 }
+
 
 void lua_handle_key(lua_State *L, input_t in)
 {
@@ -1423,6 +1519,7 @@ void lua_handle_key(lua_State *L, input_t in)
 	}
 }
 
+
 bool lua_load_file(lua_State *L, const char *path)
 {
 	if (luaL_loadfile(L, path) || lua_pcall(L, 0, 0, 0)) {
@@ -1431,6 +1528,7 @@ bool lua_load_file(lua_State *L, const char *path)
 	}
 	return true;
 }
+
 
 int luaopen_lfm(lua_State *L)
 {
@@ -1475,6 +1573,7 @@ int luaopen_lfm(lua_State *L)
 	return 1;
 }
 
+
 void lua_init(lua_State *L, App *_app)
 {
 	app = _app;
@@ -1495,6 +1594,7 @@ void lua_init(lua_State *L, App *_app)
 	lua_newtable(L);
 	lua_setfield(L, LUA_REGISTRYINDEX, TABLE_CALLBACKS);
 }
+
 
 void lua_deinit(lua_State *L)
 {

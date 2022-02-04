@@ -12,7 +12,7 @@
 
 struct Result;
 
-typedef struct {
+typedef struct ResultQueue {
 	struct Result *head;
 	struct Result *tail;
 	pthread_mutex_t mutex;

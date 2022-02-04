@@ -6,7 +6,7 @@
 #include "fm.h"
 #include "ui.h"
 
-typedef struct {
+typedef struct App {
 	Ui ui;
 	Fm fm;
 	lua_State *L;

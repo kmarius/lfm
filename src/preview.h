@@ -6,7 +6,7 @@
 
 #include "cvector.h"
 
-typedef struct {
+typedef struct Preview {
 	char *path;
 	cvector_vector_type(char*) lines;
 	uint8_t nrow;

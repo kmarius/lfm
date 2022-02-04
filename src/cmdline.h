@@ -16,7 +16,7 @@ struct vwstr {
 	uint16_t len;
 };
 
-typedef struct {
+typedef struct Cmdline {
 	struct vstr prefix;
 	struct vwstr left;
 	struct vwstr right;

@@ -1,5 +1,3 @@
-#define _GNU_SOURCE
-
 #include <stdlib.h>
 #include <string.h>
 
@@ -8,6 +6,7 @@
 
 static char *search_string = NULL;
 static bool search_forward = true;
+
 
 /* pass NULL to highlight previous search */
 static inline void highlight(Ui *ui, const char *string)
@@ -20,11 +19,13 @@ static inline void highlight(Ui *ui, const char *string)
 	ui_redraw(ui, REDRAW_FM);
 }
 
+
 inline void nohighlight(Ui *ui)
 {
 	ui->highlight = NULL;
 	ui_redraw(ui, REDRAW_FM);
 }
+
 
 inline void search(Ui *ui, const char *string, bool forward)
 {
@@ -35,6 +36,7 @@ inline void search(Ui *ui, const char *string, bool forward)
 		search_forward = forward;
 	}
 }
+
 
 static void search_next_forward(Ui *ui, Fm *fm, bool inclusive)
 {
@@ -51,6 +53,7 @@ static void search_next_forward(Ui *ui, Fm *fm, bool inclusive)
 	}
 }
 
+
 static void search_next_backwards(Ui *ui, Fm *fm, bool inclusive)
 {
 	if (!search_string)
@@ -66,6 +69,7 @@ static void search_next_backwards(Ui *ui, Fm *fm, bool inclusive)
 	}
 }
 
+
 void search_next(Ui *ui, Fm *fm, bool inclusive)
 {
 	if (search_forward)
@@ -73,6 +77,7 @@ void search_next(Ui *ui, Fm *fm, bool inclusive)
 	else
 		search_next_backwards(ui, fm, inclusive);
 }
+
 
 void search_prev(Ui *ui, Fm *fm, bool inclusive)
 {

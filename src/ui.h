@@ -2,6 +2,7 @@
 
 #include <lua.h>
 #include <notcurses/notcurses.h>
+#include <stdarg.h>
 
 #include "cache.h"
 #include "cmdline.h"

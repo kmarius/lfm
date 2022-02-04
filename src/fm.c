@@ -18,6 +18,7 @@
 
 #define T Fm
 
+
 #define FM_INITIALIZER ((T){ \
 		.load.mode = MODE_COPY, \
 		})
@@ -25,12 +26,14 @@
 #define is_absolute(path) (*(path) == '/')
 #define is_relative(path) !is_absolute(path)
 
+
 static Dir *fm_load_dir(T *t, const char *path);
 static void fm_update_watchers(T *t);
 static void fm_remove_preview(T *t);
 static void fm_mark_save(T *t, char mark, const char *path);
 static void fm_populate(T *t);
 static bool fm_cursor_move(T *t, int16_t ct);
+
 
 bool cvector_contains(const char *path, cvector_vector_type(char*) selection)
 {
@@ -40,6 +43,7 @@ bool cvector_contains(const char *path, cvector_vector_type(char*) selection)
 	}
 	return false;
 }
+
 
 static void cvector_unsparse(cvector_vector_type(char *) vec)
 {
@@ -77,6 +81,7 @@ static void fm_populate(T *t)
 	}
 }
 
+
 void fm_init(T *t)
 {
 	if (cfg.startpath) {
@@ -102,6 +107,7 @@ void fm_init(T *t)
 	fm_update_preview(t);
 }
 
+
 void fm_recol(T *t)
 {
 	fm_remove_preview(t);
@@ -123,6 +129,7 @@ void fm_recol(T *t)
 
 	fm_update_preview(t);
 }
+
 
 bool fm_chdir(T *t, const char *path, bool save)
 {
@@ -171,11 +178,13 @@ bool fm_chdir(T *t, const char *path, bool save)
 	return true;
 }
 
+
 static inline void fm_update_watchers(T *t)
 {
 	// watcher for preview is updated in update_preview
 	notify_set_watchers(t->dirs.visible, t->dirs.length);
 }
+
 
 void fm_sort(T *t)
 {
@@ -207,12 +216,14 @@ void fm_sort(T *t)
 	}
 }
 
+
 void fm_hidden_set(T *t, bool hidden)
 {
 	cfg.hidden = hidden;
 	fm_sort(t);
 	fm_update_preview(t);
 }
+
 
 static Dir *fm_load_dir(T *t, const char *path)
 {
@@ -244,6 +255,7 @@ static Dir *fm_load_dir(T *t, const char *path)
 	return dir;
 }
 
+
 void fm_check_dirs(const T *t)
 {
 	for (uint16_t i = 0; i < t->dirs.length; i++) {
@@ -257,6 +269,7 @@ void fm_check_dirs(const T *t)
 	if (t->dirs.preview && !dir_check(t->dirs.preview))
 		async_dir_load(t->dirs.preview, true);
 }
+
 
 void fm_drop_cache(T *t)
 {
@@ -277,12 +290,15 @@ void fm_drop_cache(T *t)
 	fm_update_watchers(t);
 }
 
-void fm_reload(T *t) {
+
+void fm_reload(T *t)
+{
 	for (uint16_t i = 0; i < t->dirs.length; i++) {
 		if (t->dirs.visible[i])
 			async_dir_load(t->dirs.visible[i], true);
 	}
 }
+
 
 static void fm_remove_preview(T *t)
 {
@@ -294,6 +310,7 @@ static void fm_remove_preview(T *t)
 	cache_insert(&t->dirs.cache, t->dirs.preview, t->dirs.preview->path);
 	t->dirs.preview = NULL;
 }
+
 
 void fm_update_preview(T *t)
 {
@@ -342,6 +359,7 @@ void fm_update_preview(T *t)
 	}
 }
 
+
 /* selection {{{ */
 
 void fm_selection_clear(T *t)
@@ -349,6 +367,7 @@ void fm_selection_clear(T *t)
 	cvector_fclear(t->selection.files, free);
 	t->selection.length = 0;
 }
+
 
 void fm_selection_add_file(T *t, const char *path)
 {
@@ -361,6 +380,7 @@ void fm_selection_add_file(T *t, const char *path)
 	t->selection.length++;
 }
 
+
 void fm_selection_set(T *t, cvector_vector_type(char*) selection)
 {
 	fm_selection_clear(t);
@@ -368,6 +388,7 @@ void fm_selection_set(T *t, cvector_vector_type(char*) selection)
 	t->selection.files = selection;
 	t->selection.length = cvector_size(selection); // assume selection isnt sparse
 }
+
 
 void selection_toggle_file(T *t, const char *path)
 {
@@ -385,6 +406,7 @@ void selection_toggle_file(T *t, const char *path)
 	t->selection.length++;
 }
 
+
 void fm_selection_toggle_current(T *t)
 {
 	if (t->visual.active) {
@@ -395,12 +417,14 @@ void fm_selection_toggle_current(T *t)
 		selection_toggle_file(t, file_path(file));
 }
 
+
 void fm_selection_reverse(T *t)
 {
 	const Dir *dir = fm_current_dir(t);
 	for (uint16_t i = 0; i < dir->length; i++)
 		selection_toggle_file(t, file_path(dir->files[i]));
 }
+
 
 void fm_selection_visual_start(T *t)
 {
@@ -422,6 +446,7 @@ void fm_selection_visual_start(T *t)
 	}
 }
 
+
 void fm_selection_visual_stop(T *t)
 {
 	if (!t->visual.active)
@@ -434,6 +459,7 @@ void fm_selection_visual_stop(T *t)
 	cvector_set_size(t->selection.previous, 0);
 }
 
+
 void fm_selection_visual_toggle(T *t)
 {
 	if (t->visual.active)
@@ -441,6 +467,7 @@ void fm_selection_visual_toggle(T *t)
 	else
 		fm_selection_visual_start(t);
 }
+
 
 static void selection_visual_update(T *t, uint16_t origin, uint16_t from, uint16_t to)
 {
@@ -478,6 +505,7 @@ static void selection_visual_update(T *t, uint16_t origin, uint16_t from, uint16
 			selection_toggle_file(t, file_path(dir->files[lo]));
 	}
 }
+
 
 void fm_selection_write(const T *t, const char *path)
 {
@@ -527,25 +555,30 @@ static bool fm_cursor_move(T *t, int16_t ct)
 	return dir->ind != cur;
 }
 
+
 bool fm_up(T *t, int16_t ct)
 {
 	return fm_cursor_move(t, -ct);
 }
+
 
 bool fm_down(T *t, int16_t ct)
 {
 	return fm_cursor_move(t, ct);
 }
 
+
 bool fm_top(T *t)
 {
 	return fm_up(t, fm_current_dir(t)->ind);
 }
 
+
 bool fm_bot(T *t)
 {
 	return fm_down(t, fm_current_dir(t)->length - fm_current_dir(t)->ind);
 }
+
 
 void fm_move_cursor_to(T *t, const char *name)
 {
@@ -553,10 +586,12 @@ void fm_move_cursor_to(T *t, const char *name)
 	fm_update_preview(t);
 }
 
+
 void fm_move_to_ind(T *t, uint16_t ind)
 {
 	fm_cursor_move(t, ind - fm_current_dir(t)->ind);
 }
+
 
 File *fm_open(T *t)
 {
@@ -571,6 +606,7 @@ File *fm_open(T *t)
 	fm_chdir(t, file_path(file), false);
 	return NULL;
 }
+
 
 /* TODO: allow updir into directories that don't exist so we can move out of
  * deleted directories (on 2021-11-18) */
@@ -601,6 +637,7 @@ static void fm_mark_save(T *t, char mark, const char *path)
 	}
 	cvector_push_back(t->marks, ((struct jump_mark) {mark, strdup(path),}));
 }
+
 
 bool fm_mark_load(T *t, char mark)
 {
@@ -635,25 +672,30 @@ void fm_load_files(T *t, enum movemode_e mode)
 	t->selection.length = 0;
 }
 
+
 void fm_load_clear(T *t)
 {
 	cvector_fclear(t->load.files, free);
 }
+
 
 char * const *fm_get_load(const T *t)
 {
 	return t->load.files;
 }
 
+
 enum movemode_e fm_get_mode(const T *t)
 {
 	return t->load.mode;
 }
 
+
 void fm_cut(T *t)
 {
 	fm_load_files(t, MODE_MOVE);
 }
+
 
 void fm_copy(T *t)
 {
@@ -673,10 +715,12 @@ void fm_filter(T *t, const char *filter)
 	fm_update_preview(t);
 }
 
+
 const char *fm_filter_get(const T *t)
 {
 	return fm_current_dir(t)->filter;
 }
+
 
 /* }}} */
 

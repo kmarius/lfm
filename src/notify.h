@@ -1,7 +1,7 @@
 #pragma once
 
 #include <stdbool.h>
-#include <stdlib.h>
+#include <stdint.h>
 
 #include "dir.h"
 
@@ -11,7 +11,7 @@
 
 extern int inotify_fd;
 
-struct watcher_data {
+struct notify_watcher_data {
 	int wd;
 	Dir *dir;
 	uint64_t next;
@@ -25,6 +25,6 @@ void notify_remove_watcher(Dir *dir);
 
 void notify_set_watchers(Dir **dirs, uint16_t n);
 
-struct watcher_data *notify_get_watcher_data(int wd);
+struct notify_watcher_data *notify_get_watcher_data(int wd);
 
 void notify_deinit();

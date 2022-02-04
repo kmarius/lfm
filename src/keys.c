@@ -114,7 +114,9 @@ static struct {
 	{NCKEY_PRINT, "Print"},
 	{NCKEY_REFRESH, "Refresh"}};
 
+
 static const uint32_t key_names_len = sizeof(key_names_map) / sizeof(key_names_map[0]);
+
 
 const char *input_to_key_name(input_t in)
 {
@@ -161,6 +163,7 @@ const char *input_to_key_name(input_t in)
 	buf[j++] = 0;
 	return buf;
 }
+
 
 input_t *key_names_to_input(const char *keys, input_t *buf)
 {

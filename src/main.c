@@ -40,17 +40,20 @@
 #define VERSION_FMT "%s v0." VERSION "\n"
 #endif
 
+
 static void usage(const char *progname, int opt)
 {
 	fprintf(stderr, USAGE_FMT, progname ? progname : DEFAULT_PROGNAME);
 	exit(opt);
 }
 
+
 static void version()
 {
 	fprintf(stderr, VERSION_FMT, DEFAULT_PROGNAME);
 	exit(EXIT_SUCCESS);
 }
+
 
 int main(int argc, char **argv)
 {

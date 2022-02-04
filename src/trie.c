@@ -1,10 +1,11 @@
-#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 
 #include "trie.h"
+#include "util.h" // asprintf
 
 #define T Trie
+
 
 static inline T *trie_node_create(input_t key, T *next)
 {
@@ -17,10 +18,12 @@ static inline T *trie_node_create(input_t key, T *next)
 	return n;
 }
 
+
 T *trie_create()
 {
 	return trie_node_create(0, NULL);
 }
+
 
 T *trie_find_child(const T* t, input_t key)
 {
@@ -34,6 +37,7 @@ T *trie_find_child(const T* t, input_t key)
 
 	return NULL;
 }
+
 
 T *trie_insert(T* t, const input_t *trie_keys, const char *keys, const char *desc)
 {
@@ -55,6 +59,7 @@ T *trie_insert(T* t, const input_t *trie_keys, const char *keys, const char *des
 	return t;
 }
 
+
 /* we need the address of the vector because we might reallocate when pushing  */
 void trie_collect_leaves(const T *t, cvector_vector_type(char*) *vec)
 {
@@ -69,6 +74,7 @@ void trie_collect_leaves(const T *t, cvector_vector_type(char*) *vec)
 	}
 }
 
+
 void trie_destroy(T *t)
 {
 	if (!t)
@@ -81,5 +87,6 @@ void trie_destroy(T *t)
 	free(t->keys);
 	free(t);
 }
+
 
 #undef T

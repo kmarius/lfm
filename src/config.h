@@ -26,7 +26,7 @@ typedef struct {
 	uint64_t channel;
 } ext_channel_tup;
 
-typedef struct config {
+typedef struct Config {
 	wchar_t truncatechar; /* '~' */
 	char *corepath;       /* ~/.local/share/lfm/lua/core.lua */
 	char *historypath;    /* ~/.local/share/lfm/history */
@@ -61,9 +61,9 @@ typedef struct config {
 		uint64_t dir;
 		uint32_t current; /* bg channel index only */
 	} colors;
-} config;
+} Config;
 
-extern config cfg;
+extern Config cfg;
 
 void config_init();
 

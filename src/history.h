@@ -4,7 +4,7 @@
 
 /* TODO: integrate this with cmdline instead of Ui (on 2022-01-25) */
 
-typedef struct {
+typedef struct History {
 	cvector_vector_type(struct history_entry) vec;
 	struct history_entry *ptr;
 } History;

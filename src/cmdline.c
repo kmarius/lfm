@@ -6,6 +6,7 @@
 
 #define T Cmdline
 
+
 #define VSTR_INIT(vec, c) \
 	do { \
 		(vec).str = malloc(sizeof(*(vec).str) * ((c) + 1)); \
@@ -13,6 +14,7 @@
 		(vec).str[0] = 0; \
 		(vec).len = 0; \
 	} while (0)
+
 
 #define ENSURE_CAPACITY(vec, sz) \
 	do { \
@@ -23,8 +25,10 @@
 		} \
 	} while (0)
 
+
 #define ENSURE_SPACE(vec, sz) \
 	ENSURE_CAPACITY(vec, (size_t) (vec).len + sz)
+
 
 #define SHIFT_RIGHT(t, _sz) \
 	do { \
@@ -37,6 +41,7 @@
 		(t)->left.str[(t)->left.len] = 0; \
 	} while (0)
 
+
 #define SHIFT_LEFT(t, _sz) \
 	do { \
 		size_t sz = _sz; \
@@ -48,6 +53,7 @@
 		(t)->left.str[(t)->left.len] = 0; \
 	} while (0)
 
+
 void cmdline_init(T *t)
 {
 	VSTR_INIT(t->prefix, 8);
@@ -55,6 +61,7 @@ void cmdline_init(T *t)
 	VSTR_INIT(t->right, 8);
 	VSTR_INIT(t->buf, 8);
 }
+
 
 void cmdline_deinit(T *t) {
 	if (!t)
@@ -65,6 +72,7 @@ void cmdline_deinit(T *t) {
 	free(t->right.str);
 	free(t->buf.str);
 }
+
 
 bool cmdline_prefix_set(T *t, const char *prefix)
 {
@@ -78,10 +86,12 @@ bool cmdline_prefix_set(T *t, const char *prefix)
 	return true;
 }
 
+
 const char *cmdline_prefix_get(T *t)
 {
 	return t->prefix.len == 0 ? NULL : t->prefix.str;
 }
+
 
 bool cmdline_insert(T *t, const char *key)
 {
@@ -95,6 +105,7 @@ bool cmdline_insert(T *t, const char *key)
 	return true;
 }
 
+
 bool cmdline_delete(T *t)
 {
 	if (t->prefix.len == 0 || t->left.len == 0)
@@ -105,6 +116,7 @@ bool cmdline_delete(T *t)
 	return true;
 }
 
+
 bool cmdline_delete_right(T *t)
 {
 	if (t->prefix.len == 0 || t->right.len == 0)
@@ -114,6 +126,7 @@ bool cmdline_delete_right(T *t)
 	t->right.len--;
 	return true;
 }
+
 
 bool cmdline_delete_word(T *t)
 {
@@ -132,6 +145,7 @@ bool cmdline_delete_word(T *t)
 	return true;
 }
 
+
 bool cmdline_delete_line_left(T *t)
 {
 	if (t->prefix.len == 0 || t->left.len == 0)
@@ -142,6 +156,7 @@ bool cmdline_delete_line_left(T *t)
 	return true;
 }
 
+
 /* pass a ct argument to move over words? */
 bool cmdline_left(T *t)
 {
@@ -151,6 +166,7 @@ bool cmdline_left(T *t)
 	SHIFT_RIGHT(t, 1);
 	return true;
 }
+
 
 bool cmdline_word_left(T *t)
 {
@@ -170,6 +186,7 @@ bool cmdline_word_left(T *t)
 	return true;
 }
 
+
 bool cmdline_word_right(T *t)
 {
 	if (t->prefix.len == 0 || t->right.len == 0)
@@ -188,6 +205,7 @@ bool cmdline_word_right(T *t)
 	return true;
 }
 
+
 bool cmdline_right(T *t)
 {
 	if (t->prefix.len == 0 || t->right.len == 0)
@@ -196,6 +214,7 @@ bool cmdline_right(T *t)
 	SHIFT_LEFT(t, 1);
 	return true;
 }
+
 
 bool cmdline_home(T *t)
 {
@@ -206,6 +225,7 @@ bool cmdline_home(T *t)
 	return true;
 }
 
+
 bool cmdline_end(T *t)
 {
 	if (t->prefix.len == 0 || t->right.len == 0)
@@ -214,6 +234,7 @@ bool cmdline_end(T *t)
 	SHIFT_LEFT(t, t->right.len);
 	return true;
 }
+
 
 bool cmdline_clear(T *t)
 {
@@ -225,6 +246,7 @@ bool cmdline_clear(T *t)
 	t->right.len = 0;
 	return true;
 }
+
 
 bool cmdline_set_whole(T *t, const char *prefix, const char *left, const char *right)
 {
@@ -248,6 +270,7 @@ bool cmdline_set_whole(T *t, const char *prefix, const char *left, const char *r
 	return true;
 }
 
+
 bool cmdline_set(T *t, const char *line)
 {
 	if (t->prefix.len == 0)
@@ -265,6 +288,7 @@ bool cmdline_set(T *t, const char *line)
 	}
 	return true;
 }
+
 
 const char *cmdline_get(T *t)
 {
@@ -284,6 +308,7 @@ const char *cmdline_get(T *t)
 	return t->buf.str;
 }
 
+
 uint16_t cmdline_print(T *t, struct ncplane *n)
 {
 	uint16_t ret = 0;
@@ -292,5 +317,6 @@ uint16_t cmdline_print(T *t, struct ncplane *n)
 	ncplane_putwstr(n, t->right.str);
 	return ret;
 }
+
 
 #undef T

@@ -23,7 +23,6 @@
  *  - close stdin
  */
 
-#define _GNU_SOURCE // execvpe
 #include <unistd.h>
 #include <errno.h>
 #include <signal.h>
@@ -118,7 +117,9 @@ static int popen2_impl(FILE** in, FILE** out, FILE** err, const char* program,
 		}
 		if (lookup_path) {
 			if (envp != NULL) {
-				execvpe(program, (char**) argv, (char**) envp);
+				/* TODO: GNU extension. Implement this should we ever need it (on 2022-02-04) */
+				return 0;
+				// execvpe(program, (char**) argv, (char**) envp);
 			} else {
 				execvp(program, (char**) argv);
 			}

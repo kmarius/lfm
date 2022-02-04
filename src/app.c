@@ -66,6 +66,7 @@ static void async_result_cb(EV_P_ ev_async *w, int revents)
 	ev_idle_start(loop, &redraw_watcher);
 }
 
+
 static void timer_cb(EV_P_ ev_timer *w, int revents)
 {
 	(void) loop;
@@ -79,6 +80,7 @@ static void timer_cb(EV_P_ ev_timer *w, int revents)
 
 	log_debug("tick");
 }
+
 
 static void stdin_cb(EV_P_ ev_io *w, int revents)
 {
@@ -96,10 +98,12 @@ static void stdin_cb(EV_P_ ev_io *w, int revents)
 	ev_idle_start(loop, &redraw_watcher);
 }
 
+
 struct stdout_watcher_data {
 	App *app;
 	FILE *stream;
 };
+
 
 static void command_stdout_cb(EV_P_ ev_io *w, int revents)
 {
@@ -128,6 +132,7 @@ static void command_stdout_cb(EV_P_ ev_io *w, int revents)
 	ev_idle_start(loop, &redraw_watcher);
 }
 
+
 static void app_read_fifo(T *t)
 {
 	char buf[8192 * 2];
@@ -143,6 +148,7 @@ static void app_read_fifo(T *t)
 	}
 	ev_idle_start(t->loop, &redraw_watcher);
 }
+
 
 /* TODO: we currently don't notice if the current directory is deleted while
  * empty (on 2021-11-18) */
@@ -170,7 +176,7 @@ static void inotify_cb(EV_P_ ev_io *w, int revents)
 				continue;
 			}
 
-			struct watcher_data *data = notify_get_watcher_data(event->wd);
+			struct notify_watcher_data *data = notify_get_watcher_data(event->wd);
 			if (!data)
 				continue;
 
@@ -194,6 +200,7 @@ static void inotify_cb(EV_P_ ev_io *w, int revents)
 	}
 }
 
+
 /* To run command line cmds after loop starts. I think it is called back before
  * every other cb. */
 static void prepare_cb(EV_P_ ev_prepare *w, int revents)
@@ -214,6 +221,7 @@ static void prepare_cb(EV_P_ ev_prepare *w, int revents)
 	ev_prepare_stop(loop, w);
 }
 
+
 static void sigwinch_cb(EV_P_ ev_signal *w, int revents)
 {
 	(void) revents;
@@ -223,12 +231,14 @@ static void sigwinch_cb(EV_P_ ev_signal *w, int revents)
 	ev_idle_start(loop, &redraw_watcher);
 }
 
+
 struct child_watcher_data {
 	App *app;
 	int cb_index;
 	ev_io *stdout_watcher;
 	ev_io *stderr_watcher;
 };
+
 
 static void child_cb(EV_P_ ev_child *w, int revents)
 {
@@ -257,6 +267,7 @@ static void child_cb(EV_P_ ev_child *w, int revents)
 	free(w);
 }
 
+
 static void redraw_cb(EV_P_ ev_idle *w, int revents)
 {
 	(void) revents;
@@ -264,8 +275,8 @@ static void redraw_cb(EV_P_ ev_idle *w, int revents)
 	ui_draw(&app->ui);
 	ev_idle_stop(loop, w);
 }
-
 /* callbacks }}} */
+
 
 void app_init(T *t)
 {
@@ -345,16 +356,19 @@ void app_init(T *t)
 	log_info("initialized app");
 }
 
+
 void app_run(T *t)
 {
 	ev_run(t->loop, 0);
 }
+
 
 void app_quit(T *t)
 {
 	lua_run_hook(t->L, "ExitPre");
 	ev_break(t->loop, EVBREAK_ALL);
 }
+
 
 static ev_io *add_io_watcher(T *t, FILE* f)
 {
@@ -376,6 +390,7 @@ static ev_io *add_io_watcher(T *t, FILE* f)
 	return w;
 }
 
+
 static void add_child_watcher(T *t, int pid, int cb_index, ev_io *stdout_watcher, ev_io *stderr_watcher)
 {
 	ev_child *w = malloc(sizeof(ev_child));
@@ -391,6 +406,7 @@ static void add_child_watcher(T *t, int pid, int cb_index, ev_io *stdout_watcher
 	ev_child_start(t->loop, w);
 	cvector_push_back(child_watchers, w);
 }
+
 
 bool app_execute(T *t, const char *prog, char *const *args, bool forking, bool out, bool err, int key)
 {
@@ -437,6 +453,7 @@ bool app_execute(T *t, const char *prog, char *const *args, bool forking, bool o
 	}
 }
 
+
 void print(const char *format, ...)
 {
 	va_list args;
@@ -448,6 +465,7 @@ void print(const char *format, ...)
 	ui_vechom(&_app->ui, format, args);
 	va_end(args);
 }
+
 
 void error(const char *format, ...)
 {
@@ -461,11 +479,13 @@ void error(const char *format, ...)
 	va_end(args);
 }
 
+
 void app_timeout_set(T *t, uint16_t duration)
 {
 	(void) t;
 	input_timeout = current_millis() + duration;
 }
+
 
 void app_deinit(T *t)
 {

@@ -3,7 +3,9 @@
 #include "fm.h"
 #include "ui.h"
 
+
 static char *find_prefix;
+
 
 bool find(Fm *fm, Ui *ui, const char *prefix)
 {
@@ -23,6 +25,7 @@ bool find(Fm *fm, Ui *ui, const char *prefix)
 	return nmatches == 1;
 }
 
+
 void find_next(Fm *fm, Ui *ui)
 {
 	if (!find_prefix)
@@ -38,6 +41,7 @@ void find_next(Fm *fm, Ui *ui)
 	}
 }
 
+
 void find_prev(Fm *fm, Ui *ui)
 {
 	if (!find_prefix)
@@ -52,6 +56,7 @@ void find_prev(Fm *fm, Ui *ui)
 		}
 	}
 }
+
 
 void find_clear()
 {

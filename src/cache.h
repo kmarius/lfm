@@ -3,7 +3,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-typedef struct {
+typedef struct Cache {
 	struct node *nodes;
 	uint16_t size;
 	uint16_t capacity;

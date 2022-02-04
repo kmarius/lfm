@@ -20,7 +20,7 @@ struct jump_mark {
 	char *path;
 };
 
-typedef struct {
+typedef struct Fm {
 
 	/* Height of the fm in the ui, needed to adjust pos for each dir */
 	uint16_t height;
