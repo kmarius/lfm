@@ -35,16 +35,6 @@ static void fm_populate(T *t);
 static bool fm_cursor_move(T *t, int16_t ct);
 
 
-bool cvector_contains(const char *path, cvector_vector_type(char*) selection)
-{
-	for (size_t i = 0; i < cvector_size(selection); i++) {
-		if (selection[i] && streq(selection[i], path))
-			return true;
-	}
-	return false;
-}
-
-
 static void fm_populate(T *t)
 {
 	char pwd[PATH_MAX];
@@ -490,7 +480,7 @@ static void selection_visual_update(T *t, uint16_t origin, uint16_t from, uint16
 	const Dir *dir = fm_current_dir(t);
 	for (; lo <= hi; lo++) {
 		/* never unselect the old selection */
-		if (!cvector_contains(file_path(dir->files[lo]), t->selection.previous))
+		if (!cvector_contains_str(t->selection.previous, file_path(dir->files[lo])))
 			selection_toggle_file(t, file_path(dir->files[lo]));
 	}
 }

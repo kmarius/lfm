@@ -623,11 +623,11 @@ static void print_file(struct ncplane *n, const File *file,
 
 	ncplane_set_bg_default(n);
 
-	if (cvector_contains(file_path(file), sel))
+	if (cvector_contains_str(sel, file_path(file)))
 		ncplane_set_channels(n, cfg.colors.selection);
-	else if (mode == MODE_MOVE && cvector_contains(file_path(file), load))
+	else if (mode == MODE_MOVE && cvector_contains_str(load, file_path(file)))
 		ncplane_set_channels(n, cfg.colors.delete);
-	else if (mode == MODE_COPY && cvector_contains(file_path(file), load))
+	else if (mode == MODE_COPY && cvector_contains_str(load, file_path(file)))
 		ncplane_set_channels(n, cfg.colors.copy);
 
 	// this is needed because when selecting with space the filename is printed

@@ -358,3 +358,21 @@
 		} \
 		cvector_set_size(vec, j); \
 	} while (0)
+
+/* statement exprs are a GNU extension */
+/**
+ * @brief cvector_contains_str Check if a vector contains a string.
+ * @param vec - the vector
+ * @param str - the string
+ * @return void
+ */
+#define cvector_contains_str(vec, str) ({ \
+		size_t sz = cvector_size((vec)); \
+		bool ret = false; \
+		for (size_t i = 0; i < sz; i++) { \
+			if ((vec)[i] && *(vec)[i] == *(str) && streq((vec)[i], (str))) { \
+				ret = true; \
+				break; \
+			} \
+		} \
+		ret; })
