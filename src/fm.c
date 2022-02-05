@@ -45,17 +45,6 @@ bool cvector_contains(const char *path, cvector_vector_type(char*) selection)
 }
 
 
-static void cvector_unsparse(cvector_vector_type(char *) vec)
-{
-	size_t j = 0;
-	for (size_t i = 0; i < cvector_size(vec); i++) {
-		if (vec[i])
-			vec[j++] = vec[i];
-	}
-	cvector_set_size(vec, j);
-}
-
-
 static void fm_populate(T *t)
 {
 	char pwd[PATH_MAX];
@@ -667,7 +656,7 @@ void fm_load_files(T *t, enum movemode_e mode)
 	fm_load_clear(t);
 	char **tmp = t->load.files;
 	t->load.files = t->selection.files;
-	cvector_unsparse(t->load.files);
+	cvector_compact(t->load.files);
 	t->selection.files = tmp;
 	t->selection.length = 0;
 }

@@ -342,3 +342,19 @@
 		cvector_set_size(to, cvector_size(from)); \
 		memcpy(to, from, cvector_size(from) * sizeof(*(from))); \
 	} while (0)
+
+/**
+ * @brief cvector_compact Remove NULL elements from a vector. Retains order.
+ * @param vec - the vector
+ * @return void
+ */
+#define cvector_compact(vec) \
+	do { \
+		size_t j = 0; \
+		size_t sz = cvector_size((vec)); \
+		for (size_t i = 0; i < sz; i++) { \
+			if (vec[i]) \
+				vec[j++] = vec[i]; \
+		} \
+		cvector_set_size(vec, j); \
+	} while (0)

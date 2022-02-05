@@ -15,7 +15,7 @@ typedef struct File {
 	char *link_target;
 	bool isbroken;
 	bool isexec;
-	int16_t dircount; /* in case of dir */
+	int16_t dircount; /* in case of dir, < 0 if not loaded yet */
 } File;
 
 File *file_init(File *file, const char *dir, const char *name);

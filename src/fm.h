@@ -137,7 +137,7 @@ void fm_filter(Fm *fm, const char *filter);
 const char *fm_filter_get(const Fm *fm);
 
 /*
- *  TODO: wrong way around? (on 2021-08-04)
+ *  Show hidden files.
  */
 void fm_hidden_set(Fm *fm, bool hidden);
 
