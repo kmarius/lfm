@@ -26,7 +26,7 @@ find_library(LIB_NOTCURSES notcurses REQUIRED)
 find_library(LIB_NOTCURSES_CORE notcurses-core REQUIRED)
 find_library(LIB_EV ev REQUIRED)
 
-include_directories(/usr/include/luajit-2.0)
+include_directories(/usr/include/luajit-2.1)
 find_library(LIB_LUAJIT luajit-5.1 REQUIRED)
 
 target_link_libraries(lfm

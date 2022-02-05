@@ -175,7 +175,7 @@ static int l_execute(lua_State *L)
 
 	luaL_checktype(L, 1, LUA_TTABLE);
 
-	const uint16_t n = luaL_getn(L, 1);
+	const uint16_t n = lua_objlen(L, 1);
 	if (n == 0)
 		luaL_error(L, "no command given");
 
@@ -207,7 +207,7 @@ static int l_execute(lua_State *L)
 		lua_getfield(L, 2, "callback");
 		if (!lua_isnoneornil(L, -1)) {
 			lua_getfield(L, LUA_REGISTRYINDEX, TABLE_CALLBACKS);
-			cb_index = luaL_getn(L, -1) + 1;
+			cb_index = lua_objlen(L, -1) + 1;
 			lua_pushvalue(L, -2);
 			lua_rawseti(L, -2, cb_index);
 			lua_pop(L, 1);
@@ -586,7 +586,7 @@ static int l_ui_menu(lua_State *L)
 {
 	cvector_vector_type(char*) menubuf = NULL;
 	if (lua_type(L, -1) == LUA_TTABLE) {
-		cvector_grow(menubuf, luaL_getn(L, -1));
+		cvector_grow(menubuf, lua_objlen(L, -1));
 		for (lua_pushnil(L); lua_next(L, -2); lua_pop(L, 1))
 			cvector_push_back(menubuf, strdup(luaL_checkstring(L, -1)));
 	}
