@@ -136,8 +136,10 @@ void ui_deinit(T *t)
 	history_deinit(&t->history);
 	cvector_ffree(t->messages, free);
 	cvector_ffree(t->menubuf, free);
-	cache_return(&t->preview.cache, t->preview.preview, t->preview.preview->path);
-	t->preview.preview = NULL;
+	if (t->preview.preview) {
+		cache_return(&t->preview.cache, t->preview.preview, t->preview.preview->path);
+		t->preview.preview = NULL;
+	}
 	cache_deinit(&t->preview.cache);
 	cmdline_deinit(&t->cmdline);
 	cvector_ffree(t->planes.dirs, ncplane_destroy);
@@ -956,9 +958,11 @@ static void plane_draw_file_preview(struct ncplane *n, Preview *pv)
 
 void ui_drop_cache(T *t)
 {
-	cache_return(&t->preview.cache, t->preview.preview, t->preview.preview->path);
-	t->preview.preview = NULL;
-	cache_clear(&t->preview.cache);
+	if (t->preview.preview) {
+		cache_return(&t->preview.cache, t->preview.preview, t->preview.preview->path);
+		t->preview.preview = NULL;
+	}
+	cache_drop(&t->preview.cache);
 	update_preview(t);
 	ui_redraw(t, REDRAW_CMDLINE);
 	ui_redraw(t, REDRAW_PREVIEW);

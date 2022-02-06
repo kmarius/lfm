@@ -15,17 +15,15 @@
 #include "sort.h"
 #include "util.h"
 
-
 #define T Dir
-
 
 #define DIR_INITIALIZER ((T){ \
 		.dirfirst = true, \
 		.sorttype = SORT_NATURAL, \
 		})
 
-
 bool dir_isroot(const T *t);
+
 static void apply_filter(T *t);
 static inline void swap(File **a, File **b);
 static void shuffle(void *arr, size_t n, size_t size);

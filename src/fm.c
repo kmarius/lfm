@@ -18,7 +18,6 @@
 
 #define T Fm
 
-
 #define FM_INITIALIZER ((T){ \
 		.load.mode = MODE_COPY, \
 		})
@@ -268,16 +267,16 @@ void fm_check_dirs(const T *t)
 void fm_drop_cache(T *t)
 {
 	/* TODO: disabled, force reload everything instead? (on 2022-01-25) */
-	return;
 	notify_set_watchers(NULL, 0);
 
+	log_debug("dropping cache");
 	for (uint16_t i = 0; i < t->dirs.length; i++) {
 		if (t->dirs.visible[i])
-			dir_destroy(t->dirs.visible[i]);
+			cache_return(&t->dirs.cache, t->dirs.visible[i], t->dirs.visible[i]->path);
 	}
 	fm_remove_preview(t);
 
-	cache_clear(&t->dirs.cache);
+	cache_drop(&t->dirs.cache);
 
 	fm_populate(t);
 	fm_update_preview(t);

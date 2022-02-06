@@ -11,7 +11,6 @@
 #define LCHILD(i) (2 * (i) + 1)
 #define RCHILD(i) (2 * (i) + 2)
 
-
 struct node {
 	void *ptr;
 	uint16_t sort_key;
@@ -65,6 +64,7 @@ void cache_init(T *t, uint16_t capacity, void (*free)(void*))
 	t->capacity = capacity;
 	t->size = 0;
 	t->free = free;
+	t->version = 0;
 }
 
 
@@ -149,16 +149,22 @@ void *cache_take(T *t, const void *key)
 }
 
 
-void cache_clear(T *t)
+void cache_drop(T *t)
 {
-	for (uint16_t i = 0; i < t->size; i++)
-		t->free(t->nodes[i].ptr);
-	t->size = 0;
+	uint16_t j = 0;
+	for (uint16_t i = 0; i < t->size; i++) {
+		if (t->nodes[i].in_use)
+			t->nodes[j++] = t->nodes[i];
+		else
+			t->free(t->nodes[i].ptr);
+	}
+	t->size = j;
+	t->version++;
 }
 
 
 void cache_deinit(T *t) {
-	cache_clear(t);
+	cache_drop(t);
 	free(t->nodes);
 }
 

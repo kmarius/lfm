@@ -6,7 +6,6 @@
 
 #define T Cmdline
 
-
 #define VSTR_INIT(vec, c) \
 	do { \
 		(vec).str = malloc(sizeof(*(vec).str) * ((c) + 1)); \

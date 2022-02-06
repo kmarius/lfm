@@ -11,6 +11,22 @@ typedef struct App {
 	Fm fm;
 	lua_State *L;
 	struct ev_loop *loop;
+
+	int fifo_fd;
+	int fifo_wd;
+
+	int inotify_fd;
+
+	uint64_t input_timeout;
+
+	ev_async async_res_watcher;
+	ev_idle redraw_watcher;
+	ev_io inotify_watcher;
+	ev_prepare prepare_watcher;
+	ev_signal signal_watcher;
+	ev_io input_watcher;
+	ev_timer timer_watcher;
+	cvector_vector_type(ev_child *) child_watchers; /* to run callbacks when processes finish */
 } App;
 
 /*

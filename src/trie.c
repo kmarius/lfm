@@ -6,7 +6,6 @@
 
 #define T Trie
 
-
 static inline T *trie_node_create(input_t key, T *next)
 {
 	T *n = malloc(sizeof(*n));

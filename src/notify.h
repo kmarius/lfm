@@ -6,10 +6,8 @@
 #include "dir.h"
 
 /* TODO: put this in the config (on 2021-07-29) */
-#define NOTIFY_TIMEOUT 500 /* ms */
-#define NOTIFY_DELAY 50	/* ms */
-
-extern int inotify_fd;
+#define NOTIFY_TIMEOUT 500 // minimum time between directory reloads
+#define NOTIFY_DELAY 50	// delay before reloading after an event is triggered
 
 struct notify_watcher_data {
 	int wd;
@@ -17,7 +15,8 @@ struct notify_watcher_data {
 	uint64_t next;
 };
 
-bool notify_init();
+// Returns a file descriptor to watch for events or -1 on failure.
+int notify_init();
 
 void notify_add_watcher(Dir *dir);
 

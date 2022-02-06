@@ -11,10 +11,8 @@
 
 #define NOTIFY_EVENTS (IN_MODIFY | IN_CREATE | IN_DELETE | IN_MOVED_FROM | IN_MOVED_TO | IN_ATTRIB)
 
-int inotify_fd = -1;
-
+static int inotify_fd = -1;
 static cvector_vector_type(struct notify_watcher_data) watchers = NULL;
-
 
 #define unwatch(t) \
 	do { \
@@ -22,13 +20,13 @@ static cvector_vector_type(struct notify_watcher_data) watchers = NULL;
 	} while (0)
 
 
-bool notify_init()
+int notify_init()
 {
 	if (inotify_fd != -1)
 		return false;
 
 	inotify_fd = inotify_init1(IN_NONBLOCK);
-	return inotify_fd != -1;
+	return inotify_fd;
 }
 
 

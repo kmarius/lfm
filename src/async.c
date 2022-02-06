@@ -1,20 +1,67 @@
+#include <sys/sysinfo.h>
+#include <errno.h>
+
 #include "async.h"
+#include "cache.h"
 #include "config.h"
 #include "fm.h"
+#include "log.h"
 #include "ui.h"
 #include "util.h"
 
-#define DIRCOUNT_THRESHOLD 200 /* in ms */
+#define DIRCOUNT_THRESHOLD 200 // send batches of dircounts around every 200ms
 
-tpool_t *async_tm;
+static tpool_t *async_tm = NULL;
+static Cache *dircache = NULL;
+static Cache *previewcache = NULL;
 
-ResultQueue async_results = {
+static ResultQueue async_results = {
 	.head = NULL,
 	.tail = NULL,
 	.watcher = NULL,
 	.mutex = PTHREAD_MUTEX_INITIALIZER,
 };
 
+static void result_destroy(struct Result *res);
+
+void async_init(App *app)
+{
+	dircache = &app->fm.dirs.cache;
+	previewcache = &app->ui.preview.cache;
+
+	if (pthread_mutex_init(&async_results.mutex, NULL) != 0) {
+		log_error("pthread_mutex_init: %s", strerror(errno));
+		exit(EXIT_FAILURE);
+	}
+	async_results.watcher = &app->async_res_watcher;
+
+	struct async_watcher_data *async_res_watcher_data = malloc(sizeof(*async_res_watcher_data));
+	async_res_watcher_data->app = app;
+	async_res_watcher_data->queue = &async_results;
+	app->async_res_watcher.data = async_res_watcher_data;
+
+	ev_async_send(EV_DEFAULT_ &app->async_res_watcher); /* results will arrive before the loop starts */
+
+	const size_t nthreads = get_nprocs()+1;
+	async_tm = tpool_create(nthreads);
+}
+
+
+void async_deinit()
+{
+	tpool_wait(async_tm);
+	tpool_destroy(async_tm);
+	async_tm = NULL;
+
+	struct Result *res;
+	while ((res = resultqueue_get(&async_results)))
+		result_destroy(res);
+	pthread_mutex_destroy(&async_results.mutex);
+	free(async_results.watcher->data);
+
+	dircache = NULL;
+	previewcache = NULL;
+}
 
 /*
  * `callback` is run on the main thread and should do whatever is necessary to process Result,
@@ -46,27 +93,7 @@ static void result_destroy(struct Result *res)
 }
 
 
-/* result queue {{{ */
-
-#define T ResultQueue
-
-
-void resultqueue_init(T *t, ev_async *watcher)
-{
-	t->watcher = watcher;
-}
-
-
-void resultqueue_deinit(T *t)
-{
-	struct Result *res;
-	while ((res = resultqueue_get(t)))
-		result_destroy(res);
-	pthread_mutex_destroy(&async_results.mutex);
-}
-
-
-static void resultqueue_put(T *t, struct Result *res)
+static void resultqueue_put(ResultQueue *t, struct Result *res)
 {
 	if (!t->head) {
 		t->head = res;
@@ -78,7 +105,7 @@ static void resultqueue_put(T *t, struct Result *res)
 }
 
 
-struct Result *resultqueue_get(T *t)
+struct Result *resultqueue_get(ResultQueue *t)
 {
 	struct Result *res = t->head;
 
@@ -93,10 +120,6 @@ struct Result *resultqueue_get(T *t)
 	return res;
 }
 
-
-#undef T
-
-/* }}} */
 
 static inline void enqueue_and_signal(struct Result *res)
 {
@@ -205,6 +228,7 @@ struct DirCountResult {
 		uint16_t count;
 	} *dircounts;
 	bool last;
+	uint8_t version;
 };
 
 
@@ -220,7 +244,7 @@ static void DirCountResult_callback(struct DirCountResult *res, App *app)
 	/* for now, just discard the dircount updates if any other update has been
 	 * applied in the meantime. This does not protect against the dir getting purged from
 	 * the cache.*/
-	if (res->dir->updates <= 1)  {
+	if (res->version == dircache->version && res->dir->updates <= 1)  {
 		for (size_t i = 0; i < cvector_size(res->dircounts); i++)
 			file_dircount_set(res->dircounts[i].file, res->dircounts[i].count);
 		ui_redraw(&app->ui, REDRAW_FM);
@@ -245,7 +269,7 @@ static struct Result_vtable DirCountResult_vtable = {
 };
 
 
-static inline struct DirCountResult *DirCountResult_create(Dir *dir, struct dircount* files, bool last)
+static inline struct DirCountResult *DirCountResult_create(Dir *dir, struct dircount* files, uint8_t version, bool last)
 {
 	struct DirCountResult *res = malloc(sizeof(struct DirCountResult));
 	res->super.vtable = &DirCountResult_vtable;
@@ -253,12 +277,13 @@ static inline struct DirCountResult *DirCountResult_create(Dir *dir, struct dirc
 	res->dir = dir;
 	res->dircounts = files;
 	res->last = last;
+	res->version = version;
 	return res;
 }
 
 
 // Not a worker function because we just call it from async_dir_load_worker
-static void async_load_dircounts(Dir *dir, uint16_t n, struct file_path *files)
+static void async_load_dircounts(Dir *dir, uint8_t version, uint16_t n, struct file_path *files)
 {
 	cvector_vector_type(struct dircount) counts = NULL;
 
@@ -269,7 +294,7 @@ static void async_load_dircounts(Dir *dir, uint16_t n, struct file_path *files)
 		cvector_push_back(counts, ((struct dircount) {files[i].file, path_dircount_load(files[i].path)}));
 
 		if (current_millis() - latest > DIRCOUNT_THRESHOLD) {
-			struct DirCountResult *res = DirCountResult_create(dir, counts, false);
+			struct DirCountResult *res = DirCountResult_create(dir, counts, version, false);
 			enqueue_and_signal((struct Result *) res);
 
 			counts = NULL;
@@ -277,7 +302,7 @@ static void async_load_dircounts(Dir *dir, uint16_t n, struct file_path *files)
 		}
 	}
 
-	struct DirCountResult *res = DirCountResult_create(dir, counts, true);
+	struct DirCountResult *res = DirCountResult_create(dir, counts, version, true);
 	enqueue_and_signal((struct Result *) res);
 
 	free(files);
@@ -292,12 +317,14 @@ struct DirUpdateResult {
 	struct Result super;
 	Dir *dir;
 	Dir *update;
+	uint8_t version;
 };
 
 
 static void DirUpdateResult_callback(struct DirUpdateResult *res, App *app)
 {
-	if (res->dir->flatten_level == res->update->flatten_level) {
+	if (res->version == dircache->version
+			&& res->dir->flatten_level == res->update->flatten_level) {
 		dir_update_with(res->dir, res->update, app->fm.height, cfg.scrolloff);
 		if (res->dir->visible) {
 			fm_update_preview(&app->fm);
@@ -323,13 +350,14 @@ static struct Result_vtable DirUpdateResult_vtable = {
 };
 
 
-static inline struct DirUpdateResult *DirUpdateResult_create(Dir *dir, Dir *update)
+static inline struct DirUpdateResult *DirUpdateResult_create(Dir *dir, Dir *update, uint8_t version)
 {
 	struct DirUpdateResult *res = malloc(sizeof(struct DirUpdateResult));
 	res->super.vtable = &DirUpdateResult_vtable;
 	res->super.next = NULL;
 	res->dir = dir;
 	res->update = update;
+	res->version = version;
 	return res;
 }
 
@@ -340,6 +368,7 @@ struct dir_load_work {
 	uint16_t delay;
 	bool dircounts;
 	uint8_t level;
+	uint8_t version;
 };
 
 
@@ -356,7 +385,7 @@ static void async_dir_load_worker(void *arg)
 	else
 		dir = dir_load(work->path, work->dircounts);
 
-	struct DirUpdateResult *res = DirUpdateResult_create(work->dir, dir);
+	struct DirUpdateResult *res = DirUpdateResult_create(work->dir, dir, work->version);
 
 	const uint16_t nfiles = res->update->length_all;
 	struct file_path *files = NULL;
@@ -371,12 +400,11 @@ static void async_dir_load_worker(void *arg)
 	enqueue_and_signal((struct Result *) res);
 
 	if (!work->dircounts && nfiles > 0)
-		async_load_dircounts(work->dir, nfiles, files);
+		async_load_dircounts(work->dir, work->version, nfiles, files);
 
 	free(work->path);
 	free(work);
 }
-
 
 void async_dir_load_delayed(Dir *dir, bool dircounts, uint16_t delay /* millis */)
 {
@@ -386,6 +414,7 @@ void async_dir_load_delayed(Dir *dir, bool dircounts, uint16_t delay /* millis *
 	work->delay = delay;
 	work->dircounts = dircounts;
 	work->level = dir->flatten_level;
+	work->version = dircache->version;
 	tpool_add_work(async_tm, async_dir_load_worker, work);
 }
 
@@ -484,14 +513,19 @@ struct PreviewLoadResult {
 	struct Result super;
 	Preview *preview;
 	Preview *update;
+	uint8_t version;
 };
 
 
 static void PreviewLoadResult_callback(struct PreviewLoadResult *res, App *app)
 {
-	/* TODO: make this safer (on 2022-02-06) */
-	preview_update_with(res->preview, res->update);
-	ui_redraw(&app->ui, REDRAW_PREVIEW);
+	/* TODO: make this safer, previewcache.version protects against dropped caches only (on 2022-02-06) */
+	if (res->version == previewcache->version) {
+		preview_update_with(res->preview, res->update);
+		ui_redraw(&app->ui, REDRAW_PREVIEW);
+	} else {
+		preview_destroy(res->update);
+	}
 	free(res);
 }
 
@@ -509,13 +543,14 @@ static struct Result_vtable PreviewLoadResult_vtable = {
 };
 
 
-static inline struct PreviewLoadResult *PreviewLoadResult_create(Preview *preview, Preview *update)
+static inline struct PreviewLoadResult *PreviewLoadResult_create(Preview *preview, Preview *update, uint8_t version)
 {
 	struct PreviewLoadResult *res = malloc(sizeof(struct PreviewLoadResult));
 	res->super.vtable = &PreviewLoadResult_vtable;
 	res->super.next = NULL;
 	res->preview = preview;
 	res->update = update;
+	res->version = version;
 	return res;
 }
 
@@ -524,6 +559,7 @@ struct preview_load_work {
 	char *path;
 	Preview *preview;
 	int nrow;
+	uint8_t version;
 };
 
 
@@ -533,7 +569,8 @@ static void async_preview_load_worker(void *arg)
 
 	struct PreviewLoadResult *res = PreviewLoadResult_create(
 			work->preview,
-			preview_create_from_file(work->path, work->nrow));
+			preview_create_from_file(work->path, work->nrow),
+			work->version);
 	enqueue_and_signal((struct Result *) res);
 
 	free(work->path);

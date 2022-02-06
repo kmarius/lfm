@@ -21,7 +21,7 @@
 	((NCCHANNEL_INITIALIZER_PALINDEX(fg) << 32lu) \
 	 | NCCHANNEL_INITIALIZER_PALINDEX(bg))
 
-typedef struct {
+typedef struct ext_channel_tup {
 	char *ext;
 	uint64_t channel;
 } ext_channel_tup;

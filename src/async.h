@@ -19,10 +19,14 @@ typedef struct ResultQueue {
 	ev_async *watcher;
 } ResultQueue;
 
-extern tpool_t *async_tm;
-extern ResultQueue async_results;
+struct async_watcher_data {
+	App *app;
+	ResultQueue *queue;
+};
 
-void resultqueue_init(ResultQueue *queue, ev_async *watcher);
+void async_init(App *app);
+
+void async_deinit();
 
 /*
  * Returns a `res_t` from `queue` if it is non-empty, `NULL` otherwise.

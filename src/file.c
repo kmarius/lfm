@@ -11,9 +11,7 @@
 
 #include "file.h"
 
-
 #define T File
-
 
 #define FILE_INITIALIZER ((T) { \
 		.dircount = -1,\

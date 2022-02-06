@@ -7,6 +7,7 @@ typedef struct Cache {
 	struct node *nodes;
 	uint16_t size;
 	uint16_t capacity;
+	uint8_t version;
 	void (*free)(void*);
 } Cache;
 
@@ -17,4 +18,4 @@ void cache_return(Cache *cache, void *e, const char *key);
 bool cache_contains_ptr(Cache *cache, const void *ptr);
 void *cache_find(Cache *cache, const void *key);
 void *cache_take(Cache *cache, const void *key);
-void cache_clear(Cache *cache);
+void cache_drop(Cache *cache);
