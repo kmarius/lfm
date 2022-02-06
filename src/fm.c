@@ -147,7 +147,6 @@ bool fm_chdir(T *t, const char *path, bool save)
 	if (save && !fm_current_dir(t)->error)
 		fm_mark_save(t, '\'', fm_current_dir(t)->path);
 
-
 	fm_remove_preview(t);
 	for (uint16_t i = 0; i < t->dirs.length; i++) {
 		if (t->dirs.visible[i]) {
@@ -170,34 +169,26 @@ static inline void fm_update_watchers(T *t)
 }
 
 
+/* TODO: maybe we can select the closest non-hidden file in case the
+ * current one will be hidden (on 2021-10-17) */
+static inline void fm_sort_and_reselect(T *t, Dir *dir)
+{
+	if (!dir)
+		return;
+
+	dir->hidden = cfg.hidden;
+	const File *file = dir_current_file(dir);
+	dir_sort(dir);
+	if (file)
+		dir_cursor_move_to(dir, file_name(file), t->height, cfg.scrolloff);
+}
+
+
 void fm_sort(T *t)
 {
-	for (uint16_t i = 0; i < t->dirs.length; i++) {
-		if (t->dirs.visible[i]) {
-			t->dirs.visible[i]->hidden = cfg.hidden;
-			/* TODO: maybe we can select the closest non-hidden file in case the
-			 * current one will be hidden (on 2021-10-17) */
-			if (t->dirs.visible[i]->length > 0) {
-				const File *file = dir_current_file(t->dirs.visible[i]);
-				const char *name = file ? file_name(file) : NULL; // dir_sort changes the files array
-				dir_sort(t->dirs.visible[i]);
-				dir_cursor_move_to(t->dirs.visible[i], name, t->height, cfg.scrolloff);
-			} else {
-				dir_sort(t->dirs.visible[i]);
-			}
-		}
-	}
-	if (t->dirs.preview) {
-		t->dirs.preview->hidden = cfg.hidden;
-		if (t->dirs.preview->length > 0) {
-			const File *file = dir_current_file(t->dirs.preview);
-			const char *name = file ? file_name(file) : NULL;
-			dir_sort(t->dirs.preview);
-			dir_cursor_move_to(t->dirs.preview, name, t->height, cfg.scrolloff);
-		} else {
-			dir_sort(t->dirs.preview);
-		}
-	}
+	for (uint16_t i = 0; i < t->dirs.length; i++)
+		fm_sort_and_reselect(t, t->dirs.visible[i]);
+	fm_sort_and_reselect(t, t->dirs.preview);
 }
 
 
@@ -281,6 +272,8 @@ void fm_reload(T *t)
 		if (t->dirs.visible[i])
 			async_dir_load(t->dirs.visible[i], true);
 	}
+	if (t->dirs.preview)
+		async_dir_load(t->dirs.preview, true);
 }
 
 
