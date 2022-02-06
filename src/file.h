@@ -15,6 +15,7 @@ typedef struct File {
 	char *link_target;
 	bool isbroken;
 	bool isexec;
+	bool hidden;
 	int16_t dircount; /* in case of dir, < 0 if not loaded yet */
 } File;
 
@@ -173,3 +174,8 @@ const char *file_group(const File *file);
  * Returns a readable string of the permissions, e.g. `rwxr--r--`.
  */
 const char *file_perms(const File *file);
+
+static inline bool file_hidden(File *file)
+{
+	return file->hidden;
+}

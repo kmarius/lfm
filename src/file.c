@@ -31,6 +31,7 @@ long file_mtime(const T *t);
 long file_nlink(const T *t);
 long file_size(const T *t);
 void file_dircount_set(T *t, uint16_t ct);
+bool file_hidden(File *file);
 
 T *file_init(T *t, const char *dir, const char *name)
 {
@@ -49,6 +50,7 @@ T *file_init(T *t, const char *dir, const char *name)
 	}
 
 	t->name = strrchr(t->path, '/') + 1;
+	t->hidden = *t->name == '.';
 	t->ext = strrchr(t->name, '.');
 	if (t->ext == t->name)
 		t->ext = NULL; /* hidden file */

@@ -55,12 +55,6 @@ static bool file_filtered(File *file, const char *filter)
 }
 
 
-static inline bool file_hidden(File *file)
-{
-	return file_name(file)[0] == '.';
-}
-
-
 static void apply_filter(T *t)
 {
 	if (t->filter[0] != 0) {
@@ -153,8 +147,8 @@ void dir_sort(T *t)
 					t->files_sorted[j++] = t->files_all[i];
 			}
 		} else {
-			for (uint16_t i = 0, j = 0; i < t->length_all; i++)
-				t->files_sorted[j++] = t->files_all[i];
+			j = t->length_all;
+			memcpy(t->files_sorted, t->files, t->length_all * sizeof(File*));
 		}
 	} else {
 		if (t->dirfirst) {
@@ -288,6 +282,7 @@ T *dir_load(const char *path, bool load_dircount)
 struct queue_dirs_node {
 	char *path;
 	uint8_t level;
+	bool hidden;
 	struct queue_dirs_node *next;
 };
 
@@ -310,6 +305,7 @@ T *dir_load_flat(const char *path, uint8_t level, bool load_dircount)
 	queue.head->path = strdup(path);
 	queue.head->level = 0;
 	queue.head->next = NULL;
+	queue.head->hidden = false;
 
 	while (queue.head) {
 		struct queue_dirs_node *head = queue.head;
@@ -317,15 +313,9 @@ T *dir_load_flat(const char *path, uint8_t level, bool load_dircount)
 		if (!queue.head)
 			queue.tail = NULL;
 
-		char *p = head->path;
-		uint8_t l = head->level;
-		free(head);
-
-		DIR *dirp = opendir(p);
-		if (!dirp) {
-			free(p);
-			continue;
-		}
+		DIR *dirp = opendir(head->path);
+		if (!dirp)
+			goto cont;
 
 		struct dirent *dp;
 		while ((dp = readdir(dirp))) {
@@ -334,17 +324,19 @@ T *dir_load_flat(const char *path, uint8_t level, bool load_dircount)
 					 (dp->d_name[1] == '.' && dp->d_name[2] == 0)))
 				continue;
 
-			File *file = file_create(p, dp->d_name);
+			File *file = file_create(head->path, dp->d_name);
 			if (file) {
+				file->hidden |= head->hidden;
 				if (file_isdir(file)) {
 					if (load_dircount)
 						file->dircount = file_dircount_load(file);
 
-					if (l + 1 <= level) {
-						struct queue_dirs_node *n = malloc(sizeof(struct queue_dirs_node));
+					if (head->level + 1 <= level) {
+						struct queue_dirs_node *n = malloc(sizeof(*n));
 						n->path = strdup(file_path(file));
-						n->level = l + 1;
+						n->level = head->level + 1;
 						n->next = NULL;
+						n->hidden = file_hidden(file);
 						if (!queue.head) {
 							queue.head = n;
 							queue.tail = n;
@@ -354,7 +346,7 @@ T *dir_load_flat(const char *path, uint8_t level, bool load_dircount)
 						}
 					}
 				}
-				for (uint8_t i = 0; i < l; i++) {
+				for (uint8_t i = 0; i < head->level; i++) {
 					file->name -= 2;
 					while (*(file->name-1) != '/')
 						file->name--;
@@ -364,7 +356,9 @@ T *dir_load_flat(const char *path, uint8_t level, bool load_dircount)
 			}
 		}
 		closedir(dirp);
-		free(p);
+cont:
+		free(head->path);
+		free(head);
 	}
 
 	dir->length_all = cvector_size(dir->files_all);
