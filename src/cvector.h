@@ -246,9 +246,9 @@
  */
 #define cvector_swap_remove(vec, e) \
 	do { \
-		for (size_t i = 0; i < cvector_size((vec)); i++) { \
-			if ((vec)[i] == e) { \
-				cvector_swap_erase((vec), i); \
+		for (size_t cv_i = 0; cv_i < cvector_size((vec)); cv_i++) { \
+			if ((vec)[cv_i] == e) { \
+				cvector_swap_erase((vec), cv_i); \
 				break; \
 			} \
 		} \
@@ -278,8 +278,8 @@
 	do { \
 		if (vec) { \
 			const size_t cv_sz = cvector_size(vec); \
-			for (size_t i = 0; i < cv_sz; ++i) { \
-				free((vec)[i]); \
+			for (size_t cv_i = 0; cv_i < cv_sz; ++cv_i) { \
+				free((vec)[cv_i]); \
 			} \
 			cvector_free(vec); \
 		} \
@@ -295,8 +295,8 @@
 	do { \
 		if (vec) { \
 			const size_t cv_sz = cvector_size(vec); \
-			for (size_t i = 0; i < cv_sz; ++i) { \
-				free((vec)[i]); \
+			for (size_t cv_i = 0; cv_i < cv_sz; ++cv_i) { \
+				free((vec)[cv_i]); \
 			} \
 			cvector_set_size(vec, 0); \
 		} \
@@ -352,9 +352,9 @@
 	do { \
 		size_t j = 0; \
 		size_t sz = cvector_size((vec)); \
-		for (size_t i = 0; i < sz; i++) { \
-			if (vec[i]) \
-				vec[j++] = vec[i]; \
+		for (size_t cv_i = 0; cv_i < sz; cv_i++) { \
+			if (vec[cv_i]) \
+				vec[j++] = vec[cv_i]; \
 		} \
 		cvector_set_size(vec, j); \
 	} while (0)
@@ -369,8 +369,8 @@
 #define cvector_contains_str(vec, str) ({ \
 		size_t sz = cvector_size((vec)); \
 		bool ret = false; \
-		for (size_t i = 0; i < sz; i++) { \
-			if ((vec)[i] && *(vec)[i] == *(str) && streq((vec)[i], (str))) { \
+		for (size_t cv_i = 0; cv_i < sz; cv_i++) { \
+			if ((vec)[cv_i] && *(vec)[cv_i] == *(str) && streq((vec)[cv_i], (str))) { \
 				ret = true; \
 				break; \
 			} \
