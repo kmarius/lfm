@@ -286,11 +286,16 @@ void fm_drop_cache(T *t)
 void fm_reload(T *t)
 {
 	for (uint16_t i = 0; i < t->dirs.length; i++) {
-		if (t->dirs.visible[i])
+		if (t->dirs.visible[i]) {
+			t->dirs.visible[i]->flatten_level = 0;
 			async_dir_load(t->dirs.visible[i], true);
+		}
 	}
-	if (t->dirs.preview)
+	if (t->dirs.preview) {
+
+		t->dirs.preview->flatten_level = 0;
 		async_dir_load(t->dirs.preview, true);
+	}
 }
 
 
@@ -687,5 +692,12 @@ const char *fm_filter_get(const T *t)
 
 
 /* }}} */
+
+/* TODO: To reload flattened directories, more notify watchers are needed (on 2022-02-06) */
+void fm_flatten(T *t, uint8_t level)
+{
+	fm_current_dir(t)->flatten_level = level;
+	async_dir_load(fm_current_dir(t), true);
+}
 
 #undef T

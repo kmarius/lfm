@@ -1082,9 +1082,9 @@ static int l_fm_sortby(lua_State *L)
 	}
 	dir->sorted = false;
 	const File *file = dir_current_file(dir);
-	const char *name = file ? file_name(file) : NULL;
 	dir_sort(dir);
-	fm_move_cursor_to(fm, name);
+	if (file)
+		fm_move_cursor_to(fm, file_name(file));
 	ui_redraw(ui, REDRAW_FM);
 	return 0;
 }
@@ -1254,7 +1254,27 @@ static int l_fm_mark_load(lua_State *L)
 }
 
 
+static int l_fm_flatten_level(lua_State *L)
+{
+	log_debug("flatten_level %d", fm_current_dir(fm)->flatten_level);
+	lua_pushinteger(L, fm_current_dir(fm)->flatten_level);
+	return 1;
+}
+
+static int l_fm_flatten(lua_State *L)
+{
+	(void) L;
+	int level = luaL_optinteger(L, 1, 0);
+	if (level < 0)
+		level = 0;
+	fm_flatten(fm, level);
+	ui_redraw(ui, REDRAW_FM);
+	return 0;
+}
+
 static const struct luaL_Reg fm_lib[] = {
+	{"flatten", l_fm_flatten},
+	{"flatten_level", l_fm_flatten_level},
 	{"bottom", l_fm_bot},
 	{"chdir", l_fm_chdir},
 	{"down", l_fm_down},

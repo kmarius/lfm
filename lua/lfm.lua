@@ -132,6 +132,14 @@ function lfm.fm.selection_set(files) end
 ---@return string[] files table of files as strings.
 function lfm.fm.selection_get() end
 
+---Get the flatten level for the current directory.
+---@return number
+function lfm.fm.flatten_level() end
+
+---Flatten `level` levels of the current directory.
+---@param level number
+function lfm.fm.flatten(level) end
+
 ---@alias sortoption
 ---| '"name"'
 ---| '"natural"'

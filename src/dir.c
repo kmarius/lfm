@@ -75,7 +75,7 @@ static void apply_filter(T *t)
 	} else {
 		/* TODO: try to select previously selected file
 		 * note that on the first call dir->files is not yet valid */
-		memcpy(t->files, t->files_sorted, sizeof(File *) * t->length_sorted);
+		memcpy(t->files, t->files_sorted, t->length_sorted * sizeof(File *));
 		t->length = t->length_sorted;
 	}
 	t->ind = max(min(t->ind, t->length - 1), 0);
@@ -170,7 +170,7 @@ void dir_sort(T *t)
 					t->files_sorted[j++] = t->files_all[i];
 			}
 		} else {
-			for (uint16_t i = 0, j = 0; i < t->length_all; i++) {
+			for (uint16_t i = 0; i < t->length_all; i++) {
 				if (!file_hidden(t->files_all[i]))
 					t->files_sorted[j++] = t->files_all[i];
 			}
@@ -287,6 +287,103 @@ T *dir_load(const char *path, bool load_dircount)
 	return dir;
 }
 
+struct queue_dirs_node {
+	char *path;
+	uint8_t level;
+	struct queue_dirs_node *next;
+};
+
+struct queue_dirs {
+	struct queue_dirs_node *head;
+	struct queue_dirs_node *tail;
+};
+
+
+T *dir_load_flat(const char *path, uint8_t level, bool load_dircount)
+{
+	uint64_t t0 = current_millis();
+
+	T *dir = dir_create(path);
+	dir->dircounts = load_dircount;
+	dir->flatten_level = level;
+
+	struct queue_dirs queue;
+	queue.head = malloc(sizeof(struct queue_dirs_node));
+	queue.head->path = strdup(path);
+	queue.head->level = 0;
+	queue.head->next = NULL;
+
+	while (queue.head) {
+		struct queue_dirs_node *head = queue.head;
+		queue.head = head->next;
+		if (!queue.head)
+			queue.tail = NULL;
+
+		char *p = head->path;
+		uint8_t l = head->level;
+		free(head);
+
+		DIR *dirp = opendir(p);
+		if (!dirp) {
+			free(p);
+			continue;
+		}
+
+		struct dirent *dp;
+		while ((dp = readdir(dirp))) {
+			if (dp->d_name[0] == '.' &&
+					(dp->d_name[1] == 0 ||
+					 (dp->d_name[1] == '.' && dp->d_name[2] == 0)))
+				continue;
+
+			File *file = file_create(p, dp->d_name);
+			if (file) {
+				if (file_isdir(file)) {
+					if (load_dircount)
+						file->dircount = file_dircount_load(file);
+
+					if (l + 1 <= level) {
+						struct queue_dirs_node *n = malloc(sizeof(struct queue_dirs_node));
+						n->path = strdup(file_path(file));
+						n->level = l + 1;
+						n->next = NULL;
+						if (!queue.head) {
+							queue.head = n;
+							queue.tail = n;
+						} else {
+							queue.tail->next = n;
+							queue.tail = n;
+						}
+					}
+				}
+				for (uint8_t i = 0; i < l; i++) {
+					file->name -= 2;
+					while (*(file->name-1) != '/')
+						file->name--;
+				}
+
+				cvector_push_back(dir->files_all, file);
+			}
+		}
+		closedir(dirp);
+		free(p);
+	}
+
+	dir->length_all = cvector_size(dir->files_all);
+	dir->length_sorted = dir->length_all;
+	dir->length = dir->length_all;
+
+	dir->files_sorted = malloc(sizeof(File*) * dir->length_all);
+	dir->files = malloc(sizeof(File*) * dir->length_all);
+
+	memcpy(dir->files_sorted, dir->files_all, sizeof(File*)*dir->length_all);
+	memcpy(dir->files, dir->files_all, sizeof(File*)*dir->length_all);
+
+	log_debug("flat dir %s loaded in %ums", path, current_millis() - t0);
+
+	return dir;
+}
+
 
 void dir_cursor_move(T *t, int16_t ct, uint16_t height, uint16_t scrolloff)
 {
@@ -334,6 +431,7 @@ void dir_update_with(T *t, Dir *update, uint16_t height, uint16_t scrolloff)
 	t->length_all = update->length_all;
 	t->load_time = update->load_time;
 	t->error = update->error;
+	t->flatten_level = update->flatten_level;
 
 	t->loading = false;
 	t->updates++;

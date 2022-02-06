@@ -297,10 +297,14 @@ struct DirUpdateResult {
 
 static void DirUpdateResult_callback(struct DirUpdateResult *res, App *app)
 {
-	dir_update_with(res->dir, res->update, app->fm.height, cfg.scrolloff);
-	if (res->dir->visible) {
-		fm_update_preview(&app->fm);
-		ui_redraw(&app->ui, REDRAW_FM);
+	if (res->dir->flatten_level == res->update->flatten_level) {
+		dir_update_with(res->dir, res->update, app->fm.height, cfg.scrolloff);
+		if (res->dir->visible) {
+			fm_update_preview(&app->fm);
+			ui_redraw(&app->ui, REDRAW_FM);
+		}
+	} else {
+		dir_destroy(res->update);
 	}
 	free(res);
 }
@@ -335,6 +339,7 @@ struct dir_load_work {
 	char *path;
 	uint16_t delay;
 	bool dircounts;
+	uint8_t level;
 };
 
 
@@ -345,7 +350,13 @@ static void async_dir_load_worker(void *arg)
 	if (work->delay > 0)
 		msleep(work->delay);
 
-	struct DirUpdateResult *res = DirUpdateResult_create(work->dir, dir_load(work->path, work->dircounts));
+	Dir *dir;
+	if (work->level > 0)
+		dir = dir_load_flat(work->path, work->level, work->dircounts);
+	else
+		dir = dir_load(work->path, work->dircounts);
+
+	struct DirUpdateResult *res = DirUpdateResult_create(work->dir, dir);
 
 	const uint16_t nfiles = res->update->length_all;
 	struct file_path *files = NULL;
@@ -374,6 +385,7 @@ void async_dir_load_delayed(Dir *dir, bool dircounts, uint16_t delay /* millis *
 	work->path = strdup(dir->path);
 	work->delay = delay;
 	work->dircounts = dircounts;
+	work->level = dir->flatten_level;
 	tpool_add_work(async_tm, async_dir_load_worker, work);
 }
 

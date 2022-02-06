@@ -267,3 +267,5 @@ void fm_drop_cache(Fm *fm);
 void fm_reload(Fm *fm);
 
 void fm_update_preview(Fm *fm);
+
+void fm_flatten(Fm *fm, uint8_t level);

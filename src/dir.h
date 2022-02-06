@@ -40,6 +40,7 @@ typedef struct Dir {
 	bool reverse;
 	bool dircounts;
 	enum sorttype_e sorttype;
+	uint8_t flatten_level;
 } Dir;
 
 /*
@@ -111,3 +112,5 @@ inline bool dir_isroot(const Dir *dir)
 {
 	return (dir->path[0] == '/' && dir->path[1] == 0);
 }
+
+Dir *dir_load_flat(const char *path, uint8_t level, bool load_dircount);
