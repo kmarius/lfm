@@ -40,32 +40,6 @@ bool fm_up(T *t, int16_t ct);
 void fm_cursor_move_to_ind(T *t, uint16_t ind);
 
 
-static void fm_populate(T *t)
-{
-	char pwd[PATH_MAX];
-
-	const char *s = getenv("PWD");
-	if (s)
-		strncpy(pwd, s, sizeof(pwd)-1);
-	else
-		getcwd(pwd, sizeof(pwd));
-
-	t->dirs.visible[0] = fm_load_dir(t, pwd); /* current dir */
-	t->dirs.visible[0]->visible = true;
-	Dir *d = fm_current_dir(t);
-	for (uint16_t i = 1; i < t->dirs.length; i++) {
-		if ((s = dir_parent_path(d))) {
-			d = fm_load_dir(t, s);
-			d->visible = true;
-			t->dirs.visible[i] = d;
-			dir_cursor_move_to(d, t->dirs.visible[i-1]->name, t->height, cfg.scrolloff);
-		} else {
-			t->dirs.visible[i] = NULL;
-		}
-	}
-}
-
-
 void fm_init(T *t)
 {
 	if (cfg.startpath) {
@@ -89,6 +63,52 @@ void fm_init(T *t)
 		fm_move_cursor_to(t, cfg.startfile);
 
 	fm_update_preview(t);
+}
+
+
+void fm_deinit(T *t)
+{
+	if (!t)
+		return;
+
+	for (uint8_t i = 0; i < t->dirs.length; i++)
+		dir_destroy(t->dirs.visible[i]);
+	cvector_ffree(t->selection.files, free);
+	/* prev_selection _never_ holds allocated paths that are not already
+	 * free'd in fm->selection */
+	cvector_free(t->selection.previous);
+	cvector_ffree(t->load.files, free);
+	cache_deinit(&t->dirs.cache);
+
+#define mark_free(mark) free((mark).path)
+	cvector_ffree(t->marks, mark_free);
+#undef mark_free
+}
+
+
+static void fm_populate(T *t)
+{
+	char pwd[PATH_MAX];
+
+	const char *s = getenv("PWD");
+	if (s)
+		strncpy(pwd, s, sizeof(pwd)-1);
+	else
+		getcwd(pwd, sizeof(pwd));
+
+	t->dirs.visible[0] = fm_load_dir(t, pwd); /* current dir */
+	t->dirs.visible[0]->visible = true;
+	Dir *d = fm_current_dir(t);
+	for (uint16_t i = 1; i < t->dirs.length; i++) {
+		if ((s = dir_parent_path(d))) {
+			d = fm_load_dir(t, s);
+			d->visible = true;
+			t->dirs.visible[i] = d;
+			dir_cursor_move_to(d, t->dirs.visible[i-1]->name, t->height, cfg.scrolloff);
+		} else {
+			t->dirs.visible[i] = NULL;
+		}
+	}
 }
 
 
@@ -670,23 +690,5 @@ const char *fm_filter_get(const T *t)
 
 
 /* }}} */
-
-#define mark_free(mark) free((mark).path)
-
-void fm_deinit(T *t)
-{
-	if (!t)
-		return;
-
-	for (uint8_t i = 0; i < t->dirs.length; i++)
-		dir_destroy(t->dirs.visible[i]);
-	cvector_ffree(t->selection.files, free);
-	/* prev_selection _never_ holds allocated paths that are not already
-	 * free'd in fm->selection */
-	cvector_free(t->selection.previous);
-	cvector_ffree(t->load.files, free);
-	cvector_ffree(t->marks, mark_free);
-	cache_deinit(&t->dirs.cache);
-}
 
 #undef T
