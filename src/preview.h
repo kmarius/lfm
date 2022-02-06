@@ -18,4 +18,6 @@ Preview *preview_create_loading(const char *path, uint8_t nrow);
 
 Preview *preview_create_from_file(const char *path, uint8_t nrow);
 
+void preview_update_with(Preview *pv, Preview *update);
+
 void preview_destroy(Preview *pv);

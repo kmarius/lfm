@@ -85,8 +85,6 @@ void ui_cmd_clear(Ui *ui);
 
 void ui_cmd_prefix_set(Ui *ui, const char *prefix);
 
-bool ui_insert_preview(Ui *ui, Preview *pv);
-
 void ui_drop_cache(Ui *ui);
 
 void ui_notcurses_init(Ui *ui);

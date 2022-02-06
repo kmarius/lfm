@@ -404,7 +404,9 @@ struct PreviewCheckResult {
 static void PreviewCheckResult_callback(struct PreviewCheckResult *res, App *app)
 {
 	(void) app;
-	async_preview_load(res->path, res->nrow);
+	Preview *pv = cache_find(&app->ui.preview.cache, res->path);
+	if (pv)
+		async_preview_load(pv, res->nrow);
 	free(res->path);
 	free(res);
 }
@@ -481,20 +483,22 @@ void async_preview_check(Preview *pv)
 struct PreviewLoadResult {
 	struct Result super;
 	Preview *preview;
+	Preview *update;
 };
 
 
 static void PreviewLoadResult_callback(struct PreviewLoadResult *res, App *app)
 {
-	if (ui_insert_preview(&app->ui, res->preview))
-		ui_redraw(&app->ui, REDRAW_PREVIEW);
+	/* TODO: make this safer (on 2022-02-06) */
+	preview_update_with(res->preview, res->update);
+	ui_redraw(&app->ui, REDRAW_PREVIEW);
 	free(res);
 }
 
 
 static void PreviewLoadResult_destroy(struct PreviewLoadResult *res)
 {
-	preview_destroy(res->preview);
+	preview_destroy(res->update);
 	free(res);
 }
 
@@ -505,18 +509,20 @@ static struct Result_vtable PreviewLoadResult_vtable = {
 };
 
 
-static inline struct PreviewLoadResult *PreviewLoadResult_create(Preview *preview)
+static inline struct PreviewLoadResult *PreviewLoadResult_create(Preview *preview, Preview *update)
 {
 	struct PreviewLoadResult *res = malloc(sizeof(struct PreviewLoadResult));
 	res->super.vtable = &PreviewLoadResult_vtable;
 	res->super.next = NULL;
 	res->preview = preview;
+	res->update = update;
 	return res;
 }
 
 
 struct preview_load_work {
 	char *path;
+	Preview *preview;
 	int nrow;
 };
 
@@ -526,6 +532,7 @@ static void async_preview_load_worker(void *arg)
 	struct preview_load_work *work = arg;
 
 	struct PreviewLoadResult *res = PreviewLoadResult_create(
+			work->preview,
 			preview_create_from_file(work->path, work->nrow));
 	enqueue_and_signal((struct Result *) res);
 
@@ -534,10 +541,11 @@ static void async_preview_load_worker(void *arg)
 }
 
 
-void async_preview_load(const char *path, uint16_t nrow)
+void async_preview_load(Preview *pv, uint16_t nrow)
 {
 	struct preview_load_work *work = malloc(sizeof(struct preview_load_work));
-	work->path = strdup(path);
+	work->preview = pv;
+	work->path = strdup(pv->path);
 	work->nrow = nrow;
 	tpool_add_work(async_tm, async_preview_load_worker, work);
 }

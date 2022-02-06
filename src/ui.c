@@ -18,30 +18,26 @@
 
 #define T Ui
 
-
 static void draw_dirs(T *t);
 static void plane_draw_dir(struct ncplane *n, Dir *dir, char **sel,
 		char **load, enum movemode_e mode, const char *highlight);
 static void draw_cmdline(T *t);
 static void draw_preview(T *t);
 static void plane_draw_file_preview(struct ncplane *n, Preview *pv);
-static void update_file_preview(T *t);
+static void update_preview(T *t);
 static void draw_menu(struct ncplane *n, cvector_vector_type(char *) menu);
 static void draw_info(T *t);
 static void menu_resize(T *t);
 static char *ansi_consoom(struct ncplane *w, char *s);
 static void ansi_addstr(struct ncplane *n, char *s);
 
-static struct notcurses *nc = NULL;
-
 /* init/resize {{{ */
-
 
 static int resize_cb(struct ncplane *n)
 {
 	/* TODO: dir->pos needs to be changed for all directories (on 2021-10-30) */
 	T *ui = ncplane_userptr(n);
-	notcurses_stddim_yx(nc, &ui->nrow, &ui->ncol);
+	notcurses_stddim_yx(ui->nc, &ui->nrow, &ui->ncol);
 	log_debug("resize %d %d", ui->nrow, ui->ncol);
 	ncplane_resize(ui->planes.info, 0, 0, 0, 0, 0, 0, 1, ui->ncol);
 	ncplane_resize(ui->planes.cmdline, 0, 0, 0, 0, 0, 0, 1, ui->ncol);
@@ -54,80 +50,98 @@ static int resize_cb(struct ncplane *n)
 }
 
 
-void ui_notcurses_init(T *ui)
+void ui_notcurses_init(T *t)
 {
 	struct notcurses_options ncopts = {
 		.flags = NCOPTION_NO_WINCH_SIGHANDLER | NCOPTION_SUPPRESS_BANNERS | NCOPTION_PRESERVE_CURSOR,
 	};
-	nc = notcurses_core_init(&ncopts, NULL);
-	if (!nc)
+	t->nc = notcurses_core_init(&ncopts, NULL);
+	if (!t->nc)
 		exit(EXIT_FAILURE);
 
-	struct ncplane *ncstd = notcurses_stdplane(nc);
+	struct ncplane *ncstd = notcurses_stdplane(t->nc);
 
-	ncplane_dim_yx(ncstd, &ui->nrow, &ui->ncol);
-	ui->nc = nc;
-	ui->fm->height = ui->nrow - 2;
+	ncplane_dim_yx(ncstd, &t->nrow, &t->ncol);
+	t->fm->height = t->nrow - 2;
 
 	struct ncplane_options opts = {
 		.y = 0,
 		.x = 0,
 		.rows = 1,
-		.cols = ui->ncol,
-		.userptr = ui,
+		.cols = t->ncol,
+		.userptr = t,
 	};
 
 	opts.resizecb = resize_cb;
-	ui->planes.info = ncplane_create(ncstd, &opts);
+	t->planes.info = ncplane_create(ncstd, &opts);
 	opts.resizecb = NULL;
 
-	opts.y = ui->nrow-1;
-	ui->planes.cmdline = ncplane_create(ncstd, &opts);
+	opts.y = t->nrow-1;
+	t->planes.cmdline = ncplane_create(ncstd, &opts);
 
-	ui_recol(ui);
+	ui_recol(t);
 
 	opts.rows = opts.cols = 1;
-	ui->planes.menu = ncplane_create(ncstd, &opts);
-	ncplane_move_bottom(ui->planes.menu);
+	t->planes.menu = ncplane_create(ncstd, &opts);
+	ncplane_move_bottom(t->planes.menu);
 }
 
 
-void ui_suspend(T *ui)
+void ui_suspend(T *t)
 {
-	notcurses_stop(nc);
-	nc = NULL;
-	ui->planes.dirs = NULL;
-	ui->planes.cmdline = NULL;
-	ui->planes.menu = NULL;
-	ui->planes.info = NULL;
+	notcurses_stop(t->nc);
+	t->nc = NULL;
+	t->planes.dirs = NULL;
+	t->planes.cmdline = NULL;
+	t->planes.menu = NULL;
+	t->planes.info = NULL;
+	if (t->preview.preview) {
+		cache_return(&t->preview.cache, t->preview.preview, t->preview.preview->path);
+		t->preview.preview = NULL;
+	}
 }
 
 
-void ui_init(T *ui, Fm *fm)
+void ui_init(T *t, Fm *fm)
 {
-	ui->fm = fm;
+	t->fm = fm;
 
-	cache_init(&ui->preview.cache, PREVIEW_CACHE_SIZE, (void(*)(void*)) preview_destroy);
-	cmdline_init(&ui->cmdline);
-	history_load(&ui->history, cfg.historypath);
+	cache_init(&t->preview.cache, PREVIEW_CACHE_SIZE, (void(*)(void*)) preview_destroy);
+	cmdline_init(&t->cmdline);
+	history_load(&t->history, cfg.historypath);
 
-	ui->planes.dirs = NULL;
-	ui->planes.cmdline = NULL;
-	ui->planes.menu = NULL;
-	ui->planes.info = NULL;
+	t->planes.dirs = NULL;
+	t->planes.cmdline = NULL;
+	t->planes.menu = NULL;
+	t->planes.info = NULL;
 
-	ui->ndirs = 0;
+	t->ndirs = 0;
 
-	ui->preview.preview = NULL;
+	t->preview.preview = NULL;
 
-	ui->highlight = NULL;
+	t->highlight = NULL;
 
-	ui->menubuf = NULL;
-	ui->message = false;
+	t->menubuf = NULL;
+	t->message = false;
 
-	ui_notcurses_init(ui);
+	ui_notcurses_init(t);
 
 	log_info("initialized ui");
+}
+
+
+void ui_deinit(T *t)
+{
+	history_write(&t->history, cfg.historypath);
+	history_deinit(&t->history);
+	cvector_ffree(t->messages, free);
+	cvector_ffree(t->menubuf, free);
+	cache_return(&t->preview.cache, t->preview.preview, t->preview.preview->path);
+	t->preview.preview = NULL;
+	cache_deinit(&t->preview.cache);
+	cmdline_deinit(&t->cmdline);
+	cvector_ffree(t->planes.dirs, ncplane_destroy);
+	ui_suspend(t);
 }
 
 
@@ -139,34 +153,34 @@ void kbblocking(bool blocking)
 }
 
 
-void ui_recol(T *ui)
+void ui_recol(T *t)
 {
-	struct ncplane *ncstd = notcurses_stdplane(ui->nc);
+	struct ncplane *ncstd = notcurses_stdplane(t->nc);
 
-	cvector_fclear(ui->planes.dirs, ncplane_destroy);
+	cvector_fclear(t->planes.dirs, ncplane_destroy);
 
-	ui->ndirs = cvector_size(cfg.ratios);
+	t->ndirs = cvector_size(cfg.ratios);
 
 	uint16_t sum = 0;
-	for (uint16_t i = 0; i < ui->ndirs; i++)
+	for (uint16_t i = 0; i < t->ndirs; i++)
 		sum += cfg.ratios[i];
 
 	struct ncplane_options opts = {
 		.y = 1,
-		.rows = ui->nrow - 2,
+		.rows = t->nrow - 2,
 	};
 
 	uint16_t xpos = 0;
-	for (uint16_t i = 0; i < ui->ndirs - 1; i++) {
-		opts.cols = (ui->ncol - ui->ndirs + 1) * cfg.ratios[i] / sum;
+	for (uint16_t i = 0; i < t->ndirs - 1; i++) {
+		opts.cols = (t->ncol - t->ndirs + 1) * cfg.ratios[i] / sum;
 		opts.x = xpos;
-		cvector_push_back(ui->planes.dirs, ncplane_create(ncstd, &opts));
+		cvector_push_back(t->planes.dirs, ncplane_create(ncstd, &opts));
 		xpos += opts.cols + 1;
 	}
 	opts.x = xpos;
-	opts.cols = ui->ncol - xpos - 1;
-	cvector_push_back(ui->planes.dirs, ncplane_create(ncstd, &opts));
-	ui->planes.preview = ui->planes.dirs[ui->ndirs-1];
+	opts.cols = t->ncol - xpos - 1;
+	cvector_push_back(t->planes.dirs, ncplane_create(ncstd, &opts));
+	t->planes.preview = t->planes.dirs[t->ndirs-1];
 }
 
 
@@ -190,7 +204,7 @@ void ui_draw(T *t)
 	if (t->redraw & (REDRAW_FM | REDRAW_PREVIEW))
 		draw_preview(t);
 	if (t->redraw) {
-		notcurses_render(nc);
+		notcurses_render(t->nc);
 	}
 	t->redraw = 0;
 }
@@ -207,12 +221,12 @@ void ui_clear(T *t)
 
 	ncplane_erase(t->planes.cmdline);
 
-	notcurses_render(nc);
+	notcurses_render(t->nc);
 
-	notcurses_refresh(nc, NULL, NULL);
+	notcurses_refresh(t->nc, NULL, NULL);
 
-	notcurses_cursor_enable(nc, 0, 0);
-	notcurses_cursor_disable(nc);
+	notcurses_cursor_enable(t->nc, 0, 0);
+	notcurses_cursor_disable(t->nc);
 
 	ui_redraw(t, REDRAW_FM);
 }
@@ -239,7 +253,7 @@ static void draw_preview(T *t)
 			plane_draw_dir(t->planes.preview, t->fm->dirs.preview, t->fm->selection.files,
 					t->fm->load.files, t->fm->load.mode, NULL);
 		} else {
-			update_file_preview(t);
+			update_preview(t);
 			plane_draw_file_preview(t->planes.preview, t->preview.preview);
 		}
 	}
@@ -274,14 +288,14 @@ void ui_verror(T *t, const char *format, va_list args)
 	cvector_push_back(t->messages, msg);
 
 	/* TODO: show messages after initialization (on 2021-10-30) */
-	if (!nc)
+	if (!t->nc)
 		return;
 
 	ncplane_erase(t->planes.cmdline);
 	ncplane_set_fg_palindex(t->planes.cmdline, COLOR_RED);
 	ncplane_putstr_yx(t->planes.cmdline, 0, 0, msg);
 	ncplane_set_fg_default(t->planes.cmdline);
-	notcurses_render(nc);
+	notcurses_render(t->nc);
 	t->message = true;
 }
 
@@ -293,14 +307,14 @@ void ui_vechom(T *t, const char *format, va_list args)
 
 	cvector_push_back(t->messages, msg);
 
-	if (!nc)
+	if (!t->nc)
 		return;
 
 	ncplane_erase(t->planes.cmdline);
 	ncplane_set_fg_palindex(t->planes.cmdline, 15);
 	ncplane_putstr_yx(t->planes.cmdline, 0, 0, msg);
 	ncplane_set_fg_default(t->planes.cmdline);
-	notcurses_render(nc);
+	notcurses_render(t->nc);
 	t->message = true;
 
 }
@@ -317,7 +331,7 @@ void ui_cmd_prefix_set(T *t, const char *prefix)
 		return;
 
 	t->message = false;
-	notcurses_cursor_enable(nc, 0, 0);
+	notcurses_cursor_enable(t->nc, 0, 0);
 	cmdline_prefix_set(&t->cmdline, prefix);
 	ui_redraw(t, REDRAW_CMDLINE);
 }
@@ -327,7 +341,7 @@ void ui_cmd_clear(T *t)
 {
 	cmdline_clear(&t->cmdline);
 	history_reset(&t->history);
-	notcurses_cursor_disable(nc);
+	notcurses_cursor_disable(t->nc);
 	ui_showmenu(t, NULL);
 	ui_redraw(t, REDRAW_CMDLINE);
 	ui_redraw(t, REDRAW_MENU);
@@ -423,7 +437,7 @@ void draw_cmdline(T *t)
 		}
 	} else {
 		const uint16_t cursor_pos = cmdline_print(&t->cmdline, t->planes.cmdline);
-		notcurses_cursor_enable(nc, t->nrow - 1, cursor_pos);
+		notcurses_cursor_enable(t->nc, t->nrow - 1, cursor_pos);
 	}
 }
 
@@ -714,7 +728,6 @@ static void plane_draw_dir(struct ncplane *n, Dir *dir, char **sel, char **load,
 	} else if (dir->loading) {
 		ncplane_putstr_yx(n, 0, 2, "loading");
 	} else if (dir->length == 0) {
-		log_debug("plane_draw_dir %s %d %d", dir->name, dir->length_sorted, dir->length);
 		if (dir->length_all > 0) {
 			ncplane_putstr_yx(n, 0, 2, "contains hidden files");
 		} else {
@@ -743,48 +756,46 @@ static void plane_draw_dir(struct ncplane *n, Dir *dir, char **sel, char **load,
 static Preview *load_preview(T *t, File *file)
 {
 	int ncol, nrow;
-	Preview *pv;
-
 	ncplane_dim_yx(t->planes.preview, &nrow, &ncol);
 
-	if ((pv = cache_take(&t->preview.cache, file_path(file)))) {
+	Preview *pv = cache_take(&t->preview.cache, file_path(file));
+	if (pv) {
 		/* TODO: vv (on 2021-08-10) */
 		/* might be checking too often here? or is it capped by inotify
 		 * timeout? */
 		if (pv->nrow < t->nrow - 2) {
-			async_preview_load(pv->path, nrow);
+			async_preview_load(pv, nrow);
 			pv->loading = true;
 		} else {
 			async_preview_check(pv);
 		}
 	} else {
 		pv = preview_create_loading(file_path(file), nrow);
-		async_preview_load(file_path(file), nrow);
+		async_preview_load(pv, nrow);
 	}
 	return pv;
 }
 
 
-static void update_file_preview(T *t)
+static void update_preview(T *t)
 {
 	int ncol, nrow;
 	ncplane_dim_yx(t->planes.preview, &nrow, &ncol);
 
-	const Dir *dir = t->fm->dirs.visible[0];
-	if (dir && dir->ind < dir->length) {
-		File *file = dir->files[dir->ind];
+	File *file = fm_current_file(t->fm);
+	if (file) {
 		if (t->preview.preview) {
 			if (streq(t->preview.preview->path, file_path(file))) {
 				if (!t->preview.preview->loading) {
 					if (t->preview.preview->nrow < nrow) {
-						async_preview_load(file_path(file), nrow);
+						async_preview_load(t->preview.preview, nrow);
 						t->preview.preview->loading = true;
 					} else {
 						async_preview_check(t->preview.preview);
 					}
 				}
 			} else {
-				cache_insert(&t->preview.cache, t->preview.preview, t->preview.preview->path);
+				cache_return(&t->preview.cache, t->preview.preview, t->preview.preview->path);
 				t->preview.preview = load_preview(t, file);
 				ui_redraw(t, REDRAW_PREVIEW);
 			}
@@ -794,7 +805,7 @@ static void update_file_preview(T *t)
 		}
 	} else {
 		if (t->preview.preview) {
-			cache_insert(&t->preview.cache, t->preview.preview, t->preview.preview->path);
+			cache_return(&t->preview.cache, t->preview.preview, t->preview.preview->path);
 			t->preview.preview = NULL;
 			ui_redraw(t, REDRAW_PREVIEW);
 		}
@@ -925,71 +936,34 @@ static char *ansi_consoom(struct ncplane *w, char *s)
 
 static void plane_draw_file_preview(struct ncplane *n, Preview *pv)
 {
-	int nrow;
 	ncplane_erase(n);
 
-	if (pv) {
-		ncplane_dim_yx(n, &nrow, NULL);
-		ncplane_set_styles(n, NCSTYLE_NONE);
-		ncplane_set_fg_default(n);
-		ncplane_set_bg_default(n);
+	if (!pv)
+		return;
 
-		for (size_t i = 0; i < cvector_size(pv->lines) && i < (size_t) nrow; i++) {
-			ncplane_cursor_move_yx(n, i, 0);
-			ansi_addstr(n, pv->lines[i]);
-		}
+	int nrow;
+	ncplane_dim_yx(n, &nrow, NULL);
+	ncplane_set_styles(n, NCSTYLE_NONE);
+	ncplane_set_fg_default(n);
+	ncplane_set_bg_default(n);
+
+	for (size_t i = 0; i < cvector_size(pv->lines) && i < (size_t) nrow; i++) {
+		ncplane_cursor_move_yx(n, i, 0);
+		ansi_addstr(n, pv->lines[i]);
 	}
-}
-
-
-bool ui_insert_preview(T *t, Preview *pv)
-{
-	const File *file = fm_current_file(t->fm);
-
-	if (file && streq(pv->path, file_path(file))) {
-		preview_destroy(t->preview.preview);
-		t->preview.preview = pv;
-		return true;
-	} else {
-		Preview *oldpv = cache_take(&t->preview.cache, pv->path);
-		if (oldpv) {
-			if (pv->mtime >= oldpv->mtime) {
-				preview_destroy(oldpv);
-				cache_insert(&t->preview.cache, pv, pv->path);
-			} else {
-				/* discard */
-				preview_destroy(pv);
-			}
-		} else {
-			cache_insert(&t->preview.cache, pv, pv->path);
-		}
-	}
-	return false;
 }
 
 
 void ui_drop_cache(T *t)
 {
-	preview_destroy(t->preview.preview);
+	cache_return(&t->preview.cache, t->preview.preview, t->preview.preview->path);
 	t->preview.preview = NULL;
 	cache_clear(&t->preview.cache);
-	update_file_preview(t);
+	update_preview(t);
 	ui_redraw(t, REDRAW_CMDLINE);
 	ui_redraw(t, REDRAW_PREVIEW);
 }
 
 /* }}} */
-
-void ui_deinit(T *t)
-{
-	history_write(&t->history, cfg.historypath);
-	history_deinit(&t->history);
-	cvector_ffree(t->messages, free);
-	cvector_ffree(t->menubuf, free);
-	cache_deinit(&t->preview.cache);
-	cmdline_deinit(&t->cmdline);
-	cvector_ffree(t->planes.dirs, ncplane_destroy);
-	ui_suspend(t);
-}
 
 #undef T

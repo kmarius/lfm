@@ -64,4 +64,4 @@ void async_preview_check(Preview *pv);
 /*
  * Reloads preview of the file at `path` with `nrow` lines from disk.
  */
-void async_preview_load(const char *path, uint16_t nrow);
+void async_preview_load(Preview *pv, uint16_t nrow);

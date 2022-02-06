@@ -69,13 +69,15 @@ void fm_init(T *t)
 void fm_deinit(T *t)
 {
 	for (uint8_t i = 0; i < t->dirs.length; i++)
-		dir_destroy(t->dirs.visible[i]);
+		cache_return(&t->dirs.cache, t->dirs.visible[i], t->dirs.visible[i]->path);
+	if (t->dirs.preview)
+		cache_return(&t->dirs.cache, t->dirs.preview, t->dirs.preview->path);
+	cache_deinit(&t->dirs.cache);
 	cvector_ffree(t->selection.files, free);
 	/* prev_selection _never_ holds allocated paths that are not already
 	 * free'd in fm->selection */
 	cvector_free(t->selection.previous);
 	cvector_ffree(t->load.files, free);
-	cache_deinit(&t->dirs.cache);
 
 #define mark_free(mark) free((mark).path)
 	cvector_ffree(t->marks, mark_free);
@@ -115,7 +117,7 @@ void fm_recol(T *t)
 	for (uint16_t i = 0; i < t->dirs.length; i++) {
 		if (t->dirs.visible[i]) {
 			t->dirs.visible[i]->visible = false;
-			cache_insert(&t->dirs.cache, t->dirs.visible[i], t->dirs.visible[i]->path);
+			cache_return(&t->dirs.cache, t->dirs.visible[i], t->dirs.visible[i]->path);
 		}
 	}
 
@@ -168,7 +170,7 @@ bool fm_chdir(T *t, const char *path, bool save)
 	for (uint16_t i = 0; i < t->dirs.length; i++) {
 		if (t->dirs.visible[i]) {
 			t->dirs.visible[i]->visible = false;
-			cache_insert(&t->dirs.cache, t->dirs.visible[i], t->dirs.visible[i]->path);
+			cache_return(&t->dirs.cache, t->dirs.visible[i], t->dirs.visible[i]->path);
 		}
 	}
 	fm_populate(t);
@@ -306,7 +308,7 @@ static void fm_remove_preview(T *t)
 
 	notify_remove_watcher(t->dirs.preview);
 	t->dirs.preview->visible = false;
-	cache_insert(&t->dirs.cache, t->dirs.preview, t->dirs.preview->path);
+	cache_return(&t->dirs.cache, t->dirs.preview, t->dirs.preview->path);
 	t->dirs.preview = NULL;
 }
 
@@ -333,7 +335,7 @@ void fm_update_preview(T *t)
 			if (i >= t->dirs.length) {
 				notify_remove_watcher(t->dirs.preview);
 				t->dirs.preview->visible = false;
-				cache_insert(&t->dirs.cache, t->dirs.preview, t->dirs.preview->path);
+				cache_return(&t->dirs.cache, t->dirs.preview, t->dirs.preview->path);
 			}
 		}
 		t->dirs.preview = fm_load_dir(t, file_path(file));
@@ -351,7 +353,7 @@ void fm_update_preview(T *t)
 			if (i == t->dirs.length) {
 				notify_remove_watcher(t->dirs.preview);
 				t->dirs.preview->visible = false;
-				cache_insert(&t->dirs.cache, t->dirs.preview, t->dirs.preview->path);
+				cache_return(&t->dirs.cache, t->dirs.preview, t->dirs.preview->path);
 			}
 			t->dirs.preview = NULL;
 		}

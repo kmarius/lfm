@@ -3,8 +3,10 @@
 #include "cache.h"
 #include "time.h"
 #include "util.h"
+#include "log.h"
 
 #define T Cache
+
 #define PARENT(i) ((i)-1) / 2
 #define LCHILD(i) (2 * (i) + 1)
 #define RCHILD(i) (2 * (i) + 2)
@@ -14,6 +16,7 @@ struct node {
 	void *ptr;
 	uint16_t sort_key;
 	const char *search_key;
+	bool in_use;
 };
 
 
@@ -79,12 +82,25 @@ void cache_resize(T *t, uint16_t capacity)
 }
 
 
-void cache_insert(T *t, void *e, const char *key)
+void cache_return(T *t, void *e, const char *key)
 {
+	/* TODO: free here? (on 2022-02-06) */
 	if (t->capacity == 0)
 		return;
 
+	for (uint16_t i = 0; i < t->size; i++) {
+		if (t->nodes[i].ptr == e){
+			t->nodes[i].sort_key = time(NULL);
+			t->nodes[i].in_use = false;
+			return;
+		}
+	}
+
 	if (t->size >= t->capacity) {
+		if (t->nodes[0].in_use) {
+			log_error("can not free used dir %s", key);
+			return;
+		}
 		t->free(t->nodes[0].ptr);
 		t->nodes[0].ptr = e;
 		t->nodes[0].sort_key = time(NULL);
@@ -122,20 +138,11 @@ void *cache_take(T *t, const void *key)
 {
 	for (uint16_t i = 0; i < t->size; i++) {
 		if (streq(t->nodes[i].search_key, key)) {
-			void *e = t->nodes[i].ptr;
-			if (i < t->size - 1) {
-				swap(t->nodes + i, t->nodes + t->size-1);
-				t->size--;
-
-				if (i == 0 || t->nodes[i].sort_key >= t->nodes[PARENT(i)].sort_key)
-					downheap(t->nodes, t->size, i);
-				else
-					upheap(t->nodes, i);
-
-			} else {
-				t->size--;
-			}
-			return e;
+			void *ptr = t->nodes[i].ptr;
+			t->nodes[i].sort_key = UINT16_MAX;
+			t->nodes[i].in_use = true;
+			downheap(t->nodes, t->size, i);
+			return ptr;
 		}
 	}
 	return NULL;
@@ -155,8 +162,4 @@ void cache_deinit(T *t) {
 	free(t->nodes);
 }
 
-
 #undef T
-#undef RCHILD
-#undef LCHILD
-#undef PARENT
