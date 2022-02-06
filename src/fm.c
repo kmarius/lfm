@@ -68,9 +68,6 @@ void fm_init(T *t)
 
 void fm_deinit(T *t)
 {
-	if (!t)
-		return;
-
 	for (uint8_t i = 0; i < t->dirs.length; i++)
 		dir_destroy(t->dirs.visible[i]);
 	cvector_ffree(t->selection.files, free);
