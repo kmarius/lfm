@@ -16,7 +16,7 @@ bool find(Fm *fm, Ui *ui, const char *prefix)
 	for (uint16_t i = dir->ind; i < dir->length + dir->ind; i++) {
 		if (hascaseprefix(file_name(dir->files[i % dir->length]), prefix)) {
 			if (nmatches == 0) {
-				fm_move_to_ind(fm, i % dir->length);
+				fm_cursor_move_to_ind(fm, i % dir->length);
 				ui_redraw(ui, REDRAW_FM);
 			}
 			nmatches++;
@@ -34,7 +34,7 @@ void find_next(Fm *fm, Ui *ui)
 	Dir *dir = fm_current_dir(fm);
 	for (uint16_t i = dir->ind + 1; i < dir->length + dir->ind + 1; i++) {
 		if (hascaseprefix(file_name(dir->files[i % dir->length]), find_prefix)) {
-			fm_move_to_ind(fm, i % dir->length);
+			fm_cursor_move_to_ind(fm, i % dir->length);
 			ui_redraw(ui, REDRAW_FM);
 			return;
 		}
@@ -50,7 +50,7 @@ void find_prev(Fm *fm, Ui *ui)
 	Dir *dir = fm_current_dir(fm);
 	for (uint16_t i = dir->ind + dir->length - 1; i >= dir->ind; i--) {
 		if (hascaseprefix(file_name(dir->files[i % dir->length]), find_prefix)) {
-			fm_move_to_ind(fm, i % dir->length);
+			fm_cursor_move_to_ind(fm, i % dir->length);
 			ui_redraw(ui, REDRAW_FM);
 			return;
 		}

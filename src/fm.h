@@ -78,24 +78,55 @@ void fm_deinit(Fm *fm);
 void fm_recol(Fm *fm);
 
 /*
+ * Current directory. Never `NULL`.
+ */
+#define fm_current_dir(fm) (fm)->dirs.visible[0]
+
+/*
+ * Current file of the current directory. Can be `NULL`.
+ */
+#define fm_current_file(fm) dir_current_file(fm_current_dir(fm))
+
+#define fm_preview_dir(fm) (fm)->preview
+
+bool fm_cursor_move(Fm *fm, int16_t ct);
+
+static inline void fm_cursor_move_to_ind(Fm *fm, uint16_t ind)
+{
+	fm_cursor_move(fm, ind - fm_current_dir(fm)->ind);
+}
+
+/*
  * Move cursor `ct` up in the current directory.
  */
-bool fm_up(Fm *fm, int16_t ct);
+static inline bool fm_up(Fm *fm, int16_t ct)
+{
+	return fm_cursor_move(fm, -ct);
+}
 
 /*
  * Move cursor `ct` down in the current directory.
  */
-bool fm_down(Fm *fm, int16_t ct);
+static inline bool fm_down(Fm *fm, int16_t ct)
+{
+	return fm_cursor_move(fm, ct);
+}
 
 /*
  * Move cursor to the top of the current directory.
  */
-bool fm_top(Fm *fm);
+static inline bool fm_top(Fm *fm)
+{
+	return fm_up(fm, fm_current_dir(fm)->ind);
+}
 
 /*
  * Move cursor to the bottom of the current directory.
  */
-bool fm_bot(Fm *fm);
+static inline bool fm_bot(Fm *fm)
+{
+	return fm_down(fm, fm_current_dir(fm)->length - fm_current_dir(fm)->ind);
+}
 
 /*
  * Changes directory to the directory given by `path`. If `save` then the current
@@ -124,7 +155,7 @@ void fm_move_cursor_to(Fm *fm, const char *name);
 /*
  * Move the cursor the file at index `ind`.
  */
-void fm_move_to_ind(Fm *fm, uint16_t ind);
+void fm_cursor_move_to_ind(Fm *fm, uint16_t ind);
 
 /*
  * Apply the filter string given by `filter` to the current directory.
@@ -222,18 +253,6 @@ char * const* fm_get_load(const Fm *fm);
  * Get the mode current load, one of `MODE_COPY`, `MODE_MOVE`.
  */
 enum movemode_e fm_get_mode(const Fm *fm);
-
-/*
- * Current directory. Never `NULL`.
- */
-#define fm_current_dir(fm) (fm)->dirs.visible[0]
-
-/*
- * Current file of the current directory. Can be `NULL`.
- */
-#define fm_current_file(fm) dir_current_file(fm_current_dir(fm))
-
-#define fm_preview_dir(fm) (fm)->preview
 
 /*
  * Compare PATH against each path in SELECTION to check if it is contained.

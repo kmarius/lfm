@@ -47,7 +47,7 @@ static void search_next_forward(Ui *ui, Fm *fm, bool inclusive)
 	highlight(ui, NULL);
 	for (uint16_t i = inclusive ? 0 : 1; i < dir->length; i++) {
 		if (strcasestr(file_name(dir->files[(dir->ind + i) % dir->length]), search_string)) {
-			fm_move_to_ind(fm, (dir->ind + i) % dir->length );
+			fm_cursor_move_to_ind(fm, (dir->ind + i) % dir->length );
 			return;
 		}
 	}
@@ -63,7 +63,7 @@ static void search_next_backwards(Ui *ui, Fm *fm, bool inclusive)
 	highlight(ui, NULL);
 	for (uint16_t i = inclusive ? 0 : 1 ; i < dir->length; i++) {
 		if (strcasestr(file_name(dir->files[(dir->length + dir->ind - i) % dir->length]), search_string)) {
-			fm_move_to_ind(fm, (dir->length + dir->ind - i) % dir->length );
+			fm_cursor_move(fm, (dir->length + dir->ind - i) % dir->length );
 			return;
 		}
 	}

@@ -32,7 +32,12 @@ static void fm_update_watchers(T *t);
 static void fm_remove_preview(T *t);
 static void fm_mark_save(T *t, char mark, const char *path);
 static void fm_populate(T *t);
-static bool fm_cursor_move(T *t, int16_t ct);
+
+bool fm_bot(T *t);
+bool fm_top(T *t);
+bool fm_down(T *t, int16_t ct);
+bool fm_up(T *t, int16_t ct);
+void fm_cursor_move_to_ind(T *t, uint16_t ind);
 
 
 static void fm_populate(T *t)
@@ -521,7 +526,7 @@ void fm_selection_write(const T *t, const char *path)
 
 /* navigation {{{ */
 
-static bool fm_cursor_move(T *t, int16_t ct)
+bool fm_cursor_move(T *t, int16_t ct)
 {
 	Dir *dir = fm_current_dir(t);
 	const uint16_t cur = dir->ind;
@@ -535,40 +540,10 @@ static bool fm_cursor_move(T *t, int16_t ct)
 }
 
 
-bool fm_up(T *t, int16_t ct)
-{
-	return fm_cursor_move(t, -ct);
-}
-
-
-bool fm_down(T *t, int16_t ct)
-{
-	return fm_cursor_move(t, ct);
-}
-
-
-bool fm_top(T *t)
-{
-	return fm_up(t, fm_current_dir(t)->ind);
-}
-
-
-bool fm_bot(T *t)
-{
-	return fm_down(t, fm_current_dir(t)->length - fm_current_dir(t)->ind);
-}
-
-
 void fm_move_cursor_to(T *t, const char *name)
 {
 	dir_cursor_move_to(fm_current_dir(t), name, t->height, cfg.scrolloff);
 	fm_update_preview(t);
-}
-
-
-void fm_move_to_ind(T *t, uint16_t ind)
-{
-	fm_cursor_move(t, ind - fm_current_dir(t)->ind);
 }
 
 
