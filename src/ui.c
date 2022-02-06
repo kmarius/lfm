@@ -695,6 +695,7 @@ static void print_file(struct ncplane *n, const File *file,
 	for (uint16_t l = x; l < ncol - 3; l++)
 		ncplane_putchar(n, ' ');
 
+	/* TODO: Try to print the extension after the truncate char (on 2022-02-06) */
 	if (x + rightmargin + 2> ncol)
 		ncplane_putwc_yx(n, y0, ncol-rightmargin - 1, cfg.truncatechar);
 	else

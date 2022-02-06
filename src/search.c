@@ -85,5 +85,4 @@ void search_prev(Ui *ui, Fm *fm, bool inclusive)
 		search_next_backwards(ui, fm, inclusive);
 	else
 		search_next_forward(ui, fm, inclusive);
-
 }
