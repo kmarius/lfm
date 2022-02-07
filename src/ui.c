@@ -825,7 +825,7 @@ static void update_preview(T *t)
 	ncplane_dim_yx(t->planes.preview, &nrow, &ncol);
 
 	File *file = fm_current_file(t->fm);
-	if (file) {
+	if (file && !file_isdir(file)) {
 		if (t->preview.preview) {
 			if (streq(t->preview.preview->path, file_path(file))) {
 				if (!t->preview.preview->loading) {

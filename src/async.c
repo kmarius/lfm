@@ -584,6 +584,7 @@ void async_preview_load(Preview *pv, uint16_t nrow)
 	work->preview = pv;
 	work->path = strdup(pv->path);
 	work->nrow = nrow;
+	work->version = previewcache->version;
 	tpool_add_work(async_tm, async_preview_load_worker, work);
 }
 
