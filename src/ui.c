@@ -598,7 +598,7 @@ void ui_showmenu(T *t, cvector_vector_type(char*) vec)
 
 /* }}} */
 
-/* wdraw_dir {{{ */
+/* draw_dir {{{ */
 
 static uint64_t ext_channel_find(const char *ext)
 {
@@ -616,7 +616,8 @@ static void print_file(struct ncplane *n, const File *file,
 		bool iscurrent, char **sel, char **load, enum movemode_e mode,
 		const char *highlight)
 {
-	int ncol, y0, x;
+	int ncol, y0;
+	int x = 0;
 	char size[16];
 	wchar_t buf[256];
 	ncplane_dim_yx(n, NULL, &ncol);
@@ -634,8 +635,13 @@ static void print_file(struct ncplane *n, const File *file,
 	int rightmargin = strlen(size) + 2;
 	if (file_islink(file))
 		rightmargin += 3; /* " ->" */
-	if (rightmargin > ncol * 2 / 3)
-		rightmargin = 0;
+	if (file_ext(file)) {
+		if (ncol - 3 - rightmargin < 4)
+			rightmargin = 0;
+	} else {
+		if (ncol - 3 - rightmargin < 2)
+			rightmargin = 0;
+	}
 
 	ncplane_set_bg_default(n);
 
@@ -678,33 +684,63 @@ static void print_file(struct ncplane *n, const File *file,
 	const char *hlsubstr;
 	ncplane_putchar(n, ' ');
 	if (highlight && (hlsubstr = strcasestr(file_name(file), highlight))) {
+		/* TODO: how can we combine this with shortening? Try to show ...highlight... ? (on 2022-02-07) */
 		const uint16_t l = hlsubstr - file_name(file);
 		const uint64_t ch = ncplane_channels(n);
 		ncplane_putnstr(n, l, file_name(file));
 		ncplane_set_channels(n, cfg.colors.search);
 		ncplane_putnstr(n, strlen(highlight), file_name(file) + l);
 		ncplane_set_channels(n, ch);
-		ncplane_putnstr(n, ncol-3, file_name(file) + l + strlen(highlight));
+		ncplane_putnstr(n, ncol - 3, file_name(file) + l + strlen(highlight));
 		ncplane_cursor_yx(n, NULL, &x);
 	} else {
-		const char *p = file_name(file);
-		x = mbsrtowcs(buf, &p, ncol-3, NULL);
-		ncplane_putnstr(n, ncol-3, file_name(file));
+		// TODO: Calculations should be done with the mblen of the strings (on 2022-02-07)
+		if (file_ext(file)) {
+			const int name_len = strlen(file_name(file));
+			const int ext_len = strlen(file_ext(file));
+			const int pre_len = name_len - ext_len;
+			const int left_space = ncol - 3 - rightmargin;
+			if (left_space >= ext_len + pre_len) {
+				// print whole
+				x += ncplane_putnstr(n, left_space, file_name(file));
+			} else if (left_space >= ext_len + 2) {
+				// shorten prefix, print extension
+				x += ncplane_putnstr(n, left_space - ext_len - 1, file_name(file));
+				x += ncplane_putwc(n, cfg.truncatechar);
+				x += ncplane_putstr(n, file_ext(file));
+			} else if (left_space >= 4) {
+				// truncate prefix and extension, keep dot
+				x += ncplane_putchar(n, *file_name(file));
+				x += ncplane_putwc(n, cfg.truncatechar);
+				x += ncplane_putnstr(n, left_space - 3, file_ext(file));
+				x += ncplane_putwc(n, cfg.truncatechar);
+			} else if (left_space > 1) {
+				x += ncplane_putnstr(n, left_space - 1, file_name(file));
+				x += ncplane_putwc(n, cfg.truncatechar);
+			} else {
+				x += ncplane_putchar(n, *file_name(file));
+			}
+		} else {
+			const int left_space = ncol - 3 - rightmargin;
+			const int pre_len = strlen(file_name(file));
+			if (left_space >= pre_len) {
+				x += ncplane_putstr(n, file_name(file));
+			} else if (left_space > 1) {
+				x += ncplane_putnstr(n, left_space - 1, file_name(file));
+				x += ncplane_putwc(n, cfg.truncatechar);
+			} else {
+				x += ncplane_putchar(n, *file_name(file));
+			}
+		}
 	}
 
-	for (uint16_t l = x; l < ncol - 3; l++)
+	for (; x < ncol - rightmargin - 2; x++)
 		ncplane_putchar(n, ' ');
-
-	/* TODO: Try to print the extension after the truncate char (on 2022-02-06) */
-	if (x + rightmargin + 2> ncol)
-		ncplane_putwc_yx(n, y0, ncol-rightmargin - 1, cfg.truncatechar);
-	else
-		ncplane_cursor_move_yx(n, y0, ncol - rightmargin);
 
 	if (rightmargin > 0) {
+		ncplane_cursor_move_yx(n, y0, ncol - rightmargin);
 		if (file_islink(file))
-			ncplane_putstr(n, " ->");
-		ncplane_putchar(n, ' ');
+			ncplane_putstr(n, "-> ");
 		ncplane_putstr(n, size);
 		ncplane_putchar(n, ' ');
 	}
