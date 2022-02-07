@@ -69,7 +69,7 @@ T *file_init(T *t, const char *dir, const char *name)
 		t->stat = t->lstat;
 	}
 
-	t->isexec = t->lstat.st_mode & (1 | 8 | 64);
+	t->isexec = t->stat.st_mode & (1 | 8 | 64);
 
 	return t;
 }
