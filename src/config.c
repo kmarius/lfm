@@ -82,8 +82,6 @@ void config_init()
 }
 
 
-#define tup_free(t) free((t).ext)
-
 void config_deinit() {
 	cvector_free(cfg.ratios);
 	cvector_free(cfg.commands);
@@ -98,7 +96,8 @@ void config_deinit() {
 	free(cfg.previewer);
 	free(cfg.startfile);
 	free(cfg.startpath);
+#define tup_free(t) free((t).ext)
 	cvector_ffree(cfg.colors.ext_channels, tup_free);
+#undef tup_free
 }
 
-#undef tup_free
