@@ -434,6 +434,7 @@ static int l_config_newindex(lua_State *L)
 		return 0;
 	} else if (streq(key, "previewer")) {
 		if (lua_isnoneornil(L, 3)) {
+			free(cfg.previewer);
 			cfg.previewer = NULL;
 		} else {
 			const char *str = luaL_checkstring(L, 3);
