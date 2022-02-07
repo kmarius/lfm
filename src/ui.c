@@ -20,7 +20,7 @@
 
 static void draw_dirs(T *t);
 static void plane_draw_dir(struct ncplane *n, Dir *dir, char **sel,
-		char **load, enum movemode_e mode, const char *highlight);
+		char **load, enum movemode_e mode, const char *highlight, bool print_sizes);
 static void draw_cmdline(T *t);
 static void draw_preview(T *t);
 static void plane_draw_file_preview(struct ncplane *n, Preview *pv);
@@ -243,7 +243,7 @@ static void draw_dirs(T *t)
 				t->fm->selection.files,
 				t->fm->load.files,
 				t->fm->load.mode,
-				i == 0 ? t->highlight : NULL);
+				i == 0 ? t->highlight : NULL, i == 0);
 	}
 }
 
@@ -253,7 +253,7 @@ static void draw_preview(T *t)
 	if (cfg.preview && t->ndirs > 1) {
 		if (t->fm->dirs.preview) {
 			plane_draw_dir(t->planes.preview, t->fm->dirs.preview, t->fm->selection.files,
-					t->fm->load.files, t->fm->load.mode, NULL);
+					t->fm->load.files, t->fm->load.mode, NULL, false);
 		} else {
 			update_preview(t);
 			plane_draw_file_preview(t->planes.preview, t->preview.preview);
@@ -614,33 +614,36 @@ static uint64_t ext_channel_find(const char *ext)
 
 static void print_file(struct ncplane *n, const File *file,
 		bool iscurrent, char **sel, char **load, enum movemode_e mode,
-		const char *highlight)
+		const char *highlight, bool print_sizes)
 {
 	int ncol, y0;
 	int x = 0;
 	char size[16];
-	wchar_t buf[256];
 	ncplane_dim_yx(n, NULL, &ncol);
 	ncplane_cursor_yx(n, &y0, NULL);
 
-	if (file_isdir(file)) {
-		if (file_dircount(file) < 0)
-			snprintf(size, sizeof(size), "?");
-		else
-			snprintf(size, sizeof(size), "%d", file_dircount(file));
-	} else {
-		file_size_readable(file, size);
-	}
+	int rightmargin = 0;
 
-	int rightmargin = strlen(size) + 2;
-	if (file_islink(file))
-		rightmargin += 3; /* " ->" */
-	if (file_ext(file)) {
-		if (ncol - 3 - rightmargin < 4)
-			rightmargin = 0;
-	} else {
-		if (ncol - 3 - rightmargin < 2)
-			rightmargin = 0;
+	if (print_sizes) {
+		if (file_isdir(file)) {
+			if (file_dircount(file) < 0)
+				snprintf(size, sizeof(size), "?");
+			else
+				snprintf(size, sizeof(size), "%d", file_dircount(file));
+		} else {
+			file_size_readable(file, size);
+		}
+		rightmargin = strlen(size) + 2;
+
+		if (file_islink(file))
+			rightmargin += 3; /* " ->" */
+		if (file_ext(file)) {
+			if (ncol - 3 - rightmargin < 4)
+				rightmargin = 0;
+		} else {
+			if (ncol - 3 - rightmargin < 2)
+				rightmargin = 0;
+		}
 	}
 
 	ncplane_set_bg_default(n);
@@ -751,7 +754,7 @@ static void print_file(struct ncplane *n, const File *file,
 
 
 static void plane_draw_dir(struct ncplane *n, Dir *dir, char **sel, char **load,
-		enum movemode_e mode, const char *highlight)
+		enum movemode_e mode, const char *highlight, bool print_sizes)
 {
 	int nrow, i, offset;
 
@@ -784,7 +787,7 @@ static void plane_draw_dir(struct ncplane *n, Dir *dir, char **sel, char **load,
 		for (i = 0; i < l; i++) {
 			ncplane_cursor_move_yx(n, i, 0);
 			print_file(n, dir->files[i + offset],
-					i == dir->pos, sel, load, mode, highlight);
+					i == dir->pos, sel, load, mode, highlight, print_sizes);
 		}
 	}
 }
