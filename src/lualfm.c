@@ -966,7 +966,8 @@ static int l_fm_bot(lua_State *L)
 static int l_fm_updir(lua_State *L)
 {
 	(void) L;
-	fm_updir(fm);
+	if (fm_updir(fm))
+		lua_run_hook(L, "ChdirPost");
 	nohighlight(ui);
 	ui_redraw(ui, REDRAW_FM);
 	return 0;
@@ -977,6 +978,7 @@ static int l_fm_open(lua_State *L)
 {
 	File *file = fm_open(fm);
 	if (!file) {
+		lua_run_hook(L, "ChdirPost");
 		/* changed directory */
 		ui_redraw(ui, REDRAW_FM);
 		nohighlight(ui);

@@ -130,7 +130,7 @@ static inline bool fm_bot(Fm *fm)
 
 /*
  * Changes directory to the directory given by `path`. If `save` then the current
- * directory will be saved as the special "'" mark.
+ * directory will be saved as the special "'" mark. Returns `true´ if the directory has been changed.
  */
 bool fm_chdir(Fm *fm, const char *path, bool save);
 
@@ -143,7 +143,7 @@ File *fm_open(Fm *fm);
 /*
  * Chdir to the parent of the current directory.
  */
-void fm_updir(Fm *fm);
+bool fm_updir(Fm *fm);
 
 /*
  * Move the cursor the file with `name` if it exists. Otherwise leaves the

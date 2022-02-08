@@ -580,15 +580,16 @@ File *fm_open(T *t)
 
 /* TODO: allow updir into directories that don't exist so we can move out of
  * deleted directories (on 2021-11-18) */
-void fm_updir(T *t)
+bool fm_updir(T *t)
 {
 	if (dir_isroot(fm_current_dir(t)))
-		return;
+		return false;
 
 	const char *name = fm_current_dir(t)->name;
 	fm_chdir(t, dir_parent_path(fm_current_dir(t)), false);
 	fm_move_cursor_to(t, name);
 	fm_update_preview(t);
+	return true;
 }
 
 /* }}} */
