@@ -42,6 +42,12 @@ static ev_io *add_io_watcher(T *t, FILE* f);
 static void app_read_fifo(T *t);
 
 
+static struct dir_load_data {
+	Dir *dir;
+	uint64_t time;
+} *dir_load_queue;
+
+
 struct stdout_watcher_data {
 	App *app;
 	FILE *stream;
@@ -54,7 +60,6 @@ struct child_watcher_data {
 	ev_io *stdout_watcher;
 	ev_io *stderr_watcher;
 };
-
 
 /* callbacks {{{ */
 
@@ -147,6 +152,48 @@ static void app_read_fifo(T *t)
 	ev_idle_start(t->loop, &t->redraw_watcher);
 }
 
+/* TODO: refactor this, maybe put it in notify.c (on 2022-02-08) */
+/* get rid of app_empty_dir_load_queue */
+
+static inline void schedule_timer(struct ev_loop *loop, ev_timer *timer, uint64_t delay)
+{
+	timer->repeat = delay / 1000.;
+	ev_timer_again(loop, timer);
+}
+
+
+static inline void schedule_dir_load(struct ev_loop *loop, ev_timer *timer, Dir *dir, uint64_t time)
+{
+	cvector_push_back(dir_load_queue, ((struct dir_load_data) {dir, time}));
+	if (cvector_size(dir_load_queue) == 1 || dir_load_queue[0].time > time)
+		schedule_timer(loop, timer, time - current_millis());
+	cvector_upheap_min(dir_load_queue, cvector_size(dir_load_queue) - 1, .time);
+}
+
+
+static void dir_load_timer_cb(EV_P_ ev_timer *w, int revents)
+{
+	(void) w;
+	(void) revents;
+
+	if (cvector_size(dir_load_queue) == 0)
+		return;
+
+	async_dir_load(dir_load_queue[0].dir, true);
+	cvector_swap_erase(dir_load_queue, 0);
+
+	if (cvector_size(dir_load_queue) == 0)
+		return;
+
+	cvector_downheap_min(dir_load_queue, 0, .time);
+
+	const uint64_t now = current_millis();
+	if (dir_load_queue[0].time <= now)
+		dir_load_timer_cb(loop, w, 0);
+	else
+		schedule_timer(loop, w, dir_load_queue[0].time - now);
+}
+
 
 /* TODO: we currently don't notice if the current directory is deleted while
  * empty (on 2021-11-18) */
@@ -174,10 +221,6 @@ static void inotify_cb(EV_P_ ev_io *w, int revents)
 				continue;
 			}
 
-
-			/* TODO: queue reload using timers instead of sleeping  with a delay
-			 * to shutdown faster. (on 2022-02-06) */
-
 			struct notify_watcher_data *data = notify_get_watcher_data(event->wd);
 			if (!data)
 				continue;
@@ -196,7 +239,7 @@ static void inotify_cb(EV_P_ ev_io *w, int revents)
 			const uint64_t next = now < latest + NOTIFY_TIMEOUT
 				? latest + NOTIFY_TIMEOUT + NOTIFY_DELAY
 				: now + NOTIFY_DELAY;
-			async_dir_load_delayed(data->dir, true, next - now);
+			schedule_dir_load(loop, &app->dir_load_timer, data->dir, next);
 			data->next = next;
 		}
 	}
@@ -325,6 +368,9 @@ void app_init(T *t)
 	ev_timer_init(&t->timer_watcher, timer_cb, 0., TICK);
 	t->timer_watcher.data = t;
 	ev_timer_start(t->loop, &t->timer_watcher);
+
+	ev_init(&t->dir_load_timer, dir_load_timer_cb);
+	t->dir_load_timer.data = t;
 
 	ev_io_init(&t->input_watcher, stdin_cb, notcurses_inputready_fd(t->ui.nc), EV_READ);
 	t->input_watcher.data = t;
@@ -471,6 +517,13 @@ void app_timeout_set(T *t, uint16_t duration)
 }
 
 
+void app_empyt_dir_load_queue(T *t)
+{
+	(void) t;
+	cvector_set_size(dir_load_queue, 0);
+}
+
+
 void app_deinit(T *t)
 {
 	for (size_t i = 0; i < cvector_size(t->child_watchers); i++) {
@@ -487,6 +540,7 @@ void app_deinit(T *t)
 		free(t->child_watchers[i]);
 	}
 
+	cvector_free(dir_load_queue);
 	notify_deinit();
 	lua_deinit(t->L);
 	ui_deinit(&t->ui);

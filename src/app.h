@@ -26,6 +26,9 @@ typedef struct App {
 	ev_signal signal_watcher;
 	ev_io input_watcher;
 	ev_timer timer_watcher;
+	ev_timer dir_load_timer;
+
+
 	cvector_vector_type(ev_child *) child_watchers; /* to run callbacks when processes finish */
 } App;
 
@@ -53,6 +56,11 @@ void app_quit(App *app);
  * Free all recources i.e. ui, fm and the lua_State.
  */
 void app_deinit(App *app);
+
+/*
+ * That queue holds references to directories that are invalidated on drop_cache.
+ */
+void app_empyt_dir_load_queue(App *app);
 
 /*
  * Execute a command in the background and redirect its output/error to the ui

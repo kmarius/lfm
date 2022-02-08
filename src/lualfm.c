@@ -913,6 +913,7 @@ static int l_fm_drop_cache(lua_State *L)
 {
 	(void) L;
 	fm_drop_cache(fm);
+	app_empyt_dir_load_queue(app);
 	ui_drop_cache(ui);
 	return 0;
 }
