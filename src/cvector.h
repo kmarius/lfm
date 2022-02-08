@@ -35,6 +35,18 @@
 
 #define CVECTOR_INITIAL_CAPACITY 8
 
+#define CVECTOR_PARENT(i) ((i)-1) / 2
+#define CVECTOR_LCHILD(i) (2 * (i) + 1)
+#define CVECTOR_RCHILD(i) (2 * (i) + 2)
+
+#define CVECTOR_SWAP(x, y) \
+	do { \
+		unsigned char cv_swap_temp[sizeof(x) == sizeof(y) ? (signed) sizeof(x) : -1]; \
+		memcpy(cv_swap_temp, &y, sizeof(x)); \
+		memcpy(&y, &x, sizeof(x)); \
+		memcpy(&x, cv_swap_temp, sizeof(x)); \
+	} while (0)
+
 /**
  * @brief cvector_vector_type - The vector type used in this library
  */
@@ -376,3 +388,48 @@
 			} \
 		} \
 		ret; })
+
+/**
+ * @brief cvector_upheap_min Perform upheap on a min heap.
+ * @param vec - the vector
+ * @param i - index
+ * @param key - comparison key of the element, e.g. .time or ->timestamp
+ * @return void
+ */
+#define cvector_upheap_min(vec, i, key) \
+	do { \
+		size_t cv_i = i; \
+		size_t cv_par = CVECTOR_PARENT(cv_i); \
+		while (cv_i > 0 && (vec)[cv_par]key > (vec)[cv_i]key) { \
+			CVECTOR_SWAP((vec)[cv_i], (vec)[cv_par]); \
+			cv_i = cv_par; \
+			cv_par = CVECTOR_PARENT(cv_i); \
+		} \
+	} while (0)
+
+
+/**
+ * @brief cvector_downheap_min Perform downheap on a min heap.
+ * @param vec - the vector
+ * @param i - index
+ * @param key - comparison key of the element, e.g. .time or ->timestamp
+ * @return void
+ */
+#define cvector_downheap_min(vec, i, key) \
+	do { \
+		size_t cv_i = i; \
+		const size_t cv_sz = cvector_size(vec); \
+		do { \
+			const size_t cv_lidx = CVECTOR_LCHILD(cv_i); \
+			const size_t cv_ridx = CVECTOR_RCHILD(cv_i); \
+			size_t cv_smallest = cv_i; \
+			if (cv_lidx < cv_sz && (vec)[cv_lidx]key < (vec)[cv_smallest]key) \
+				cv_smallest = cv_lidx; \
+			if (cv_ridx < cv_sz && (vec)[cv_ridx]key < (vec)[cv_smallest]key) \
+				cv_smallest = cv_ridx; \
+			if (cv_smallest == cv_i) \
+				break; \
+			CVECTOR_SWAP((vec)[cv_i], (vec)[cv_smallest]); \
+			cv_i = cv_smallest; \
+		} while (1); \
+	} while (0)
