@@ -252,10 +252,7 @@ static Dir *fm_load_dir(T *t, const char *path)
 void fm_check_dirs(const T *t)
 {
 	for (uint16_t i = 0; i < t->dirs.length; i++) {
-		if (!t->dirs.visible[i])
-			continue;
-
-		if (!dir_check(t->dirs.visible[i]))
+		if (t->dirs.visible[i] && !dir_check(t->dirs.visible[i]))
 			async_dir_load(t->dirs.visible[i], true);
 	}
 
