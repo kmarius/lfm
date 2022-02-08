@@ -88,19 +88,20 @@ static inline void swap(File **a, File **b)
  * number generator. */
 static void shuffle(void *arr, size_t n, size_t size)
 {
+	if (n <= 1)
+		return;
+
 	size_t stride = size * sizeof(char);
 	char *tmp = malloc(n * size);
 
-	if (n > 1) {
-		size_t i;
-		for (i = 0; i < n - 1; ++i) {
-			size_t rnd = (size_t) rand();
-			size_t j = i + rnd / (RAND_MAX / (n - i) + 1);
+	size_t i;
+	for (i = 0; i < n - 1; ++i) {
+		size_t rnd = (size_t) rand();
+		size_t j = i + rnd / (RAND_MAX / (n - i) + 1);
 
-			memcpy(tmp, arr + j * stride, size);
-			memcpy(arr + j * stride, arr + i * stride, size);
-			memcpy(arr + i * stride, tmp, size);
-		}
+		memcpy(tmp, arr + j * stride, size);
+		memcpy(arr + j * stride, arr + i * stride, size);
+		memcpy(arr + i * stride, tmp, size);
 	}
 
 	free(tmp);
@@ -148,7 +149,7 @@ void dir_sort(T *t)
 			}
 		} else {
 			j = t->length_all;
-			memcpy(t->files_sorted, t->files, t->length_all * sizeof(File*));
+			memcpy(t->files_sorted, t->files, t->length_all * sizeof(File *));
 		}
 	} else {
 		if (t->dirfirst) {
@@ -270,11 +271,11 @@ T *dir_load(const char *path, bool load_dircount)
 	dir->length_sorted = dir->length_all;
 	dir->length = dir->length_all;
 
-	dir->files_sorted = malloc(sizeof(File*) * dir->length_all);
-	dir->files = malloc(sizeof(File*) * dir->length_all);
+	dir->files_sorted = malloc(dir->length_all * sizeof(File *));
+	dir->files = malloc(dir->length_all * sizeof(File *));
 
-	memcpy(dir->files_sorted, dir->files_all, sizeof(File*)*dir->length_all);
-	memcpy(dir->files, dir->files_all, sizeof(File*)*dir->length_all);
+	memcpy(dir->files_sorted, dir->files_all, dir->length_all * sizeof(File *));
+	memcpy(dir->files, dir->files_all, dir->length_all * sizeof(File *));
 
 	return dir;
 }
@@ -301,7 +302,7 @@ T *dir_load_flat(const char *path, uint8_t level, bool load_dircount)
 	dir->flatten_level = level;
 
 	struct queue_dirs queue;
-	queue.head = malloc(sizeof(struct queue_dirs_node));
+	queue.head = malloc(sizeof(*queue.head));
 	queue.head->path = strdup(path);
 	queue.head->level = 0;
 	queue.head->next = NULL;
@@ -365,11 +366,11 @@ cont:
 	dir->length_sorted = dir->length_all;
 	dir->length = dir->length_all;
 
-	dir->files_sorted = malloc(sizeof(File*) * dir->length_all);
-	dir->files = malloc(sizeof(File*) * dir->length_all);
+	dir->files_sorted = malloc(dir->length_all * sizeof(File *));
+	dir->files = malloc(dir->length_all * sizeof(File *));
 
-	memcpy(dir->files_sorted, dir->files_all, sizeof(File*)*dir->length_all);
-	memcpy(dir->files, dir->files_all, sizeof(File*)*dir->length_all);
+	memcpy(dir->files_sorted, dir->files_all, dir->length_all * sizeof(File *));
+	memcpy(dir->files, dir->files_all, dir->length_all * sizeof(File *));
 
 	log_debug("flat dir %s loaded in %ums", path, current_millis() - t0);
 
