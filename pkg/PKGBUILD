@@ -1,0 +1,38 @@
+pkgname=lfm-git
+_pkgname=lfm
+pkgver=369.ed57a92
+pkgrel=1
+pkgdesc="file manager"
+url="https://github.com/kmarius/lfm"
+license=('')
+arch=('x86_64')
+depends=('luajit' 'libev' 'lua51-filesystem')
+makedepends=('cmake' 'clang')
+source=(git+https://github.com/kmarius/lfm)
+conflicts=()
+md5sums=('SKIP')
+
+pkgver() {
+	cd "${_pkgname}"
+	echo `git rev-list --count master`.`git rev-parse --short master`
+}
+
+prepare() {
+	:
+}
+
+build() {
+	cd "${_pkgname}/third-party"
+	cmake .
+	make
+
+	mkdir -p "${srcdir}/${_pkgname}/build"
+	cd "${srcdir}/${_pkgname}/build"
+	cmake .. -DCMAKE_INSTALL_PREFIX="/usr" -DCMAKE_BUILD_TYPE=Release
+	make
+}
+
+package() {
+	cd "${_pkgname}/build"
+	make DESTDIR="$pkgdir" install
+}
