@@ -1,6 +1,6 @@
 pkgname=lfm-git
 _pkgname=lfm
-pkgver=369.ed57a92
+pkgver=373.b25b9e4
 pkgrel=1
 pkgdesc="file manager"
 url="https://github.com/kmarius/lfm"
@@ -22,17 +22,12 @@ prepare() {
 }
 
 build() {
-	cd "${_pkgname}/third-party"
-	cmake .
-	make
-
-	mkdir -p "${srcdir}/${_pkgname}/build"
-	cd "${srcdir}/${_pkgname}/build"
-	cmake .. -DCMAKE_INSTALL_PREFIX="/usr" -DCMAKE_BUILD_TYPE=Release
-	make
+	cd "${_pkgname}"
+	cmake -Bbuild -DCMAKE_INSTALL_PREFIX="/usr" -DCMAKE_BUILD_TYPE=Release
+	cmake --build build
 }
 
 package() {
-	cd "${_pkgname}/build"
-	make DESTDIR="$pkgdir" install
+	cd "${_pkgname}"
+	DESTDIR="${pkgdir}" cmake --build build --target install
 }
