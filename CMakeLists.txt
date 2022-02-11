@@ -52,7 +52,9 @@ target_link_libraries(lfm
 	${NOTCURSES_DEPS}
 	${ZLIB_LIBRARY}
 	${EV_LIBRARY}
-	${PTHREAD_LIBRARY})
+	${PTHREAD_LIBRARY}
+	magic
+	pcre)
 
 install(TARGETS lfm DESTINATION bin)
 install(DIRECTORY lua DESTINATION share/lfm)

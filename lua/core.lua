@@ -3,9 +3,6 @@ package.path = string.gsub(package.path, "./%?.lua;", "")
 if not string.match(package.path, home.."/.config/lfm/lua/") then
 	package.path = package.path .. ";"..home..[[/.config/lfm/lua/?.lua]]
 end
-if not string.match(package.cpath, home.."/.config/lfm/lua/") then
-	package.cpath = package.cpath .. ";"..home..[[/.config/lfm/libs/?.so]]
-end
 
 local fm = lfm.fm
 local log = lfm.log

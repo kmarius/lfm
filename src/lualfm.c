@@ -21,6 +21,7 @@
 #include "log.h"
 #include "lualfm.h"
 #include "notify.h"
+#include "opener.h"
 #include "search.h"
 #include "tokenize.h"
 #include "tpool.h"
@@ -1595,6 +1596,10 @@ int luaopen_lfm(lua_State *L)
 	luaL_register(L, NULL, fn_lib);
 	lua_setfield(L, -2, "fn"); /* lfm.fn = {...} */
 
+	lua_newtable(L); /* lfm.opener */
+	lua_register_opener(L);
+	lua_setfield(L, -2, "opener"); /* lfm.opener = {...} */
+
 	return 1;
 }
 
@@ -1623,6 +1628,7 @@ void lua_init(lua_State *L, App *_app)
 
 void lua_deinit(lua_State *L)
 {
+	lua_opener_clear(L);
 	lua_close(L);
 	trie_destroy(maps.normal);
 	trie_destroy(maps.cmd);

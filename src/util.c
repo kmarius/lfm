@@ -12,6 +12,10 @@
 #include "log.h"
 #include "util.h"
 
+char *rtrim(char *s);
+char *ltrim(char *s);
+char *trim(char *s);
+
 int min(int i, int j);
 
 int max(int i, int j);
