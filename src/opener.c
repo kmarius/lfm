@@ -379,6 +379,30 @@ static bool check_rule(struct Rule *r, const FileInfo *info)
 }
 
 
+
+static int l_opener_fileinfo(lua_State *L) {
+	const char *file = luaL_checkstring(L, 1);
+
+	char path[PATH_MAX + 1];
+	realpath(file, path);
+
+	char mime[MIME_MAX + 1];
+	get_mimetype(path, mime);
+
+	lua_newtable(L);
+
+	lua_pushstring(L, file);
+	lua_setfield(L, -2, "file");
+
+	lua_pushstring(L, mime);
+	lua_setfield(L, -2, "mime");
+
+	lua_pushstring(L, path);
+	lua_setfield(L, -2, "path");
+
+	return 1;
+}
+
 static int l_opener_query(lua_State *L) {
 	const char *file = luaL_checkstring(L, 1);
 
@@ -521,6 +545,7 @@ static int l_opener_nrules(lua_State *L) {
 
 
 static const luaL_Reg opener_lib[] = {
+	{"fileinfo", l_opener_fileinfo},
 	{"nrules", l_opener_nrules},
 	{"query", l_opener_query},
 	{"setup", l_opener_setup},
