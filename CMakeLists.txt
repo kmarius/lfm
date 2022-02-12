@@ -7,8 +7,6 @@ list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 
 set(CMAKE_C_STANDARD 11)
 
-set(CMAKE_C_COMPILER /usr/bin/clang)
-
 set(CMAKE_C_FLAGS "-Wall -Wextra -Wvla -pthread")
 set(CMAKE_C_FLAGS_DEBUG "-DDEBUG -O2 -g")
 set(CMAKE_C_FLAGS_RELEASE "-DNDEBUG -O2 -flto -g")
