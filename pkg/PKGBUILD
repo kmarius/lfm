@@ -1,14 +1,13 @@
 pkgname=lfm-git
 _pkgname=lfm
-pkgver=377.d1cd740
+pkgver=379.a140c21
 pkgrel=1
 pkgdesc="terminal file manager"
 url="https://github.com/kmarius/lfm"
 license=('MIT')
 arch=('x86_64' 'aarch64')
 depends=('luajit' 'libev' 'lua51-filesystem')
-# TODO: ffmpeg is a runtime dependency for notcurses but we shouldn't need it (on 2022-02-12)
-makedepends=('git' 'cmake' 'gcc' 'ffmpeg')
+makedepends=('git' 'cmake' 'gcc')
 optdepends=("trash-cli: trash files")
 source=(git+https://github.com/kmarius/lfm)
 conflicts=()
