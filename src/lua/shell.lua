@@ -3,16 +3,18 @@ local sel_or_cur = lfm.sel_or_cur
 
 local M = {}
 
+---Pass files as argv.
 M.ARGV = 1
+
+---pass files as an array named `files` (`bash`, `fish` and `tmux` only).
 M.ARRAY = 2
-M.APPPEND = 3 -- TODO: implement (on 2021-07-29)
 
 local ARGV = M.ARGV
 local ARRAY = M.ARRAY
 
----Wrap a table of strings in single quotes and concatenate.
----@param args table Strings to concatenate.
----@param sep? string Concatenation separator (default: " ").
+---Wrap a string (ortable of strings) in single quotes.
+---@param args string[]|string
+---@param sep? string separator (default: " ").
 ---@return string
 function M.escape(args, sep)
 	if not args then return "" end
@@ -26,6 +28,16 @@ function M.escape(args, sep)
 	return table.concat(ret, sep)
 end
 
+---@class exec_opts
+---@field quiet boolean show command in the log (default: true)
+---@field fork boolean run the command in the background (default: false)
+---@field out boolean redirect stdout in the ui (default: true)
+---@field err boolean redirect stderr in the ui (default: true)
+
+---Execute a foreground command.
+---If `command` is a single string, it is executed as `sh -c command`.
+---@param command string|string[]
+---@param t exec_opts
 function M.execute(command, t)
 	t = t or {}
 	if type(command) == "string" then
@@ -37,7 +49,9 @@ function M.execute(command, t)
 	lfm.execute(command, t)
 end
 
--- Run a command an capture the output
+---Run a command an capture the output.
+---@param command string|string[]
+---@return string[]
 function M.popen(command)
 	if type(command) == "table" then
 		command = M.escape(command)
@@ -50,6 +64,18 @@ function M.popen(command)
 	return res
 end
 
+---@class bash_opts
+---@field files number
+---@field quiet boolean show command in the log (default: true)
+---@field fork boolean run the command in the background (default: false)
+---@field out boolean redirect stdout in the ui (default: true)
+---@field err boolean redirect stderr in the ui (default: true)
+
+---Build a function from a bash command. Unless `t.files == shell.ARGV` the
+---functions arguments are passed to the shell.
+---@param command string
+---@param t bash_opts
+---@return function
 function M.bash(command, t)
 	t = t or {}
 	if t.files == ARGV then
@@ -67,7 +93,18 @@ function M.bash(command, t)
 	end
 end
 
--- bash only for now
+---@class tmux_opts
+---@field files number
+---@field quiet boolean show command in the log (default: true)
+---@field fork boolean run the command in the background (default: false)
+---@field out boolean redirect stdout in the ui (default: true)
+---@field err boolean redirect stderr in the ui (default: true)
+
+---Build a function from a bash command to run in a `tmux new-window`. Unless
+---`t.files == shell.ARGV` the functions arguments are passed to the shell.
+---@param command string
+---@param t tmux_opts
+---@return function
 function M.tmux(command, t)
 	t = t or {}
 	if t.files == ARGV then
@@ -85,12 +122,24 @@ function M.tmux(command, t)
 	end
 end
 
--- Fish does not actually need "--" after the command to pass argv
+---@class fish_opts
+---@field files number
+---@field tmux boolean open command in a new tmux window (default: false)
+---@field quiet boolean show command in the log (default: true)
+---@field fork boolean run the command in the background (default: false)
+---@field out boolean redirect stdout in the ui (default: true)
+---@field err boolean redirect stderr in the ui (default: true)
+
+---Build a function from a shell command. Unless `t.files == shell.ARGV` the
+---functions arguments are passed to the shell.
+---@param command string
+---@param t fish_opts
+---@return function
 function M.fish(command, t)
 	t = t or {}
 	if t.files == ARGV then
 		return function()
-			M.execute({"fish", "-c", command, sel_or_cur()}, t)
+			M.execute({"fish", "-c", command, unpack(sel_or_cur())}, t)
 		end
 	elseif t.files == ARRAY then
 		if t.tmux then
@@ -109,6 +158,18 @@ function M.fish(command, t)
 	end
 end
 
+---@class sh_opts
+---@field files number
+---@field quiet boolean show command in the log (default: true)
+---@field fork boolean run the command in the background (default: false)
+---@field out boolean redirect stdout in the ui (default: true)
+---@field err boolean redirect stderr in the ui (default: true)
+
+---Build a function from a shell command. Unless `t.files == shell.ARGV` the
+---functions arguments are passed to the shell.
+---@param command string
+---@param t sh_opts
+---@return function
 function M.sh(command, t)
 	t = t or {}
 	if t.files == ARGV then
@@ -116,7 +177,7 @@ function M.sh(command, t)
 			M.execute({"sh", "-c", command, "_", sel_or_cur()}, t)
 		end
 	elseif t.files == ARRAY then
-		lfm.error("files_as_array not supported for sh")
+		lfm.error("sh does not support arrays")
 		return function() end
 	else
 		return function(...)

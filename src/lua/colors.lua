@@ -24,7 +24,7 @@ M.palette = {
 	bright_white   = "15",
 }
 
----Read colors from the LS\_COLORS environment variable.
+---Read colors from the `LS\_COLORS` environment variable.
 ---@return table colors The table of color mappings that can be passed to lfm.config.colors
 function M.load_lscolors()
 	local patterns = {}
@@ -63,7 +63,7 @@ function M.load_lscolors()
 	return patterns
 end
 
---Computes the single integer corresponding to the color defined by (r,g,b).
+---Computes the single integer corresponding to the color defined by (r,g,b).
 ---@param r number 0 <= r <= 255
 ---@param b number 0 <= b <= 255
 ---@param g number 0 <= g <= 255

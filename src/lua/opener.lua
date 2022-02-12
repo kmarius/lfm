@@ -1,10 +1,14 @@
+local lfm = lfm
+
 local fm = lfm.fm
+local ui = lfm.ui
 local shell = require("shell")
 
--- local M = require("riclib")
 local M = lfm.opener
 
--- Rename to open_with and match rangers behaviour
+---Navigate into a directory or open files.
+---@param ... any
+---@return boolean
 function M.open(...)
 	local t = {...}
 	local pick = t[1]
@@ -36,6 +40,8 @@ function M.open(...)
 	end
 end
 
+---Show opener options for the current file in a menu and prepare the command
+---line.
 function M.ask()
 	local file = lfm.sel_or_cur()[1]
 	if file then
@@ -44,11 +50,17 @@ function M.ask()
 			table.insert(menu, rule.number .. " " .. rule.command)
 		end
 		lfm.cmd.setline(":", "open ", "")
-		lfm.ui.menu(menu)
+		ui.menu(menu)
 	end
 end
 
 local setup = M.setup
+
+---@class opener_setup_opts
+---@field config string path to configuration file e.g. a rifle.conf (default: ~/.config/lfm/opener.conf)
+
+---Set up opener.
+---@param t opener_setup_opts
 function M.setup(t)
 	setup(t)
 	lfm.register_command("open", M.open, {tokenize = true})

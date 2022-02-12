@@ -3,6 +3,7 @@ local lfm = lfm
 local fm = lfm.fm
 
 local util = require("util")
+local lfs = require("lfs")
 local basename = util.basename
 local dirname = util.dirname
 local file_split = util.file_split
@@ -11,10 +12,12 @@ local M = {}
 
 
 local function file_exists(path)
-	local f = io.open(path, "r")
-	return f ~= nil and io.close(f)
+	return lfs.attribute(path) ~= nil
 end
 
+---Copy a string to the clipboard.
+---@param text string
+---@param primary boolean
 local function wl_copy(text, primary)
 	if primary then
 		lfm.execute({"sh", "-c", 'printf -- "%s" "$*" | wl-copy --primary', "_", text}, {fork=true})
@@ -43,12 +46,12 @@ function M.yank_name()
 end
 
 ---Rename (move) the currently selected file.
----@param newname string
-function M.rename(newname)
+---@param name string
+function M.rename(name)
 	local file = fm.current_file()
 	if file then
-		if not file_exists(newname) then
-			lfm.execute({"mv", "--", file, newname}, {fork=true})
+		if not file_exists(name) then
+			lfm.execute({"mv", "--", file, name}, {fork=true})
 		else
 			lfm.error("file exists")
 		end
@@ -81,15 +84,18 @@ function M.rename_before_ext()
 	end
 end
 
+---Populate the prompt to rename at the beginning of the file name.
 function M.rename_before()
 	lfm.cmd.setline(":", "rename ", basename(fm.current_file()))
 end
 
+---Populate the prompt to rename at the end of the file name.
 function M.rename_after()
 	lfm.cmd.setline(":", "rename " .. basename(fm.current_file()), "")
 end
 
 ---Create absolute symbolic links of the current load at the current location.
+---Aborts if the mode is "move" instead of "copy".
 function M.symlink()
 	local mode, files = fm.load_get()
 	if mode == "copy" then
@@ -101,6 +107,7 @@ function M.symlink()
 end
 
 ---Create relative symbolic links of the current load at the current location.
+---Aborts if the mode is "move" instead of "copy".
 function M.symlink_relative()
 	local mode, files = fm.load_get()
 	if mode == "copy" then

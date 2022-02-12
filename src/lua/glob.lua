@@ -1,12 +1,16 @@
 local lfm = lfm
+
 local fm = lfm.fm
 local ui = lfm.ui
+local find = require("find").find
 
 local M = {}
 
----Convert a glob to a lua pattern.
+-- TODO: should probably escape some special chars (on 2022-02-12)
+
+--Convert a glob to a lua pattern.
 ---@param glob string
----@return string
+---@return string pattern
 function M.glob_to_pattern(glob)
 	local res = string.gsub(glob, "%.", "%%.")
 	res = string.gsub(res, "%*", ".*")
@@ -14,8 +18,9 @@ function M.glob_to_pattern(glob)
 	return "^"..res.."$"
 end
 
----Select all files in the current directory matching a glob.
+--Select all files in the current directory matching a glob.
 ---@param glob string
+---@return string[] files
 function M.glob_select(glob)
 	local pat = M.glob_to_pattern(glob)
 	local sel = {}
@@ -28,7 +33,10 @@ function M.glob_select(glob)
 	fm.selection_set(sel)
 end
 
-local find = require("find").find
+--Recursiv select all files matching a glob in the current directory and subdirectories.
+---(probably breaks on loops)
+---@param glob string
+---@return string[] files
 function M.glob_select_recursive(glob)
 	local pat = M.glob_to_pattern(glob)
 	local sel = {}

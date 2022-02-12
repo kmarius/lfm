@@ -1,5 +1,11 @@
+local lfm = lfm
+
+local fm = lfm.fm
+
 local M =  {}
 
+---Set the flatten level of the current directory.
+---@param level number
 function M.flatten(level)
 	if level == "+" then
 		level = fm.flatten_level() + 1
@@ -9,15 +15,18 @@ function M.flatten(level)
 	fm.flatten(level)
 end
 
+---Increment the flatten level of the current directory. Sets "nodirfirst".
 function M.flatten_inc()
 	if fm.flatten_level() == 0 then
 		fm.sortby("nodirfirst")
 	end
-	flatten("+")
+	M.flatten("+")
 end
 
+---Decrement the flatten level of the current directory. Sets "dirfirst" after
+---reaching a flatten level of 0.
 function M.flatten_dec()
-	flatten("-")
+	M.flatten("-")
 	if fm.flatten_level() == 0 then
 		fm.sortby("dirfirst")
 	end

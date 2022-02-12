@@ -1,4 +1,5 @@
 local lfm = lfm
+
 local getline = lfm.cmd.getline
 local setline = lfm.cmd.setline
 local commands = lfm.commands
@@ -25,6 +26,7 @@ local options = {
 	"hidden",
 }
 
+---Completion for the `set` command.
 function M.options(tok, line)
 	local t = {}
 	if string.sub(tok, 1, 2) == "no" then
@@ -60,7 +62,7 @@ end
 
 local home = os.getenv("HOME")
 
--- probably absolutely breaks on spaces etc
+---Complete directories.
 function M.dirs(path)
 	if path == "~" then
 		return {"~"}, "/"
@@ -96,6 +98,8 @@ end
 
 -- maybe show dirs before directories
 -- files could be additionaly filtered with a function
+
+---Complete files.
 function M.files(path)
 	if path == "~" then
 		return {"~"}, "/"
@@ -128,6 +132,10 @@ function M.files(path)
 	return t, (#t == 1 and string.sub(t[1], #t[1]) == "/") and "" or " "
 end
 
+---Limit completion with `f` to `n` arguments.
+---@param n number
+---@param f function
+---@return function
 function M.limit(n, f)
 	return function(tok, line)
 		local _, toks = lfm.fn.tokenize(line)
@@ -187,10 +195,12 @@ local function shownext(increment)
 	end
 end
 
+---Show next completion entry.
 function M.next()
 	shownext(1)
 end
 
+---Show previous completion entry.
 function M.prev()
 	shownext(-1)
 end
