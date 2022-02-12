@@ -344,15 +344,15 @@
 
 /**
  * @brief cvector_copy - copy a vector
- * @param from - the original vector
- * @param to - destination to which the function copy to
+ * @param dest - destination to which the function copy to
+ * @param src - the original vector
  * @return void
  */
-#define cvector_copy(from, to) \
+#define cvector_copy(dest, src) \
 	do { \
-		cvector_grow(to, cvector_size(from)); \
-		cvector_set_size(to, cvector_size(from)); \
-		memcpy(to, from, cvector_size(from) * sizeof(*(from))); \
+		cvector_grow(dest, cvector_size(src)); \
+		cvector_set_size(dest, cvector_size(src)); \
+		memcpy((dest), (src), cvector_size(src) * sizeof(*(src))); \
 	} while (0)
 
 /**
@@ -362,13 +362,13 @@
  */
 #define cvector_compact(vec) \
 	do { \
-		size_t j = 0; \
-		size_t sz = cvector_size((vec)); \
-		for (size_t cv_i = 0; cv_i < sz; cv_i++) { \
-			if (vec[cv_i]) \
-				vec[j++] = vec[cv_i]; \
+		size_t cv_j = 0; \
+		const size_t cv_sz = cvector_size((vec)); \
+		for (size_t cv_i = 0; cv_i < cv_sz; cv_i++) { \
+			if ((vec)[cv_i]) \
+				(vec)[cv_j++] = (vec)[cv_i]; \
 		} \
-		cvector_set_size(vec, j); \
+		cvector_set_size(vec, cv_j); \
 	} while (0)
 
 /* statement exprs are a GNU extension */
@@ -376,18 +376,18 @@
  * @brief cvector_contains_str Check if a vector contains a string.
  * @param vec - the vector
  * @param str - the string
- * @return void
+ * @return int
  */
 #define cvector_contains_str(vec, str) ({ \
-		size_t sz = cvector_size((vec)); \
-		bool ret = false; \
-		for (size_t cv_i = 0; cv_i < sz; cv_i++) { \
+		int cv_ret = 0; \
+		const size_t cv_sz = cvector_size(vec); \
+		for (size_t cv_i = 0; cv_i < cv_sz; cv_i++) { \
 			if ((vec)[cv_i] && *(vec)[cv_i] == *(str) && streq((vec)[cv_i], (str))) { \
-				ret = true; \
+				cv_ret = 1; \
 				break; \
 			} \
 		} \
-		ret; })
+		cv_ret; })
 
 /**
  * @brief cvector_upheap_min Perform upheap on a min heap.
@@ -398,7 +398,7 @@
  */
 #define cvector_upheap_min(vec, i, key) \
 	do { \
-		size_t cv_i = i; \
+		size_t cv_i = (i); \
 		size_t cv_par = CVECTOR_PARENT(cv_i); \
 		while (cv_i > 0 && (vec)[cv_par]key > (vec)[cv_i]key) { \
 			CVECTOR_SWAP((vec)[cv_i], (vec)[cv_par]); \
@@ -417,7 +417,7 @@
  */
 #define cvector_downheap_min(vec, i, key) \
 	do { \
-		size_t cv_i = i; \
+		size_t cv_i = (i); \
 		const size_t cv_sz = cvector_size(vec); \
 		do { \
 			const size_t cv_lidx = CVECTOR_LCHILD(cv_i); \
