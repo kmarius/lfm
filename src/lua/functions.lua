@@ -12,7 +12,7 @@ local M = {}
 
 
 local function file_exists(path)
-	return lfs.attribute(path) ~= nil
+	return lfs.attributes(path) ~= nil
 end
 
 ---Copy a string to the clipboard.
