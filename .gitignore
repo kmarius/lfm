@@ -7,6 +7,9 @@ compile_commands.json
 /build/
 /cmake-build-debug/
 /.ccls-cache/
+/.clangd
+/.cache
+/third-party/.third-party
 
 /tags
 /tags.lock
