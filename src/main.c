@@ -68,6 +68,7 @@ int main(int argc, char **argv)
 	log_add_fp(log_fp, LOG_TRACE);
 	log_set_quiet(true);
 	log_debug("startup");
+	log_debug("%s", cfg.luadir);
 
 	int opt;
 	while ((opt = getopt(argc, argv, ":c:hl:s:u:v")) != -1) {

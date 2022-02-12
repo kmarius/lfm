@@ -48,6 +48,15 @@ static struct {
 
 /* lfm lib {{{ */
 
+static int l_colors_clear(lua_State *L)
+{
+	(void) L;
+	config_colors_clear();
+	ui_redraw(ui, REDRAW_FM);
+	return 0;
+}
+
+
 static int l_handle_key(lua_State *L)
 {
 	const char *keys = luaL_checkstring(L, 1);
@@ -292,6 +301,7 @@ static int l_cmap_key(lua_State *L)
 
 
 static const struct luaL_Reg lfm_lib[] = {
+	{"colors_clear", l_colors_clear},
 	{"execute", l_execute},
 	{"map", l_map_key},
 	{"cmap", l_cmap_key},
@@ -365,6 +375,15 @@ static int l_config_index(lua_State *L)
 		return 1;
 	} else if (streq(key, "configpath")) {
 		lua_pushstring(L, cfg.configpath);
+		return 1;
+	} else if (streq(key, "luadir")) {
+		lua_pushstring(L, cfg.luadir);
+		return 1;
+	} else if (streq(key, "datadir")) {
+		lua_pushstring(L, cfg.datadir);
+		return 1;
+	} else if (streq(key, "user_datadir")) {
+		lua_pushstring(L, cfg.user_datadir);
 		return 1;
 	} else if (streq(key, "dircache_size")) {
 		lua_pushinteger(L, fm->dirs.cache.capacity);
@@ -1518,6 +1537,10 @@ void lua_handle_key(lua_State *L, input_t in)
 					cvector_push_back(maps.str, *s);
 			}
 			cvector_push_back(maps.str, 0);
+			if (in == CTRL('Q')) {
+				app_quit(app);
+				return;
+			}
 			ui_error(ui, "no such map: %s", maps.str);
 			log_debug("key: %d, id: %d, shift: %d, ctrl: %d alt %d", in, ID(in), ISSHIFT(in), ISCTRL(in), ISALT(in));
 			ui_showmenu(ui, NULL);
@@ -1623,6 +1646,7 @@ void lua_init(lua_State *L, App *_app)
 
 	lua_newtable(L);
 	lua_setfield(L, LUA_REGISTRYINDEX, TABLE_CALLBACKS);
+	lua_load_file(L, cfg.corepath);
 }
 
 

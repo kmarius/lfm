@@ -72,23 +72,30 @@ void config_init()
 
 	asprintf(&cfg.configdir, "%s/.config/lfm", getenv("HOME"));
 
-	asprintf(&cfg.datadir, "%s/.local/share/lfm", getenv("HOME"));
+	asprintf(&cfg.user_datadir, "%s/.local/share/lfm", getenv("HOME"));
 
-	asprintf(&cfg.configpath, "%s/config.lua", cfg.configdir);
+	cfg.datadir = strdup(default_data_dir);
 
-	asprintf(&cfg.historypath, "%s/history", cfg.datadir);
+	asprintf(&cfg.configpath, "%s/init.lua", cfg.configdir);
 
-	asprintf(&cfg.corepath, "%s/lua/core.lua", cfg.datadir);
+	asprintf(&cfg.historypath, "%s/history", cfg.user_datadir);
+
+	cfg.luadir = strdup(default_lua_dir);
+
+	asprintf(&cfg.corepath, "%s/core.lua", cfg.luadir);
 }
 
+#define tup_free(t) free((t).ext)
 
-void config_deinit() {
+void config_deinit()
+{
 	cvector_free(cfg.ratios);
 	cvector_free(cfg.commands);
 	cvector_free(cfg.inotify_blacklist);
 	free(cfg.configdir);
 	free(cfg.configpath);
 	free(cfg.corepath);
+	free(cfg.user_datadir);
 	free(cfg.datadir);
 	free(cfg.fifopath);
 	free(cfg.historypath);
@@ -96,8 +103,22 @@ void config_deinit() {
 	free(cfg.previewer);
 	free(cfg.startfile);
 	free(cfg.startpath);
-#define tup_free(t) free((t).ext)
+	free(cfg.luadir);
 	cvector_ffree(cfg.colors.ext_channels, tup_free);
-#undef tup_free
 }
 
+void config_colors_clear()
+{
+	cfg.colors.ext_channels = NULL;
+	cfg.colors.normal = NCCHANNELS_INITIALIZER_PALINDEX(-1, -1);
+	cfg.colors.copy = NCCHANNELS_INITIALIZER_PALINDEX(-1, -1);
+	cfg.colors.current = NCCHANNEL_INITIALIZER_PALINDEX(237);
+	cfg.colors.delete = NCCHANNELS_INITIALIZER_PALINDEX(-1, -1);
+	cfg.colors.dir = NCCHANNELS_INITIALIZER_PALINDEX(-1, -1);
+	cfg.colors.broken = NCCHANNELS_INITIALIZER_PALINDEX(-1, -1);
+	cfg.colors.exec = NCCHANNELS_INITIALIZER_PALINDEX(-1, -1);
+	cfg.colors.search = NCCHANNELS_INITIALIZER_PALINDEX(-1, -1);
+	cfg.colors.selection = NCCHANNELS_INITIALIZER_PALINDEX(-1, -1);
+
+	cvector_ffree(cfg.colors.ext_channels, tup_free);
+}

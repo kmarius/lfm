@@ -13,15 +13,13 @@ set(CMAKE_C_FLAGS "-Wall -Wextra -Wvla -pthread")
 set(CMAKE_C_FLAGS_DEBUG "-DDEBUG -O2 -g")
 set(CMAKE_C_FLAGS_RELEASE "-DNDEBUG -O2 -flto -g")
 
+
 if(NOT CMAKE_BUILD_TYPE)
 	set(CMAKE_BUILD_TYPE Release)
 endif()
 
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 message(STATUS "C_FLAGS: ${CMAKE_C_FLAGS}")
-
-file(GLOB LFM_SOURCES src/*.c /src/*.h)
-add_executable(lfm ${LFM_SOURCES})
 
 set(DEPS_PREFIX "${CMAKE_CURRENT_SOURCE_DIR}/.deps/usr")
 
@@ -50,6 +48,29 @@ if(NOT EXISTS ${DEPS_PREFIX})
         --config ${CMAKE_BUILD_TYPE})
     set(DEPS_PREFIX ${DEPS_BUILD_DIR}/usr)
 endif()
+
+file(GLOB LFM_SOURCES src/*.c /src/*.h)
+
+option(DEV "dev" OFF)
+
+# how to use ${CMAKE_INSTALL_FULL_DATAROOTDIR}
+set(LFM_DATA_DIR ${CMAKE_INSTALL_PREFIX}/share/lfm)
+
+if(DEV STREQUAL "ON")
+	set(LFM_LUA_DIR "${CMAKE_SOURCE_DIR}/src/lua")
+else()
+	set(LFM_LUA_DIR "${LFM_DATA_DIR}/lua")
+endif()
+
+message(STATUS "lua dir: ${LFM_LUA_DIR}")
+message(STATUS "data dir: ${LFM_DATA_DIR}")
+
+add_subdirectory(config)
+list(APPEND LFM_GENERATED_SOURCES
+  "${PROJECT_BINARY_DIR}/config/auto/pathdef.c"
+)
+
+add_executable(lfm ${LFM_SOURCES} ${LFM_GENERATED_SOURCES})
 
 find_package(Notcurses REQUIRED)
 include_directories(SYSTEM ${NOTCURSES_INCLUDE_DIRS})
@@ -80,4 +101,4 @@ target_link_libraries(lfm
 	pcre)
 
 install(TARGETS lfm DESTINATION bin)
-install(DIRECTORY lua DESTINATION share/lfm)
+install(DIRECTORY src/lua DESTINATION share/lfm)

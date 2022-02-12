@@ -26,13 +26,19 @@ typedef struct ext_channel_tup {
 	uint64_t channel;
 } ext_channel_tup;
 
+// automatically generated, see config/pathdefs.c.in
+extern char *default_data_dir;
+extern char *default_lua_dir;
+
 typedef struct Config {
 	wchar_t truncatechar; /* '~' */
 	char *corepath;       /* ~/.local/share/lfm/lua/core.lua */
 	char *historypath;    /* ~/.local/share/lfm/history */
 	char *configpath;     /* ~/.config/lfm/config.lua */
 	char *configdir;      /* ~/.config/lfm */
-	char *datadir;        /* ~/.local/share/lfm */
+	char *user_datadir;        /* ~/.local/share/lfm */
+	char *datadir;        /* /usr/share/lfm */
+	char *luadir;        /* /usr/share/lfm/lua */
 	char *fifopath;       /* $rundir/$PID.fifo */
 	char *logpath;        /* /tmp/lfm.$PID.log */
 	char *rundir;         /* /run/media/user/N/lfm */
@@ -72,3 +78,5 @@ void config_deinit();
 void config_ratios_set(cvector_vector_type(uint16_t) ratios);
 
 void config_ext_channel_add(const char *ext, uint64_t channel);
+
+void config_colors_clear();

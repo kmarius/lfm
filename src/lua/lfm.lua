@@ -3,6 +3,10 @@
 ---@class lfmlib
 lfm = {}
 
+---Evaluate `expr` as if typed into the command line.
+---@param expr string
+function lfm.eval(expr) end
+
 ---Execute a command and redirect output/error to the UI.
 ---Supported options:
 --- `opts.fork` should the command run in background (default: `false`)
@@ -72,6 +76,9 @@ function lfm.map(seq, f, opts) end
 ---@param f function
 ---@param opts table Currently, only opts.desc is used for description
 function lfm.cmap(seq, f, opts) end
+
+---Clear all colors.
+function lfm.colors_clear() end
 
 --Crash lfm.
 function lfm.crash() end
@@ -412,6 +419,9 @@ function lfm.fn.getpwd() end
 ---@field preview boolean assignable
 ---@field previewer string assignable
 ---@field configpath string
+---@field luadir string
+---@field datadir string
+---@field user_datadir string
 ---@field logpath string
 ---@field fifopath string
 ---@field dircache_size integer assignable

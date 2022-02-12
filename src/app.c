@@ -382,7 +382,6 @@ void app_init(T *t)
 
 	t->L = luaL_newstate();
 	lua_init(t->L, t);
-	lua_load_file(t->L, cfg.corepath);
 
 	log_info("initialized app");
 }
