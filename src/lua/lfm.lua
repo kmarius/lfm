@@ -233,7 +233,8 @@ function lfm.fm.down(ct) end
 
 ---Navigate to location given by dir
 ---@param dir string destination path
-function lfm.fm.chdir(dir) end
+---@param run_hooks? boolean run Chdir{Pre,Post} hooks
+function lfm.fm.chdir(dir, run_hooks) end
 
 ---Clear the current load.
 function lfm.fm.load_clear() end
