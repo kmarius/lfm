@@ -3,6 +3,8 @@ local lfm = lfm
 local fm = lfm.fm
 local ui = lfm.ui
 local find = require("find").find
+local selection_set = fm.selection_set
+local basename = require("util").basename
 
 local M = {}
 
@@ -24,13 +26,15 @@ end
 function M.glob_select(glob)
 	local pat = M.glob_to_pattern(glob)
 	local sel = {}
+	local match = string.match
+	local insert = table.insert
+	local basename = basename
 	for _, file in pairs(fm.current_dir().files) do
-		if string.match(require("util").basename(file), pat) then
-			table.insert(sel, file)
+		if match(basename(file), pat) then
+			insert(sel, file)
 		end
 	end
-	lfm.log.debug(glob)
-	fm.selection_set(sel)
+	selection_set(sel)
 end
 
 --Recursiv select all files matching a glob in the current directory and subdirectories.
@@ -40,11 +44,13 @@ end
 function M.glob_select_recursive(glob)
 	local pat = M.glob_to_pattern(glob)
 	local sel = {}
-	local function filter(f) return string.match(f, pat) end
+	local match = string.match
+	local insert = table.insert
+	local function filter(f) return match(f, pat) end
 	for f in find(os.getenv("PWD"), filter) do
-		table.insert(sel, f)
+		insert(sel, f)
 	end
-	fm.selection_set(sel)
+	selection_set(sel)
 end
 
 M.mode_glob_select = {

@@ -24,10 +24,8 @@ function M.open(...)
 			if match.command == "ask" then
 				lfm.cmd.setline(":", "shell ", ' "${files[@]}"')
 			else
-				shell.execute(
-				{"sh", "-c", match.command, "_", unpack(files)},
-				{fork=match.fork, out=false, err=false}
-				)
+				shell.execute({"sh", "-c", match.command, "_", unpack(files)},
+				{fork=match.fork, out=false, err=false})
 			end
 			return true
 		else
@@ -54,6 +52,7 @@ function M.ask()
 	end
 end
 
+-- overwrite the builtin setup
 local setup = M.setup
 
 ---@class opener_setup_opts

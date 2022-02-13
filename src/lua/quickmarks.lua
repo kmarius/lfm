@@ -1,5 +1,7 @@
 local lfm = lfm
 local eval = lfm.eval
+local clear = lfm.cmd.clear
+local getline = lfm.cmd.getline
 
 -- TODO: there is also marks in fm.c, those should probably be removed, '' could
 -- be handled with hooks (on 2022-02-12)
@@ -13,7 +15,8 @@ local M = {}
 ---@param m char
 ---@param loc path
 function M.mark_add(m, loc)
-	lfm.map("'"..m, function() eval("cd ".. loc) end, {desc=loc})
+	local cmd = "cd "..loc
+	lfm.map("'"..m, function() eval(cmd) end, {desc=cmd})
 end
 
 ---Add a quickmark fork the current directory with key `m`.
@@ -36,13 +39,11 @@ end
 
 M.mode_mark_save = {
 	prefix = "mark-save: ",
-	enter = function() lfm.cmd.clear() end,
-	esc = function() lfm.cmd.clear() end,
+	enter = clear,
+	esc = clear,
 	change = function()
-		local line = lfm.cmd.getline()
-		lfm.log.debug(line)
-		lfm.cmd.clear()
-		M.mark_save(line)
+		M.mark_save(getline())
+		clear()
 	end,
 }
 
