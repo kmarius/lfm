@@ -54,7 +54,7 @@ T *trie_insert(T* t, const input_t *trie_keys, const char *keys, const char *des
 	free(t->desc);
 	free(t->keys);
 	t->desc = desc ? strdup(desc) : NULL;
-	t->keys = strdup(keys);
+	t->keys = keys ? strdup(keys) : NULL;
 	return t;
 }
 

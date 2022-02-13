@@ -65,13 +65,15 @@ function lfm.echo(msg) end
 ---@param keys string
 function lfm.handle_key(keys) end
 
---Map a key sequence to a function in normal mode.
+---Map a key sequence to a function in normal mode. Unmap by passing nil instead
+---of a function.
 ---@param seq string
 ---@param f function
 ---@param opts table Currently, only opts.desc is used for description
 function lfm.map(seq, f, opts) end
 
---Map a key sequence to a function in command mode.
+---Map a key sequence to a function in command mode. Unmap by passing nil instead
+---of a function.
 ---@param seq string
 ---@param f function
 ---@param opts table Currently, only opts.desc is used for description
