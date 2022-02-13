@@ -1470,10 +1470,9 @@ void lua_eval(lua_State *L, const char *expr)
 		ui_error(ui, "eval: %s", lua_tostring(L, -1));
 }
 
-
 void lua_handle_key(lua_State *L, input_t in)
 {
-	if (in == CTRL('q')) {
+	if (in == CTRL('Q')) {
 		app_quit(app);
 		return;
 	}
@@ -1539,10 +1538,6 @@ void lua_handle_key(lua_State *L, input_t in)
 					cvector_push_back(maps.str, *s);
 			}
 			cvector_push_back(maps.str, 0);
-			if (in == CTRL('Q')) {
-				app_quit(app);
-				return;
-			}
 			ui_error(ui, "no such map: %s", maps.str);
 			log_debug("key: %d, id: %d, shift: %d, ctrl: %d alt %d", in, ID(in), ISSHIFT(in), ISCTRL(in), ISALT(in));
 			ui_showmenu(ui, NULL);
@@ -1553,13 +1548,8 @@ void lua_handle_key(lua_State *L, input_t in)
 			lua_pushlightuserdata(L, (void *)maps.cur);
 			lua_gettable(L, LUA_REGISTRYINDEX);
 			maps.cur = NULL;
-			if (lua_pcall(L, 0, 0, 0)) {
+			if (lua_pcall(L, 0, 0, 0))
 				ui_error(ui, "handle_key: %s", lua_tostring(L, -1));
-				if (in == 'q')
-					app_quit(app);
-				else if (in == 'r')
-					lua_load_file(L, cfg.configpath);
-			}
 		} else {
 			cvector_push_back(maps.seq, in);
 			cvector_vector_type(char*) menu = NULL;
