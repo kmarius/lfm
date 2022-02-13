@@ -251,7 +251,7 @@ end
 -- TODO: make functions to easily enter a mode (on 2021-07-23)
 local mode_filter = {
 	prefix = "filter: ",
-	enter = function(line) fm.filter(line) end,
+	enter = fm.filter,
 	esc = function() fm.filter("") end,
 	change = function() fm.filter(cmd.getline()) end,
 }
@@ -260,7 +260,7 @@ local mode_cmd = {
 	prefix = ":",
 	enter = function(line) ui.history_append(line) lfm.eval(line) end,
 	esc = nop,
-	change = function() compl.reset() end,
+	change = compl.reset,
 }
 
 local mode_search = {
@@ -280,7 +280,7 @@ local mode_search_back = {
 local mode_find = {
 	prefix = "find: ",
 	enter = function() lfm.find_clear() lfm.eval("open") end,
-	esc = function() lfm.find_clear() end,
+	esc = lfm.find_clear,
 	change = function()
 		if lfm.find(cmd.getline()) then
 			cmd.clear()
@@ -307,8 +307,8 @@ local mode_travel = {
 
 local mode_delete = {
 	prefix = "delete [y/N]: ",
-	enter = function() lfm.cmd.clear() end,
-	esc = function() lfm.cmd.clear() end,
+	enter = lfm.cmd.clear,
+	esc = lfm.cmd.clear,
 	change = function()
 		local line = lfm.cmd.getline()
 		lfm.cmd.clear()
