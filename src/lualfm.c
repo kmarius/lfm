@@ -19,6 +19,7 @@
 #include "find.h"
 #include "fm.h"
 #include "log.h"
+#include "lua.h"
 #include "lualfm.h"
 #include "notify.h"
 #include "opener.h"
@@ -1470,6 +1471,8 @@ void lua_eval(lua_State *L, const char *expr)
 		ui_error(ui, "eval: %s", lua_tostring(L, -1));
 }
 
+static int command_count = -1;
+
 void lua_handle_key(lua_State *L, input_t in)
 {
 	if (in == CTRL('Q')) {
@@ -1480,6 +1483,14 @@ void lua_handle_key(lua_State *L, input_t in)
 	if (!maps.cur) {
 		maps.cur = prefix ? maps.cmd : maps.normal;
 		cvector_set_size(maps.seq, 0);
+		command_count = -1;
+	}
+	if (!prefix && in >= '0' && in <= '9') {
+		if (command_count < 0)
+			command_count = in - '0';
+		else
+			command_count = command_count * 10 + in - '0';
+		return;
 	}
 	maps.cur = trie_find_child(maps.cur, in);
 	if (prefix) {
@@ -1544,12 +1555,18 @@ void lua_handle_key(lua_State *L, input_t in)
 			return;
 		}
 		if (maps.cur->keys) {
+			if (command_count < 0)
+				command_count = 1;
 			ui_showmenu(ui, NULL);
-			lua_pushlightuserdata(L, (void *)maps.cur);
-			lua_gettable(L, LUA_REGISTRYINDEX);
+			lua_pushlightuserdata(L, (void *) maps.cur);
 			maps.cur = NULL;
-			if (lua_pcall(L, 0, 0, 0))
-				ui_error(ui, "handle_key: %s", lua_tostring(L, -1));
+			lua_gettable(L, LUA_REGISTRYINDEX);
+			for (int i = 0; i < command_count; i++) {
+				lua_pushvalue(L, -1);
+				if (lua_pcall(L, 0, 0, 0))
+					ui_error(ui, "handle_key: %s", lua_tostring(L, -1));
+			}
+			lua_pop(L, 1);
 		} else {
 			cvector_push_back(maps.seq, in);
 			cvector_vector_type(char*) menu = NULL;
