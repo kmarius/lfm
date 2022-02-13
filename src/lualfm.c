@@ -1,6 +1,7 @@
 #include <errno.h>
 #include <lauxlib.h>
 #include <libgen.h>
+#include <limits.h>
 #include <luajit.h>
 #include <lualib.h>
 #include <notcurses/notcurses.h>
@@ -1496,7 +1497,7 @@ void lua_handle_key(lua_State *L, input_t in)
 	if (prefix) {
 		if (!maps.cur) {
 			if (iswprint(in)) {
-				char buf[8];
+				char buf[MB_LEN_MAX+1];
 				int n = wctomb(buf, in);
 				if (n < 0)
 					n = 0; // invalid character or borked shift/ctrl/alt
