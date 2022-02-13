@@ -48,6 +48,8 @@ static struct {
 	char *str;
 } maps;
 
+static int command_count = -1;
+
 /* lfm lib {{{ */
 
 static int l_colors_clear(lua_State *L)
@@ -254,51 +256,40 @@ void lua_run_callback(lua_State *L, int cb_index, int rstatus)
 }
 
 
-static int l_map_key(lua_State *L)
+static inline int map_key(lua_State *L, Trie *trie)
 {
 	const char *desc = NULL;
-
 	if (lua_type(L, 3) == LUA_TTABLE) {
 		lua_getfield(L, 3, "desc");
 		if (!lua_isnoneornil(L, -1))
 			desc = lua_tostring(L, -1);
 		lua_pop(L, 1);
 	}
+
 	const char *keys = luaL_checkstring(L, 1);
 
 	if (!(lua_type(L, 2) == LUA_TFUNCTION))
 		luaL_argerror(L, 2, "expected function");
 
 	input_t *buf = malloc((strlen(keys) + 1) * sizeof(input_t));
-	Trie *k = trie_insert(maps.normal, key_names_to_input(keys, buf), keys, desc);
-	lua_pushlightuserdata(L, (void *)k);
-	lua_pushvalue(L, 2);
-	lua_settable(L, LUA_REGISTRYINDEX);
-	return 0;
-}
-
-
-static int l_cmap_key(lua_State *L)
-{
-	const char *desc = NULL;
-	if (lua_type(L, 3) == LUA_TTABLE) {
-		lua_getfield(L, 3, "desc");
-		if (!lua_isnoneornil(L, -1))
-			desc = lua_tostring(L, -1);
-		lua_pop(L, 1);
-	}
-	const char *keys = luaL_checkstring(L, 1);
-
-	if (!(lua_type(L, 2) == LUA_TFUNCTION))
-		luaL_argerror(L, 2, "expected function");
-
-	input_t *buf = malloc((strlen(keys)+1) * sizeof(input_t));
-	Trie *k = trie_insert(maps.cmd, key_names_to_input(keys, buf), keys, desc);
+	Trie *k = trie_insert(trie, key_names_to_input(keys, buf), keys, desc);
 	lua_pushlightuserdata(L, (void *)k);
 	lua_pushvalue(L, 2);
 	lua_settable(L, LUA_REGISTRYINDEX);
 	free(buf);
 	return 0;
+}
+
+
+static int l_map_key(lua_State *L)
+{
+	return map_key(L, maps.normal);
+}
+
+
+static int l_cmap_key(lua_State *L)
+{
+	return map_key(L, maps.cmd);
 }
 
 
@@ -1472,8 +1463,6 @@ void lua_eval(lua_State *L, const char *expr)
 		ui_error(ui, "eval: %s", lua_tostring(L, -1));
 }
 
-static int command_count = -1;
-
 void lua_handle_key(lua_State *L, input_t in)
 {
 	if (in == CTRL('Q')) {
@@ -1525,9 +1514,8 @@ void lua_handle_key(lua_State *L, input_t in)
 				maps.cur = NULL;
 				if (lua_pcall(L, 0, 0, 0))
 					ui_error(ui, "handle_key: %s", lua_tostring(L, -1));
-			} else {
-				// ???
 			}
+			// no menu for cmaps
 		}
 	} else {
 		// prefix == NULL
@@ -1551,7 +1539,8 @@ void lua_handle_key(lua_State *L, input_t in)
 			}
 			cvector_push_back(maps.str, 0);
 			ui_error(ui, "no such map: %s", maps.str);
-			log_debug("key: %d, id: %d, shift: %d, ctrl: %d alt %d", in, ID(in), ISSHIFT(in), ISCTRL(in), ISALT(in));
+			log_debug("key: %d, id: %d, shift: %d, ctrl: %d alt %d",
+					in, ID(in), ISSHIFT(in), ISCTRL(in), ISALT(in));
 			ui_showmenu(ui, NULL);
 			return;
 		}
