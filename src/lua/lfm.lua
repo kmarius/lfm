@@ -1,4 +1,5 @@
-local lfm = lfm
+-- DON'T use local lfm = lfm here because it brakes sumneko.
+
 local config = lfm.config
 
 package.path = string.gsub(package.path, "./%?.lua;", "")
