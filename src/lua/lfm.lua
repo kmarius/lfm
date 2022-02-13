@@ -216,16 +216,6 @@ end
 
 lfm.register_command("cd", cd, {tokenize=true})
 
----Navigate into the directory at the current cursor position.
----@return boolean false
-local function open()
-	local file = fm.open()
-	if file then
-		lfm.error("no opener configured")
-	end
-	return false
-end
-
 local handle_key = lfm.handle_key
 ---Feed keys into the key handler.
 ---@vararg string keys
