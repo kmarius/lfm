@@ -1,433 +1,526 @@
----@meta
+local lfm = lfm
+local config = lfm.config
 
----@class lfmlib
-lfm = {}
+package.path = string.gsub(package.path, "./%?.lua;", "")
+local package_path = package.path
+if not string.match(package.path, config.luadir) then
+	package.path = package.path .. ";" .. config.luadir .. "/?.lua"
+end
 
----Evaluate `expr` as if typed into the command line.
----@param expr string
-function lfm.eval(expr) end
+local fm = lfm.fm
+local log = lfm.log
+local ui = lfm.ui
+local cmd = lfm.cmd
+local nop = function() end
 
----Execute a command and redirect output/error to the UI.
----Supported options:
---- `opts.fork` should the command run in background (default: `false`)
---- `opts.out`  should stdout be captured, ignored with fork=false (default: `true`)
---- `opts.err`  should stderr be captured, ignored with fork=false (default: `true`)
----@param command string[]
----@param opts table
-function lfm.execute(command, opts) end
+local home = os.getenv("HOME")
 
----Set the timeout in milliseconds from now in which lfm will ignore keyboard input.
----@param duration integer in milliseconds.
-function lfm.timeout(duration) end
+-- enhance logging functions
+for k, f in pairs(log) do
+	log[k] = function(...)
+		local t = {...}
+		for i, e in pairs(t) do
+			t[i] = tostring(e)
+		end
+		f(table.concat(t, " "))
+	end
+end
 
----Find files the current directory. Moves the curser to to next file with the given prefix
----Returns true if only a single file in the current directory matches.
----@param prefix string
----@return boolean
-function lfm.find(prefix) end
+function print(...)
+	local t = {...}
+	for i, e in pairs(t) do
+		t[i] = tostring(e)
+	end
+	lfm.echo(table.concat(t, " "))
+end
 
----Jumps to the next `lfm.find` match.
-function lfm.find_next() end
+---@return table selection The currently selected files or the file at the current cursor position
+function lfm.sel_or_cur()
+	local sel = fm.selection_get()
+	return #sel > 0 and sel or {fm.current_file()}
+end
 
----Jumps to the previous `lfm.find` match.
-function lfm.find_prev() end
-
----Clear `lfm.find` matches.
-function lfm.find_clear() end
-
----Search files in the current directory.
----@param string? string Omitting will remove highlighting.
-function lfm.search(string) end
-
----Search files in the current directory, backwards.
----@param string? string Omitting will remove highlighting.
-function lfm.search_back(string) end
-
----Go to the next search result.
----@param inclusive? boolean default: `false`
-function lfm.search_next(inclusive) end
-
----Go to the previous search result.
----@param inclusive? boolean default: `false`
-function lfm.search_prev(inclusive) end
-
----Disable highlights.
-function lfm.nohighlight() end
-
----Show an error in the UI.
----@param msg string
-function lfm.error(msg) end
-
----Show a message in the UI.
----@param msg string
-function lfm.echo(msg) end
-
----@param keys string
-function lfm.handle_key(keys) end
-
---Map a key sequence to a function in normal mode.
----@param seq string
----@param f function
----@param opts table Currently, only opts.desc is used for description
-function lfm.map(seq, f, opts) end
-
---Map a key sequence to a function in command mode.
----@param seq string
----@param f function
----@param opts table Currently, only opts.desc is used for description
-function lfm.cmap(seq, f, opts) end
-
----Clear all colors.
-function lfm.colors_clear() end
-
---Crash lfm.
-function lfm.crash() end
-
---Quit lfm.
-function lfm.quit() end
-
-lfm.fm = {}
-
----@class dir
----@field path string
----@field name string
----@field files table[string] table of filenames
-
----Set the filter string for the current directory.
----@param filter string The filter string.
-function lfm.fm.filter(filter) end
-
----Get the filter string for the current directory.
----@return string filter The filter string.
-function lfm.fm.getfilter() end
-
----Load a quickmark and navigate to the corrensponding directory.
----@param c string `char` of the mark. Currently only `'` supported.
-function lfm.fm.mark_load(c) end
-
----Navigate into the directory at the current cursor position. If the current file
----is not a directory, its path is returned instead.
----@return string file
-function lfm.fm.open() end
-
----Get the current directory.
----@return dir directory
-function lfm.fm.current_dir() end
-
----Get the current file.
----@return string file
-function lfm.fm.current_file() end
-
----Clear the selection.
-function lfm.fm.selection_clear() end
-
----Reverse selection of files in the current directory.
-function lfm.fm.selection_reverse() end
-
----Toggle selection of the current file.
-function lfm.fm.selection_toggle() end
-
----Add files to the current selection.
----@param files string[] table of strings.
-function lfm.fm.selection_add(files) end
-
----Set the current selection.
----@param files string[] table of strings.
-function lfm.fm.selection_set(files) end
-
----Get the current selection.
----@return string[] files table of files as strings.
-function lfm.fm.selection_get() end
-
----Get the flatten level for the current directory.
----@return number
-function lfm.fm.flatten_level() end
-
----Flatten `level` levels of the current directory.
----@param level number
-function lfm.fm.flatten(level) end
-
----@alias sortoption
----| '"name"'
----| '"natural"'
----| '"ctime"'
----| '"size"'
----| '"random"'
----| '"dirfirst"'
----| '"nodirfirst"'
----| '"reverse"'
----| '"noreverse"'
-
----Set the sort method. Multiple options can be set at once. Later options may override previous ones.
----#Example:
+---Executes line. If the first whitespace delimited token is a registered
+---command it is executed with the following text as arguments. Otherwise line
+---is assumed to be lua code and is executed. Example:
+---```
+---
+--- lfm.eval("cd /home") -- expression is not lua as "cd" is a registered command
+--- lfm.eval('print(2+2)') -- executed as lua code
 ---
 ---```
---- lfm.fm.sortby("ctime", "nodirfirst", "reverse")
+---@param line string
+function lfm.eval(line)
+	local cmd, args = lfm.fn.tokenize(line)
+	if not cmd then
+		return
+	end
+	local command = lfm.commands[cmd]
+	if command then
+		if command.tokenize then
+			command.f(unpack(args))
+		else
+			local arg = string.gsub(line, "^[^ ]*%s*", "")
+			command.f(arg)
+		end
+	else
+		log.debug("loadstring: " .. line)
+		local bc, err = loadstring(line)
+		if bc then
+			bc()
+		else
+			lfm.error("loadstring: "..err)
+		end
+	end
+end
+
+local function set(...)
+	local t = {...}
+	local val = true
+	local opt = t[1]
+	if string.sub(opt, 1, 2) == "no" then
+		val = false
+		opt = string.sub(opt, 3)
+	elseif string.sub(opt, 1, 3) == "inv" then
+		opt = string.sub(opt, 4)
+		val = not config[opt]
+	end
+	config[opt] = val
+end
+
+
+-- Hooks
+local hooks = {
+	LfmEnter = {},
+	ExitPre = {},
+	ChdirPre = {},
+	ChdirPost = {},
+	SelectionChanged = {},
+	Resized = {},
+}
+
+---Register a function to hook into events. Curruntly supported hooks are
+---```
+--- LfmEnter         lfm has started and read all configuration
+--- ExitPre          lfm is about to exit
+--- ChdirPre         emitted before changing directories
+--- ChdirPost        emitted after changin directories
+--- SelectionChanged the selection changed
+--- Resized          the window was resized
 ---
 ---```
----@param opt1? sortoption
----@vararg sortoption
-function lfm.fm.sortby(opt1, ...) end
-
----Start visual selection mode.
-function lfm.fm.visual_start() end
-
----End visual selection mode.
-function lfm.fm.visual_end() end
----Toggle visual selection mode.
-function lfm.fm.visual_toggle() end
-
----Change directory to the parent of the current directory, unless in "/".
-function lfm.fm.updir() end
-
----@alias movemode
----| '"copy"'
----| '"move"'
-
----Get the current load and mode.
----@return movemode mode
----@return string[] files
-function lfm.fm.load_get() end
-
----Set the current load and mode.
----@param mode movemode
----@param files string[]
-function lfm.fm.load_set(mode, files) end
-
----Add the current selection to the load and change mode to MODE_MOVE.
-function lfm.fm.cut() end
-
----Add the current selection to the load and change mode to MODE_COPY.
-function lfm.fm.copy() end
-
----Check the current directory for changes and reload if necessary.
-function lfm.fm.check() end
-
----Drop directory cache and reload visible directories from disk.
--- function lfm.fm.drop_cache() end
-
----Reload visible directories from disk.
-function lfm.fm.reload() end
-
----Move the cursor to a file in the current directory.
 ---@param name string
-function lfm.fm.sel(name) end
+---@param f function
+function lfm.register_hook(name, f)
+	if hooks[name] then
+		table.insert(hooks[name], f)
+	end
+end
 
----Current height of the file manager, i.e. the maximum number shown of one directory.
----@return integer
-function lfm.fm.get_height() end
+---Execute all functions registered to a hook.
+---@param name string
+function lfm.run_hook(name)
+	log.debug("running hook: " .. name)
+	if hooks[name] then
+		for _, f in pairs(hooks[name]) do
+			f()
+		end
+	end
+end
 
----Move the cursor to the bottom.
-function lfm.fm.bottom() end
+-- Commands
+lfm.commands = {}
 
----Move the cursor to the top.
-function lfm.fm.top() end
-
----Move the cursor up.
----@param ct? number count, 1 if omitted
-function lfm.fm.up(ct) end
-
----Move the cursor down.
----@param ct? number count, 1 if omitted
-function lfm.fm.down(ct) end
-
----Navigate to location given by dir
----@param dir string destination path
----@param run_hooks? boolean run Chdir{Pre,Post} hooks
-function lfm.fm.chdir(dir, run_hooks) end
-
----Clear the current load.
-function lfm.fm.load_clear() end
-
-lfm.log = {}
-
----@vararg any
-function lfm.log.trace(...) end
-
----@vararg any
-function lfm.log.debug(...) end
-
----@vararg any
-function lfm.log.info(...) end
-
----@vararg any
-function lfm.log.warn(...) end
-
----@vararg any
-function lfm.log.error(...) end
-
----@vararg any
-function lfm.log.fatal(...) end
-
-lfm.ui = {}
-
----Height of the UI.
-function lfm.ui.get_height() end
-
----Width of the UI.
-function lfm.ui.get_width() end
-
----Clear the UI and redraw.
-function lfm.ui.clear() end
-
----Request redraw.
-function lfm.ui.draw() end
-
----Append a line to history.
----@param line string
-function lfm.ui.history_append(line) end
-
----Get the next line from history.
----@return string
-function lfm.ui.history_next() end
-
----Get the previous line from history.
----@return string
-function lfm.ui.history_prev() end
-
----Draws a menu on screen.
+---Register a function as a lfm command or unregister a command. Supported options
 ---```
---
---- lfm.ui.menu() -- hide menu
---- lfm.ui.menu({"line1", "line2"})
+--- tokenize: tokenize the argument by whitespace and pass them as a table (default: false)
 ---
 ---```
----@param menu string[]
-function lfm.ui.menu(menu) end
+---@param name string Command name, can not contain whitespace.
+---@param f function The function to execute or `nil` to unregister
+---@param t table Additional options.
+function lfm.register_command(name, f, t)
+	if (f) then
+		t = t or {}
+		t.f = f
+		t.tokenize = t.tokenize == nil and true or t.tokenize
+		lfm.commands[name] = t
+	else
+		lfm.commands[name] = nil
+	end
+end
 
----Show all previously shown errors and messages.
----@return string[] messages
-function lfm.ui.messages() end
+lfm.modes = {}
+local modes = lfm.modes
 
-lfm.cmd = {}
+---Register a mode to lfm. A mode is given by a table t that should contain the following fields:
+---```
+--- t.prefix  The prefix, a string, shown in the command line and used to distinguish modes.
+--- t.enter   A function that is executed when pressing enter while the mode is active.
+--- t.esc     A function that is executed when pressing esc while the mode is active.
+--- t.change  A function that is executed when the command line changes, e.g. keys are typed/deleted.
+---
+---```
+---@param t table
+function lfm.register_mode(t)
+	modes[t.prefix] = t
+end
 
----Clear the command line.
-function lfm.cmd.clear() end
+-- Set up modules
+local compl = require("compl")
+lfm.compl = compl
 
----Delete the character to the left.
-function lfm.cmd.delete() end
+local shell = require("shell")
+lfm.shell = shell
 
----Delete the character to the right.
-function lfm.cmd.delete_right() end
+lfm.register_command("shell", function(arg) shell.bash(arg, {files=shell.ARRAY})() end, {tokenize=false, compl=compl.files})
+lfm.register_command("shell-bg", function(arg) shell.bash(arg, {files=shell.ARRAY, fork=true})() end, {tokenize=false, compl=compl.files})
 
----Delete the word to the right.
-function lfm.cmd.delete_word() end
+local opener = require("opener")
+lfm.opener = opener
 
----Delete to the beginning of the line.
-function lfm.cmd.delete_line_left() end
+lfm.register_command("quit", lfm.quit)
+lfm.register_command("q", lfm.quit)
+lfm.register_command("set", set, {tokenize=true, compl=compl.limit(1, compl.options)})
+lfm.register_command("rename", require("functions").rename, {tokenize=false, compl=compl.limit(1, compl.files)})
 
----Move cursor one word left.
-function lfm.cmd.word_left() end
+---Function for <enter> in command mode. Clears the command line and calls `mode.enter`.
+local function cmdenter()
+	local line = cmd.getline()
+	local prefix = cmd.getprefix()
+	cmd.clear()
+	local mode = modes[prefix]
+	-- TODO: allow line to be "" ? (on 2021-07-23)
+	if line ~= "" and mode then
+		mode.enter(line)
+	end
+end
 
----Move cursor one word right.
-function lfm.cmd.word_right() end
+---Function for <esc> in command mode. Clears the command line and calls `mode.esc`.
+local function cmdesc()
+	local mode = modes[cmd.getprefix()]
+	if mode then
+		mode.esc()
+	end
+	cmd.clear()
+end
 
----Move cursor to the end.
-function lfm.cmd._end() end
+---Change directory.
+---@param dir string Target destination (default: $HOME).
+local function cd(dir)
+	dir = dir or os.getenv("HOME")
+	dir = string.gsub(dir, "^~", os.getenv("HOME"))
+	fm.chdir(dir)
+end
 
----Get the current command line string.
----@return string
-function lfm.cmd.getline() end
+lfm.register_command("cd", cd, {tokenize=true})
 
----Get the current command line prefix.
----@return string prefix
-function lfm.cmd.getprefix() end
+---Navigate into the directory at the current cursor position.
+---@return boolean false
+local function open()
+	local file = fm.open()
+	if file then
+		lfm.error("no opener configured")
+	end
+	return false
+end
 
----Move cursor to the beginning.
-function lfm.cmd.home() end
+local handle_key = lfm.handle_key
+---Feed keys into the key handler.
+---@vararg string keys
+function lfm.feedkeys(...)
+	for _, seq in pairs({...}) do
+		handle_key(seq)
+	end
+end
 
----Insert a character at the current cursor position.
----@param c string
-function lfm.cmd.insert(c) end
+---Fill command line with the previous history item.
+local function history_prev()
+	if cmd.getprefix() ~= ":" then
+		return
+	end
+	local line = ui.history_prev()
+	if line then
+		cmd.setline(line)
+	end
+end
 
----Move the cursor to the left.
-function lfm.cmd.left() end
+---Fill command line with the next history item.
+local function history_next()
+	if cmd.getprefix() ~= ":" then
+		return
+	end
+	local line = ui.history_next()
+	if line then
+		cmd.setline(line)
+	end
+end
 
----Move the cursor to the right.
-function lfm.cmd.right() end
+-- Modes
+-- TODO: make functions to easily enter a mode (on 2021-07-23)
+local mode_filter = {
+	prefix = "filter: ",
+	enter = function(line) fm.filter(line) end,
+	esc = function() fm.filter("") end,
+	change = function() fm.filter(cmd.getline()) end,
+}
 
----Set the command line. If three arguments are provided, the first argument
----sets the prefix. The cursor will be positioned between `left` and `right`.
----@param line string
----@overload fun(prefix: string, left: string, right: string)
-function lfm.cmd.setline(line) end
+local mode_cmd = {
+	prefix = ":",
+	enter = function(line) ui.history_append(line) lfm.eval(line) end,
+	esc = nop,
+	change = function() compl.reset() end,
+}
 
----Set the command line prefix.
----@param prefix string
-function lfm.cmd.setprefix(prefix) end
+local mode_search = {
+	prefix = "/",
+	enter = function() lfm.search_next(true) end, -- apply search, keep highlights, move cursor to next match  or stay on current
+	esc = lfm.nohighlight, -- delete everything
+	change = function() lfm.search(cmd.getline()) end, -- highlight match in UI
+}
 
-lfm.fn = {}
+local mode_search_back = {
+	prefix = "?",
+	enter = function() lfm.search_next(true) end,
+	esc = lfm.nohighlight,
+	change = function() lfm.search_back(cmd.getline()) end,
+}
 
----Get the process id of the current instance.
----@return number PID
-function lfm.fn.getpid() end
+local mode_find = {
+	prefix = "find: ",
+	enter = function() lfm.find_clear() lfm.eval("open") end,
+	esc = function() lfm.find_clear() end,
+	change = function()
+		if lfm.find(cmd.getline()) then
+			cmd.clear()
+			lfm.timeout(250)
+			lfm.commands.open.f()
+		end
+	end,
+}
 
----Tokenize a string. For convenience, the first token is returned separately.
----@param str string
----@return string, string[]
-function lfm.fn.tokenize(str) end
+local mode_travel = {
+	prefix = "travel: ",
+	enter = nop,
+	esc = nop,
+	change = function()
+		if lfm.find(cmd.getline()) then
+			lfm.timeout(250)
+			cmd.setline("")
+			if lfm.commands.open.f() then
+				cmd.clear()
+			end
+		end
+	end,
+}
 
----Split a string into prefix, rest, where rest is the last space delimited token.
----Respects escaped spaces.
----@param str string
----@return string, string
-function lfm.fn.split_last(str) end
+local mode_delete = {
+	prefix = "delete [y/N]: ",
+	enter = function() lfm.cmd.clear() end,
+	esc = function() lfm.cmd.clear() end,
+	change = function()
+		local line = lfm.cmd.getline()
+		lfm.cmd.clear()
+		if line == "y" then
+			lfm.execute({"trash-put", "--", unpack(lfm.sel_or_cur())}, {fork=true})
+			fm.selection_clear()
+		end
+	end,
+}
 
----Escapes spaces in a string.
----@param str string
----@return string
-function lfm.fn.quote_space(str) end
+lfm.register_mode(mode_search)
+lfm.register_mode(mode_delete)
+lfm.register_mode(mode_search_back)
+lfm.register_mode(mode_cmd)
+lfm.register_mode(mode_filter)
+lfm.register_mode(mode_find)
+lfm.register_mode(mode_travel)
 
----Replaces "\\ " with " " in `str`.
----@param str string
----@return string
-function lfm.fn.unquote_space(str) end
+-- Colors
+local palette = require("colors").palette
+require("colors").set({
+	broken = {fg = palette.red},
+	patterns = {
+		{
+			color = {fg = palette.magenta},
+			ext = {
+				".mp3", ".m4a", ".ogg", ".flac", ".mka",
+				".mp4", ".mkv", ".m4v", ".webm", ".avi", ".flv", ".wmv", ".mov", ".mpg", ".mpeg",
+			},
+		},
+		{
+			color = {fg = palette.bright_red},
+			ext = {".tar", ".zst", ".xz", ".gz", ".zip", ".rar", ".7z", ".bz2"},
+		},
+		{
+			color = {fg = palette.yellow},
+			ext = {".jpg", ".jpeg", ".png", ".bmp", ".webp", ".gif"},
+		},
+	}
+})
 
----Get the current working directory (usually with symlinks resolved)
----@return string
-function lfm.fn.getcwd() end
+-- Keymaps
 
----Get the present PWD, equivalent to `os.getenv("PWD")`.
----@return string
-function lfm.fn.getpwd() end
+local function wrap_mode_change(f)
+	return function()
+		f()
+		local mode = modes[cmd.getprefix()]
+		if mode then
+			mode.change()
+		end
+	end
+end
 
----@alias Color string|integer
+local cmap = lfm.cmap
+cmap("<enter>", cmdenter, {desc=""})
+cmap("<esc>", cmdesc, {desc=""})
+cmap("<left>", cmd.left, {desc=""})
+cmap("<right>", cmd.right, {desc=""})
+cmap("<up>", history_prev, {desc=""})
+cmap("<down>", history_next, {desc=""})
+cmap("<home>", cmd.home, {desc=""})
+cmap("<end>", cmd._end, {desc=""})
+cmap("<c-left>", cmd.word_left)
+cmap("<c-right>", cmd.word_right)
+cmap("<delete>", wrap_mode_change(cmd.deleteright), {desc=""})
+cmap("<backspace>", wrap_mode_change(cmd.delete), {desc=""})
+cmap("<C-h>", wrap_mode_change(cmd.delete), {desc=""})
+cmap("<c-w>", wrap_mode_change(cmd.delete_word), {desc=""})
+cmap("<c-backspace>", wrap_mode_change(cmd.delete_word), {desc=""})
+cmap("<c-u>", wrap_mode_change(cmd.delete_line_left), {desc=""})
+cmap("<tab>", compl.next, {desc=""})
+cmap("<s-tab>", compl.prev, {desc=""})
 
----@class ColorPair
----@field fg Color
----@field bg Color
+local c = require("util").c
+local a = require("util").a
 
----@class ExtColor
----@field ext string[]
----@field color ColorPair
+local map = lfm.map
 
----@class ColorLib
----@field patterns ExtColor[]
----@field copy ColorPair
----@field delete ColorPair
----@field dir ColorPair
----@field broken ColorPair
----@field exec ColorPair
----@field search ColorPair
----@field normal ColorPair
----@field current ColorPair
+map("q", lfm.quit)
+map("<C-q>", lfm.quit)
+map("<C-l>", ui.clear)
+map("<A-r>", fm.drop_cache)
+map("cd", a(lfm.feedkeys, ":cd "), {desc=":cd "})
+map("<A-c>", fm.check)
 
----@class configlib
----@field ratios integer[] assignable
----@field truncatechar string assignable, only the first character is used
----@field scrolloff integer assignable
----@field hidden boolean assignable
----@field preview boolean assignable
----@field previewer string assignable
----@field configpath string
----@field luadir string
----@field datadir string
----@field user_datadir string
----@field logpath string
----@field fifopath string
----@field dircache_size integer assignable
----@field previewcache_size integer assignable
----@field colors ColorLib
-lfm.config = {}
+-- TODO: this should be done with modes (on 2022-02-12)
+map("<Esc>", c(fm.load_clear, fm.selection_clear, fm.visual_end, lfm.nohighlight))
 
-return lfm
+map(":", a(cmd.setprefix, ":"))
+map("&", a(lfm.feedkeys, ":shell-bg "), {desc=":shell-bg "})
+map("s", a(lfm.feedkeys, ":shell "), {desc=":shell "})
+map("S", shell.fish("env LF_LEVEL=1 fish -C clear", {files=shell.ARRAY}))
+
+-- Visual/selection
+map("<Space>", c(fm.selection_toggle, fm.down))
+map("v", fm.selection_reverse)
+map("V", fm.visual_toggle)
+map("uv", c(fm.load_clear, fm.selection_clear), {desc="selection-clear"})
+
+-- Navigation
+map("<Enter>", opener.open, "open")
+map("<Left>", fm.updir)
+map("<Right>", opener.open)
+map("r", opener.ask)
+map("j", fm.down)
+map("k", fm.up)
+map("h", fm.updir)
+map("l", opener.open)
+map("L", require("functions").follow_link)
+map("H", a(lfm.feedkeys, "''")) -- complementary to "L"
+map("gg", fm.top, {desc="top"})
+map("G", fm.bottom, {desc="bottom"})
+map("''", a(fm.mark_load, "'"))
+map("cd", a(lfm.feedkeys, ":cd "), {desc=":cd "})
+map("<A-c>", fm.check)
+map("<Up>", fm.up)
+map("<Down>", fm.down)
+map("<C-d>", function() fm.down(fm.get_height()/2) end, {desc="half-down"})
+map("<C-u>", function() fm.up(fm.get_height()/2) end, {desc="half-up"})
+map("<PageDown>", function() fm.down(fm.get_height()) end, {desc="page-down"})
+map("<PageUp>", function() fm.up(fm.get_height()) end, {desc="page-up"})
+map("<Home>", fm.top, {desc="page-up"})
+map("<End>", fm.bottom, {desc="page-up"})
+
+-- map("F", a(cmd.setprefix, "travel: "), {desc="travel"})
+map("zf", function() cmd.setprefix("filter: ") cmd.setline(fm.getfilter()) end, {desc="filter"})
+map("zF", a(lfm.feedkeys, "zf<esc>"), {desc="remove filter"})
+map("zh", function() config.hidden = not config.hidden end, {desc="toggle hidden"})
+
+-- Flatten
+lfm.register_command("flatten", require("flatten").flatten, {tokenize=true})
+map("<a-+>", require("flatten").flatten_inc)
+map("<a-->", require("flatten").flatten_dec)
+
+-- Find/hinting
+map("f", a(cmd.setprefix, mode_find.prefix), {desc="find"})
+-- These two only make sense in find: mode. Maybe think about actually providing
+-- a way to set keybinds for modes.
+cmap("<c-n>", lfm.find_next, {desc=""})
+cmap("<c-p>", lfm.find_prev, {desc=""})
+
+-- Search
+map("/", function() cmd.setprefix("/") lfm.nohighlight() end)
+map("?", function() cmd.setprefix("?") lfm.nohighlight() end)
+map("n", lfm.search_next)
+map("N", lfm.search_prev)
+
+-- Copy/pasting
+map("yn", require("functions").yank_name, {desc="yank name"})
+map("yp", require("functions").yank_path, {desc="yank path"})
+map("yy", fm.copy, {desc="yank"})
+map("dd", fm.cut, {desc="cut"})
+map("ud", fm.load_clear, {desc="load-clear"})
+map("pp", require("functions").paste, {desc="paste-overwrite"})
+map("po", require("functions").paste_overwrite, {desc="paste-overwrite"})
+map("pl", require("functions").symlink, {desc="symlink"})
+map("pL", require("functions").symlink_relative, {desc="symlink-relative"})
+map("df", a(lfm.cmd.setprefix, mode_delete.prefix), {desc="trash-put"})
+map("dD", a(lfm.cmd.setprefix, mode_delete.prefix), {desc="delete"})
+
+
+-- Renaming
+map("cW", a(lfm.feedkeys, ":rename "), {desc="rename"})
+map("cc", a(lfm.feedkeys, ":rename "), {desc="rename"})
+map("cw", require("functions").rename_until_ext, {desc="rename-until-ext"})
+map("a", require("functions").rename_before_ext, {desc="rename-before-ext"})
+map("A", require("functions").rename_after, {desc="rename-after"})
+map("I", require("functions").rename_before, {desc="rename-before"})
+
+map("on", a(fm.sortby, "natural", "noreverse"), {desc="sort: natural, noreverse"})
+map("oN", a(fm.sortby, "natural", "reverse"), {desc="sort: natural, reverse"})
+map("os", a(fm.sortby, "size", "reverse"), {desc="sort: size, noreverse"})
+map("oS", a(fm.sortby, "size", "noreverse"), {desc="sort: size, reverse"})
+map("oc", a(fm.sortby, "ctime", "noreverse"), {desc="sort: ctime, noreverse"})
+map("oC", a(fm.sortby, "ctime", "reverse"), {desc="sort: ctime, reverse"})
+map("od", a(fm.sortby, "dirfirst"), {desc="sort: dirfirst"})
+map("oD", a(fm.sortby, "nodirfirst"), {desc="sort: nodirfirst"})
+map("or", a(fm.sortby, "random"), {desc="sort: random"})
+
+lfm.register_mode(require("glob").mode_glob_select)
+map("*", a(lfm.cmd.setprefix, require("glob").mode_glob_select.prefix), {desc="glob-select"})
+lfm.register_command("glob-select", c(require("glob").glob_select, ui.draw), {tokenize=false})
+lfm.register_command("glob-select-rec", c(require("glob").glob_select_rec, ui.draw), {tokenize=false})
+
+lfm.register_command("mark-save", require("quickmarks").mark_save)
+lfm.register_mode(require("quickmarks").mode_mark_save)
+lfm.map("m", a(lfm.cmd.setprefix, require("quickmarks").mode_mark_save.prefix))
+
+local function gmap(key, location)
+	map("g"..key, function() cd(location) end, {desc="cd "..location})
+end
+
+gmap("h", os.getenv("HOME"))
+gmap("m", "/mnt")
+gmap("p", "/tmp")
+gmap("n", "~/Downloads")
+
+-- Setup package.path for the user and source the config
+-- package.path = package_path
+if not string.match(package.path, home.."/.config/lfm/lua/") then
+	package.path = package.path .. ";"..home.."/.config/lfm/lua/?.lua"
+end
+
+if require("lfs").attributes(config.configpath) then
+	dofile(config.configpath)
+end

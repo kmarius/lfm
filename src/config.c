@@ -82,7 +82,7 @@ void config_init()
 
 	cfg.luadir = strdup(default_lua_dir);
 
-	asprintf(&cfg.corepath, "%s/core.lua", cfg.luadir);
+	asprintf(&cfg.corepath, "%s/lfm.lua", cfg.luadir);
 }
 
 #define tup_free(t) free((t).ext)
