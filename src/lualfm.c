@@ -273,6 +273,8 @@ static inline int map_key(lua_State *L, Trie *trie)
 
 	// We remove a keybind by inserting NULL instead of keys. This only invalidates
 	// a node (because node->keys is now NULL), but does not remove it.
+	// TODO: actually we should delete nodes so that we know a sequence does not
+	// lead to a command(on 2022-02-13)
 	input_t *buf = malloc((strlen(keys) + 1) * sizeof(input_t));
 	Trie *k = trie_insert(trie, key_names_to_input(keys, buf),
 			lua_isnil(L, 2) ? NULL : keys, desc);
@@ -1521,19 +1523,26 @@ void lua_handle_key(lua_State *L, input_t in)
 			// no menu for cmaps
 		}
 	} else {
-		// prefix == NULL
+		// prefix == NULL, i.e. normal mode
 		if (in == 27) {
-			maps.cur = NULL;
+			// If escape is pressed while there are keys in the buffer, we just
+			// clear the keys.
+			if (cvector_size(maps.seq) > 0) {
+				maps.cur = NULL;
+				ui_showmenu(ui, NULL);
+			} else {
+				/* TODO: this should be done properly with modes (on 2022-02-13) */
+				nohighlight(ui);
+				fm_selection_visual_stop(fm);
+				fm_selection_clear(fm);
+				fm_load_clear(fm);
+			}
 			ui->message = false;
-			ui_cmd_clear(ui);
-			nohighlight(ui);
-			fm_selection_visual_stop(fm);
-			fm_selection_clear(fm);
-			fm_load_clear(fm);
 			ui_redraw(ui, REDRAW_FM);
 			return;
 		}
 		if (!maps.cur) {
+			// no keymapping, print an error
 			cvector_push_back(maps.seq, in);
 			cvector_set_size(maps.str, 0);
 			for (size_t i = 0; i < cvector_size(maps.seq); i++) {
@@ -1548,6 +1557,7 @@ void lua_handle_key(lua_State *L, input_t in)
 			return;
 		}
 		if (maps.cur->keys) {
+			// A command is mapped to the current keysequence. Execute it and reset.
 			if (command_count < 0)
 				command_count = 1;
 			ui_showmenu(ui, NULL);
@@ -1561,8 +1571,9 @@ void lua_handle_key(lua_State *L, input_t in)
 			}
 			lua_pop(L, 1);
 		} else {
+			// A command is mapped to the current keysequence. Execute it and reset.
 			cvector_push_back(maps.seq, in);
-			cvector_vector_type(char*) menu = NULL;
+			cvector_vector_type(char *) menu = NULL;
 			cvector_push_back(menu, strdup("keys\tcommand"));
 			trie_collect_leaves(maps.cur, &menu);
 			ui_showmenu(ui, menu);

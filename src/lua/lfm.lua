@@ -394,9 +394,6 @@ map("<A-r>", fm.drop_cache)
 map("cd", a(lfm.feedkeys, ":cd "), {desc=":cd "})
 map("<A-c>", fm.check)
 
--- TODO: this should be done with modes (on 2022-02-12)
-map("<Esc>", c(fm.load_clear, fm.selection_clear, fm.visual_end, lfm.nohighlight))
-
 map(":", a(cmd.setprefix, ":"))
 map("&", a(lfm.feedkeys, ":shell-bg "), {desc=":shell-bg "})
 map("s", a(lfm.feedkeys, ":shell "), {desc=":shell "})
