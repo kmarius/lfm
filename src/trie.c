@@ -59,6 +59,32 @@ T *trie_insert(T* t, const input_t *trie_keys, const char *keys, const char *des
 }
 
 
+T *trie_remove(T* t, const input_t *trie_keys)
+{
+	if (*trie_keys == 0) {
+		free(t->keys);
+		free(t->desc);
+		t->keys = NULL;
+		t->desc = NULL;
+		return t;
+	}
+
+	T **prev = &t->child;
+	for (T *n = t->child; n; n = n->next) {
+		if (n->key == *trie_keys) {
+			T *ret = trie_remove(n, trie_keys + 1);
+			if (!n->child && !n->keys) {
+				*prev = n->next;
+				free(n);
+			}
+			return ret;
+		}
+		prev = &n->next;
+	}
+	return NULL;
+}
+
+
 /* we need the address of the vector because we might reallocate when pushing  */
 void trie_collect_leaves(const T *t, cvector_vector_type(char*) *vec)
 {

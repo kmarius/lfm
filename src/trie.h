@@ -32,11 +32,17 @@ void trie_destroy(Trie *trie);
 
 /*
  * Insert a new key sequence into the tree. keys should be the (printable) key
- * sequence, trie_keys is the sequence of keys converted to integers and desc
- * an optional description of the command. Returns the pointer of the final
- * node the command is inserted in.
+ * sequence, `trie\_keys` is the sequence of keys converted to `input_t` and
+ * `desc` an optional description of the command. Returns the pointer of the
+ * final node the word is ended in.
  */
 Trie *trie_insert(Trie* trie, const input_t *trie_keys, const char *keys, const char *desc);
+
+/*
+ * Remove a word from the trie and prunes empty branches. Returns the address
+ * of the invalidated node.
+ */
+Trie *trie_remove(Trie* trie, const input_t *trie_keys);
 
 /*
  * Finds the top level child belonging to key if it exists, NULL otherwise.

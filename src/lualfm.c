@@ -271,17 +271,19 @@ static inline int map_key(lua_State *L, Trie *trie)
 	if (!(lua_type(L, 2) == LUA_TFUNCTION || lua_isnil(L, 2)))
 		luaL_argerror(L, 2, "expected function or nil");
 
-	// We remove a keybind by inserting NULL instead of keys. This only invalidates
-	// a node (because node->keys is now NULL), but does not remove it.
-	// TODO: actually we should delete nodes so that we know a sequence does not
-	// lead to a command(on 2022-02-13)
 	input_t *buf = malloc((strlen(keys) + 1) * sizeof(input_t));
-	Trie *k = trie_insert(trie, key_names_to_input(keys, buf),
-			lua_isnil(L, 2) ? NULL : keys, desc);
+	Trie *ptr;
+	if (!lua_isnil(L, 2))
+		ptr = trie_insert(trie, key_names_to_input(keys, buf), keys, desc);
+	else
+		ptr = trie_remove(trie, key_names_to_input(keys, buf));
 	free(buf);
-	lua_pushlightuserdata(L, (void *) k);
-	lua_pushvalue(L, 2);
-	lua_settable(L, LUA_REGISTRYINDEX);
+
+	if (ptr) {
+		lua_pushlightuserdata(L, (void *) ptr);
+		lua_pushvalue(L, 2);
+		lua_settable(L, LUA_REGISTRYINDEX);
+	}
 	return 0;
 }
 
