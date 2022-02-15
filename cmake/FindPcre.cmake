@@ -1,0 +1,29 @@
+# defines
+#  PCRE_FOUND
+#  PCRE_INCLUDE_DIRS
+#  PCRE_LIBRARIES
+
+find_package(PkgConfig)
+if (PKG_CONFIG_FOUND)
+	pkg_check_modules(PC_PCRE QUIET PCRE)
+endif()
+
+set(PCRE_DEFINITIONS ${PC_PCRE_CFLAGS_OTHER})
+
+find_path(PCRE_INCLUDE_DIR pcre.h
+	PATHS ${PC_PCRE_INCLUDEDIR} ${PC_PCRE_INCLUDE_DIRS}
+	PATH_SUFFIXES)
+
+list(APPEND PCRE_NAMES pcre)
+
+find_library(PCRE_LIBRARY NAMES ${PCRE_NAMES}
+	PATHS ${PC_PCRE_LIBDIR} ${PC_PCRE_LIBRARY_DIRS})
+
+set(PCRE_LIBRARIES ${PCRE_LIBRARY})
+set(PCRE_INCLUDE_DIRS ${PCRE_INCLUDE_DIR})
+
+include(FindPackageHandleStandardArgs)
+find_package_handle_standard_args(Pcre DEFAULT_MSG
+	PCRE_LIBRARY PCRE_INCLUDE_DIR)
+
+mark_as_advanced(PCRE_INCLUDE_DIR PCRE_LIBRARY)

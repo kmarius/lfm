@@ -77,13 +77,14 @@ set(NOTCURSES_DEPS m unistring ncursesw)
 find_package(LuaJit)
 include_directories(${LUAJIT_INCLUDE_DIRS})
 
-find_package(ZLIB)
+find_package(Magic REQUIRED)
+find_package(Pcre REQUIRED)
+find_package(ZLIB REQUIRED)
+find_package(Ev REQUIRED)
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 set(PTHREAD_LIBRARY Threads::Threads)
-
-set(EV_LIBRARY ev)
 
 target_link_libraries(lfm
 	PRIVATE
@@ -95,8 +96,8 @@ target_link_libraries(lfm
 	${ZLIB_LIBRARY}
 	${EV_LIBRARY}
 	${PTHREAD_LIBRARY}
-	magic
-	pcre)
+	${MAGIC_LIBRARY}
+	${PCRE_LIBRARY})
 
 install(TARGETS lfm DESTINATION bin)
 install(DIRECTORY src/lua DESTINATION share/lfm)
