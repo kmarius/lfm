@@ -9,6 +9,7 @@
 #include "cvector.h"
 #include "dir.h"
 #include "fm.h"
+#include "keys.h"
 #include "history.h"
 #include "preview.h"
 
@@ -52,6 +53,7 @@ typedef struct {
 	uint8_t redraw;
 
 	bool message;
+	input_t *keyseq;
 } Ui;
 
 void kbblocking(bool blocking);
@@ -80,6 +82,12 @@ void ui_verror(Ui *ui, const char *format, va_list args);
 void ui_vechom(Ui *ui, const char *format, va_list args);
 
 void ui_showmenu(Ui *ui, cvector_vector_type(char*) vec);
+
+static inline void ui_show_keyseq(Ui *ui, input_t *keyseq)
+{
+	ui->keyseq = keyseq;
+	ui_redraw(ui, REDRAW_CMDLINE);
+}
 
 void ui_cmd_clear(Ui *ui);
 

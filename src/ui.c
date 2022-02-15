@@ -12,6 +12,7 @@
 #include "app.h"
 #include "async.h"
 #include "config.h"
+#include "cvector.h"
 #include "log.h"
 #include "ui.h"
 #include "util.h"
@@ -391,7 +392,7 @@ void draw_cmdline(T *t)
 			const File *file = dir_current_file(dir);
 			if (file) {
 				/* TODO: for empty directories, show the stat of the
-				 * directory instead (on 2021-07-18) */
+				 * directory instead? (on 2021-07-18) */
 				lhs_sz = ncplane_printf_yx(t->planes.cmdline, 0, 0,
 						"%s %2.ld %s %s %4s %s%s%s",
 						file_perms(file), file_nlink(file),
@@ -402,14 +403,17 @@ void draw_cmdline(T *t)
 						file_islink(file) ? file_link_target(file) : "");
 			}
 
-			rhs_sz = snprintf(nums, sizeof(nums), " %d/%d", dir->length ? dir->ind + 1 : 0, dir->length);
+			rhs_sz = snprintf(nums, sizeof(nums), "%d/%d", dir->length ? dir->ind + 1 : 0, dir->length);
 			ncplane_putstr_yx(t->planes.cmdline, 0, t->ncol - rhs_sz, nums);
 
+			// these are drawn right to left
 			if (dir->filter[0] != 0) {
-				rhs_sz += strlen(dir->filter) + 3;
+				rhs_sz += mbstowcs(NULL, dir->filter, 0) + 2 + 1;
 				ncplane_set_bg_palindex(t->planes.cmdline, COLOR_GREEN);
 				ncplane_set_fg_palindex(t->planes.cmdline, COLOR_BLACK);
-				ncplane_printf_yx(t->planes.cmdline, 0, t->ncol-rhs_sz+1, " %s ", dir->filter);
+				ncplane_putchar_yx(t->planes.cmdline, 0, t->ncol - rhs_sz, ' ');
+				ncplane_putstr(t->planes.cmdline, dir->filter);
+				ncplane_putchar(t->planes.cmdline, ' ');
 				ncplane_set_bg_default(t->planes.cmdline);
 				ncplane_set_fg_default(t->planes.cmdline);
 				ncplane_putchar(t->planes.cmdline, ' ');
@@ -420,20 +424,34 @@ void draw_cmdline(T *t)
 				else
 					ncplane_set_channels(t->planes.cmdline, cfg.colors.delete);
 
-				rhs_sz += int_sz(cvector_size(t->fm->load.files)) + 3;
-				ncplane_printf_yx(t->planes.cmdline, 0, t->ncol-rhs_sz+1, " %lu ", cvector_size(t->fm->load.files));
+				rhs_sz += int_sz(cvector_size(t->fm->load.files)) + 2 + 1;
+				ncplane_printf_yx(t->planes.cmdline, 0, t->ncol-rhs_sz, " %lu ", cvector_size(t->fm->load.files));
 				ncplane_set_bg_default(t->planes.cmdline);
+				ncplane_set_fg_default(t->planes.cmdline);
 				ncplane_putchar(t->planes.cmdline, ' ');
 			}
 			if (t->fm->selection.length > 0) {
 				ncplane_set_channels(t->planes.cmdline, cfg.colors.selection);
-				rhs_sz += int_sz(t->fm->selection.length) + 3;
-				ncplane_printf_yx(t->planes.cmdline, 0, t->ncol-rhs_sz+1, " %d ", t->fm->selection.length);
+				rhs_sz += int_sz(t->fm->selection.length) + 2 + 1;
+				ncplane_printf_yx(t->planes.cmdline, 0, t->ncol - rhs_sz, " %d ", t->fm->selection.length);
 				ncplane_set_bg_default(t->planes.cmdline);
+				ncplane_set_fg_default(t->planes.cmdline);
 				ncplane_putchar(t->planes.cmdline, ' ');
 			}
+			if (t->keyseq) {
+				char *str = NULL;
+				for (size_t i = 0; i < cvector_size(t->keyseq); i++) {
+					for (const char *s = input_to_key_name(t->keyseq[i]); *s; s++)
+						cvector_push_back(str, *s);
+				}
+				cvector_push_back(str, 0);
+				rhs_sz += mbstowcs(NULL, str, 0) + 1;
+				ncplane_putstr_yx(t->planes.cmdline, 0, t->ncol - rhs_sz, str);
+				ncplane_putchar(t->planes.cmdline, ' ');
+				cvector_free(str);
+			}
 			if (lhs_sz + rhs_sz > t->ncol) {
-				ncplane_putwc_yx(t->planes.cmdline, 0, t->ncol - rhs_sz - 1, cfg.truncatechar);
+				ncplane_putwc_yx(t->planes.cmdline, 0, t->ncol - rhs_sz - 2, cfg.truncatechar);
 				ncplane_putchar(t->planes.cmdline, ' ');
 			}
 		}
@@ -595,6 +613,8 @@ void ui_showmenu(T *t, cvector_vector_type(char*) vec)
 	}
 	ui_redraw(t, REDRAW_MENU);
 }
+
+void ui_show_keyseq(Ui *ui, input_t *keyseq);
 
 /* }}} */
 

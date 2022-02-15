@@ -1532,6 +1532,7 @@ void lua_handle_key(lua_State *L, input_t in)
 			if (cvector_size(maps.seq) > 0) {
 				maps.cur = NULL;
 				ui_showmenu(ui, NULL);
+				ui_show_keyseq(ui, NULL);
 			} else {
 				/* TODO: this should be done properly with modes (on 2022-02-13) */
 				nohighlight(ui);
@@ -1565,6 +1566,7 @@ void lua_handle_key(lua_State *L, input_t in)
 			ui_showmenu(ui, NULL);
 			lua_pushlightuserdata(L, (void *) maps.cur);
 			maps.cur = NULL;
+			ui_show_keyseq(ui, NULL);
 			lua_gettable(L, LUA_REGISTRYINDEX);
 			for (int i = 0; i < command_count; i++) {
 				lua_pushvalue(L, -1);
@@ -1575,6 +1577,7 @@ void lua_handle_key(lua_State *L, input_t in)
 		} else {
 			// A command is mapped to the current keysequence. Execute it and reset.
 			cvector_push_back(maps.seq, in);
+			ui_show_keyseq(ui, maps.seq);
 			cvector_vector_type(char *) menu = NULL;
 			cvector_push_back(menu, strdup("keys\tcommand"));
 			trie_collect_leaves(maps.cur, &menu);
