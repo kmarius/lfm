@@ -19,15 +19,16 @@ typedef struct App {
 
 	uint64_t input_timeout;
 
+	ev_io input_watcher;
 	ev_async async_res_watcher;
 	ev_idle redraw_watcher;
 	ev_io inotify_watcher;
 	ev_prepare prepare_watcher;
-	ev_signal signal_watcher;
-	ev_io input_watcher;
+	ev_signal sigwinch_watcher;
+	ev_signal sigterm_watcher;
+	ev_signal sighup_watcher;
 	ev_timer timer_watcher;
 	ev_timer dir_load_timer;
-
 
 	cvector_vector_type(ev_child *) child_watchers; /* to run callbacks when processes finish */
 } App;

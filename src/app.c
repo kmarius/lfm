@@ -277,6 +277,22 @@ static void sigwinch_cb(EV_P_ ev_signal *w, int revents)
 }
 
 
+static void sigterm_cb(EV_P_ ev_signal *w, int revents)
+{
+	(void) revents;
+	(void) loop;
+	app_quit(w->data);
+}
+
+
+static void sighup_cb(EV_P_ ev_signal *w, int revents)
+{
+	(void) revents;
+	(void) loop;
+	app_quit(w->data);
+}
+
+
 static void child_cb(EV_P_ ev_child *w, int revents)
 {
 	(void) revents;
@@ -376,9 +392,17 @@ void app_init(T *t)
 	t->input_watcher.data = t;
 	ev_io_start(t->loop, &t->input_watcher);
 
-	ev_signal_init(&t->signal_watcher, sigwinch_cb, SIGWINCH);
-	t->signal_watcher.data = t;
-	ev_signal_start(t->loop, &t->signal_watcher);
+	ev_signal_init(&t->sigwinch_watcher, sigwinch_cb, SIGWINCH);
+	t->sigwinch_watcher.data = t;
+	ev_signal_start(t->loop, &t->sigwinch_watcher);
+
+	ev_signal_init(&t->sigterm_watcher, sigterm_cb, SIGTERM);
+	t->sigterm_watcher.data = t;
+	ev_signal_start(t->loop, &t->sigterm_watcher);
+
+	ev_signal_init(&t->sighup_watcher, sighup_cb, SIGHUP);
+	t->sighup_watcher.data = t;
+	ev_signal_start(t->loop, &t->sighup_watcher);
 
 	t->L = luaL_newstate();
 	lua_init(t->L, t);
