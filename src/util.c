@@ -185,3 +185,17 @@ char *sdirname(const char *p)
 	strncpy(buf, p, sizeof(buf)-1);
 	return dirname(buf);
 }
+
+char *path_replace_tilde(const char* path)
+{
+	if (path[0] != '~' || path[1] != '/')
+		return strdup(path);
+
+	const char *home = getenv("HOME");
+	const int l1 = strlen(path);
+	const int l2 = strlen(home);
+	char *ret = malloc((l1 - 1 + l2 + 1) * sizeof(char));
+	strcpy(ret, home);
+	strcpy(ret + l2, path + 1);
+	return ret;
+}

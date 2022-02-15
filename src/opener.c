@@ -507,7 +507,7 @@ static int l_opener_setup(lua_State *L)
 		lua_getfield(L, 1, "config");
 		if (!lua_isnoneornil(L, -1)) {
 			free(config.config_file);
-			config.config_file = strdup(lua_tostring(L, -1));
+			config.config_file = path_replace_tilde(lua_tostring(L, -1));
 		}
 		lua_pop(L, 1);
 	}

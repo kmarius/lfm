@@ -93,3 +93,6 @@ char *sdirname(const char *p);
 #define abasename(p) strdup(sbasename(p))
 
 #define adirname(p) strdup(sdirname(p))
+
+// Allocates a new path with a beginning ~/ replaced, otherwise a copy of path.
+char *path_replace_tilde(const char* path);
