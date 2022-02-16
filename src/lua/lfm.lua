@@ -263,20 +263,6 @@ local mode_cmd = {
 	change = compl.reset,
 }
 
-local mode_search = {
-	prefix = "/",
-	enter = function() lfm.search_next(true) end, -- apply search, keep highlights, move cursor to next match  or stay on current
-	esc = lfm.nohighlight, -- delete everything
-	change = function() lfm.search(cmd.getline()) end, -- highlight match in UI
-}
-
-local mode_search_back = {
-	prefix = "?",
-	enter = function() lfm.search_next(true) end,
-	esc = lfm.nohighlight,
-	change = function() lfm.search_back(cmd.getline()) end,
-}
-
 local mode_find = {
 	prefix = "find: ",
 	enter = function() lfm.find_clear() lfm.eval("open") end,
@@ -319,9 +305,9 @@ local mode_delete = {
 	end,
 }
 
-lfm.register_mode(mode_search)
+lfm.register_mode(require("search").mode_search)
+lfm.register_mode(require("search").mode_search_back)
 lfm.register_mode(mode_delete)
-lfm.register_mode(mode_search_back)
 lfm.register_mode(mode_cmd)
 lfm.register_mode(mode_filter)
 lfm.register_mode(mode_find)
@@ -448,8 +434,8 @@ cmap("<c-n>", lfm.find_next, {desc=""})
 cmap("<c-p>", lfm.find_prev, {desc=""})
 
 -- Search
-map("/", function() cmd.setprefix("/") lfm.nohighlight() end)
-map("?", function() cmd.setprefix("?") lfm.nohighlight() end)
+map("/", require("search").enter_mode)
+map("?", require("search").enter_mode_back)
 map("n", lfm.search_next)
 map("N", lfm.search_prev)
 
