@@ -1,0 +1,3 @@
+#pragma once
+
+#define LFM_VERSION "@LFM_VERSION@"

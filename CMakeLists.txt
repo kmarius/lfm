@@ -63,6 +63,16 @@ endif()
 message(STATUS "lua dir: ${LFM_LUA_DIR}")
 message(STATUS "data dir: ${LFM_DATA_DIR}")
 
+include(GetGitRevisionDescription)
+git_describe(GIT_SHA1)
+git_revcount(GIT_REVCOUNT)
+
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+	set(LFM_VERSION "v0.${GIT_REVCOUNT}.${GIT_SHA1}-debug")
+else()
+	set(LFM_VERSION "v0.${GIT_REVCOUNT}.${GIT_SHA1}")
+endif()
+
 add_subdirectory(config)
 list(APPEND LFM_GENERATED_SOURCES
   "${PROJECT_BINARY_DIR}/config/auto/pathdef.c"
@@ -76,6 +86,8 @@ set(NOTCURSES_DEPS m unistring ncursesw)
 
 find_package(LuaJit)
 include_directories(${LUAJIT_INCLUDE_DIRS})
+
+include_directories(build/config)
 
 find_package(Magic REQUIRED)
 find_package(Pcre REQUIRED)

@@ -8,6 +8,7 @@
 #include <sys/time.h>
 
 #include "app.h"
+#include "auto/versiondef.h"
 #include "config.h"
 #include "cvector.h"
 #include "fm.h"
@@ -28,17 +29,7 @@
 	"  -u <config>  Use this config file\n"                                \
 	"  -v           Print version information\n"
 
-#ifdef DEBUG
-#ifndef VERSION
-#define VERSION "?"
-#endif
-#define VERSION_FMT "%s v0." VERSION "-debug\n"
-#else
-#ifndef VERSION
-#define VERSION "release"
-#endif
-#define VERSION_FMT "%s v0." VERSION "\n"
-#endif
+#define VERSION_FMT "%s " LFM_VERSION "\n"
 
 
 static void usage(const char *progname, int opt)
