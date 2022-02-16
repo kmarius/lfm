@@ -19,6 +19,9 @@ struct node {
 };
 
 
+void cache_return(T *t, void *e, const char *key);
+
+
 static inline void swap(struct node *x, struct node *y)
 {
 	struct node tmp = *x;
@@ -82,7 +85,7 @@ void cache_resize(T *t, uint16_t capacity)
 }
 
 
-void cache_return(T *t, void *e, const char *key)
+void cache_insert(T *t, void *e, const char *key, bool in_use)
 {
 	/* TODO: free here? (on 2022-02-06) */
 	if (t->capacity == 0)
@@ -91,7 +94,7 @@ void cache_return(T *t, void *e, const char *key)
 	for (uint16_t i = 0; i < t->size; i++) {
 		if (t->nodes[i].ptr == e){
 			t->nodes[i].sort_key = time(NULL);
-			t->nodes[i].in_use = false;
+			t->nodes[i].in_use = in_use;
 			return;
 		}
 	}
@@ -105,11 +108,13 @@ void cache_return(T *t, void *e, const char *key)
 		t->nodes[0].ptr = e;
 		t->nodes[0].sort_key = time(NULL);
 		t->nodes[0].search_key = key;
+		t->nodes[0].in_use = in_use;
 		downheap(t->nodes, t->size, 0);
 	} else {
 		t->nodes[t->size].ptr = e;
 		t->nodes[t->size].sort_key = time(NULL);
 		t->nodes[t->size].search_key = key;
+		t->nodes[t->size].in_use = in_use;
 		t->size++;
 		upheap(t->nodes, t->size - 1);
 	}

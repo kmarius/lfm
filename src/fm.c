@@ -243,6 +243,7 @@ static Dir *fm_load_dir(T *t, const char *path)
 		 */
 		dir = dir_new_loading(path);
 		dir->hidden = cfg.hidden;
+		cache_insert(&t->dirs.cache, dir, dir->path, true);
 		async_dir_load(dir, false);
 	}
 	return dir;
