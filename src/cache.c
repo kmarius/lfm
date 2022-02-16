@@ -1,3 +1,4 @@
+#include <stdint.h>
 #include <stdlib.h>
 
 #include "cache.h"
@@ -42,22 +43,19 @@ static inline void upheap(struct node *nodes, int16_t i)
 
 static void downheap(struct node *a, uint16_t size, uint16_t i)
 {
-	const uint16_t lidx = LCHILD(i);
-	const uint16_t ridx = RCHILD(i);
-
-	uint16_t largest = i;
-
-	if (lidx < size && a[lidx].sort_key < a[largest].sort_key)
-		largest = lidx;
-
-	if (ridx < size && a[ridx].sort_key < a[largest].sort_key)
-		largest = ridx;
-
-
-	if (largest != i) {
-		swap(a+i, a+largest);
-		downheap(a, size, largest);
-	}
+	do {
+		const uint16_t l_idx = LCHILD(i);
+		const uint16_t r_idx = RCHILD(i);
+		uint16_t smallest = i;
+		if (l_idx < size && a[l_idx].sort_key < a[smallest].sort_key)
+			smallest = l_idx;
+		if (r_idx < size && a[r_idx].sort_key < a[smallest].sort_key)
+			smallest = r_idx;
+		if (smallest == i)
+			break;
+		swap(a+i, a+smallest);
+		i = smallest;
+	} while (1);
 }
 
 
@@ -99,6 +97,7 @@ void cache_insert(T *t, void *e, const char *key, bool in_use)
 		}
 	}
 
+	const uint16_t sort_key = in_use ? UINT16_MAX : time(NULL);
 	if (t->size >= t->capacity) {
 		if (t->nodes[0].in_use) {
 			log_error("can not free used dir %s", key);
@@ -106,13 +105,13 @@ void cache_insert(T *t, void *e, const char *key, bool in_use)
 		}
 		t->free(t->nodes[0].ptr);
 		t->nodes[0].ptr = e;
-		t->nodes[0].sort_key = time(NULL);
+		t->nodes[0].sort_key = sort_key;
 		t->nodes[0].search_key = key;
 		t->nodes[0].in_use = in_use;
 		downheap(t->nodes, t->size, 0);
 	} else {
 		t->nodes[t->size].ptr = e;
-		t->nodes[t->size].sort_key = time(NULL);
+		t->nodes[t->size].sort_key = sort_key;
 		t->nodes[t->size].search_key = key;
 		t->nodes[t->size].in_use = in_use;
 		t->size++;
