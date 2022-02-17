@@ -1,10 +1,13 @@
+#include <bits/types.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <time.h>
 
 #include "cache.h"
-#include "time.h"
 #include "util.h"
 #include "log.h"
+
+#define TIME_T_MAX (time_t)((1UL << ((sizeof(time_t) << 3) - 1)) - 1)
 
 #define T Cache
 
@@ -14,7 +17,7 @@
 
 struct node {
 	void *ptr;
-	uint16_t sort_key;
+	time_t sort_key;
 	const char *search_key;
 	bool in_use;
 };
@@ -97,7 +100,7 @@ void cache_insert(T *t, void *e, const char *key, bool in_use)
 		}
 	}
 
-	const uint16_t sort_key = in_use ? UINT16_MAX : time(NULL);
+	const time_t sort_key = in_use ? TIME_T_MAX : time(NULL);
 	if (t->size >= t->capacity) {
 		if (t->nodes[0].in_use) {
 			log_error("can not free used dir %s", key);
