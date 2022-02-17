@@ -57,9 +57,18 @@ end
 ---@return function
 function M.c(...)
 	local t = {...}
-	return function(...)
-		for _, f in pairs(t) do
+	if #t == 2 then
+		local f = t[1]
+		local g = t[2]
+		return function(...)
 			f(...)
+			g(...)
+		end
+	else
+		return function(...)
+			for _, f in pairs(t) do
+				f(...)
+			end
 		end
 	end
 end
@@ -76,8 +85,15 @@ end
 ---@return function
 function M.a(f, ...)
 	local t = {...}
-	return function()
-		f(unpack(t))
+	if #t == 1 then
+		local arg = t[1]
+		return function()
+			f(arg)
+		end
+	else
+		return function()
+			f(unpack(t))
+		end
 	end
 end
 
