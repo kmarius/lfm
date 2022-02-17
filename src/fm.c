@@ -561,6 +561,46 @@ void fm_move_cursor_to(T *t, const char *name)
 }
 
 
+bool fm_scroll_up(T *t)
+{
+	Dir *dir = fm_current_dir(t);
+	if (dir->ind > 0 && dir->ind == dir->pos) {
+		return fm_up(t, 1);
+	}
+	if (dir->pos < t->height - cfg.scrolloff - 1) {
+		dir->pos++;
+		return true;
+	} else {
+		dir->pos = t->height - cfg.scrolloff - 1;
+		dir->ind--;
+		if (dir->ind > dir->length - cfg.scrolloff - 1)
+			dir->ind = dir->length - cfg.scrolloff - 1;
+		return true;
+	}
+}
+
+
+// ctrl-e decrement pos
+bool fm_scroll_down(T *t)
+{
+	Dir *dir = fm_current_dir(t);
+	if (dir->length - dir->ind + dir->pos - 1 < t->height) {
+		return fm_down(t, 1);
+	}
+	if (dir->pos > cfg.scrolloff) {
+		dir->pos--;
+		return true;
+	} else {
+		dir->pos = cfg.scrolloff;
+		dir->ind++;
+		if (dir->ind < dir->pos)
+			dir->ind = dir->pos;
+		fm_update_preview(t);
+		return true;
+	}
+}
+
+
 File *fm_open(T *t)
 {
 	File *file = fm_current_file(t);

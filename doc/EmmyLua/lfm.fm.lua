@@ -145,6 +145,12 @@ function lfm.fm.up(ct) end
 ---@param ct? number count, 1 if omitted
 function lfm.fm.down(ct) end
 
+---Scroll up while keeping the cursor on the current file (if possible).
+function lfm.fm.scroll_up() end
+
+---Scroll down while keeping the cursor on the current file (if possible).
+function lfm.fm.scroll_down() end
+
 ---Navigate to location given by dir
 ---@param dir string destination path
 ---@param run_hooks? boolean run Chdir{Pre,Post} hooks

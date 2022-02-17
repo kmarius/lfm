@@ -883,22 +883,6 @@ static int l_cmd_prefix_get(lua_State *L)
 }
 
 
-static int l_fm_up(lua_State *L)
-{
-	if (fm_up(fm, luaL_optint(L, 1, 1)))
-		ui_redraw(ui, REDRAW_FM);
-	return 0;
-}
-
-
-static int l_fm_down(lua_State *L)
-{
-	if (fm_down(fm, luaL_optint(L, 1, 1)))
-		ui_redraw(ui, REDRAW_FM);
-	return 0;
-}
-
-
 static const struct luaL_Reg cmd_lib[] = {
 	{"clear", l_cmd_clear},
 	{"delete", l_cmd_delete},
@@ -965,10 +949,44 @@ static int l_fm_sel(lua_State *L)
 }
 
 
+static int l_fm_up(lua_State *L)
+{
+	if (fm_up(fm, luaL_optint(L, 1, 1)))
+		ui_redraw(ui, REDRAW_FM);
+	return 0;
+}
+
+
+static int l_fm_down(lua_State *L)
+{
+	if (fm_down(fm, luaL_optint(L, 1, 1)))
+		ui_redraw(ui, REDRAW_FM);
+	return 0;
+}
+
+
 static int l_fm_top(lua_State *L)
 {
 	(void) L;
 	if (fm_top(fm))
+		ui_redraw(ui, REDRAW_FM);
+	return 0;
+}
+
+
+static int l_fm_scroll_up(lua_State *L)
+{
+	(void) L;
+	if (fm_scroll_up(fm))
+		ui_redraw(ui, REDRAW_FM);
+	return 0;
+}
+
+
+static int l_fm_scroll_down(lua_State *L)
+{
+	(void) L;
+	if (fm_scroll_down(fm))
 		ui_redraw(ui, REDRAW_FM);
 	return 0;
 }
@@ -1324,6 +1342,8 @@ static const struct luaL_Reg fm_lib[] = {
 	{"visual_toggle", l_fm_visual_toggle},
 	{"updir", l_fm_updir},
 	{"up", l_fm_up},
+	{"scroll_down", l_fm_scroll_down},
+	{"scroll_up", l_fm_scroll_up},
 	{"load_get", l_fm_get_load},
 	{"load_set", l_fm_load_set},
 	{"load_clear", l_fm_load_clear},

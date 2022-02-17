@@ -128,6 +128,9 @@ static inline bool fm_bot(Fm *fm)
 	return fm_down(fm, fm_current_dir(fm)->length - fm_current_dir(fm)->ind);
 }
 
+bool fm_scroll_up(Fm *fm);
+bool fm_scroll_down(Fm *fm);
+
 /*
  * Changes directory to the directory given by `path`. If `save` then the current
  * directory will be saved as the special "'" mark. Returns `true´ if the directory has been changed.
