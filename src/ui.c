@@ -653,7 +653,7 @@ static void print_file(struct ncplane *n, const File *file,
 		} else {
 			file_size_readable(file, size);
 		}
-		rightmargin = strlen(size) + 2;
+		rightmargin = strlen(size) + 1;
 
 		if (file_islink(file))
 			rightmargin += 3; /* " ->" */
@@ -731,7 +731,7 @@ static void print_file(struct ncplane *n, const File *file,
 				x += ncplane_putnstr(n, left_space - ext_len - 1, file_name(file));
 				x += ncplane_putwc(n, cfg.truncatechar);
 				x += ncplane_putstr(n, file_ext(file));
-			} else if (left_space >= 4) {
+			} else if (left_space >= 5) {
 				// truncate prefix and extension, keep dot
 				x += ncplane_putchar(n, *file_name(file));
 				x += ncplane_putwc(n, cfg.truncatechar);
@@ -757,7 +757,7 @@ static void print_file(struct ncplane *n, const File *file,
 		}
 	}
 
-	for (; x < ncol - rightmargin - 2; x++)
+	for (; x < ncol - rightmargin - 1; x++)
 		ncplane_putchar(n, ' ');
 
 	if (rightmargin > 0) {
