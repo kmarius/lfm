@@ -20,7 +20,8 @@ static inline void highlight(Ui *ui, const char *string)
 }
 
 
-inline void nohighlight(Ui *ui)
+// don't remove search_string here
+void nohighlight(Ui *ui)
 {
 	ui->highlight = NULL;
 	ui_redraw(ui, REDRAW_FM);
@@ -29,11 +30,16 @@ inline void nohighlight(Ui *ui)
 
 inline void search(Ui *ui, const char *string, bool forward)
 {
-	if (!string || string[0] == 0) {
+	if (string && string[0] == 0)
+		string = NULL;
+
+	if (!string) {
+		free(search_string);
+		search_string = NULL;
 		nohighlight(ui);
 	} else {
-		highlight(ui, string);
 		search_forward = forward;
+		highlight(ui, string);
 	}
 }
 
