@@ -21,6 +21,32 @@ int min(int i, int j);
 int max(int i, int j);
 
 
+const wchar_t *wstrcasestr(const wchar_t *str, const wchar_t *sub) {
+
+	if (*sub == 0)
+		return str;
+
+	for (; *str != 0; str++) {
+		if (towlower(*str) != towlower(*sub))
+			continue;
+		if (haswcaseprefix(str, sub))
+			return str;
+	}
+
+	return NULL;
+}
+
+
+bool haswcaseprefix(const wchar_t *restrict string, const wchar_t *restrict prefix)
+{
+	while (*prefix != 0) {
+		if (towlower(*prefix++) != towlower(*string++))
+			return false;
+	}
+	return true;
+}
+
+
 const char *strcasestr(const char *str, const char *sub) {
 
 	if (*sub == 0)
@@ -163,6 +189,17 @@ int asprintf(char **dst, const char *format, ...)
 }
 
 
+wchar_t *ambstowcs(const char *s, int *len)
+{
+	const int l = mbstowcs(NULL, s, 0);
+	wchar_t *ws = malloc((l + 1) * sizeof(wchar_t));
+	mbstowcs(ws, s, l + 1);
+	if (len)
+		*len = l;
+	return ws;
+}
+
+
 char *srealpath(const char *p)
 {
 	static char fullpath[PATH_MAX+1];
@@ -185,6 +222,7 @@ char *sdirname(const char *p)
 	strncpy(buf, p, sizeof(buf)-1);
 	return dirname(buf);
 }
+
 
 char *path_replace_tilde(const char* path)
 {

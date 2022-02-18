@@ -5,6 +5,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
+#include <wchar.h>
+#include <wctype.h>
 
 #ifndef streq
 #define streq(X, Y) (*(char *)(X) == *(char *)(Y) && strcmp(X, Y) == 0)
@@ -54,6 +56,11 @@ static inline int max(int i, int j)
 	return i > j ? i : j;
 }
 
+
+bool haswcaseprefix(const wchar_t *restrict string, const wchar_t *restrict prefix);
+
+const wchar_t *wstrcasestr(const wchar_t *str, const wchar_t *sub);
+
 const char *strcasestr(const char *str, const char *sub);
 
 const char *strcaserchr(const char *str, char c);
@@ -80,6 +87,9 @@ void mkdir_p(char *path);
 int asprintf(char **dst, const char *format, ...);
 
 int vasprintf(char **dst, const char *format, va_list args);
+
+// converts mb string s to an allocated wchar string, optionalle passes the length to len
+wchar_t *ambstowcs(const char *s, int *len);
 
 /* these return pointer to statically allocated arrays */
 char *srealpath(const char *p);

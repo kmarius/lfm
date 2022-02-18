@@ -632,6 +632,204 @@ static uint64_t ext_channel_find(const char *ext)
 }
 
 
+static int print_shortened(struct ncplane *n, const char *name, int max_len)
+{
+	if (max_len <= 0)
+		return 0;
+
+	int name_len;
+	wchar_t *namew = ambstowcs(name, &name_len);
+	wchar_t *namew_ = namew;
+	wchar_t *extw = wcsrchr(namew_, L'.');
+	if (!extw || extw == namew)
+		extw = namew + name_len;
+	int ext_len = name_len - (extw - namew_);
+
+	int x = max_len;
+	if (name_len <= max_len) {
+		// everything fits
+		x = ncplane_putwstr(n, namew_);
+	} else if (max_len > ext_len + 1) {
+		// print extension and as much of the name as possible
+		int print_name_ind = max_len - ext_len - 1;
+		wchar_t *print_name_ptr = namew_ + print_name_ind;
+		while (namew_ < print_name_ptr)
+			ncplane_putwc(n, *(namew_++));
+		ncplane_putwc(n, cfg.truncatechar);
+		ncplane_putwstr(n, extw);
+	} else if (max_len >= 5) {
+		// print first char of the name and as mutch of the extension as possible
+		ncplane_putwc(n, *(namew_));
+		const wchar_t *ext_end = extw + max_len - 2 - 1;
+		ncplane_putwc(n, cfg.truncatechar);
+		while (extw < ext_end)
+			ncplane_putwc(n, *(extw++));
+		ncplane_putwc(n, cfg.truncatechar);
+	} else if (max_len > 1) {
+		const wchar_t *name_end = namew + max_len - 1;
+		while (namew_ < name_end)
+			ncplane_putwc(n, *(namew_++));
+		ncplane_putwc(n, cfg.truncatechar);
+	} else {
+		ncplane_putwc(n, *name);
+	}
+
+	free(namew);
+	return x;
+}
+
+
+static int print_highlighted_and_shortened(struct ncplane *n, const char *name, const char *hl, int max_len)
+{
+	if (max_len <= 0)
+		return 0;
+
+	int name_len, hl_len;
+	wchar_t *namew_ = ambstowcs(name, &name_len);
+	wchar_t *hlw = ambstowcs(hl, &hl_len);
+	wchar_t *extw = wcsrchr(namew_, L'.');
+	if (!extw || extw == namew_)
+		extw = namew_ + name_len;
+	int ext_len = name_len - (extw - namew_);
+	const wchar_t *hl_begin = wstrcasestr(namew_, hlw);
+	const wchar_t *hl_end = hl_begin + hl_len;
+
+	const uint64_t ch = ncplane_channels(n);
+	int x = max_len;
+	wchar_t *namew = namew_;
+
+	/* TODO: some of these branches can probably be optimized/combined (on 2022-02-18) */
+	if (name_len <= max_len) {
+		// everything fits
+		while (namew < hl_begin)
+			ncplane_putwc(n, *(namew++));
+		ncplane_set_channels(n, cfg.colors.search);
+		while (namew < hl_end)
+			ncplane_putwc(n, *(namew++));
+		ncplane_set_channels(n, ch);
+		while (*namew)
+			ncplane_putwc(n, *(namew++));
+		x = name_len;
+	} else if (max_len > ext_len + 1) {
+		// print extension and as much of the name as possible
+		wchar_t *print_name_end = namew + max_len - ext_len - 1;
+		if (hl_begin < print_name_end) {
+			// highlight begins before truncate
+			while (namew < hl_begin)
+				ncplane_putwc(n, *(namew++));
+			ncplane_set_channels(n, cfg.colors.search);
+			if (hl_end < print_name_end) {
+				// highlight ends before truncate
+				while (namew < hl_end)
+					ncplane_putwc(n, *(namew++));
+				ncplane_set_channels(n, ch);
+				while (namew < print_name_end)
+					ncplane_putwc(n, *(namew++));
+			} else {
+				// highlight continues during truncate
+				while (namew < print_name_end)
+					ncplane_putwc(n, *(namew++));
+			}
+			ncplane_putwc(n, cfg.truncatechar);
+		} else {
+			// highlight begins after truncate
+			while (namew < print_name_end)
+				ncplane_putwc(n, *(namew++));
+			if (hl_begin < extw) {
+				// highlight begins before extension begins
+				ncplane_set_channels(n, cfg.colors.search);
+			}
+			ncplane_putwc(n, cfg.truncatechar);
+		}
+		if (hl_begin >= extw) {
+			while (extw < hl_begin)
+				ncplane_putwc(n, *(extw++));
+			ncplane_set_channels(n, cfg.colors.search);
+			while (extw < hl_end)
+				ncplane_putwc(n, *(extw++));
+			ncplane_set_channels(n, ch);
+			while (*extw)
+				ncplane_putwc(n, *(extw++));
+		} else {
+			// highlight was started before
+			while (extw < hl_end)
+				ncplane_putwc(n, *(extw++));
+			ncplane_set_channels(n, ch);
+			while (*extw)
+				ncplane_putwc(n, *(extw++));
+		}
+	} else if (max_len >= 5) {
+		const wchar_t *ext_end = extw + max_len - 2 - 1;
+		if (hl_begin == namew_) {
+			ncplane_set_channels(n, cfg.colors.search);
+		}
+		ncplane_putwc(n, *name);
+		if (hl_begin < extw) {
+			ncplane_set_channels(n, cfg.colors.search);
+		}
+		ncplane_putwc(n, cfg.truncatechar);
+		if (hl_end < extw) {
+			ncplane_set_channels(n, ch);
+		}
+		if (hl_begin >= extw) {
+			while (extw < hl_begin)
+				ncplane_putwc(n, *(extw++));
+			ncplane_set_channels(n, cfg.colors.search);
+			if (hl_end < ext_end) {
+				while (extw < hl_end)
+					ncplane_putwc(n, *(extw++));
+				ncplane_set_channels(n, ch);
+			}
+			while (extw < ext_end)
+				ncplane_putwc(n, *(extw++));
+			ncplane_putwc(n, cfg.truncatechar);
+			ncplane_set_channels(n, ch);
+		} else {
+			while (extw < ext_end)
+				ncplane_putwc(n, *(extw++));
+			ncplane_putwc(n, cfg.truncatechar);
+		}
+	} else if (max_len > 1) {
+		const wchar_t *name_end = namew_ + max_len - 1;
+		if (hl_begin < name_end) {
+			while (namew < hl_begin)
+				ncplane_putwc(n, *(namew++));
+			ncplane_set_channels(n, cfg.colors.search);
+			if (hl_end < name_end) {
+				while (namew < hl_end)
+					ncplane_putwc(n, *(namew++));
+				ncplane_set_channels(n, ch);
+				while (namew < name_end)
+					ncplane_putwc(n, *(namew++));
+			} else {
+				while (namew < name_end)
+					ncplane_putwc(n, *(namew++));
+			}
+		} else {
+			while (namew < name_end)
+				ncplane_putwc(n, *(namew++));
+			ncplane_set_channels(n, cfg.colors.search);
+		}
+		ncplane_putwc(n, cfg.truncatechar);
+		ncplane_set_channels(n, ch);
+	} else {
+		// only one char
+		if (hl == name) {
+			const uint64_t ch = ncplane_channels(n);
+			ncplane_set_channels(n, cfg.colors.search);
+			ncplane_putwc(n, *namew_);
+			ncplane_set_channels(n, ch);
+		} else {
+			ncplane_putwc(n, *namew_);
+		}
+	}
+
+	free(hlw);
+	free(namew_);
+	return x;
+}
+
+
 static void print_file(struct ncplane *n, const File *file,
 		bool iscurrent, char **sel, char **load, enum movemode_e mode,
 		const char *highlight, bool print_sizes)
@@ -704,57 +902,15 @@ static void print_file(struct ncplane *n, const File *file,
 	if (iscurrent)
 		ncplane_set_bchannel(n, cfg.colors.current);
 
-	const char *hlsubstr;
 	ncplane_putchar(n, ' ');
-	if (highlight && (hlsubstr = strcasestr(file_name(file), highlight))) {
-		/* TODO: how can we combine this with shortening? Try to show ...highlight... ? (on 2022-02-07) */
-		const uint16_t l = hlsubstr - file_name(file);
-		const uint64_t ch = ncplane_channels(n);
-		ncplane_putnstr(n, l, file_name(file));
-		ncplane_set_channels(n, cfg.colors.search);
-		ncplane_putnstr(n, strlen(highlight), file_name(file) + l);
-		ncplane_set_channels(n, ch);
-		ncplane_putnstr(n, ncol - 3, file_name(file) + l + strlen(highlight));
-		ncplane_cursor_yx(n, NULL, &x);
-	} else {
-		// TODO: Calculations should be done with the mblen of the strings (on 2022-02-07)
-		if (file_ext(file)) {
-			const int name_len = strlen(file_name(file));
-			const int ext_len = strlen(file_ext(file));
-			const int pre_len = name_len - ext_len;
-			const int left_space = ncol - 3 - rightmargin;
-			if (left_space >= ext_len + pre_len) {
-				// print whole
-				x += ncplane_putnstr(n, left_space, file_name(file));
-			} else if (left_space >= ext_len + 2) {
-				// shorten prefix, print extension
-				x += ncplane_putnstr(n, left_space - ext_len - 1, file_name(file));
-				x += ncplane_putwc(n, cfg.truncatechar);
-				x += ncplane_putstr(n, file_ext(file));
-			} else if (left_space >= 5) {
-				// truncate prefix and extension, keep dot
-				x += ncplane_putchar(n, *file_name(file));
-				x += ncplane_putwc(n, cfg.truncatechar);
-				x += ncplane_putnstr(n, left_space - 3, file_ext(file));
-				x += ncplane_putwc(n, cfg.truncatechar);
-			} else if (left_space > 1) {
-				x += ncplane_putnstr(n, left_space - 1, file_name(file));
-				x += ncplane_putwc(n, cfg.truncatechar);
-			} else {
-				x += ncplane_putchar(n, *file_name(file));
-			}
-		} else {
-			const int left_space = ncol - 3 - rightmargin;
-			const int pre_len = strlen(file_name(file));
-			if (left_space >= pre_len) {
-				x += ncplane_putstr(n, file_name(file));
-			} else if (left_space > 1) {
-				x += ncplane_putnstr(n, left_space - 1, file_name(file));
-				x += ncplane_putwc(n, cfg.truncatechar);
-			} else {
-				x += ncplane_putchar(n, *file_name(file));
-			}
-		}
+
+	const char *hlsubstr = highlight && highlight[0] ? strcasestr(file_name(file), highlight) : NULL;
+	const int left_space = ncol - 3 - rightmargin;
+	if (hlsubstr) {
+		x += print_highlighted_and_shortened(n, file_name(file), highlight, left_space);
+	}
+	else {
+		x += print_shortened(n, file_name(file), left_space);
 	}
 
 	for (; x < ncol - rightmargin - 1; x++)
