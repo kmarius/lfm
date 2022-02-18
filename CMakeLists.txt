@@ -68,9 +68,9 @@ git_describe(GIT_SHA1)
 git_revcount(GIT_REVCOUNT)
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-	set(LFM_VERSION "v0.${GIT_REVCOUNT}.${GIT_SHA1}-debug")
+	set(LFM_VERSION "r${GIT_REVCOUNT}.${GIT_SHA1}-debug")
 else()
-	set(LFM_VERSION "v0.${GIT_REVCOUNT}.${GIT_SHA1}")
+	set(LFM_VERSION "r${GIT_REVCOUNT}.${GIT_SHA1}")
 endif()
 
 add_subdirectory(config)
