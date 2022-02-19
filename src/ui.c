@@ -13,6 +13,7 @@
 #include "async.h"
 #include "config.h"
 #include "cvector.h"
+#include "dir.h"
 #include "log.h"
 #include "ui.h"
 #include "util.h"
@@ -31,6 +32,7 @@ static void draw_info(T *t);
 static void menu_resize(T *t);
 static char *ansi_consoom(struct ncplane *w, char *s);
 static void ansi_addstr(struct ncplane *n, char *s);
+static int print_shortened_w(struct ncplane *n, const wchar_t *name, int name_len, int max_len);
 
 /* init/resize {{{ */
 
@@ -473,59 +475,102 @@ static void draw_info(T *t)
 	static char *home;
 	static uint16_t home_len;
 
-	ncplane_erase(t->planes.info);
-
 	if (user[0] == 0) {
 		getlogin_r(user, sizeof(user));
 		gethostname(host, sizeof(host));
 		home = getenv("HOME");
-		home_len = strlen(home);
+		home_len = mbstowcs(NULL, home, 0);
 	}
 
-	ncplane_set_styles(t->planes.info, NCSTYLE_BOLD);
-	ncplane_set_fg_palindex(t->planes.info, COLOR_GREEN);
-	ncplane_putstr_yx(t->planes.info, 0, 0, user);
-	ncplane_putchar(t->planes.info, '@');
-	ncplane_putstr(t->planes.info, host);
-	ncplane_set_fg_default(t->planes.info);
+	struct ncplane *n = t->planes.info;
 
-	ncplane_set_styles(t->planes.info, NCSTYLE_NONE);
-	ncplane_putchar(t->planes.info, ':');
-	ncplane_set_styles(t->planes.info, NCSTYLE_BOLD);
+	ncplane_erase(n);
 
+	ncplane_set_styles(n, NCSTYLE_BOLD);
+	ncplane_set_fg_palindex(n, COLOR_GREEN);
+	ncplane_putstr_yx(n, 0, 0, user);
+	ncplane_putchar(n, '@');
+	ncplane_putstr(n, host);
+	ncplane_set_fg_default(n);
 
-	const Dir *dir = t->fm->dirs.visible[0];
-	if (dir) {
-		// shortening should work fine with ascii only names
-		const char *end = dir->path + strlen(dir->path);
-		int remaining;
-		ncplane_cursor_yx(t->planes.info, NULL, &remaining);
-		remaining = t->ncol - remaining;
-		const File *file = dir_current_file(dir);
-		if (file)
-			remaining -= strlen(file_name(file));
-		ncplane_set_fg_palindex(t->planes.info, COLOR_BLUE);
-		const char *c = dir->path;
-		if (home && hasprefix(dir->path, home)) {
-			ncplane_putchar(t->planes.info, '~');
+	ncplane_set_styles(n, NCSTYLE_NONE);
+	ncplane_putchar(n, ':');
+	ncplane_set_styles(n, NCSTYLE_BOLD);
+
+	const Dir *dir = fm_current_dir(t->fm);
+	const File *file = dir_current_file(dir);
+	int path_len, name_len;
+	wchar_t *path_ = ambstowcs(dir->path, &path_len);
+	wchar_t *path = path_;
+	wchar_t *name = NULL;
+
+	// shortening should work fine with ascii only names
+	wchar_t *end = (wchar_t *) wcsend(path);
+	int remaining;
+	ncplane_cursor_yx(n, NULL, &remaining);
+	remaining = t->ncol - remaining;
+	if (file) {
+		name = ambstowcs(file_name(file), &name_len);
+		remaining -= name_len;
+	}
+	ncplane_set_fg_palindex(n, COLOR_BLUE);
+	if (home && hasprefix(dir->path, home)) {
+		ncplane_putchar(n, '~');
+		remaining--;
+		path += home_len;
+	}
+
+	if (!dir_isroot(dir))
+		remaining--; // printing another '/' later
+
+	// shorten path components if necessary
+	while (*path && end - path > remaining) {
+		ncplane_putchar(n, '/');
+		remaining--;
+		wchar_t *next = wcschr(++path, '/');
+		if (!next)
+			next = end;
+
+		if (end - next <= remaining) {
+			// Everything after the next component fits, we can print some of this one
+			const int m = remaining - (end - next) - 1;
+			if (m >= 2) {
+				wchar_t *print_end = path + m;
+				remaining -= m;
+				while (path < print_end)
+					ncplane_putwc(n, *(path++));
+
+				if (*path != '/') {
+					ncplane_putwc(n, cfg.truncatechar);
+					remaining--;
+				}
+			} else {
+				ncplane_putwc(n, *path);
+				remaining--;
+				path = next;
+			}
+			path = next;
+		} else {
+			// print one char only.
+			ncplane_putwc(n, *path);
 			remaining--;
-			c += home_len;
-		}
-		while (*c && end - c > remaining) {
-			ncplane_putchar(t->planes.info, '/');
-			ncplane_putchar(t->planes.info, *(++c));
-			remaining -= 2;
-			while (*(++c) && (*c != '/'))
-				;
-		}
-		ncplane_putstr(t->planes.info, c);
-		if (!dir_isroot(dir))
-			ncplane_putchar(t->planes.info, '/');
-		if (file) {
-			ncplane_set_fg_default(t->planes.info);
-			ncplane_putstr(t->planes.info, file_name(file));
+			path = next;
 		}
 	}
+	ncplane_putwstr(n, path);
+
+	if (!dir_isroot(dir))
+		ncplane_putchar(n, '/');
+
+	if (file) {
+		ncplane_cursor_yx(n, NULL, &remaining);
+		remaining = t->ncol - remaining;
+		ncplane_set_fg_default(n);
+		print_shortened_w(n, name, name_len, remaining);
+	}
+
+	free(path_);
+	free(name);
 }
 
 /* }}} */
@@ -632,50 +677,59 @@ static uint64_t ext_channel_find(const char *ext)
 }
 
 
-static int print_shortened(struct ncplane *n, const char *name, int max_len)
+static int print_shortened_w(struct ncplane *n, const wchar_t *name, int name_len, int max_len)
+{
+	if (max_len <= 0)
+		return 0;
+
+	const wchar_t *ext = wcsrchr(name, L'.');
+
+	if (!ext || ext == name)
+		ext = name + name_len;
+	const int ext_len = name_len - (ext - name);
+
+	int x = max_len;
+	if (name_len <= max_len) {
+		// everything fits
+		x = ncplane_putwstr(n, name);
+	} else if (max_len > ext_len + 1) {
+		// print extension and as much of the name as possible
+		int print_name_ind = max_len - ext_len - 1;
+		const wchar_t *print_name_ptr = name + print_name_ind;
+		while (name < print_name_ptr)
+			ncplane_putwc(n, *(name++));
+		ncplane_putwc(n, cfg.truncatechar);
+		ncplane_putwstr(n, ext);
+	} else if (max_len >= 5) {
+		// print first char of the name and as mutch of the extension as possible
+		ncplane_putwc(n, *(name));
+		const wchar_t *ext_end = ext + max_len - 2 - 1;
+		ncplane_putwc(n, cfg.truncatechar);
+		while (ext < ext_end)
+			ncplane_putwc(n, *(ext++));
+		ncplane_putwc(n, cfg.truncatechar);
+	} else if (max_len > 1) {
+		const wchar_t *name_end = name + max_len - 1;
+		while (name < name_end)
+			ncplane_putwc(n, *(name++));
+		ncplane_putwc(n, cfg.truncatechar);
+	} else {
+		ncplane_putwc(n, *name);
+	}
+
+	return x;
+}
+
+static inline int print_shortened(struct ncplane *n, const char *name, int max_len)
 {
 	if (max_len <= 0)
 		return 0;
 
 	int name_len;
 	wchar_t *namew = ambstowcs(name, &name_len);
-	wchar_t *namew_ = namew;
-	wchar_t *extw = wcsrchr(namew_, L'.');
-	if (!extw || extw == namew)
-		extw = namew + name_len;
-	int ext_len = name_len - (extw - namew_);
-
-	int x = max_len;
-	if (name_len <= max_len) {
-		// everything fits
-		x = ncplane_putwstr(n, namew_);
-	} else if (max_len > ext_len + 1) {
-		// print extension and as much of the name as possible
-		int print_name_ind = max_len - ext_len - 1;
-		wchar_t *print_name_ptr = namew_ + print_name_ind;
-		while (namew_ < print_name_ptr)
-			ncplane_putwc(n, *(namew_++));
-		ncplane_putwc(n, cfg.truncatechar);
-		ncplane_putwstr(n, extw);
-	} else if (max_len >= 5) {
-		// print first char of the name and as mutch of the extension as possible
-		ncplane_putwc(n, *(namew_));
-		const wchar_t *ext_end = extw + max_len - 2 - 1;
-		ncplane_putwc(n, cfg.truncatechar);
-		while (extw < ext_end)
-			ncplane_putwc(n, *(extw++));
-		ncplane_putwc(n, cfg.truncatechar);
-	} else if (max_len > 1) {
-		const wchar_t *name_end = namew + max_len - 1;
-		while (namew_ < name_end)
-			ncplane_putwc(n, *(namew_++));
-		ncplane_putwc(n, cfg.truncatechar);
-	} else {
-		ncplane_putwc(n, *name);
-	}
-
+	int ret = print_shortened_w(n, namew, name_len, max_len);
 	free(namew);
-	return x;
+	return ret;
 }
 
 

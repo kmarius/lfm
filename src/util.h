@@ -16,6 +16,17 @@
 #define strcaseeq(X, Y) (strcasecmp(X, Y) == 0)
 #endif
 
+static inline const char *strend(const char* str)
+{
+	while (*str) str++;
+	return str;
+}
+
+static inline const wchar_t *wcsend(const wchar_t* str)
+{
+	while (*str) str++;
+	return str;
+}
 
 static inline char *rtrim(char *s)
 {
@@ -56,6 +67,8 @@ static inline int max(int i, int j)
 	return i > j ? i : j;
 }
 
+
+bool haswprefix(const wchar_t *restrict string, const wchar_t *restrict prefix);
 
 bool haswcaseprefix(const wchar_t *restrict string, const wchar_t *restrict prefix);
 

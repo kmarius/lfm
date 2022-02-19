@@ -12,6 +12,8 @@
 #include "log.h"
 #include "util.h"
 
+const char *strend(const char* str);
+const wchar_t *wcsend(const wchar_t* str);
 char *rtrim(char *s);
 char *ltrim(char *s);
 char *trim(char *s);
@@ -36,6 +38,14 @@ const wchar_t *wstrcasestr(const wchar_t *str, const wchar_t *sub) {
 	return NULL;
 }
 
+bool haswprefix(const wchar_t *restrict string, const wchar_t *restrict prefix)
+{
+	while (*prefix != 0) {
+		if (*prefix++ != *string++)
+			return false;
+	}
+	return true;
+}
 
 bool haswcaseprefix(const wchar_t *restrict string, const wchar_t *restrict prefix)
 {
