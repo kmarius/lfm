@@ -67,8 +67,10 @@ void fm_init(T *t)
 
 void fm_deinit(T *t)
 {
-	for (uint8_t i = 0; i < t->dirs.length; i++)
-		cache_return(&t->dirs.cache, t->dirs.visible[i], t->dirs.visible[i]->path);
+	for (uint8_t i = 0; i < t->dirs.length; i++) {
+		if (t->dirs.visible[i])
+			cache_return(&t->dirs.cache, t->dirs.visible[i], t->dirs.visible[i]->path);
+	}
 	if (t->dirs.preview)
 		cache_return(&t->dirs.cache, t->dirs.preview, t->dirs.preview->path);
 	cache_deinit(&t->dirs.cache);
