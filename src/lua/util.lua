@@ -57,7 +57,11 @@ end
 ---@return function
 function M.c(...)
 	local t = {...}
-	if #t == 2 then
+	if #t == 0 then
+		return function() end
+	elseif #t == 1 then
+		return t[1]
+	elseif #t == 2 then
 		local f = t[1]
 		local g = t[2]
 		return function(...)
@@ -85,7 +89,11 @@ end
 ---@return function
 function M.a(f, ...)
 	local t = {...}
-	if #t == 1 then
+	if not f then
+		return function() end
+	elseif #t == 0 then
+		return f
+	elseif #t == 1 then
 		local arg = t[1]
 		return function()
 			f(arg)
