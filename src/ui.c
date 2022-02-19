@@ -1045,7 +1045,7 @@ static void wansi_matchattr(struct ncplane *w, uint16_t a)
 				break;
 			case 2:
 				/* not supported by notcurses */
-				/* ncplane_on_styles(w, WA_DIM); */
+				ncplane_on_styles(w, WA_DIM);
 				break;
 			case 3:
 				ncplane_on_styles(w, NCSTYLE_ITALIC);
@@ -1054,18 +1054,21 @@ static void wansi_matchattr(struct ncplane *w, uint16_t a)
 				ncplane_on_styles(w, NCSTYLE_UNDERLINE);
 				break;
 			case 5:
-				/* ncplane_on_styles(w, NCSTYLE_BLINK); */
+				/* not supported by notcurses */
+				ncplane_on_styles(w, NCSTYLE_BLINK);
 				break;
 			case 6: /* nothing */
 				break;
 			case 7:
 				/* not supported, needs workaround */
-				/* ncplane_on_styles(w, WA_REVERSE); */
+				ncplane_on_styles(w, NCSTYLE_REVERSE);
 				break;
 			case 8:
-				/* ncplane_on_styles(w, NCSTYLE_INVIS); */
+				/* not supported by notcurses */
+				ncplane_on_styles(w, NCSTYLE_INVIS);
 				break;
 			case 9: /* strikethrough */
+				ncplane_on_styles(w, NCSTYLE_STRUCK);
 				break;
 			default:
 				break;
