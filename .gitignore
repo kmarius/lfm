@@ -1,16 +1,16 @@
-compile_commands.json
+/compile_commands.json
 
-.idea/
-
-/.deps/
-/test/
-/build/
-/cmake-build-debug/
+/.idea/
 /.ccls-cache/
 /.clangd
+/.luarc.lua
 /.cache
-/third-party/.third-party
-
 /tags
 /tags.lock
 /tags.temp
+
+/build/
+/stash/
+/.deps/
+/third-party/.third-party
+/cmake-build-debug/
