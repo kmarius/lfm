@@ -996,7 +996,7 @@ static void plane_draw_dir(struct ncplane *n, Dir *dir, char **sel, char **load,
 		return;
 
 	if (dir->error) {
-		ncplane_putstr_yx(n, 0, 2, dir->error == -1 ? "malloc" : strerror(dir->error));
+		ncplane_putstr_yx(n, 0, 2, strerror(dir->error));
 	} else if (dir->loading) {
 		ncplane_putstr_yx(n, 0, 2, "loading");
 	} else if (dir->length == 0) {
