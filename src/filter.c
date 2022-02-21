@@ -11,8 +11,6 @@
 /* TODO: test performance on large directories and check out if we can incrementally
  * build a new filter from the previous one or vice-versa (on 2022-02-21) */
 
-#define T Filter
-
 struct subfilter;
 
 typedef struct Filter {
@@ -32,6 +30,8 @@ struct subfilter {
 	uint16_t capacity;
 	struct filter_atom *atoms;
 };
+
+#define T Filter
 
 
 static void subfilter_init(struct subfilter *s, char *filter)
@@ -95,7 +95,7 @@ void filter_destroy(T *t)
 }
 
 
-const char *filter_string(T *t)
+const char *filter_string(const T *t)
 {
 	if (!t)
 		return "";
@@ -103,13 +103,13 @@ const char *filter_string(T *t)
 }
 
 
-static inline bool atom_match(struct filter_atom *a, const char *str)
+static inline bool atom_match(const struct filter_atom *a, const char *str)
 {
 	return (strcasestr(str, a->string) != NULL) != a->negate;
 }
 
 
-static inline bool subfilter_match(struct subfilter *s, const char *str)
+static inline bool subfilter_match(const struct subfilter *s, const char *str)
 {
 	for (uint16_t i = 0; i < s->length; i++)
 		if (atom_match(&s->atoms[i], str))
@@ -118,7 +118,7 @@ static inline bool subfilter_match(struct subfilter *s, const char *str)
 }
 
 
-bool filter_match(T *t, const char *str)
+bool filter_match(const T *t, const char *str)
 {
 	for (uint16_t i = 0; i < t->length; i++)
 		if (!subfilter_match(&t->filters[i], str))
