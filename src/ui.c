@@ -14,6 +14,7 @@
 #include "config.h"
 #include "cvector.h"
 #include "dir.h"
+#include "filter.h"
 #include "log.h"
 #include "ui.h"
 #include "util.h"
@@ -409,12 +410,12 @@ void draw_cmdline(T *t)
 			ncplane_putstr_yx(t->planes.cmdline, 0, t->ncol - rhs_sz, nums);
 
 			// these are drawn right to left
-			if (dir->filter[0] != 0) {
-				rhs_sz += mbstowcs(NULL, dir->filter, 0) + 2 + 1;
+			if (dir->filter) {
+				rhs_sz += mbstowcs(NULL, filter_string(dir->filter), 0) + 2 + 1;
 				ncplane_set_bg_palindex(t->planes.cmdline, COLOR_GREEN);
 				ncplane_set_fg_palindex(t->planes.cmdline, COLOR_BLACK);
 				ncplane_putchar_yx(t->planes.cmdline, 0, t->ncol - rhs_sz, ' ');
-				ncplane_putstr(t->planes.cmdline, dir->filter);
+				ncplane_putstr(t->planes.cmdline, filter_string(dir->filter));
 				ncplane_putchar(t->planes.cmdline, ' ');
 				ncplane_set_bg_default(t->planes.cmdline);
 				ncplane_set_fg_default(t->planes.cmdline);

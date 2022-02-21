@@ -49,18 +49,12 @@ const char *dir_parent_path(const T *t)
 }
 
 
-static bool file_filtered(File *file, const char *filter)
-{
-	return strcasestr(file_name(file), filter) != NULL;
-}
-
-
 static void apply_filter(T *t)
 {
-	if (t->filter[0] != 0) {
+	if (t->filter) {
 		uint16_t j = 0;
 		for (uint16_t i = 0; i < t->length_sorted; i++) {
-			if (file_filtered(t->files_sorted[i], t->filter))
+			if (filter_match(t->filter, file_name(t->files_sorted[i])))
 				t->files[j++] = t->files_sorted[i];
 		}
 		t->length = j;
@@ -184,11 +178,15 @@ void dir_sort(T *t)
 
 void dir_filter(T *t, const char *filter)
 {
-	if (!filter)
-		filter = "";
+	if (t->filter) {
+		filter_destroy(t->filter);
+		t->filter = NULL;
+	}
 
-	strncpy(t->filter, filter, FILTER_LEN_MAX);
-	t->filter[FILTER_LEN_MAX-1] = 0;
+	if (filter && filter[0] != 0) {
+		t->filter = filter_create(filter);
+	}
+
 	apply_filter(t);
 }
 
@@ -450,6 +448,7 @@ static void dir_deinit(T *t)
 		return;
 
 	cvector_ffree(t->files_all, file_destroy);
+	free(t->filter);
 	free(t->files_sorted);
 	free(t->files);
 	free(t->sel);

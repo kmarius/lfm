@@ -5,8 +5,7 @@
 
 #include "cvector.h"
 #include "file.h"
-
-#define FILTER_LEN_MAX 64
+#include "filter.h"
 
 enum sorttype_e { SORT_NATURAL, SORT_NAME, SORT_SIZE, SORT_CTIME, SORT_RAND, };
 
@@ -32,7 +31,7 @@ typedef struct Dir {
 	uint16_t pos;	 /* position of the cursor in fm */
 	char *sel;
 
-	char filter[FILTER_LEN_MAX]; /* filter string */
+	Filter *filter;
 
 	bool sorted;
 	bool hidden;

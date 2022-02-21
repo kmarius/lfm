@@ -729,7 +729,7 @@ void fm_filter(T *t, const char *filter)
 
 const char *fm_filter_get(const T *t)
 {
-	return fm_current_dir(t)->filter;
+	return filter_string(fm_current_dir(t)->filter);
 }
 
 
