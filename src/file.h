@@ -16,7 +16,7 @@ typedef struct File {
 	bool isbroken;
 	bool isexec;
 	bool hidden;
-	int16_t dircount; /* in case of dir, < 0 if not loaded yet */
+	int32_t dircount; /* in case of dir, < 0 if not loaded yet */
 } File;
 
 File *file_init(File *file, const char *dir, const char *name);
@@ -97,7 +97,7 @@ static inline bool file_isbroken(const File *file)
  * Returns the number of files in the directory `file`. A negative
  * number is returned when the count has not been loaded (yet).
  */
-static inline int16_t file_dircount(const File *file)
+static inline int32_t file_dircount(const File *file)
 {
 	return file->dircount;
 }
@@ -105,17 +105,17 @@ static inline int16_t file_dircount(const File *file)
 /*
  * Loads the number of files in a directory and saves it to `file`.
  */
-uint16_t file_dircount_load(File *file);
+uint32_t file_dircount_load(File *file);
 
 /*
  * Loads the number of files in a directory and saves it to `file`.
  */
-uint16_t path_dircount_load(const char *path);
+uint32_t path_dircount_load(const char *path);
 
 /*
  * Set `file->dircount` to `count`.
  */
-static inline void file_dircount_set(File *file, uint16_t ct)
+static inline void file_dircount_set(File *file, int32_t ct)
 {
 	file->dircount = ct;
 }

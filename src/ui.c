@@ -406,7 +406,7 @@ void draw_cmdline(T *t)
 						file_islink(file) ? file_link_target(file) : "");
 			}
 
-			rhs_sz = snprintf(nums, sizeof(nums), "%d/%d", dir->length ? dir->ind + 1 : 0, dir->length);
+			rhs_sz = snprintf(nums, sizeof(nums), "%u/%u", dir->length > 0 ? dir->ind + 1 : 0, dir->length);
 			ncplane_putstr_yx(t->planes.cmdline, 0, t->ncol - rhs_sz, nums);
 
 			// these are drawn right to left
@@ -1011,7 +1011,7 @@ static void plane_draw_dir(struct ncplane *n, Dir *dir, char **sel, char **load,
 
 		offset = max(dir->ind - dir->pos, 0);
 
-		if (dir->length <= nrow)
+		if (dir->length <= (uint32_t) nrow)
 			offset = 0;
 
 		const int l = min(dir->length - offset, nrow);

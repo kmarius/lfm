@@ -16,9 +16,9 @@ typedef struct Dir {
 	File **files_all;    /* files including hidden/filtered */
 	File **files_sorted; /* files excluding hidden */
 	File **files;	     /* visible files */
-	uint16_t length_all;	 /* length of the array of all files */
-	uint16_t length_sorted;	 /* length of the array of sorted files */
-	uint16_t length;	 /* length of the array of visible files */
+	uint32_t length_all;	 /* length of the array of all files */
+	uint32_t length_sorted;	 /* length of the array of sorted files */
+	uint32_t length;	 /* length of the array of visible files */
 
 	bool visible;
 
@@ -27,7 +27,7 @@ typedef struct Dir {
 	int16_t error;	 /* for now, true if any error occurs when loading */
 	bool loading;
 
-	uint16_t ind;	 /* index of currently selected file */
+	uint32_t ind;	 /* index of currently selected file */
 	uint16_t pos;	 /* position of the cursor in fm */
 	char *sel;
 
@@ -91,7 +91,7 @@ bool dir_check(const Dir *dir);
  * Move the cursor in the current dir by `ct`, respecting the `scrolloff`
  * setting by passing it and the current `height` of the viewport.
  */
-void dir_cursor_move(Dir *dir, int16_t ct, uint16_t height, uint16_t scrolloff);
+void dir_cursor_move(Dir *dir, int32_t ct, uint16_t height, uint16_t scrolloff);
 
 /*
  * Move the cursor in the current dir to the file `name`, respecting the

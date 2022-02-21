@@ -52,8 +52,8 @@ const char *dir_parent_path(const T *t)
 static void apply_filter(T *t)
 {
 	if (t->filter) {
-		uint16_t j = 0;
-		for (uint16_t i = 0; i < t->length_sorted; i++) {
+		uint32_t j = 0;
+		for (uint32_t i = 0; i < t->length_sorted; i++) {
 			if (filter_match(t->filter, file_name(t->files_sorted[i])))
 				t->files[j++] = t->files_sorted[i];
 		}
@@ -126,18 +126,18 @@ void dir_sort(T *t)
 		}
 		t->sorted = 1;
 	}
-	uint16_t ndirs = 0;
-	uint16_t j = 0;
+	uint32_t ndirs = 0;
+	uint32_t j = 0;
 	if (t->hidden) {
 		if (t->dirfirst) {
 			/* first pass: directories */
-			for (uint16_t i = 0; i < t->length_all; i++) {
+			for (uint32_t i = 0; i < t->length_all; i++) {
 				if (file_isdir(t->files_all[i]))
 					t->files_sorted[j++] = t->files_all[i];
 			}
 			ndirs = j;
 			/* second pass: files */
-			for (uint16_t i = 0; i < t->length_all; i++) {
+			for (uint32_t i = 0; i < t->length_all; i++) {
 				if (!file_isdir(t->files_all[i]))
 					t->files_sorted[j++] = t->files_all[i];
 			}
@@ -147,17 +147,17 @@ void dir_sort(T *t)
 		}
 	} else {
 		if (t->dirfirst) {
-			for (uint16_t i = 0; i < t->length_all; i++) {
+			for (uint32_t i = 0; i < t->length_all; i++) {
 				if (!file_hidden(t->files_all[i]) && file_isdir(t->files_all[i]))
 					t->files_sorted[j++] = t->files_all[i];
 			}
 			ndirs = j;
-			for (uint16_t i = 0; i < t->length_all; i++) {
+			for (uint32_t i = 0; i < t->length_all; i++) {
 				if (!file_hidden(t->files_all[i]) && !file_isdir(t->files_all[i]))
 					t->files_sorted[j++] = t->files_all[i];
 			}
 		} else {
-			for (uint16_t i = 0; i < t->length_all; i++) {
+			for (uint32_t i = 0; i < t->length_all; i++) {
 				if (!file_hidden(t->files_all[i]))
 					t->files_sorted[j++] = t->files_all[i];
 			}
@@ -166,9 +166,9 @@ void dir_sort(T *t)
 	t->length_sorted = j;
 	t->length = j;
 	if (t->reverse) {
-		for (uint16_t i = 0; i < ndirs / 2; i++)
+		for (uint32_t i = 0; i < ndirs / 2; i++)
 			swap(t->files_sorted+i, t->files_sorted + ndirs - i - 1);
-		for (uint16_t i = 0; i < (t->length_sorted - ndirs) / 2; i++)
+		for (uint32_t i = 0; i < (t->length_sorted - ndirs) / 2; i++)
 			swap(t->files_sorted + ndirs + i, t->files_sorted + t->length_sorted - i - 1);
 	}
 
@@ -376,7 +376,7 @@ cont:
 }
 
 
-void dir_cursor_move(T *t, int16_t ct, uint16_t height, uint16_t scrolloff)
+void dir_cursor_move(T *t, int32_t ct, uint16_t height, uint16_t scrolloff)
 {
 	t->ind = max(min(t->ind + ct, t->length - 1), 0);
 	if (ct < 0)
@@ -397,7 +397,7 @@ void dir_cursor_move_to(T *t, const char *name, uint16_t height, uint16_t scroll
 		return;
 	}
 
-	for (uint16_t i = 0; i < t->length; i++) {
+	for (uint32_t i = 0; i < t->length; i++) {
 		if (streq(file_name(t->files[i]), name)) {
 			dir_cursor_move(t, i - t->ind, height, scrolloff);
 			return;

@@ -34,9 +34,9 @@ static void fm_populate(T *t);
 
 bool fm_bot(T *t);
 bool fm_top(T *t);
-bool fm_down(T *t, int16_t ct);
-bool fm_up(T *t, int16_t ct);
-void fm_cursor_move_to_ind(T *t, uint16_t ind);
+bool fm_down(T *t, int32_t ct);
+bool fm_up(T *t, int32_t ct);
+void fm_cursor_move_to_ind(T *t, uint32_t ind);
 
 
 void fm_init(T *t)
@@ -469,10 +469,10 @@ void fm_selection_visual_toggle(T *t)
 }
 
 
-static void selection_visual_update(T *t, uint16_t origin, uint16_t from, uint16_t to)
+static void selection_visual_update(T *t, uint32_t origin, uint32_t from, uint32_t to)
 {
 	/* TODO: this should be easier (on 2021-07-25) */
-	uint16_t hi, lo;
+	uint32_t hi, lo;
 	hi = lo = origin;
 	if (from >= origin) {
 		if (to > from) {
@@ -542,10 +542,10 @@ void fm_selection_write(const T *t, const char *path)
 
 /* navigation {{{ */
 
-bool fm_cursor_move(T *t, int16_t ct)
+bool fm_cursor_move(T *t, int32_t ct)
 {
 	Dir *dir = fm_current_dir(t);
-	const uint16_t cur = dir->ind;
+	const uint32_t cur = dir->ind;
 	dir_cursor_move(dir, ct, t->height, cfg.scrolloff);
 	if (dir->ind != cur) {
 		if (t->visual.active)

@@ -26,11 +26,11 @@ const char *file_link_target(const T *file);
 const char *file_name(const T *t);
 const char *file_path(const T *t);
 const char *file_size_readable(const T *t, char *buf);
-int16_t file_dircount(const T *t);
+int32_t file_dircount(const T *t);
 long file_mtime(const T *t);
 long file_nlink(const T *t);
 long file_size(const T *t);
-void file_dircount_set(T *t, uint16_t ct);
+void file_dircount_set(T *t, int32_t ct);
 bool file_hidden(File *file);
 
 T *file_init(T *t, const char *dir, const char *name)
@@ -98,21 +98,21 @@ void file_destroy(T *t)
 }
 
 
-uint16_t path_dircount_load(const char *path) {
+uint32_t path_dircount_load(const char *path) {
 	struct dirent *dp;
 
 	DIR *dirp = opendir(path);
 	if (!dirp)
 		return 0;
 
-	uint16_t ct;
+	uint32_t ct;
 	for (ct = 0; (dp = readdir(dirp)); ct++) ;
 	closedir(dirp);
 	return ct - 2;
 }
 
 
-uint16_t file_dircount_load(T *t)
+uint32_t file_dircount_load(T *t)
 {
 	return path_dircount_load(t->path);
 }

@@ -89,9 +89,9 @@ void fm_recol(Fm *fm);
 
 #define fm_preview_dir(fm) (fm)->preview
 
-bool fm_cursor_move(Fm *fm, int16_t ct);
+bool fm_cursor_move(Fm *fm, int32_t ct);
 
-static inline void fm_cursor_move_to_ind(Fm *fm, uint16_t ind)
+static inline void fm_cursor_move_to_ind(Fm *fm, uint32_t ind)
 {
 	fm_cursor_move(fm, ind - fm_current_dir(fm)->ind);
 }
@@ -99,7 +99,7 @@ static inline void fm_cursor_move_to_ind(Fm *fm, uint16_t ind)
 /*
  * Move cursor `ct` up in the current directory.
  */
-static inline bool fm_up(Fm *fm, int16_t ct)
+static inline bool fm_up(Fm *fm, int32_t ct)
 {
 	return fm_cursor_move(fm, -ct);
 }
@@ -107,7 +107,7 @@ static inline bool fm_up(Fm *fm, int16_t ct)
 /*
  * Move cursor `ct` down in the current directory.
  */
-static inline bool fm_down(Fm *fm, int16_t ct)
+static inline bool fm_down(Fm *fm, int32_t ct)
 {
 	return fm_cursor_move(fm, ct);
 }
@@ -154,11 +154,6 @@ bool fm_updir(Fm *fm);
  * decreases)
  */
 void fm_move_cursor_to(Fm *fm, const char *name);
-
-/*
- * Move the cursor the file at index `ind`.
- */
-void fm_cursor_move_to_ind(Fm *fm, uint16_t ind);
 
 /*
  * Apply the filter string given by `filter` to the current directory.
