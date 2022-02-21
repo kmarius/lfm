@@ -448,7 +448,7 @@ static void dir_deinit(T *t)
 		return;
 
 	cvector_ffree(t->files_all, file_destroy);
-	free(t->filter);
+	filter_destroy(t->filter);
 	free(t->files_sorted);
 	free(t->files);
 	free(t->sel);
