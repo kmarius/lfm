@@ -5,7 +5,6 @@
 
 #include "filter.h"
 #include "util.h"
-#include "log.h"
 
 #define FILTER_INITIAL_CAPACITY 2
 
@@ -14,32 +13,32 @@
 
 #define T Filter
 
-struct Subfilter;
+struct subfilter;
 
 typedef struct Filter {
 	char *string;
 	uint16_t length;
 	uint16_t capacity;
-	struct Subfilter *filters;
+	struct subfilter *filters;
 } Filter;
 
-struct FilterAtom {
-	bool negate;
+struct filter_atom {
 	char *string;
+	bool negate;
 };
 
-struct Subfilter {
+struct subfilter {
 	uint16_t length;
 	uint16_t capacity;
-	struct FilterAtom *atoms;
+	struct filter_atom *atoms;
 };
 
 
-static void subfilter_init(struct Subfilter *s, char *filter)
+static void subfilter_init(struct subfilter *s, char *filter)
 {
 	s->length = 0;
 	s->capacity = FILTER_INITIAL_CAPACITY;
-	s->atoms = malloc(s->capacity * sizeof(struct FilterAtom));
+	s->atoms = malloc(s->capacity * sizeof(struct filter_atom));
 
 	char *ptr;
 	for (char *tok = strtok_r(filter, "|", &ptr);
@@ -47,7 +46,7 @@ static void subfilter_init(struct Subfilter *s, char *filter)
 			tok = strtok_r(NULL, "|", &ptr)) {
 		if (s->capacity == s->length) {
 			s->capacity *= 2;
-			s->atoms = realloc(s->atoms, s->capacity * sizeof(struct Subfilter));
+			s->atoms = realloc(s->atoms, s->capacity * sizeof(struct subfilter));
 		}
 		s->atoms[s->length].negate = tok[0] == '!';
 		if (s->atoms[s->length].negate)
@@ -61,7 +60,7 @@ T *filter_create(const char *filter)
 {
 	T *t = malloc(sizeof(T));
 	t->capacity = FILTER_INITIAL_CAPACITY;
-	t->filters = malloc(t->capacity * sizeof(struct Subfilter));
+	t->filters = malloc(t->capacity * sizeof(struct subfilter));
 	t->length = 0;
 	t->string = strdup(filter);
 
@@ -71,7 +70,7 @@ T *filter_create(const char *filter)
 			tok = strtok(NULL, " ")) {
 		if (t->length == t->capacity) {
 			t->capacity *= 2;
-			t->filters = realloc(t->filters, t->capacity * sizeof(struct Subfilter));
+			t->filters = realloc(t->filters, t->capacity * sizeof(struct subfilter));
 		}
 		subfilter_init(&t->filters[t->length++], tok);
 	}
@@ -104,10 +103,16 @@ const char *filter_string(T *t)
 }
 
 
-static inline bool match(struct Subfilter *s, const char *str)
+static inline bool atom_match(struct filter_atom *a, const char *str)
+{
+	return (strcasestr(str, a->string) != NULL) != a->negate;
+}
+
+
+static inline bool subfilter_match(struct subfilter *s, const char *str)
 {
 	for (uint16_t i = 0; i < s->length; i++)
-		if ((strcasestr(str, s->atoms[i].string) != NULL) != s->atoms[i].negate)
+		if (atom_match(&s->atoms[i], str))
 			return true;
 	return false;
 }
@@ -116,7 +121,7 @@ static inline bool match(struct Subfilter *s, const char *str)
 bool filter_match(T *t, const char *str)
 {
 	for (uint16_t i = 0; i < t->length; i++)
-		if (!match(&t->filters[i], str))
+		if (!subfilter_match(&t->filters[i], str))
 			return false;
 	return true;
 }
