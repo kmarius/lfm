@@ -1527,7 +1527,7 @@ void lua_handle_key(lua_State *L, input_t in)
 				if (lua_type(L, -1) == LUA_TTABLE) {
 					lua_getfield(L, -1, prefix);
 					if (lua_type(L, -1) == LUA_TTABLE) {
-						lua_getfield(L, -1, "change");
+						lua_getfield(L, -1, "on_change");
 						if (lua_type(L, -1) == LUA_TFUNCTION) {
 							lua_pcall(L, 0, 0, 0);
 						}

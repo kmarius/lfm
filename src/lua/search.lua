@@ -28,16 +28,16 @@ end
 
 M.mode_search = {
 	prefix = "/",
-	enter = mode_enter,
-	esc = mode_esc,
-	change = mode_change,
+	on_enter = mode_enter,
+	on_esc = mode_esc,
+	on_change = mode_change,
 }
 
 M.mode_search_back = {
 	prefix = "?",
-	enter = mode_enter,
-	esc = mode_esc,
-	change = mode_back_change,
+	on_enter = mode_enter,
+	on_esc = mode_esc,
+	on_change = mode_back_change,
 }
 
 function M.enter_mode()

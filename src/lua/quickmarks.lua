@@ -39,9 +39,9 @@ end
 
 M.mode_mark_save = {
 	prefix = "mark-save: ",
-	enter = clear,
-	esc = clear,
-	change = function()
+	on_enter = clear,
+	on_esc = clear,
+	on_change = function()
 		M.mark_save(getline())
 		clear()
 	end,

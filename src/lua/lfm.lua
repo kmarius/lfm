@@ -157,13 +157,15 @@ local modes = lfm.modes
 ---Register a mode to lfm. A mode is given by a table t that should contain the following fields:
 ---```
 --- t.prefix  The prefix, a string, shown in the command line and used to distinguish modes.
---- t.enter   A function that is executed when pressing enter while the mode is active.
---- t.esc     A function that is executed when pressing esc while the mode is active.
---- t.change  A function that is executed when the command line changes, e.g. keys are typed/deleted.
+--- t.on_enter   A function that is executed when pressing enter while the mode is active.
+--- t.on_esc     A function that is executed when pressing esc while the mode is active.
+--- t.on_change  A function that is executed when the command line changes, e.g. keys are typed/deleted.
 ---
 ---```
 ---@param t table
 function lfm.register_mode(t)
+	t = t or {}
+	assert(t.prefix ~= nil, "no prefix given")
 	modes[t.prefix] = t
 end
 
@@ -193,7 +195,10 @@ local function cmdenter()
 	local mode = modes[prefix]
 	-- TODO: allow line to be "" ? (on 2021-07-23)
 	if line ~= "" and mode then
-		mode.enter(line)
+		local mode_enter = mode.on_enter
+		if mode_enter then
+			mode_enter(line)
+		end
 	end
 end
 
@@ -201,7 +206,10 @@ end
 local function cmdesc()
 	local mode = modes[cmd.getprefix()]
 	if mode then
-		mode.esc()
+		local on_esc = mode.on_esc
+		if on_esc then
+			on_esc()
+		end
 	end
 	cmd.clear()
 end
@@ -251,23 +259,23 @@ end
 -- TODO: make functions to easily enter a mode (on 2021-07-23)
 local mode_filter = {
 	prefix = "filter: ",
-	enter = fm.filter,
-	esc = function() fm.filter("") end,
-	change = function() fm.filter(cmd.getline()) end,
+	on_enter = fm.filter,
+	on_esc = function() fm.filter("") end,
+	on_change = function() fm.filter(cmd.getline()) end,
 }
 
 local mode_cmd = {
 	prefix = ":",
-	enter = function(line) ui.history_append(line) lfm.eval(line) end,
-	esc = nop,
-	change = compl.reset,
+	on_enter = function(line) ui.history_append(line) lfm.eval(line) end,
+	on_esc = nop,
+	on_change = compl.reset,
 }
 
 local mode_find = {
 	prefix = "find: ",
-	enter = function() lfm.find_clear() lfm.eval("open") end,
-	esc = lfm.find_clear,
-	change = function()
+	on_enter = function() lfm.find_clear() lfm.eval("open") end,
+	on_esc = lfm.find_clear,
+	on_change = function()
 		if lfm.find(cmd.getline()) then
 			cmd.clear()
 			lfm.timeout(250)
@@ -278,9 +286,9 @@ local mode_find = {
 
 local mode_travel = {
 	prefix = "travel: ",
-	enter = nop,
-	esc = nop,
-	change = function()
+	on_enter = nop,
+	on_esc = nop,
+	on_change = function()
 		if lfm.find(cmd.getline()) then
 			lfm.timeout(250)
 			cmd.setline("")
@@ -293,9 +301,9 @@ local mode_travel = {
 
 local mode_delete = {
 	prefix = "delete [y/N]: ",
-	enter = lfm.cmd.clear,
-	esc = lfm.cmd.clear,
-	change = function()
+	on_enter = lfm.cmd.clear,
+	on_esc = lfm.cmd.clear,
+	on_change = function()
 		local line = lfm.cmd.getline()
 		lfm.cmd.clear()
 		if line == "y" then
@@ -343,7 +351,10 @@ local function wrap_mode_change(f)
 		f()
 		local mode = modes[cmd.getprefix()]
 		if mode then
-			mode.change()
+			local on_change = mode.on_change()
+			if on_change then
+				on_change()
+			end
 		end
 	end
 end

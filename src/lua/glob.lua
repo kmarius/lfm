@@ -55,9 +55,9 @@ end
 
 M.mode_glob_select = {
 	prefix = "glob-select: ",
-	enter = lfm.cmd.clear,
-	esc = function() lfm.cmd.clear() fm.selection_clear() end,
-	change = function() M.glob_select(lfm.cmd.getline()) ui.draw() end,
+	on_enter = lfm.cmd.clear,
+	on_esc = function() lfm.cmd.clear() fm.selection_clear() end,
+	on_change = function() M.glob_select(lfm.cmd.getline()) ui.draw() end,
 }
 
 return M
