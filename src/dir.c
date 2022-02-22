@@ -22,9 +22,11 @@
 		.sorttype = SORT_NATURAL, \
 		})
 
+T *dir_create(const char *path);
 bool dir_isroot(const T *t);
-bool dir_loading(const Dir *dir);
+bool dir_loading(const T *t);
 static void apply_filter(T *t);
+static inline void dir_destroy(T *t);
 static inline void swap(File **a, File **b);
 static void shuffle(void *arr, size_t n, size_t size);
 
@@ -40,10 +42,10 @@ File *dir_current_file(const T *t)
 
 const char *dir_parent_path(const T *t)
 {
-	static char tmp[PATH_MAX + 1];
-	if (streq(t->path, "/"))
+	if (dir_isroot(t))
 		return NULL;
 
+	static char tmp[PATH_MAX + 1];
 	strcpy(tmp, t->path);
 	return dirname(tmp);
 }
@@ -76,21 +78,21 @@ static inline void swap(File **a, File **b)
 }
 
 // https://stackoverflow.com/questions/6127503/shuffle-array-in-c
-/* arrange the N elements of ARRAY in random order.
- * Only effective if N is much smaller than RAND_MAX;
- * if this may not be the case, use a better random
- * number generator. */
+// arrange the N elements of ARRAY in random order.
+// Only effective if N is much smaller than RAND_MAX;
+// if this may not be the case, use a better random
+// number generator.
 static void shuffle(void *arr, size_t n, size_t size)
 {
 	if (n <= 1)
 		return;
 
-	size_t stride = size * sizeof(char);
+	const size_t stride = size * sizeof(char);
 	char *tmp = malloc(n * size);
 
 	size_t i;
 	for (i = 0; i < n - 1; ++i) {
-		size_t rnd = (size_t) rand();
+		const size_t rnd = (size_t) rand();
 		size_t j = i + rnd / (RAND_MAX / (n - i) + 1);
 
 		memcpy(tmp, arr + j * stride, size);
@@ -183,9 +185,8 @@ void dir_filter(T *t, const char *filter)
 		t->filter = NULL;
 	}
 
-	if (filter && filter[0] != 0) {
+	if (filter && filter[0] != 0)
 		t->filter = filter_create(filter);
-	}
 
 	apply_filter(t);
 }
@@ -202,7 +203,7 @@ bool dir_check(const T *t)
 }
 
 
-static T *dir_init(T *t, const char *path)
+T *dir_init(T *t, const char *path)
 {
 	*t = DIR_INITIALIZER;
 
@@ -219,19 +220,6 @@ static T *dir_init(T *t, const char *path)
 	t->name = basename(t->path);
 
 	return t;
-}
-
-
-static T *dir_create(const char *path)
-{
-	return dir_init(malloc(sizeof(T)), path);
-}
-
-
-T *dir_new_loading(const char *path)
-{
-	T *dir = dir_create(path);
-	return dir;
 }
 
 
@@ -273,6 +261,7 @@ T *dir_load(const char *path, bool load_dircount)
 
 	memcpy(dir->files_sorted, dir->files_all, dir->length_all * sizeof(File *));
 	memcpy(dir->files, dir->files_all, dir->length_all * sizeof(File *));
+	dir->updates = 1;
 
 	return dir;
 }
@@ -439,7 +428,7 @@ void dir_update_with(T *t, Dir *update, uint16_t height, uint16_t scrolloff)
 }
 
 
-static void dir_deinit(T *t)
+void dir_deinit(T *t)
 {
 	if (!t)
 		return;
@@ -451,12 +440,3 @@ static void dir_deinit(T *t)
 	free(t->sel);
 	free(t->path);
 }
-
-
-void dir_destroy(T *t)
-{
-	dir_deinit(t);
-	free(t);
-}
-
-#undef T

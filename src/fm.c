@@ -243,7 +243,7 @@ static Dir *fm_load_dir(T *t, const char *path)
 		 * Check how this behaves in the preview pane when just scrolling over
 		 * directories.
 		 */
-		dir = dir_new_loading(path);
+		dir = dir_create(path);
 		dir->hidden = cfg.hidden;
 		cache_insert(&t->dirs.cache, dir, dir->path, true);
 		async_dir_load(dir, false);
