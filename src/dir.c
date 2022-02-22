@@ -279,7 +279,7 @@ T *dir_load(const char *path, bool load_dircount)
 }
 
 struct queue_dirs_node {
-	char *path;
+	const char *path;
 	uint8_t level;
 	bool hidden;
 	struct queue_dirs_node *next;
@@ -301,7 +301,7 @@ T *dir_load_flat(const char *path, uint8_t level, bool load_dircount)
 
 	struct queue_dirs queue;
 	queue.head = malloc(sizeof(*queue.head));
-	queue.head->path = strdup(path);
+	queue.head->path = path;
 	queue.head->level = 0;
 	queue.head->next = NULL;
 	queue.head->hidden = false;
@@ -332,7 +332,7 @@ T *dir_load_flat(const char *path, uint8_t level, bool load_dircount)
 
 					if (head->level + 1 <= level) {
 						struct queue_dirs_node *n = malloc(sizeof(*n));
-						n->path = strdup(file_path(file));
+						n->path = file_path(file);
 						n->level = head->level + 1;
 						n->next = NULL;
 						n->hidden = file_hidden(file);
@@ -356,7 +356,6 @@ T *dir_load_flat(const char *path, uint8_t level, bool load_dircount)
 		}
 		closedir(dirp);
 cont:
-		free(head->path);
 		free(head);
 	}
 
