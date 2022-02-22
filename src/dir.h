@@ -25,7 +25,6 @@ typedef struct Dir {
 	time_t load_time; /* load time, used to check for changes on disk and reload if necessary */
 	uint16_t updates; /* number of applied updates */
 	int16_t error;	 /* for now, true if any error occurs when loading */
-	bool loading;
 
 	uint32_t ind;	 /* index of currently selected file */
 	uint16_t pos;	 /* position of the cursor in fm */
@@ -46,6 +45,12 @@ typedef struct Dir {
  * New directory with a 'loading' marker.
  */
 Dir *dir_new_loading(const char *path);
+
+// Is the directory in the process of being loaded?
+static inline bool dir_loading(const Dir *dir)
+{
+	return dir->updates == 0;
+}
 
 /*
  * Loads the directory at `path` from disk. Count the files in each

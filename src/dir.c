@@ -23,7 +23,7 @@
 		})
 
 bool dir_isroot(const T *t);
-
+bool dir_loading(const Dir *dir);
 static void apply_filter(T *t);
 static inline void swap(File **a, File **b);
 static void shuffle(void *arr, size_t n, size_t size);
@@ -231,7 +231,6 @@ static T *dir_create(const char *path)
 T *dir_new_loading(const char *path)
 {
 	T *dir = dir_create(path);
-	dir->loading = true;
 	return dir;
 }
 
@@ -423,7 +422,6 @@ void dir_update_with(T *t, Dir *update, uint16_t height, uint16_t scrolloff)
 	t->error = update->error;
 	t->flatten_level = update->flatten_level;
 
-	t->loading = false;
 	t->updates++;
 
 	free(update->sel);

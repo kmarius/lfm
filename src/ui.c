@@ -998,7 +998,7 @@ static void plane_draw_dir(struct ncplane *n, Dir *dir, char **sel, char **load,
 
 	if (dir->error) {
 		ncplane_putstr_yx(n, 0, 2, strerror(dir->error));
-	} else if (dir->loading) {
+	} else if (dir_loading(dir)) {
 		ncplane_putstr_yx(n, 0, 2, "loading");
 	} else if (dir->length == 0) {
 		if (dir->length_all > 0) {
