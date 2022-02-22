@@ -823,7 +823,7 @@ static int print_highlighted_and_shortened(struct ncplane *n, const char *name, 
 			ncplane_set_channels(n, cfg.colors.search);
 		}
 		ncplane_putwc(n, cfg.truncatechar);
-		if (hl_end < extw) {
+		if (hl_end <= extw) {
 			ncplane_set_channels(n, ch);
 		}
 		if (hl_begin >= extw) {
