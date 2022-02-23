@@ -8,8 +8,9 @@
 
 #define FILTER_INITIAL_CAPACITY 2
 
-/* TODO: test performance on large directories and check out if we can incrementally
- * build a new filter from the previous one or vice-versa (on 2022-02-21) */
+// Performance is surprisingly good even on very large directories (100k-1m files).
+// Unless something changes don't bother with incrementally extending and existing
+// filter and just rebuild it every time.
 
 struct subfilter;
 
