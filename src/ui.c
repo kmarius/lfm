@@ -678,6 +678,7 @@ static uint64_t ext_channel_find(const char *ext)
 }
 
 
+/* TODO: we shouldn't shorten extensions on directories (on 2022-02-23) */
 static int print_shortened_w(struct ncplane *n, const wchar_t *name, int name_len, int max_len)
 {
 	if (max_len <= 0)
