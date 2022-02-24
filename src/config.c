@@ -14,7 +14,6 @@
 
 Config cfg = {
 	.truncatechar = L'~',
-	.preview = true,
 	.scrolloff = 4,
 	.colors = {
 		.ext_channels = NULL,
@@ -55,6 +54,9 @@ void config_init()
 	cvector_push_back(r, 2);
 	cvector_push_back(r, 3);
 	config_ratios_set(r);
+
+	cfg.previewer = strdup("stat");
+	cfg.preview = true;
 
 	const char *xdg_runtime = getenv("XDG_RUNTIME_DIR");
 	if (!xdg_runtime || *xdg_runtime == 0) {
