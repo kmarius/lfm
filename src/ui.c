@@ -471,6 +471,7 @@ void draw_cmdline(T *t)
 static void draw_info(T *t)
 {
 	// arbitrary
+	static int uid = -1;
 	static char user[32] = {0};
 	static char host[HOST_NAME_MAX + 1] = {0};
 	static char *home;
@@ -481,6 +482,7 @@ static void draw_info(T *t)
 		gethostname(host, sizeof(host));
 		home = getenv("HOME");
 		home_len = mbstowcs(NULL, home, 0);
+		uid = getuid();
 	}
 
 	struct ncplane *n = t->planes.info;
@@ -488,7 +490,10 @@ static void draw_info(T *t)
 	ncplane_erase(n);
 
 	ncplane_set_styles(n, NCSTYLE_BOLD);
-	ncplane_set_fg_palindex(n, COLOR_GREEN);
+	if (uid == 0)
+		ncplane_set_fg_palindex(n, COLOR_RED);
+	else
+		ncplane_set_fg_palindex(n, COLOR_GREEN);
 	ncplane_putstr_yx(n, 0, 0, user);
 	ncplane_putchar(n, '@');
 	ncplane_putstr(n, host);
