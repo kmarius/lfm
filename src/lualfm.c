@@ -459,9 +459,8 @@ static int l_config_newindex(lua_State *L)
 		} else {
 			const char *str = luaL_checkstring(L, 3);
 			cfg.previewer = str[0] != 0 ? path_replace_tilde(str) : NULL;
-			ui_drop_cache(ui);
 		}
-		/* TODO: purge preview cache (on 2021-08-10) */
+		ui_drop_cache(ui);
 		return 0;
 	} else if (streq(key, "dircache_size")) {
 		int capacity = luaL_checkinteger(L, 3);
