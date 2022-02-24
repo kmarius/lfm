@@ -62,7 +62,12 @@ void config_init()
 	asprintf(&cfg.logpath, "/tmp/lfm.%d.log", getpid());
 #endif
 
-	asprintf(&cfg.rundir, "/var/run/user/%d/lfm", getuid());
+	const char *rundir = getenv("XDG_RUNTIME_DIR");
+	if (!rundir) {
+		asprintf(&cfg.rundir, "/tmp/runtime-%s/lfm", getenv("USER"));
+	} else {
+		asprintf(&cfg.rundir, "%s/lfm", rundir);
+	}
 
 #ifdef DEBUG
 	asprintf(&cfg.fifopath, "%s/debug.fifo", cfg.rundir);

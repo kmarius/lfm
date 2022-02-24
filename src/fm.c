@@ -512,7 +512,7 @@ void fm_selection_write(const T *t, const char *path)
 
 	char *dir, *buf = strdup(path);
 	dir = dirname(buf);
-	mkdir_p(dir);
+	mkdir_p(dir, 755);
 	free(buf);
 
 	FILE *fp = fopen(path, "w");

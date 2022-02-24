@@ -1,5 +1,6 @@
 #pragma once
 
+#include <bits/types.h>
 #include <ctype.h>
 #include <stdarg.h>
 #include <stdbool.h>
@@ -95,7 +96,7 @@ uint64_t current_micros(void);
 uint64_t current_millis(void);
 
 /* recursive mkdir */
-void mkdir_p(char *path);
+int mkdir_p(char *path, __mode_t mode);
 
 int asprintf(char **dst, const char *format, ...);
 

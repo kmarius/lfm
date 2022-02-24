@@ -347,7 +347,7 @@ void app_init(T *t)
 	t->inotify_watcher.data = t;
 	ev_io_start(t->loop, &t->inotify_watcher);
 
-	if (mkdir(cfg.rundir, 0700) == -1 && errno != EEXIST) {
+	if (mkdir_p(cfg.rundir, 0700) == -1 && errno != EEXIST) {
 		fprintf(stderr, "mkdir: %s", strerror(errno));
 		exit(EXIT_FAILURE);
 	}

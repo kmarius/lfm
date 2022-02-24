@@ -477,7 +477,7 @@ static void draw_info(T *t)
 	static uint16_t home_len;
 
 	if (user[0] == 0) {
-		getlogin_r(user, sizeof(user));
+		strncpy(user, getenv("USER"), sizeof(user) - 1);
 		gethostname(host, sizeof(host));
 		home = getenv("HOME");
 		home_len = mbstowcs(NULL, home, 0);

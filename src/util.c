@@ -164,16 +164,15 @@ uint64_t current_millis(void)
 }
 
 
-void mkdir_p(char *path)
+int mkdir_p(char *path, __mode_t mode)
 {
 	char *sep = strrchr(path, '/');
 	if (sep && sep != path) {
 		*sep = 0;
-		mkdir_p(path);
+		mkdir_p(path, mode);
 		*sep = '/';
 	}
-	if (mkdir(path, 0755) && errno != EEXIST)
-		log_error("error while trying to create '%s'", path);
+	return mkdir(path, mode);
 }
 
 
