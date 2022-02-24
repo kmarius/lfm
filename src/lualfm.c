@@ -1257,7 +1257,7 @@ static int l_fm_load_clear(lua_State *L)
 static int l_fm_copy(lua_State *L)
 {
 	(void) L;
-	fm_copy(fm);
+	fm_load_files(fm, MODE_COPY);
 	ui_redraw(ui, REDRAW_FM);
 	return 0;
 }
@@ -1266,7 +1266,7 @@ static int l_fm_copy(lua_State *L)
 static int l_fm_cut(lua_State *L)
 {
 	(void) L;
-	fm_cut(fm);
+	fm_load_files(fm, MODE_MOVE);
 	ui_redraw(ui, REDRAW_FM);
 	return 0;
 }

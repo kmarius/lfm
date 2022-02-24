@@ -22,10 +22,6 @@
 		.load.mode = MODE_COPY, \
 		})
 
-#define is_absolute(path) (*(path) == '/')
-#define is_relative(path) !is_absolute(path)
-
-
 static Dir *fm_load_dir(T *t, const char *path);
 static void fm_update_watchers(T *t);
 static void fm_remove_preview(T *t);
@@ -47,7 +43,7 @@ void fm_init(T *t)
 	t->dirs.length = cvector_size(cfg.ratios) - (cfg.preview ? 1 : 0);
 	cvector_grow(t->dirs.visible, t->dirs.length);
 
-	cache_init(&t->dirs.cache, DIRCACHE_SIZE, (void (*)(void*)) dir_destroy);
+	cache_init(&t->dirs.cache, DIRCACHE_SIZE, (void (*)(void *)) dir_destroy);
 	fm_populate(t);
 
 	fm_update_watchers(t);
@@ -122,9 +118,7 @@ void fm_recol(T *t)
 	t->dirs.length = l;
 
 	fm_populate(t);
-
 	fm_update_watchers(t);
-
 	fm_update_preview(t);
 }
 
@@ -134,7 +128,7 @@ bool fm_chdir(T *t, const char *path, bool save)
 	fm_selection_visual_stop(t);
 
 	char fullpath[PATH_MAX];
-	if (is_relative(path)) {
+	if (path_is_relative(path)) {
 		realpath(path, fullpath);
 		path = fullpath;
 	}
@@ -168,6 +162,7 @@ bool fm_chdir(T *t, const char *path, bool save)
 			cache_return(&t->dirs.cache, t->dirs.visible[i], t->dirs.visible[i]->path);
 		}
 	}
+
 	fm_populate(t);
 	fm_update_watchers(t);
 	fm_update_preview(t);
@@ -217,7 +212,7 @@ void fm_hidden_set(T *t, bool hidden)
 static Dir *fm_load_dir(T *t, const char *path)
 {
 	char fullpath[PATH_MAX];
-	if (is_relative(path)) {
+	if (path_is_relative(path)) {
 		realpath(path, fullpath);
 		path = fullpath;
 	}
@@ -347,7 +342,6 @@ void fm_update_preview(T *t)
 	}
 }
 
-
 /* selection {{{ */
 
 void fm_selection_clear(T *t)
@@ -459,9 +453,7 @@ void fm_selection_visual_toggle(T *t)
 
 static void selection_visual_update(T *t, uint32_t origin, uint32_t from, uint32_t to)
 {
-	/* TODO: this should be easier (on 2021-07-25) */
 	uint32_t hi, lo;
-	hi = lo = origin;
 	if (from >= origin) {
 		if (to > from) {
 			lo = from + 1;
@@ -473,8 +465,7 @@ static void selection_visual_update(T *t, uint32_t origin, uint32_t from, uint32
 			hi = from;
 			lo = to + 1;
 		}
-	}
-	if (from < origin) {
+	} else {
 		if (to < from) {
 			lo = to;
 			hi = from - 1;
@@ -488,7 +479,7 @@ static void selection_visual_update(T *t, uint32_t origin, uint32_t from, uint32
 	}
 	const Dir *dir = fm_current_dir(t);
 	for (; lo <= hi; lo++) {
-		/* never unselect the old selection */
+		// never unselect the old selection
 		if (!cvector_contains_str(t->selection.previous, file_path(dir->files[lo])))
 			selection_toggle_file(t, file_path(dir->files[lo]));
 	}
@@ -497,7 +488,6 @@ static void selection_visual_update(T *t, uint32_t origin, uint32_t from, uint32
 
 void fm_selection_write(const T *t, const char *path)
 {
-
 	char *dir, *buf = strdup(path);
 	dir = dirname(buf);
 	mkdir_p(dir, 755);
@@ -528,6 +518,25 @@ void fm_selection_write(const T *t, const char *path)
 
 /* }}} */
 
+/* load/copy/move {{{ */
+
+/* TODO: Make it possible to append to cut/copy buffer (on 2021-07-25) */
+void fm_load_files(T *t, enum movemode_e mode)
+{
+	fm_selection_visual_stop(t);
+	t->load.mode = mode;
+	if (t->selection.length == 0)
+		fm_selection_toggle_current(t);
+	fm_load_clear(t);
+	char **tmp = t->load.files;
+	t->load.files = t->selection.files;
+	cvector_compact(t->load.files);
+	t->selection.files = tmp;
+	t->selection.length = 0;
+}
+
+/* }}} */
+
 /* navigation {{{ */
 
 bool fm_cursor_move(T *t, int32_t ct)
@@ -554,40 +563,36 @@ void fm_move_cursor_to(T *t, const char *name)
 bool fm_scroll_up(T *t)
 {
 	Dir *dir = fm_current_dir(t);
-	if (dir->ind > 0 && dir->ind == dir->pos) {
+	if (dir->ind > 0 && dir->ind == dir->pos)
 		return fm_up(t, 1);
-	}
 	if (dir->pos < t->height - cfg.scrolloff - 1) {
 		dir->pos++;
-		return true;
 	} else {
 		dir->pos = t->height - cfg.scrolloff - 1;
 		dir->ind--;
 		if (dir->ind > dir->length - cfg.scrolloff - 1)
 			dir->ind = dir->length - cfg.scrolloff - 1;
-		return true;
+		fm_update_preview(t);
 	}
+	return true;
 }
 
 
-// ctrl-e decrement pos
 bool fm_scroll_down(T *t)
 {
 	Dir *dir = fm_current_dir(t);
-	if (dir->length - dir->ind + dir->pos - 1 < t->height) {
+	if (dir->length - dir->ind + dir->pos - 1 < t->height)
 		return fm_down(t, 1);
-	}
 	if (dir->pos > cfg.scrolloff) {
 		dir->pos--;
-		return true;
 	} else {
 		dir->pos = cfg.scrolloff;
 		dir->ind++;
 		if (dir->ind < dir->pos)
 			dir->ind = dir->pos;
 		fm_update_preview(t);
-		return true;
 	}
+	return true;
 }
 
 
@@ -597,7 +602,7 @@ File *fm_open(T *t)
 	if (!file)
 		return NULL;
 
-	fm_selection_visual_stop(t); /* before or after chdir? */
+	fm_selection_visual_stop(t);
 	if (!file_isdir(file))
 		return file;
 
@@ -654,55 +659,6 @@ bool fm_mark_load(T *t, char mark)
 }
 /* }}} */
 
-/* load/copy/move {{{ */
-
-/* TODO: Make it possible to append to cut/copy buffer (on 2021-07-25) */
-void fm_load_files(T *t, enum movemode_e mode)
-{
-	fm_selection_visual_stop(t);
-	t->load.mode = mode;
-	if (t->selection.length == 0)
-		fm_selection_toggle_current(t);
-	fm_load_clear(t);
-	char **tmp = t->load.files;
-	t->load.files = t->selection.files;
-	cvector_compact(t->load.files);
-	t->selection.files = tmp;
-	t->selection.length = 0;
-}
-
-
-void fm_load_clear(T *t)
-{
-	cvector_fclear(t->load.files, free);
-}
-
-
-char * const *fm_get_load(const T *t)
-{
-	return t->load.files;
-}
-
-
-enum movemode_e fm_get_mode(const T *t)
-{
-	return t->load.mode;
-}
-
-
-void fm_cut(T *t)
-{
-	fm_load_files(t, MODE_MOVE);
-}
-
-
-void fm_copy(T *t)
-{
-	fm_load_files(t, MODE_COPY);
-}
-
-/* }}} */
-
 /* filter {{{ */
 
 void fm_filter(T *t, const char *filter)
@@ -713,13 +669,6 @@ void fm_filter(T *t, const char *filter)
 	dir_cursor_move_to(dir, file ? file_name(file) : NULL, t->height, cfg.scrolloff);
 	fm_update_preview(t);
 }
-
-
-const char *fm_filter_get(const T *t)
-{
-	return filter_string(fm_current_dir(t)->filter);
-}
-
 
 /* }}} */
 

@@ -136,7 +136,10 @@ void fm_move_cursor_to(Fm *fm, const char *name);
 void fm_filter(Fm *fm, const char *filter);
 
 // Return the filter string of the currently selected directory.
-const char *fm_filter_get(const Fm *fm);
+static inline const char *fm_filter_get(const Fm *fm)
+{
+	return filter_string(fm_current_dir(fm)->filter);
+}
 
 //  Show hidden files.
 void fm_hidden_set(Fm *fm, bool hidden);
@@ -176,23 +179,26 @@ void fm_selection_visual_toggle(Fm *fm);
 // Directories are created as needed.
 void fm_selection_write(const Fm *fm, const char *path);
 
-// Move the current selection to the copy buffer.
-void fm_copy(Fm *fm);
-
-// Move the current selection to the move buffer.
-void fm_cut(Fm *fm);
+// Set the current selection into the load buffer with mode `mode`.
+void fm_load_files(Fm *fm, enum movemode_e mode);
 
 // Clear copy/move buffer.
-void fm_load_clear(Fm *fm);
+static inline void fm_load_clear(Fm *fm)
+{
+	cvector_fclear(fm->load.files, free);
+}
 
 // Get the list of files in copy/move buffer. Returns a cvector of char*.
-char * const* fm_get_load(const Fm *fm);
+static inline char *const *fm_get_load(const Fm *fm)
+{
+	return fm->load.files;
+}
 
 // Get the mode current load, one of `MODE_COPY`, `MODE_MOVE`.
-enum movemode_e fm_get_mode(const Fm *fm);
-
-// Compare PATH against each path in SELECTION to check if it is contained.
-bool cvector_contains(const char *path, cvector_vector_type(char*) selection);
+static inline enum movemode_e fm_get_mode(const Fm *fm)
+{
+	return fm->load.mode;
+}
 
 // Drop directory cache and reload visible directories from disk.
 void fm_drop_cache(Fm *fm);

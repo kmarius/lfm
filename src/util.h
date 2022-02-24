@@ -123,3 +123,13 @@ char *sdirname(const char *p);
 
 // Allocates a new path with a beginning ~/ replaced, otherwise a copy of path.
 char *path_replace_tilde(const char* path);
+
+static inline bool path_is_relative(const char *path)
+{
+	return *path != '/';
+}
+
+static inline bool path_is_absolute(const char *path)
+{
+	return *path == '/';
+}
