@@ -1005,7 +1005,7 @@ static int l_fm_updir(lua_State *L)
 {
 	(void) L;
 	if (fm_updir(fm))
-		lua_run_hook(L, "ChdirPost");
+		lua_run_hook(L, LFM_HOOK_CHDIRPOST);
 	nohighlight(ui);
 	ui_redraw(ui, REDRAW_FM);
 	return 0;
@@ -1016,7 +1016,7 @@ static int l_fm_open(lua_State *L)
 {
 	File *file = fm_open(fm);
 	if (!file) {
-		lua_run_hook(L, "ChdirPost");
+		lua_run_hook(L, LFM_HOOK_CHDIRPOST);
 		/* changed directory */
 		ui_redraw(ui, REDRAW_FM);
 		nohighlight(ui);
@@ -1199,9 +1199,9 @@ static int l_fm_chdir(lua_State *L)
 	const bool run_hooks = luaL_optbool(L, 2, true);
 	nohighlight(ui);
 	if (run_hooks)
-		lua_run_hook(L, "ChdirPre");
+		lua_run_hook(L, LFM_HOOK_CHDIRPRE);
 	if (fm_chdir(fm, path, true) && run_hooks)
-		lua_run_hook(L, "ChdirPost");
+		lua_run_hook(L, LFM_HOOK_CHDIRPOST);
 	ui_redraw(ui, REDRAW_FM);
 	return 0;
 }

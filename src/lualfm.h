@@ -5,6 +5,12 @@
 #include "app.h"
 #include "keys.h"
 
+#define LFM_HOOK_RESIZED "Resized"
+#define LFM_HOOK_ENTER "LfmEnter"
+#define LFM_HOOK_EXITPRE "ExitPre"
+#define LFM_HOOK_CHDIRPRE "ChdirPre"
+#define LFM_HOOK_CHDIRPOST "ChdirPost"
+
 // Initialize lua state, load libraries.
 void lua_init(lua_State *L, App *app);
 

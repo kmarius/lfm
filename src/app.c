@@ -262,7 +262,7 @@ static void prepare_cb(EV_P_ ev_prepare *w, int revents)
 		cfg.commands = NULL;
 	}
 
-	lua_run_hook(app->L, "LfmEnter");
+	lua_run_hook(app->L, LFM_HOOK_ENTER);
 	ev_prepare_stop(loop, w);
 }
 
@@ -272,7 +272,7 @@ static void sigwinch_cb(EV_P_ ev_signal *w, int revents)
 	(void) revents;
 	App *app = w->data;
 	ui_clear(&app->ui);
-	lua_run_hook(app->L, "Resized");
+	lua_run_hook(app->L, LFM_HOOK_RESIZED);
 	ev_idle_start(loop, &app->redraw_watcher);
 }
 
@@ -419,7 +419,7 @@ void app_run(T *t)
 
 void app_quit(T *t)
 {
-	lua_run_hook(t->L, "ExitPre");
+	lua_run_hook(t->L, LFM_HOOK_EXITPRE);
 	ev_break(t->loop, EVBREAK_ALL);
 }
 
