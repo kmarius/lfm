@@ -1363,13 +1363,13 @@ static int l_fn_tokenize(lua_State *L)
 {
 	const char *string = luaL_optstring(L, 1, "");
 	char *buf = malloc((strlen(string) + 1) * sizeof(char));
-	uint16_t pos1 = 0, pos2 = 0;
-	const char *tok;
+	const char *pos1, *tok;
+	char *pos2;
 	if ((tok = tokenize(string, buf, &pos1, &pos2)))
 		lua_pushstring(L, tok);
 	lua_newtable(L);
 	int i = 1;
-	while ((tok = tokenize(string, buf, &pos1, &pos2))) {
+	while ((tok = tokenize(NULL, NULL, &pos1, &pos2))) {
 		lua_pushstring(L, tok);
 		lua_rawseti(L, -2, i++);
 	}
