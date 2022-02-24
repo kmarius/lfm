@@ -260,7 +260,6 @@ void fm_check_dirs(const T *t)
 
 void fm_drop_cache(T *t)
 {
-	/* TODO: disabled, force reload everything instead? (on 2022-01-25) */
 	notify_set_watchers(NULL, 0);
 
 	log_debug("dropping cache");
