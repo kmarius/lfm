@@ -281,16 +281,11 @@ void fm_drop_cache(T *t)
 void fm_reload(T *t)
 {
 	for (uint16_t i = 0; i < t->dirs.length; i++) {
-		if (t->dirs.visible[i]) {
-			t->dirs.visible[i]->flatten_level = 0;
+		if (t->dirs.visible[i])
 			async_dir_load(t->dirs.visible[i], true);
-		}
 	}
-	if (t->dirs.preview) {
-
-		t->dirs.preview->flatten_level = 0;
+	if (t->dirs.preview)
 		async_dir_load(t->dirs.preview, true);
-	}
 }
 
 

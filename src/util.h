@@ -23,11 +23,13 @@ static inline const char *strend(const char* str)
 	return str;
 }
 
+
 static inline const wchar_t *wcsend(const wchar_t* str)
 {
 	while (*str) str++;
 	return str;
 }
+
 
 static inline char *rtrim(char *s)
 {
@@ -95,17 +97,18 @@ uint64_t current_micros(void);
 
 uint64_t current_millis(void);
 
-/* recursive mkdir */
+// recursive mkdir
 int mkdir_p(char *path, __mode_t mode);
 
 int asprintf(char **dst, const char *format, ...);
 
 int vasprintf(char **dst, const char *format, va_list args);
 
-// converts mb string s to an allocated wchar string, optionalle passes the length to len
+// converts mb string s to a newly allocated wchar string, optionally passes
+// the length to len
 wchar_t *ambstowcs(const char *s, int *len);
 
-/* these return pointer to statically allocated arrays */
+// these return pointer to statically allocated arrays
 char *srealpath(const char *p);
 
 char *sbasename(const char *p);

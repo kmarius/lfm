@@ -112,6 +112,3 @@ void trie_destroy(T *t)
 	free(t->keys);
 	free(t);
 }
-
-
-#undef T

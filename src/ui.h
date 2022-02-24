@@ -15,10 +15,10 @@
 
 #define PREVIEW_CACHE_SIZE 63
 
-#define REDRAW_INFO 1
-#define REDRAW_FM 2
+#define REDRAW_INFO    1
+#define REDRAW_FM      2
 #define REDRAW_CMDLINE 4
-#define REDRAW_MENU 8
+#define REDRAW_MENU    8
 #define REDRAW_PREVIEW 16
 
 typedef struct {

@@ -31,24 +31,24 @@ extern char *default_data_dir;
 extern char *default_lua_dir;
 
 typedef struct Config {
-	wchar_t truncatechar; /* '~' */
-	char *corepath;       /* ~/.local/share/lfm/lua/core.lua */
-	char *historypath;    /* ~/.local/share/lfm/history */
-	char *configpath;     /* ~/.config/lfm/config.lua */
-	char *configdir;      /* ~/.config/lfm */
-	char *user_datadir;        /* ~/.local/share/lfm */
-	char *datadir;        /* /usr/share/lfm */
-	char *luadir;        /* /usr/share/lfm/lua */
-	char *fifopath;       /* $rundir/$PID.fifo */
-	char *logpath;        /* /tmp/lfm.$PID.log */
-	char *rundir;         /* /run/media/user/N/lfm */
+	char *configdir;      // ~/.config/lfm
+	char *configpath;     // ~/.config/lfm/init.lua
+	char *user_datadir;   // ~/.local/share/lfm
+	char *historypath;    // ~/.local/share/lfm/history
+	char *datadir;        // /usr/share/lfm
+	char *luadir;         // /usr/share/lfm/lua
+	char *corepath;       // /usr/share/lfm/lua/core.lua
+	char *rundir;         // $XDG_RUNTIME_DIR or /tmp/runtime-$USER
+	char *fifopath;       // rundir/$PID.fifo
+	char *logpath;        // /tmp/lfm.$PID.log
+	wchar_t truncatechar; // '~'
 	char *lastdir;
 	char *selfile;
 	char *startpath;
 	char *startfile;
+	bool preview;
 	char *previewer;
 	bool hidden;
-	bool preview;
 	uint8_t scrolloff;
 	cvector_vector_type(char *) commands;
 	cvector_vector_type(char *) inotify_blacklist;
