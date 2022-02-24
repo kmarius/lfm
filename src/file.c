@@ -17,22 +17,6 @@
 		.dircount = -1,\
 		})
 
-bool file_isbroken(const T *t);
-bool file_isdir(const T *t);
-bool file_isexec(const T *t);
-bool file_islink(const T *t);
-const char *file_ext(const T *t);
-const char *file_link_target(const T *file);
-const char *file_name(const T *t);
-const char *file_path(const T *t);
-const char *file_size_readable(const T *t, char *buf);
-int32_t file_dircount(const T *t);
-long file_mtime(const T *t);
-long file_nlink(const T *t);
-long file_size(const T *t);
-void file_dircount_set(T *t, int32_t ct);
-bool file_hidden(File *file);
-
 T *file_init(T *t, const char *dir, const char *name)
 {
 	char buf[PATH_MAX] = {0};

@@ -23,9 +23,6 @@ struct node {
 };
 
 
-void cache_return(T *t, void *e, const char *key);
-
-
 static inline void swap(struct node *x, struct node *y)
 {
 	struct node tmp = *x;

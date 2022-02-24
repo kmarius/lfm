@@ -12,17 +12,6 @@
 #include "log.h"
 #include "util.h"
 
-const char *strend(const char* str);
-const wchar_t *wcsend(const wchar_t* str);
-char *rtrim(char *s);
-char *ltrim(char *s);
-char *trim(char *s);
-
-int min(int i, int j);
-
-int max(int i, int j);
-
-
 const wchar_t *wstrcasestr(const wchar_t *str, const wchar_t *sub) {
 
 	if (*sub == 0)

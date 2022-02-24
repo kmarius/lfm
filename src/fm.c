@@ -32,12 +32,6 @@ static void fm_remove_preview(T *t);
 static void fm_mark_save(T *t, char mark, const char *path);
 static void fm_populate(T *t);
 
-bool fm_bot(T *t);
-bool fm_top(T *t);
-bool fm_down(T *t, int32_t ct);
-bool fm_up(T *t, int32_t ct);
-void fm_cursor_move_to_ind(T *t, uint32_t ind);
-
 
 void fm_init(T *t)
 {
@@ -741,5 +735,3 @@ void fm_flatten(T *t, uint8_t level)
 	fm_current_dir(t)->flatten_level = level;
 	async_dir_load(fm_current_dir(t), true);
 }
-
-#undef T

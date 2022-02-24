@@ -22,15 +22,6 @@
 		.sorttype = SORT_NATURAL, \
 		})
 
-T *dir_create(const char *path);
-bool dir_isroot(const T *t);
-bool dir_loading(const T *t);
-static void apply_filter(T *t);
-static inline void dir_destroy(T *t);
-static inline void swap(File **a, File **b);
-static void shuffle(void *arr, size_t n, size_t size);
-
-
 File *dir_current_file(const T *t)
 {
 	if (!t || t->ind >= t->length)

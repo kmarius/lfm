@@ -665,8 +665,6 @@ void ui_showmenu(T *t, cvector_vector_type(char*) vec)
 	ui_redraw(t, REDRAW_MENU);
 }
 
-void ui_show_keyseq(Ui *ui, input_t *keyseq);
-
 /* }}} */
 
 /* draw_dir {{{ */
@@ -1249,5 +1247,3 @@ void ui_drop_cache(T *t)
 }
 
 /* }}} */
-
-#undef T
