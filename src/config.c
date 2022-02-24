@@ -56,28 +56,25 @@ void config_init()
 	cvector_push_back(r, 3);
 	config_ratios_set(r);
 
-#ifdef DEBUG
-	cfg.logpath = strdup("/tmp/lfm.debug.log");
-#else
-	asprintf(&cfg.logpath, "/tmp/lfm.%d.log", getpid());
-#endif
-
-	const char *rundir = getenv("XDG_RUNTIME_DIR");
-	if (!rundir) {
+	const char *xdg_runtime = getenv("XDG_RUNTIME_DIR");
+	if (!xdg_runtime || *xdg_runtime == 0) {
 		asprintf(&cfg.rundir, "/tmp/runtime-%s/lfm", getenv("USER"));
 	} else {
-		asprintf(&cfg.rundir, "%s/lfm", rundir);
+		asprintf(&cfg.rundir, "%s/lfm", xdg_runtime);
 	}
 
-#ifdef DEBUG
-	asprintf(&cfg.fifopath, "%s/debug.fifo", cfg.rundir);
-#else
-	asprintf(&cfg.fifopath, "%s/%d.fifo", cfg.rundir, getpid());
-#endif
+	const char *xdg_config = getenv("XDG_CONFIG_HOME");
+	if (!xdg_config || *xdg_config == 0)
+		asprintf(&cfg.configdir, "%s/.config/lfm", getenv("HOME"));
+	else
+		asprintf(&cfg.configdir, "%s/lfm", xdg_config);
 
-	asprintf(&cfg.configdir, "%s/.config/lfm", getenv("HOME"));
-
-	asprintf(&cfg.user_datadir, "%s/.local/share/lfm", getenv("HOME"));
+	// apparently, there is now XDG_STATE_HOME for history etc.
+	const char *xdg_data = getenv("XDG_DATA_HOME");
+	if (!xdg_data || *xdg_data == 0)
+		asprintf(&cfg.user_datadir, "%s/.local/share/lfm", getenv("HOME"));
+	else
+		asprintf(&cfg.user_datadir, "%s/lfm", xdg_data);
 
 	cfg.datadir = strdup(default_data_dir);
 
@@ -88,6 +85,14 @@ void config_init()
 	cfg.luadir = strdup(default_lua_dir);
 
 	asprintf(&cfg.corepath, "%s/lfm.lua", cfg.luadir);
+
+#ifdef DEBUG
+	cfg.logpath = strdup("/tmp/lfm.debug.log");
+	asprintf(&cfg.fifopath, "%s/debug.fifo", cfg.rundir);
+#else
+	asprintf(&cfg.fifopath, "%s/%d.fifo", cfg.rundir, getpid());
+	asprintf(&cfg.logpath, "/tmp/lfm.%d.log", getpid());
+#endif
 }
 
 #define tup_free(t) free((t).ext)
