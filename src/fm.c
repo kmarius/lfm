@@ -129,7 +129,7 @@ bool fm_chdir(T *t, const char *path, bool save)
 
 	char fullpath[PATH_MAX];
 	if (path_is_relative(path)) {
-		realpath(path, fullpath);
+		snprintf(fullpath, sizeof(fullpath), "%s/%s", getenv("PWD"), path);
 		path = fullpath;
 	}
 
@@ -213,7 +213,7 @@ static Dir *fm_load_dir(T *t, const char *path)
 {
 	char fullpath[PATH_MAX];
 	if (path_is_relative(path)) {
-		realpath(path, fullpath);
+		snprintf(fullpath, sizeof(fullpath), "%s/%s", getenv("PWD"), path);
 		path = fullpath;
 	}
 
