@@ -17,7 +17,7 @@ int compare_size(const void *a, const void *b)
 
 int compare_natural(const void *a, const void *b)
 {
-	return strcasecmp(file_name(*(File **) a), file_name(*(File **) b));
+	return strnatcasecmp(file_name(*(File **) a), file_name(*(File **) b));
 }
 
 
