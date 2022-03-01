@@ -51,6 +51,28 @@ function M.options(tok, line)
 	return t, " "
 end
 
+function M.table(tok, line)
+	local t = {}
+	local prefix, suffix = string.match(line, "^(.*%.)(.*)")
+	local tab = _G
+	for s in string.gmatch(prefix, "([^.]*).") do
+		if not tab[s] then
+			return {}, "."
+		end
+		tab = tab[s]
+	end
+	if type(tab) ~= "table" then
+		-- TODO: handle config (on 2022-03-01)
+		return {}, "."
+	end
+	for e, _ in pairs(tab) do
+		if string.sub(e, 1, #suffix) == suffix then
+			table.insert(t, prefix..e)
+		end
+	end
+	return t, "."
+end
+
 local reset = false
 local candidates = {}
 local ind = 0
@@ -154,7 +176,11 @@ local function shownext(increment)
 	tok = lfm.fn.unquote_space(tok)
 
 	if prefix == "" then
-		provider = commands_provider
+		if string.match(tok, "^lfm%.") then
+			provider = M.table
+		else
+			provider = commands_provider
+		end
 	else
 		local cmd = string.match(prefix, "^([^%s]*)")
 		if commands[cmd] and commands[cmd].compl then
