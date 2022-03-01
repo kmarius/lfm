@@ -222,7 +222,7 @@ local function cd(dir)
 	fm.chdir(dir)
 end
 
-lfm.register_command("cd", cd, {tokenize=true})
+lfm.register_command("cd", cd, {tokenize=true, compl=compl.dirs})
 
 local handle_key = lfm.handle_key
 ---Feed keys into the key handler.
