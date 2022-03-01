@@ -194,6 +194,12 @@ static inline char *const *fm_paste_buffer_get(const Fm *fm)
 	return fm->paste.buffer;
 }
 
+// Get the list of files in copy/move buffer. Returns a cvector of char*.
+static inline void fm_paste_buffer_add(Fm *fm, const char* file)
+{
+	cvector_push_back(fm->paste.buffer, strdup(file));
+}
+
 // Get the mode current load, one of `MODE_COPY`, `MODE_MOVE`.
 static inline enum paste_mode_e fm_paste_mode_get(const Fm *fm)
 {

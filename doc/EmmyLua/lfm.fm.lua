@@ -94,22 +94,19 @@ function lfm.fm.visual_toggle() end
 ---Change directory to the parent of the current directory, unless in "/".
 function lfm.fm.updir() end
 
----@alias movemode
+---@alias pastemode
 ---| '"copy"'
 ---| '"move"'
 
 ---Get the current paste buffer and mode.
----@return movemode mode
 ---@return string[] files
+---@return pastemode mode
 function lfm.fm.paste_buffer_get() end
 
 ---Set the current paste buffer and mode.
----@param mode movemode
 ---@param files string[]
-function lfm.fm.paste_buffer_set(mode, files) end
-
----Clear the current load.
-function lfm.fm.paste_buffer_clear() end
+---@param mode? pastemode (default: "copy")
+function lfm.fm.paste_buffer_set(files, mode) end
 
 ---Add the current selection to the load and change mode to MODE_MOVE.
 function lfm.fm.cut() end

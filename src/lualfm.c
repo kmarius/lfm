@@ -1208,6 +1208,11 @@ static int l_fm_chdir(lua_State *L)
 
 static int l_fm_paste_buffer_get(lua_State *L)
 {
+	lua_createtable(L, cvector_size(fm->paste.buffer), 0);
+	for (size_t i = 0; i < cvector_size(fm->paste.buffer); i++) {
+		lua_pushstring(L, fm->paste.buffer[i]);
+		lua_rawseti(L, -2, i+1);
+	}
 	switch (fm->paste.mode) {
 		case PASTE_MODE_MOVE:
 			lua_pushstring(L, "move");
@@ -1216,31 +1221,32 @@ static int l_fm_paste_buffer_get(lua_State *L)
 			lua_pushstring(L, "copy");
 			break;
 	}
-	lua_createtable(L, cvector_size(fm->paste.buffer), 0);
-	for (size_t i = 0; i < cvector_size(fm->paste.buffer); i++) {
-		lua_pushstring(L, fm->paste.buffer[i]);
-		lua_rawseti(L, -2, i+1);
-	}
 	return 2;
 }
 
 
 static int l_fm_paste_buffer_set(lua_State *L)
 {
-	const char *mode = luaL_checkstring(L, 1);
 	fm_paste_buffer_clear(fm);
-	if (streq(mode, "move"))
-		fm->paste.mode = PASTE_MODE_MOVE;
-	else
-		fm->paste.mode = PASTE_MODE_COPY;
 
-	const size_t l = lua_objlen(L, 2);
+	luaL_checktype(L, 1, LUA_TTABLE);
+	const size_t l = lua_objlen(L, 1);
 	for (size_t i = 0; i < l; i++) {
-		lua_rawgeti(L, 2, i + 1);
-		cvector_push_back(fm->paste.buffer, strdup(lua_tostring(L, -1)));
+		lua_rawgeti(L, 1, i + 1);
+		fm_paste_buffer_add(fm, lua_tostring(L, -1));
 		lua_pop(L, 1);
 	}
+
+	const char *mode = luaL_optstring(L, 2, "copy");
+	if (streq(mode, "copy"))
+		fm->paste.mode = PASTE_MODE_COPY;
+	else if (streq(mode, "move"))
+		fm->paste.mode = PASTE_MODE_MOVE;
+	else
+		error("unrecognized paste mode: %s", mode);
+
 	ui_redraw(ui, REDRAW_FM);
+
 	return 0;
 }
 
