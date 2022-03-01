@@ -97,25 +97,25 @@ end
 ---Create absolute symbolic links of the current load at the current location.
 ---Aborts if the mode is "move" instead of "copy".
 function M.symlink()
-	local mode, files = fm.load_get()
+	local mode, files = fm.paste_buffer_get()
 	if mode == "copy" then
 		for _, f in pairs(files) do
 			lfm.execute({"ln", "-s", "--", f}, {fork=true})
 		end
 	end
-	fm.load_clear()
+	fm.paste_buffer_clear()
 end
 
 ---Create relative symbolic links of the current load at the current location.
 ---Aborts if the mode is "move" instead of "copy".
 function M.symlink_relative()
-	local mode, files = fm.load_get()
+	local mode, files = fm.paste_buffer_get()
 	if mode == "copy" then
 		for _, f in pairs(files) do
 			lfm.execute({"ln", "-s", "--relative", "--", f}, {fork=true})
 		end
 	end
-	fm.load_clear()
+	fm.paste_buffer_clear()
 end
 
 ---Go to the location pointed at by the symlink at the cursor position.
@@ -131,7 +131,7 @@ end
 
 ---Paste the load in the current directory, making backups of existing files.
 function M.paste()
-	local mode, files = fm.load_get()
+	local mode, files = fm.paste_buffer_get()
 	if #files == 0 then
 		return
 	end
@@ -157,12 +157,12 @@ function M.paste()
 	else
 		-- not reached
 	end
-	fm.load_clear()
+	fm.paste_buffer_clear()
 end
 
 ---Paste the load in the current directory, overwriting existing files.
 function M.paste_overwrite()
-	local mode, files = fm.load_get()
+	local mode, files = fm.paste_buffer_get()
 	if #files == 0 then
 		return
 	end
@@ -177,7 +177,7 @@ function M.paste_overwrite()
 	end
 	table.insert(cmd, "./")
 	lfm.execute(cmd, {fork=true})
-	fm.load_clear()
+	fm.paste_buffer_clear()
 end
 
 return M

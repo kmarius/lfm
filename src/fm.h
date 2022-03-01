@@ -10,9 +10,9 @@
 
 #define DIRCACHE_SIZE 63
 
-enum movemode_e {
-	MODE_MOVE,
-	MODE_COPY,
+enum paste_mode_e {
+	PASTE_MODE_MOVE,
+	PASTE_MODE_COPY,
 };
 
 struct jump_mark {
@@ -49,9 +49,9 @@ typedef struct Fm {
 
 	struct {
 		// Copy/move buffer, vector of paths
-		cvector_vector_type(char *) files;
-		enum movemode_e mode;
-	} load;
+		cvector_vector_type(char *) buffer;
+		enum paste_mode_e mode;
+	} paste;
 
 	struct {
 		bool active;
@@ -180,24 +180,24 @@ void fm_selection_visual_toggle(Fm *fm);
 void fm_selection_write(const Fm *fm, const char *path);
 
 // Set the current selection into the load buffer with mode `mode`.
-void fm_load_files(Fm *fm, enum movemode_e mode);
+void fm_paste_mode_set(Fm *fm, enum paste_mode_e mode);
 
 // Clear copy/move buffer.
-static inline void fm_load_clear(Fm *fm)
+static inline void fm_paste_buffer_clear(Fm *fm)
 {
-	cvector_fclear(fm->load.files, free);
+	cvector_fclear(fm->paste.buffer, free);
 }
 
 // Get the list of files in copy/move buffer. Returns a cvector of char*.
-static inline char *const *fm_get_load(const Fm *fm)
+static inline char *const *fm_paste_buffer_get(const Fm *fm)
 {
-	return fm->load.files;
+	return fm->paste.buffer;
 }
 
 // Get the mode current load, one of `MODE_COPY`, `MODE_MOVE`.
-static inline enum movemode_e fm_get_mode(const Fm *fm)
+static inline enum paste_mode_e fm_paste_mode_get(const Fm *fm)
 {
-	return fm->load.mode;
+	return fm->paste.mode;
 }
 
 // Drop directory cache and reload visible directories from disk.

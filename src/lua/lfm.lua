@@ -400,7 +400,7 @@ map("S", shell.fish("env LF_LEVEL=1 fish -C clear", {files=shell.ARRAY}), {desc=
 map("<Space>", c(fm.selection_toggle, fm.down), {desc="select current file"})
 map("v", fm.selection_reverse, {desc="reverse selection"})
 map("V", fm.visual_toggle, {desc="toggle visual selection mode"})
-map("uv", c(fm.load_clear, fm.selection_clear), {desc="selection-clear"})
+map("uv", c(fm.paste_buffer_clear, fm.selection_clear), {desc="selection-clear"})
 
 -- Navigation
 map("<Enter>", opener.open, "open")
@@ -458,7 +458,7 @@ map("yn", require("functions").yank_name, {desc="yank name"})
 map("yp", require("functions").yank_path, {desc="yank path"})
 map("yy", fm.copy, {desc="copy"})
 map("dd", fm.cut, {desc="cut"})
-map("ud", fm.load_clear, {desc="load-clear"})
+map("ud", fm.paste_buffer_clear, {desc="load-clear"})
 map("pp", require("functions").paste, {desc="paste-overwrite"})
 map("po", require("functions").paste_overwrite, {desc="paste-overwrite"})
 map("pl", require("functions").symlink, {desc="symlink"})

@@ -98,15 +98,18 @@ function lfm.fm.updir() end
 ---| '"copy"'
 ---| '"move"'
 
----Get the current load and mode.
+---Get the current paste buffer and mode.
 ---@return movemode mode
 ---@return string[] files
-function lfm.fm.load_get() end
+function lfm.fm.paste_buffer_get() end
 
----Set the current load and mode.
+---Set the current paste buffer and mode.
 ---@param mode movemode
 ---@param files string[]
-function lfm.fm.load_set(mode, files) end
+function lfm.fm.paste_buffer_set(mode, files) end
+
+---Clear the current load.
+function lfm.fm.paste_buffer_clear() end
 
 ---Add the current selection to the load and change mode to MODE_MOVE.
 function lfm.fm.cut() end
@@ -155,6 +158,3 @@ function lfm.fm.scroll_down() end
 ---@param dir string destination path
 ---@param run_hooks? boolean run Chdir{Pre,Post} hooks
 function lfm.fm.chdir(dir, run_hooks) end
-
----Clear the current load.
-function lfm.fm.load_clear() end

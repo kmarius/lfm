@@ -19,7 +19,7 @@
 #define T Fm
 
 #define FM_INITIALIZER ((T){ \
-		.load.mode = MODE_COPY, \
+		.paste.mode = PASTE_MODE_COPY, \
 		})
 
 static Dir *fm_load_dir(T *t, const char *path);
@@ -68,7 +68,7 @@ void fm_deinit(T *t)
 	/* prev_selection _never_ holds allocated paths that are not already
 	 * free'd in fm->selection */
 	cvector_free(t->selection.previous);
-	cvector_ffree(t->load.files, free);
+	cvector_ffree(t->paste.buffer, free);
 
 #define mark_free(mark) free((mark).path)
 	cvector_ffree(t->marks, mark_free);
@@ -521,16 +521,16 @@ void fm_selection_write(const T *t, const char *path)
 /* load/copy/move {{{ */
 
 /* TODO: Make it possible to append to cut/copy buffer (on 2021-07-25) */
-void fm_load_files(T *t, enum movemode_e mode)
+void fm_paste_mode_set(T *t, enum paste_mode_e mode)
 {
 	fm_selection_visual_stop(t);
-	t->load.mode = mode;
+	t->paste.mode = mode;
 	if (t->selection.length == 0)
 		fm_selection_toggle_current(t);
-	fm_load_clear(t);
-	char **tmp = t->load.files;
-	t->load.files = t->selection.files;
-	cvector_compact(t->load.files);
+	fm_paste_buffer_clear(t);
+	char **tmp = t->paste.buffer;
+	t->paste.buffer = t->selection.files;
+	cvector_compact(t->paste.buffer);
 	t->selection.files = tmp;
 	t->selection.length = 0;
 }

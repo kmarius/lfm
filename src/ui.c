@@ -23,7 +23,7 @@
 
 static void draw_dirs(T *t);
 static void plane_draw_dir(struct ncplane *n, Dir *dir, char **sel,
-		char **load, enum movemode_e mode, const char *highlight, bool print_sizes);
+		char **load, enum paste_mode_e mode, const char *highlight, bool print_sizes);
 static void draw_cmdline(T *t);
 static void draw_preview(T *t);
 static void plane_draw_file_preview(struct ncplane *n, Preview *pv);
@@ -245,8 +245,8 @@ static void draw_dirs(T *t)
 		plane_draw_dir(t->planes.dirs[l-i-1],
 				t->fm->dirs.visible[i],
 				t->fm->selection.files,
-				t->fm->load.files,
-				t->fm->load.mode,
+				t->fm->paste.buffer,
+				t->fm->paste.mode,
 				i == 0 ? t->highlight : NULL, i == 0);
 	}
 }
@@ -257,7 +257,7 @@ static void draw_preview(T *t)
 	if (cfg.preview && t->ndirs > 1) {
 		if (t->fm->dirs.preview) {
 			plane_draw_dir(t->planes.preview, t->fm->dirs.preview, t->fm->selection.files,
-					t->fm->load.files, t->fm->load.mode, NULL, false);
+					t->fm->paste.buffer, t->fm->paste.mode, NULL, false);
 		} else {
 			update_preview(t);
 			plane_draw_file_preview(t->planes.preview, t->preview.preview);
@@ -421,14 +421,14 @@ void draw_cmdline(T *t)
 				ncplane_set_fg_default(t->planes.cmdline);
 				ncplane_putchar(t->planes.cmdline, ' ');
 			}
-			if (cvector_size(t->fm->load.files) > 0) {
-				if (t->fm->load.mode == MODE_COPY)
+			if (cvector_size(t->fm->paste.buffer) > 0) {
+				if (t->fm->paste.mode == PASTE_MODE_COPY)
 					ncplane_set_channels(t->planes.cmdline, cfg.colors.copy);
 				else
 					ncplane_set_channels(t->planes.cmdline, cfg.colors.delete);
 
-				rhs_sz += int_sz(cvector_size(t->fm->load.files)) + 2 + 1;
-				ncplane_printf_yx(t->planes.cmdline, 0, t->ncol-rhs_sz, " %lu ", cvector_size(t->fm->load.files));
+				rhs_sz += int_sz(cvector_size(t->fm->paste.buffer)) + 2 + 1;
+				ncplane_printf_yx(t->planes.cmdline, 0, t->ncol-rhs_sz, " %lu ", cvector_size(t->fm->paste.buffer));
 				ncplane_set_bg_default(t->planes.cmdline);
 				ncplane_set_fg_default(t->planes.cmdline);
 				ncplane_putchar(t->planes.cmdline, ' ');
@@ -890,7 +890,7 @@ static int print_highlighted_and_shortened(struct ncplane *n, const char *name, 
 
 
 static void print_file(struct ncplane *n, const File *file,
-		bool iscurrent, char **sel, char **load, enum movemode_e mode,
+		bool iscurrent, char **sel, char **load, enum paste_mode_e mode,
 		const char *highlight, bool print_sizes)
 {
 	int ncol, y0;
@@ -927,9 +927,9 @@ static void print_file(struct ncplane *n, const File *file,
 
 	if (cvector_contains_str(sel, file_path(file)))
 		ncplane_set_channels(n, cfg.colors.selection);
-	else if (mode == MODE_MOVE && cvector_contains_str(load, file_path(file)))
+	else if (mode == PASTE_MODE_MOVE && cvector_contains_str(load, file_path(file)))
 		ncplane_set_channels(n, cfg.colors.delete);
-	else if (mode == MODE_COPY && cvector_contains_str(load, file_path(file)))
+	else if (mode == PASTE_MODE_COPY && cvector_contains_str(load, file_path(file)))
 		ncplane_set_channels(n, cfg.colors.copy);
 
 	// this is needed because when selecting with space the filename is printed
@@ -989,7 +989,7 @@ static void print_file(struct ncplane *n, const File *file,
 
 
 static void plane_draw_dir(struct ncplane *n, Dir *dir, char **sel, char **load,
-		enum movemode_e mode, const char *highlight, bool print_sizes)
+		enum paste_mode_e mode, const char *highlight, bool print_sizes)
 {
 	int nrow, i, offset;
 

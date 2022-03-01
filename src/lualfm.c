@@ -1206,38 +1206,38 @@ static int l_fm_chdir(lua_State *L)
 }
 
 
-static int l_fm_get_load(lua_State *L)
+static int l_fm_paste_buffer_get(lua_State *L)
 {
-	switch (fm->load.mode) {
-		case MODE_MOVE:
+	switch (fm->paste.mode) {
+		case PASTE_MODE_MOVE:
 			lua_pushstring(L, "move");
 			break;
-		case MODE_COPY:
+		case PASTE_MODE_COPY:
 			lua_pushstring(L, "copy");
 			break;
 	}
-	lua_createtable(L, cvector_size(fm->load.files), 0);
-	for (size_t i = 0; i < cvector_size(fm->load.files); i++) {
-		lua_pushstring(L, fm->load.files[i]);
+	lua_createtable(L, cvector_size(fm->paste.buffer), 0);
+	for (size_t i = 0; i < cvector_size(fm->paste.buffer); i++) {
+		lua_pushstring(L, fm->paste.buffer[i]);
 		lua_rawseti(L, -2, i+1);
 	}
 	return 2;
 }
 
 
-static int l_fm_load_set(lua_State *L)
+static int l_fm_paste_buffer_set(lua_State *L)
 {
 	const char *mode = luaL_checkstring(L, 1);
-	fm_load_clear(fm);
+	fm_paste_buffer_clear(fm);
 	if (streq(mode, "move"))
-		fm->load.mode = MODE_MOVE;
+		fm->paste.mode = PASTE_MODE_MOVE;
 	else
-		fm->load.mode = MODE_COPY;
+		fm->paste.mode = PASTE_MODE_COPY;
 
 	const size_t l = lua_objlen(L, 2);
 	for (size_t i = 0; i < l; i++) {
 		lua_rawgeti(L, 2, i + 1);
-		cvector_push_back(fm->load.files, strdup(lua_tostring(L, -1)));
+		cvector_push_back(fm->paste.buffer, strdup(lua_tostring(L, -1)));
 		lua_pop(L, 1);
 	}
 	ui_redraw(ui, REDRAW_FM);
@@ -1245,10 +1245,10 @@ static int l_fm_load_set(lua_State *L)
 }
 
 
-static int l_fm_load_clear(lua_State *L)
+static int l_fm_paste_buffer_clear(lua_State *L)
 {
 	(void) L;
-	fm_load_clear(fm);
+	fm_paste_buffer_clear(fm);
 	ui_redraw(ui, REDRAW_FM);
 	return 0;
 }
@@ -1257,7 +1257,7 @@ static int l_fm_load_clear(lua_State *L)
 static int l_fm_copy(lua_State *L)
 {
 	(void) L;
-	fm_load_files(fm, MODE_COPY);
+	fm_paste_mode_set(fm, PASTE_MODE_COPY);
 	ui_redraw(ui, REDRAW_FM);
 	return 0;
 }
@@ -1266,7 +1266,7 @@ static int l_fm_copy(lua_State *L)
 static int l_fm_cut(lua_State *L)
 {
 	(void) L;
-	fm_load_files(fm, MODE_MOVE);
+	fm_paste_mode_set(fm, PASTE_MODE_MOVE);
 	ui_redraw(ui, REDRAW_FM);
 	return 0;
 }
@@ -1343,9 +1343,9 @@ static const struct luaL_Reg fm_lib[] = {
 	{"up", l_fm_up},
 	{"scroll_down", l_fm_scroll_down},
 	{"scroll_up", l_fm_scroll_up},
-	{"load_get", l_fm_get_load},
-	{"load_set", l_fm_load_set},
-	{"load_clear", l_fm_load_clear},
+	{"paste_buffer_get", l_fm_paste_buffer_get},
+	{"paste_buffer_set", l_fm_paste_buffer_set},
+	{"paste_buffer_clear", l_fm_paste_buffer_clear},
 	{"cut", l_fm_cut},
 	{"copy", l_fm_copy},
 	{"check", l_fm_check},
@@ -1557,7 +1557,7 @@ void lua_handle_key(lua_State *L, input_t in)
 				nohighlight(ui);
 				fm_selection_visual_stop(fm);
 				fm_selection_clear(fm);
-				fm_load_clear(fm);
+				fm_paste_buffer_clear(fm);
 			}
 			ui->message = false;
 			ui_redraw(ui, REDRAW_FM);
