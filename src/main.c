@@ -116,6 +116,8 @@ int main(int argc, char **argv)
 
 	setlocale(LC_ALL, "");
 
+	srand(time(NULL));
+
 	app_init(&app);
 
 	log_debug("starting main loop after %.2f ms", (current_micros() - t0)/1000.0);
