@@ -33,12 +33,6 @@ T *file_init(T *t, const char *dir, const char *name)
 		return NULL;
 	}
 
-	t->name = strrchr(t->path, '/') + 1;
-	t->hidden = *t->name == '.';
-	t->ext = strrchr(t->name, '.');
-	if (t->ext == t->name)
-		t->ext = NULL; /* hidden file */
-
 	if (S_ISLNK(t->lstat.st_mode)) {
 		if (stat(t->path, &t->stat) == -1) {
 			t->isbroken = true;
@@ -52,6 +46,12 @@ T *file_init(T *t, const char *dir, const char *name)
 		// for non-symlinks stat == lstat
 		t->stat = t->lstat;
 	}
+
+	t->name = strrchr(t->path, '/') + 1;
+	t->hidden = *t->name == '.';
+	t->ext = strrchr(t->name, '.');
+	if (t->ext == t->name || file_isdir(t))
+		t->ext = NULL; /* hidden file */
 
 	t->isexec = t->stat.st_mode & (1 | 8 | 64);
 
