@@ -32,23 +32,22 @@
 #define VERSION_FMT "%s " LFM_VERSION "\n"
 
 
-static void usage(const char *progname, int opt)
+static void usage(const char *progname)
 {
 	fprintf(stderr, USAGE_FMT, progname ? progname : DEFAULT_PROGNAME);
-	exit(opt);
 }
 
 
 static void version()
 {
 	fprintf(stderr, VERSION_FMT, DEFAULT_PROGNAME);
-	exit(EXIT_SUCCESS);
 }
 
 
 int main(int argc, char **argv)
 {
 	App app;
+	int ret = EXIT_SUCCESS;
 
 	const uint64_t t0 = current_micros();
 
@@ -68,9 +67,8 @@ int main(int argc, char **argv)
 				cvector_push_back(cfg.commands, optarg);
 				break;
 			case 'h':
-				usage(argv[0], EXIT_SUCCESS);
-				/* not reached */
-				break;
+				usage(argv[0]);
+				goto cleanup;
 			case 'l':
 				cfg.lastdir = optarg;
 				break;
@@ -83,14 +81,12 @@ int main(int argc, char **argv)
 				break;
 			case 'v':
 				version();
-				/* not reached */
-				break;
+				goto cleanup;
 			case '?':
-				log_error("Unknown option: %c\n", optopt);
 				fprintf(stderr, "Unknown option: %c\n", optopt);
-				usage(argv[0], EXIT_FAILURE);
-				/* not reached */
-				break;
+				usage(argv[0]);
+				ret = EXIT_FAILURE;
+				goto cleanup;
 		}
 	}
 
@@ -136,6 +132,8 @@ int main(int argc, char **argv)
 		}
 	}
 
+cleanup:
+
 	log_info("fin");
 	fclose(log_fp);
 
@@ -145,5 +143,5 @@ int main(int argc, char **argv)
 
 	config_deinit();
 
-	exit(EXIT_SUCCESS);
+	exit(ret);
 }
