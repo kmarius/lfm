@@ -92,7 +92,7 @@ int main(int argc, char **argv)
 
 	if (optind < argc) {
 		log_debug("setting start dir %s", argv[optind]);
-		cfg.startpath = arealpath(argv[optind]);
+		cfg.startpath = realpath_a(argv[optind]);
 		struct stat statbuf;
 		if (stat(cfg.startpath, &statbuf) == -1) {
 			log_error(strerror(errno));
@@ -101,8 +101,8 @@ int main(int argc, char **argv)
 		} else {
 			if (!S_ISDIR(statbuf.st_mode)) {
 				char *f = cfg.startpath;
-				cfg.startfile = abasename(cfg.startpath);
-				cfg.startpath = adirname(cfg.startpath);
+				cfg.startfile = basename_a(cfg.startpath);
+				cfg.startpath = dirname_a(cfg.startpath);
 				free(f);
 				log_debug("set start file to %s", cfg.startfile);
 			}

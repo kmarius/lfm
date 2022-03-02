@@ -3,6 +3,7 @@
 #include <libgen.h>
 #include <linux/limits.h>
 #include <stdbool.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <sys/stat.h>
 #include <sys/time.h>
@@ -198,7 +199,7 @@ wchar_t *ambstowcs(const char *s, int *len)
 }
 
 
-char *srealpath(const char *p)
+char *realpath_s(const char *p)
 {
 	static char fullpath[PATH_MAX+1];
 	realpath(p, fullpath);
@@ -206,7 +207,7 @@ char *srealpath(const char *p)
 }
 
 
-char *sbasename(const char *p)
+char *basename_s(const char *p)
 {
 	static char buf[PATH_MAX+1];
 	strncpy(buf, p, sizeof(buf)-1);
@@ -214,7 +215,7 @@ char *sbasename(const char *p)
 }
 
 
-char *sdirname(const char *p)
+char *dirname_s(const char *p)
 {
 	static char buf[PATH_MAX+1];
 	strncpy(buf, p, sizeof(buf)-1);
@@ -233,5 +234,59 @@ char *path_replace_tilde(const char* path)
 	char *ret = malloc((l1 - 1 + l2 + 1) * sizeof(char));
 	strcpy(ret, home);
 	strcpy(ret + l2, path + 1);
+	return ret;
+}
+
+// could be done without strncopying first
+char *path_qualify(const char* path)
+{
+	char *p;
+	// replace ~ or prepend PWD
+	if (path[0] == '~') {
+		const char *home = getenv("HOME");
+		const int l2 = strlen(path);
+		const int l1 = strlen(home);
+		p = malloc((l2 - 1 + l1 + 1) * sizeof(char));
+		strcpy(p, home);
+		strcpy(p + l1, path + 1);
+	} else if (path[0] != '/') {
+		const char *pwd = getenv("PWD");
+		const int l2 = strlen(path);
+		const int l1 = strlen(pwd);
+		p = malloc((l1 + l2 + 1) * sizeof(char));
+		strcpy(p, pwd);
+		*(p + l1) = '/';
+		strcpy(p + l1 + 1, path);
+	} else {
+		p = strdup(path);
+	}
+
+	// replace //
+	// replace /./
+	// replace /../ and kill one component to the left
+
+	char *ret = p;
+	char *q = p;
+	while (*p) {
+		if (*(p+1) == '/') {
+			p++;
+		} else if (*(p+1) == '.' && (*(p+2) == '/' || *(p+2) == 0)) {
+			p += 2;
+		} else if (*(p+1) == '.' && *(p+2) == '.' && (*(p+3) == '/' || *(p+3) == 0)) {
+			p += 3;
+			if (q > ret)
+				q--;
+			while (*q && *q != '/')
+				q--;
+		} else {
+			*q++ = *p++;
+			while (*p && *p != '/')
+				*q++ = *p++;
+		}
+	}
+	if (q == ret)
+		q++;
+	*q = 0;
+
 	return ret;
 }

@@ -109,20 +109,32 @@ int vasprintf(char **dst, const char *format, va_list args);
 wchar_t *ambstowcs(const char *s, int *len);
 
 // these return pointer to statically allocated arrays
-char *srealpath(const char *p);
+char *realpath_s(const char *p);
 
-char *sbasename(const char *p);
+char *basename_s(const char *p);
 
-char *sdirname(const char *p);
+char *dirname_s(const char *p);
 
-#define arealpath(p) strdup(srealpath(p))
+static inline char *realpath_a(const char *p)
+{
+	return strdup(realpath_s(p));
+}
 
-#define abasename(p) strdup(sbasename(p))
+static inline char *basename_a(const char *p)
+{
+	return strdup(basename_s(p));
+}
 
-#define adirname(p) strdup(sdirname(p))
+static inline char *dirname_a(const char *p)
+{
+	return strdup(dirname_s(p));
+}
 
 // Allocates a new path with a beginning ~/ replaced, otherwise a copy of path.
 char *path_replace_tilde(const char* path);
+
+// Allocates a new absolute path with all ~, ., .., // replaced
+char *path_qualify(const char* path);
 
 static inline bool path_is_relative(const char *path)
 {
