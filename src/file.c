@@ -99,12 +99,6 @@ uint32_t path_dircount(const char *path)
 }
 
 
-uint32_t file_dircount_load(T *t)
-{
-	return path_dircount(t->path);
-}
-
-
 static char filetypeletter(int mode)
 {
 	char c;
