@@ -160,6 +160,12 @@ function M.paste()
 	fm.paste_buffer_set({})
 end
 
+---Toggle paste mode.
+function M.paste_toggle()
+	local mode = lfm.fm.paste_mode_get()
+	lfm.fm.paste_mode_set(mode == "copy" and "move" or "copy")
+end
+
 ---Paste the load in the current directory, overwriting existing files.
 function M.paste_overwrite()
 	local files, mode = fm.paste_buffer_get()

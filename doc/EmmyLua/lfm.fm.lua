@@ -105,6 +105,14 @@ function lfm.fm.paste_buffer_get() end
 ---@param mode? pastemode (default: "copy")
 function lfm.fm.paste_buffer_set(files, mode) end
 
+---Get current paste mode.
+---@return pastemode mode
+function lfm.fm.paste_mode_get() end
+
+---Set current paste mode.
+---@param mode pastemode (default: "copy")
+function lfm.fm.paste_mode_set(mode) end
+
 ---Add the current selection to the load and change mode to MODE_MOVE.
 function lfm.fm.cut() end
 

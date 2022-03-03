@@ -1197,6 +1197,28 @@ static int l_fm_chdir(lua_State *L)
 }
 
 
+static int l_fm_paste_mode_get(lua_State *L)
+{
+	lua_pushstring(L, fm->paste.mode == PASTE_MODE_MOVE ? "move" : "copy");
+	return 1;
+}
+
+
+static int l_fm_paste_mode_set(lua_State *L)
+{
+	const char *mode = luaL_checkstring(L, 1);
+	if (streq(mode, "copy"))
+		fm->paste.mode = PASTE_MODE_COPY;
+	else if (streq(mode, "move"))
+		fm->paste.mode = PASTE_MODE_MOVE;
+	else
+		error("unrecognized paste mode: %s", mode);
+	ui_redraw(ui, REDRAW_FM);
+
+	return 0;
+}
+
+
 static int l_fm_paste_buffer_get(lua_State *L)
 {
 	lua_createtable(L, cvector_size(fm->paste.buffer), 0);
@@ -1204,14 +1226,7 @@ static int l_fm_paste_buffer_get(lua_State *L)
 		lua_pushstring(L, fm->paste.buffer[i]);
 		lua_rawseti(L, -2, i+1);
 	}
-	switch (fm->paste.mode) {
-		case PASTE_MODE_MOVE:
-			lua_pushstring(L, "move");
-			break;
-		case PASTE_MODE_COPY:
-			lua_pushstring(L, "copy");
-			break;
-	}
+	lua_pushstring(L, fm->paste.mode == PASTE_MODE_MOVE ? "move" : "copy");
 	return 2;
 }
 
@@ -1332,6 +1347,8 @@ static const struct luaL_Reg fm_lib[] = {
 	{"scroll_up", l_fm_scroll_up},
 	{"paste_buffer_get", l_fm_paste_buffer_get},
 	{"paste_buffer_set", l_fm_paste_buffer_set},
+	{"paste_mode_get", l_fm_paste_mode_get},
+	{"paste_mode_set", l_fm_paste_mode_set},
 	{"cut", l_fm_cut},
 	{"copy", l_fm_copy},
 	{"check", l_fm_check},
