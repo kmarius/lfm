@@ -1,3 +1,4 @@
+#include <bits/types.h>
 #include <dirent.h>
 #include <errno.h>
 #include <grp.h>
@@ -27,7 +28,8 @@ T *file_init(T *t, const char *dir, const char *name)
 	asprintf(&t->path, "%s/%s", isroot ? "" : dir, name);
 
 	if (lstat(t->path, &t->lstat) == -1) {
-		/* likely the file was deleted */
+		// possibly the file was deleted
+		// TODO: could also be a broken fuse mountpoint (on 2022-03-03)
 		free(t->path);
 		free(t);
 		return NULL;
@@ -51,8 +53,7 @@ T *file_init(T *t, const char *dir, const char *name)
 	t->hidden = *t->name == '.';
 	t->ext = strrchr(t->name, '.');
 	if (t->ext == t->name || file_isdir(t))
-		t->ext = NULL; /* hidden file */
-
+		t->ext = NULL;
 	t->isexec = t->stat.st_mode & (1 | 8 | 64);
 
 	return t;
@@ -82,7 +83,8 @@ void file_destroy(T *t)
 }
 
 
-uint32_t path_dircount_load(const char *path) {
+uint32_t path_dircount(const char *path)
+{
 	struct dirent *dp;
 
 	DIR *dirp = opendir(path);
@@ -98,7 +100,7 @@ uint32_t path_dircount_load(const char *path) {
 
 uint32_t file_dircount_load(T *t)
 {
-	return path_dircount_load(t->path);
+	return path_dircount(t->path);
 }
 
 
@@ -165,38 +167,39 @@ const char *file_perms(const T *t)
 const char* file_owner(const T *t)
 {
 	static char owner[32];
+	static uid_t cached_uid = UINT_MAX;
 	struct passwd *pwd;
-	if ((pwd = getpwuid(t->lstat.st_uid))) {
-		strncpy(owner, pwd->pw_name, sizeof(owner)-1);
-		owner[31] = 0;
-	} else {
-		owner[0] = 0;
-	}
 
+	if (t->lstat.st_uid != cached_uid) {
+		if ((pwd = getpwuid(t->lstat.st_uid))) {
+			strncpy(owner, pwd->pw_name, sizeof(owner)-1);
+			owner[sizeof(owner)-1] = 0;
+			cached_uid = t->lstat.st_uid;
+		} else {
+			owner[0] = 0;
+			cached_uid = INT_MAX;
+		}
+	}
 	return owner;
 }
 
 
-/* getgrgid() is somewhat slow, so we cache one call */
+// getgrgid() is somewhat slow, so we cache one call
 const char *file_group(const T *t)
 {
 	static char group[32];
-	static unsigned int cached_gid = INT_MAX;
+	static gid_t cached_gid = UINT_MAX;
 	struct group *grp;
 
-	if (t->lstat.st_gid == cached_gid)
-		return group;
-
-	if ((grp = getgrgid(t->lstat.st_gid))) {
-		strncpy(group, grp->gr_name, sizeof(group)-1);
-		group[31] = 0;
-		cached_gid = t->lstat.st_gid;
-	} else {
-		cached_gid = INT_MAX;
-		group[0] = 0;
+	if (t->lstat.st_gid != cached_gid) {
+		if ((grp = getgrgid(t->lstat.st_gid))) {
+			strncpy(group, grp->gr_name, sizeof(group)-1);
+			group[sizeof(group)-1] = 0;
+			cached_gid = t->lstat.st_gid;
+		} else {
+			group[0] = 0;
+			cached_gid = INT_MAX;
+		}
 	}
 	return group;
 }
-
-
-#undef T
