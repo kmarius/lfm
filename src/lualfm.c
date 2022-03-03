@@ -1195,11 +1195,9 @@ static int l_fm_selection_reverse(lua_State *L)
 static int l_fm_chdir(lua_State *L)
 {
 	char *path = path_qualify(luaL_optstring(L, 1, "~"));
-	const bool run_hooks = luaL_optbool(L, 2, true);
 	nohighlight(ui);
-	if (run_hooks)
-		lua_run_hook(L, LFM_HOOK_CHDIRPRE);
-	if (fm_chdir(fm, path, true) && run_hooks)
+	lua_run_hook(L, LFM_HOOK_CHDIRPRE);
+	if (fm_chdir(fm, path, true))
 		lua_run_hook(L, LFM_HOOK_CHDIRPOST);
 	ui_redraw(ui, REDRAW_FM);
 	free(path);

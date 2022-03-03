@@ -153,5 +153,4 @@ function lfm.fm.scroll_down() end
 
 ---Navigate to location given by dir
 ---@param dir string destination path
----@param run_hooks? boolean run Chdir{Pre,Post} hooks
-function lfm.fm.chdir(dir, run_hooks) end
+function lfm.fm.chdir(dir) end
