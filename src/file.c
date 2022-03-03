@@ -5,12 +5,13 @@
 #include <limits.h>
 #include <linux/limits.h> // PATH_MAX
 #include <pwd.h>
-#include <stdio.h> // asprintf
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h> // readlink
 
 #include "file.h"
+#include "util.h" // asprintf
 
 #define T File
 
