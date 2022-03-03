@@ -182,6 +182,8 @@ lfm.register_command("shell-bg", function(arg) shell.bash(arg, {files=shell.ARRA
 local opener = require("opener")
 lfm.opener = opener
 
+require("jumplist").setup()
+
 lfm.register_command("quit", lfm.quit)
 lfm.register_command("q", lfm.quit)
 lfm.register_command("set", set, {tokenize=true, compl=compl.limit(1, compl.options)})
