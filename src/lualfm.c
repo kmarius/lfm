@@ -1156,6 +1156,7 @@ static int l_fm_selection_set(lua_State *L)
 			cvector_push_back(selection, strdup(luaL_checkstring(L, -1)));
 	}
 	fm_selection_set(fm, selection);
+	ui_redraw(ui, REDRAW_FM);
 	return 0;
 }
 
@@ -1171,15 +1172,6 @@ static int l_fm_selection_get(lua_State *L)
 		}
 	}
 	return 1;
-}
-
-
-static int l_fm_selection_clear(lua_State *L)
-{
-	(void) L;
-	fm_selection_clear(fm);
-	ui_redraw(ui, REDRAW_FM);
-	return 0;
 }
 
 
@@ -1246,15 +1238,6 @@ static int l_fm_paste_buffer_set(lua_State *L)
 
 	ui_redraw(ui, REDRAW_FM);
 
-	return 0;
-}
-
-
-static int l_fm_paste_buffer_clear(lua_State *L)
-{
-	(void) L;
-	fm_paste_buffer_clear(fm);
-	ui_redraw(ui, REDRAW_FM);
 	return 0;
 }
 
@@ -1333,7 +1316,6 @@ static const struct luaL_Reg fm_lib[] = {
 	{"open", l_fm_open},
 	{"current_dir", l_fm_current_dir},
 	{"current_file", l_fm_current_file},
-	{"selection_clear", l_fm_selection_clear},
 	{"selection_reverse", l_fm_selection_reverse},
 	{"selection_toggle", l_fm_selection_toggle_current},
 	{"selection_add", l_fm_selection_add},
@@ -1350,7 +1332,6 @@ static const struct luaL_Reg fm_lib[] = {
 	{"scroll_up", l_fm_scroll_up},
 	{"paste_buffer_get", l_fm_paste_buffer_get},
 	{"paste_buffer_set", l_fm_paste_buffer_set},
-	{"paste_buffer_clear", l_fm_paste_buffer_clear},
 	{"cut", l_fm_cut},
 	{"copy", l_fm_copy},
 	{"check", l_fm_check},

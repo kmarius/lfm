@@ -32,9 +32,6 @@ function lfm.fm.current_dir() end
 ---@return string file
 function lfm.fm.current_file() end
 
----Clear the selection.
-function lfm.fm.selection_clear() end
-
 ---Reverse selection of files in the current directory.
 function lfm.fm.selection_reverse() end
 
@@ -45,7 +42,7 @@ function lfm.fm.selection_toggle() end
 ---@param files string[] table of strings.
 function lfm.fm.selection_add(files) end
 
----Set the current selection.
+---Set the current selection. Empty table or nil clears.
 ---@param files string[] table of strings.
 function lfm.fm.selection_set(files) end
 

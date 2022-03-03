@@ -5,7 +5,6 @@ local ui = lfm.ui
 local find = require("find").find
 local selection_set = fm.selection_set
 local basename = require("util").basename
-
 local M = {}
 
 -- TODO: should probably escape some special chars (on 2022-02-12)
@@ -56,7 +55,7 @@ end
 M.mode_glob_select = {
 	prefix = "glob-select: ",
 	on_enter = lfm.cmd.clear,
-	on_esc = function() lfm.cmd.clear() fm.selection_clear() end,
+	on_esc = function() lfm.cmd.clear() fm.selection_set({}) end,
 	on_change = function() M.glob_select(lfm.cmd.getline()) ui.draw() end,
 }
 
