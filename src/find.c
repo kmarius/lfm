@@ -1,21 +1,21 @@
 #include <stdbool.h>
+#include <stdint.h>
 
 #include "fm.h"
 #include "ui.h"
 #include "log.h"
 
-static char *find_prefix;
-
+static char *find_prefix = NULL;
 
 bool find(Fm *fm, Ui *ui, const char *prefix)
 {
 	find_prefix = strdup(prefix);
 
 	Dir *dir = fm_current_dir(fm);
-	uint16_t nmatches = 0;
-	uint16_t first_match;
-	for (uint16_t i = 0; i < dir->length; i++) {
-		const uint16_t ind = (dir->ind + i) % dir->length;
+	uint32_t nmatches = 0;
+	uint32_t first_match;
+	for (uint32_t i = 0; i < dir->length; i++) {
+		const uint32_t ind = (dir->ind + i) % dir->length;
 		if (hascaseprefix(file_name(dir->files[ind]), prefix)) {
 			if (nmatches == 0)
 				first_match = ind;
@@ -36,8 +36,8 @@ void find_next(Fm *fm, Ui *ui)
 		return;
 
 	Dir *dir = fm_current_dir(fm);
-	for (uint16_t i = 0; i < dir->length; i++) {
-		const uint16_t ind = (dir->ind + 1 + i) % dir->length;
+	for (uint32_t i = 0; i < dir->length; i++) {
+		const uint32_t ind = (dir->ind + 1 + i) % dir->length;
 		if (hascaseprefix(file_name(dir->files[ind]), find_prefix)) {
 			fm_cursor_move_to_ind(fm, ind);
 			ui_redraw(ui, REDRAW_FM);
@@ -53,8 +53,8 @@ void find_prev(Fm *fm, Ui *ui)
 		return;
 
 	Dir *dir = fm_current_dir(fm);
-	for (uint16_t i = 0; i < dir->length; i++) {
-		const uint16_t ind = (dir->ind - 1 - i + dir->length) % dir->length;
+	for (uint32_t i = 0; i < dir->length; i++) {
+		const uint32_t ind = (dir->ind - 1 - i + dir->length) % dir->length;
 		if (hascaseprefix(file_name(dir->files[ind]), find_prefix)) {
 			fm_cursor_move_to_ind(fm, ind);
 			ui_redraw(ui, REDRAW_FM);
