@@ -17,6 +17,7 @@ typedef struct File {
 	bool isexec;
 	bool hidden;
 	int32_t dircount; // in case of a directory, < 0 if not loaded yet
+	int error;
 } File;
 
 File *file_init(File *file, const char *dir, const char *name);
@@ -138,7 +139,12 @@ const char *file_group(const File *file);
 // Returns a readable string of the permissions, e.g. `rwxr--r--`.
 const char *file_perms(const File *file);
 
-static inline bool file_hidden(File *file)
+static inline bool file_hidden(const File *file)
 {
 	return file->hidden;
+}
+
+static inline int file_error(const File *file)
+{
+	return file->error;
 }

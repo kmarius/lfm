@@ -28,12 +28,21 @@ T *file_init(T *t, const char *dir, const char *name)
 	bool isroot = dir[1] == 0 && dir[0] == '/';
 	asprintf(&t->path, "%s/%s", isroot ? "" : dir, name);
 
+	t->name = strrchr(t->path, '/') + 1;
+	t->hidden = *t->name == '.';
+	t->ext = strrchr(t->name, '.');
+	if (t->ext == t->name)
+		t->ext = NULL;
+
 	if (lstat(t->path, &t->lstat) == -1) {
-		// possibly the file was deleted
-		// TODO: could also be a broken fuse mountpoint (on 2022-03-03)
-		free(t->path);
-		free(t);
-		return NULL;
+		if (errno == ENOENT) {
+			free(t->path);
+			free(t);
+			return NULL;
+		} else {
+			t->error = errno;
+			return t;
+		}
 	}
 
 	if (S_ISLNK(t->lstat.st_mode)) {
@@ -50,10 +59,7 @@ T *file_init(T *t, const char *dir, const char *name)
 		t->stat = t->lstat;
 	}
 
-	t->name = strrchr(t->path, '/') + 1;
-	t->hidden = *t->name == '.';
-	t->ext = strrchr(t->name, '.');
-	if (t->ext == t->name || file_isdir(t))
+	if (file_isdir(t))
 		t->ext = NULL;
 	t->isexec = t->stat.st_mode & (1 | 8 | 64);
 

@@ -374,17 +374,19 @@ static uint16_t int_sz(uint16_t n)
 
 void draw_cmdline(T *t)
 {
+	if (t->message)
+		return;
+
 	char nums[16];
 	char size[32];
 	char mtime[32];
 
-	if (t->message)
-		return;
+	struct ncplane *n = t->planes.cmdline;
 
-	ncplane_erase(t->planes.cmdline);
+	ncplane_erase(n);
 	/* sometimes the color is changed to grey */
-	ncplane_set_bg_default(t->planes.cmdline);
-	ncplane_set_fg_default(t->planes.cmdline);
+	ncplane_set_bg_default(n);
+	ncplane_set_fg_default(n);
 
 	uint16_t rhs_sz = 0;
 	uint16_t lhs_sz = 0;
@@ -394,52 +396,56 @@ void draw_cmdline(T *t)
 		if (dir) {
 			const File *file = dir_current_file(dir);
 			if (file) {
-				/* TODO: for empty directories, show the stat of the
-				 * directory instead? (on 2021-07-18) */
-				lhs_sz = ncplane_printf_yx(t->planes.cmdline, 0, 0,
-						"%s %2.ld %s %s %4s %s%s%s",
-						file_perms(file), file_nlink(file),
-						file_owner(file), file_group(file),
-						file_size_readable(file, size),
-						print_time(file_mtime(file), mtime, sizeof(mtime)),
-						file_islink(file) ? " -> " : "",
-						file_islink(file) ? file_link_target(file) : "");
+				if (file_error(file)) {
+					lhs_sz = ncplane_printf_yx(n, 0, 0,
+							"error: %s",
+							strerror(file_error(file)));
+				} else {
+					lhs_sz = ncplane_printf_yx(n, 0, 0,
+							"%s %2.ld %s %s %4s %s%s%s",
+							file_perms(file), file_nlink(file),
+							file_owner(file), file_group(file),
+							file_size_readable(file, size),
+							print_time(file_mtime(file), mtime, sizeof(mtime)),
+							file_islink(file) ? " -> " : "",
+							file_islink(file) ? file_link_target(file) : "");
+				}
 			}
 
 			rhs_sz = snprintf(nums, sizeof(nums), "%u/%u", dir->length > 0 ? dir->ind + 1 : 0, dir->length);
-			ncplane_putstr_yx(t->planes.cmdline, 0, t->ncol - rhs_sz, nums);
+			ncplane_putstr_yx(n, 0, t->ncol - rhs_sz, nums);
 
 			// these are drawn right to left
 			if (dir->filter) {
 				rhs_sz += mbstowcs(NULL, filter_string(dir->filter), 0) + 2 + 1;
-				ncplane_set_bg_palindex(t->planes.cmdline, COLOR_GREEN);
-				ncplane_set_fg_palindex(t->planes.cmdline, COLOR_BLACK);
-				ncplane_putchar_yx(t->planes.cmdline, 0, t->ncol - rhs_sz, ' ');
-				ncplane_putstr(t->planes.cmdline, filter_string(dir->filter));
-				ncplane_putchar(t->planes.cmdline, ' ');
-				ncplane_set_bg_default(t->planes.cmdline);
-				ncplane_set_fg_default(t->planes.cmdline);
-				ncplane_putchar(t->planes.cmdline, ' ');
+				ncplane_set_bg_palindex(n, COLOR_GREEN);
+				ncplane_set_fg_palindex(n, COLOR_BLACK);
+				ncplane_putchar_yx(n, 0, t->ncol - rhs_sz, ' ');
+				ncplane_putstr(n, filter_string(dir->filter));
+				ncplane_putchar(n, ' ');
+				ncplane_set_bg_default(n);
+				ncplane_set_fg_default(n);
+				ncplane_putchar(n, ' ');
 			}
 			if (cvector_size(t->fm->paste.buffer) > 0) {
 				if (t->fm->paste.mode == PASTE_MODE_COPY)
-					ncplane_set_channels(t->planes.cmdline, cfg.colors.copy);
+					ncplane_set_channels(n, cfg.colors.copy);
 				else
-					ncplane_set_channels(t->planes.cmdline, cfg.colors.delete);
+					ncplane_set_channels(n, cfg.colors.delete);
 
 				rhs_sz += int_sz(cvector_size(t->fm->paste.buffer)) + 2 + 1;
-				ncplane_printf_yx(t->planes.cmdline, 0, t->ncol-rhs_sz, " %lu ", cvector_size(t->fm->paste.buffer));
-				ncplane_set_bg_default(t->planes.cmdline);
-				ncplane_set_fg_default(t->planes.cmdline);
-				ncplane_putchar(t->planes.cmdline, ' ');
+				ncplane_printf_yx(n, 0, t->ncol-rhs_sz, " %lu ", cvector_size(t->fm->paste.buffer));
+				ncplane_set_bg_default(n);
+				ncplane_set_fg_default(n);
+				ncplane_putchar(n, ' ');
 			}
 			if (t->fm->selection.length > 0) {
-				ncplane_set_channels(t->planes.cmdline, cfg.colors.selection);
+				ncplane_set_channels(n, cfg.colors.selection);
 				rhs_sz += int_sz(t->fm->selection.length) + 2 + 1;
-				ncplane_printf_yx(t->planes.cmdline, 0, t->ncol - rhs_sz, " %d ", t->fm->selection.length);
-				ncplane_set_bg_default(t->planes.cmdline);
-				ncplane_set_fg_default(t->planes.cmdline);
-				ncplane_putchar(t->planes.cmdline, ' ');
+				ncplane_printf_yx(n, 0, t->ncol - rhs_sz, " %d ", t->fm->selection.length);
+				ncplane_set_bg_default(n);
+				ncplane_set_fg_default(n);
+				ncplane_putchar(n, ' ');
 			}
 			if (t->keyseq) {
 				char *str = NULL;
@@ -449,17 +455,17 @@ void draw_cmdline(T *t)
 				}
 				cvector_push_back(str, 0);
 				rhs_sz += mbstowcs(NULL, str, 0) + 1;
-				ncplane_putstr_yx(t->planes.cmdline, 0, t->ncol - rhs_sz, str);
-				ncplane_putchar(t->planes.cmdline, ' ');
+				ncplane_putstr_yx(n, 0, t->ncol - rhs_sz, str);
+				ncplane_putchar(n, ' ');
 				cvector_free(str);
 			}
 			if (lhs_sz + rhs_sz > t->ncol) {
-				ncplane_putwc_yx(t->planes.cmdline, 0, t->ncol - rhs_sz - 2, cfg.truncatechar);
-				ncplane_putchar(t->planes.cmdline, ' ');
+				ncplane_putwc_yx(n, 0, t->ncol - rhs_sz - 2, cfg.truncatechar);
+				ncplane_putchar(n, ' ');
 			}
 		}
 	} else {
-		const uint16_t cursor_pos = cmdline_print(&t->cmdline, t->planes.cmdline);
+		const uint16_t cursor_pos = cmdline_print(&t->cmdline, n);
 		notcurses_cursor_enable(t->nc, t->nrow - 1, cursor_pos);
 	}
 }
@@ -944,7 +950,7 @@ static void print_file(struct ncplane *n, const File *file,
 	if (file_isdir(file)) {
 		ncplane_set_channels(n, cfg.colors.dir);
 		ncplane_set_styles(n, NCSTYLE_BOLD);
-	} else if (file_isbroken(file)) {
+	} else if (file_isbroken(file) || file_error(file)) {
 		ncplane_set_channels(n, cfg.colors.broken);
 	} else if (file_isexec(file)) {
 		ncplane_set_channels(n, cfg.colors.exec);
