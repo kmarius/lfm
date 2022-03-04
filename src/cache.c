@@ -4,8 +4,8 @@
 #include <time.h>
 
 #include "cache.h"
-#include "util.h"
 #include "log.h"
+#include "util.h"
 
 #define TIME_T_MAX (time_t)((1UL << ((sizeof(time_t) << 3) - 1)) - 1)
 

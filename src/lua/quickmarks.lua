@@ -1,7 +1,7 @@
 local lfm = lfm
 local eval = lfm.eval
 local clear = lfm.cmd.clear
-local getline = lfm.cmd.getline
+local line_get = lfm.cmd.line_get
 
 -- TODO: there is also marks in fm.c, those should probably be removed, '' could
 -- be handled with hooks (on 2022-02-12)
@@ -42,7 +42,7 @@ M.mode_mark_save = {
 	on_enter = clear,
 	on_esc = clear,
 	on_change = function()
-		M.mark_save(getline())
+		M.mark_save(line_get())
 		clear()
 	end,
 }

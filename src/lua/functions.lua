@@ -64,9 +64,9 @@ function M.rename_until_ext()
 	if file then
 		local _, ext = file_split(file)
 		if not ext then
-			lfm.cmd.setline(":", "rename ", "")
+			lfm.cmd.line_set(":", "rename ", "")
 		else
-			lfm.cmd.setline(":", "rename ", "."..ext)
+			lfm.cmd.line_set(":", "rename ", "."..ext)
 		end
 	end
 end
@@ -77,21 +77,21 @@ function M.rename_before_ext()
 	if file then
 		local name, ext = file_split(file)
 		if not ext then
-			lfm.cmd.setline(":", "rename " .. file, "")
+			lfm.cmd.line_set(":", "rename " .. file, "")
 		else
-			lfm.cmd.setline(":", "rename "..name, "."..ext)
+			lfm.cmd.line_set(":", "rename "..name, "."..ext)
 		end
 	end
 end
 
 ---Populate the prompt to rename at the beginning of the file name.
 function M.rename_before()
-	lfm.cmd.setline(":", "rename ", basename(fm.current_file()))
+	lfm.cmd.line_set(":", "rename ", basename(fm.current_file()))
 end
 
 ---Populate the prompt to rename at the end of the file name.
 function M.rename_after()
-	lfm.cmd.setline(":", "rename " .. basename(fm.current_file()), "")
+	lfm.cmd.line_set(":", "rename " .. basename(fm.current_file()), "")
 end
 
 ---Create absolute symbolic links of the current load at the current location.

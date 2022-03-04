@@ -22,7 +22,7 @@ function M.open(...)
 		local match = M.query(files[1], {pick=pick, limit=1})[1]
 		if match then
 			if match.command == "ask" then
-				lfm.cmd.setline(":", "shell ", ' "${files[@]}"')
+				lfm.cmd.line_set(":", "shell ", ' "${files[@]}"')
 			else
 				shell.execute({"sh", "-c", match.command, "_", unpack(files)},
 				{fork=match.fork, out=false, err=false})
@@ -47,7 +47,7 @@ function M.ask()
 		for _, rule in pairs(M.query(file)) do
 			table.insert(menu, rule.number .. " " .. rule.command)
 		end
-		lfm.cmd.setline(":", "open ", "")
+		lfm.cmd.line_set(":", "open ", "")
 		ui.menu(menu)
 	end
 end

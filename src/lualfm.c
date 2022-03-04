@@ -20,7 +20,6 @@
 #include "find.h"
 #include "fm.h"
 #include "log.h"
-#include "lua.h"
 #include "lualfm.h"
 #include "notify.h"
 #include "opener.h"
@@ -888,8 +887,10 @@ static const struct luaL_Reg cmd_lib[] = {
 	{"delete_right", l_cmd_delete_right},
 	{"delete_word", l_cmd_delete_word},
 	{"_end", l_cmd_end},
-	{"getline", l_cmd_line_get},
-	{"getprefix", l_cmd_prefix_get},
+	{"line_get", l_cmd_line_get},
+	{"line_set", l_cmd_line_set},
+	{"prefix_get", l_cmd_prefix_get},
+	{"prefix_set", l_cmd_prefix_set},
 	{"home", l_cmd_home},
 	{"insert", l_cmd_insert},
 	{"left", l_cmd_left},
@@ -897,8 +898,6 @@ static const struct luaL_Reg cmd_lib[] = {
 	{"word_right", l_cmd_word_right},
 	{"delete_line_left", l_cmd_delete_line_left},
 	{"right", l_cmd_right},
-	{"setline", l_cmd_line_set},
-	{"setprefix", l_cmd_prefix_set},
 	{NULL, NULL}};
 
 /* }}} */

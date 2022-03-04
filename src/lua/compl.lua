@@ -1,7 +1,7 @@
 local lfm = lfm
 
-local getline = lfm.cmd.getline
-local setline = lfm.cmd.setline
+local line_get = lfm.cmd.line_get
+local line_set = lfm.cmd.line_set
 local commands = lfm.commands
 local lfs = require("lfs")
 
@@ -170,7 +170,7 @@ function M.limit(n, f)
 end
 
 local function shownext(increment)
-	local line = getline()
+	local line = line_get()
 
 	local prefix, tok = lfm.fn.split_last(line)
 	tok = lfm.fn.unquote_space(tok)
@@ -211,12 +211,12 @@ local function shownext(increment)
 		end
 	end
 	if #candidates == 1 then
-		setline(prefix..lfm.fn.quote_space(candidates[1])..sep)
+		line_set(prefix..lfm.fn.quote_space(candidates[1])..sep)
 		candidates = {}
 	else
 		ind = (ind - 1 + increment + #candidates) % #candidates + 1
 		if candidates[ind] then
-			setline(prefix..lfm.fn.quote_space(candidates[ind]))
+			line_set(prefix..lfm.fn.quote_space(candidates[ind]))
 		end
 	end
 end
