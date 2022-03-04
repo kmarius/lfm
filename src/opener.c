@@ -21,7 +21,7 @@
 // arbitrary, max binary name length for `has`
 #define EXECUTABLE_MAX 256
 
-#define BUFLEN 4096
+#define BUFSIZE 4096
 #define DELIM_CONDITION ","
 #define DELIM_COMMAND " = "
 
@@ -31,21 +31,21 @@ struct Condition;
 
 typedef bool(check_fun)(struct Condition *, const struct FileInfo *);
 
-struct Condition {
+typedef struct Condition {
 	bool negate;
 	char *arg;
 	check_fun *check;
-};
+} Condition;
 
-struct Rule {
-	struct Condition **conditions;
+typedef struct Rule {
+	Condition **conditions;
 	char *command;
 	char *label;
 	int number;
 	bool flag_fork;
 	bool flag_term;
 	bool flag_esc;
-};
+} Rule;
 
 typedef struct FileInfo {
 	const char *file;
@@ -53,17 +53,15 @@ typedef struct FileInfo {
 	const char *mime;
 } FileInfo;
 
-
 static struct {
 	char *config_file;
 } config = { NULL };
 
-static struct Rule **rules = NULL;
+static Rule **rules = NULL;
 
-
-static struct Condition *condition_create(check_fun *f, const char *arg, bool negate)
+static Condition *condition_create(check_fun *f, const char *arg, bool negate)
 {
-	struct Condition *cd = malloc(sizeof(struct Condition));
+	Condition *cd = malloc(sizeof(Condition));
 	cd->check = f;
 	cd->arg = arg ? strdup(arg) : NULL;
 	cd->negate = negate;
@@ -71,7 +69,7 @@ static struct Condition *condition_create(check_fun *f, const char *arg, bool ne
 }
 
 
-static void condition_destroy(struct Condition *cd)
+static void condition_destroy(Condition *cd)
 {
 	if (!cd)
 		return;
@@ -80,9 +78,9 @@ static void condition_destroy(struct Condition *cd)
 }
 
 
-static struct Rule *rule_create(const char *command)
+static Rule *rule_create(const char *command)
 {
-	struct Rule *rl = malloc(sizeof(struct Rule));
+	Rule *rl = malloc(sizeof(Rule));
 	rl->command = command ? strdup(command) : NULL;
 	rl->conditions = NULL;
 	rl->label = NULL;
@@ -94,7 +92,7 @@ static struct Rule *rule_create(const char *command)
 }
 
 
-static void rule_destroy(struct Rule *rl)
+static void rule_destroy(Rule *rl)
 {
 	if (rl)
 		return;
@@ -106,7 +104,7 @@ static void rule_destroy(struct Rule *rl)
 }
 
 
-static void rule_set_flags(struct Rule *r, const char *flags)
+static void rule_set_flags(Rule *r, const char *flags)
 {
 	const size_t len = strlen(flags);
 	for (size_t i = 0; i < len; ++i) {
@@ -181,7 +179,7 @@ static char *get_mimetype(const char *path, char *dest)
 }
 
 
-static bool check_fun_file(struct Condition *cd, const FileInfo *info)
+static bool check_fun_file(Condition *cd, const FileInfo *info)
 {
 	struct stat path_stat;
 	stat(info->file, &path_stat);
@@ -189,7 +187,7 @@ static bool check_fun_file(struct Condition *cd, const FileInfo *info)
 }
 
 
-static bool check_fun_dir(struct Condition *cd, const FileInfo *info)
+static bool check_fun_dir(Condition *cd, const FileInfo *info)
 {
 	struct stat statbuf;
 	if (stat(info->file, &statbuf) != 0)
@@ -198,14 +196,14 @@ static bool check_fun_dir(struct Condition *cd, const FileInfo *info)
 }
 
 
-static bool check_fun_term(struct Condition *cd, const FileInfo *info)
+static bool check_fun_term(Condition *cd, const FileInfo *info)
 {
 	(void) info;
 	return (isatty(0) && isatty(1) && isatty(2)) != cd->negate;
 }
 
 
-static bool check_fun_env(struct Condition *cd, const FileInfo *info)
+static bool check_fun_env(Condition *cd, const FileInfo *info)
 {
 	(void) info;
 	const char *val = getenv(cd->arg);
@@ -213,14 +211,14 @@ static bool check_fun_env(struct Condition *cd, const FileInfo *info)
 }
 
 
-static bool check_fun_else(struct Condition *cd, const FileInfo *info)
+static bool check_fun_else(Condition *cd, const FileInfo *info)
 {
 	(void) info;
 	return !cd->negate;
 }
 
 
-static bool check_fun_ext(struct Condition *cd, const FileInfo *info)
+static bool check_fun_ext(Condition *cd, const FileInfo *info)
 {
 	char *regex_str = malloc((strlen(cd->arg) + 8) * sizeof(char));
 	sprintf(regex_str, "\\.(%s)$", cd->arg);
@@ -230,19 +228,19 @@ static bool check_fun_ext(struct Condition *cd, const FileInfo *info)
 }
 
 
-static bool check_fun_path(struct Condition *cd, const FileInfo *info)
+static bool check_fun_path(Condition *cd, const FileInfo *info)
 {
 	return regex_match(cd->arg, info->path) != cd->negate;
 }
 
 
-static bool check_fun_mime(struct Condition *cd, const FileInfo *info)
+static bool check_fun_mime(Condition *cd, const FileInfo *info)
 {
 	return regex_match(cd->arg, info->mime) != cd->negate;
 }
 
 
-static bool check_fun_name(struct Condition *cd, const FileInfo *info)
+static bool check_fun_name(Condition *cd, const FileInfo *info)
 {
 	const char *ptr = info->file + strlen(info->file);
 	while (ptr > info->file && *(ptr - 1) != '/')
@@ -251,13 +249,13 @@ static bool check_fun_name(struct Condition *cd, const FileInfo *info)
 }
 
 
-static bool check_fun_match(struct Condition *cd, const FileInfo *info)
+static bool check_fun_match(Condition *cd, const FileInfo *info)
 {
 	return regex_match(cd->arg, info->file) != cd->negate;
 }
 
 
-static bool check_fun_has(struct Condition *cd, const FileInfo *info)
+static bool check_fun_has(Condition *cd, const FileInfo *info)
 {
 	(void) info;
 	char cmd[EXECUTABLE_MAX]; // arbitrary
@@ -284,7 +282,7 @@ static bool is_comment_or_whitespace(char* s)
 
 
 
-static bool rule_add_condition(struct Rule *r, char *cond_str)
+static bool rule_add_condition(Rule *r, char *cond_str)
 {
 	if (*cond_str == 0)
 		return true;
@@ -298,7 +296,7 @@ static bool rule_add_condition(struct Rule *r, char *cond_str)
 		func++;
 	}
 
-	struct Condition *c = NULL;
+	Condition *c = NULL;
 
 	if (streq(func, "file")) {
 		c = condition_create(check_fun_file, NULL, negate);
@@ -328,13 +326,13 @@ static bool rule_add_condition(struct Rule *r, char *cond_str)
 		} else if (streq(func, "ext")) {
 			c = condition_create(check_fun_ext, arg, negate);
 		} else if (streq(func, "path")) {
-			c = condition_create( check_fun_path, arg, negate);
+			c = condition_create(check_fun_path, arg, negate);
 		} else if (streq(func, "mime")) {
-			c = condition_create( check_fun_mime, arg, negate);
+			c = condition_create(check_fun_mime, arg, negate);
 		} else if (streq(func, "name")) {
-			c = condition_create( check_fun_name, arg, negate);
+			c = condition_create(check_fun_name, arg, negate);
 		} else if (streq(func, "match")) {
-			c = condition_create( check_fun_match, arg, negate);
+			c = condition_create(check_fun_match, arg, negate);
 		} else if (streq(func, "env")) {
 			c = condition_create(check_fun_env, arg, negate);
 		} else if (streq(func, "has")) {
@@ -352,14 +350,13 @@ static bool rule_add_condition(struct Rule *r, char *cond_str)
 }
 
 
-static struct Rule *parse_rule(char *rule, const char *command)
+static Rule *parse_rule(char *rule, const char *command)
 {
-	struct Rule *r = rule_create(command);
+	Rule *r = rule_create(command);
 
 	char *cond;
 	while ((cond = strtok_r(rule, DELIM_CONDITION, &rule))) {
-		bool ret = rule_add_condition(r, cond);
-		if (!ret) {
+		if (!rule_add_condition(r, cond)) {
 			rule_destroy(r);
 			return NULL;
 		}
@@ -369,7 +366,7 @@ static struct Rule *parse_rule(char *rule, const char *command)
 }
 
 
-static bool check_rule(struct Rule *r, const FileInfo *info)
+static bool check_rule(Rule *r, const FileInfo *info)
 {
 	for (size_t i = 0; i < cvector_size(r->conditions); i++) {
 		if (!r->conditions[i]->check(r->conditions[i], info))
@@ -379,8 +376,8 @@ static bool check_rule(struct Rule *r, const FileInfo *info)
 }
 
 
-
-static int l_opener_fileinfo(lua_State *L) {
+static int l_opener_fileinfo(lua_State *L)
+{
 	const char *file = luaL_checkstring(L, 1);
 
 	char path[PATH_MAX + 1];
@@ -403,7 +400,9 @@ static int l_opener_fileinfo(lua_State *L) {
 	return 1;
 }
 
-static int l_opener_query(lua_State *L) {
+
+static int l_opener_query(lua_State *L)
+{
 	const char *file = luaL_checkstring(L, 1);
 
 	int limit = 0;
@@ -443,7 +442,8 @@ static int l_opener_query(lua_State *L) {
 				const int ind = atoi(pick);
 				const bool ok = (ind != 0 || pick[0] == '0');
 				if ((ok && ind != ct_match-1) ||
-						(!ok && ((rules[j])->label == NULL || strcmp(pick, rules[j]->label) != 0)))
+						(!ok && ((rules[j])->label == NULL
+								 || strcmp(pick, rules[j]->label) != 0)))
 					continue;
 			}
 
@@ -478,13 +478,13 @@ static int l_opener_query(lua_State *L) {
 static void load_rules(lua_State *L, const char *config)
 {
 	(void) L;
-	char buf[BUFLEN];
+	char buf[BUFSIZE];
 
 	FILE *fp = fopen(config, "r");
 	if (!fp)
 		return;
 
-	while (fgets(buf, BUFLEN, fp) != NULL) {
+	while (fgets(buf, BUFSIZE, fp) != NULL) {
 		if (is_comment_or_whitespace(buf))
 			continue;
 
@@ -492,7 +492,7 @@ static void load_rules(lua_State *L, const char *config)
 		if (!command)
 			continue;
 
-		struct Rule *r = parse_rule(buf, command);
+		Rule *r = parse_rule(buf, command);
 		if (r)
 			cvector_push_back(rules, r);
 	}
@@ -522,7 +522,8 @@ static int l_opener_setup(lua_State *L)
 }
 
 
-static int l_opener_nrules(lua_State *L) {
+static int l_opener_nrules(lua_State *L)
+{
 	lua_pushinteger(L, cvector_size(rules));
 	return 1;
 }
@@ -568,7 +569,8 @@ int lua_register_opener(lua_State *L)
 }
 
 
-int lua_opener_clear(lua_State *L) {
+int lua_opener_clear(lua_State *L)
+{
 	(void) L;
 	cvector_ffree(rules, rule_destroy);
 	rules = NULL;
