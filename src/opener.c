@@ -94,7 +94,7 @@ static Rule *rule_create(const char *command)
 
 static void rule_destroy(Rule *rl)
 {
-	if (rl)
+	if (!rl)
 		return;
 
 	cvector_ffree(rl->conditions, condition_destroy);
