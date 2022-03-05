@@ -106,31 +106,18 @@ static void rule_destroy(Rule *rl)
 
 static void rule_set_flags(Rule *r, const char *flags)
 {
-	const size_t len = strlen(flags);
-	for (size_t i = 0; i < len; ++i) {
-		switch (flags[i]) {
-			case 'f':
-				r->flag_fork = true;
-				break;
-			case 't':
-				r->flag_term = true;
-				break;
-			case 'e':
-				r->flag_esc = true;
-				break;
+	for (const char *f = flags; *f; f++) {
+		switch (*f) {
+			case 'f': r->flag_fork = true; break;
+			case 't': r->flag_term = true; break;
+			case 'e': r->flag_esc = true;  break;
 		}
 	}
-	for (size_t i = 0; i < len; ++i) {
-		switch (flags[i]) {
-			case 'F':
-				r->flag_fork = false;
-				break;
-			case 'T':
-				r->flag_term = false;
-				break;
-			case 'E':
-				r->flag_esc = false;
-				break;
+	for (const char *f = flags; *f; f++) {
+		switch (*f) {
+			case 'F': r->flag_fork = false; break;
+			case 'T': r->flag_term = false; break;
+			case 'E': r->flag_esc = false;  break;
 		}
 	}
 }
