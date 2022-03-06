@@ -28,11 +28,11 @@ function lfm.cmd._end() end
 
 ---Get the current command line string.
 ---@return string
-function lfm.cmd.getline() end
+function lfm.cmd.line_get() end
 
 ---Get the current command line prefix.
 ---@return string prefix
-function lfm.cmd.getprefix() end
+function lfm.cmd.prefix_get() end
 
 ---Move cursor to the beginning.
 function lfm.cmd.home() end
@@ -51,8 +51,8 @@ function lfm.cmd.right() end
 ---sets the prefix. The cursor will be positioned between `left` and `right`.
 ---@param line string
 ---@overload fun(prefix: string, left: string, right: string)
-function lfm.cmd.setline(line) end
+function lfm.cmd.line_set(line) end
 
 ---Set the command line prefix.
 ---@param prefix string
-function lfm.cmd.setprefix(prefix) end
+function lfm.cmd.prefix_set(prefix) end
