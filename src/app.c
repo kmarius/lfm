@@ -12,6 +12,7 @@
 #include "app.h"
 #include "async.h"
 #include "config.h"
+#include "cvector.h"
 #include "keys.h"
 #include "log.h"
 #include "lualfm.h"
@@ -41,18 +42,15 @@ static App *app; /* only needed for print/error */
 static ev_io *add_io_watcher(T *t, FILE* f);
 static void app_read_fifo(T *t);
 
-
 static struct dir_load_data {
 	Dir *dir;
 	uint64_t time;
 } *dir_load_queue;
 
-
 struct stdout_watcher_data {
 	App *app;
 	FILE *stream;
 };
-
 
 struct child_watcher_data {
 	App *app;
@@ -60,6 +58,25 @@ struct child_watcher_data {
 	ev_io *stdout_watcher;
 	ev_io *stderr_watcher;
 };
+
+// watcher and corresponding stdout/-err watchers need to be stopped before
+// calling this function
+static inline void destroy_child_watcher(ev_child *w)
+{
+	if(!w)
+		return;
+
+	struct child_watcher_data *data = w->data;
+	if (data->stdout_watcher) {
+		free(data->stdout_watcher->data);
+		free(data->stdout_watcher);
+	}
+	if (data->stderr_watcher) {
+		free(data->stderr_watcher->data);
+		free(data->stderr_watcher);
+	}
+	free(w);
+}
 
 /* callbacks {{{ */
 
@@ -304,20 +321,13 @@ static void child_cb(EV_P_ ev_child *w, int revents)
 	if (data->cb_index > 0)
 		lua_run_callback(data->app->L, data->cb_index, w->rstatus);
 
-	if (data->stdout_watcher) {
+	if (data->stdout_watcher)
 		ev_io_stop(loop, data->stdout_watcher);
-		free(data->stdout_watcher->data);
-		free(data->stdout_watcher);
-	}
 
-	if (data->stderr_watcher) {
+	if (data->stderr_watcher)
 		ev_io_stop(loop, data->stderr_watcher);
-		free(data->stderr_watcher->data);
-		free(data->stderr_watcher);
-	}
 
-	free(data);
-	free(w);
+	destroy_child_watcher(w);
 }
 
 
@@ -549,20 +559,7 @@ void app_empyt_dir_load_queue(T *t)
 
 void app_deinit(T *t)
 {
-	for (size_t i = 0; i < cvector_size(t->child_watchers); i++) {
-		struct child_watcher_data *data = t->child_watchers[i]->data;
-		if (data->stdout_watcher) {
-			free(data->stdout_watcher->data);
-			free(data->stdout_watcher);
-		}
-		if (data->stderr_watcher) {
-			free(data->stderr_watcher->data);
-			free(data->stderr_watcher);
-		}
-		free(t->child_watchers[i]->data);
-		free(t->child_watchers[i]);
-	}
-
+	cvector_ffree(t->child_watchers, destroy_child_watcher);
 	cvector_free(dir_load_queue);
 	notify_deinit();
 	lua_deinit(t->L);
