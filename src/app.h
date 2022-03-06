@@ -49,7 +49,7 @@ void app_quit(App *app);
 void app_deinit(App *app);
 
 // That queue holds references to directories that are invalidated on drop_cache.
-void app_empyt_dir_load_queue(App *app);
+void app_empty_dir_load_queue(App *app);
 
 // Execute a command in the background and redirect its output/error to the ui
 // if `out` or `err` are set to `true`.

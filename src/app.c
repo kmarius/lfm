@@ -550,7 +550,7 @@ void app_timeout_set(T *t, uint16_t duration)
 }
 
 
-void app_empyt_dir_load_queue(T *t)
+void app_empty_dir_load_queue(T *t)
 {
 	(void) t;
 	cvector_set_size(dir_load_queue, 0);
