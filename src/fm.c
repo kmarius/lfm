@@ -296,6 +296,11 @@ static void fm_remove_preview(T *t)
 }
 
 
+// TODO: (on 2022-03-06)
+// We should set the watcher for the preview directory with a delay, i.e. after
+// on the directory for a second or so. This should greatly increase
+// responsiveness when scrolling through directories on a slow device (setting
+// watchers can be slow)
 void fm_update_preview(T *t)
 {
 	if (!cfg.preview) {
