@@ -14,6 +14,7 @@
 #include "config.h"
 #include "cvector.h"
 #include "dir.h"
+#include "file.h"
 #include "filter.h"
 #include "log.h"
 #include "ui.h"
@@ -33,7 +34,7 @@ static void draw_info(T *t);
 static void menu_resize(T *t);
 static char *ansi_consoom(struct ncplane *w, char *s);
 static void ansi_addstr(struct ncplane *n, char *s);
-static int print_shortened_w(struct ncplane *n, const wchar_t *name, int name_len, int max_len);
+static int print_shortened_w(struct ncplane *n, const wchar_t *name, int name_len, int max_len, bool has_ext);
 
 /* init/resize {{{ */
 
@@ -578,7 +579,7 @@ static void draw_info(T *t)
 		ncplane_cursor_yx(n, NULL, &remaining);
 		remaining = t->ncol - remaining;
 		ncplane_set_fg_default(n);
-		print_shortened_w(n, name, name_len, remaining);
+		print_shortened_w(n, name, name_len, remaining, !file_isdir(file));
 	}
 
 	free(path_);
@@ -688,12 +689,12 @@ static uint64_t ext_channel_find(const char *ext)
 
 
 /* TODO: we shouldn't shorten extensions on directories (on 2022-02-23) */
-static int print_shortened_w(struct ncplane *n, const wchar_t *name, int name_len, int max_len)
+static int print_shortened_w(struct ncplane *n, const wchar_t *name, int name_len, int max_len, bool has_ext)
 {
 	if (max_len <= 0)
 		return 0;
 
-	const wchar_t *ext = wcsrchr(name, L'.');
+	const wchar_t *ext = has_ext ? wcsrchr(name, L'.') : NULL;
 
 	if (!ext || ext == name)
 		ext = name + name_len;
@@ -731,20 +732,20 @@ static int print_shortened_w(struct ncplane *n, const wchar_t *name, int name_le
 	return x;
 }
 
-static inline int print_shortened(struct ncplane *n, const char *name, int max_len)
+static inline int print_shortened(struct ncplane *n, const char *name, int max_len, bool has_ext)
 {
 	if (max_len <= 0)
 		return 0;
 
 	int name_len;
 	wchar_t *namew = ambstowcs(name, &name_len);
-	int ret = print_shortened_w(n, namew, name_len, max_len);
+	int ret = print_shortened_w(n, namew, name_len, max_len, has_ext);
 	free(namew);
 	return ret;
 }
 
 
-static int print_highlighted_and_shortened(struct ncplane *n, const char *name, const char *hl, int max_len)
+static int print_highlighted_and_shortened(struct ncplane *n, const char *name, const char *hl, int max_len, bool has_ext)
 {
 	if (max_len <= 0)
 		return 0;
@@ -752,7 +753,7 @@ static int print_highlighted_and_shortened(struct ncplane *n, const char *name, 
 	int name_len, hl_len;
 	wchar_t *namew_ = ambstowcs(name, &name_len);
 	wchar_t *hlw = ambstowcs(hl, &hl_len);
-	wchar_t *extw = wcsrchr(namew_, L'.');
+	wchar_t *extw = has_ext ? wcsrchr(namew_, L'.') : NULL;
 	if (!extw || extw == namew_)
 		extw = namew_ + name_len;
 	int ext_len = name_len - (extw - namew_);
@@ -971,12 +972,10 @@ static void print_file(struct ncplane *n, const File *file,
 
 	const char *hlsubstr = highlight && highlight[0] ? strcasestr(file_name(file), highlight) : NULL;
 	const int left_space = ncol - 3 - rightmargin;
-	if (hlsubstr) {
-		x += print_highlighted_and_shortened(n, file_name(file), highlight, left_space);
-	}
-	else {
-		x += print_shortened(n, file_name(file), left_space);
-	}
+	if (hlsubstr)
+		x += print_highlighted_and_shortened(n, file_name(file), highlight, left_space, !file_isdir(file));
+	else
+		x += print_shortened(n, file_name(file), left_space, !file_isdir(file));
 
 	for (; x < ncol - rightmargin - 1; x++)
 		ncplane_putchar(n, ' ');
