@@ -391,7 +391,6 @@ static inline DirUpdateResult *DirUpdateResult_create(Dir *dir, Dir *update, uin
 struct dir_load_work {
 	Dir *dir;
 	char *path;
-	uint16_t delay;
 	bool dircounts;
 	uint8_t level;
 	uint8_t version;
@@ -401,9 +400,6 @@ struct dir_load_work {
 static void async_dir_load_worker(void *arg)
 {
 	struct dir_load_work *work = arg;
-
-	if (work->delay > 0)
-		msleep(work->delay);
 
 	Dir *dir;
 	if (work->level > 0)
@@ -432,12 +428,11 @@ static void async_dir_load_worker(void *arg)
 	free(work);
 }
 
-void async_dir_load_delayed(Dir *dir, bool dircounts, uint16_t delay /* millis */)
+void async_dir_load(Dir *dir, bool dircounts)
 {
 	struct dir_load_work *work = malloc(sizeof *work);
 	work->dir = dir;
 	work->path = strdup(dir->path);
-	work->delay = delay;
 	work->dircounts = dircounts;
 	work->level = dir->flatten_level;
 	work->version = dircache->version;

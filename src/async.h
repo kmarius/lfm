@@ -18,11 +18,8 @@ void async_deinit();
 // to trigger reloading the directory.
 void async_dir_check(Dir *dir);
 
-// Reloads `dir` from disk after `delay` milliseconds. Negative delays are ignored.
-void async_dir_load_delayed(Dir *dir, bool dircounts, uint16_t delay);
-
-// Loads `dir` from disk.
-#define async_dir_load(dir, dircounts) async_dir_load_delayed(dir, dircounts, 0)
+// Reloads `dir` from disk.
+void async_dir_load(Dir *dir, bool dircounts);
 
 // Check the modification time of `pv` on disk. Possibly generates a `res_t` to
 // trigger reloading the preview.
