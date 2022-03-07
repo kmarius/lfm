@@ -1,3 +1,4 @@
+#include <ev.h>
 #include <stdint.h>
 #include <sys/sysinfo.h>
 #include <errno.h>
@@ -12,9 +13,24 @@
 
 #define DIRCOUNT_THRESHOLD 200  // send batches of dircounts around every 200ms
 
-static tpool_t *async_tm = NULL;
-static Cache *dircache = NULL;
-static Cache *previewcache = NULL;
+typedef struct Result Result;
+
+typedef struct ResultQueue {
+	Result *head;
+	Result *tail;
+	pthread_mutex_t mutex;
+	ev_async *watcher;
+} ResultQueue;
+
+struct async_watcher_data {
+	App *app;
+	ResultQueue *queue;
+};
+
+
+static Result *resultqueue_get(ResultQueue *queue);
+static void result_process(Result *res, App *app);
+static void result_destroy(Result *res);
 
 static ResultQueue async_results = {
 	.head = NULL,
@@ -23,10 +39,29 @@ static ResultQueue async_results = {
 	.mutex = PTHREAD_MUTEX_INITIALIZER,
 };
 
-static void result_destroy(Result *res);
+static tpool_t *async_tm = NULL;
+static Cache *dircache = NULL;
+static Cache *previewcache = NULL;
+
+static void async_result_cb(EV_P_ ev_async *w, int revents)
+{
+	(void) revents;
+	struct async_watcher_data *data = w->data;
+	Result *res;
+
+	pthread_mutex_lock(&data->queue->mutex);
+	while ((res = resultqueue_get(data->queue)))
+		result_process(res, data->app);
+	pthread_mutex_unlock(&data->queue->mutex);
+
+	ev_idle_start(loop, &data->app->redraw_watcher);
+}
 
 void async_init(App *app)
 {
+	ev_async_init(&app->async_res_watcher, async_result_cb);
+	ev_async_start(app->loop, &app->async_res_watcher);
+
 	dircache = &app->fm.dirs.cache;
 	previewcache = &app->ui.preview.cache;
 
@@ -82,7 +117,7 @@ typedef struct Result {
 } Result;
 
 
-void result_process(Result *res, App *app)
+static void result_process(Result *res, App *app)
 {
 	res->vtable->process(res, app);
 }
@@ -106,7 +141,7 @@ static void resultqueue_put(ResultQueue *t, Result *res)
 }
 
 
-Result *resultqueue_get(ResultQueue *t)
+static Result *resultqueue_get(ResultQueue *t)
 {
 	Result *res = t->head;
 

@@ -80,20 +80,6 @@ static inline void destroy_child_watcher(ev_child *w)
 
 /* callbacks {{{ */
 
-static void async_result_cb(EV_P_ ev_async *w, int revents)
-{
-	(void) revents;
-	struct async_watcher_data *data = w->data;
-	Result *res;
-
-	pthread_mutex_lock(&data->queue->mutex);
-	while ((res = resultqueue_get(data->queue)))
-		result_process(res, data->app);
-	pthread_mutex_unlock(&data->queue->mutex);
-
-	ev_idle_start(loop, &data->app->redraw_watcher);
-}
-
 
 static void timer_cb(EV_P_ ev_timer *w, int revents)
 {
@@ -376,8 +362,6 @@ void app_init(T *t)
 
 	t->ui.messages = NULL; /* needed to keep errors on fm startup */
 
-	ev_async_init(&t->async_res_watcher, async_result_cb);
-	ev_async_start(t->loop, &t->async_res_watcher);
 	async_init(t);
 
 	fm_init(&t->fm);
