@@ -19,14 +19,12 @@ typedef struct ResultQueue {
 	Result *head;
 	Result *tail;
 	pthread_mutex_t mutex;
-	ev_async *watcher;
 } ResultQueue;
 
 struct async_watcher_data {
 	App *app;
 	ResultQueue *queue;
 };
-
 
 static Result *resultqueue_get(ResultQueue *queue);
 static void result_process(Result *res, App *app);
@@ -35,11 +33,11 @@ static void result_destroy(Result *res);
 static ResultQueue async_results = {
 	.head = NULL,
 	.tail = NULL,
-	.watcher = NULL,
 	.mutex = PTHREAD_MUTEX_INITIALIZER,
 };
 
 static tpool_t *async_tm = NULL;
+static ev_async async_res_watcher;
 static Cache *dircache = NULL;
 static Cache *previewcache = NULL;
 
@@ -59,8 +57,8 @@ static void async_result_cb(EV_P_ ev_async *w, int revents)
 
 void async_init(App *app)
 {
-	ev_async_init(&app->async_res_watcher, async_result_cb);
-	ev_async_start(app->loop, &app->async_res_watcher);
+	ev_async_init(&async_res_watcher, async_result_cb);
+	ev_async_start(app->loop, &async_res_watcher);
 
 	dircache = &app->fm.dirs.cache;
 	previewcache = &app->ui.preview.cache;
@@ -69,14 +67,13 @@ void async_init(App *app)
 		log_error("pthread_mutex_init: %s", strerror(errno));
 		exit(EXIT_FAILURE);
 	}
-	async_results.watcher = &app->async_res_watcher;
 
 	struct async_watcher_data *data = malloc(sizeof *data);
 	data->app = app;
 	data->queue = &async_results;
-	app->async_res_watcher.data = data;
+	async_res_watcher.data = data;
 
-	ev_async_send(EV_DEFAULT_ &app->async_res_watcher);
+	ev_async_send(EV_DEFAULT_ &async_res_watcher);
 
 	const size_t nthreads = get_nprocs() + 1;
 	async_tm = tpool_create(nthreads);
@@ -93,7 +90,7 @@ void async_deinit()
 	while ((res = resultqueue_get(&async_results)))
 		result_destroy(res);
 	pthread_mutex_destroy(&async_results.mutex);
-	free(async_results.watcher->data);
+	free(async_res_watcher.data);
 
 	dircache = NULL;
 	previewcache = NULL;
@@ -162,10 +159,7 @@ static inline void enqueue_and_signal(Result *res)
 	pthread_mutex_lock(&async_results.mutex);
 	resultqueue_put(&async_results, res);
 	pthread_mutex_unlock(&async_results.mutex);
-
-	if (async_results.watcher) {
-		ev_async_send(EV_DEFAULT_ async_results.watcher);
-	}
+	ev_async_send(EV_DEFAULT_ &async_res_watcher);
 }
 
 /* dir_check {{{ */

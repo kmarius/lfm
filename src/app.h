@@ -20,7 +20,6 @@ typedef struct App {
 	uint64_t input_timeout;
 
 	ev_io input_watcher;
-	ev_async async_res_watcher;
 	ev_idle redraw_watcher;
 	ev_io inotify_watcher;
 	ev_prepare prepare_watcher;
