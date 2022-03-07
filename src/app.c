@@ -88,7 +88,7 @@ static void async_result_cb(EV_P_ ev_async *w, int revents)
 
 	pthread_mutex_lock(&data->queue->mutex);
 	while ((res = resultqueue_get(data->queue)))
-		result_callback(res, data->app);
+		result_process(res, data->app);
 	pthread_mutex_unlock(&data->queue->mutex);
 
 	ev_idle_start(loop, &data->app->redraw_watcher);

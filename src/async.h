@@ -35,7 +35,7 @@ Result *resultqueue_get(ResultQueue *queue);
 void resultqueue_deinit(ResultQueue *queue);
 
 // Process the result and free its resources.
-void result_callback(Result *res, App *app);
+void result_process(Result *res, App *app);
 
 // Check the modification time of `dir` on disk. Possibly generates a `res_t`
 // to trigger reloading the directory.
