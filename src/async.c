@@ -221,7 +221,7 @@ void async_dir_check(Dir *dir)
  *
  * we could use the (currently useless) Dir.dircounts variable and also remove drop_caches.
  */
-typedef struct jDirCountResult {
+typedef struct DirCountResult {
 	Result super;
 	Dir *dir;
 	struct dircount {
@@ -424,14 +424,14 @@ void async_dir_load_delayed(Dir *dir, bool dircounts, uint16_t delay /* millis *
 
 /* preview_check {{{ */
 
-struct PreviewCheckResult {
+typedef struct PreviewCheckResult {
 	Result super;
 	char *path;
 	int nrow;
-};
+} PreviewCheckResult;
 
 
-static void PreviewCheckResult_process(struct PreviewCheckResult *res, App *app)
+static void PreviewCheckResult_process(PreviewCheckResult *res, App *app)
 {
 	(void) app;
 	Preview *pv = cache_find(&app->ui.preview.cache, res->path);
@@ -442,7 +442,7 @@ static void PreviewCheckResult_process(struct PreviewCheckResult *res, App *app)
 }
 
 
-static void PreviewCheckResult_destroy(struct PreviewCheckResult *res)
+static void PreviewCheckResult_destroy(PreviewCheckResult *res)
 {
 	free(res->path);
 	free(res);
@@ -455,9 +455,9 @@ static Result_vtable PrevewCheckResult_vtable = {
 };
 
 
-static inline struct PreviewCheckResult *PreviewCheckResult_create(char *path, int nrow)
+static inline PreviewCheckResult *PreviewCheckResult_create(char *path, int nrow)
 {
-	struct PreviewCheckResult *res = malloc(sizeof(struct PreviewCheckResult));
+	PreviewCheckResult *res = malloc(sizeof(PreviewCheckResult));
 	res->super.vtable = &PrevewCheckResult_vtable;
 	res->super.next = NULL;
 	res->path = path;
@@ -491,7 +491,7 @@ static void async_preview_check_worker(void *arg)
 	}
 
 	// takes ownership of work->path
-	struct PreviewCheckResult *res = PreviewCheckResult_create(work->path, work->nrow);
+	PreviewCheckResult *res = PreviewCheckResult_create(work->path, work->nrow);
 	enqueue_and_signal((Result *) res);
 
 cleanup:
