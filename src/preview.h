@@ -11,6 +11,7 @@ typedef struct Preview {
 	cvector_vector_type(char*) lines;
 	uint8_t nrow;
 	time_t mtime;
+	uint64_t loadtime;
 	bool loading;
 } Preview;
 

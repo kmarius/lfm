@@ -1,3 +1,4 @@
+#include <stdint.h>
 #include <sys/sysinfo.h>
 #include <errno.h>
 
@@ -469,6 +470,7 @@ struct preview_check_work {
 	char *path;
 	int nrow;
 	time_t mtime;
+	uint64_t loadtime;
 };
 
 
@@ -482,7 +484,8 @@ static void async_preview_check_worker(void *arg)
 		goto cleanup;
 	}
 
-	if (statbuf.st_mtime <= work->mtime) {
+	/* TODO: can we actually use st_mtim.tv_nsec? (on 2022-03-07) */
+	if (statbuf.st_mtime <= work->mtime && statbuf.st_mtime <= (long) (work->loadtime / 1000 - 1)) {
 		free(work->path);
 		goto cleanup;
 	}
@@ -502,6 +505,7 @@ void async_preview_check(Preview *pv)
 	work->path = strdup(pv->path);
 	work->nrow = pv->nrow;
 	work->mtime = pv->mtime;
+	work->loadtime = pv->loadtime;
 	tpool_add_work(async_tm, async_preview_check_worker, work);
 }
 

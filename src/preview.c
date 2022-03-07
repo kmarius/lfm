@@ -2,23 +2,25 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/stat.h>
+#include <time.h>
 
 #include "config.h"
 #include "log.h"
 #include "popen_arr.h"
 #include "preview.h"
+#include "util.h"
 
 #define T Preview
+
+#define PREVIEW_INITIALIZER ((T) {})
 
 #define PREVIEW_MAX_LINE_LENGTH 1024 // includes escapes and color codes
 
 static inline T *preview_init(T *t, const char *path, uint8_t nrow)
 {
+	*t = PREVIEW_INITIALIZER;
 	t->path = strdup(path);
-	t->lines = NULL;
-	t->mtime = 0;
 	t->nrow = nrow;
-	t->loading = false;
 	return t;
 }
 
@@ -59,6 +61,7 @@ void preview_update_with(T *t, Preview *update)
 	cvector_ffree(t->lines, free);
 	t->lines = update->lines;
 	t->mtime = update->mtime;
+	t->loadtime = update->loadtime;
 	t->loading = false;
 
 	free(update->path);
@@ -71,6 +74,7 @@ T *preview_create_from_file(const char *path, uint8_t nrow)
 	char buf[PREVIEW_MAX_LINE_LENGTH];
 
 	T *t = preview_create(path, nrow);
+	t->loadtime = current_millis();
 
 	struct stat statbuf;
 	t->mtime = stat(path, &statbuf) != -1 ? statbuf.st_mtime : 0;

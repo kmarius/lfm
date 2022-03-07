@@ -11,6 +11,7 @@
 
 #include "app.h"
 #include "async.h"
+#include "cache.h"
 #include "config.h"
 #include "cvector.h"
 #include "dir.h"
@@ -1053,6 +1054,7 @@ static Preview *load_preview(T *t, File *file)
 		}
 	} else {
 		pv = preview_create_loading(file_path(file), nrow);
+		cache_insert(&t->preview.cache, pv, pv->path, true);
 		async_preview_load(pv, nrow);
 	}
 	return pv;
@@ -1073,7 +1075,8 @@ static void update_preview(T *t)
 						async_preview_load(t->preview.preview, nrow);
 						t->preview.preview->loading = true;
 					} else {
-						async_preview_check(t->preview.preview);
+						if (t->preview.preview->loadtime + 500 <= current_millis())
+							async_preview_check(t->preview.preview);
 					}
 				}
 			} else {
