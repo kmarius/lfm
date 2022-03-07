@@ -23,29 +23,14 @@
 #define T App
 
 #define APP_INITIALIZER ((App){ \
-		.fifo_wd = -1, \
 		.fifo_fd = -1, \
-		.inotify_fd = -1, \
 		})
 
 #define TICK 1  /* seconds */
 
-/* Inotify: this is plenty of space, most file names are shorter and as long as
- * *one* event fits we should not get overwhelmed */
-#define EVENT_MAX 8
-#define EVENT_MAX_LEN 128  /* max filename length, arbitrary */
-#define EVENT_SIZE (sizeof(struct inotify_event))
-#define EVENT_BUFLEN (EVENT_MAX * (EVENT_SIZE + EVENT_MAX_LEN))
-
 static App *app; /* only needed for print/error */
 
 static ev_io *add_io_watcher(T *t, FILE* f);
-static void app_read_fifo(T *t);
-
-static struct dir_load_data {
-	Dir *dir;
-	uint64_t time;
-} *dir_load_queue;
 
 struct stdout_watcher_data {
 	App *app;
@@ -79,7 +64,6 @@ static inline void destroy_child_watcher(ev_child *w)
 }
 
 /* callbacks {{{ */
-
 
 static void timer_cb(EV_P_ ev_timer *w, int revents)
 {
@@ -136,116 +120,6 @@ static void command_stdout_cb(EV_P_ ev_io *w, int revents)
 		clearerr(data->stream);
 
 	ev_idle_start(loop, &data->app->redraw_watcher);
-}
-
-
-static void app_read_fifo(T *t)
-{
-	char buf[8192 * 2];
-	int nbytes;
-
-	if (t->fifo_fd <= 0)
-		return;
-
-	/* TODO: allocate string or use readline or something (on 2021-08-17) */
-	while ((nbytes = read(t->fifo_fd, buf, sizeof(buf))) > 0) {
-		buf[nbytes-1] = 0;
-		lua_eval(t->L, buf);
-	}
-	ev_idle_start(t->loop, &t->redraw_watcher);
-}
-
-/* TODO: refactor this, maybe put it in notify.c (on 2022-02-08) */
-/* get rid of app_empty_dir_load_queue */
-
-static inline void schedule_timer(struct ev_loop *loop, ev_timer *timer, uint64_t delay)
-{
-	timer->repeat = delay / 1000.;
-	ev_timer_again(loop, timer);
-}
-
-
-static inline void schedule_dir_load(struct ev_loop *loop, ev_timer *timer, Dir *dir, uint64_t time)
-{
-	cvector_push_back(dir_load_queue, ((struct dir_load_data) {dir, time}));
-	if (cvector_size(dir_load_queue) == 1 || dir_load_queue[0].time > time)
-		schedule_timer(loop, timer, time - current_millis());
-	cvector_upheap_min(dir_load_queue, cvector_size(dir_load_queue) - 1, .time);
-}
-
-
-static void dir_load_timer_cb(EV_P_ ev_timer *w, int revents)
-{
-	(void) w;
-	(void) revents;
-
-	if (cvector_size(dir_load_queue) == 0)
-		return;
-
-	async_dir_load(dir_load_queue[0].dir, true);
-	cvector_swap_erase(dir_load_queue, 0);
-
-	if (cvector_size(dir_load_queue) == 0)
-		return;
-
-	cvector_downheap_min(dir_load_queue, 0, .time);
-
-	const uint64_t now = current_millis();
-	if (dir_load_queue[0].time <= now)
-		dir_load_timer_cb(loop, w, 0);
-	else
-		schedule_timer(loop, w, dir_load_queue[0].time - now);
-}
-
-
-/* TODO: we currently don't notice if the current directory is deleted while
- * empty (on 2021-11-18) */
-static void inotify_cb(EV_P_ ev_io *w, int revents)
-{
-	(void) loop;
-	(void) revents;
-	App *app = w->data;
-	int nread;
-	char buf[EVENT_BUFLEN], *p;
-	struct inotify_event *event;
-
-	while ((nread = read(app->inotify_fd, buf, EVENT_BUFLEN)) > 0) {
-		for (p = buf; p < buf + nread; p += EVENT_SIZE + event->len) {
-			event = (struct inotify_event *) p;
-
-			if (event->len == 0)
-				continue;
-
-			// we use inotify for the fifo because io watchers dont seem to work properly
-			// with the fifo, the callback gets called every loop, even with clearerr
-			/* TODO: we could filter for our pipe here (on 2021-08-13) */
-			if (event->wd == app->fifo_wd) {
-				app_read_fifo(app);
-				continue;
-			}
-
-			struct notify_watcher_data *data = notify_get_watcher_data(event->wd);
-			if (!data)
-				continue;
-
-			const uint64_t now = current_millis();
-
-			const uint64_t latest = data->next;
-
-			if (latest >= now + NOTIFY_TIMEOUT)
-				continue; /* discard */
-
-			/*
-			 * add a small delay to address an issue where three reloads are
-			 * scheduled when events come in in quick succession
-			 */
-			const uint64_t next = now < latest + NOTIFY_TIMEOUT
-				? latest + NOTIFY_TIMEOUT + NOTIFY_DELAY
-				: now + NOTIFY_DELAY;
-			schedule_dir_load(loop, &app->dir_load_timer, data->dir, next);
-			data->next = next;
-		}
-	}
 }
 
 
@@ -333,16 +207,6 @@ void app_init(T *t)
 
 	t->loop = ev_default_loop(EVFLAG_NOENV);
 
-	/* inotify should be available on fm startup */
-	if ((t->inotify_fd = notify_init()) == -1) {
-		log_error("inotify: %s", strerror(errno));
-		exit(EXIT_FAILURE);
-	}
-
-	ev_io_init(&t->inotify_watcher, inotify_cb, t->inotify_fd, EV_READ);
-	t->inotify_watcher.data = t;
-	ev_io_start(t->loop, &t->inotify_watcher);
-
 	if (mkdir_p(cfg.rundir, 0700) == -1 && errno != EEXIST) {
 		fprintf(stderr, "mkdir: %s", strerror(errno));
 		exit(EXIT_FAILURE);
@@ -355,7 +219,8 @@ void app_init(T *t)
 	}
 	setenv("LFMFIFO", cfg.fifopath, 1);
 
-	if ((t->fifo_wd = inotify_add_watch(t->inotify_fd, cfg.rundir, IN_CLOSE_WRITE)) == -1) {
+	/* inotify should be available on fm startup */
+	if (notify_init(t) == -1) {
 		log_error("inotify: %s", strerror(errno));
 		exit(EXIT_FAILURE);
 	}
@@ -378,9 +243,6 @@ void app_init(T *t)
 	ev_timer_init(&t->timer_watcher, timer_cb, 0., TICK);
 	t->timer_watcher.data = t;
 	ev_timer_start(t->loop, &t->timer_watcher);
-
-	ev_init(&t->dir_load_timer, dir_load_timer_cb);
-	t->dir_load_timer.data = t;
 
 	ev_io_init(&t->input_watcher, stdin_cb, notcurses_inputready_fd(t->ui.nc), EV_READ);
 	t->input_watcher.data = t;
@@ -534,17 +396,26 @@ void app_timeout_set(T *t, uint16_t duration)
 }
 
 
-void app_empty_dir_load_queue(T *t)
+void app_read_fifo(T *t)
 {
-	(void) t;
-	cvector_set_size(dir_load_queue, 0);
+	char buf[8192 * 2];
+	int nbytes;
+
+	if (t->fifo_fd <= 0)
+		return;
+
+	/* TODO: allocate string or use readline or something (on 2021-08-17) */
+	while ((nbytes = read(t->fifo_fd, buf, sizeof(buf))) > 0) {
+		buf[nbytes-1] = 0;
+		lua_eval(t->L, buf);
+	}
+	ev_idle_start(t->loop, &t->redraw_watcher);
 }
 
 
 void app_deinit(T *t)
 {
 	cvector_ffree(t->child_watchers, destroy_child_watcher);
-	cvector_free(dir_load_queue);
 	notify_deinit();
 	lua_deinit(t->L);
 	ui_deinit(&t->ui);
@@ -554,5 +425,3 @@ void app_deinit(T *t)
 		close(t->fifo_fd);
 	remove(cfg.fifopath);
 }
-
-#undef T
