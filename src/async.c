@@ -23,7 +23,7 @@ static ResultQueue async_results = {
 	.mutex = PTHREAD_MUTEX_INITIALIZER,
 };
 
-static void result_destroy(struct Result *res);
+static void result_destroy(Result *res);
 
 void async_init(App *app)
 {
@@ -54,7 +54,7 @@ void async_deinit()
 	tpool_destroy(async_tm);
 	async_tm = NULL;
 
-	struct Result *res;
+	Result *res;
 	while ((res = resultqueue_get(&async_results)))
 		result_destroy(res);
 	pthread_mutex_destroy(&async_results.mutex);
@@ -70,31 +70,31 @@ void async_deinit()
  *
  * `destroy` shall completely free all resources of a Result.
  */
-struct Result_vtable {
-	void (*callback)(struct Result *, App *);
-	void (*destroy)(struct Result *);
-};
+typedef struct Result_vtable {
+	void (*callback)(Result *, App *);
+	void (*destroy)(Result *);
+} Result_vtable;
 
 
-struct Result {
-	struct Result_vtable *vtable;
+typedef struct Result {
+	Result_vtable *vtable;
 	struct Result *next;
-};
+} Result;
 
 
-void result_callback(struct Result *res, App *app)
+void result_callback(Result *res, App *app)
 {
 	res->vtable->callback(res, app);
 }
 
 
-static void result_destroy(struct Result *res)
+static void result_destroy(Result *res)
 {
 	res->vtable->destroy(res);
 }
 
 
-static void resultqueue_put(ResultQueue *t, struct Result *res)
+static void resultqueue_put(ResultQueue *t, Result *res)
 {
 	if (!t->head) {
 		t->head = res;
@@ -106,9 +106,9 @@ static void resultqueue_put(ResultQueue *t, struct Result *res)
 }
 
 
-struct Result *resultqueue_get(ResultQueue *t)
+Result *resultqueue_get(ResultQueue *t)
 {
-	struct Result *res = t->head;
+	Result *res = t->head;
 
 	if (!res)
 		return NULL;
@@ -122,7 +122,7 @@ struct Result *resultqueue_get(ResultQueue *t)
 }
 
 
-static inline void enqueue_and_signal(struct Result *res)
+static inline void enqueue_and_signal(Result *res)
 {
 	pthread_mutex_lock(&async_results.mutex);
 	resultqueue_put(&async_results, res);
@@ -136,15 +136,15 @@ static inline void enqueue_and_signal(struct Result *res)
 /* dir_check {{{ */
 
 
-struct DirCheckResult {
-	struct Result super;
+typedef struct DirCheckResult {
+	Result super;
 	Dir *dir;
-};
+} DirCheckResult;
 
 
 /* TODO: maybe on slow devices it is better to compare mtimes here? 2021-11-12 */
 /* currently we could just schedule reload from the other thread */
-static void DirCheckResult_callback(struct DirCheckResult *res, App *app)
+static void DirCheckResult_callback(DirCheckResult *res, App *app)
 {
 	(void) app;
 	async_dir_load(res->dir, true);
@@ -152,21 +152,21 @@ static void DirCheckResult_callback(struct DirCheckResult *res, App *app)
 }
 
 
-static void DirCheckResult_destroy(struct DirCheckResult *res)
+static void DirCheckResult_destroy(DirCheckResult *res)
 {
 	free(res);
 }
 
 
-static struct Result_vtable res_dir_check_vtable = {
-	(void (*)(struct Result *, App *)) &DirCheckResult_callback,
-	(void (*)(struct Result *)) &DirCheckResult_destroy,
+static Result_vtable res_dir_check_vtable = {
+	(void (*)(Result *, App *)) &DirCheckResult_callback,
+	(void (*)(Result *)) &DirCheckResult_destroy,
 };
 
 
-static inline struct DirCheckResult *DirCheckResult_create(Dir *dir)
+static inline DirCheckResult *DirCheckResult_create(Dir *dir)
 {
-	struct DirCheckResult *res = malloc(sizeof(struct DirCheckResult));
+	DirCheckResult *res = malloc(sizeof(DirCheckResult));
 	res->super.vtable = &res_dir_check_vtable;
 	res->dir = dir;
 	return res;
@@ -190,8 +190,8 @@ static void async_dir_check_worker(void *arg)
 	if (statbuf.st_mtime <= work->loadtime)
 		goto cleanup;
 
-	struct DirCheckResult *res = DirCheckResult_create(work->dir);
-	enqueue_and_signal((struct Result *) res);
+	DirCheckResult *res = DirCheckResult_create(work->dir);
+	enqueue_and_signal((Result *) res);
 
 cleanup:
 	free(work);
@@ -221,8 +221,8 @@ void async_dir_check(Dir *dir)
  *
  * we could use the (currently useless) Dir.dircounts variable and also remove drop_caches.
  */
-struct DirCountResult {
-	struct Result super;
+typedef struct jDirCountResult {
+	Result super;
 	Dir *dir;
 	struct dircount {
 		File *file;
@@ -230,7 +230,7 @@ struct DirCountResult {
 	} *dircounts;
 	bool last;
 	uint8_t version;
-};
+} DirCountResult;
 
 
 struct file_path {
@@ -239,7 +239,7 @@ struct file_path {
 };
 
 
-static void DirCountResult_callback(struct DirCountResult *res, App *app)
+static void DirCountResult_callback(DirCountResult *res, App *app)
 {
 	/* TODO: we need to make sure that the original files/dir don't get freed (on 2022-01-15) */
 	/* for now, just discard the dircount updates if any other update has been
@@ -257,22 +257,22 @@ static void DirCountResult_callback(struct DirCountResult *res, App *app)
 }
 
 
-static void DirCountResult_destroy(struct DirCountResult *res)
+static void DirCountResult_destroy(DirCountResult *res)
 {
 	cvector_free(res->dircounts);
 	free(res);
 }
 
 
-static struct Result_vtable DirCountResult_vtable = {
-	(void (*)(struct Result *, App *)) &DirCountResult_callback,
-	(void (*)(struct Result *)) &DirCountResult_destroy,
+static Result_vtable DirCountResult_vtable = {
+	(void (*)(Result *, App *)) &DirCountResult_callback,
+	(void (*)(Result *)) &DirCountResult_destroy,
 };
 
 
-static inline struct DirCountResult *DirCountResult_create(Dir *dir, struct dircount* files, uint8_t version, bool last)
+static inline DirCountResult *DirCountResult_create(Dir *dir, struct dircount* files, uint8_t version, bool last)
 {
-	struct DirCountResult *res = malloc(sizeof(struct DirCountResult));
+	DirCountResult *res = malloc(sizeof(DirCountResult));
 	res->super.vtable = &DirCountResult_vtable;
 	res->super.next = NULL;
 	res->dir = dir;
@@ -295,16 +295,16 @@ static void async_load_dircounts(Dir *dir, uint8_t version, uint16_t n, struct f
 		cvector_push_back(counts, ((struct dircount) {files[i].file, path_dircount(files[i].path)}));
 
 		if (current_millis() - latest > DIRCOUNT_THRESHOLD) {
-			struct DirCountResult *res = DirCountResult_create(dir, counts, version, false);
-			enqueue_and_signal((struct Result *) res);
+			DirCountResult *res = DirCountResult_create(dir, counts, version, false);
+			enqueue_and_signal((Result *) res);
 
 			counts = NULL;
 			latest = current_millis();
 		}
 	}
 
-	struct DirCountResult *res = DirCountResult_create(dir, counts, version, true);
-	enqueue_and_signal((struct Result *) res);
+	DirCountResult *res = DirCountResult_create(dir, counts, version, true);
+	enqueue_and_signal((Result *) res);
 
 	free(files);
 }
@@ -314,15 +314,15 @@ static void async_load_dircounts(Dir *dir, uint8_t version, uint16_t n, struct f
 /* dir_update {{{ */
 
 
-struct DirUpdateResult {
-	struct Result super;
+typedef struct DirUpdateResult {
+	Result super;
 	Dir *dir;
 	Dir *update;
 	uint8_t version;
-};
+} DirUpdateResult;
 
 
-static void DirUpdateResult_callback(struct DirUpdateResult *res, App *app)
+static void DirUpdateResult_callback(DirUpdateResult *res, App *app)
 {
 	if (res->version == dircache->version
 			&& res->dir->flatten_level == res->update->flatten_level) {
@@ -338,22 +338,22 @@ static void DirUpdateResult_callback(struct DirUpdateResult *res, App *app)
 }
 
 
-static void DirUpdateResult_destroy(struct DirUpdateResult *res)
+static void DirUpdateResult_destroy(DirUpdateResult *res)
 {
 	dir_destroy(res->update);
 	free(res);
 }
 
 
-static struct Result_vtable DirUpdateResult_vtable = {
-	(void (*)(struct Result *, App *)) &DirUpdateResult_callback,
-	(void (*)(struct Result *)) &DirUpdateResult_destroy,
+static Result_vtable DirUpdateResult_vtable = {
+	(void (*)(Result *, App *)) &DirUpdateResult_callback,
+	(void (*)(Result *)) &DirUpdateResult_destroy,
 };
 
 
-static inline struct DirUpdateResult *DirUpdateResult_create(Dir *dir, Dir *update, uint8_t version)
+static inline DirUpdateResult *DirUpdateResult_create(Dir *dir, Dir *update, uint8_t version)
 {
-	struct DirUpdateResult *res = malloc(sizeof(struct DirUpdateResult));
+	DirUpdateResult *res = malloc(sizeof(DirUpdateResult));
 	res->super.vtable = &DirUpdateResult_vtable;
 	res->super.next = NULL;
 	res->dir = dir;
@@ -386,7 +386,7 @@ static void async_dir_load_worker(void *arg)
 	else
 		dir = dir_load(work->path, work->dircounts);
 
-	struct DirUpdateResult *res = DirUpdateResult_create(work->dir, dir, work->version);
+	DirUpdateResult *res = DirUpdateResult_create(work->dir, dir, work->version);
 
 	const uint16_t nfiles = res->update->length_all;
 	struct file_path *files = NULL;
@@ -398,7 +398,7 @@ static void async_dir_load_worker(void *arg)
 		}
 	}
 
-	enqueue_and_signal((struct Result *) res);
+	enqueue_and_signal((Result *) res);
 
 	if (!work->dircounts && nfiles > 0)
 		async_load_dircounts(work->dir, work->version, nfiles, files);
@@ -425,7 +425,7 @@ void async_dir_load_delayed(Dir *dir, bool dircounts, uint16_t delay /* millis *
 /* preview_check {{{ */
 
 struct PreviewCheckResult {
-	struct Result super;
+	Result super;
 	char *path;
 	int nrow;
 };
@@ -449,9 +449,9 @@ static void PreviewCheckResult_destroy(struct PreviewCheckResult *res)
 }
 
 
-static struct Result_vtable PrevewCheckResult_vtable = {
-	(void (*)(struct Result *, App *)) &PreviewCheckResult_callback,
-	(void (*)(struct Result *)) &PreviewCheckResult_destroy,
+static Result_vtable PrevewCheckResult_vtable = {
+	(void (*)(Result *, App *)) &PreviewCheckResult_callback,
+	(void (*)(Result *)) &PreviewCheckResult_destroy,
 };
 
 
@@ -492,7 +492,7 @@ static void async_preview_check_worker(void *arg)
 
 	// takes ownership of work->path
 	struct PreviewCheckResult *res = PreviewCheckResult_create(work->path, work->nrow);
-	enqueue_and_signal((struct Result *) res);
+	enqueue_and_signal((Result *) res);
 
 cleanup:
 	free(work);
@@ -514,7 +514,7 @@ void async_preview_check(Preview *pv)
 /* preview_load {{{ */
 
 struct PreviewLoadResult {
-	struct Result super;
+	Result super;
 	Preview *preview;
 	Preview *update;
 	uint8_t version;
@@ -541,9 +541,9 @@ static void PreviewLoadResult_destroy(struct PreviewLoadResult *res)
 }
 
 
-static struct Result_vtable PreviewLoadResult_vtable = {
-	(void (*)(struct Result *, App *)) &PreviewLoadResult_callback,
-	(void (*)(struct Result *)) &PreviewLoadResult_destroy,
+static Result_vtable PreviewLoadResult_vtable = {
+	(void (*)(Result *, App *)) &PreviewLoadResult_callback,
+	(void (*)(Result *)) &PreviewLoadResult_destroy,
 };
 
 
@@ -575,7 +575,7 @@ static void async_preview_load_worker(void *arg)
 			work->preview,
 			preview_create_from_file(work->path, work->nrow),
 			work->version);
-	enqueue_and_signal((struct Result *) res);
+	enqueue_and_signal((Result *) res);
 
 	free(work->path);
 	free(work);

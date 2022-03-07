@@ -84,7 +84,7 @@ static void async_result_cb(EV_P_ ev_async *w, int revents)
 {
 	(void) revents;
 	struct async_watcher_data *data = w->data;
-	struct Result *res;
+	Result *res;
 
 	pthread_mutex_lock(&data->queue->mutex);
 	while ((res = resultqueue_get(data->queue)))
