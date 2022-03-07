@@ -10,7 +10,7 @@
 #include "ui.h"
 #include "util.h"
 
-#define DIRCOUNT_THRESHOLD 200 // send batches of dircounts around every 200ms
+#define DIRCOUNT_THRESHOLD 200  // send batches of dircounts around every 200ms
 
 static tpool_t *async_tm = NULL;
 static Cache *dircache = NULL;
@@ -36,14 +36,14 @@ void async_init(App *app)
 	}
 	async_results.watcher = &app->async_res_watcher;
 
-	struct async_watcher_data *async_res_watcher_data = malloc(sizeof(*async_res_watcher_data));
-	async_res_watcher_data->app = app;
-	async_res_watcher_data->queue = &async_results;
-	app->async_res_watcher.data = async_res_watcher_data;
+	struct async_watcher_data *data = malloc(sizeof *data);
+	data->app = app;
+	data->queue = &async_results;
+	app->async_res_watcher.data = data;
 
-	ev_async_send(EV_DEFAULT_ &app->async_res_watcher); /* results will arrive before the loop starts */
+	ev_async_send(EV_DEFAULT_ &app->async_res_watcher);
 
-	const size_t nthreads = get_nprocs()+1;
+	const size_t nthreads = get_nprocs() + 1;
 	async_tm = tpool_create(nthreads);
 }
 
@@ -142,8 +142,8 @@ typedef struct DirCheckResult {
 } DirCheckResult;
 
 
-/* TODO: maybe on slow devices it is better to compare mtimes here? 2021-11-12 */
-/* currently we could just schedule reload from the other thread */
+// TODO: maybe on slow devices it is better to compare mtimes here? 2021-11-12
+// currently we could just schedule reload from the other thread
 static void DirCheckResult_process(DirCheckResult *res, App *app)
 {
 	(void) app;
@@ -166,7 +166,7 @@ static Result_vtable res_dir_check_vtable = {
 
 static inline DirCheckResult *DirCheckResult_create(Dir *dir)
 {
-	DirCheckResult *res = malloc(sizeof(DirCheckResult));
+	DirCheckResult *res = malloc(sizeof *res);
 	res->super.vtable = &res_dir_check_vtable;
 	res->dir = dir;
 	return res;
@@ -200,7 +200,7 @@ cleanup:
 
 void async_dir_check(Dir *dir)
 {
-	struct dir_check_work *work = malloc(sizeof(struct dir_check_work));
+	struct dir_check_work *work = malloc(sizeof *work);
 	work->dir = dir;
 	work->loadtime = dir->load_time;
 	tpool_add_work(async_tm, async_dir_check_worker, work);
@@ -211,16 +211,6 @@ void async_dir_check(Dir *dir)
 
 /* dircount {{{ */
 
-/*
- * TODO: (on 2022-01-15)
- * Counting contents of directories asyncronuously relies on the original directory
- * and its files to exist during the whole process. If another dir update is somehow
- * faster and the update gets applied, the old files get deleted (has not happened so far).
- * If the dir gets deleted, either due to drop_caches or because it is purged from the cache,
- * the files also get deleted.
- *
- * we could use the (currently useless) Dir.dircounts variable and also remove drop_caches.
- */
 typedef struct DirCountResult {
 	Result super;
 	Dir *dir;
@@ -272,7 +262,7 @@ static Result_vtable DirCountResult_vtable = {
 
 static inline DirCountResult *DirCountResult_create(Dir *dir, struct dircount* files, uint8_t version, bool last)
 {
-	DirCountResult *res = malloc(sizeof(DirCountResult));
+	DirCountResult *res = malloc(sizeof *res);
 	res->super.vtable = &DirCountResult_vtable;
 	res->super.next = NULL;
 	res->dir = dir;
@@ -353,7 +343,7 @@ static Result_vtable DirUpdateResult_vtable = {
 
 static inline DirUpdateResult *DirUpdateResult_create(Dir *dir, Dir *update, uint8_t version)
 {
-	DirUpdateResult *res = malloc(sizeof(DirUpdateResult));
+	DirUpdateResult *res = malloc(sizeof *res);
 	res->super.vtable = &DirUpdateResult_vtable;
 	res->super.next = NULL;
 	res->dir = dir;
@@ -391,7 +381,7 @@ static void async_dir_load_worker(void *arg)
 	const uint16_t nfiles = res->update->length_all;
 	struct file_path *files = NULL;
 	if (!work->dircounts && nfiles > 0) {
-		files = malloc(nfiles * sizeof(struct file_path));
+		files = malloc(nfiles * sizeof(*files));
 		for (uint16_t i = 0; i < nfiles; i++) {
 			files[i].file = res->update->files_all[i];
 			files[i].path = strdup(res->update->files_all[i]->path);
@@ -409,7 +399,7 @@ static void async_dir_load_worker(void *arg)
 
 void async_dir_load_delayed(Dir *dir, bool dircounts, uint16_t delay /* millis */)
 {
-	struct dir_load_work *work = malloc(sizeof(struct dir_load_work));
+	struct dir_load_work *work = malloc(sizeof *work);
 	work->dir = dir;
 	work->path = strdup(dir->path);
 	work->delay = delay;
@@ -457,7 +447,7 @@ static Result_vtable PrevewCheckResult_vtable = {
 
 static inline PreviewCheckResult *PreviewCheckResult_create(char *path, int nrow)
 {
-	PreviewCheckResult *res = malloc(sizeof(PreviewCheckResult));
+	PreviewCheckResult *res = malloc(sizeof *res);
 	res->super.vtable = &PrevewCheckResult_vtable;
 	res->super.next = NULL;
 	res->path = path;
@@ -501,7 +491,7 @@ cleanup:
 
 void async_preview_check(Preview *pv)
 {
-	struct preview_check_work *work = malloc(sizeof(struct preview_check_work));
+	struct preview_check_work *work = malloc(sizeof *work);
 	work->path = strdup(pv->path);
 	work->nrow = pv->nrow;
 	work->mtime = pv->mtime;
@@ -550,7 +540,7 @@ static Result_vtable PreviewLoadResult_vtable = {
 
 static inline PreviewLoadResult *PreviewLoadResult_create(Preview *preview, Preview *update, uint8_t version)
 {
-	PreviewLoadResult *res = malloc(sizeof(PreviewLoadResult));
+	PreviewLoadResult *res = malloc(sizeof *res);
 	res->super.vtable = &PreviewLoadResult_vtable;
 	res->super.next = NULL;
 	res->preview = preview;
@@ -585,7 +575,7 @@ static void async_preview_load_worker(void *arg)
 
 void async_preview_load(Preview *pv, uint16_t nrow)
 {
-	struct preview_load_work *work = malloc(sizeof(struct preview_load_work));
+	struct preview_load_work *work = malloc(sizeof *work);
 	work->preview = pv;
 	work->path = strdup(pv->path);
 	work->nrow = nrow;
