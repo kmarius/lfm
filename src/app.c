@@ -403,17 +403,17 @@ void app_read_fifo(T *t)
 		buf[nbytes - 1] = 0;
 		lua_eval(t->L, buf);
 	} else {
-		size_t len = 0;
 		size_t cap = 2 * sizeof(buf) / sizeof(*buf);
 		char *dyn = malloc(cap * sizeof(*dyn));
-		do {
-			if (len + nbytes + 1 > cap) {
-				cap *= 2;
-				dyn = realloc(dyn, cap * sizeof(char));
-			}
-			memcpy(dyn + len, buf, nbytes);
+		size_t len = nbytes;
+		memcpy(dyn, buf, nbytes);
+		while ((nbytes = read(t->fifo_fd, dyn + len, cap - len)) > 0) {
 			len += nbytes;
-		} while ((nbytes = read(t->fifo_fd, buf, sizeof buf)) > 0);
+			if (len == cap) {
+				cap *= 2;
+				dyn = realloc(dyn, cap * sizeof(*dyn));
+			}
+		}
 		dyn[len] = 0;
 		lua_eval(t->L, dyn);
 		free(dyn);
