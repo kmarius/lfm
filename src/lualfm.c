@@ -20,6 +20,7 @@
 #include "find.h"
 #include "fm.h"
 #include "log.h"
+#include "lua.h"
 #include "lualfm.h"
 #include "notify.h"
 #include "opener.h"
@@ -1234,12 +1235,13 @@ static int l_fm_paste_buffer_set(lua_State *L)
 {
 	fm_paste_buffer_clear(fm);
 
-	luaL_checktype(L, 1, LUA_TTABLE);
-	const size_t l = lua_objlen(L, 1);
-	for (size_t i = 0; i < l; i++) {
-		lua_rawgeti(L, 1, i + 1);
-		fm_paste_buffer_add(fm, lua_tostring(L, -1));
-		lua_pop(L, 1);
+	if (lua_type(L, 1) == LUA_TTABLE) {
+		const size_t l = lua_objlen(L, 1);
+		for (size_t i = 0; i < l; i++) {
+			lua_rawgeti(L, 1, i + 1);
+			fm_paste_buffer_add(fm, lua_tostring(L, -1));
+			lua_pop(L, 1);
+		}
 	}
 
 	const char *mode = luaL_optstring(L, 2, "copy");

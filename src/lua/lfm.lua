@@ -402,7 +402,7 @@ map("S", shell.fish("env LF_LEVEL=1 fish -C clear", {files=shell.ARRAY}), {desc=
 map("<Space>", c(fm.selection_toggle, fm.down), {desc="select current file"})
 map("v", fm.selection_reverse, {desc="reverse selection"})
 map("V", fm.visual_toggle, {desc="toggle visual selection mode"})
-map("uv", c(fm.paste_buffer_clear, fm.selection_set), {desc="selection-clear"})
+map("uv", c(fm.paste_buffer_set, fm.selection_set), {desc="selection-clear"})
 
 -- Navigation
 map("<Enter>", opener.open, "open")

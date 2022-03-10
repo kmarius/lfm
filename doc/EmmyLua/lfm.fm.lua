@@ -100,7 +100,7 @@ function lfm.fm.updir() end
 ---@return pastemode mode
 function lfm.fm.paste_buffer_get() end
 
----Set the current paste buffer and mode.
+---Set the current paste buffer and mode. nil or {} clears the buffer.
 ---@param files string[]
 ---@param mode? pastemode (default: "copy")
 function lfm.fm.paste_buffer_set(files, mode) end
