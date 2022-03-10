@@ -418,6 +418,8 @@ void app_read_fifo(T *t)
 		lua_eval(t->L, dyn);
 		free(dyn);
 	}
+
+	ev_idle_start(t->loop, &app->redraw_watcher);
 }
 
 
