@@ -20,7 +20,6 @@
 #include "find.h"
 #include "fm.h"
 #include "log.h"
-#include "lua.h"
 #include "lualfm.h"
 #include "notify.h"
 #include "opener.h"
