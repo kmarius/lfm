@@ -390,12 +390,6 @@ void error(const char *format, ...)
 }
 
 
-void app_timeout_set(T *t, uint16_t duration)
-{
-	t->input_timeout = current_millis() + duration;
-}
-
-
 void app_read_fifo(T *t)
 {
 	char buf[512];

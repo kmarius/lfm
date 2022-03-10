@@ -28,7 +28,10 @@ typedef struct App {
 } App;
 
 // Set input timout. Key input will be ignored for the next `duration` ms.
-void app_timeout_set(App *app, uint16_t duration);
+static inline void app_timeout_set(App *app, uint16_t duration)
+{
+	app->input_timeout = current_millis() + duration;
+}
 
 // Try reading from the $LFMFIFO
 void app_read_fifo(App *app);
