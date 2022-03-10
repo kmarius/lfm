@@ -1473,8 +1473,7 @@ static const struct luaL_Reg fn_lib[] = {
 void lua_run_hook(lua_State *L, const char *hook)
 {
 	lua_getglobal(L, "lfm");
-	lua_pushliteral(L, "run_hook");
-	lua_gettable(L, -2);
+	lua_getfield(L, -1, "run_hook");
 	lua_pushstring(L, hook);
 	if (lua_pcall(L, 1, 0, 0))
 		ui_error(ui, "run_hook: %s", lua_tostring(L, -1));
@@ -1485,8 +1484,7 @@ void lua_eval(lua_State *L, const char *expr)
 {
 	log_debug("eval %s", expr);
 	lua_getglobal(L, "lfm");
-	lua_pushliteral(L, "eval");
-	lua_gettable(L, -2);
+	lua_getfield(L, -1, "eval");
 	lua_pushstring(L, expr);
 	if (lua_pcall(L, 1, 0, 0))
 		ui_error(ui, "eval: %s", lua_tostring(L, -1));
