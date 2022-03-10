@@ -398,18 +398,32 @@ void app_timeout_set(T *t, uint16_t duration)
 
 void app_read_fifo(T *t)
 {
-	char buf[8192 * 2];
-	int nbytes;
+	char buf[512];
 
-	if (t->fifo_fd <= 0)
+	ssize_t nbytes = read(t->fifo_fd, buf, sizeof buf);
+
+	if (nbytes <= 0)
 		return;
 
-	/* TODO: allocate string or use readline or something (on 2021-08-17) */
-	while ((nbytes = read(t->fifo_fd, buf, sizeof(buf))) > 0) {
-		buf[nbytes-1] = 0;
+	if ((size_t) nbytes < sizeof buf) {
+		buf[nbytes - 1] = 0;
 		lua_eval(t->L, buf);
+	} else {
+		size_t len = 0;
+		size_t cap = 2 * sizeof(buf) / sizeof(*buf);
+		char *dyn = malloc(cap * sizeof(*dyn));
+		do {
+			if (len + nbytes + 1 > cap) {
+				cap *= 2;
+				dyn = realloc(dyn, cap * sizeof(char));
+			}
+			memcpy(dyn + len, buf, nbytes);
+			len += nbytes;
+		} while ((nbytes = read(t->fifo_fd, buf, sizeof buf)) > 0);
+		dyn[len] = 0;
+		lua_eval(t->L, dyn);
+		free(dyn);
 	}
-	ev_idle_start(t->loop, &t->redraw_watcher);
 }
 
 
