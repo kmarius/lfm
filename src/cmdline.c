@@ -15,11 +15,12 @@
 	} while (0)
 
 
-#define ENSURE_CAPACITY(vec, sz) \
+#define ENSURE_CAPACITY(vec, _sz) \
 	do { \
-		if ((vec).cap < sz) { \
-			while ((vec).cap < sz) \
-			(vec).cap *= 2; \
+		const size_t v_sz = _sz; \
+		if ((vec).cap < v_sz) { \
+			while ((vec).cap < v_sz) \
+				(vec).cap *= 2; \
 			(vec).str = realloc((vec).str, sizeof(*vec.str) * (vec).cap * 2 + 1); \
 		} \
 	} while (0)
@@ -31,24 +32,24 @@
 
 #define SHIFT_RIGHT(t, _sz) \
 	do { \
-		size_t sz = _sz; \
+		const size_t sz = _sz; \
 		ENSURE_SPACE((t)->right, sz); \
-		memmove((t)->right.str + (sz), (t)->right.str, sizeof(wchar_t)*((t)->right.len+1)); \
-		memcpy((t)->right.str, (t)->left.str + (t)->left.len - (sz), sizeof(wchar_t)*(sz)); \
-		(t)->right.len += (sz); \
-		(t)->left.len -= (sz); \
+		memmove((t)->right.str + sz, (t)->right.str, sizeof(wchar_t)*((t)->right.len+1)); \
+		memcpy((t)->right.str, (t)->left.str + (t)->left.len - sz, sizeof(wchar_t)*sz); \
+		(t)->right.len += sz; \
+		(t)->left.len -= sz; \
 		(t)->left.str[(t)->left.len] = 0; \
 	} while (0)
 
 
 #define SHIFT_LEFT(t, _sz) \
 	do { \
-		size_t sz = _sz; \
+		const size_t sz = _sz; \
 		ENSURE_SPACE((t)->left, sz); \
-		memcpy((t)->left.str + (t)->left.len, (t)->right.str, sizeof(wchar_t)*(sz)); \
-		memmove((t)->right.str, (t)->right.str + (sz), sizeof(wchar_t)*((t)->right.len-(sz)+1)); \
-		(t)->right.len -= (sz); \
-		(t)->left.len += (sz); \
+		memcpy((t)->left.str + (t)->left.len, (t)->right.str, sizeof(wchar_t)*sz); \
+		memmove((t)->right.str, (t)->right.str + sz, sizeof(wchar_t)*((t)->right.len-sz+1)); \
+		(t)->right.len -= sz; \
+		(t)->left.len += sz; \
 		(t)->left.str[(t)->left.len] = 0; \
 	} while (0)
 
