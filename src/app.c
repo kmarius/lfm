@@ -296,12 +296,12 @@ static ev_io *add_io_watcher(T *t, FILE* f)
 		return NULL;
 	}
 
-	ev_io *w = malloc(sizeof(ev_io));
+	ev_io *w = malloc(sizeof *w);
 	int flags = fcntl(fileno(f), F_GETFL, 0);
 	fcntl(fileno(f), F_SETFL, flags | O_NONBLOCK);
 	ev_io_init(w, command_stdout_cb, fileno(f), EV_READ);
 
-	struct stdout_watcher_data *data = malloc(sizeof(struct stdout_watcher_data));
+	struct stdout_watcher_data *data = malloc(sizeof *data);
 	data->app = t;
 	data->stream = f;
 	w->data = data;
@@ -314,10 +314,10 @@ static ev_io *add_io_watcher(T *t, FILE* f)
 
 static void add_child_watcher(T *t, int pid, int cb_index, ev_io *stdout_watcher, ev_io *stderr_watcher)
 {
-	ev_child *w = malloc(sizeof(ev_child));
+	ev_child *w = malloc(sizeof *w);
 	ev_child_init(w, child_cb, pid, 0);
 
-	struct child_watcher_data *data = malloc(sizeof(struct child_watcher_data));
+	struct child_watcher_data *data = malloc(sizeof *data);
 	data->cb_index = cb_index > 0 ? cb_index : 0;
 	data->app = t;
 	data->stderr_watcher = stderr_watcher;
