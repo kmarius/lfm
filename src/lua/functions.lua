@@ -129,34 +129,49 @@ function M.follow_link()
 	end
 end
 
+-- TODO: this is useful, expose it somewhere (on 2022-03-11)
+local function chain(f, args, opts)
+	args = args or {}
+	opts = opts or {}
+	local co
+	local resume = function(r) coroutine.resume(co, r) end
+	co = coroutine.create(function()
+		for _, c in ipairs(args) do
+			f(c, resume)
+			if coroutine.yield(co) ~= 0 and opts.errexit then
+				return
+			end
+		end
+	end)
+	coroutine.resume(co)
+end
+
 ---Paste the load in the current directory, making backups of existing files.
 function M.paste()
 	local files, mode = fm.paste_buffer_get()
 	if #files == 0 then
 		return
 	end
-	if mode == "move" then
-		local cmd = {"mv", "--backup=numbered", "--", unpack(files)}
-		table.insert(cmd, ".")
-		lfm.execute(cmd, {fork=true})
-	elseif mode == "copy" then
-		-- TODO: filter out files that already in the target directory (on 2021-08-19)
-		-- the following does not work if source and target are the same but
-		-- the paths differ (because of symlinks), this is a limitation of cp, not the filtering done here
-		local pwd = os.getenv("PWD")
-		for i, file in pairs(files) do
-			if dirname(file) == pwd then
-				lfm.execute({"cp", "-r", "--backup=numbered", "--force", "--", file, file}, {fork=true})
-				table.remove(files, i)
-			end
+	local pwd = lfm.fn.getpwd()
+	--- spawning all these shells is fine with a sane amount of files
+	local attributes = lfs.attributes
+	local format = string.format
+	local execute = lfm.execute
+	chain(function(file, resume)
+		local base = basename(file)
+		local target = pwd.."/"..base
+		local num = 1
+		while attributes(target, "mode") do
+			target = format("%s/%s.~%d~", pwd, base, num)
+			num = num + 1
 		end
-		if #files > 0 then
-			local cmd = {"cp", "-r", "--backup=numbered", "--force", "-t", ".", "--", unpack(files)}
-			lfm.execute(cmd, {fork=true})
+		if mode == "move" then
+			execute({"mv", "--", file, target}, {callback=resume, fork=true, out=false})
+		else
+			execute({"cp", "-r", "--", file, target}, {callback=resume, fork=true, out=false})
 		end
-	else
-		-- not reached
-	end
+	end,
+	files, {errexit=true})
 	fm.paste_buffer_set({})
 end
 
