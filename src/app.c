@@ -46,20 +46,25 @@ struct child_watcher_data {
 
 // watcher and corresponding stdout/-err watchers need to be stopped before
 // calling this function
+static inline void destroy_io_watcher(ev_io *w)
+{
+	if (!w)
+		return;
+
+	struct stdout_watcher_data * data = w->data;
+	fclose(data->stream);
+	free(data);
+	free(w);
+}
+
 static inline void destroy_child_watcher(ev_child *w)
 {
 	if(!w)
 		return;
 
 	struct child_watcher_data *data = w->data;
-	if (data->stdout_watcher) {
-		free(data->stdout_watcher->data);
-		free(data->stdout_watcher);
-	}
-	if (data->stderr_watcher) {
-		free(data->stderr_watcher->data);
-		free(data->stderr_watcher);
-	}
+	destroy_io_watcher(data->stdout_watcher);
+	destroy_io_watcher(data->stderr_watcher);
 	free(w);
 }
 
@@ -284,6 +289,12 @@ static ev_io *add_io_watcher(T *t, FILE* f)
 {
 	if (!f)
 		return NULL;
+
+	if (fileno(f) < 0) {
+		log_error("add_io_watcher: fileno was %d", fileno(f));
+		fclose(f);
+		return NULL;
+	}
 
 	ev_io *w = malloc(sizeof(ev_io));
 	int flags = fcntl(fileno(f), F_GETFL, 0);
