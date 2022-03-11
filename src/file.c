@@ -149,7 +149,7 @@ const char *file_perms(const T *t)
 		"r--", "r-x", "rw-", "rwx"};
 	static char bits[11];
 
-	const int mode = t->lstat.st_mode;
+	const int mode = t->stat.st_mode;
 	bits[0] = filetypeletter(mode);
 	strcpy(&bits[1], rwx[(mode >> 6) & 7]);
 	strcpy(&bits[4], rwx[(mode >> 3) & 7]);
