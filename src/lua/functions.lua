@@ -134,12 +134,16 @@ local function chain(f, args, opts)
 	args = args or {}
 	opts = opts or {}
 	local co
-	local resume = function(r) coroutine.resume(co, r) end
+	opts.callback = function(r) coroutine.resume(co, r) end
+	opts.fork = true
 	co = coroutine.create(function()
-		for _, c in ipairs(args) do
-			f(c, resume)
-			if coroutine.yield(co) ~= 0 and opts.errexit then
-				return
+		for _, arg in ipairs(args) do
+			local cmd = f(arg)
+			if cmd then
+				lfm.execute(cmd, opts)
+				if coroutine.yield(co) ~= 0 and opts.errexit then
+					return
+				end
 			end
 		end
 	end)
@@ -156,8 +160,7 @@ function M.paste()
 	--- spawning all these shells is fine with a sane amount of files
 	local attributes = lfs.attributes
 	local format = string.format
-	local execute = lfm.execute
-	chain(function(file, resume)
+	chain(function(file)
 		local base = basename(file)
 		local target = pwd.."/"..base
 		local num = 1
@@ -166,12 +169,12 @@ function M.paste()
 			num = num + 1
 		end
 		if mode == "move" then
-			execute({"mv", "--", file, target}, {callback=resume, fork=true, out=false})
+			return {"mv", "--", file, target}
 		else
-			execute({"cp", "-r", "--", file, target}, {callback=resume, fork=true, out=false})
+			return {"cp", "-r", "--", file, target}
 		end
 	end,
-	files, {errexit=true})
+	files, {errexit=true, out=false})
 	fm.paste_buffer_set({})
 end
 
