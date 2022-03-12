@@ -3,7 +3,6 @@
 
 #include "fm.h"
 #include "ui.h"
-#include "log.h"
 
 static char *find_prefix = NULL;
 
