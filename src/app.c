@@ -314,17 +314,17 @@ static ev_io *add_io_watcher(T *t, FILE* f)
 
 static void add_child_watcher(T *t, int pid, int cb_index, ev_io *stdout_watcher, ev_io *stderr_watcher)
 {
-	ev_child *w = malloc(sizeof *w);
-	ev_child_init(w, child_cb, pid, 0);
-
 	struct child_watcher_data *data = malloc(sizeof *data);
 	data->cb_index = cb_index > 0 ? cb_index : 0;
 	data->app = t;
 	data->stderr_watcher = stderr_watcher;
 	data->stdout_watcher = stdout_watcher;
-	w->data = data;
 
+	ev_child *w = malloc(sizeof *w);
+	ev_child_init(w, child_cb, pid, 0);
+	w->data = data;
 	ev_child_start(t->loop, w);
+
 	cvector_push_back(t->child_watchers, w);
 }
 
