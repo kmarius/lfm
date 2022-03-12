@@ -290,22 +290,22 @@ static ev_io *add_io_watcher(T *t, FILE* f)
 	if (!f)
 		return NULL;
 
-	if (fileno(f) < 0) {
-		log_error("add_io_watcher: fileno was %d", fileno(f));
+	const int fd = fileno(f);
+	if (fd < 0) {
+		log_error("add_io_watcher: fileno was %d", fd);
 		fclose(f);
 		return NULL;
 	}
-
-	ev_io *w = malloc(sizeof *w);
-	int flags = fcntl(fileno(f), F_GETFL, 0);
-	fcntl(fileno(f), F_SETFL, flags | O_NONBLOCK);
-	ev_io_init(w, command_stdout_cb, fileno(f), EV_READ);
+	const int flags = fcntl(fd, F_GETFL, 0);
+	fcntl(fd, F_SETFL, flags | O_NONBLOCK);
 
 	struct stdout_watcher_data *data = malloc(sizeof *data);
 	data->app = t;
 	data->stream = f;
-	w->data = data;
 
+	ev_io *w = malloc(sizeof *w);
+	ev_io_init(w, command_stdout_cb, fd, EV_READ);
+	w->data = data;
 	ev_io_start(t->loop, w);
 
 	return w;
