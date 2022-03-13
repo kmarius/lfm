@@ -216,15 +216,7 @@ local function cmdesc()
 	cmd.clear()
 end
 
----Change directory.
----@param dir string Target destination (default: $HOME).
-local function cd(dir)
-	dir = dir or os.getenv("HOME")
-	dir = string.gsub(dir, "^~", os.getenv("HOME"))
-	fm.chdir(dir)
-end
-
-lfm.register_command("cd", cd, {tokenize=true, compl=compl.dirs})
+lfm.register_command("cd", fm.chdir, {tokenize=true, compl=compl.dirs})
 
 local handle_key = lfm.handle_key
 ---Feed keys into the key handler.
