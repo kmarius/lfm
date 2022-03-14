@@ -490,7 +490,7 @@ lfm.register_mode(require("quickmarks").mode_mark_save)
 lfm.map("m", a(lfm.cmd.prefix_set, require("quickmarks").mode_mark_save.prefix), {desc="save quickmark"})
 
 local function gmap(key, location)
-	map("g"..key, function() cd(location) end, {desc="cd "..location})
+	map("g"..key, function() fm.chdir(location) end, {desc="cd "..location})
 end
 
 gmap("h", os.getenv("HOME"))
