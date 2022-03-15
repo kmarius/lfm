@@ -28,7 +28,7 @@ end
 function M.jump_next()
 	if ind < #list then
 		ind = ind + 1
-		chdir(list[ind], false)
+		chdir(list[ind])
 	end
 end
 
@@ -52,8 +52,8 @@ function M.setup(t)
 		lfm.register_hook("ChdirPost", on_chdir)
 		registered_hook = true
 	end
-	lfm.map(t.jump_next_key or "]", M.jump_next)
-	lfm.map(t.jump_prev_key or "[", M.jump_prev)
+	lfm.map(t.jump_next_key or "]", M.jump_next, "jumplist-next")
+	lfm.map(t.jump_prev_key or "[", M.jump_prev, "jumplist-prev")
 end
 
 return M
