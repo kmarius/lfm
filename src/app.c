@@ -253,6 +253,8 @@ void app_init(T *t)
 	t->input_watcher.data = t;
 	ev_io_start(t->loop, &t->input_watcher);
 
+	signal(SIGINT, SIG_IGN);
+
 	ev_signal_init(&t->sigwinch_watcher, sigwinch_cb, SIGWINCH);
 	t->sigwinch_watcher.data = t;
 	ev_signal_start(t->loop, &t->sigwinch_watcher);
@@ -369,6 +371,7 @@ bool app_execute(T *t, const char *prog, char *const *args, bool forking, bool o
 		}
 		kbblocking(false);
 		ui_notcurses_init(&t->ui);
+		signal(SIGINT, SIG_IGN);
 		ui_redraw(&t->ui, REDRAW_FM);
 		return status == 0;
 	}

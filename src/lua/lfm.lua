@@ -380,6 +380,7 @@ local map = lfm.map
 
 map("q", lfm.quit, {desc="quit"})
 map("<c-q>", lfm.quit, {desc="quit"})
+map("<c-c>", function() print("Type :q <Enter> or <Ctrl>q to exit") end, {desc="ctrl-c"})
 map("<c-l>", ui.clear, {desc="clear screen and redraw"})
 map("<a-r>", fm.drop_cache, {desc="drop direcory/preview caches"})
 map("cd", a(lfm.feedkeys, ":cd "), {desc=":cd "})
