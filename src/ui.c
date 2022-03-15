@@ -195,9 +195,6 @@ void ui_recol(T *t)
 
 /* main drawing/echo/err {{{ */
 
-static inline void ui_redraw(T *t, uint8_t mode);
-
-
 void ui_draw(T *t)
 {
 	if (t->redraw & REDRAW_FM)
@@ -350,8 +347,7 @@ void ui_cmd_clear(T *t)
 	history_reset(&t->history);
 	notcurses_cursor_disable(t->nc);
 	ui_showmenu(t, NULL);
-	ui_redraw(t, REDRAW_CMDLINE);
-	ui_redraw(t, REDRAW_MENU);
+	ui_redraw(t, REDRAW_CMDLINE | REDRAW_MENU);
 }
 
 
@@ -730,6 +726,7 @@ static int print_shortened_w(struct ncplane *n, const wchar_t *name, int name_le
 
 	return x;
 }
+
 
 static inline int print_shortened(struct ncplane *n, const char *name, int max_len, bool has_ext)
 {
@@ -1248,8 +1245,7 @@ void ui_drop_cache(T *t)
 	}
 	cache_drop(&t->preview.cache);
 	update_preview(t);
-	ui_redraw(t, REDRAW_CMDLINE);
-	ui_redraw(t, REDRAW_PREVIEW);
+	ui_redraw(t, REDRAW_CMDLINE | REDRAW_PREVIEW);
 }
 
 /* }}} */
