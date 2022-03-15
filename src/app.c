@@ -370,7 +370,7 @@ bool app_execute(T *t, const char *prog, char *const *args, bool forking, bool o
 			} while ((rc == -1) && (errno == EINTR));
 		}
 		kbblocking(false);
-		ui_notcurses_init(&t->ui);
+		ui_resume(&t->ui);
 		signal(SIGINT, SIG_IGN);
 		ui_redraw(&t->ui, REDRAW_FM);
 		return status == 0;

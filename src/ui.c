@@ -56,7 +56,7 @@ static int resize_cb(struct ncplane *n)
 }
 
 
-void ui_notcurses_init(T *t)
+void ui_resume(T *t)
 {
 	struct notcurses_options ncopts = {
 		.flags = NCOPTION_NO_WINCH_SIGHANDLER | NCOPTION_SUPPRESS_BANNERS | NCOPTION_PRESERVE_CURSOR,
@@ -130,7 +130,7 @@ void ui_init(T *t, Fm *fm)
 	t->menubuf = NULL;
 	t->message = false;
 
-	ui_notcurses_init(t);
+	ui_resume(t);
 
 	log_info("initialized ui");
 }

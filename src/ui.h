@@ -95,6 +95,6 @@ void ui_cmd_prefix_set(Ui *ui, const char *prefix);
 
 void ui_drop_cache(Ui *ui);
 
-void ui_notcurses_init(Ui *ui);
+void ui_resume(Ui *ui);
 
 void ui_suspend(Ui *ui);
