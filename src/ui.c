@@ -33,8 +33,8 @@ static void update_preview(T *t);
 static void draw_menu(struct ncplane *n, cvector_vector_type(char *) menu);
 static void draw_info(T *t);
 static void menu_resize(T *t);
-static char *ansi_consoom(struct ncplane *w, char *s);
-static void ansi_addstr(struct ncplane *n, char *s);
+static const char *ansi_consoom(struct ncplane *w, const char *s);
+static void ansi_addstr(struct ncplane *n, const char *s);
 static int print_shortened_w(struct ncplane *n, const wchar_t *name, int name_len, int max_len, bool has_ext);
 
 /* init/resize {{{ */
@@ -586,13 +586,13 @@ static void draw_info(T *t)
 
 /* menu {{{ */
 
-static void ansi_addstr(struct ncplane *n, char *s)
+static void ansi_addstr(struct ncplane *n, const char *s)
 {
 	while (*s) {
 		if (*s == '\033') {
 			s = ansi_consoom(n, s);
 		} else {
-			char *c;
+			const char *c;
 			for (c = s; *s != 0 && *s != '\033'; s++);
 			if (ncplane_putnstr(n, s-c, c) == -1)
 				return; // EOL
@@ -618,10 +618,12 @@ static void draw_menu(struct ncplane *n, cvector_vector_type(char *) menubuf)
 		uint16_t xpos = 0;
 
 		while (*s != 0) {
-			while (*s != 0 && *s != '\t') {
+			while (*s != 0 && *s != '\t' && *s != '\033') {
 				ncplane_putchar(n, *(s++));
 				xpos++;
 			}
+			if (*s == '\033')
+				s = ansi_consoom(n, s);
 			if (*s == '\t') {
 				ncplane_putchar(n, ' ');
 				s++;
@@ -1147,7 +1149,7 @@ static void wansi_matchattr(struct ncplane *w, uint16_t a)
  * Consooms ansi color escape sequences and sets ATTRS
  * should be called with a pointer at \033
  */
-static char *ansi_consoom(struct ncplane *w, char *s)
+static const char *ansi_consoom(struct ncplane *w, const char *s)
 {
 	char c;
 	uint16_t acc = 0;
