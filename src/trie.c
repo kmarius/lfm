@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "cvector.h"
 #include "trie.h"
 #include "util.h" // asprintf
 
@@ -85,18 +86,19 @@ T *trie_remove(T* t, const input_t *trie_keys)
 }
 
 
-/* we need the address of the vector because we might reallocate when pushing  */
-void trie_collect_leaves(const T *t, cvector_vector_type(char*) *vec)
+void trie_collect_leaves(Trie *t, cvector_vector_type(Trie *) *vec, bool prune)
 {
-	for (T *n = t->child; n; n = n->next) {
-		if (n->keys) {
-			char *s;
-			asprintf(&s, "%s\t%s", n->keys, n->desc ? n->desc : "");
-			cvector_push_back(*vec, s);
-		} else {
-			trie_collect_leaves(n, vec);
-		}
+	if (!t)
+		return;
+
+	if (t->keys) {
+		cvector_push_back(*vec, t);
+		if (prune)
+			return;
 	}
+
+	for (T *n = t->child; n; n = n->next)
+		trie_collect_leaves(n, vec, prune);
 }
 
 

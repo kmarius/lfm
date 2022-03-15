@@ -35,6 +35,6 @@ Trie *trie_remove(Trie* trie, const input_t *trie_keys);
 // Finds the top level child belonging to key if it exists, NULL otherwise.
 Trie *trie_find_child(const Trie* trie, input_t key);
 
-// Collect all reachable leaves and puts for each a string with the full
-// sequence and the command description into vector.
-void trie_collect_leaves(const Trie *trie, cvector_vector_type(char*) *vec);
+// Collect leaves and in the vector. If `prune` is `true`, only
+// reachable leaves are collected.
+void trie_collect_leaves(Trie *trie, cvector_vector_type(Trie *) *vec, bool prune);

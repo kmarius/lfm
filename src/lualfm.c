@@ -299,11 +299,46 @@ static int l_cmap_key(lua_State *L)
 }
 
 
+static inline void lua_push_maps(lua_State *L, Trie *trie, bool prune)
+{
+	cvector_vector_type(Trie *) keymaps = NULL;
+	trie_collect_leaves(trie, &keymaps, prune);
+	lua_newtable(L);
+	for (size_t i = 0; i < cvector_size(keymaps); i++) {
+		lua_newtable(L);
+		lua_pushstring(L, keymaps[i]->desc ? keymaps[i]->desc : "");
+		lua_setfield(L, -2, "desc");
+		lua_pushstring(L, keymaps[i]->keys);
+		lua_setfield(L, -2, "keys");
+		lua_pushlightuserdata(L, (void *) keymaps[i]);
+		lua_gettable(L, LUA_REGISTRYINDEX);
+		lua_setfield(L, -2, "f");
+		lua_rawseti(L, -2, i + 1);
+	}
+}
+
+
+static int l_get_maps(lua_State *L)
+{
+	lua_push_maps(L, maps.normal, luaL_optbool(L, 1, true));
+	return 1;
+}
+
+
+static int l_get_cmaps(lua_State *L)
+{
+	lua_push_maps(L, maps.cmd, luaL_optbool(L, 1, true));
+	return 1;
+}
+
+
 static const struct luaL_Reg lfm_lib[] = {
 	{"colors_clear", l_colors_clear},
 	{"execute", l_execute},
 	{"map", l_map_key},
 	{"cmap", l_cmap_key},
+	{"get_maps", l_get_maps},
+	{"get_cmaps", l_get_cmaps},
 	{"handle_key", l_handle_key},
 	{"timeout", l_timeout},
 	{"find", l_find},
@@ -1598,9 +1633,18 @@ void lua_handle_key(lua_State *L, input_t in)
 			// A command is mapped to the current keysequence. Execute it and reset.
 			cvector_push_back(maps.seq, in);
 			ui_show_keyseq(ui, maps.seq);
+
+			cvector_vector_type(Trie *) leaves = NULL;
+			trie_collect_leaves(maps.cur, &leaves, true);
+
 			cvector_vector_type(char *) menu = NULL;
 			cvector_push_back(menu, strdup("keys\tcommand"));
-			trie_collect_leaves(maps.cur, &menu);
+			char *s;
+			for (size_t i = 0; i < cvector_size(leaves); i++) {
+				asprintf(&s, "%s\t%s", leaves[i]->keys, leaves[i]->desc ? leaves[i]->desc : "");
+				cvector_push_back(menu, s);
+			}
+			cvector_free(leaves);
 			ui_showmenu(ui, menu);
 		}
 	}

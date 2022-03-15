@@ -79,6 +79,21 @@ function lfm.map(seq, f, opts) end
 ---@param opts table Currently, only opts.desc is used for description
 function lfm.cmap(seq, f, opts) end
 
+---@class keymap
+---@field desc string
+---@field keys string
+---@field f function
+
+---Get a table of all maps.
+---@param prune? boolean list reachable maps only (default: true)
+---@return keymap[]
+function lfm.get_maps(prune) end
+
+---Get a table of all cmaps.
+---@param prune? boolean list reachable maps only (default: true)
+---@return keymap[]
+function lfm.get_cmaps(prune) end
+
 ---Clear all colors.
 function lfm.colors_clear() end
 
