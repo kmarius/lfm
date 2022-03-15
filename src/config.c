@@ -10,11 +10,14 @@
 #include "cvector.h"
 #include "log.h"
 #include "util.h"
+#include "notify.h"
 
 
 Config cfg = {
 	.truncatechar = L'~',
 	.scrolloff = 4,
+	.inotify_timeout = NOTIFY_TIMEOUT,
+	.inotify_delay = NOTIFY_DELAY,
 	.colors = {
 		.ext_channels = NULL,
 		.normal = NCCHANNELS_INITIALIZER_PALINDEX(-1, -1),

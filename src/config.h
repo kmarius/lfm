@@ -51,8 +51,10 @@ typedef struct Config {
 	bool hidden;
 	uint8_t scrolloff;
 	cvector_vector_type(char *) commands;
-	cvector_vector_type(char *) inotify_blacklist;
 	cvector_vector_type(uint16_t) ratios;
+	cvector_vector_type(char *) inotify_blacklist;
+	uint16_t inotify_timeout;
+	uint16_t inotify_delay;
 
 	struct colors {
 		ext_channel_tup *ext_channels;

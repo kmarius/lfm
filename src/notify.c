@@ -119,16 +119,16 @@ static void inotify_cb(EV_P_ ev_io *w, int revents)
 
 			const uint64_t latest = data->next;
 
-			if (latest >= now + NOTIFY_TIMEOUT)
+			if (latest >= now + cfg.inotify_timeout)
 				continue; /* discard */
 
 			/*
 			 * add a small delay to address an issue where three reloads are
 			 * scheduled when events come in in quick succession
 			 */
-			const uint64_t next = now < latest + NOTIFY_TIMEOUT
-				? latest + NOTIFY_TIMEOUT + NOTIFY_DELAY
-				: now + NOTIFY_DELAY;
+			const uint64_t next = now < latest + cfg.inotify_timeout
+				? latest + cfg.inotify_timeout + cfg.inotify_delay
+				: now + cfg.inotify_delay;
 			schedule_dir_load(loop, &dir_load_timer, data->dir, next);
 			data->next = next;
 		}

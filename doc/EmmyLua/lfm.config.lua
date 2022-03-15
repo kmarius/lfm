@@ -37,4 +37,7 @@
 ---@field dircache_size integer assignable
 ---@field previewcache_size integer assignable
 ---@field colors ColorLib
+---@field inotify_blacklist string[] No inotify watchers will be installed if the path begins with any of these strings.
+---@field inotify_timeout number Minimum time in milliseconds between reloads triggered by inotify. Must larger or equal to 100.
+---@field inotify_delay number Small delay in milliseconds before relloads are triggered by inotify.
 lfm.config = {}

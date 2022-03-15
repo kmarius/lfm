@@ -20,6 +20,7 @@
 #include "find.h"
 #include "fm.h"
 #include "log.h"
+#include "lua.h"
 #include "lualfm.h"
 #include "notify.h"
 #include "opener.h"
@@ -392,6 +393,12 @@ static int l_config_index(lua_State *L)
 			lua_rawseti(L, -2, i + 1);
 		}
 		return 1;
+	} else if (streq(key, "inotify_timeout")) {
+		lua_pushinteger(L, cfg.inotify_timeout);
+		return 1;
+	} else if (streq(key, "inotify_delay")) {
+		lua_pushinteger(L, cfg.inotify_delay);
+		return 1;
 	} else if (streq(key, "scrolloff")) {
 		lua_pushinteger(L, cfg.scrolloff);
 		return 1;
@@ -477,6 +484,18 @@ static int l_config_newindex(lua_State *L)
 			cvector_push_back(cfg.inotify_blacklist, strdup(lua_tostring(L, -1)));
 			lua_pop(L, 1);
 		}
+		return 0;
+	} else if (streq(key, "inotify_timeout")) {
+		int n = luaL_checkinteger(L, 3);
+		if (n < 100)
+			luaL_argerror(L, 3, "timeout must be larger than 100");
+		// TODO: maybe clear the reload queue, because the next scheduled
+		// reload might be far in the future
+		cfg.inotify_timeout = n;
+		return 0;
+	} else if (streq(key, "inotify_delay")) {
+		int n = luaL_checkinteger(L, 3);
+		cfg.inotify_delay = n;
 		return 0;
 	} else if (streq(key, "scrolloff")) {
 		cfg.scrolloff = max(luaL_checkinteger(L, 3), 0);
@@ -1638,7 +1657,7 @@ void lua_handle_key(lua_State *L, input_t in)
 			trie_collect_leaves(maps.cur, &leaves, true);
 
 			cvector_vector_type(char *) menu = NULL;
-			cvector_push_back(menu, strdup("keys\tcommand"));
+			cvector_push_back(menu, strdup("\033[1mkeys\tcommand\033[0m"));
 			char *s;
 			for (size_t i = 0; i < cvector_size(leaves); i++) {
 				asprintf(&s, "%s\t%s", leaves[i]->keys, leaves[i]->desc ? leaves[i]->desc : "");
