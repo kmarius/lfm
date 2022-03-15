@@ -142,13 +142,13 @@ void ui_init(T *t, Fm *fm)
 
 void ui_deinit(T *t)
 {
+	ui_suspend(t);
 	history_write(&t->history, cfg.historypath);
 	history_deinit(&t->history);
 	cvector_ffree(t->messages, free);
 	cvector_ffree(t->menubuf, free);
-	cache_deinit(&t->preview.cache);
 	cmdline_deinit(&t->cmdline);
-	ui_suspend(t);
+	cache_deinit(&t->preview.cache);
 }
 
 
