@@ -95,12 +95,16 @@ void ui_resume(T *t)
 
 void ui_suspend(T *t)
 {
+	cvector_fclear(t->planes.dirs, ncplane_destroy);
+	ncplane_destroy(t->planes.cmdline);
+	ncplane_destroy(t->planes.menu);
+	ncplane_destroy(t->planes.info);
 	notcurses_stop(t->nc);
-	t->nc = NULL;
 	t->planes.dirs = NULL;
 	t->planes.cmdline = NULL;
 	t->planes.menu = NULL;
 	t->planes.info = NULL;
+	t->nc = NULL;
 	if (t->preview.preview) {
 		cache_return(&t->preview.cache, t->preview.preview, t->preview.preview->path);
 		t->preview.preview = NULL;
@@ -142,13 +146,8 @@ void ui_deinit(T *t)
 	history_deinit(&t->history);
 	cvector_ffree(t->messages, free);
 	cvector_ffree(t->menubuf, free);
-	if (t->preview.preview) {
-		cache_return(&t->preview.cache, t->preview.preview, t->preview.preview->path);
-		t->preview.preview = NULL;
-	}
 	cache_deinit(&t->preview.cache);
 	cmdline_deinit(&t->cmdline);
-	cvector_ffree(t->planes.dirs, ncplane_destroy);
 	ui_suspend(t);
 }
 
