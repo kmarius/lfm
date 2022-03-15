@@ -1,6 +1,6 @@
 pkgname=lfm-git
 _pkgname=lfm
-pkgver=379.a140c21
+pkgver=r507.be17de3
 pkgrel=1
 pkgdesc="terminal file manager"
 url="https://github.com/kmarius/lfm"
@@ -12,6 +12,7 @@ optdepends=("trash-cli: trash files")
 source=(git+https://github.com/kmarius/lfm)
 conflicts=()
 md5sums=('SKIP')
+options=('!strip')
 
 pkgver() {
 	cd "${_pkgname}"
@@ -20,7 +21,7 @@ pkgver() {
 
 build() {
 	cd "${_pkgname}"
-	cmake -Bbuild -DCMAKE_INSTALL_PREFIX="/usr" -DCMAKE_BUILD_TYPE=Release
+	cmake -Bbuild -DCMAKE_INSTALL_PREFIX="/usr" -DCMAKE_BUILD_TYPE=RelWithDebInfo
 	cmake --build build
 }
 
