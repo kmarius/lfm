@@ -389,6 +389,24 @@
 		} \
 		cv_ret; })
 
+// TODO: use memcmp to make this also work with structs
+/**
+ * @brief cvector_contains_str Check if a vector contains an element.
+ * @param vec - the vector
+ * @param e - the element
+ * @return int
+ */
+#define cvector_contains(vec, e) ({ \
+		int cv_ret = 0; \
+		const size_t cv_sz = cvector_size(vec); \
+		for (size_t cv_i = 0; cv_i < cv_sz; cv_i++) { \
+			if ((vec)[cv_i] == (e)) { \
+				cv_ret = 1; \
+				break; \
+			} \
+		} \
+		cv_ret; })
+
 /**
  * @brief cvector_upheap_min Perform upheap on a min heap.
  * @param vec - the vector

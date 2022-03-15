@@ -489,13 +489,13 @@ static int l_config_newindex(lua_State *L)
 		int n = luaL_checkinteger(L, 3);
 		if (n < 100)
 			luaL_argerror(L, 3, "timeout must be larger than 100");
-		// TODO: maybe clear the reload queue, because the next scheduled
-		// reload might be far in the future
 		cfg.inotify_timeout = n;
+		notify_reschedule(app->loop);
 		return 0;
 	} else if (streq(key, "inotify_delay")) {
 		int n = luaL_checkinteger(L, 3);
 		cfg.inotify_delay = n;
+		notify_reschedule(app->loop);
 		return 0;
 	} else if (streq(key, "scrolloff")) {
 		cfg.scrolloff = max(luaL_checkinteger(L, 3), 0);

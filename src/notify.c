@@ -7,6 +7,7 @@
 #include "async.h"
 #include "config.h"
 #include "cvector.h"
+#include "dir.h"
 #include "log.h"
 #include "notify.h"
 #include "util.h"
@@ -232,6 +233,32 @@ static inline struct notify_watcher_data *find_watcher_data(int wd)
 void notify_empty_queue()
 {
 	cvector_set_size(dir_load_queue, 0);
+}
+
+
+// TODO: maybe just keep loop static here too?
+void notify_reschedule(struct ev_loop *loop)
+{
+	cvector_vector_type(Dir *) dirs = NULL;
+	for (size_t i = 0; i < cvector_size(dir_load_queue); i++) {
+		if (!cvector_contains(dirs, dir_load_queue[i].dir))
+			cvector_push_back(dirs, dir_load_queue[i].dir);
+	}
+	cvector_set_size(dir_load_queue, 0);
+
+	const uint64_t next = current_millis() + cfg.inotify_timeout + cfg.inotify_delay;
+
+	for (size_t i = 0; i < cvector_size(dirs); i++) {
+		for (size_t j = 0; j < cvector_size(watchers); j++) {
+			if (watchers[j].dir == dirs[i]) {
+				watchers[j].next = next;
+				break;
+			}
+		}
+		schedule_dir_load(loop, &dir_load_timer, dirs[i], next);
+	}
+
+	cvector_free(dirs);
 }
 
 
