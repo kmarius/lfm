@@ -159,6 +159,10 @@ local function chain(f, args, opts)
 	coroutine.resume(co)
 end
 
+-- TODO: make a s mall module for ansi colors or put it in colors.lua
+local c27 = string.char(27)
+local green = c27 .. "[32m"
+
 ---Paste the load in the current directory, making backups of existing files.
 function M.paste()
 	local files, mode = fm.paste_buffer_get()
@@ -173,7 +177,7 @@ function M.paste()
 		if ret ~= 0 then
 			return
 		end
-		local msg = string.format("finished copying %d %s", #files, #files == 1 and "file" or "files")
+		local msg = string.format(green .. "finished copying %d %s", #files, #files == 1 and "file" or "files")
 		print(msg)
 	end
 	chain(function(file)
