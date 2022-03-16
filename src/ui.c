@@ -314,13 +314,19 @@ void ui_vechom(T *t, const char *format, va_list args)
 	if (!t->nc)
 		return;
 
-	ncplane_erase(t->planes.cmdline);
-	ncplane_set_fg_palindex(t->planes.cmdline, 15);
-	ncplane_putstr_yx(t->planes.cmdline, 0, 0, msg);
-	ncplane_set_fg_default(t->planes.cmdline);
+	struct ncplane *n = t->planes.cmdline;
+
+	ncplane_erase(n);
+	ncplane_set_fg_default(n);
+	ncplane_set_bg_default(n);
+	ncplane_set_styles(n, NCSTYLE_NONE);
+	ncplane_cursor_move_yx(n, 0, 0);
+	ansi_addstr(n, msg);
+	ncplane_set_fg_default(n);
+	ncplane_set_bg_default(n);
+	ncplane_set_styles(n, NCSTYLE_NONE);
 	notcurses_render(t->nc);
 	t->message = true;
-
 }
 
 
