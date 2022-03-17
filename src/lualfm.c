@@ -426,6 +426,9 @@ static int l_config_index(lua_State *L)
 	} else if (streq(key, "user_datadir")) {
 		lua_pushstring(L, cfg.user_datadir);
 		return 1;
+	} else if (streq(key, "runtime_dir")) {
+		lua_pushstring(L, cfg.rundir);
+		return 1;
 	} else if (streq(key, "dircache_size")) {
 		lua_pushinteger(L, fm->dirs.cache.capacity);
 		return 1;
