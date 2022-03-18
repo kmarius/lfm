@@ -113,3 +113,4 @@ target_link_libraries(lfm
 
 install(TARGETS lfm DESTINATION bin)
 install(DIRECTORY src/lua DESTINATION share/lfm)
+install(DIRECTORY doc/EmmyLua DESTINATION share/lfm)
