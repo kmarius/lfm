@@ -21,36 +21,6 @@ local function commands_provider(tok, line)
 	return t, " "
 end
 
--- TODO: more options here (on 2022-02-11)
-local options = {
-	"hidden",
-}
-
----Completion for the `set` command.
-function M.options(tok, line)
-	local t = {}
-	if string.sub(tok, 1, 2) == "no" then
-		for _, opt in pairs(options) do
-			if string.sub("no"..opt, 1, #tok) == tok then
-				table.insert(t, "no"..opt)
-			end
-		end
-	elseif string.sub(tok, 1, 3) == "inv" then
-		for _, opt in pairs(options) do
-			if string.sub("inv"..opt, 1, #tok) == tok then
-				table.insert(t, "inv"..opt)
-			end
-		end
-	else
-		for _, opt in pairs(options) do
-			if string.sub(opt, 1, #tok) == tok then
-				table.insert(t, opt)
-			end
-		end
-	end
-	return t, " "
-end
-
 function M.table(tok, line)
 	local t = {}
 	local prefix, suffix = string.match(line, "^(.*%.)(.*)")

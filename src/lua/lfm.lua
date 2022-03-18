@@ -75,21 +75,6 @@ function lfm.eval(line)
 	end
 end
 
-local function set(...)
-	local t = {...}
-	local val = true
-	local opt = t[1]
-	if string.sub(opt, 1, 2) == "no" then
-		val = false
-		opt = string.sub(opt, 3)
-	elseif string.sub(opt, 1, 3) == "inv" then
-		opt = string.sub(opt, 4)
-		val = not config[opt]
-	end
-	config[opt] = val
-end
-
-
 -- Hooks
 local hooks = {
 	LfmEnter = {},
@@ -186,7 +171,6 @@ require("jumplist").setup()
 
 lfm.register_command("quit", lfm.quit)
 lfm.register_command("q", lfm.quit)
-lfm.register_command("set", set, {tokenize=true, compl=compl.limit(1, compl.options)})
 lfm.register_command("rename", require("functions").rename, {tokenize=false, compl=compl.limit(1, compl.files)})
 
 ---Function for <enter> in command mode. Clears the command line and calls `mode.enter`.
