@@ -64,6 +64,7 @@ static int set_callback(lua_State *L)
 	return ind;
 }
 
+
 static int get_callback(lua_State *L, int ind)
 {
 	lua_getfield(L, LUA_REGISTRYINDEX, TABLE_CALLBACKS);
@@ -94,7 +95,6 @@ void lua_run_callback(lua_State *L, int ind)
 {
 	if (get_callback(L, ind))
 		lua_call(L, 0, 0);
-	lua_pop(L, 1);
 }
 
 
@@ -292,7 +292,6 @@ void lua_run_child_callback(lua_State *L, int ind, int rstatus)
 		lua_pushnumber(L, rstatus);
 		lua_call(L, 1, 0);
 	}
-	lua_pop(L, 1);
 }
 
 
