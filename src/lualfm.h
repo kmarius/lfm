@@ -28,4 +28,6 @@ void lua_eval(lua_State *L, const char *expr);
 void lua_run_hook(lua_State *L, const char *hook);
 
 //  Run callback for finished child.
-void lua_run_callback(lua_State *L, int key, int rstatus);
+void lua_run_child_callback(lua_State *L, int ind, int rstatus);
+
+void lua_run_callback(lua_State *L, int ind);

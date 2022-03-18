@@ -1,4 +1,5 @@
 #include <errno.h>
+#include <ev.h>
 #include <fcntl.h>
 #include <lauxlib.h>
 #include <notcurses/notcurses.h>
@@ -44,6 +45,12 @@ struct child_watcher_data {
 	ev_io *stderr_watcher;
 };
 
+struct schedule_timer_data {
+	App *app;
+	int ind;
+};
+
+
 // watcher and corresponding stdout/-err watchers need to be stopped before
 // calling this function
 static inline void destroy_io_watcher(ev_io *w)
@@ -69,6 +76,27 @@ static inline void destroy_child_watcher(ev_child *w)
 }
 
 /* callbacks {{{ */
+
+static inline void destroy_schedule_timer(ev_timer *w)
+{
+	if (!w)
+		return;
+
+	free(w->data);
+	free(w);
+}
+
+
+static void schedule_timer_cb(EV_P_ ev_timer *w, int revents)
+{
+	(void) revents;
+	struct schedule_timer_data *data = w->data;
+	ev_timer_stop(EV_A_ w);
+	lua_run_callback(data->app->L, data->ind);
+	cvector_swap_remove(data->app->schedule_timers, w);
+	destroy_schedule_timer(w);
+}
+
 
 static void timer_cb(EV_P_ ev_timer *w, int revents)
 {
@@ -184,7 +212,7 @@ static void child_cb(EV_P_ ev_child *w, int revents)
 
 	cvector_swap_remove(data->app->child_watchers, w);
 	if (data->cb_index > 0)
-		lua_run_callback(data->app->L, data->cb_index, w->rstatus);
+		lua_run_child_callback(data->app->L, data->cb_index, w->rstatus);
 
 	if (data->stdout_watcher)
 		ev_io_stop(loop, data->stdout_watcher);
@@ -437,9 +465,22 @@ void app_read_fifo(T *t)
 }
 
 
+void app_schedule(T *t, int ind, uint32_t delay)
+{
+	struct schedule_timer_data *data = malloc(sizeof *data);
+	data->app = t;
+	data->ind = ind;
+	ev_timer *w = malloc(sizeof *w);
+	ev_timer_init(w, schedule_timer_cb, 1.0 * delay / 1000, 0);
+	w->data = data;
+	ev_timer_start(t->loop, w);
+}
+
+
 void app_deinit(T *t)
 {
 	cvector_ffree(t->child_watchers, destroy_child_watcher);
+	cvector_ffree(t->schedule_timers, destroy_schedule_timer);
 	notify_deinit();
 	lua_deinit(t->L);
 	ui_deinit(&t->ui);

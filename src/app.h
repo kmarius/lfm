@@ -2,6 +2,7 @@
 
 #include <ev.h>
 #include <lua.h>
+#include <stdint.h>
 
 #include "fm.h"
 #include "ui.h"
@@ -24,6 +25,7 @@ typedef struct App {
 	ev_signal sighup_watcher;
 	ev_timer timer_watcher;
 
+	cvector_vector_type(ev_timer *) schedule_timers;
 	cvector_vector_type(ev_child *) child_watchers; /* to run callbacks when processes finish */
 } App;
 
@@ -51,6 +53,8 @@ void app_deinit(App *app);
 // Execute a command in the background and redirect its output/error to the ui
 // if `out` or `err` are set to `true`.
 bool app_execute(App *app, const char *prog, char *const *args, bool fork, bool out, bool err, int key);
+
+void app_schedule(App *app, int schedule_ind, uint32_t delay);
 
 // Print a message in the UI. `printf` formatting applies.
 void print(const char *format, ...);

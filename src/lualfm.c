@@ -52,6 +52,52 @@ static int command_count = -1;
 
 /* lfm lib {{{ */
 
+// sets the function on top of the stack as callback and pops it.
+// returns the index with which to retreive it.
+static int set_callback(lua_State *L)
+{
+	lua_getfield(L, LUA_REGISTRYINDEX, TABLE_CALLBACKS);
+	int ind = lua_objlen(L, -1) + 1;
+	lua_pushvalue(L, -2);
+	lua_rawseti(L, -2, ind);
+	lua_pop(L, 2);
+	return ind;
+}
+
+static int get_callback(lua_State *L, int ind)
+{
+	lua_getfield(L, LUA_REGISTRYINDEX, TABLE_CALLBACKS);
+	lua_rawgeti(L, -1, ind);
+	lua_pushnil(L);
+	lua_rawseti(L, -3, ind);
+	lua_replace(L, -2);
+	return lua_type(L, -1) == LUA_TFUNCTION;
+}
+
+
+static int l_schedule(lua_State *L)
+{
+	luaL_checktype(L, 1, LUA_TFUNCTION);
+	const int delay = luaL_checknumber(L, 2);
+	if (delay > 0) {
+		lua_pushvalue(L, 1);
+		app_schedule(app, set_callback(L), delay);
+	} else {
+		lua_pushvalue(L, 1);
+		lua_call(L, 0, 0);
+	}
+	return 0;
+}
+
+
+void lua_run_callback(lua_State *L, int ind)
+{
+	if (get_callback(L, ind))
+		lua_call(L, 0, 0);
+	lua_pop(L, 1);
+}
+
+
 static int l_colors_clear(lua_State *L)
 {
 	(void) L;
@@ -219,14 +265,10 @@ static int l_execute(lua_State *L)
 		lua_pop(L, 1);
 
 		lua_getfield(L, 2, "callback");
-		if (!lua_isnoneornil(L, -1)) {
-			lua_getfield(L, LUA_REGISTRYINDEX, TABLE_CALLBACKS);
-			cb_index = lua_objlen(L, -1) + 1;
-			lua_pushvalue(L, -2);
-			lua_rawseti(L, -2, cb_index);
+		if (!lua_isnoneornil(L, -1))
+			cb_index = set_callback(L);
+		else
 			lua_pop(L, 1);
-		}
-		lua_pop(L, 1);
 	}
 	bool ret = app_execute(app, args[0], args, fork, out, err, cb_index);
 	for (uint16_t i = 0; i < n+1; i++)
@@ -244,14 +286,12 @@ static int l_execute(lua_State *L)
 }
 
 
-void lua_run_callback(lua_State *L, int cb_index, int rstatus)
+void lua_run_child_callback(lua_State *L, int ind, int rstatus)
 {
-	lua_getfield(L, LUA_REGISTRYINDEX, TABLE_CALLBACKS);
-	lua_rawgeti(L, -1, cb_index);
-	lua_pushnumber(L, rstatus);
-	lua_call(L, 1, 0);
-	lua_pushnil(L);
-	lua_rawseti(L, -2, cb_index);
+	if (get_callback(L, ind)) {
+		lua_pushnumber(L, rstatus);
+		lua_call(L, 1, 0);
+	}
 	lua_pop(L, 1);
 }
 
@@ -334,6 +374,7 @@ static int l_get_cmaps(lua_State *L)
 
 
 static const struct luaL_Reg lfm_lib[] = {
+	{"schedule", l_schedule},
 	{"colors_clear", l_colors_clear},
 	{"execute", l_execute},
 	{"map", l_map_key},
@@ -1750,6 +1791,7 @@ void lua_init(lua_State *L, App *_app)
 
 	lua_newtable(L);
 	lua_setfield(L, LUA_REGISTRYINDEX, TABLE_CALLBACKS);
+
 	lua_load_file(L, cfg.corepath);
 }
 

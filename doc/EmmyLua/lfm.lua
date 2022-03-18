@@ -20,6 +20,12 @@ function lfm.execute(command, opts) end
 ---@param duration integer in milliseconds.
 function lfm.timeout(duration) end
 
+---Schedule a lua function to run after `delay` milliseconds. Runs `f` immediately
+---if `delay` non-positive.
+---@param f function
+---@param delay number
+function lfm.schedule(f, delay) end
+
 ---Find files the current directory. Moves the curser to to next file with the given prefix
 ---Returns true if only a single file in the current directory matches.
 ---@param prefix string
