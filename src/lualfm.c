@@ -828,10 +828,7 @@ static const struct luaL_Reg colors_mt[] = {
 
 static int l_cmd_line_get(lua_State *L)
 {
-	const char *line = cmdline_get(&ui->cmdline);
-	const char *prefix = cmdline_prefix_get(&ui->cmdline);
-	log_debug("%s%s", prefix, line);
-	lua_pushstring(L, line);
+	lua_pushstring(L, cmdline_get(&ui->cmdline));
 	return 1;
 }
 
@@ -840,18 +837,23 @@ static int l_cmd_line_set(lua_State *L)
 {
 	switch (lua_gettop(L)) {
 		case 1:
-			{
-				if (cmdline_set(&ui->cmdline, lua_tostring(L, 1)))
-					ui_redraw(ui, REDRAW_CMDLINE);
-			}
+			if (cmdline_set(&ui->cmdline, lua_tostring(L, 1)))
+				ui_redraw(ui, REDRAW_CMDLINE);
+			break;
+		case 2:
+			// TODO: should this just set left/right and keep the prefix?
+			// also: document it.
+			if (cmdline_set_whole(&ui->cmdline, lua_tostring(L, 1),
+						lua_tostring(L, 2), ""))
+				ui_redraw(ui, REDRAW_CMDLINE);
 			break;
 		case 3:
-			{
-				if(cmdline_set_whole(&ui->cmdline, lua_tostring(L, 1),
-							lua_tostring(L, 2), lua_tostring(L, 3)))
-					ui_redraw(ui, REDRAW_CMDLINE);
-
-			}
+			if (cmdline_set_whole(&ui->cmdline, lua_tostring(L, 1),
+						lua_tostring(L, 2), lua_tostring(L, 3)))
+				ui_redraw(ui, REDRAW_CMDLINE);
+			break;
+		default:
+			luaL_error(L, "line_get takes up to three arguments");
 	}
 	return 0;
 }
