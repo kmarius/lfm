@@ -5,6 +5,7 @@
 #include <time.h>
 
 #include "config.h"
+#include "cvector.h"
 #include "log.h"
 #include "popen_arr.h"
 #include "preview.h"
@@ -69,6 +70,26 @@ void preview_update_with(T *t, Preview *update)
 }
 
 
+// like fgets, but seeks to the next line if the dest is full.
+static char* fgets_seek(char* dest, int n, FILE *fp)
+{
+    int c;
+    char* cs;
+    cs = dest;
+
+	while (--n > 0 && (c = getc(fp)) != EOF) {
+		if ((*cs++ = c) == '\n')
+			break;
+	}
+
+	if (c != EOF && c != '\n')
+		while ((c = getc(fp)) != EOF && c != '\n');
+
+	*cs = 0;
+	return (c == EOF && cs == dest) ? NULL : dest;
+}
+
+
 T *preview_create_from_file(const char *path, uint8_t nrow)
 {
 	char buf[PREVIEW_MAX_LINE_LENGTH];
@@ -90,7 +111,7 @@ T *preview_create_from_file(const char *path, uint8_t nrow)
 		return t;
 	}
 
-	while (fgets(buf, sizeof(buf), fp) && nrow > 0)
+	while (nrow-- > 0 && fgets_seek(buf, sizeof buf, fp))
 		cvector_push_back(t->lines, strdup(buf));
 
 	pclose(fp);
