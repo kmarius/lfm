@@ -1240,6 +1240,9 @@ static void plane_draw_file_preview(struct ncplane *n, Preview *pv)
 
 	for (size_t i = 0; i < cvector_size(pv->lines) && i < (size_t) nrow; i++) {
 		ncplane_cursor_move_yx(n, i, 0);
+		ncplane_set_fg_default(n);
+		ncplane_set_bg_default(n);
+		ncplane_set_styles(n, NCSTYLE_NONE);
 		ansi_addstr(n, pv->lines[i]);
 	}
 }
