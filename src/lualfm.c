@@ -226,6 +226,15 @@ static int l_error(lua_State *L)
 }
 
 
+static int l_message_clear(lua_State *L)
+{
+	(void) L;
+	ui->message = false;
+	ui_redraw(ui, REDRAW_CMDLINE);
+	return 0;
+}
+
+
 static int l_execute(lua_State *L)
 {
 	bool out = true;
@@ -394,6 +403,7 @@ static const struct luaL_Reg lfm_lib[] = {
 	{"crash", l_crash},
 	{"echo", l_echo},
 	{"error", l_error},
+	{"message_clear", l_message_clear},
 	{"quit", l_quit},
 	{NULL, NULL}};
 

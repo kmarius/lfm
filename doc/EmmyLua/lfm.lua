@@ -68,6 +68,9 @@ function lfm.error(msg) end
 ---@param msg string
 function lfm.echo(msg) end
 
+---If a message is shown in the statusline, clear it.
+function lfm.message_clear() end
+
 ---@param keys string
 function lfm.handle_key(keys) end
 
