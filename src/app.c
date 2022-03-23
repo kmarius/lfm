@@ -95,6 +95,7 @@ static void schedule_timer_cb(EV_P_ ev_timer *w, int revents)
 	lua_run_callback(data->app->L, data->ind);
 	cvector_swap_remove(data->app->schedule_timers, w);
 	destroy_schedule_timer(w);
+	ev_idle_start(loop, &app->redraw_watcher);
 }
 
 
