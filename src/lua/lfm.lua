@@ -467,8 +467,8 @@ map("or", a(fm.sortby, "random"), {desc="sort: random"})
 
 lfm.register_mode(require("glob").mode_glob_select)
 map("*", a(lfm.cmd.prefix_set, require("glob").mode_glob_select.prefix), {desc="glob-select"})
-lfm.register_command("glob-select", c(require("glob").glob_select, ui.draw), {tokenize=false})
-lfm.register_command("glob-select-rec", c(require("glob").glob_select_rec, ui.draw), {tokenize=false})
+lfm.register_command("glob-select", require("glob").glob_select, {tokenize=false})
+lfm.register_command("glob-select-rec", require("glob").glob_select_recursive, {tokenize=false})
 
 lfm.register_command("mark-save", require("quickmarks").mark_save)
 lfm.register_mode(require("quickmarks").mode_mark_save)

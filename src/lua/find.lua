@@ -15,7 +15,7 @@ local M = {}
 ---@return fun(...: nil):...
 local function find(path, fn)
 	local yield = coroutine.yield
-	local attributes = lfs.attributes.yield
+	local attributes = lfs.attributes
 	return coroutine.wrap(function()
 		for f in lfs.dir(path) do
 			if f ~= "." and f ~= ".." then
