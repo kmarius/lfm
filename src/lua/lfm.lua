@@ -478,10 +478,16 @@ local function gmap(key, location)
 	map("g"..key, function() fm.chdir(location) end, {desc="cd "..location})
 end
 
+gmap("/", "/")
+gmap("e", "/etc")
 gmap("h", os.getenv("HOME"))
 gmap("m", "/mnt")
-gmap("p", "/tmp")
 gmap("n", "~/Downloads")
+gmap("o", "/opt")
+gmap("p", "/tmp")
+gmap("r", "/")
+gmap("s", "/srv")
+gmap("u", "/usr")
 
 -- Setup package.path for the user and source the config
 -- package.path = package_path
