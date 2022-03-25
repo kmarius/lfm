@@ -62,6 +62,7 @@ void fm_deinit(T *t)
 		if (t->dirs.visible[i])
 			cache_return(&t->dirs.cache, t->dirs.visible[i], t->dirs.visible[i]->path);
 	}
+	cvector_free(t->dirs.visible);
 	if (t->dirs.preview)
 		cache_return(&t->dirs.cache, t->dirs.preview, t->dirs.preview->path);
 	cache_deinit(&t->dirs.cache);

@@ -95,7 +95,7 @@ void ui_resume(T *t)
 
 void ui_suspend(T *t)
 {
-	cvector_fclear(t->planes.dirs, ncplane_destroy);
+	cvector_ffree(t->planes.dirs, ncplane_destroy);
 	ncplane_destroy(t->planes.cmdline);
 	ncplane_destroy(t->planes.menu);
 	ncplane_destroy(t->planes.info);

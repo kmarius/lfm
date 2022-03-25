@@ -564,6 +564,7 @@ static int l_config_newindex(lua_State *L)
 			cfg.previewer = NULL;
 		} else {
 			const char *str = luaL_checkstring(L, 3);
+			free(cfg.previewer);
 			cfg.previewer = str[0] != 0 ? path_replace_tilde(str) : NULL;
 		}
 		ui_drop_cache(ui);

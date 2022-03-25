@@ -106,7 +106,7 @@ void config_deinit()
 {
 	cvector_free(cfg.ratios);
 	cvector_free(cfg.commands);
-	cvector_free(cfg.inotify_blacklist);
+	cvector_ffree(cfg.inotify_blacklist, free);
 	free(cfg.configdir);
 	free(cfg.configpath);
 	free(cfg.corepath);
