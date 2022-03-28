@@ -846,6 +846,7 @@ static int l_cmd_line_get(lua_State *L)
 
 static int l_cmd_line_set(lua_State *L)
 {
+	ui->message = false;
 	switch (lua_gettop(L)) {
 		case 1:
 			if (cmdline_set(&ui->cmdline, lua_tostring(L, 1)))
