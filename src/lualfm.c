@@ -844,6 +844,8 @@ static int l_cmd_line_get(lua_State *L)
 }
 
 
+// TODO: when setting the prefix we also need to enable the cursor
+// see ui_cmdline_prefix_set (on 2022-03-28)
 static int l_cmd_line_set(lua_State *L)
 {
 	ui->message = false;
