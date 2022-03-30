@@ -9,11 +9,16 @@ set(CMAKE_C_STANDARD 11)
 
 set(CMAKE_C_FLAGS "-Wall -Wextra -Wvla -pthread")
 set(CMAKE_C_FLAGS_DEBUG "-DDEBUG -O2 -g")
+set(CMAKE_C_FLAGS_ASAN "${CMAKE_C_FLAGS_DEBUG}")
 set(CMAKE_C_FLAGS_RELEASE "-DNDEBUG -O2 -flto -g")
-
 
 if(NOT CMAKE_BUILD_TYPE)
 	set(CMAKE_BUILD_TYPE Release)
+endif()
+
+if (CMAKE_BUILD_TYPE STREQUAL "Asan")
+	add_compile_options(-fsanitize=address)
+	add_link_options(-fsanitize=address)
 endif()
 
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
