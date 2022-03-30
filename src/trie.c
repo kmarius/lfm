@@ -3,7 +3,6 @@
 
 #include "cvector.h"
 #include "trie.h"
-#include "util.h" // asprintf
 
 #define T Trie
 
