@@ -107,8 +107,10 @@ void trie_destroy(T *t)
 	if (!t)
 		return;
 
-	for (T* n = t->child; n; n = n->next)
+	for (T* next, *n = t->child; n; n = next) {
+		next = n->next;
 		trie_destroy(n);
+	}
 
 	free(t->desc);
 	free(t->keys);
