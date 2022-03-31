@@ -72,9 +72,10 @@ void fm_deinit(T *t)
 	cvector_free(t->selection.previous);
 	cvector_ffree(t->paste.buffer, free);
 
-#define mark_free(mark) free((mark).path)
-	cvector_ffree(t->marks, mark_free);
-#undef mark_free
+	cvector_foreach(mark, t->marks) {
+		free(mark->path);
+	}
+	cvector_free(t->marks);
 }
 
 

@@ -329,6 +329,12 @@
  */
 #define cvector_end(vec) ((vec) ? &((vec)[cvector_size(vec)]) : NULL)
 
+/*
+ *
+ */
+#define cvector_foreach(item, vec) \
+	for (typeof(*vec) *(item) = cvector_begin(vec); (item) < cvector_end(vec); (item)++)
+
 /**
  * @brief cvector_push_back - adds an element to the end of the vector
  * @param vec - the vector

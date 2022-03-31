@@ -97,10 +97,11 @@ void config_init()
 #endif
 }
 
-#define tup_free(t) free((t).ext)
 
 void config_deinit()
 {
+	config_colors_clear();
+	cvector_free(cfg.colors.ext_channels);
 	cvector_free(cfg.ratios);
 	cvector_free(cfg.commands);
 	cvector_ffree(cfg.inotify_blacklist, free);
@@ -116,8 +117,8 @@ void config_deinit()
 	free(cfg.startfile);
 	free(cfg.startpath);
 	free(cfg.luadir);
-	cvector_ffree(cfg.colors.ext_channels, tup_free);
 }
+
 
 void config_colors_clear()
 {
@@ -132,5 +133,7 @@ void config_colors_clear()
 	cfg.colors.search = NCCHANNELS_INITIALIZER_PALINDEX(-1, -1);
 	cfg.colors.selection = NCCHANNELS_INITIALIZER_PALINDEX(-1, -1);
 
-	cvector_ffree(cfg.colors.ext_channels, tup_free);
+	cvector_foreach(t, cfg.colors.ext_channels) {
+		free(t->ext);
+	}
 }
