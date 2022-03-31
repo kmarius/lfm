@@ -12,7 +12,6 @@
 #include "util.h"
 #include "notify.h"
 
-
 Config cfg = {
 	.truncatechar = L'~',
 	.scrolloff = 4,
@@ -39,7 +38,6 @@ void config_ratios_set(cvector_vector_type(uint16_t) ratios)
 		return;
 	cvector_free(cfg.ratios);
 	cfg.ratios = ratios;
-
 }
 
 
@@ -62,11 +60,10 @@ void config_init()
 	cfg.preview = true;
 
 	const char *xdg_runtime = getenv("XDG_RUNTIME_DIR");
-	if (!xdg_runtime || *xdg_runtime == 0) {
+	if (!xdg_runtime || *xdg_runtime == 0)
 		asprintf(&cfg.rundir, "/tmp/runtime-%s/lfm", getenv("USER"));
-	} else {
+	else
 		asprintf(&cfg.rundir, "%s/lfm", xdg_runtime);
-	}
 
 	const char *xdg_config = getenv("XDG_CONFIG_HOME");
 	if (!xdg_config || *xdg_config == 0)
