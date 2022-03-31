@@ -363,6 +363,9 @@ local a = require("util").a
 local map = lfm.map
 
 map("q", lfm.quit, {desc="quit"})
+map("ZZ", lfm.quit, {desc="quit"})
+-- maybe don't write selection/lastdir when exiting with ZQ/:q!
+map("ZQ", lfm.quit, {desc="quit"})
 map("<c-q>", lfm.quit, {desc="quit"})
 map("<c-c>", function() print("Type :q <Enter> or <Ctrl>q to exit") end, {desc="ctrl-c"})
 map("<c-l>", ui.clear, {desc="clear screen and redraw"})
