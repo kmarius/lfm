@@ -40,7 +40,7 @@ typedef struct Fm {
 
 	struct {
 		// Current selection, as a vector of paths
-		cvector_vector_type(char *) files;
+		cvector_vector_type(char *) paths;
 		uint16_t length;
 
 		// Previous seletction, needed for visual selection mode

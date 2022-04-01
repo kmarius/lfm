@@ -242,7 +242,7 @@ static void draw_dirs(T *t)
 	for (uint16_t i = 0; i < l; i++) {
 		plane_draw_dir(t->planes.dirs[l-i-1],
 				t->fm->dirs.visible[i],
-				t->fm->selection.files,
+				t->fm->selection.paths,
 				t->fm->paste.buffer,
 				t->fm->paste.mode,
 				i == 0 ? t->highlight : NULL, i == 0);
@@ -254,7 +254,7 @@ static void draw_preview(T *t)
 {
 	if (cfg.preview && t->ndirs > 1) {
 		if (t->fm->dirs.preview) {
-			plane_draw_dir(t->planes.preview, t->fm->dirs.preview, t->fm->selection.files,
+			plane_draw_dir(t->planes.preview, t->fm->dirs.preview, t->fm->selection.paths,
 					t->fm->paste.buffer, t->fm->paste.mode, NULL, false);
 		} else {
 			update_preview(t);

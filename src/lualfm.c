@@ -1277,9 +1277,9 @@ static int l_fm_selection_get(lua_State *L)
 {
 	lua_createtable(L, fm->selection.length, 0);
 	size_t j = 1;
-	for (size_t i = 0; i < cvector_size(fm->selection.files); i++) {
-		if (fm->selection.files[i]) {
-			lua_pushstring(L, fm->selection.files[i]);
+	for (size_t i = 0; i < cvector_size(fm->selection.paths); i++) {
+		if (fm->selection.paths[i]) {
+			lua_pushstring(L, fm->selection.paths[i]);
 			lua_rawseti(L, -2, j++);
 		}
 	}

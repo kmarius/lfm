@@ -66,7 +66,7 @@ void fm_deinit(T *t)
 	if (t->dirs.preview)
 		cache_return(&t->dirs.cache, t->dirs.preview, t->dirs.preview->path);
 	cache_deinit(&t->dirs.cache);
-	cvector_ffree(t->selection.files, free);
+	cvector_ffree(t->selection.paths, free);
 	/* prev_selection _never_ holds allocated paths that are not already
 	 * free'd in fm->selection */
 	cvector_free(t->selection.previous);
@@ -354,19 +354,18 @@ void fm_update_preview(T *t)
 
 void fm_selection_clear(T *t)
 {
-	cvector_fclear(t->selection.files, free);
+	cvector_fclear(t->selection.paths, free);
 	t->selection.length = 0;
 }
 
 
 void fm_selection_add_file(T *t, const char *path)
 {
-	size_t i;
-	for (i = 0; i < cvector_size(t->selection.files); i++) {
-		if (t->selection.files[i] && streq(t->selection.files[i], path))
+	for (size_t i = 0; i < cvector_size(t->selection.paths); i++) {
+		if (t->selection.paths[i] && streq(t->selection.paths[i], path))
 			return;
 	}
-	cvector_push_back(t->selection.files, strdup(path));
+	cvector_push_back(t->selection.paths, strdup(path));
 	t->selection.length++;
 }
 
@@ -374,25 +373,25 @@ void fm_selection_add_file(T *t, const char *path)
 void fm_selection_set(T *t, cvector_vector_type(char*) selection)
 {
 	fm_selection_clear(t);
-	cvector_free(t->selection.files);
-	t->selection.files = selection;
+	cvector_free(t->selection.paths);
+	t->selection.paths = selection;
 	t->selection.length = cvector_size(selection); // assume selection isnt sparse
 }
 
 
 void selection_toggle_file(T *t, const char *path)
 {
-	for (size_t i = 0; i < cvector_size(t->selection.files); i++) {
-		if (t->selection.files[i] && streq(t->selection.files[i], path)) {
-			free(t->selection.files[i]);
-			t->selection.files[i] = NULL;
+	for (size_t i = 0; i < cvector_size(t->selection.paths); i++) {
+		if (t->selection.paths[i] && streq(t->selection.paths[i], path)) {
+			free(t->selection.paths[i]);
+			t->selection.paths[i] = NULL;
 			t->selection.length--;
 			if (t->selection.length == 0)
-				cvector_set_size(t->selection.files, 0);
+				cvector_set_size(t->selection.paths, 0);
 			return;
 		}
 	}
-	cvector_push_back(t->selection.files, strdup(path));
+	cvector_push_back(t->selection.paths, strdup(path));
 	t->selection.length++;
 }
 
@@ -430,9 +429,9 @@ void fm_selection_visual_start(T *t)
 	t->visual.active = true;
 	t->visual.anchor = dir->ind;
 	fm_selection_add_file(t, file_path(dir->files[dir->ind]));
-	for (size_t i = 0; i < cvector_size(t->selection.files); i++) {
-		if (t->selection.files[i])
-			cvector_push_back(t->selection.previous, t->selection.files[i]);
+	for (size_t i = 0; i < cvector_size(t->selection.paths); i++) {
+		if (t->selection.paths[i])
+			cvector_push_back(t->selection.previous, t->selection.paths[i]);
 	}
 }
 
@@ -508,9 +507,9 @@ void fm_selection_write(const T *t, const char *path)
 	}
 
 	if (t->selection.length > 0) {
-		for (size_t i = 0; i< cvector_size(t->selection.files); i++) {
-			if (t->selection.files[i]) {
-				fputs(t->selection.files[i], fp);
+		for (size_t i = 0; i< cvector_size(t->selection.paths); i++) {
+			if (t->selection.paths[i]) {
+				fputs(t->selection.paths[i], fp);
 				fputc('\n', fp);
 			}
 		}
@@ -537,9 +536,9 @@ void fm_paste_mode_set(T *t, enum paste_mode_e mode)
 		fm_selection_toggle_current(t);
 	fm_paste_buffer_clear(t);
 	char **tmp = t->paste.buffer;
-	t->paste.buffer = t->selection.files;
+	t->paste.buffer = t->selection.paths;
 	cvector_compact(t->paste.buffer);
-	t->selection.files = tmp;
+	t->selection.paths = tmp;
 	t->selection.length = 0;
 }
 
