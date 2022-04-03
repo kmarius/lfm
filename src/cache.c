@@ -43,7 +43,7 @@ static inline void upheap(struct node *nodes, int16_t i)
 
 static void downheap(struct node *a, uint16_t size, uint16_t i)
 {
-	do {
+	for (;;) {
 		const uint16_t l_idx = LCHILD(i);
 		const uint16_t r_idx = RCHILD(i);
 		uint16_t smallest = i;
@@ -52,10 +52,10 @@ static void downheap(struct node *a, uint16_t size, uint16_t i)
 		if (r_idx < size && a[r_idx].sort_key < a[smallest].sort_key)
 			smallest = r_idx;
 		if (smallest == i)
-			break;
+			return;
 		swap(a+i, a+smallest);
 		i = smallest;
-	} while (1);
+	}
 }
 
 
@@ -167,7 +167,8 @@ void cache_drop(T *t)
 }
 
 
-void cache_deinit(T *t) {
+void cache_deinit(T *t)
+{
 	cache_drop(t);
 	free(t->nodes);
 }
