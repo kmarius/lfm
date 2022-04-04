@@ -785,7 +785,7 @@ static int print_highlighted_and_shortened(struct ncplane *n, const char *name, 
 			while (namew < hl_begin)
 				ncplane_putwc(n, *(namew++));
 			ncplane_set_channels(n, cfg.colors.search);
-			if (hl_end < print_name_end) {
+			if (hl_end <= print_name_end) {
 				// highlight ends before truncate
 				while (namew < hl_end)
 					ncplane_putwc(n, *(namew++));
