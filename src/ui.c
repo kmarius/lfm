@@ -678,13 +678,12 @@ void ui_showmenu(T *t, cvector_vector_type(char*) vec)
 
 /* draw_dir {{{ */
 
-static uint64_t ext_channel_find(const char *ext)
+static uint64_t ext_channel_get(const char *ext)
 {
 	if (ext) {
-		for (size_t i = 0; i < cvector_size(cfg.colors.ext_channels); i++) {
-			if (strcaseeq(ext, cfg.colors.ext_channels[i].ext))
-				return cfg.colors.ext_channels[i].channel;
-		}
+		uint64_t *chan = hashtab_get(&cfg.colors.ext, ext);
+		if (chan)
+			return *chan;
 	}
 	return 0;
 }
@@ -958,7 +957,7 @@ static void print_file(struct ncplane *n, const File *file,
 	} else if (file_isexec(file)) {
 		ncplane_set_channels(n, cfg.colors.exec);
 	} else {
-		uint64_t ch = ext_channel_find(file_ext(file));
+		uint64_t ch = ext_channel_get(file_ext(file));
 		if (ch > 0) {
 			ncplane_set_channels(n, ch);
 		} else {

@@ -6,6 +6,9 @@
 #include <wchar.h>
 
 #include "cvector.h"
+#include "hashtab.h"
+
+#define EXT_CHANNEL_TAB_SIZE 128  // size of the hashtable mapping extensions to color channels
 
 #define NCCHANNEL_INITIALIZER_PALINDEX(ind) \
 	(ind < 0 \
@@ -20,11 +23,6 @@
 #define NCCHANNELS_INITIALIZER_PALINDEX(fg, bg) \
 	((NCCHANNEL_INITIALIZER_PALINDEX(fg) << 32lu) \
 	 | NCCHANNEL_INITIALIZER_PALINDEX(bg))
-
-typedef struct ext_channel_tup {
-	char *ext;
-	uint64_t channel;
-} ext_channel_tup;
 
 // automatically generated, see config/pathdefs.c.in
 extern char *default_data_dir;
@@ -57,7 +55,7 @@ typedef struct Config {
 	uint16_t inotify_delay;
 
 	struct colors {
-		ext_channel_tup *ext_channels;
+		Hashtab ext;  // char* -> uint64
 
 		uint64_t normal;
 		uint64_t selection;

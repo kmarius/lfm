@@ -2,12 +2,14 @@
 #include <ncurses.h> // COLOR_ constants
 #include <notcurses/notcurses.h>
 #include <stdarg.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "config.h"
 #include "cvector.h"
+#include "hashtab.h"
 #include "log.h"
 #include "util.h"
 #include "notify.h"
@@ -18,7 +20,6 @@ Config cfg = {
 	.inotify_timeout = NOTIFY_TIMEOUT,
 	.inotify_delay = NOTIFY_DELAY,
 	.colors = {
-		.ext_channels = NULL,
 		.normal = NCCHANNELS_INITIALIZER_PALINDEX(-1, -1),
 		.copy = NCCHANNELS_INITIALIZER_PALINDEX(COLOR_BLACK, COLOR_YELLOW),
 		.current = NCCHANNEL_INITIALIZER_PALINDEX(237),
@@ -41,15 +42,19 @@ void config_ratios_set(cvector_vector_type(uint16_t) ratios)
 }
 
 
+// store ext right after the channel so we can easily free both
 void config_ext_channel_add(const char *ext, uint64_t channel)
 {
-	/* TODO: should overwrite existing tuples or something (on 2022-01-14) */
-	cvector_push_back(cfg.colors.ext_channels, ((ext_channel_tup) {strdup(ext), channel}));
+	char *s = malloc((sizeof(uint64_t) + strlen(ext) + 1));
+	*(uint64_t *) s = channel;
+	strcpy(s + sizeof(uint64_t), ext);
+	hashtab_set(&cfg.colors.ext, s + sizeof(uint64_t), s);
 }
 
 
 void config_init()
 {
+	hashtab_init(&cfg.colors.ext, EXT_CHANNEL_TAB_SIZE, free);
 	cvector_vector_type(uint16_t) r = NULL;
 	cvector_push_back(r, 1);
 	cvector_push_back(r, 2);
@@ -101,7 +106,7 @@ void config_init()
 void config_deinit()
 {
 	config_colors_clear();
-	cvector_free(cfg.colors.ext_channels);
+	hashtab_deinit(&cfg.colors.ext);
 	cvector_free(cfg.ratios);
 	cvector_free(cfg.commands);
 	cvector_ffree(cfg.inotify_blacklist, free);
@@ -132,8 +137,5 @@ void config_colors_clear()
 	cfg.colors.search = NCCHANNELS_INITIALIZER_PALINDEX(-1, -1);
 	cfg.colors.selection = NCCHANNELS_INITIALIZER_PALINDEX(-1, -1);
 
-	cvector_foreach(t, cfg.colors.ext_channels) {
-		free(t->ext);
-	}
-	cvector_set_size(cfg.colors.ext_channels, 0);
+	hashtab_clear(&cfg.colors.ext);
 }
