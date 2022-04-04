@@ -19,3 +19,4 @@ Hashtab *hashtab_init(Hashtab *t, size_t size, free_fun free);
 void hashtab_deinit(Hashtab *t);
 void hashtab_set(Hashtab *t, const char *key, void *val);
 void *hashtab_get(Hashtab *t, const char *key);
+void hashtab_clear(Hashtab *t);

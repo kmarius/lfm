@@ -1248,7 +1248,7 @@ void ui_drop_cache(T *t)
 {
 	if (t->preview.preview)
 		t->preview.preview = NULL;
-	/* cache_drop(&t->preview.cache); */
+	hashtab_clear(&t->preview.cache);
 	update_preview(t);
 	ui_redraw(t, REDRAW_CMDLINE | REDRAW_PREVIEW);
 }

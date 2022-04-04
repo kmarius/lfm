@@ -1010,7 +1010,7 @@ static int l_fm_get_height(lua_State *L)
 static int l_fm_drop_cache(lua_State *L)
 {
 	(void) L;
-	/* fm_drop_cache(fm); */
+	fm_drop_cache(fm);
 	notify_empty_queue();
 	ui_drop_cache(ui);
 	return 0;

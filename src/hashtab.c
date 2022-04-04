@@ -91,3 +91,24 @@ void *hashtab_get(T *t, const char *key)
 		return b->val;
 	return NULL;
 }
+
+
+void hashtab_clear(T *t)
+{
+	for (size_t i = 0; i < t->nbuckets; i++) {
+		if (t->buckets[i].val) {
+			for (struct bucket *next, *b = t->buckets[i].next; b; b = next) {
+				next = b->next;
+				if (t->free)
+					t->free(b->val);
+				free(b);
+			}
+			if (t->free)
+				t->free(t->buckets[i].val);
+			t->buckets[i].val = NULL;
+			t->buckets[i].key = NULL;
+			t->buckets[i].next = NULL;
+		}
+	}
+	t->version++;
+}

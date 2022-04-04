@@ -12,6 +12,7 @@
 #include "async.h"
 #include "config.h"
 #include "fm.h"
+#include "hashtab.h"
 #include "log.h"
 #include "lualfm.h"
 #include "notify.h"
@@ -254,7 +255,7 @@ void fm_drop_cache(T *t)
 	log_debug("dropping cache");
 	fm_remove_preview(t);
 
-	/* cache_drop(&t->dirs.cache); */
+	hashtab_clear(&t->dirs.cache);
 
 	fm_populate(t);
 	fm_update_preview(t);
