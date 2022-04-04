@@ -122,7 +122,6 @@ void config_deinit()
 
 void config_colors_clear()
 {
-	cfg.colors.ext_channels = NULL;
 	cfg.colors.normal = NCCHANNELS_INITIALIZER_PALINDEX(-1, -1);
 	cfg.colors.copy = NCCHANNELS_INITIALIZER_PALINDEX(-1, -1);
 	cfg.colors.current = NCCHANNEL_INITIALIZER_PALINDEX(237);
@@ -136,4 +135,5 @@ void config_colors_clear()
 	cvector_foreach(t, cfg.colors.ext_channels) {
 		free(t->ext);
 	}
+	cvector_set_size(cfg.colors.ext_channels, 0);
 }
