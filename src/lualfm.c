@@ -479,9 +479,6 @@ static int l_config_index(lua_State *L)
 	} else if (streq(key, "runtime_dir")) {
 		lua_pushstring(L, cfg.rundir);
 		return 1;
-	} else if (streq(key, "dircache_size")) {
-		/* lua_pushinteger(L, fm->dirs.cache.capacity); */
-		return 1;
 	} else if (streq(key, "previewcache_size")) {
 		lua_pushinteger(L, ui->preview.cache.capacity);
 		return 1;
@@ -569,11 +566,6 @@ static int l_config_newindex(lua_State *L)
 		}
 		ui_drop_cache(ui);
 		return 0;
-	} else if (streq(key, "dircache_size")) {
-		int capacity = luaL_checkinteger(L, 3);
-		if (capacity < 0)
-			luaL_argerror(L, 3, "size must be non-negative");
-		/* cache_resize(&fm->dirs.cache, capacity); */
 	} else if (streq(key, "previewcache_size")) {
 		int capacity = luaL_checkinteger(L, 3);
 		if (capacity < 0)

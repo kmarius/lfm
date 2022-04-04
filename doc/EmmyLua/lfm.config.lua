@@ -35,7 +35,6 @@
 ---@field runtime_dir string
 ---@field logpath string
 ---@field fifopath string
----@field dircache_size integer assignable
 ---@field previewcache_size integer assignable
 ---@field colors ColorLib
 ---@field inotify_blacklist string[] No inotify watchers will be installed if the path begins with any of these strings.
