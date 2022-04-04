@@ -38,7 +38,7 @@ static ResultQueue async_results = {
 
 static tpool_t *async_tm = NULL;
 static ev_async async_res_watcher;
-static Cache *dircache = NULL;
+static Hashtab *dircache = NULL;
 static Cache *previewcache = NULL;
 
 static void async_result_cb(EV_P_ ev_async *w, int revents)

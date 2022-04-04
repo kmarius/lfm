@@ -44,7 +44,7 @@ void fm_init(T *t)
 	t->dirs.length = cvector_size(cfg.ratios) - (cfg.preview ? 1 : 0);
 	cvector_grow(t->dirs.visible, t->dirs.length);
 
-	cache_init(&t->dirs.cache, DIRCACHE_SIZE, (void (*)(void *)) dir_destroy);
+	hashtab_init(&t->dirs.cache, DIRCACHE_SIZE, (void (*)(void *)) dir_destroy);
 	fm_populate(t);
 
 	fm_update_watchers(t);
@@ -58,14 +58,8 @@ void fm_init(T *t)
 
 void fm_deinit(T *t)
 {
-	for (uint8_t i = 0; i < t->dirs.length; i++) {
-		if (t->dirs.visible[i])
-			cache_return(&t->dirs.cache, t->dirs.visible[i], t->dirs.visible[i]->path);
-	}
 	cvector_free(t->dirs.visible);
-	if (t->dirs.preview)
-		cache_return(&t->dirs.cache, t->dirs.preview, t->dirs.preview->path);
-	cache_deinit(&t->dirs.cache);
+	hashtab_deinit(&t->dirs.cache);
 	cvector_ffree(t->selection.paths, free);
 	/* prev_selection _never_ holds allocated paths that are not already
 	 * free'd in fm->selection */
@@ -109,10 +103,8 @@ void fm_recol(T *t)
 {
 	fm_remove_preview(t);
 	for (uint16_t i = 0; i < t->dirs.length; i++) {
-		if (t->dirs.visible[i]) {
+		if (t->dirs.visible[i])
 			t->dirs.visible[i]->visible = false;
-			cache_return(&t->dirs.cache, t->dirs.visible[i], t->dirs.visible[i]->path);
-		}
 	}
 
 	const uint16_t l = max(1, cvector_size(cfg.ratios) - (cfg.preview ? 1 : 0));
@@ -162,7 +154,6 @@ bool fm_chdir(T *t, const char *path, bool save)
 	for (uint16_t i = 0; i < t->dirs.length; i++) {
 		if (t->dirs.visible[i]) {
 			t->dirs.visible[i]->visible = false;
-			cache_return(&t->dirs.cache, t->dirs.visible[i], t->dirs.visible[i]->path);
 		}
 	}
 
@@ -220,7 +211,7 @@ static Dir *fm_load_dir(T *t, const char *path)
 		path = fullpath;
 	}
 
-	Dir *dir = cache_take(&t->dirs.cache, path);
+	Dir *dir = hashtab_get(&t->dirs.cache, path);
 	if (dir) {
 		async_dir_check(dir);
 		dir->hidden = cfg.hidden;
@@ -237,7 +228,7 @@ static Dir *fm_load_dir(T *t, const char *path)
 		 */
 		dir = dir_create(path);
 		dir->hidden = cfg.hidden;
-		cache_insert(&t->dirs.cache, dir, dir->path, true);
+		hashtab_set(&t->dirs.cache, dir->path, dir);
 		async_dir_load(dir, false);
 	}
 	return dir;
@@ -261,13 +252,9 @@ void fm_drop_cache(T *t)
 	notify_set_watchers(NULL, 0);
 
 	log_debug("dropping cache");
-	for (uint16_t i = 0; i < t->dirs.length; i++) {
-		if (t->dirs.visible[i])
-			cache_return(&t->dirs.cache, t->dirs.visible[i], t->dirs.visible[i]->path);
-	}
 	fm_remove_preview(t);
 
-	cache_drop(&t->dirs.cache);
+	/* cache_drop(&t->dirs.cache); */
 
 	fm_populate(t);
 	fm_update_preview(t);
@@ -293,7 +280,6 @@ static void fm_remove_preview(T *t)
 
 	notify_remove_watcher(t->dirs.preview);
 	t->dirs.preview->visible = false;
-	cache_return(&t->dirs.cache, t->dirs.preview, t->dirs.preview->path);
 	t->dirs.preview = NULL;
 }
 
@@ -325,7 +311,6 @@ void fm_update_preview(T *t)
 			if (i >= t->dirs.length) {
 				notify_remove_watcher(t->dirs.preview);
 				t->dirs.preview->visible = false;
-				cache_return(&t->dirs.cache, t->dirs.preview, t->dirs.preview->path);
 			}
 		}
 		t->dirs.preview = fm_load_dir(t, file_path(file));
@@ -343,7 +328,6 @@ void fm_update_preview(T *t)
 			if (i == t->dirs.length) {
 				notify_remove_watcher(t->dirs.preview);
 				t->dirs.preview->visible = false;
-				cache_return(&t->dirs.cache, t->dirs.preview, t->dirs.preview->path);
 			}
 			t->dirs.preview = NULL;
 		}

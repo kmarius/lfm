@@ -3,12 +3,12 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "cache.h"
 #include "cvector.h"
 #include "dir.h"
 #include "file.h"
+#include "hashtab.h"
 
-#define DIRCACHE_SIZE 63
+#define DIRCACHE_SIZE 1024
 
 enum paste_mode_e {
 	PASTE_MODE_MOVE,
@@ -29,7 +29,7 @@ typedef struct Fm {
 		cvector_vector_type(Dir *) visible;
 		uint16_t length;
 
-		Cache cache;
+		Hashtab cache;
 
 		// preview directory, NULL if there is none, e.g. if the cursor is resting on a file
 		Dir *preview;

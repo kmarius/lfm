@@ -480,7 +480,7 @@ static int l_config_index(lua_State *L)
 		lua_pushstring(L, cfg.rundir);
 		return 1;
 	} else if (streq(key, "dircache_size")) {
-		lua_pushinteger(L, fm->dirs.cache.capacity);
+		/* lua_pushinteger(L, fm->dirs.cache.capacity); */
 		return 1;
 	} else if (streq(key, "previewcache_size")) {
 		lua_pushinteger(L, ui->preview.cache.capacity);
@@ -573,7 +573,7 @@ static int l_config_newindex(lua_State *L)
 		int capacity = luaL_checkinteger(L, 3);
 		if (capacity < 0)
 			luaL_argerror(L, 3, "size must be non-negative");
-		cache_resize(&fm->dirs.cache, capacity);
+		/* cache_resize(&fm->dirs.cache, capacity); */
 	} else if (streq(key, "previewcache_size")) {
 		int capacity = luaL_checkinteger(L, 3);
 		if (capacity < 0)
@@ -1027,7 +1027,7 @@ static int l_fm_get_height(lua_State *L)
 static int l_fm_drop_cache(lua_State *L)
 {
 	(void) L;
-	fm_drop_cache(fm);
+	/* fm_drop_cache(fm); */
 	notify_empty_queue();
 	ui_drop_cache(ui);
 	return 0;
