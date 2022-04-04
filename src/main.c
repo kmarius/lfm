@@ -90,8 +90,9 @@ int main(int argc, char **argv)
 		}
 	}
 
+	// TODO: make it possible to move the cursor to a directory instead
+	// of cd'ing into it
 	if (optind < argc) {
-		log_debug("setting start dir %s", argv[optind]);
 		cfg.startpath = realpath_a(argv[optind]);
 		struct stat statbuf;
 		if (stat(cfg.startpath, &statbuf) == -1) {
@@ -104,9 +105,7 @@ int main(int argc, char **argv)
 				cfg.startfile = basename_a(cfg.startpath);
 				cfg.startpath = dirname_a(cfg.startpath);
 				free(f);
-				log_debug("set start file to %s", cfg.startfile);
 			}
-			log_debug("set start dir %s", cfg.startpath);
 		}
 	}
 
