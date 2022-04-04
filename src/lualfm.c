@@ -18,6 +18,7 @@
 #include "dir.h"
 #include "find.h"
 #include "fm.h"
+#include "hashtab.h"
 #include "log.h"
 #include "lua.h"
 #include "lualfm.h"
@@ -50,6 +51,32 @@ static struct {
 static int command_count = -1;
 
 /* lfm lib {{{ */
+
+static int l_dircache_stats(lua_State *L)
+{
+	struct ht_stats stats = hashtab_stats(&fm->dirs.cache);
+	lua_newtable(L);
+
+	lua_pushnumber(L, stats.nbuckets);
+	lua_setfield(L, -2, "nbuckets");
+
+	lua_pushnumber(L, stats.buckets_nonempty);
+	lua_setfield(L, -2, "nonempty");
+
+	lua_pushnumber(L, stats.alpha);
+	lua_setfield(L, -2, "alpha");
+
+	lua_pushnumber(L, stats.bucket_size_max);
+	lua_setfield(L, -2, "max");
+
+	lua_pushnumber(L, stats.nelems);
+	lua_setfield(L, -2, "nelems");
+
+	lua_pushnumber(L, stats.bucket_nonempty_avg_size);
+	lua_setfield(L, -2, "avg");
+
+	return 1;
+}
 
 // sets the function on top of the stack as callback and pops it.
 // returns the index with which to retreive it.
@@ -381,6 +408,7 @@ static int l_get_cmaps(lua_State *L)
 
 
 static const struct luaL_Reg lfm_lib[] = {
+	{"dircache_stats", l_dircache_stats},
 	{"schedule", l_schedule},
 	{"colors_clear", l_colors_clear},
 	{"execute", l_execute},

@@ -112,3 +112,26 @@ void hashtab_clear(T *t)
 	}
 	t->version++;
 }
+
+struct ht_stats hashtab_stats(T *t)
+{
+	struct ht_stats stats = { .nbuckets = t->nbuckets, };
+
+	for (size_t i = 0; i < t->nbuckets; i++) {
+		if (t->buckets[i].val) {
+			uint16_t size = 1;
+			stats.buckets_nonempty++;
+			stats.nelems++;
+			for (struct bucket *b = t->buckets[i].next; b; b = b->next) {
+				stats.nelems++;
+				size++;
+			}
+			if (size > stats.bucket_size_max)
+				stats.bucket_size_max = size;
+		}
+	}
+
+	stats.alpha = 1.0 * stats.nelems / t->nbuckets;
+	stats.bucket_nonempty_avg_size = (1.0 * stats.buckets_nonempty) / stats.nelems;
+	return stats;
+}

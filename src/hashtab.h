@@ -20,3 +20,14 @@ void hashtab_deinit(Hashtab *t);
 void hashtab_set(Hashtab *t, const char *key, void *val);
 void *hashtab_get(Hashtab *t, const char *key);
 void hashtab_clear(Hashtab *t);
+
+struct ht_stats {
+	uint16_t nbuckets;
+	uint16_t nelems;
+	uint16_t bucket_size_max;
+	uint16_t buckets_nonempty;
+	double bucket_nonempty_avg_size;
+	double alpha;
+};
+
+struct ht_stats hashtab_stats(Hashtab *t);
