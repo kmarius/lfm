@@ -4,7 +4,7 @@
 #include <notcurses/notcurses.h>
 #include <stdarg.h>
 
-#include "cache.h"
+#include "hashtab.h"
 #include "cmdline.h"
 #include "cvector.h"
 #include "dir.h"
@@ -13,7 +13,7 @@
 #include "history.h"
 #include "preview.h"
 
-#define PREVIEW_CACHE_SIZE 63
+#define PREVIEW_CACHE_SIZE 1024
 
 #define REDRAW_INFO    1
 #define REDRAW_FM      2
@@ -45,7 +45,7 @@ typedef struct {
 
 	struct {
 		Preview *preview;
-		Cache cache;
+		Hashtab cache;
 	} preview;
 
 	const char *highlight;

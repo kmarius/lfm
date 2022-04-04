@@ -11,12 +11,12 @@
 
 #include "app.h"
 #include "async.h"
-#include "cache.h"
 #include "config.h"
 #include "cvector.h"
 #include "dir.h"
 #include "file.h"
 #include "filter.h"
+#include "hashtab.h"
 #include "log.h"
 #include "ui.h"
 #include "util.h"
@@ -105,10 +105,8 @@ void ui_suspend(T *t)
 	t->planes.menu = NULL;
 	t->planes.info = NULL;
 	t->nc = NULL;
-	if (t->preview.preview) {
-		cache_return(&t->preview.cache, t->preview.preview, t->preview.preview->path);
+	if (t->preview.preview)
 		t->preview.preview = NULL;
-	}
 }
 
 
@@ -116,7 +114,7 @@ void ui_init(T *t, Fm *fm)
 {
 	t->fm = fm;
 
-	cache_init(&t->preview.cache, PREVIEW_CACHE_SIZE, (void(*)(void*)) preview_destroy);
+	hashtab_init(&t->preview.cache, PREVIEW_CACHE_SIZE, (void(*)(void*)) preview_destroy);
 	cmdline_init(&t->cmdline);
 	history_load(&t->history, cfg.historypath);
 
@@ -148,7 +146,7 @@ void ui_deinit(T *t)
 	cvector_ffree(t->messages, free);
 	cvector_ffree(t->menubuf, free);
 	cmdline_deinit(&t->cmdline);
-	cache_deinit(&t->preview.cache);
+	hashtab_deinit(&t->preview.cache);
 }
 
 
@@ -1044,7 +1042,7 @@ static Preview *load_preview(T *t, File *file)
 	int ncol, nrow;
 	ncplane_dim_yx(t->planes.preview, &nrow, &ncol);
 
-	Preview *pv = cache_take(&t->preview.cache, file_path(file));
+	Preview *pv = hashtab_get(&t->preview.cache, file_path(file));
 	if (pv) {
 		/* TODO: vv (on 2021-08-10) */
 		/* might be checking too often here? or is it capped by inotify
@@ -1057,7 +1055,7 @@ static Preview *load_preview(T *t, File *file)
 		}
 	} else {
 		pv = preview_create_loading(file_path(file), nrow);
-		cache_insert(&t->preview.cache, pv, pv->path, true);
+		hashtab_set(&t->preview.cache, pv->path, pv);
 		async_preview_load(pv, nrow);
 	}
 	return pv;
@@ -1083,7 +1081,6 @@ static void update_preview(T *t)
 					}
 				}
 			} else {
-				cache_return(&t->preview.cache, t->preview.preview, t->preview.preview->path);
 				t->preview.preview = load_preview(t, file);
 				ui_redraw(t, REDRAW_PREVIEW);
 			}
@@ -1093,7 +1090,6 @@ static void update_preview(T *t)
 		}
 	} else {
 		if (t->preview.preview) {
-			cache_return(&t->preview.cache, t->preview.preview, t->preview.preview->path);
 			t->preview.preview = NULL;
 			ui_redraw(t, REDRAW_PREVIEW);
 		}
@@ -1250,11 +1246,9 @@ static void plane_draw_file_preview(struct ncplane *n, Preview *pv)
 
 void ui_drop_cache(T *t)
 {
-	if (t->preview.preview) {
-		cache_return(&t->preview.cache, t->preview.preview, t->preview.preview->path);
+	if (t->preview.preview)
 		t->preview.preview = NULL;
-	}
-	cache_drop(&t->preview.cache);
+	/* cache_drop(&t->preview.cache); */
 	update_preview(t);
 	ui_redraw(t, REDRAW_CMDLINE | REDRAW_PREVIEW);
 }

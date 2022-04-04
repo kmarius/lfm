@@ -4,9 +4,9 @@
 #include <errno.h>
 
 #include "async.h"
-#include "cache.h"
 #include "config.h"
 #include "fm.h"
+#include "hashtab.h"
 #include "log.h"
 #include "ui.h"
 #include "util.h"
@@ -39,7 +39,7 @@ static ResultQueue async_results = {
 static tpool_t *async_tm = NULL;
 static ev_async async_res_watcher;
 static Hashtab *dircache = NULL;
-static Cache *previewcache = NULL;
+static Hashtab *previewcache = NULL;
 
 static void async_result_cb(EV_P_ ev_async *w, int revents)
 {
@@ -449,7 +449,7 @@ typedef struct PreviewCheckResult {
 static void PreviewCheckResult_process(PreviewCheckResult *res, App *app)
 {
 	(void) app;
-	Preview *pv = cache_find(&app->ui.preview.cache, res->path);
+	Preview *pv = hashtab_get(&app->ui.preview.cache, res->path);
 	if (pv)
 		async_preview_load(pv, res->nrow);
 	free(res->path);

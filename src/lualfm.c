@@ -12,7 +12,6 @@
 #include <wctype.h>
 
 #include "async.h"
-#include "cache.h"
 #include "cmdline.h"
 #include "config.h"
 #include "cvector.h"
@@ -480,7 +479,7 @@ static int l_config_index(lua_State *L)
 		lua_pushstring(L, cfg.rundir);
 		return 1;
 	} else if (streq(key, "previewcache_size")) {
-		lua_pushinteger(L, ui->preview.cache.capacity);
+		/* lua_pushinteger(L, ui->preview.cache.capacity); */
 		return 1;
 	} else {
 		luaL_error(L, "unexpected key %s", key);
@@ -570,7 +569,7 @@ static int l_config_newindex(lua_State *L)
 		int capacity = luaL_checkinteger(L, 3);
 		if (capacity < 0)
 			luaL_argerror(L, 3, "size must be non-negative");
-		cache_resize(&ui->preview.cache, capacity);
+		/* cache_resize(&ui->preview.cache, capacity); */
 	} else {
 		luaL_error(L, "unexpected key %s", key);
 	}
