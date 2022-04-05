@@ -475,6 +475,7 @@ void app_schedule(T *t, int ind, uint32_t delay)
 	ev_timer_init(w, schedule_timer_cb, 1.0 * delay / 1000, 0);
 	w->data = data;
 	ev_timer_start(t->loop, w);
+	cvector_push_back(t->schedule_timers, w);
 }
 
 
