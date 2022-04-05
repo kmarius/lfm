@@ -5,8 +5,13 @@
 
 // Minimal hash table to be used in directory/preview caches.
 
-struct bucket;
 typedef void (*free_fun)(void *);
+
+struct bucket {
+	const char *key;
+	void *val;
+	struct bucket *next;
+};
 
 typedef struct hashmap {
 	struct bucket *buckets;
@@ -31,3 +36,8 @@ struct ht_stats {
 };
 
 struct ht_stats hashtab_stats(Hashtab *t);
+
+#define hashtab_foreach(item, h) \
+	for (size_t hm_i = 0; hm_i < (h)->nbuckets; hm_i++) \
+	for (struct bucket *hm_cont, *b = &(h)->buckets[hm_i]; (hm_cont = b) && b->val; b = b->next) \
+	for (item = b->val; hm_cont; hm_cont = NULL)

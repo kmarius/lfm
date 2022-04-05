@@ -1,6 +1,7 @@
 #include <errno.h>
 #include <libgen.h>
 #include <linux/limits.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -669,4 +670,33 @@ void fm_flatten(T *t, uint8_t level)
 {
 	fm_current_dir(t)->flatten_level = level;
 	async_dir_load(fm_current_dir(t), true);
+}
+
+
+void fm_resize(T *t, uint16_t height)
+{
+	int scrolloff = cfg.scrolloff;
+	if (height < cfg.scrolloff * 2)
+		scrolloff = height / 2;
+
+	// is there a way to restore the position when just undoing a previous resize?
+	hashtab_foreach(Dir *dir, &t->dirs.cache) {
+		if (height > t->height) {
+			int scrolloff_top = dir->ind;
+			if (scrolloff_top > scrolloff)
+				scrolloff_top = scrolloff;
+			if (dir->length + dir->pos < height + dir->ind)
+				dir->pos = height - dir->length + dir->ind;
+			if (dir->length > height && dir->pos < scrolloff_top)
+				dir->pos = scrolloff_top;
+		} else if (height < t->height) {
+			int scrolloff_bot = dir->length - dir->ind;
+			if (scrolloff_bot > scrolloff)
+				scrolloff_bot = scrolloff;
+			if (dir->length > height && height - dir->pos < scrolloff_bot)
+				dir->pos = height - scrolloff_bot;
+		}
+	}
+
+	t->height = height;
 }

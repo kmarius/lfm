@@ -217,3 +217,5 @@ void fm_update_preview(Fm *fm);
 
 // Flatten the current directory up to some level.
 void fm_flatten(Fm *fm, uint8_t level);
+
+void fm_resize(Fm *fm, uint16_t height);

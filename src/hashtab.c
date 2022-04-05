@@ -7,12 +7,6 @@
 
 #define T Hashtab
 
-struct bucket {
-	const char *key;
-	void *val;
-	struct bucket *next;
-};
-
 // good enough for now
 static uint16_t hash(const char *s, uint16_t n)
 {

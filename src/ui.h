@@ -2,6 +2,7 @@
 
 #include <notcurses/notcurses.h>
 #include <stdarg.h>
+#include <stdint.h>
 
 #include "hashtab.h"
 #include "cmdline.h"

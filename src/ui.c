@@ -50,7 +50,7 @@ static int resize_cb(struct ncplane *n)
 	ncplane_move_yx(ui->planes.cmdline, ui->nrow - 1, 0);
 	menu_resize(ui);
 	ui_recol(ui);
-	ui->fm->height = ui->nrow - 2;
+	fm_resize(ui->fm, ui->nrow - 2);
 	ui_clear(ui);
 	return 0;
 }
