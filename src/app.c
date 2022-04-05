@@ -27,11 +27,13 @@
 		.fifo_fd = -1, \
 		})
 
-#define TICK 1  /* seconds */
+#define TICK 1  // in seconds
 
-static App *app; /* only needed for print/error */
+static App *app;  // only needed for print/error
 
-static ev_io *add_io_watcher(T *t, FILE* f);
+// callbacks {{{
+
+// child watchers {{{
 
 struct stdout_watcher_data {
 	App *app;
@@ -44,12 +46,6 @@ struct child_watcher_data {
 	ev_io *stdout_watcher;
 	ev_io *stderr_watcher;
 };
-
-struct schedule_timer_data {
-	App *app;
-	int ind;
-};
-
 
 // watcher and corresponding stdout/-err watchers need to be stopped before
 // calling this function
@@ -75,7 +71,35 @@ static inline void destroy_child_watcher(ev_child *w)
 	free(w);
 }
 
-/* callbacks {{{ */
+
+static void child_cb(EV_P_ ev_child *w, int revents)
+{
+	(void) revents;
+	struct child_watcher_data *data = w->data;
+
+	ev_child_stop(EV_A_ w);
+
+	cvector_swap_remove(data->app->child_watchers, w);
+	if (data->cb_index > 0)
+		lua_run_child_callback(data->app->L, data->cb_index, w->rstatus);
+
+	if (data->stdout_watcher)
+		ev_io_stop(loop, data->stdout_watcher);
+
+	if (data->stderr_watcher)
+		ev_io_stop(loop, data->stderr_watcher);
+
+	destroy_child_watcher(w);
+}
+
+// }}}
+
+// scheduling timers {{{
+
+struct schedule_timer_data {
+	App *app;
+	int ind;
+};
 
 static inline void destroy_schedule_timer(ev_timer *w)
 {
@@ -98,6 +122,7 @@ static void schedule_timer_cb(EV_P_ ev_timer *w, int revents)
 	ev_idle_start(loop, &app->redraw_watcher);
 }
 
+// }}}
 
 static void timer_cb(EV_P_ ev_timer *w, int revents)
 {
@@ -142,14 +167,15 @@ static void command_stdout_cb(EV_P_ ev_io *w, int revents)
 		if (line[read-1] == '\n')
 			line[read-1] = 0;
 
-		/* TODO: strip special chars? (on 2021-11-14) */
+		// TODO: strip special chars? (on 2021-11-14)
+		// TODO: what special chars? (on 2022-04-05)
 		ui_echom(&data->app->ui, "%s", line);
 		free(line);
 		line = NULL;
 	}
 	free(line);
 
-	/* this seems to prevent the callback being immediately called again by libev */
+	// this seems to prevent the callback being immediately called again by libev
 	if (errno == EAGAIN)
 		clearerr(data->stream);
 
@@ -157,8 +183,8 @@ static void command_stdout_cb(EV_P_ ev_io *w, int revents)
 }
 
 
-/* To run command line cmds after loop starts. I think it is called back before
- * every other cb. */
+// To run command line cmds after loop starts. I think it is called back before
+// every other cb.
 static void prepare_cb(EV_P_ ev_prepare *w, int revents)
 {
 	(void) revents;
@@ -168,7 +194,7 @@ static void prepare_cb(EV_P_ ev_prepare *w, int revents)
 		for (size_t i = 0; i < cvector_size(cfg.commands); i++)
 			lua_eval(app->L, cfg.commands[i]);
 
-		/* commands are from argv, don't free them */
+		// commands are from argv, don't free them
 		cvector_free(cfg.commands);
 		cfg.commands = NULL;
 	}
@@ -204,27 +230,6 @@ static void sighup_cb(EV_P_ ev_signal *w, int revents)
 }
 
 
-static void child_cb(EV_P_ ev_child *w, int revents)
-{
-	(void) revents;
-	struct child_watcher_data *data = w->data;
-
-	ev_child_stop(EV_A_ w);
-
-	cvector_swap_remove(data->app->child_watchers, w);
-	if (data->cb_index > 0)
-		lua_run_child_callback(data->app->L, data->cb_index, w->rstatus);
-
-	if (data->stdout_watcher)
-		ev_io_stop(loop, data->stdout_watcher);
-
-	if (data->stderr_watcher)
-		ev_io_stop(loop, data->stderr_watcher);
-
-	destroy_child_watcher(w);
-}
-
-
 static void redraw_cb(EV_P_ ev_idle *w, int revents)
 {
 	(void) revents;
@@ -232,6 +237,7 @@ static void redraw_cb(EV_P_ ev_idle *w, int revents)
 	ui_draw(&app->ui);
 	ev_idle_stop(loop, w);
 }
+
 /* callbacks }}} */
 
 void app_init(T *t)
@@ -360,50 +366,62 @@ static void add_child_watcher(T *t, int pid, int cb_index, ev_io *stdout_watcher
 }
 
 
-bool app_execute(T *t, const char *prog, char *const *args, bool forking, bool out, bool err, int key)
+// spawn a background program
+static inline bool spawn(T *t, const char *prog, char *const *args, bool out, bool err, int key)
 {
 	FILE *fout, *ferr;
+	ev_io *stderr_watcher = NULL;
+	ev_io *stdout_watcher = NULL;
+	int pid = popen2_arr_p(NULL, &fout, &ferr, prog, args, NULL);
+
+	if (err)
+		stderr_watcher = add_io_watcher(t, ferr);
+	else
+		fclose(ferr);
+
+	if (out)
+		stdout_watcher = add_io_watcher(t, fout);
+	else
+		fclose(fout);
+
+	add_child_watcher(t, pid, key, stdout_watcher, stderr_watcher);
+	return pid != -1;
+
+}
+
+
+// execute a foreground program
+static inline bool execute(T *t, const char *prog, char *const *args)
+{
 	int pid, status, rc;
-	log_debug("execute: %s %d %d", prog, out, err);
-	if (forking) {
-		ev_io *stderr_watcher = NULL;
-		ev_io *stdout_watcher = NULL;
-		pid = popen2_arr_p(NULL, &fout, &ferr, prog, args, NULL);
-
-		if (err)
-			stderr_watcher = add_io_watcher(t, ferr);
-		else
-			fclose(ferr);
-
-		if (out)
-			stdout_watcher = add_io_watcher(t, fout);
-		else
-			fclose(fout);
-
-		add_child_watcher(t, pid, key, stdout_watcher, stderr_watcher);
-
-		return pid != -1;
+	ui_suspend(&t->ui);
+	kbblocking(true);
+	if ((pid = fork()) < 0) {
+		status = -1;
+	} else if (pid == 0) {
+		// child
+		execvp(prog, (char* const *) args);
+		_exit(127); // execl error
 	} else {
-		ui_suspend(&t->ui);
-		kbblocking(true);
-		if ((pid = fork()) < 0) {
-			status = -1;
-		} else if (pid == 0) {
-			/* child */
-			execvp(prog, (char* const *) args);
-			_exit(127); /* execl error */
-		} else {
-			/* parent */
-			do {
-				rc = waitpid(pid, &status, 0);
-			} while ((rc == -1) && (errno == EINTR));
-		}
-		kbblocking(false);
-		ui_resume(&t->ui);
-		signal(SIGINT, SIG_IGN);
-		ui_redraw(&t->ui, REDRAW_FM);
-		return status == 0;
+		// parent
+		do {
+			rc = waitpid(pid, &status, 0);
+		} while ((rc == -1) && (errno == EINTR));
 	}
+	kbblocking(false);
+	ui_resume(&t->ui);
+	signal(SIGINT, SIG_IGN);
+	ui_redraw(&t->ui, REDRAW_FM);
+	return status == 0;
+}
+
+
+bool app_execute(T *t, const char *prog, char *const *args, bool forking, bool out, bool err, int key)
+{
+	if (forking)
+		return spawn(t, prog, args, out, err, key);
+	else
+		return execute(t, prog, args);
 }
 
 
