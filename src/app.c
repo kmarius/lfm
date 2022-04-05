@@ -29,7 +29,14 @@
 
 #define TICK 1  // in seconds
 
-static App *app;  // only needed for print/error
+static App *app = NULL;  // only needed for print/error
+
+struct message {
+	char *text;
+	bool error;
+};
+
+static struct message *messages = NULL;
 
 // callbacks {{{
 
@@ -197,6 +204,17 @@ static void prepare_cb(EV_P_ ev_prepare *w, int revents)
 		// commands are from argv, don't free them
 		cvector_free(cfg.commands);
 		cfg.commands = NULL;
+	}
+
+	if (messages) {
+		cvector_foreach(m, messages) {
+			if (m->error)
+				error("%s", m->text);
+			else
+				print("%s", m->text);
+			free(m->text);
+		}
+		cvector_free(messages);
 	}
 
 	lua_run_hook(app->L, LFM_HOOK_ENTER);
@@ -428,12 +446,16 @@ bool app_execute(T *t, const char *prog, char *const *args, bool forking, bool o
 void print(const char *format, ...)
 {
 	va_list args;
-
-	if (!app)
-		return;
-
 	va_start(args, format);
-	ui_vechom(&app->ui, format, args);
+
+	if (!app) {
+		struct message msg = {.error = false};
+		vasprintf(&msg.text, format, args);
+		cvector_push_back(messages, msg);
+	} else {
+		ui_vechom(&app->ui, format, args);
+	}
+
 	va_end(args);
 }
 
@@ -441,12 +463,16 @@ void print(const char *format, ...)
 void error(const char *format, ...)
 {
 	va_list args;
-
-	if (!app)
-		return;
-
 	va_start(args, format);
-	ui_verror(&app->ui, format, args);
+
+	if (!app) {
+		struct message msg = {.error = true};
+		vasprintf(&msg.text, format, args);
+		cvector_push_back(messages, msg);
+	} else {
+		ui_verror(&app->ui, format, args);
+	}
+
 	va_end(args);
 }
 

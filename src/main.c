@@ -61,7 +61,6 @@ int main(int argc, char **argv)
 	while ((opt = getopt(argc, argv, ":c:hl:s:u:v")) != -1) {
 		switch (opt) {
 			case 'c':
-				log_debug("command: %s\n", optarg);
 				cvector_push_back(cfg.commands, optarg);
 				break;
 			case 'h':
@@ -94,7 +93,7 @@ int main(int argc, char **argv)
 		cfg.startpath = realpath_a(argv[optind]);
 		struct stat statbuf;
 		if (stat(cfg.startpath, &statbuf) == -1) {
-			log_error(strerror(errno));
+			error("%s: %s", strerror(errno), cfg.startpath);
 			free(cfg.startpath);
 			cfg.startpath = NULL;
 		} else {
