@@ -44,7 +44,6 @@ static int resize_cb(struct ncplane *n)
 	/* TODO: dir->pos needs to be changed for all directories (on 2021-10-30) */
 	T *ui = ncplane_userptr(n);
 	notcurses_stddim_yx(ui->nc, &ui->nrow, &ui->ncol);
-	log_debug("resize %d %d", ui->nrow, ui->ncol);
 	ncplane_resize(ui->planes.info, 0, 0, 0, 0, 0, 0, 1, ui->ncol);
 	ncplane_resize(ui->planes.cmdline, 0, 0, 0, 0, 0, 0, 1, ui->ncol);
 	ncplane_move_yx(ui->planes.cmdline, ui->nrow - 1, 0);
