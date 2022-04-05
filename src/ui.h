@@ -1,6 +1,5 @@
 #pragma once
 
-#include <lua.h>
 #include <notcurses/notcurses.h>
 #include <stdarg.h>
 
