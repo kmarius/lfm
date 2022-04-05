@@ -17,8 +17,6 @@
 #include "ui.h"
 #include "util.h"
 
-#define DEFAULT_PROGNAME "lfm"
-
 #define USAGE_FMT                                                          \
 	"Usage:\n  %s [options] <directory>\n\n"                               \
 	"Options:\n"                                                           \
@@ -34,13 +32,13 @@
 
 static void usage(const char *progname)
 {
-	fprintf(stderr, USAGE_FMT, progname ? progname : DEFAULT_PROGNAME);
+	fprintf(stderr, USAGE_FMT, progname);
 }
 
 
-static void version()
+static void version(const char *progname)
 {
-	fprintf(stderr, VERSION_FMT, DEFAULT_PROGNAME);
+	fprintf(stderr, VERSION_FMT, progname);
 }
 
 
@@ -80,7 +78,7 @@ int main(int argc, char **argv)
 				cfg.configpath = strdup(optarg);
 				break;
 			case 'v':
-				version();
+				version(argv[0]);
 				goto cleanup;
 			case '?':
 				fprintf(stderr, "Unknown option: %c\n", optopt);
