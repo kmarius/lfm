@@ -81,9 +81,9 @@ const char *strcasestr(const char *str, const char *sub);
 
 const char *strcaserchr(const char *str, char c);
 
-bool hasprefix(const char *pre, const char *str);
+bool hasprefix(const char *str, const char *pre);
 
-bool hascaseprefix(const char *pre, const char *str);
+bool hascaseprefix(const char *str, const char *pre);
 
 bool hassuffix(const char *suf, const char *str);
 
