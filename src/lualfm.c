@@ -1486,6 +1486,18 @@ static const struct luaL_Reg fm_lib[] = {
 
 /* fn lib {{{ */
 
+static int l_fn_mime(lua_State *L)
+{
+	char mime[MIME_MAX];
+	const char *path = luaL_checkstring(L, 1);
+	if (get_mimetype(path, mime)) {
+		lua_pushstring(L, mime);
+		return 1;
+	}
+	return 0;
+}
+
+
 static int l_fn_tokenize(lua_State *L)
 {
 	const char *string = luaL_optstring(L, 1, "");
@@ -1587,6 +1599,7 @@ static const struct luaL_Reg fn_lib[] = {
 	{"quote_space", l_fn_quote_space},
 	{"unquote_space", l_fn_unquote_space},
 	{"tokenize", l_fn_tokenize},
+	{"mime", l_fn_mime},
 	{"getpid", l_fn_getpid},
 	{"getcwd", l_fn_getcwd},
 	{"getpwd", l_fn_getpwd},

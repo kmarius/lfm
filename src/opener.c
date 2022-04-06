@@ -15,9 +15,6 @@
 #include "opener.h"
 #include "util.h"
 
-// arbitrary
-#define MIME_MAX 128
-
 // arbitrary, max binary name length for `has`
 #define EXECUTABLE_MAX 256
 
@@ -154,15 +151,20 @@ static bool regex_match(const char *regex, const char *string)
 
 
 // https://stackoverflow.com/questions/9152978/include-unix-utility-file-in-c-program
-static char *get_mimetype(const char *path, char *dest)
+bool get_mimetype(const char *path, char *dest)
 {
+	bool ret = true;
 	magic_t magic = magic_open(MAGIC_MIME_TYPE);
 	magic_load(magic, NULL);
 	const char *mime = magic_file(magic, path);
-	strncpy(dest, mime, MIME_MAX);
-	/* snprintf(mime, MIME_MAX, "%s", mimetype); */
+	if (!mime || hasprefix(mime, "cannot open")) {
+		ret = false;
+		*dest = 0;
+	} else {
+		strncpy(dest, mime, MIME_MAX);
+	}
 	magic_close(magic);
-	return dest;
+	return ret;
 }
 
 

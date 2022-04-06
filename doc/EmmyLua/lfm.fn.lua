@@ -34,3 +34,8 @@ function lfm.fn.getcwd() end
 ---Get the present PWD, equivalent to `os.getenv("PWD")`.
 ---@return string
 function lfm.fn.getpwd() end
+
+---Get the mimetype of `file`. Returns nil on error.
+---@param file string
+---@return string
+function lfm.fn.mime(file) end
