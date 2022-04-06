@@ -164,9 +164,6 @@ lfm.shell = shell
 lfm.register_command("shell", function(arg) shell.bash(arg, {files=shell.ARRAY})() end, {tokenize=false, compl=compl.files})
 lfm.register_command("shell-bg", function(arg) shell.bash(arg, {files=shell.ARRAY, fork=true})() end, {tokenize=false, compl=compl.files})
 
-local opener = require("opener")
-lfm.opener = opener
-
 require("jumplist").setup()
 
 lfm.register_command("quit", lfm.quit)
@@ -322,6 +319,24 @@ require("colors").set({
 	}
 })
 
+
+-- Opener: xdg-open. Registering a new "open" command overrides.
+
+lfm.register_command("open", function()
+	local file = lfm.fm.open()
+	if file then
+		local files = lfm.fm.selection_get()
+		if #files == 0 then
+			files = {file}
+		end
+		lfm.execute({"xdg-open", unpack(files)})
+	end
+end)
+
+local function open()
+	lfm.eval("open")
+end
+
 -- Keymaps
 
 local function wrap_mode_change(f)
@@ -385,14 +400,13 @@ map("V", fm.visual_toggle, {desc="toggle visual selection mode"})
 map("uv", c(fm.paste_buffer_set, fm.selection_set), {desc="selection-clear"})
 
 -- Navigation
-map("<Enter>", opener.open, "open")
+map("<Enter>", open, "open")
 map("<Left>", fm.updir, {desc="go to parent directory"})
-map("<Right>", opener.open, {desc="open file/directory"})
-map("r", opener.ask, {desc="show opener options"})
+map("<Right>", open, {desc="open file/directory"})
 map("j", fm.down, {desc="move cursor down"})
 map("k", fm.up, {desc="move cursor up"})
 map("h", fm.updir, {desc="go to parent directory"})
-map("l", opener.open, {desc="open file/directory"})
+map("l", open, {desc="open file/directory"})
 map("L", require("functions").follow_link)
 map("H", a(lfm.feedkeys, "''")) -- complementary to "L"
 map("gg", fm.top, {desc="go to top"})

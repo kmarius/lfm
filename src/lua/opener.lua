@@ -63,6 +63,7 @@ local setup = M.setup
 function M.setup(t)
 	setup(t)
 	lfm.register_command("open", M.open, {tokenize = true})
+	lfm.map("r", M.ask, {desc="show opener options"})
 end
 
 return M
