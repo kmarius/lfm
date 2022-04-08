@@ -187,13 +187,14 @@ bool tpool_add_work(tpool_t *tm, thread_func_t func, void *arg)
 	if (work == NULL)
 		return false;
 
+	// adding work at the front of the queue (as of 2022-04-08)
 	pthread_mutex_lock(&(tm->work_mutex));
 	if (tm->work_first == NULL) {
 		tm->work_first = work;
 		tm->work_last = tm->work_first;
 	} else {
-		tm->work_last->next = work;
-		tm->work_last = work;
+		work->next = tm->work_first;
+		tm->work_first = work;
 	}
 
 	pthread_cond_broadcast(&(tm->work_cond));
