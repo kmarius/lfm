@@ -12,7 +12,7 @@
 
 #include "config.h"
 #include "cvector.h"
-#include "opener.h"
+#include "rifle.h"
 #include "util.h"
 
 // arbitrary, max binary name length for `has`
@@ -365,7 +365,7 @@ static bool check_rule(Rule *r, const FileInfo *info)
 }
 
 
-static int l_opener_fileinfo(lua_State *L)
+static int l_rifle_fileinfo(lua_State *L)
 {
 	const char *file = luaL_checkstring(L, 1);
 
@@ -390,7 +390,7 @@ static int l_opener_fileinfo(lua_State *L)
 }
 
 
-static int l_opener_query(lua_State *L)
+static int l_rifle_query(lua_State *L)
 {
 	const char *file = luaL_checkstring(L, 1);
 
@@ -490,7 +490,7 @@ static void load_rules(lua_State *L, const char *config)
 }
 
 
-static int l_opener_setup(lua_State *L)
+static int l_rifle_setup(lua_State *L)
 {
 	if (lua_istable(L, 1)) {
 		lua_getfield(L, 1, "config");
@@ -501,7 +501,7 @@ static int l_opener_setup(lua_State *L)
 		lua_pop(L, 1);
 	}
 	if (!config.config_file)
-		asprintf(&config.config_file, "%s/opener.conf", cfg.configdir);
+		asprintf(&config.config_file, "%s/rifle.conf", cfg.configdir);
 
 	cvector_fclear(rules, rule_destroy);
 
@@ -511,14 +511,14 @@ static int l_opener_setup(lua_State *L)
 }
 
 
-static int l_opener_nrules(lua_State *L)
+static int l_rifle_nrules(lua_State *L)
 {
 	lua_pushinteger(L, cvector_size(rules));
 	return 1;
 }
 
 
-/* static int l_opener_gc(lua_State *L) { */
+/* static int l_rifle_gc(lua_State *L) { */
 /* 	(void) L; */
 /* 	cvector_ffree(rules, rule_destroy); */
 /* 	rules = NULL; */
@@ -529,27 +529,27 @@ static int l_opener_nrules(lua_State *L)
 /* 	return 0; */
 /* } */
 /**/
-/* static struct luaL_Reg opener_meta[] = { */
-/* 	{"__gc", l_opener_gc}, */
+/* static struct luaL_Reg rifle_meta[] = { */
+/* 	{"__gc", l_rifle_gc}, */
 /* 	{NULL, NULL}}; */
 
 
-static const luaL_Reg opener_lib[] = {
-	{"fileinfo", l_opener_fileinfo},
-	{"nrules", l_opener_nrules},
-	{"query", l_opener_query},
-	{"setup", l_opener_setup},
+static const luaL_Reg rifle_lib[] = {
+	{"fileinfo", l_rifle_fileinfo},
+	{"nrules", l_rifle_nrules},
+	{"query", l_rifle_query},
+	{"setup", l_rifle_setup},
 	{NULL, NULL}};
 
 
-int lua_register_opener(lua_State *L)
+int lua_register_rifle(lua_State *L)
 {
-	luaL_register(L, NULL, opener_lib);
+	luaL_register(L, NULL, rifle_lib);
 
 	/* lua_newuserdata(L, 0); */
 	/*  */
-	/* luaL_newmetatable(L, "opener_meta"); */
-	/* luaL_register(L, NULL, opener_meta); */
+	/* luaL_newmetatable(L, "rifle_meta"); */
+	/* luaL_register(L, NULL, rifle_meta); */
 	/* lua_setmetatable(L, -2); */
 	/*  */
 	/* lua_setfield(L, -2, "dummy"); */
@@ -558,7 +558,7 @@ int lua_register_opener(lua_State *L)
 }
 
 
-int lua_opener_clear(lua_State *L)
+int lua_rifle_clear(lua_State *L)
 {
 	(void) L;
 	cvector_ffree(rules, rule_destroy);

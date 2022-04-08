@@ -4,7 +4,7 @@ local fm = lfm.fm
 local ui = lfm.ui
 local shell = require("shell")
 
-local M = lfm.opener
+local M = lfm.rifle
 
 ---Navigate into a directory or open files.
 ---@param ... any
@@ -55,11 +55,11 @@ end
 -- overwrite the builtin setup
 local setup = M.setup
 
----@class opener_setup_opts
+---@class rifle_setup_opts
 ---@field config string path to configuration file e.g. a rifle.conf (default: ~/.config/lfm/opener.conf)
 
 ---Set up opener.
----@param t opener_setup_opts
+---@param t rifle_setup_opts
 function M.setup(t)
 	setup(t)
 	lfm.register_command("open", M.open, {tokenize = true})

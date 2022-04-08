@@ -6,8 +6,8 @@
 // arbitrary
 #define MIME_MAX 128
 
-int lua_register_opener(lua_State *L);
+int lua_register_rifle(lua_State *L);
 
-int lua_opener_clear(lua_State *L);
+int lua_rifle_clear(lua_State *L);
 
 bool get_mimetype(const char *path, char *dest);

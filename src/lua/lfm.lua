@@ -319,6 +319,7 @@ require("colors").set({
 	}
 })
 
+lfm.rifle = require("rifle")
 
 -- Opener: xdg-open. Registering a new "open" command overrides.
 
