@@ -8,6 +8,7 @@ static char *find_prefix = NULL;
 
 bool find(Fm *fm, Ui *ui, const char *prefix)
 {
+	free(find_prefix);
 	find_prefix = strdup(prefix);
 
 	Dir *dir = fm_current_dir(fm);
