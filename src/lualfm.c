@@ -19,6 +19,7 @@
 #include "find.h"
 #include "fm.h"
 #include "hashtab.h"
+#include "loader.h"
 #include "log.h"
 #include "lua.h"
 #include "lualfm.h"
@@ -564,12 +565,12 @@ static int l_config_newindex(lua_State *L)
 		if (n < 100)
 			luaL_argerror(L, 3, "timeout must be larger than 100");
 		cfg.inotify_timeout = n;
-		notify_reschedule(app->loop);
+		loader_reschedule();
 		return 0;
 	} else if (streq(key, "inotify_delay")) {
 		int n = luaL_checkinteger(L, 3);
 		cfg.inotify_delay = n;
-		notify_reschedule(app->loop);
+		loader_reschedule();
 		return 0;
 	} else if (streq(key, "scrolloff")) {
 		cfg.scrolloff = max(luaL_checkinteger(L, 3), 0);
@@ -1039,7 +1040,7 @@ static int l_fm_drop_cache(lua_State *L)
 {
 	(void) L;
 	fm_drop_cache(fm);
-	notify_empty_queue();
+	loader_empty_queue();
 	ui_drop_cache(ui);
 	return 0;
 }

@@ -15,6 +15,7 @@
 #include "config.h"
 #include "cvector.h"
 #include "keys.h"
+#include "loader.h"
 #include "log.h"
 #include "lualfm.h"
 #include "notify.h"
@@ -287,6 +288,7 @@ void app_init(T *t)
 
 	async_init(t);
 
+	loader_init(app);
 	fm_init(&t->fm);
 	ui_init(&t->ui, &t->fm);
 
@@ -531,6 +533,7 @@ void app_deinit(T *t)
 	lua_deinit(t->L);
 	ui_deinit(&t->ui);
 	fm_deinit(&t->fm);
+	loader_deinit();
 	async_deinit();
 	if (t->fifo_fd > 0)
 		close(t->fifo_fd);

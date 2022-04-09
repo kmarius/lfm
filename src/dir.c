@@ -209,6 +209,7 @@ T *dir_init(T *t, const char *path)
 
 	t->load_time = time(NULL);
 	t->name = basename(t->path);
+	t->next = current_millis();
 
 	return t;
 }

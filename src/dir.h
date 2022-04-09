@@ -25,6 +25,7 @@ typedef struct Dir {
 	time_t load_time; // used to check for changes
 	uint16_t updates; // number of applied updates
 	int16_t error; // shows errno if an error occured during loading, 0 otherwise
+	uint64_t next;
 
 	uint32_t ind; // cursor position in files[]
 	uint16_t pos; // cursor position in the ui, offset from the top row

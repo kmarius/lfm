@@ -14,6 +14,7 @@
 #include "config.h"
 #include "fm.h"
 #include "hashtab.h"
+#include "loader.h"
 #include "log.h"
 #include "lualfm.h"
 #include "notify.h"
@@ -47,6 +48,7 @@ void fm_init(T *t)
 	cvector_grow(t->dirs.visible, t->dirs.length);
 
 	hashtab_init(&t->dirs.cache, DIRCACHE_SIZE, (void (*)(void *)) dir_destroy);
+
 	fm_populate(t);
 
 	fm_update_watchers(t);
@@ -241,11 +243,11 @@ void fm_check_dirs(const T *t)
 {
 	for (uint16_t i = 0; i < t->dirs.length; i++) {
 		if (t->dirs.visible[i] && !dir_check(t->dirs.visible[i]))
-			async_dir_load(t->dirs.visible[i], true);
+			loader_load(t->dirs.visible[i]);
 	}
 
 	if (t->dirs.preview && !dir_check(t->dirs.preview))
-		async_dir_load(t->dirs.preview, true);
+		loader_load(t->dirs.preview);
 }
 
 

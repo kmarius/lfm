@@ -7,6 +7,7 @@
 #include "config.h"
 #include "fm.h"
 #include "hashtab.h"
+#include "loader.h"
 #include "log.h"
 #include "ui.h"
 #include "util.h"
@@ -176,7 +177,7 @@ typedef struct DirCheckResult {
 static void DirCheckResult_process(DirCheckResult *res, App *app)
 {
 	(void) app;
-	async_dir_load(res->dir, true);
+	loader_load(res->dir);
 	free(res);
 }
 
