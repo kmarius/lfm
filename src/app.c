@@ -208,7 +208,7 @@ static void prepare_cb(EV_P_ ev_prepare *w, int revents)
 	}
 
 	if (messages) {
-		cvector_foreach(m, messages) {
+		cvector_foreach_ptr(m, messages) {
 			if (m->error)
 				error("%s", m->text);
 			else

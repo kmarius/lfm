@@ -1,73 +1,55 @@
+#include <ev.h>
+
 #include "app.h"
 #include "async.h"
 #include "config.h"
+#include "cvector.h"
 #include "dir.h"
 #include "hashtab.h"
 #include "loader.h"
+#include "util.h"
 
-static ev_timer timer_watcher;
+static App *app;
 static struct ev_loop *loop = NULL;
+static ev_timer **timers = NULL;
 Hashtab tab;
 
-static struct dir_load_data {
-	Dir *dir;
-	uint64_t time;
-} *dir_load_queue = NULL;
 
-static void dir_load_timer_cb(EV_P_ ev_timer *w, int revents);
-
-
-void loader_init(App *app)
+void loader_init(App *_app)
 {
+	app = _app;
 	loop = app->loop;
 	hashtab_init(&tab, LOADER_TAB_SIZE, (free_fun) dir_destroy);
-
-	ev_init(&timer_watcher, dir_load_timer_cb);
-	timer_watcher.data = app;
 }
 
 
 void loader_deinit()
 {
-	cvector_free(dir_load_queue);
+	cvector_foreach(timer, timers) {
+		free(timer);
+	}
+	cvector_free(timers);
 	hashtab_deinit(&tab);
 }
 
 
-static inline void schedule_timer(struct ev_loop *loop, ev_timer *timer, uint64_t delay)
+static void timer_cb(EV_P_ ev_timer *w, int revents)
 {
-	timer->repeat = delay / 1000.;
-	ev_timer_again(loop, timer);
+	(void) revents;
+	async_dir_load(w->data, true);
+	ev_timer_stop(loop, w);
+	free(w);
+	cvector_swap_remove(timers, w);
 }
 
 
 static inline void schedule_dir_load(Dir *dir, uint64_t time)
 {
-	cvector_push_back(dir_load_queue, ((struct dir_load_data) {dir, time}));
-	if (cvector_size(dir_load_queue) == 1 || dir_load_queue[0].time > time)
-		schedule_timer(loop, &timer_watcher, time - current_millis());
-	cvector_upheap_min(dir_load_queue, cvector_size(dir_load_queue) - 1, .time);
-}
-
-
-static void dir_load_timer_cb(EV_P_ ev_timer *w, int revents)
-{
-	if (cvector_size(dir_load_queue) == 0)
-		return;
-
-	async_dir_load(dir_load_queue[0].dir, true);
-	cvector_swap_erase(dir_load_queue, 0);
-
-	if (cvector_size(dir_load_queue) == 0)
-		return;
-
-	cvector_downheap_min(dir_load_queue, 0, .time);
-
-	uint64_t now = current_millis();
-	if (dir_load_queue[0].time <= now)
-		dir_load_timer_cb(loop, w, revents);
-	else
-		schedule_timer(loop, &timer_watcher, dir_load_queue[0].time - now);
+	ev_timer *timer = malloc(sizeof *timer);
+	ev_timer_init(timer, timer_cb, 0, (time - current_millis()) / 1000.);
+	timer->data = dir;
+	ev_timer_again(loop, timer);
+	cvector_push_back(timers, timer);
 }
 
 
@@ -123,17 +105,18 @@ Dir *loader_load_path(const char *path)
 void loader_reschedule()
 {
 	Dir **dirs = NULL;
-	for (size_t i = 0; i < cvector_size(dir_load_queue); i++) {
-		if (!cvector_contains(dirs, dir_load_queue[i].dir))
-			cvector_push_back(dirs, dir_load_queue[i].dir);
+	cvector_foreach(timer, timers) {
+		if (!cvector_contains(dirs, timer->data))
+			cvector_push_back(dirs, timer->data);
+		ev_timer_stop(loop, timer);
+		free(timer);
 	}
-	cvector_set_size(dir_load_queue, 0);
+	cvector_set_size(timers, 0);
 
 	uint64_t next = current_millis() + cfg.inotify_timeout + cfg.inotify_delay;
 
-	for (size_t i = 0; i < cvector_size(dirs); i++)
-		schedule_dir_load(dirs[i], next);
-
+	cvector_foreach(dir, dirs)
+		schedule_dir_load(dir, next);
 	cvector_free(dirs);
 }
 
@@ -147,5 +130,9 @@ Hashtab *loader_hashtab()
 void loader_drop_cache()
 {
 	hashtab_clear(&tab);
-	cvector_set_size(dir_load_queue, 0);
+	cvector_foreach(timer, timers) {
+		ev_timer_stop(loop, timer);
+		free(timer);
+	}
+	cvector_set_size(timers, 0);
 }

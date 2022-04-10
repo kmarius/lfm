@@ -66,7 +66,7 @@ void fm_deinit(T *t)
 	cvector_free(t->selection.previous);
 	cvector_ffree(t->paste.buffer, free);
 
-	cvector_foreach(mark, t->marks) {
+	cvector_foreach_ptr(mark, t->marks) {
 		free(mark->path);
 	}
 	cvector_free(t->marks);

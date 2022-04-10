@@ -333,7 +333,16 @@
  *
  */
 #define cvector_foreach(item, vec) \
-	for (typeof(*vec) *(item) = cvector_begin(vec); (item) < cvector_end(vec); (item)++)
+	for (typeof(*vec) *cv_cont, *(cv_ptr) = cvector_begin(vec); \
+			(cv_ptr) < cvector_end(vec) && (cv_cont = cv_ptr); \
+			(cv_ptr)++) \
+	for (typeof(*vec) item = *cv_ptr; cv_cont; cv_cont = NULL)
+
+/*
+ *
+ */
+#define cvector_foreach_ptr(ptr, vec) \
+	for (typeof(*vec) *(ptr) = cvector_begin(vec); (ptr) < cvector_end(vec); (ptr)++)
 
 /**
  * @brief cvector_push_back - adds an element to the end of the vector
