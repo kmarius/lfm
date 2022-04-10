@@ -288,7 +288,7 @@ void app_init(T *t)
 
 	async_init(t);
 
-	loader_init(app);
+	loader_init(app->loop);
 	fm_init(&t->fm);
 	ui_init(&t->ui, &t->fm);
 

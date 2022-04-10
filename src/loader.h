@@ -5,9 +5,9 @@
 
 #define LOADER_TAB_SIZE 1024  // size of the hashtab used as cache
 
-struct app;
+struct ev_loop;
 
-void loader_init(struct app *app);
+void loader_init(struct ev_loop *loop);
 void loader_deinit();
 
 void loader_reload(Dir *dir);

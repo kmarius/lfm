@@ -1,6 +1,5 @@
 #include <ev.h>
 
-#include "app.h"
 #include "async.h"
 #include "config.h"
 #include "cvector.h"
@@ -9,16 +8,14 @@
 #include "loader.h"
 #include "util.h"
 
-static App *app;
 static struct ev_loop *loop = NULL;
 static ev_timer **timers = NULL;
 Hashtab tab;
 
 
-void loader_init(App *_app)
+void loader_init(struct ev_loop *_loop)
 {
-	app = _app;
-	loop = app->loop;
+	loop = _loop;
 	hashtab_init(&tab, LOADER_TAB_SIZE, (free_fun) dir_destroy);
 }
 
