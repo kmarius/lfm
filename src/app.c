@@ -151,13 +151,14 @@ static void stdin_cb(EV_P_ ev_io *w, int revents)
 	App *app = w->data;
 	ncinput in;
 
-	notcurses_getc_blocking(app->ui.nc, &in);
+	while (notcurses_getc_nblock(app->ui.nc, &in) != (uint32_t) -1) {
+		if (current_millis() <= app->input_timeout)
+			continue;
 
-	if (current_millis() <= app->input_timeout)
-		return;
+		/* log_debug("id: %d, shift: %d, ctrl: %d alt %d", in.id, in.shift, in.ctrl, in.alt); */
+		lua_handle_key(app->L, ncinput_to_input(&in));
+	}
 
-	/* log_debug("id: %d, shift: %d, ctrl: %d alt %d", in.id, in.shift, in.ctrl, in.alt); */
-	lua_handle_key(app->L, ncinput_to_input(&in));
 	ev_idle_start(loop, &app->redraw_watcher);
 }
 
