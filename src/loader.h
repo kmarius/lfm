@@ -1,14 +1,20 @@
 #pragma once
 
-#include "app.h"
 #include "dir.h"
+#include "hashtab.h"
 
-void loader_init(App *app);
+#define LOADER_TAB_SIZE 1024  // size of the hashtab used as cache
+
+struct app;
+
+void loader_init(struct app *app);
 void loader_deinit();
-void loader_load(Dir *dir);
 
-// That queue holds references to directories that are invalidated on drop_cache.
-void loader_empty_queue();
+void loader_reload(Dir *dir);
+Dir *loader_load_path(const char *path);
+
+Hashtab *loader_hashtab();
+void loader_drop_cache();
 
 // Reschedule reloads, e.g. when timeout/delay is changed.
 void loader_reschedule();

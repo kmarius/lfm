@@ -2,15 +2,17 @@
 #include "async.h"
 #include "config.h"
 #include "dir.h"
+#include "hashtab.h"
+#include "loader.h"
 
 static ev_timer timer_watcher;
 static struct ev_loop *loop = NULL;
+Hashtab tab;
 
 static struct dir_load_data {
 	Dir *dir;
 	uint64_t time;
 } *dir_load_queue = NULL;
-
 
 static void dir_load_timer_cb(EV_P_ ev_timer *w, int revents);
 
@@ -18,6 +20,7 @@ static void dir_load_timer_cb(EV_P_ ev_timer *w, int revents);
 void loader_init(App *app)
 {
 	loop = app->loop;
+	hashtab_init(&tab, LOADER_TAB_SIZE, (free_fun) dir_destroy);
 
 	ev_init(&timer_watcher, dir_load_timer_cb);
 	timer_watcher.data = app;
@@ -27,6 +30,7 @@ void loader_init(App *app)
 void loader_deinit()
 {
 	cvector_free(dir_load_queue);
+	hashtab_deinit(&tab);
 }
 
 
@@ -67,7 +71,7 @@ static void dir_load_timer_cb(EV_P_ ev_timer *w, int revents)
 }
 
 
-void loader_load(Dir *dir)
+void loader_reload(Dir *dir)
 {
 	uint64_t now = current_millis();
 	uint64_t latest = dir->next;  // possibly in the future
@@ -84,9 +88,35 @@ void loader_load(Dir *dir)
 }
 
 
-void loader_empty_queue()
+Dir *loader_load_path(const char *path)
 {
-	cvector_set_size(dir_load_queue, 0);
+	char fullpath[PATH_MAX];
+	if (path_is_relative(path)) {
+		snprintf(fullpath, sizeof(fullpath), "%s/%s", getenv("PWD"), path);
+		path = fullpath;
+	}
+
+	Dir *dir = hashtab_get(&tab, path);
+	if (dir) {
+		async_dir_check(dir);
+		dir->hidden = cfg.hidden;
+		dir_sort(dir);
+	} else {
+		/* At this point, we should not print this new directory, but
+		 * start a timer for, say, 250ms. When the timer runs out we draw the
+		 * "loading" directory regardless. The timer should be cancelled when:
+		 * 1. the actual directory arrives after loading from disk
+		 * 2. we navigate to a different directory (possibly restart a timer there)
+		 *
+		 * Check how this behaves in the preview pane when just scrolling over
+		 * directories.
+		 */
+		dir = dir_create(path);
+		dir->hidden = cfg.hidden;
+		hashtab_set(&tab, dir->path, dir);
+		async_dir_load(dir, false);
+	}
+	return dir;
 }
 
 
@@ -105,4 +135,17 @@ void loader_reschedule()
 		schedule_dir_load(dirs[i], next);
 
 	cvector_free(dirs);
+}
+
+
+Hashtab *loader_hashtab()
+{
+	return &tab;
+}
+
+
+void loader_drop_cache()
+{
+	hashtab_clear(&tab);
+	cvector_set_size(dir_load_queue, 0);
 }

@@ -61,7 +61,7 @@ void async_init(App *app)
 	ev_async_init(&async_res_watcher, async_result_cb);
 	ev_async_start(app->loop, &async_res_watcher);
 
-	dircache = &app->fm.dirs.cache;
+	dircache = loader_hashtab();
 	previewcache = &app->ui.preview.cache;
 
 	if (pthread_mutex_init(&async_results.mutex, NULL) != 0) {
@@ -177,7 +177,7 @@ typedef struct DirCheckResult {
 static void DirCheckResult_process(DirCheckResult *res, App *app)
 {
 	(void) app;
-	loader_load(res->dir);
+	loader_reload(res->dir);
 	free(res);
 }
 

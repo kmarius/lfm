@@ -8,8 +8,6 @@
 #include "file.h"
 #include "hashtab.h"
 
-#define DIRCACHE_SIZE 1024
-
 enum paste_mode_e {
 	PASTE_MODE_MOVE,
 	PASTE_MODE_COPY,
@@ -28,8 +26,6 @@ typedef struct Fm {
 		// Visible directories excluding preview
 		cvector_vector_type(Dir *) visible;
 		uint16_t length;
-
-		Hashtab cache;
 
 		// preview directory, NULL if there is none, e.g. if the cursor is resting on a file
 		Dir *preview;

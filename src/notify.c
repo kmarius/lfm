@@ -101,7 +101,7 @@ static void inotify_cb(EV_P_ ev_io *w, int revents)
 			Dir *dir = get_watcher_data(event->wd);
 			if (!dir)
 				continue;
-			loader_load(dir);
+			loader_reload(dir);
 		}
 	}
 }

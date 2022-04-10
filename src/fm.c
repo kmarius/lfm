@@ -26,7 +26,6 @@
 		.paste.mode = PASTE_MODE_COPY, \
 		})
 
-static Dir *fm_load_dir(T *t, const char *path);
 static void fm_update_watchers(T *t);
 static void fm_remove_preview(T *t);
 static void fm_mark_save(T *t, char mark, const char *path);
@@ -35,6 +34,8 @@ static void fm_populate(T *t);
 
 void fm_init(T *t)
 {
+	*t = FM_INITIALIZER;
+
 	if (cfg.startpath) {
 		if (chdir(cfg.startpath) != 0)
 			error("chdir: %s", strerror(errno));
@@ -42,12 +43,8 @@ void fm_init(T *t)
 			setenv("PWD", cfg.startpath, true);
 	}
 
-	*t = FM_INITIALIZER;
-
 	t->dirs.length = cvector_size(cfg.ratios) - (cfg.preview ? 1 : 0);
 	cvector_grow(t->dirs.visible, t->dirs.length);
-
-	hashtab_init(&t->dirs.cache, DIRCACHE_SIZE, (void (*)(void *)) dir_destroy);
 
 	fm_populate(t);
 
@@ -63,7 +60,6 @@ void fm_init(T *t)
 void fm_deinit(T *t)
 {
 	cvector_free(t->dirs.visible);
-	hashtab_deinit(&t->dirs.cache);
 	cvector_ffree(t->selection.paths, free);
 	/* prev_selection _never_ holds allocated paths that are not already
 	 * free'd in fm->selection */
@@ -87,12 +83,12 @@ static void fm_populate(T *t)
 	else
 		getcwd(pwd, sizeof(pwd));
 
-	t->dirs.visible[0] = fm_load_dir(t, pwd); /* current dir */
+	t->dirs.visible[0] = loader_load_path(pwd); /* current dir */
 	t->dirs.visible[0]->visible = true;
 	Dir *d = fm_current_dir(t);
 	for (uint16_t i = 1; i < t->dirs.length; i++) {
 		if ((s = dir_parent_path(d))) {
-			d = fm_load_dir(t, s);
+			d = loader_load_path(s);
 			d->visible = true;
 			t->dirs.visible[i] = d;
 			dir_cursor_move_to(d, t->dirs.visible[i-1]->name, t->height, cfg.scrolloff);
@@ -207,47 +203,15 @@ void fm_hidden_set(T *t, bool hidden)
 }
 
 
-static Dir *fm_load_dir(T *t, const char *path)
-{
-	char fullpath[PATH_MAX];
-	if (path_is_relative(path)) {
-		snprintf(fullpath, sizeof(fullpath), "%s/%s", getenv("PWD"), path);
-		path = fullpath;
-	}
-
-	Dir *dir = hashtab_get(&t->dirs.cache, path);
-	if (dir) {
-		async_dir_check(dir);
-		dir->hidden = cfg.hidden;
-		dir_sort(dir);
-	} else {
-		/* At this very point, we should not print this new directory, but
-		 * start a timer for, say, 250ms. When the timer runs out we draw the
-		 * "loading" directory regardless. The timer should be cancelled when:
-		 * 1. the actual directory arrives after loading from disk
-		 * 2. we navigate to a different directory (possibly restart a timer there)
-		 *
-		 * Check how this behaves in the preview pane when just scrolling over
-		 * directories.
-		 */
-		dir = dir_create(path);
-		dir->hidden = cfg.hidden;
-		hashtab_set(&t->dirs.cache, dir->path, dir);
-		async_dir_load(dir, false);
-	}
-	return dir;
-}
-
-
 void fm_check_dirs(const T *t)
 {
 	for (uint16_t i = 0; i < t->dirs.length; i++) {
 		if (t->dirs.visible[i] && !dir_check(t->dirs.visible[i]))
-			loader_load(t->dirs.visible[i]);
+			loader_reload(t->dirs.visible[i]);
 	}
 
 	if (t->dirs.preview && !dir_check(t->dirs.preview))
-		loader_load(t->dirs.preview);
+		loader_reload(t->dirs.preview);
 }
 
 
@@ -258,7 +222,7 @@ void fm_drop_cache(T *t)
 	log_debug("dropping cache");
 	fm_remove_preview(t);
 
-	hashtab_clear(&t->dirs.cache);
+	loader_drop_cache();
 
 	fm_populate(t);
 	fm_update_preview(t);
@@ -317,7 +281,7 @@ void fm_update_preview(T *t)
 				t->dirs.preview->visible = false;
 			}
 		}
-		t->dirs.preview = fm_load_dir(t, file_path(file));
+		t->dirs.preview = loader_load_path(file_path(file));
 		t->dirs.preview->visible = true;
 		// sometimes very slow on smb (> 200ms)
 		notify_add_watcher(t->dirs.preview);
@@ -682,7 +646,7 @@ void fm_resize(T *t, uint16_t height)
 		scrolloff = height / 2;
 
 	// is there a way to restore the position when just undoing a previous resize?
-	hashtab_foreach(Dir *dir, &t->dirs.cache) {
+	hashtab_foreach(Dir *dir, loader_hashtab()) {
 		if (height > t->height) {
 			int scrolloff_top = dir->ind;
 			if (scrolloff_top > scrolloff)

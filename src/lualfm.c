@@ -55,7 +55,7 @@ static int command_count = -1;
 
 static int l_dircache_stats(lua_State *L)
 {
-	struct ht_stats stats = hashtab_stats(&fm->dirs.cache);
+	struct ht_stats stats = hashtab_stats(loader_hashtab());
 	lua_newtable(L);
 
 	lua_pushnumber(L, stats.nbuckets);
@@ -1040,7 +1040,6 @@ static int l_fm_drop_cache(lua_State *L)
 {
 	(void) L;
 	fm_drop_cache(fm);
-	loader_empty_queue();
 	ui_drop_cache(ui);
 	return 0;
 }
