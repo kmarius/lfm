@@ -315,8 +315,6 @@ uint16_t cmdline_print(T *t, struct ncplane *n)
 	ret += ncplane_putstr_yx(n, 0, 0, t->prefix.str);
 	ret += ncplane_putwstr(n, t->left.str);
 	ncplane_putwstr(n, t->right.str);
+	printf(t->right.len == 0 ? "\033[2 q" : "\033[6 q");  // block/bar cursor
 	return ret;
 }
-
-
-#undef T
