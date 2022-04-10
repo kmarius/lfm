@@ -134,14 +134,9 @@ static void schedule_timer_cb(EV_P_ ev_timer *w, int revents)
 
 static void timer_cb(EV_P_ ev_timer *w, int revents)
 {
-	(void) loop;
 	(void) revents;
-	(void) w;
-	static uint16_t tick_ct = 0;
 	/* App *app = w->data; */
-
-	if (++tick_ct == 1)
-		return;
+	ev_timer_stop(loop, w);
 }
 
 
@@ -301,7 +296,7 @@ void app_init(T *t)
 	t->prepare_watcher.data = t;
 	ev_prepare_start(t->loop, &t->prepare_watcher);
 
-	ev_timer_init(&t->timer_watcher, timer_cb, 0., TICK);
+	ev_timer_init(&t->timer_watcher, timer_cb, TICK, TICK);
 	t->timer_watcher.data = t;
 	ev_timer_start(t->loop, &t->timer_watcher);
 
