@@ -1713,6 +1713,7 @@ void lua_handle_key(lua_State *L, input_t in)
 			log_debug("key: %d, id: %d, shift: %d, ctrl: %d alt %d, %s",
 					in, ID(in), ISSHIFT(in), ISCTRL(in), ISALT(in), maps.str);
 			ui_showmenu(ui, NULL);
+			ui_show_keyseq(ui, NULL);
 			return;
 		}
 		if (maps.cur->keys) {
