@@ -67,6 +67,8 @@ void cmdline_deinit(T *t) {
 	if (!t)
 		return;
 
+	fputs("\033[2 q", stdout);
+
 	free(t->prefix.str);
 	free(t->left.str);
 	free(t->right.str);
