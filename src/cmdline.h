@@ -21,6 +21,7 @@ typedef struct Cmdline {
 	struct vwstr left;
 	struct vwstr right;
 	struct vstr buf;
+	bool overwrite;
 } Cmdline;
 
 // Initialize cmdline.
@@ -38,6 +39,9 @@ const char *cmdline_prefix_get(Cmdline *t);
 // Insert the first mb char encountered in key. Returns `true` if a redraw is
 // necessary.
 bool cmdline_insert(Cmdline *t, const char *key);
+
+// Toggle insert/overwrite.
+bool cmdline_toggle_overwrite(Cmdline *t);
 
 // Delete the char left of the cursor. Returns `true` if a redraw is necessary.
 bool cmdline_delete(Cmdline *t);

@@ -56,3 +56,6 @@ function lfm.cmd.line_set(line) end
 ---Set the command line prefix.
 ---@param prefix string
 function lfm.cmd.prefix_set(prefix) end
+
+---Toggle between insert and overwrite mode.
+function lfm.cmd.toggle_overwrite() end

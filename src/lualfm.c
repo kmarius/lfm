@@ -885,6 +885,15 @@ static int l_cmd_line_set(lua_State *L)
 }
 
 
+static int l_cmd_toggle_overwrite(lua_State *L)
+{
+	(void) L;
+	if (cmdline_toggle_overwrite(&ui->cmdline))
+		ui_redraw(ui, REDRAW_CMDLINE);
+	return 0;
+}
+
+
 static int l_cmd_clear(lua_State *L)
 {
 	(void) L;
@@ -1018,6 +1027,7 @@ static const struct luaL_Reg cmd_lib[] = {
 	{"prefix_set", l_cmd_prefix_set},
 	{"home", l_cmd_home},
 	{"insert", l_cmd_insert},
+	{"toggle_overwrite", l_cmd_toggle_overwrite},
 	{"left", l_cmd_left},
 	{"word_left", l_cmd_word_left},
 	{"word_right", l_cmd_word_right},

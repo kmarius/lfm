@@ -60,6 +60,7 @@ void cmdline_init(T *t)
 	VSTR_INIT(t->left, 8);
 	VSTR_INIT(t->right, 8);
 	VSTR_INIT(t->buf, 8);
+	t->overwrite = false;
 }
 
 
@@ -97,13 +98,24 @@ const char *cmdline_prefix_get(T *t)
 
 bool cmdline_insert(T *t, const char *key)
 {
-	if (t->prefix.len == 0) {
+	if (t->prefix.len == 0)
 		return false;
-	}
+
 	ENSURE_SPACE(t->left, 1);
 	mbtowc(t->left.str+t->left.len, key, strlen(key));
 	t->left.len++;
 	t->left.str[t->left.len] = 0;
+	if (t->overwrite && t->right.len > 0) {
+		memmove(t->right.str, t->right.str+1, t->right.len * sizeof(wchar_t));
+		t->right.len--;
+	}
+	return true;
+}
+
+
+bool cmdline_toggle_overwrite(Cmdline *t)
+{
+	t->overwrite = !t->overwrite;
 	return true;
 }
 
@@ -246,6 +258,7 @@ bool cmdline_clear(T *t)
 	t->left.len = 0;
 	t->right.str[0] = 0;
 	t->right.len = 0;
+	t->overwrite = false;
 	return true;
 }
 
@@ -329,7 +342,7 @@ uint16_t cmdline_print(T *t, struct ncplane *n)
 	ret += ncplane_putwstr(n, t->left.str + (offset > 0 ? offset : 0));
 	ncplane_putwstr(n, t->right.str);
 
-	fputs(t->right.len == 0 ? "\033[2 q" : "\033[6 q", stdout);  // block/bar cursor
+	fputs(t->right.len == 0 ? "\033[2 q" : t->overwrite ? "\033[4 q" : "\033[6 q", stdout);  // block/bar cursor
 
 	return ret;
 }

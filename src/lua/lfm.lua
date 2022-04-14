@@ -355,6 +355,7 @@ end
 
 local cmap = lfm.cmap
 cmap("<Enter>", cmdenter, {desc="Enter"})
+cmap("<Insert>", cmd.toggle_overwrite, {desc="Toggle insert/overwrite"})
 cmap("<Esc>", cmdesc, {desc="Esc"})
 cmap("<Left>", cmd.left, {desc="Left"})
 cmap("<Right>", cmd.right, {desc="Right"})
