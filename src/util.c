@@ -170,10 +170,9 @@ int vasprintf(char **dst, const char *format, va_list args)
 {
 	va_list args_copy;
 	va_copy(args_copy, args);
-	const int l = vsnprintf(NULL, 0, format, args) + 1;
-	*dst = malloc(l * sizeof(char));
-	const int ret = vsnprintf(*dst, l, format, args_copy);
-	va_end(args);
+	*dst = malloc(vsnprintf(NULL, 0, format, args) + 1);
+	int ret = vsprintf(*dst, format, args_copy);
+	va_end(args_copy);
 	return ret;
 }
 
