@@ -3,18 +3,14 @@
 local config = lfm.config
 
 package.path = string.gsub(package.path, "./%?.lua;", "")
-local package_path = package.path
-if not string.match(package.path, config.luadir) then
-	package.path = package.path .. ";" .. config.luadir .. "/?.lua"
-end
+package.path = package.path .. ";" .. config.luadir .. "/?.lua"
+package.path = package.path .. ";".. config.configdir .. "/lua/?.lua"
 
 local fm = lfm.fm
 local log = lfm.log
 local ui = lfm.ui
 local cmd = lfm.cmd
 local nop = function() end
-
-local home = os.getenv("HOME")
 
 -- enhance logging functions
 for k, f in pairs(log) do
@@ -508,12 +504,7 @@ gmap("r", "/")
 gmap("s", "/srv")
 gmap("u", "/usr")
 
--- Setup package.path for the user and source the config
--- package.path = package_path
-if not string.match(package.path, home.."/.config/lfm/lua/") then
-	package.path = package.path .. ";"..home.."/.config/lfm/lua/?.lua"
-end
-
-if require("lfs").attributes(config.configpath) then
-	dofile(config.configpath)
+local cfg = loadfile(config.configpath)
+if cfg then
+	cfg()
 end
