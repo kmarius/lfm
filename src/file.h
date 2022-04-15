@@ -124,7 +124,7 @@ static inline long file_size(const File *file)
 	return file->stat.st_size;
 }
 
-// Writes a human readable representation of the filesize to buf.
+// Writes a human readable representation of the filesize to buf. buf size of 8 should be fine.
 static inline const char *file_size_readable(const File *file, char *buf)
 {
 	return readable_filesize(file_size(file), buf);

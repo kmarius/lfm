@@ -116,7 +116,7 @@ char *readable_filesize(double size, char *buf)
 		size /= 1024;
 		i++;
 	}
-	snprintf(buf, sizeof(buf)-1, "%.*f%s", i > 0 ? 1 : 0, size, units[i]);
+	sprintf(buf, "%.*f%s", i > 0 ? 1 : 0, size, units[i]);
 	return buf;
 }
 
