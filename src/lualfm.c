@@ -495,6 +495,9 @@ static int l_config_index(lua_State *L)
 	} else if (streq(key, "configpath")) {
 		lua_pushstring(L, cfg.configpath);
 		return 1;
+	} else if (streq(key, "configdir")) {
+		lua_pushstring(L, cfg.configdir);
+		return 1;
 	} else if (streq(key, "luadir")) {
 		lua_pushstring(L, cfg.luadir);
 		return 1;

@@ -29,6 +29,7 @@
 ---@field preview boolean assignable
 ---@field previewer string assignable
 ---@field configpath string
+---@field configdir string
 ---@field luadir string
 ---@field datadir string
 ---@field user_datadir string
