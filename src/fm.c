@@ -79,9 +79,9 @@ static void fm_populate(T *t)
 
 	const char *s = getenv("PWD");
 	if (s)
-		strncpy(pwd, s, sizeof(pwd)-1);
+		strncpy(pwd, s, sizeof pwd - 1);
 	else
-		getcwd(pwd, sizeof(pwd));
+		getcwd(pwd, sizeof pwd);
 
 	t->dirs.visible[0] = loader_load_path(pwd); /* current dir */
 	t->dirs.visible[0]->visible = true;
@@ -124,7 +124,7 @@ bool fm_chdir(T *t, const char *path, bool save)
 
 	char fullpath[PATH_MAX];
 	if (path_is_relative(path)) {
-		snprintf(fullpath, sizeof(fullpath), "%s/%s", getenv("PWD"), path);
+		snprintf(fullpath, sizeof fullpath, "%s/%s", getenv("PWD"), path);
 		path = fullpath;
 	}
 
@@ -592,7 +592,7 @@ static void fm_mark_save(T *t, char mark, const char *path)
 	for (size_t i = 0; i < cvector_size(t->marks); i++) {
 		if (t->marks[i].mark == mark) {
 			if (!streq(t->marks[i].path, path)) {
-				t->marks[i].path = realloc(t->marks[i].path, sizeof(char) * (strlen(path) + 1));
+				t->marks[i].path = realloc(t->marks[i].path, strlen(path) + 1);
 				strcpy(t->marks[i].path, path);
 			}
 			return;

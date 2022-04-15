@@ -404,13 +404,13 @@ void draw_cmdline(T *t)
 							file_perms(file), file_nlink(file),
 							file_owner(file), file_group(file),
 							file_size_readable(file, size),
-							print_time(file_mtime(file), mtime, sizeof(mtime)),
+							print_time(file_mtime(file), mtime, sizeof mtime),
 							file_islink(file) ? " -> " : "",
 							file_islink(file) ? file_link_target(file) : "");
 				}
 			}
 
-			rhs_sz = snprintf(nums, sizeof(nums), "%u/%u", dir->length > 0 ? dir->ind + 1 : 0, dir->length);
+			rhs_sz = snprintf(nums, sizeof nums, "%u/%u", dir->length > 0 ? dir->ind + 1 : 0, dir->length);
 			ncplane_putstr_yx(n, 0, t->ncol - rhs_sz, nums);
 
 			// these are drawn right to left
@@ -482,8 +482,8 @@ static void draw_info(T *t)
 	static uint16_t home_len;
 
 	if (user[0] == 0) {
-		strncpy(user, getenv("USER"), sizeof(user) - 1);
-		gethostname(host, sizeof(host));
+		strncpy(user, getenv("USER"), sizeof user - 1);
+		gethostname(host, sizeof host);
 		home = getenv("HOME");
 		home_len = mbstowcs(NULL, home, 0);
 		uid = getuid();
@@ -909,9 +909,9 @@ static void print_file(struct ncplane *n, const File *file,
 	if (print_sizes) {
 		if (file_isdir(file)) {
 			if (file_dircount(file) < 0)
-				snprintf(size, sizeof(size), "?");
+				snprintf(size, sizeof size, "?");
 			else
-				snprintf(size, sizeof(size), "%d", file_dircount(file));
+				snprintf(size, sizeof size, "%d", file_dircount(file));
 		} else {
 			file_size_readable(file, size);
 		}

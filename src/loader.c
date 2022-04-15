@@ -71,7 +71,7 @@ Dir *loader_load_path(const char *path)
 {
 	char fullpath[PATH_MAX];
 	if (path_is_relative(path)) {
-		snprintf(fullpath, sizeof(fullpath), "%s/%s", getenv("PWD"), path);
+		snprintf(fullpath, sizeof fullpath, "%s/%s", getenv("PWD"), path);
 		path = fullpath;
 	}
 

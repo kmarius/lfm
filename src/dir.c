@@ -54,7 +54,7 @@ static void apply_filter(T *t)
 	} else {
 		/* TODO: try to select previously selected file
 		 * note that on the first call dir->files is not yet valid */
-		memcpy(t->files, t->files_sorted, t->length_sorted * sizeof(File *));
+		memcpy(t->files, t->files_sorted, t->length_sorted * sizeof *t->files);
 		t->length = t->length_sorted;
 	}
 	t->ind = max(min(t->ind, t->length - 1), 0);
@@ -78,7 +78,7 @@ static void shuffle(void *arr, size_t n, size_t size)
 	if (n <= 1)
 		return;
 
-	const size_t stride = size * sizeof(char);
+	const size_t stride = size;
 	char *tmp = malloc(n * size);
 
 	size_t i;
@@ -101,19 +101,19 @@ void dir_sort(T *t)
 	if (!t->sorted) {
 		switch (t->sorttype) {
 			case SORT_NATURAL:
-				qsort(t->files_all, t->length_all, sizeof(File *), compare_natural);
+				qsort(t->files_all, t->length_all, sizeof *t->files_all, compare_natural);
 				break;
 			case SORT_NAME:
-				qsort(t->files_all, t->length_all, sizeof(File *), compare_name);
+				qsort(t->files_all, t->length_all, sizeof *t->files_all, compare_name);
 				break;
 			case SORT_SIZE:
-				qsort(t->files_all, t->length_all, sizeof(File *), compare_size);
+				qsort(t->files_all, t->length_all, sizeof *t->files_all, compare_size);
 				break;
 			case SORT_CTIME:
-				qsort(t->files_all, t->length_all, sizeof(File *), compare_ctime);
+				qsort(t->files_all, t->length_all, sizeof *t->files_all, compare_ctime);
 				break;
 			case SORT_RAND:
-				shuffle(t->files_all, t->length_all, sizeof(File *));
+				shuffle(t->files_all, t->length_all, sizeof *t->files_all);
 			default:
 				break;
 		}
@@ -136,7 +136,7 @@ void dir_sort(T *t)
 			}
 		} else {
 			j = t->length_all;
-			memcpy(t->files_sorted, t->files, t->length_all * sizeof(File *));
+			memcpy(t->files_sorted, t->files, t->length_all * sizeof *t->files_all);
 		}
 	} else {
 		if (t->dirfirst) {
@@ -248,11 +248,11 @@ T *dir_load(const char *path, bool load_dircount)
 	dir->length_sorted = dir->length_all;
 	dir->length = dir->length_all;
 
-	dir->files_sorted = malloc(dir->length_all * sizeof(File *));
-	dir->files = malloc(dir->length_all * sizeof(File *));
+	dir->files_sorted = malloc(dir->length_all * sizeof *dir->files_all);
+	dir->files = malloc(dir->length_all * sizeof *dir->files_all);
 
-	memcpy(dir->files_sorted, dir->files_all, dir->length_all * sizeof(File *));
-	memcpy(dir->files, dir->files_all, dir->length_all * sizeof(File *));
+	memcpy(dir->files_sorted, dir->files_all, dir->length_all * sizeof *dir->files_all);
+	memcpy(dir->files, dir->files_all, dir->length_all * sizeof *dir->files_all);
 	dir->updates = 1;
 
 	return dir;
@@ -280,7 +280,7 @@ T *dir_load_flat(const char *path, uint8_t level, bool load_dircount)
 	dir->flatten_level = level;
 
 	struct queue_dirs queue;
-	queue.head = malloc(sizeof(*queue.head));
+	queue.head = malloc(sizeof *queue.head);
 	queue.head->path = path;
 	queue.head->level = 0;
 	queue.head->next = NULL;
@@ -311,7 +311,7 @@ T *dir_load_flat(const char *path, uint8_t level, bool load_dircount)
 						file->dircount = file_dircount_load(file);
 
 					if (head->level + 1 <= level) {
-						struct queue_dirs_node *n = malloc(sizeof(*n));
+						struct queue_dirs_node *n = malloc(sizeof *n);
 						n->path = file_path(file);
 						n->level = head->level + 1;
 						n->next = NULL;
@@ -343,11 +343,11 @@ cont:
 	dir->length_sorted = dir->length_all;
 	dir->length = dir->length_all;
 
-	dir->files_sorted = malloc(dir->length_all * sizeof(File *));
-	dir->files = malloc(dir->length_all * sizeof(File *));
+	dir->files_sorted = malloc(dir->length_all * sizeof *dir->files_sorted);
+	dir->files = malloc(dir->length_all * sizeof *dir->files);
 
-	memcpy(dir->files_sorted, dir->files_all, dir->length_all * sizeof(File *));
-	memcpy(dir->files, dir->files_all, dir->length_all * sizeof(File *));
+	memcpy(dir->files_sorted, dir->files_all, dir->length_all * sizeof *dir->files_all);
+	memcpy(dir->files, dir->files_all, dir->length_all * sizeof *dir->files_all);
 
 	log_debug("flat dir %s loaded in %ums", path, current_millis() - t0);
 

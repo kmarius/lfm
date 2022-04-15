@@ -408,7 +408,7 @@ static void async_dir_load_worker(void *arg)
 	const uint16_t nfiles = res->update->length_all;
 	struct file_path *files = NULL;
 	if (!work->dircounts && nfiles > 0) {
-		files = malloc(nfiles * sizeof(*files));
+		files = malloc(nfiles * sizeof *files);
 		for (uint16_t i = 0; i < nfiles; i++) {
 			files[i].file = res->update->files_all[i];
 			files[i].path = strdup(res->update->files_all[i]->path);

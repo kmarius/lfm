@@ -137,7 +137,7 @@ static int l_colors_clear(lua_State *L)
 static int l_handle_key(lua_State *L)
 {
 	const char *keys = luaL_checkstring(L, 1);
-	input_t *buf = malloc((strlen(keys) + 1) * sizeof(input_t));
+	input_t *buf = malloc((strlen(keys) + 1) * sizeof *buf);
 	key_names_to_input(keys, buf);
 	for (input_t *u = buf; *u; u++)
 		lua_handle_key(L, *u);
@@ -275,7 +275,7 @@ static int l_execute(lua_State *L)
 	if (n == 0)
 		luaL_error(L, "no command given");
 
-	char **args = malloc((n + 1) * sizeof(char*));
+	char **args = malloc((n + 1) * sizeof *args);
 	for (uint16_t i = 1; i <= n; i++) {
 		lua_rawgeti(L, 1, i);
 		args[i-1] = strdup(lua_tostring(L, -1));
@@ -346,7 +346,7 @@ static inline int map_key(lua_State *L, Trie *trie)
 	if (!(lua_type(L, 2) == LUA_TFUNCTION || lua_isnil(L, 2)))
 		luaL_argerror(L, 2, "expected function or nil");
 
-	input_t *buf = malloc((strlen(keys) + 1) * sizeof(input_t));
+	input_t *buf = malloc((strlen(keys) + 1) * sizeof *buf);
 	Trie *ptr;
 	if (!lua_isnil(L, 2))
 		ptr = trie_insert(trie, key_names_to_input(keys, buf), keys, desc);
@@ -1511,7 +1511,7 @@ static int l_fn_mime(lua_State *L)
 static int l_fn_tokenize(lua_State *L)
 {
 	const char *string = luaL_optstring(L, 1, "");
-	char *buf = malloc((strlen(string) + 1) * sizeof(char));
+	char *buf = malloc(strlen(string) + 1);
 	const char *pos1, *tok;
 	char *pos2;
 	if ((tok = tokenize(string, buf, &pos1, &pos2)))
@@ -1551,7 +1551,7 @@ static int l_fn_split_last(lua_State *L)
 static int l_fn_unquote_space(lua_State *L)
 {
 	const char *string = luaL_checkstring(L, 1);
-	char *buf = malloc((strlen(string) + 1) * sizeof(char));
+	char *buf = malloc(strlen(string) + 1);
 	char *t = buf;
 	for (const char *s = string; *s != 0; s++) {
 		if (*s != '\\' || *(s+1) != ' ') {
@@ -1567,7 +1567,7 @@ static int l_fn_unquote_space(lua_State *L)
 static int l_fn_quote_space(lua_State *L)
 {
 	const char *string = luaL_checkstring(L, 1);
-	char *buf = malloc((strlen(string) * 2 + 1) * sizeof(char));
+	char *buf = malloc(strlen(string) * 2 + 1);
 	char *t = buf;
 	for (const char *s = string; *s; s++) {
 		if (*s == ' ') {

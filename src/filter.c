@@ -38,7 +38,7 @@ static void subfilter_init(struct subfilter *s, char *filter)
 {
 	s->length = 0;
 	s->capacity = FILTER_INITIAL_CAPACITY;
-	s->atoms = malloc(s->capacity * sizeof(*s->atoms));
+	s->atoms = malloc(s->capacity * sizeof *s->atoms);
 
 	char *ptr;
 	for (char *tok = strtok_r(filter, "|", &ptr);
@@ -46,7 +46,7 @@ static void subfilter_init(struct subfilter *s, char *filter)
 			tok = strtok_r(NULL, "|", &ptr)) {
 		if (s->capacity == s->length) {
 			s->capacity *= 2;
-			s->atoms = realloc(s->atoms, s->capacity * sizeof(*s->atoms));
+			s->atoms = realloc(s->atoms, s->capacity * sizeof *s->atoms);
 		}
 		s->atoms[s->length].negate = tok[0] == '!';
 		if (s->atoms[s->length].negate)
@@ -60,7 +60,7 @@ T *filter_create(const char *filter)
 {
 	T *t = malloc(sizeof *t);
 	t->capacity = FILTER_INITIAL_CAPACITY;
-	t->filters = malloc(t->capacity * sizeof(struct subfilter));
+	t->filters = malloc(t->capacity * sizeof *t->filters);
 	t->length = 0;
 	t->string = strdup(filter);
 
@@ -70,7 +70,7 @@ T *filter_create(const char *filter)
 			tok = strtok(NULL, " ")) {
 		if (t->length == t->capacity) {
 			t->capacity *= 2;
-			t->filters = realloc(t->filters, t->capacity * sizeof(struct subfilter));
+			t->filters = realloc(t->filters, t->capacity * sizeof *t->filters);
 		}
 		subfilter_init(&t->filters[t->length++], tok);
 	}

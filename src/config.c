@@ -45,7 +45,7 @@ void config_ratios_set(cvector_vector_type(uint16_t) ratios)
 // store ext right after the channel so we can easily free both
 void config_ext_channel_add(const char *ext, uint64_t channel)
 {
-	char *s = malloc((sizeof(uint64_t) + strlen(ext) + 1));
+	char *s = malloc(sizeof(uint64_t) + strlen(ext) + 1);
 	*(uint64_t *) s = channel;
 	strcpy(s + sizeof(uint64_t), ext);
 	hashtab_set(&cfg.colors.ext, s + sizeof(uint64_t), s);

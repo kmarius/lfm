@@ -50,7 +50,7 @@ T *file_init(T *t, const char *dir, const char *name)
 			t->isbroken = true;
 			t->stat = t->lstat;
 		}
-		if (readlink(t->path, buf, sizeof(buf)) == -1)
+		if (readlink(t->path, buf, sizeof buf) == -1)
 			t->isbroken = true;
 		else
 			t->link_target = strdup(buf);
@@ -173,8 +173,8 @@ const char* file_owner(const T *t)
 
 	if (t->lstat.st_uid != cached_uid) {
 		if ((pwd = getpwuid(t->lstat.st_uid))) {
-			strncpy(owner, pwd->pw_name, sizeof(owner)-1);
-			owner[sizeof(owner)-1] = 0;
+			strncpy(owner, pwd->pw_name, sizeof owner - 1);
+			owner[sizeof owner - 1] = 0;
 			cached_uid = t->lstat.st_uid;
 		} else {
 			owner[0] = 0;
@@ -194,8 +194,8 @@ const char *file_group(const T *t)
 
 	if (t->lstat.st_gid != cached_gid) {
 		if ((grp = getgrgid(t->lstat.st_gid))) {
-			strncpy(group, grp->gr_name, sizeof(group)-1);
-			group[sizeof(group)-1] = 0;
+			strncpy(group, grp->gr_name, sizeof group - 1);
+			group[sizeof group - 1] = 0;
 			cached_gid = t->lstat.st_gid;
 		} else {
 			group[0] = 0;

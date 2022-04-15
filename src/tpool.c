@@ -50,7 +50,7 @@ static tpool_work_t *tpool_work_create(thread_func_t func, void *arg)
 	if (func == NULL)
 		return NULL;
 
-	work = malloc(sizeof(*work));
+	work = malloc(sizeof *work);
 	work->func = func;
 	work->arg = arg;
 	work->next = NULL;
@@ -130,7 +130,7 @@ tpool_t *tpool_create(size_t num)
 	if (num == 0)
 		num = 2;
 
-	tm = calloc(1, sizeof(*tm));
+	tm = calloc(1, sizeof *tm);
 	tm->thread_cnt = num;
 
 	pthread_mutex_init(&(tm->work_mutex), NULL);

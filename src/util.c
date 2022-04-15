@@ -190,7 +190,7 @@ int asprintf(char **dst, const char *format, ...)
 wchar_t *ambstowcs(const char *s, int *len)
 {
 	const int l = mbstowcs(NULL, s, 0);
-	wchar_t *ws = malloc((l + 1) * sizeof(wchar_t));
+	wchar_t *ws = malloc((l + 1) * sizeof *ws);
 	mbstowcs(ws, s, l + 1);
 	if (len)
 		*len = l;
@@ -230,7 +230,7 @@ char *path_replace_tilde(const char* path)
 	const char *home = getenv("HOME");
 	const int l1 = strlen(path);
 	const int l2 = strlen(home);
-	char *ret = malloc((l1 - 1 + l2 + 1) * sizeof(char));
+	char *ret = malloc(l1 - 1 + l2 + 1);
 	strcpy(ret, home);
 	strcpy(ret + l2, path + 1);
 	return ret;
@@ -245,14 +245,14 @@ char *path_qualify(const char* path)
 		const char *home = getenv("HOME");
 		const int l2 = strlen(path);
 		const int l1 = strlen(home);
-		p = malloc((l2 - 1 + l1 + 1) * sizeof(char));
+		p = malloc(l2 - 1 + l1 + 1);
 		strcpy(p, home);
 		strcpy(p + l1, path + 1);
 	} else if (path[0] != '/') {
 		const char *pwd = getenv("PWD");
 		const int l2 = strlen(path);
 		const int l1 = strlen(pwd);
-		p = malloc((l1 + l2 + 1) * sizeof(char));
+		p = malloc(l1 + l2 + 1);
 		strcpy(p, pwd);
 		*(p + l1) = '/';
 		strcpy(p + l1 + 1, path);

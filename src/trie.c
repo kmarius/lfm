@@ -8,7 +8,7 @@
 
 static inline T *trie_node_create(input_t key, T *next)
 {
-	T *n = malloc(sizeof(*n));
+	T *n = malloc(sizeof *n);
 	n->key = key;
 	n->keys = NULL;
 	n->desc = NULL;

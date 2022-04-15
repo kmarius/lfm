@@ -489,14 +489,14 @@ void app_read_fifo(T *t)
 		lua_eval(t->L, buf);
 	} else {
 		size_t cap = 2 * sizeof(buf) / sizeof(*buf);
-		char *dyn = malloc(cap * sizeof(*dyn));
+		char *dyn = malloc(cap * sizeof *dyn);
 		size_t len = nbytes;
 		memcpy(dyn, buf, nbytes);
 		while ((nbytes = read(t->fifo_fd, dyn + len, cap - len)) > 0) {
 			len += nbytes;
 			if (len == cap) {
 				cap *= 2;
-				dyn = realloc(dyn, cap * sizeof(*dyn));
+				dyn = realloc(dyn, cap * sizeof *dyn);
 			}
 		}
 		dyn[len] = 0;

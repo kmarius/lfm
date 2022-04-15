@@ -58,7 +58,7 @@ static Rule **rules = NULL;
 
 static Condition *condition_create(check_fun *f, const char *arg, bool negate)
 {
-	Condition *cd = malloc(sizeof(Condition));
+	Condition *cd = malloc(sizeof *cd);
 	cd->check = f;
 	cd->arg = arg ? strdup(arg) : NULL;
 	cd->negate = negate;
@@ -77,7 +77,7 @@ static void condition_destroy(Condition *cd)
 
 static Rule *rule_create(const char *command)
 {
-	Rule *rl = malloc(sizeof(Rule));
+	Rule *rl = malloc(sizeof *rl);
 	rl->command = command ? strdup(command) : NULL;
 	rl->conditions = NULL;
 	rl->label = NULL;
@@ -209,7 +209,7 @@ static bool check_fun_else(Condition *cd, const FileInfo *info)
 
 static bool check_fun_ext(Condition *cd, const FileInfo *info)
 {
-	char *regex_str = malloc((strlen(cd->arg) + 8) * sizeof(char));
+	char *regex_str = malloc(strlen(cd->arg) + 8);
 	sprintf(regex_str, "\\.(%s)$", cd->arg);
 	bool ret = regex_match(regex_str, info->file) != cd->negate;
 	free(regex_str);
@@ -248,7 +248,7 @@ static bool check_fun_has(Condition *cd, const FileInfo *info)
 {
 	(void) info;
 	char cmd[EXECUTABLE_MAX]; // arbitrary
-	snprintf(cmd, sizeof(cmd), "command -v \"%s\" >/dev/null 2>&1", cd->arg);
+	snprintf(cmd, sizeof cmd, "command -v \"%s\" >/dev/null 2>&1", cd->arg);
 	return !system(cmd) != cd->negate;
 }
 

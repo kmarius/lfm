@@ -8,7 +8,7 @@
 
 #define VSTR_INIT(vec, c) \
 	do { \
-		(vec).str = malloc(sizeof(*(vec).str) * ((c) + 1)); \
+		(vec).str = malloc(((c) + 1) * sizeof *(vec).str); \
 		(vec).cap = c; \
 		(vec).str[0] = 0; \
 		(vec).len = 0; \
@@ -21,7 +21,7 @@
 		if ((vec).cap < v_sz) { \
 			while ((vec).cap < v_sz) \
 				(vec).cap *= 2; \
-			(vec).str = realloc((vec).str, sizeof(*vec.str) * (vec).cap * 2 + 1); \
+			(vec).str = realloc((vec).str, ((vec).cap * 2 + 1) * sizeof *vec.str); \
 		} \
 	} while (0)
 
@@ -34,8 +34,8 @@
 	do { \
 		const size_t sz = _sz; \
 		ENSURE_SPACE((t)->right, sz); \
-		memmove((t)->right.str + sz, (t)->right.str, sizeof(wchar_t)*((t)->right.len+1)); \
-		memcpy((t)->right.str, (t)->left.str + (t)->left.len - sz, sizeof(wchar_t)*sz); \
+		memmove((t)->right.str + sz, (t)->right.str, ((t)->right.len+1) * sizeof *(t)->right.str); \
+		memcpy((t)->right.str, (t)->left.str + (t)->left.len - sz, sz * sizeof *(t)->right.str); \
 		(t)->right.len += sz; \
 		(t)->left.len -= sz; \
 		(t)->left.str[(t)->left.len] = 0; \
@@ -46,8 +46,8 @@
 	do { \
 		const size_t sz = _sz; \
 		ENSURE_SPACE((t)->left, sz); \
-		memcpy((t)->left.str + (t)->left.len, (t)->right.str, sizeof(wchar_t)*sz); \
-		memmove((t)->right.str, (t)->right.str + sz, sizeof(wchar_t)*((t)->right.len-sz+1)); \
+		memcpy((t)->left.str + (t)->left.len, (t)->right.str, sz * sizeof *(t)->left.str); \
+		memmove((t)->right.str, (t)->right.str + sz, ((t)->right.len-sz+1) * sizeof *(t)->right.str); \
 		(t)->right.len -= sz; \
 		(t)->left.len += sz; \
 		(t)->left.str[(t)->left.len] = 0; \
@@ -106,7 +106,7 @@ bool cmdline_insert(T *t, const char *key)
 	t->left.len++;
 	t->left.str[t->left.len] = 0;
 	if (t->overwrite && t->right.len > 0) {
-		memmove(t->right.str, t->right.str+1, t->right.len * sizeof(wchar_t));
+		memmove(t->right.str, t->right.str+1, t->right.len * sizeof *t->right.str);
 		t->right.len--;
 	}
 	return true;
@@ -136,7 +136,7 @@ bool cmdline_delete_right(T *t)
 	if (t->prefix.len == 0 || t->right.len == 0)
 		return false;
 
-	memmove(t->right.str, t->right.str+1, sizeof(wchar_t)*t->right.len);
+	memmove(t->right.str, t->right.str+1, t->right.len * sizeof *t->right.str);
 	t->right.len--;
 	return true;
 }
