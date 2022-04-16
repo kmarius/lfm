@@ -7,14 +7,25 @@ lfm = {}
 ---@param expr string
 function lfm.eval(expr) end
 
----Execute a command and redirect output/error to the UI.
+---Execute a foreground command.
 ---Supported options:
 --- `opts.fork` should the command run in background (default: `false`)
 --- `opts.out`  should stdout be captured, ignored with fork=false (default: `true`)
 --- `opts.err`  should stderr be captured, ignored with fork=false (default: `true`)
 ---@param command string[]
----@param opts table
-function lfm.execute(command, opts) end
+function lfm.execute(command) end
+
+---Spawn a background command
+---Supported options:
+--- `opts.fork` should the command run in background (default: `false`)
+--- `opts.out`  should stdout be shown in the UI, ignored with fork=false (default: `true`)
+--- `opts.err`  should stderr be shown in the UI, ignored with fork=false (default: `true`)
+---
+---`opts.out` and `opts.err` can instead be set to functions which will be called with
+---each line output by the brogram. In this case, nothing is shown in the UI.
+---@param command string[]
+---@param opts? table
+function lfm.spawn(command, opts) end
 
 ---Set the timeout in milliseconds from now in which lfm will ignore keyboard input.
 ---@param duration integer in milliseconds.

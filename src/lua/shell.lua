@@ -46,7 +46,11 @@ function M.execute(command, t)
 	if not t.quiet then
 		log.debug(table.concat(command, " "))
 	end
-	lfm.execute(command, t)
+	if t.fork then
+		lfm.spawn(command, t)
+	else
+		lfm.execute(command)
+	end
 end
 
 ---Run a command an capture the output.

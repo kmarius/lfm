@@ -46,6 +46,7 @@ static struct message *messages = NULL;
 struct stdout_watcher_data {
 	App *app;
 	FILE *stream;
+	int ind;
 };
 
 struct child_watcher_data {
@@ -62,11 +63,14 @@ static inline void destroy_io_watcher(ev_io *w)
 	if (!w)
 		return;
 
-	struct stdout_watcher_data * data = w->data;
+	struct stdout_watcher_data *data = w->data;
+	if (data->ind)
+		lua_run_stdout_callback(data->app->L, data->ind, NULL);
 	fclose(data->stream);
 	free(data);
 	free(w);
 }
+
 
 static inline void destroy_child_watcher(ev_child *w)
 {
@@ -76,6 +80,7 @@ static inline void destroy_child_watcher(ev_child *w)
 	struct child_watcher_data *data = w->data;
 	destroy_io_watcher(data->stdout_watcher);
 	destroy_io_watcher(data->stderr_watcher);
+	free(data);
 	free(w);
 }
 
@@ -87,7 +92,6 @@ static void child_cb(EV_P_ ev_child *w, int revents)
 
 	ev_child_stop(EV_A_ w);
 
-	cvector_swap_remove(data->app->child_watchers, w);
 	if (data->cb_index > 0)
 		lua_run_child_callback(data->app->L, data->cb_index, w->rstatus);
 
@@ -97,6 +101,7 @@ static void child_cb(EV_P_ ev_child *w, int revents)
 	if (data->stderr_watcher)
 		ev_io_stop(loop, data->stderr_watcher);
 
+	cvector_swap_remove(data->app->child_watchers, w);
 	destroy_child_watcher(w);
 }
 
@@ -171,11 +176,10 @@ static void command_stdout_cb(EV_P_ ev_io *w, int revents)
 		if (line[read-1] == '\n')
 			line[read-1] = 0;
 
-		// TODO: strip special chars? (on 2021-11-14)
-		// TODO: what special chars? (on 2022-04-05)
-		ui_echom(&data->app->ui, "%s", line);
-		free(line);
-		line = NULL;
+		if (data->ind)
+			lua_run_stdout_callback(data->app->L, data->ind, line);
+		else
+			ui_echom(&data->app->ui, "%s", line);
 	}
 	free(line);
 
@@ -338,7 +342,7 @@ void app_quit(T *t)
 }
 
 
-static ev_io *add_io_watcher(T *t, FILE* f)
+static ev_io *add_io_watcher(T *t, FILE* f, int ind)
 {
 	if (!f)
 		return NULL;
@@ -355,6 +359,7 @@ static ev_io *add_io_watcher(T *t, FILE* f)
 	struct stdout_watcher_data *data = malloc(sizeof *data);
 	data->app = t;
 	data->stream = f;
+	data->ind = ind;
 
 	ev_io *w = malloc(sizeof *w);
 	ev_io_init(w, command_stdout_cb, fd, EV_READ);
@@ -383,31 +388,31 @@ static void add_child_watcher(T *t, int pid, int cb_index, ev_io *stdout_watcher
 
 
 // spawn a background program
-static inline bool spawn(T *t, const char *prog, char *const *args, bool out, bool err, int key)
+bool app_spawn(T *t, const char *prog, char *const *args,
+		bool out, bool err, int out_cb_ind, int err_cb_ind, int cb_ind)
 {
 	FILE *fout, *ferr;
 	ev_io *stderr_watcher = NULL;
 	ev_io *stdout_watcher = NULL;
 	int pid = popen2_arr_p(NULL, &fout, &ferr, prog, args, NULL);
 
-	if (err)
-		stderr_watcher = add_io_watcher(t, ferr);
-	else
-		fclose(ferr);
-
-	if (out)
-		stdout_watcher = add_io_watcher(t, fout);
+	if (out || out_cb_ind)
+		stdout_watcher = add_io_watcher(t, fout, out_cb_ind);
 	else
 		fclose(fout);
 
-	add_child_watcher(t, pid, key, stdout_watcher, stderr_watcher);
-	return pid != -1;
+	if (err || err_cb_ind)
+		stderr_watcher = add_io_watcher(t, ferr, err_cb_ind);
+	else
+		fclose(ferr);
 
+	add_child_watcher(t, pid, cb_ind, stdout_watcher, stderr_watcher);
+	return pid != -1;
 }
 
 
 // execute a foreground program
-static inline bool execute(T *t, const char *prog, char *const *args)
+bool app_execute(T *t, const char *prog, char *const *args)
 {
 	int pid, status, rc;
 	ui_suspend(&t->ui);
@@ -429,15 +434,6 @@ static inline bool execute(T *t, const char *prog, char *const *args)
 	signal(SIGINT, SIG_IGN);
 	ui_redraw(&t->ui, REDRAW_FM);
 	return status == 0;
-}
-
-
-bool app_execute(T *t, const char *prog, char *const *args, bool forking, bool out, bool err, int key)
-{
-	if (forking)
-		return spawn(t, prog, args, out, err, key);
-	else
-		return execute(t, prog, args);
 }
 
 

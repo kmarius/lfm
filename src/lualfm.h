@@ -31,3 +31,6 @@ void lua_run_hook(lua_State *L, const char *hook);
 void lua_run_child_callback(lua_State *L, int ind, int rstatus);
 
 void lua_run_callback(lua_State *L, int ind);
+
+// `line==NULL` removes callback from the registry.
+void lua_run_stdout_callback(lua_State *L, int ind, const char *line);

@@ -278,7 +278,7 @@ local mode_delete = {
 		local line = lfm.cmd.line_get()
 		lfm.cmd.clear()
 		if line == "y" then
-			lfm.execute({"trash-put", "--", unpack(lfm.sel_or_cur())}, {fork=true})
+			lfm.spawn({"trash-put", "--", unpack(lfm.sel_or_cur())})
 			fm.selection_set()
 		end
 	end,

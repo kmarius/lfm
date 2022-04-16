@@ -20,9 +20,9 @@ end
 ---@param primary boolean
 local function wl_copy(text, primary)
 	if primary then
-		lfm.execute({"sh", "-c", 'printf -- "%s" "$*" | wl-copy --primary', "_", text}, {fork=true})
+		lfm.spawn({"sh", "-c", 'printf -- "%s" "$*" | wl-copy --primary', "_", text})
 	else
-		lfm.execute({"sh", "-c", 'printf -- "%s" "$*" | wl-copy', "_", text}, {fork=true})
+		lfm.spawn({"sh", "-c", 'printf -- "%s" "$*" | wl-copy', "_", text})
 	end
 end
 
@@ -51,7 +51,7 @@ function M.rename(name)
 	local file = fm.current_file()
 	if file then
 		if not file_exists(name) then
-			lfm.execute({"mv", "--", file, name}, {fork=true})
+			lfm.spawn({"mv", "--", file, name})
 		else
 			lfm.error("file exists")
 		end
@@ -100,7 +100,7 @@ function M.symlink()
 	local files, mode = fm.paste_buffer_get()
 	if mode == "copy" then
 		for _, f in pairs(files) do
-			lfm.execute({"ln", "-s", "--", f}, {fork=true})
+			lfm.spawn({"ln", "-s", "--", f})
 		end
 	end
 	fm.paste_buffer_set({})
@@ -112,7 +112,7 @@ function M.symlink_relative()
 	local files, mode = fm.paste_buffer_get()
 	if mode == "copy" then
 		for _, f in pairs(files) do
-			lfm.execute({"ln", "-s", "--relative", "--", f}, {fork=true})
+			lfm.spawn({"ln", "-s", "--relative", "--", f})
 		end
 	end
 	fm.paste_buffer_set({})
@@ -136,13 +136,12 @@ local function chain(f, args, opts)
 	local co
 	local callback = opts.callback
 	opts.callback = function(r) coroutine.resume(co, r) end
-	opts.fork = true
 	co = coroutine.create(function()
 		local ret = 0
 		for _, arg in ipairs(args) do
 			local cmd = f(arg)
 			if cmd then
-				lfm.execute(cmd, opts)
+				lfm.spawn(cmd, opts)
 				ret = coroutine.yield(co)
 				if ret ~= 0 and opts.errexit then
 					if callback then
@@ -220,7 +219,7 @@ function M.paste_overwrite()
 		-- not reached
 	end
 	table.insert(cmd, "./")
-	lfm.execute(cmd, {fork=true})
+	lfm.spawn(cmd)
 	fm.paste_buffer_set({})
 end
 

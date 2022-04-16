@@ -50,9 +50,10 @@ void app_quit(App *app);
 // Free all recources i.e. ui, fm and the lua_State.
 void app_deinit(App *app);
 
-// Execute a command in the background and redirect its output/error to the ui
-// if `out` or `err` are set to `true`.
-bool app_execute(App *app, const char *prog, char *const *args, bool fork, bool out, bool err, int key);
+bool app_spawn(App *app, const char *prog, char *const *args,
+		bool out, bool err, int out_cb_ind, int err_cb_ind, int cb_ind);
+
+bool app_execute(App *app, const char *prog, char *const *args);
 
 void app_schedule(App *app, int schedule_ind, uint32_t delay);
 

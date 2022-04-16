@@ -81,7 +81,7 @@ static int l_dircache_stats(lua_State *L)
 
 // sets the function on top of the stack as callback and pops it.
 // returns the index with which to retreive it.
-static int set_callback(lua_State *L)
+static int lua_set_callback(lua_State *L)
 {
 	lua_getfield(L, LUA_REGISTRYINDEX, TABLE_CALLBACKS);
 	int ind = lua_objlen(L, -1) + 1;
@@ -92,14 +92,42 @@ static int set_callback(lua_State *L)
 }
 
 
-static int get_callback(lua_State *L, int ind)
+static bool lua_get_callback(lua_State *L, int ind, bool nil)
 {
 	lua_getfield(L, LUA_REGISTRYINDEX, TABLE_CALLBACKS);
 	lua_rawgeti(L, -1, ind);
-	lua_pushnil(L);
-	lua_rawseti(L, -3, ind);
-	lua_replace(L, -2);
+	if (nil) {
+		lua_pushnil(L);
+		lua_rawseti(L, -3, ind);
+		lua_replace(L, -2);
+	}
 	return lua_type(L, -1) == LUA_TFUNCTION;
+}
+
+
+void lua_run_callback(lua_State *L, int ind)
+{
+	if (lua_get_callback(L, ind, true))
+		lua_call(L, 0, 0);
+}
+
+
+void lua_run_child_callback(lua_State *L, int ind, int rstatus)
+{
+	if (lua_get_callback(L, ind, true)) {
+		lua_pushnumber(L, rstatus);
+		lua_call(L, 1, 0);
+	}
+}
+
+
+void lua_run_stdout_callback(lua_State *L, int ind, const char *line)
+{
+	if (lua_get_callback(L, ind, line == NULL) && line) {
+		lua_pushstring(L, line);
+		lua_insert(L, -1);
+		lua_call(L, 1, 0);
+	}
 }
 
 
@@ -109,19 +137,12 @@ static int l_schedule(lua_State *L)
 	const int delay = luaL_checknumber(L, 2);
 	if (delay > 0) {
 		lua_pushvalue(L, 1);
-		app_schedule(app, set_callback(L), delay);
+		app_schedule(app, lua_set_callback(L), delay);
 	} else {
 		lua_pushvalue(L, 1);
 		lua_call(L, 0, 0);
 	}
 	return 0;
-}
-
-
-void lua_run_callback(lua_State *L, int ind)
-{
-	if (get_callback(L, ind))
-		lua_call(L, 0, 0);
 }
 
 
@@ -262,11 +283,12 @@ static int l_message_clear(lua_State *L)
 }
 
 
-static int l_execute(lua_State *L)
+static int l_spawn(lua_State *L)
 {
 	bool out = true;
 	bool err = true;
-	bool fork = false;
+	int out_cb_index = 0;
+	int err_cb_index = 0;
 	int cb_index = 0;
 
 	luaL_checktype(L, 1, LUA_TTABLE);
@@ -286,27 +308,32 @@ static int l_execute(lua_State *L)
 		luaL_checktype(L, 2, LUA_TTABLE);
 
 		lua_getfield(L, 2, "out");
-		if (!lua_isnoneornil(L, -1))
-			out = lua_toboolean(L, -1);
-		lua_pop(L, 1);
+		if (!lua_isnoneornil(L, -1)) {
+			if (lua_isfunction(L, -1)) {
+				out_cb_index = lua_set_callback(L);
+			} else {
+				out = lua_toboolean(L, -1);
+				lua_pop(L, 1);
+			}
+		}
 
 		lua_getfield(L, 2, "err");
-		if (!lua_isnoneornil(L, -1))
-			err = lua_toboolean(L, -1);
-		lua_pop(L, 1);
-
-		lua_getfield(L, 2, "fork");
-		if (!lua_isnoneornil(L, -1))
-			fork = lua_toboolean(L, -1);
-		lua_pop(L, 1);
+		if (!lua_isnoneornil(L, -1)) {
+			if (lua_isfunction(L, -1)) {
+				err_cb_index = lua_set_callback(L);
+			} else {
+				err = lua_toboolean(L, -1);
+				lua_pop(L, 1);
+			}
+		}
 
 		lua_getfield(L, 2, "callback");
 		if (!lua_isnoneornil(L, -1))
-			cb_index = set_callback(L);
+			cb_index = lua_set_callback(L);
 		else
 			lua_pop(L, 1);
 	}
-	bool ret = app_execute(app, args[0], args, fork, out, err, cb_index);
+	bool ret = app_spawn(app, args[0], args, out, err, out_cb_index, err_cb_index, cb_index);
 	for (uint16_t i = 0; i < n+1; i++)
 		free(args[i]);
 	free(args);
@@ -322,11 +349,33 @@ static int l_execute(lua_State *L)
 }
 
 
-void lua_run_child_callback(lua_State *L, int ind, int rstatus)
+static int l_execute(lua_State *L)
 {
-	if (get_callback(L, ind)) {
-		lua_pushnumber(L, rstatus);
-		lua_call(L, 1, 0);
+	luaL_checktype(L, 1, LUA_TTABLE);
+
+	const uint16_t n = lua_objlen(L, 1);
+	if (n == 0)
+		luaL_error(L, "no command given");
+
+	char **args = malloc((n + 1) * sizeof *args);
+	for (uint16_t i = 1; i <= n; i++) {
+		lua_rawgeti(L, 1, i);
+		args[i-1] = strdup(lua_tostring(L, -1));
+		lua_pop(L, 1);
+	}
+	args[n] = NULL;
+	bool ret = app_execute(app, args[0], args);
+	for (uint16_t i = 0; i < n; i++)
+		free(args[i]);
+	free(args);
+
+	if (ret) {
+		lua_pushboolean(L, true);
+		return 1;
+	} else {
+		lua_pushnil(L);
+		lua_pushstring(L, strerror(errno)); // not sure if something even sets errno
+		return 2;
 	}
 }
 
@@ -413,6 +462,7 @@ static const struct luaL_Reg lfm_lib[] = {
 	{"schedule", l_schedule},
 	{"colors_clear", l_colors_clear},
 	{"execute", l_execute},
+	{"spawn", l_spawn},
 	{"map", l_map_key},
 	{"cmap", l_cmap_key},
 	{"get_maps", l_get_maps},
