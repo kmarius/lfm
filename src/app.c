@@ -395,10 +395,9 @@ int app_spawn(T *t, const char *prog, char *const *args,
 	ev_io *stderr_watcher = NULL;
 	ev_io *stdout_watcher = NULL;
 
-	int pid = popen2_arr_p(
-			in ? &fin : NULL,
-			out || out_cb_ind ? &fout : NULL,
-			err || err_cb_ind ? &ferr : NULL, prog, args, NULL);
+	// always pass out and err because popen2_arr_p doesnt close the fds
+	int pid = popen2_arr_p(in ? &fin : NULL,
+			&fout, &ferr, prog, args, NULL);
 
 	if (pid == -1) {
 		error("popen2_arr_p: %s", strerror(errno));  // not sure if set
@@ -407,9 +406,13 @@ int app_spawn(T *t, const char *prog, char *const *args,
 
 	if (out || out_cb_ind)
 		stdout_watcher = add_io_watcher(t, fout, out_cb_ind);
+	else
+		fclose(fout);
 
 	if (err || err_cb_ind)
 		stderr_watcher = add_io_watcher(t, ferr, err_cb_ind);
+	else
+		fclose(ferr);
 
 	if (in) {
 		cvector_foreach(line, in) {
