@@ -285,6 +285,7 @@ static int l_message_clear(lua_State *L)
 
 static int l_spawn(lua_State *L)
 {
+	char **stdin = NULL;
 	bool out = true;
 	bool err = true;
 	int out_cb_index = 0;
@@ -306,6 +307,19 @@ static int l_spawn(lua_State *L)
 	args[n] = NULL;
 	if (lua_gettop(L) >= 2) {
 		luaL_checktype(L, 2, LUA_TTABLE);
+
+		lua_getfield(L, 2, "stdin");
+		if (lua_isstring(L, -1)) {
+			cvector_push_back(stdin, strdup(lua_tostring(L, -1)));
+		} else if (lua_istable(L, -1)) {
+			int m = lua_objlen(L, -1);
+			for (uint16_t i = 1; i <= m; i++) {
+				lua_rawgeti(L, -1, i);
+				cvector_push_back(stdin, strdup(lua_tostring(L, -1)));
+				lua_pop(L, 1);
+			}
+		}
+		lua_pop(L, 1);
 
 		lua_getfield(L, 2, "out");
 		if (!lua_isnoneornil(L, -1)) {
@@ -333,7 +347,7 @@ static int l_spawn(lua_State *L)
 		else
 			lua_pop(L, 1);
 	}
-	bool ret = app_spawn(app, args[0], args, out, err, out_cb_index, err_cb_index, cb_index);
+	bool ret = app_spawn(app, args[0], args, stdin, out, err, out_cb_index, err_cb_index, cb_index);
 	for (uint16_t i = 0; i < n+1; i++)
 		free(args[i]);
 	free(args);

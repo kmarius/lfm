@@ -17,9 +17,9 @@ function lfm.execute(command) end
 
 ---Spawn a background command
 ---Supported options:
---- `opts.fork` should the command run in background (default: `false`)
---- `opts.out`  should stdout be shown in the UI, ignored with fork=false (default: `true`)
---- `opts.err`  should stderr be shown in the UI, ignored with fork=false (default: `true`)
+--- `opts.stdin` string or a table of strings that will be sent to the processes stdin.
+--- `opts.out`   should stdout be shown in the UI, ignored with fork=false (default: `true`)
+--- `opts.err`   should stderr be shown in the UI, ignored with fork=false (default: `true`)
 ---
 ---`opts.out` and `opts.err` can instead be set to functions which will be called with
 ---each line output by the brogram. In this case, nothing is shown in the UI.

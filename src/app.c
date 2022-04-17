@@ -389,25 +389,41 @@ static void add_child_watcher(T *t, int pid, int cb_index, ev_io *stdout_watcher
 
 // spawn a background program
 bool app_spawn(T *t, const char *prog, char *const *args,
-		bool out, bool err, int out_cb_ind, int err_cb_ind, int cb_ind)
+		char **in, bool out, bool err, int out_cb_ind, int err_cb_ind, int cb_ind)
 {
-	FILE *fout, *ferr;
+	FILE *fout, *ferr, *fin;
 	ev_io *stderr_watcher = NULL;
 	ev_io *stdout_watcher = NULL;
-	int pid = popen2_arr_p(NULL, &fout, &ferr, prog, args, NULL);
+
+	int pid = popen2_arr_p(
+			in ? &fin : NULL,
+			out || out_cb_ind ? &fout : NULL,
+			err || err_cb_ind ? &ferr : NULL, prog, args, NULL);
+
+	if (pid == -1) {
+		error("popen2_arr_p: %s", strerror(errno));  // not sure if set
+		cvector_ffree(in, free);
+		return false;
+	}
 
 	if (out || out_cb_ind)
 		stdout_watcher = add_io_watcher(t, fout, out_cb_ind);
-	else
-		fclose(fout);
 
 	if (err || err_cb_ind)
 		stderr_watcher = add_io_watcher(t, ferr, err_cb_ind);
-	else
-		fclose(ferr);
+
+	if (in) {
+		cvector_foreach(line, in) {
+			fputs(line, fin);
+			fputc('\n', fin);
+			free(line);
+		}
+		cvector_free(in);
+		fclose(fin);
+	}
 
 	add_child_watcher(t, pid, cb_ind, stdout_watcher, stderr_watcher);
-	return pid != -1;
+	return true;
 }
 
 

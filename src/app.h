@@ -51,7 +51,7 @@ void app_quit(App *app);
 void app_deinit(App *app);
 
 bool app_spawn(App *app, const char *prog, char *const *args,
-		bool out, bool err, int out_cb_ind, int err_cb_ind, int cb_ind);
+		char **in, bool out, bool err, int out_cb_ind, int err_cb_ind, int cb_ind);
 
 bool app_execute(App *app, const char *prog, char *const *args);
 
