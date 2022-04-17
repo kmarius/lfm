@@ -388,7 +388,7 @@ static void add_child_watcher(T *t, int pid, int cb_index, ev_io *stdout_watcher
 
 
 // spawn a background program
-bool app_spawn(T *t, const char *prog, char *const *args,
+int app_spawn(T *t, const char *prog, char *const *args,
 		char **in, bool out, bool err, int out_cb_ind, int err_cb_ind, int cb_ind)
 {
 	FILE *fout, *ferr, *fin;
@@ -402,8 +402,7 @@ bool app_spawn(T *t, const char *prog, char *const *args,
 
 	if (pid == -1) {
 		error("popen2_arr_p: %s", strerror(errno));  // not sure if set
-		cvector_ffree(in, free);
-		return false;
+		return -1;
 	}
 
 	if (out || out_cb_ind)
@@ -416,14 +415,12 @@ bool app_spawn(T *t, const char *prog, char *const *args,
 		cvector_foreach(line, in) {
 			fputs(line, fin);
 			fputc('\n', fin);
-			free(line);
 		}
-		cvector_free(in);
 		fclose(fin);
 	}
 
 	add_child_watcher(t, pid, cb_ind, stdout_watcher, stderr_watcher);
-	return true;
+	return pid;
 }
 
 

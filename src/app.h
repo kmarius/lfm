@@ -50,7 +50,7 @@ void app_quit(App *app);
 // Free all recources i.e. ui, fm and the lua_State.
 void app_deinit(App *app);
 
-bool app_spawn(App *app, const char *prog, char *const *args,
+int app_spawn(App *app, const char *prog, char *const *args,
 		char **in, bool out, bool err, int out_cb_ind, int err_cb_ind, int cb_ind);
 
 bool app_execute(App *app, const char *prog, char *const *args);

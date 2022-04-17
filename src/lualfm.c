@@ -322,38 +322,37 @@ static int l_spawn(lua_State *L)
 		lua_pop(L, 1);
 
 		lua_getfield(L, 2, "out");
-		if (!lua_isnoneornil(L, -1)) {
-			if (lua_isfunction(L, -1)) {
-				out_cb_index = lua_set_callback(L);
-			} else {
-				out = lua_toboolean(L, -1);
-				lua_pop(L, 1);
-			}
+		if (lua_isfunction(L, -1)) {
+			out_cb_index = lua_set_callback(L);
+		} else {
+			out = lua_toboolean(L, -1);
+			lua_pop(L, 1);
 		}
 
 		lua_getfield(L, 2, "err");
-		if (!lua_isnoneornil(L, -1)) {
-			if (lua_isfunction(L, -1)) {
-				err_cb_index = lua_set_callback(L);
-			} else {
-				err = lua_toboolean(L, -1);
-				lua_pop(L, 1);
-			}
+		if (lua_isfunction(L, -1)) {
+			err_cb_index = lua_set_callback(L);
+		} else {
+			err = lua_toboolean(L, -1);
+			lua_pop(L, 1);
 		}
 
 		lua_getfield(L, 2, "callback");
-		if (!lua_isnoneornil(L, -1))
+		if (lua_isfunction(L, -1))
 			cb_index = lua_set_callback(L);
 		else
 			lua_pop(L, 1);
 	}
-	bool ret = app_spawn(app, args[0], args, stdin, out, err, out_cb_index, err_cb_index, cb_index);
-	for (uint16_t i = 0; i < n+1; i++)
+
+	int pid = app_spawn(app, args[0], args, stdin, out, err, out_cb_index, err_cb_index, cb_index);
+
+	cvector_ffree(stdin, free);
+	for (uint16_t i = 0; i < n; i++)
 		free(args[i]);
 	free(args);
 
-	if (ret) {
-		lua_pushboolean(L, true);
+	if (pid != -1) {
+		lua_pushnumber(L, pid);
 		return 1;
 	} else {
 		lua_pushnil(L);

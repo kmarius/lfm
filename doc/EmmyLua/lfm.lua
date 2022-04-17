@@ -15,16 +15,17 @@ function lfm.eval(expr) end
 ---@param command string[]
 function lfm.execute(command) end
 
----Spawn a background command
+---Spawn a background command. Returns the pid on success, nil otherwise.
 ---Supported options:
 --- `opts.stdin` string or a table of strings that will be sent to the processes stdin.
---- `opts.out`   should stdout be shown in the UI, ignored with fork=false (default: `true`)
---- `opts.err`   should stderr be shown in the UI, ignored with fork=false (default: `true`)
+--- `opts.out`   should stdout be shown in the UI (default: `true`)
+--- `opts.err`   should stderr be shown in the UI (default: `true`)
 ---
 ---`opts.out` and `opts.err` can instead be set to functions which will be called with
 ---each line output by the brogram. In this case, nothing is shown in the UI.
 ---@param command string[]
 ---@param opts? table
+---@return number? pid
 function lfm.spawn(command, opts) end
 
 ---Set the timeout in milliseconds from now in which lfm will ignore keyboard input.
