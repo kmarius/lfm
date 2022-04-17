@@ -16,13 +16,13 @@ local function file_exists(path)
 end
 
 ---Copy a string to the clipboard.
----@param text string
+---@param text string|string[]
 ---@param primary boolean
 local function wl_copy(text, primary)
 	if primary then
-		lfm.spawn({"sh", "-c", 'printf -- "%s" "$*" | wl-copy --primary', "_", text})
+		lfm.spawn({"wl-copy", "--primary"}, {stdin=text})
 	else
-		lfm.spawn({"sh", "-c", 'printf -- "%s" "$*" | wl-copy', "_", text})
+		lfm.spawn({"wl-copy"}, {stdin=text})
 	end
 end
 
@@ -30,7 +30,7 @@ end
 function M.yank_path()
 	local files = lfm.sel_or_cur()
 	if #files > 0 then
-		wl_copy(table.concat(files, "\n"), true)
+		wl_copy(files, true)
 	end
 end
 
@@ -41,7 +41,7 @@ function M.yank_name()
 		for i, file in pairs(files) do
 			files[i] = basename(file)
 		end
-		wl_copy(table.concat(files, "\n"), true)
+		wl_copy(files, true)
 	end
 end
 
