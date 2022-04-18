@@ -71,6 +71,8 @@ void hashtab_set(T *t, const char *key, void *val)
 		b->next = malloc(sizeof *b->next);
 		b = b->next;
 		b->next = NULL;
+	} else if (b->val && t->free) {
+		t->free(b->val);
 	}
 	b->key = key;
 	b->val = val;
