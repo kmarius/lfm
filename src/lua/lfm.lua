@@ -389,7 +389,7 @@ map("<a-c>", fm.check, {desc="check directories and reload"})
 map(":", a(cmd.prefix_set, ":"), {desc=":"})
 map("&", a(lfm.feedkeys, ":shell-bg "), {desc=":shell-bg "})
 map("s", a(lfm.feedkeys, ":shell "), {desc=":shell "})
-map("S", shell.fish("env LF_LEVEL=1 fish -C clear", {files=shell.ARRAY}), {desc="open shell"})
+map("S", a(lfm.execute, {"sh", "-c", "LFM_LEVEL=1 " .. os.getenv("SHELL")}), {desc="open shell"})
 
 -- Visual/selection
 map("<Space>", c(fm.selection_toggle, fm.down), {desc="select current file"})
