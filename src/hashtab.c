@@ -7,13 +7,13 @@
 
 #define T Hashtab
 
-// good enough for now
-static uint16_t hash(const char *s, uint16_t n)
+// https://en.m.wikipedia.org/wiki/Fowler%E2%80%93Noll%E2%80%93Vo_hash_function
+static uint64_t hash(const char *s)
 {
-	uint64_t h = 0;
+	uint64_t h = 0xcbf29ce484222325;
 	while (*s)
-		h = *s++ + (h << 6) + (h << 16) - h;
-	return h % n;
+		h = (h ^ *s++) * 0x00000100000001B3;
+	return h;
 }
 
 
@@ -50,8 +50,7 @@ void hashtab_deinit(T *t)
 // the new node should be appended to (check with (*b)->val).
 static bool probe(T *t, const char *key, struct bucket **b)
 {
-	uint16_t h = hash(key, t->nbuckets);
-	*b = &t->buckets[h];
+	*b = &t->buckets[hash(key) % t->nbuckets];
 	for (;;) {
 		struct bucket *bb = *b;
 		if (!bb->key)
