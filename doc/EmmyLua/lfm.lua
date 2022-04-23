@@ -8,10 +8,6 @@ lfm = {}
 function lfm.eval(expr) end
 
 ---Execute a foreground command.
----Supported options:
---- `opts.fork` should the command run in background (default: `false`)
---- `opts.out`  should stdout be captured, ignored with fork=false (default: `true`)
---- `opts.err`  should stderr be captured, ignored with fork=false (default: `true`)
 ---@param command string[]
 function lfm.execute(command) end
 
