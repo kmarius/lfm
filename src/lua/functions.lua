@@ -176,7 +176,8 @@ function M.paste()
 		if ret ~= 0 then
 			return
 		end
-		local msg = string.format(green .. "finished copying %d %s", #files, #files == 1 and "file" or "files")
+		local operation = mode == "move" and "moving" or "copying"
+		local msg = string.format(green .. "finished %s %d %s", operation, #files, #files == 1 and "file" or "files")
 		print(msg)
 	end
 	chain(function(file)
