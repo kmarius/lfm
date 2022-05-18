@@ -10,7 +10,6 @@
 /tags.temp
 
 /build/
-/stash/
 /.deps/
 /third-party/.third-party
 /cmake-build-debug/
