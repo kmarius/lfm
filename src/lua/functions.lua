@@ -20,9 +20,9 @@ end
 ---@param primary boolean
 local function wl_copy(text, primary)
 	if primary then
-		lfm.spawn({"wl-copy", "--primary"}, {stdin=text})
+		lfm.spawn({"wl-copy", "-n", "--primary"}, {stdin=text})
 	else
-		lfm.spawn({"wl-copy"}, {stdin=text})
+		lfm.spawn({"wl-copy", "-n"}, {stdin=text})
 	end
 end
 
