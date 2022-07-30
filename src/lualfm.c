@@ -969,10 +969,10 @@ static int l_cmd_line_set(lua_State *L)
       break;
     case 3:
       if (cmdline_set_whole(&ui->cmdline, lua_tostring(L, 1),
-            lua_tostring(L, 2), lua_tostring(L, 3)))
-        ui_redraw(ui, REDRAW_CMDLINE); {
+            lua_tostring(L, 2), lua_tostring(L, 3))) {
+        ui_redraw(ui, REDRAW_CMDLINE);
+      }
       break;
-        }
     default:
       luaL_error(L, "line_get takes up to three arguments");
   }
@@ -1001,9 +1001,7 @@ static int l_cmd_clear(lua_State *L)
 static int l_cmd_delete(lua_State *L)
 {
   (void) L;
-  if (cmdline_delete(&ui->cmdline)) {
-    ui_redraw(ui, REDRAW_CMDLINE);
-  }
+  ui_cmd_delete(ui);
   return 0;
 }
 

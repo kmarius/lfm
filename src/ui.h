@@ -89,6 +89,8 @@ static inline void ui_show_keyseq(Ui *ui, input_t *keyseq)
   ui_redraw(ui, REDRAW_CMDLINE);
 }
 
+void ui_cmd_delete(Ui *ui);
+
 void ui_cmd_clear(Ui *ui);
 
 void ui_cmd_prefix_set(Ui *ui, const char *prefix);

@@ -11,6 +11,7 @@
 
 #include "app.h"
 #include "async.h"
+#include "cmdline.h"
 #include "config.h"
 #include "cvector.h"
 #include "dir.h"
@@ -341,6 +342,15 @@ void ui_vechom(T *t, const char *format, va_list args)
 
 /* cmd line {{{ */
 
+
+void ui_cmd_delete(T *t) {
+  if (t->cmdline.left.len == 0 && t->cmdline.right.len == 0) {
+    ui_cmd_clear(t);
+  } else {
+    cmdline_delete(&t->cmdline);
+  }
+  ui_redraw(t, REDRAW_CMDLINE);
+}
 
 void ui_cmd_prefix_set(T *t, const char *prefix)
 {
