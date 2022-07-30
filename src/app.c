@@ -453,10 +453,12 @@ bool app_execute(T *t, const char *prog, char *const *args)
     status = -1;
   } else if (pid == 0) {
     // child
+    signal(SIGINT, SIG_DFL);
     execvp(prog, (char* const *) args);
     _exit(127); // execl error
   } else {
     // parent
+    signal(SIGINT, SIG_IGN);
     do {
       rc = waitpid(pid, &status, 0);
     } while ((rc == -1) && (errno == EINTR));
