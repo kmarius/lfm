@@ -19,54 +19,54 @@
 
 static inline T *preview_init(T *t, const char *path, uint8_t nrow)
 {
-	*t = PREVIEW_INITIALIZER;
-	t->path = strdup(path);
-	t->nrow = nrow;
-	return t;
+  *t = PREVIEW_INITIALIZER;
+  t->path = strdup(path);
+  t->nrow = nrow;
+  return t;
 }
 
 
 static inline T *preview_create(const char *path, uint8_t nrow)
 {
-	return preview_init(malloc(sizeof(T)), path, nrow);
+  return preview_init(malloc(sizeof(T)), path, nrow);
 }
 
 
 static inline void preview_deinit(T *t)
 {
-	if (!t)
-		return;
+  if (!t)
+    return;
 
-	cvector_ffree(t->lines, free);
-	free(t->path);
+  cvector_ffree(t->lines, free);
+  free(t->path);
 }
 
 
 void preview_destroy(T *t)
 {
-	preview_deinit(t);
-	free(t);
+  preview_deinit(t);
+  free(t);
 }
 
 
 T *preview_create_loading(const char *path, uint8_t nrow)
 {
-	T *t = preview_create(path, nrow);
-	t->loading = true;
-	return t;
+  T *t = preview_create(path, nrow);
+  t->loading = true;
+  return t;
 }
 
 
 void preview_update_with(T *t, Preview *update)
 {
-	cvector_ffree(t->lines, free);
-	t->lines = update->lines;
-	t->mtime = update->mtime;
-	t->loadtime = update->loadtime;
-	t->loading = false;
+  cvector_ffree(t->lines, free);
+  t->lines = update->lines;
+  t->mtime = update->mtime;
+  t->loadtime = update->loadtime;
+  t->loading = false;
 
-	free(update->path);
-	free(update);
+  free(update->path);
+  free(update);
 }
 
 
@@ -77,44 +77,44 @@ static char* fgets_seek(char* dest, int n, FILE *fp)
     char* cs;
     cs = dest;
 
-	while (--n > 0 && (c = getc(fp)) != EOF) {
-		if ((*cs++ = c) == '\n')
-			break;
-	}
+  while (--n > 0 && (c = getc(fp)) != EOF) {
+    if ((*cs++ = c) == '\n')
+      break;
+  }
 
-	if (c != EOF && c != '\n')
-		while ((c = getc(fp)) != EOF && c != '\n');
+  if (c != EOF && c != '\n')
+    while ((c = getc(fp)) != EOF && c != '\n');
 
-	*cs = 0;
-	return (c == EOF && cs == dest) ? NULL : dest;
+  *cs = 0;
+  return (c == EOF && cs == dest) ? NULL : dest;
 }
 
 
 T *preview_create_from_file(const char *path, uint8_t nrow)
 {
-	char buf[PREVIEW_MAX_LINE_LENGTH];
+  char buf[PREVIEW_MAX_LINE_LENGTH];
 
-	T *t = preview_create(path, nrow);
-	t->loadtime = current_millis();
+  T *t = preview_create(path, nrow);
+  t->loadtime = current_millis();
 
-	struct stat statbuf;
-	t->mtime = stat(path, &statbuf) != -1 ? statbuf.st_mtime : 0;
+  struct stat statbuf;
+  t->mtime = stat(path, &statbuf) != -1 ? statbuf.st_mtime : 0;
 
-	if (!cfg.previewer)
-		return t;
+  if (!cfg.previewer)
+    return t;
 
-	/* TODO: redirect stderr? (on 2021-08-10) */
-	char *const args[3] = {cfg.previewer, (char*) path, NULL};
-	FILE *fp = popen_arr(cfg.previewer, args, false);
-	if (!fp) {
-		log_error("preview: %s", strerror(errno));
-		return t;
-	}
+  /* TODO: redirect stderr? (on 2021-08-10) */
+  char *const args[3] = {cfg.previewer, (char*) path, NULL};
+  FILE *fp = popen_arr(cfg.previewer, args, false);
+  if (!fp) {
+    log_error("preview: %s", strerror(errno));
+    return t;
+  }
 
-	while (nrow-- > 0 && fgets_seek(buf, sizeof buf, fp))
-		cvector_push_back(t->lines, strdup(buf));
+  while (nrow-- > 0 && fgets_seek(buf, sizeof buf, fp))
+    cvector_push_back(t->lines, strdup(buf));
 
-	pclose(fp);
+  pclose(fp);
 
-	return t;
+  return t;
 }

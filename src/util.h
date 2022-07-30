@@ -19,55 +19,55 @@
 
 static inline const char *strend(const char* str)
 {
-	while (*str) str++;
-	return str;
+  while (*str) str++;
+  return str;
 }
 
 
 static inline const wchar_t *wcsend(const wchar_t* str)
 {
-	while (*str) str++;
-	return str;
+  while (*str) str++;
+  return str;
 }
 
 
 static inline char *rtrim(char *s)
 {
-	char *t = s;
-	char *end = s - 1;
-	while (*t) {
-		if (!isspace(*t))
-			end = t;
-		t++;
-	}
-	*++end = 0;
-	return s;
+  char *t = s;
+  char *end = s - 1;
+  while (*t) {
+    if (!isspace(*t))
+      end = t;
+    t++;
+  }
+  *++end = 0;
+  return s;
 }
 
 
 static inline char *ltrim(char *s)
 {
-	s--;
-	while (isspace(*++s));
-	return s;
+  s--;
+  while (isspace(*++s));
+  return s;
 }
 
 
 static inline char *trim(char *s)
 {
-	return ltrim(rtrim(s));
+  return ltrim(rtrim(s));
 }
 
 
 static inline int min(int i, int j)
 {
-	return i < j ? i : j;
+  return i < j ? i : j;
 }
 
 
 static inline int max(int i, int j)
 {
-	return i > j ? i : j;
+  return i > j ? i : j;
 }
 
 
@@ -117,17 +117,17 @@ char *dirname_s(const char *p);
 
 static inline char *realpath_a(const char *p)
 {
-	return strdup(realpath_s(p));
+  return strdup(realpath_s(p));
 }
 
 static inline char *basename_a(const char *p)
 {
-	return strdup(basename_s(p));
+  return strdup(basename_s(p));
 }
 
 static inline char *dirname_a(const char *p)
 {
-	return strdup(dirname_s(p));
+  return strdup(dirname_s(p));
 }
 
 // Allocates a new path with a beginning ~/ replaced, otherwise a copy of path.
@@ -138,10 +138,10 @@ char *path_qualify(const char* path);
 
 static inline bool path_is_relative(const char *path)
 {
-	return *path != '/';
+  return *path != '/';
 }
 
 static inline bool path_is_absolute(const char *path)
 {
-	return *path == '/';
+  return *path == '/';
 }

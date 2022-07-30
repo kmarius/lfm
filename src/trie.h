@@ -9,11 +9,11 @@
 // exists.
 
 typedef struct Trie {
-	input_t key;
-	char *keys;	         // full key sequence (used for menu), NULL for non-leaves
-	char *desc;          // description of the command, can be NULL
-	struct Trie *child;  // can be NULL
-	struct Trie *next;   // next sibling, can be NULL
+  input_t key;
+  char *keys;          // full key sequence (used for menu), NULL for non-leaves
+  char *desc;          // description of the command, can be NULL
+  struct Trie *child;  // can be NULL
+  struct Trie *next;   // next sibling, can be NULL
 } Trie;
 
 // Allocate a new trie root.

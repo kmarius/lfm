@@ -9,50 +9,50 @@
 #include "hashtab.h"
 
 enum paste_mode_e {
-	PASTE_MODE_MOVE,
-	PASTE_MODE_COPY,
+  PASTE_MODE_MOVE,
+  PASTE_MODE_COPY,
 };
 
 struct jump_mark {
-	char mark;
-	char *path;
+  char mark;
+  char *path;
 };
 
 typedef struct Fm {
 
-	uint16_t height; // height of the ui
+  uint16_t height; // height of the ui
 
-	struct {
-		// Visible directories excluding preview
-		cvector_vector_type(Dir *) visible;
-		uint16_t length;
+  struct {
+    // Visible directories excluding preview
+    cvector_vector_type(Dir *) visible;
+    uint16_t length;
 
-		// preview directory, NULL if there is none, e.g. if the cursor is resting on a file
-		Dir *preview;
-	} dirs;
+    // preview directory, NULL if there is none, e.g. if the cursor is resting on a file
+    Dir *preview;
+  } dirs;
 
-	// List of quickmarks including "'"
-	cvector_vector_type(struct jump_mark) marks;
+  // List of quickmarks including "'"
+  cvector_vector_type(struct jump_mark) marks;
 
-	struct {
-		// Current selection, as a vector of paths
-		cvector_vector_type(char *) paths;
-		uint16_t length;
+  struct {
+    // Current selection, as a vector of paths
+    cvector_vector_type(char *) paths;
+    uint16_t length;
 
-		// Previous seletction, needed for visual selection mode
-		cvector_vector_type(char *) previous;
-	} selection;
+    // Previous seletction, needed for visual selection mode
+    cvector_vector_type(char *) previous;
+  } selection;
 
-	struct {
-		// Copy/move buffer, vector of paths
-		cvector_vector_type(char *) buffer;
-		enum paste_mode_e mode;
-	} paste;
+  struct {
+    // Copy/move buffer, vector of paths
+    cvector_vector_type(char *) buffer;
+    enum paste_mode_e mode;
+  } paste;
 
-	struct {
-		bool active;
-		uint16_t anchor;
-	} visual;
+  struct {
+    bool active;
+    uint16_t anchor;
+  } visual;
 } Fm;
 
 // Moves to the correct starting directory, loads initial dirs and sets up
@@ -79,31 +79,31 @@ bool fm_cursor_move(Fm *fm, int32_t ct);
 
 static inline void fm_cursor_move_to_ind(Fm *fm, uint32_t ind)
 {
-	fm_cursor_move(fm, ind - fm_current_dir(fm)->ind);
+  fm_cursor_move(fm, ind - fm_current_dir(fm)->ind);
 }
 
 // Move cursor `ct` up in the current directory.
 static inline bool fm_up(Fm *fm, int32_t ct)
 {
-	return fm_cursor_move(fm, -ct);
+  return fm_cursor_move(fm, -ct);
 }
 
 // Move cursor `ct` down in the current directory.
 static inline bool fm_down(Fm *fm, int32_t ct)
 {
-	return fm_cursor_move(fm, ct);
+  return fm_cursor_move(fm, ct);
 }
 
 // Move cursor to the top of the current directory.
 static inline bool fm_top(Fm *fm)
 {
-	return fm_up(fm, fm_current_dir(fm)->ind);
+  return fm_up(fm, fm_current_dir(fm)->ind);
 }
 
 // Move cursor to the bottom of the current directory.
 static inline bool fm_bot(Fm *fm)
 {
-	return fm_down(fm, fm_current_dir(fm)->length - fm_current_dir(fm)->ind);
+  return fm_down(fm, fm_current_dir(fm)->length - fm_current_dir(fm)->ind);
 }
 
 // Scroll up the directory while keeping the cursor position if possible.
@@ -134,7 +134,7 @@ void fm_filter(Fm *fm, const char *filter);
 // Return the filter string of the currently selected directory.
 static inline const char *fm_filter_get(const Fm *fm)
 {
-	return filter_string(fm_current_dir(fm)->filter);
+  return filter_string(fm_current_dir(fm)->filter);
 }
 
 //  Show hidden files.
@@ -181,25 +181,25 @@ void fm_paste_mode_set(Fm *fm, enum paste_mode_e mode);
 // Clear copy/move buffer.
 static inline void fm_paste_buffer_clear(Fm *fm)
 {
-	cvector_fclear(fm->paste.buffer, free);
+  cvector_fclear(fm->paste.buffer, free);
 }
 
 // Get the list of files in copy/move buffer. Returns a cvector of char*.
 static inline char *const *fm_paste_buffer_get(const Fm *fm)
 {
-	return fm->paste.buffer;
+  return fm->paste.buffer;
 }
 
 // Get the list of files in copy/move buffer. Returns a cvector of char*.
 static inline void fm_paste_buffer_add(Fm *fm, const char* file)
 {
-	cvector_push_back(fm->paste.buffer, strdup(file));
+  cvector_push_back(fm->paste.buffer, strdup(file));
 }
 
 // Get the mode current load, one of `MODE_COPY`, `MODE_MOVE`.
 static inline enum paste_mode_e fm_paste_mode_get(const Fm *fm)
 {
-	return fm->paste.mode;
+  return fm->paste.mode;
 }
 
 // Drop directory cache and reload visible directories from disk.

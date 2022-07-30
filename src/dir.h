@@ -10,36 +10,36 @@
 enum sorttype_e { SORT_NATURAL, SORT_NAME, SORT_SIZE, SORT_CTIME, SORT_RAND, };
 
 typedef struct Dir {
-	char *path;
-	char *name;	// substring of path
+  char *path;
+  char *name; // substring of path
 
-	File **files_all;    // every file in the directory
-	File **files_sorted; // every file, but sorted
-	File **files;	     // every visible file
-	uint32_t length_all;
-	uint32_t length_sorted;
-	uint32_t length;
+  File **files_all;    // every file in the directory
+  File **files_sorted; // every file, but sorted
+  File **files;      // every visible file
+  uint32_t length_all;
+  uint32_t length_sorted;
+  uint32_t length;
 
-	bool visible;
+  bool visible;
 
-	time_t load_time; // used to check for changes
-	uint16_t updates; // number of applied updates
-	int16_t error; // shows errno if an error occured during loading, 0 otherwise
-	uint64_t next;
+  time_t load_time; // used to check for changes
+  uint16_t updates; // number of applied updates
+  int16_t error; // shows errno if an error occured during loading, 0 otherwise
+  uint64_t next;
 
-	uint32_t ind; // cursor position in files[]
-	uint16_t pos; // cursor position in the ui, offset from the top row
-	char *sel;
+  uint32_t ind; // cursor position in files[]
+  uint16_t pos; // cursor position in the ui, offset from the top row
+  char *sel;
 
-	Filter *filter;
+  Filter *filter;
 
-	bool sorted;
-	bool hidden;
-	bool dirfirst;
-	bool reverse;
-	bool dircounts;
-	enum sorttype_e sorttype;
-	uint8_t flatten_level;
+  bool sorted;
+  bool hidden;
+  bool dirfirst;
+  bool reverse;
+  bool dircounts;
+  enum sorttype_e sorttype;
+  uint8_t flatten_level;
 } Dir;
 
 // Initialize a `Dir`, no files are loaded.
@@ -48,7 +48,7 @@ Dir *dir_init(Dir *dir, const char *path);
 // Creates a directory, no files are loaded.
 static inline Dir *dir_create(const char *path)
 {
-	return dir_init(malloc(sizeof(Dir)), path);
+  return dir_init(malloc(sizeof(Dir)), path);
 }
 
 // Loads the directory at `path` from disk. Additionally count the files in each
@@ -61,14 +61,14 @@ void dir_deinit(Dir *dir);
 // Free all resources belonging to `dir`.
 static inline void dir_destroy(Dir *dir)
 {
-	dir_deinit(dir);
-	free(dir);
+  dir_deinit(dir);
+  free(dir);
 }
 
 // Is the directory in the process of being loaded?
 static inline bool dir_loading(const Dir *dir)
 {
-	return dir->updates == 0;
+  return dir->updates == 0;
 }
 
 // Current file of `dir`. Can be `NULL` if it is empty or not yet loaded, or
@@ -103,7 +103,7 @@ void dir_update_with(Dir *dir, Dir *update, uint16_t height, uint16_t scrolloff)
 // Returns true `d` is the root directory.
 inline bool dir_isroot(const Dir *dir)
 {
-	return (dir->path[0] == '/' && dir->path[1] == 0);
+  return (dir->path[0] == '/' && dir->path[1] == 0);
 }
 
 // Load a flat directorie showing files up `level`s deep.

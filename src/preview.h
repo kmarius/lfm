@@ -7,12 +7,12 @@
 #include "cvector.h"
 
 typedef struct Preview {
-	char *path;
-	cvector_vector_type(char*) lines;
-	uint8_t nrow;
-	time_t mtime;
-	uint64_t loadtime;
-	bool loading;
+  char *path;
+  cvector_vector_type(char*) lines;
+  uint8_t nrow;
+  time_t mtime;
+  uint64_t loadtime;
+  bool loading;
 } Preview;
 
 Preview *preview_create_loading(const char *path, uint8_t nrow);

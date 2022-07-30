@@ -22,38 +22,38 @@
 #define REDRAW_PREVIEW 16
 
 typedef struct {
-	int nrow; // keep these as int for now until we can upgrade notcurses
-	int ncol;
-	uint16_t ndirs; /* number of columns including the preview */
+  int nrow; // keep these as int for now until we can upgrade notcurses
+  int ncol;
+  uint16_t ndirs; /* number of columns including the preview */
 
-	Fm *fm;
+  Fm *fm;
 
-	struct notcurses *nc;
-	struct {
-		struct ncplane *cmdline;
-		struct ncplane *info;
-		struct ncplane *menu;
-		struct ncplane *preview;
-		cvector_vector_type(struct ncplane*) dirs;
-	} planes;
+  struct notcurses *nc;
+  struct {
+    struct ncplane *cmdline;
+    struct ncplane *info;
+    struct ncplane *menu;
+    struct ncplane *preview;
+    cvector_vector_type(struct ncplane*) dirs;
+  } planes;
 
-	cvector_vector_type(char*) menubuf;
-	cvector_vector_type(char*) messages;
+  cvector_vector_type(char*) menubuf;
+  cvector_vector_type(char*) messages;
 
-	Cmdline cmdline;
-	History history;
+  Cmdline cmdline;
+  History history;
 
-	struct {
-		Preview *preview;
-		Hashtab cache;
-	} preview;
+  struct {
+    Preview *preview;
+    Hashtab cache;
+  } preview;
 
-	const char *highlight;
+  const char *highlight;
 
-	uint8_t redraw;
+  uint8_t redraw;
 
-	bool message;
-	input_t *keyseq;
+  bool message;
+  input_t *keyseq;
 } Ui;
 
 void kbblocking(bool blocking);
@@ -70,7 +70,7 @@ void ui_draw(Ui *ui);
 
 static inline void ui_redraw(Ui *ui, uint8_t mode)
 {
-	ui->redraw |= mode;
+  ui->redraw |= mode;
 }
 
 void ui_error(Ui *ui, const char *format, ...);
@@ -85,8 +85,8 @@ void ui_showmenu(Ui *ui, cvector_vector_type(char*) vec);
 
 static inline void ui_show_keyseq(Ui *ui, input_t *keyseq)
 {
-	ui->keyseq = keyseq;
-	ui_redraw(ui, REDRAW_CMDLINE);
+  ui->keyseq = keyseq;
+  ui_redraw(ui, REDRAW_CMDLINE);
 }
 
 void ui_cmd_clear(Ui *ui);

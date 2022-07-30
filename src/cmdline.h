@@ -5,23 +5,23 @@
 #include <wchar.h>
 
 struct vstr {
-	char *str;
-	size_t cap;
-	uint16_t len;
+  char *str;
+  size_t cap;
+  uint16_t len;
 };
 
 struct vwstr {
-	wchar_t *str;
-	size_t cap;
-	uint16_t len;
+  wchar_t *str;
+  size_t cap;
+  uint16_t len;
 };
 
 typedef struct Cmdline {
-	struct vstr prefix;
-	struct vwstr left;
-	struct vwstr right;
-	struct vstr buf;
-	bool overwrite;
+  struct vstr prefix;
+  struct vwstr left;
+  struct vwstr right;
+  struct vstr buf;
+  bool overwrite;
 } Cmdline;
 
 // Initialize cmdline.

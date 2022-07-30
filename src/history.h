@@ -5,8 +5,8 @@
 /* TODO: integrate this with cmdline instead of Ui (on 2022-01-25) */
 
 typedef struct History {
-	cvector_vector_type(struct history_entry) vec;
-	struct history_entry *ptr;
+  cvector_vector_type(struct history_entry) vec;
+  struct history_entry *ptr;
 } History;
 
 void history_load(History *h, const char *path);
