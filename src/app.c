@@ -60,12 +60,14 @@ struct child_watcher_data {
 // calling this function
 static inline void destroy_io_watcher(ev_io *w)
 {
-  if (!w)
+  if (!w) {
     return;
+  }
 
   struct stdout_watcher_data *data = w->data;
-  if (data->ind)
+  if (data->ind) {
     lua_run_stdout_callback(data->app->L, data->ind, NULL);
+  }
   fclose(data->stream);
   free(data);
   free(w);
@@ -74,8 +76,9 @@ static inline void destroy_io_watcher(ev_io *w)
 
 static inline void destroy_child_watcher(ev_child *w)
 {
-  if(!w)
+  if(!w) {
     return;
+  }
 
   struct child_watcher_data *data = w->data;
   destroy_io_watcher(data->stdout_watcher);
@@ -92,14 +95,17 @@ static void child_cb(EV_P_ ev_child *w, int revents)
 
   ev_child_stop(EV_A_ w);
 
-  if (data->cb_index > 0)
+  if (data->cb_index > 0) {
     lua_run_child_callback(data->app->L, data->cb_index, w->rstatus);
+  }
 
-  if (data->stdout_watcher)
+  if (data->stdout_watcher) {
     ev_io_stop(loop, data->stdout_watcher);
+  }
 
-  if (data->stderr_watcher)
+  if (data->stderr_watcher) {
     ev_io_stop(loop, data->stderr_watcher);
+  }
 
   cvector_swap_remove(data->app->child_watchers, w);
   destroy_child_watcher(w);
@@ -116,8 +122,9 @@ struct schedule_timer_data {
 
 static inline void destroy_schedule_timer(ev_timer *w)
 {
-  if (!w)
+  if (!w) {
     return;
+  }
 
   free(w->data);
   free(w);
@@ -152,8 +159,9 @@ static void stdin_cb(EV_P_ ev_io *w, int revents)
   ncinput in;
 
   while (notcurses_getc_nblock(app->ui.nc, &in) != (uint32_t) -1) {
-    if (current_millis() <= app->input_timeout)
+    if (current_millis() <= app->input_timeout) {
       continue;
+    }
 
     /* log_debug("id: %d, shift: %d, ctrl: %d alt %d", in.id, in.shift, in.ctrl, in.alt); */
     lua_handle_key(app->L, ncinput_to_input(&in));
@@ -173,19 +181,22 @@ static void command_stdout_cb(EV_P_ ev_io *w, int revents)
   size_t n;
 
   while ((read = getline(&line, &n, data->stream)) != -1) {
-    if (line[read-1] == '\n')
+    if (line[read-1] == '\n') {
       line[read-1] = 0;
+    }
 
-    if (data->ind)
+    if (data->ind) {
       lua_run_stdout_callback(data->app->L, data->ind, line);
-    else
+    } else {
       ui_echom(&data->app->ui, "%s", line);
+    }
   }
   free(line);
 
   // this seems to prevent the callback being immediately called again by libev
-  if (errno == EAGAIN)
+  if (errno == EAGAIN) {
     clearerr(data->stream);
+  }
 
   ev_idle_start(loop, &data->app->redraw_watcher);
 }
@@ -199,8 +210,9 @@ static void prepare_cb(EV_P_ ev_prepare *w, int revents)
   App *app = w->data;
 
   if (cfg.commands) {
-    for (size_t i = 0; i < cvector_size(cfg.commands); i++)
+    for (size_t i = 0; i < cvector_size(cfg.commands); i++) {
       lua_eval(app->L, cfg.commands[i]);
+    }
 
     // commands are from argv, don't free them
     cvector_free(cfg.commands);
@@ -209,10 +221,11 @@ static void prepare_cb(EV_P_ ev_prepare *w, int revents)
 
   if (messages) {
     cvector_foreach_ptr(m, messages) {
-      if (m->error)
+      if (m->error) {
         error("%s", m->text);
-      else
+      } else {
         print("%s", m->text);
+      }
       free(m->text);
     }
     cvector_free(messages);
@@ -344,8 +357,9 @@ void app_quit(T *t)
 
 static ev_io *add_io_watcher(T *t, FILE* f, int ind)
 {
-  if (!f)
+  if (!f) {
     return NULL;
+  }
 
   const int fd = fileno(f);
   if (fd < 0) {
@@ -396,23 +410,25 @@ int app_spawn(T *t, const char *prog, char *const *args,
   ev_io *stdout_watcher = NULL;
 
   // always pass out and err because popen2_arr_p doesnt close the fds
-  int pid = popen2_arr_p(in ? &fin : NULL,
-      &fout, &ferr, prog, args, NULL);
+  int pid = popen2_arr_p(in ? &fin : NULL, &fout, &ferr, prog, args, NULL);
 
   if (pid == -1) {
     error("popen2_arr_p: %s", strerror(errno));  // not sure if set
     return -1;
   }
 
-  if (out || out_cb_ind)
+  if (out || out_cb_ind) {
     stdout_watcher = add_io_watcher(t, fout, out_cb_ind);
-  else
+  }
+  else {
     fclose(fout);
+  }
 
-  if (err || err_cb_ind)
+  if (err || err_cb_ind) {
     stderr_watcher = add_io_watcher(t, ferr, err_cb_ind);
-  else
+  } else {
     fclose(ferr);
+  }
 
   if (in) {
     cvector_foreach(line, in) {
@@ -493,8 +509,9 @@ void app_read_fifo(T *t)
 
   ssize_t nbytes = read(t->fifo_fd, buf, sizeof buf);
 
-  if (nbytes <= 0)
+  if (nbytes <= 0) {
     return;
+  }
 
   if ((size_t) nbytes < sizeof buf) {
     buf[nbytes - 1] = 0;
@@ -543,7 +560,8 @@ void app_deinit(T *t)
   fm_deinit(&t->fm);
   loader_deinit();
   async_deinit();
-  if (t->fifo_fd > 0)
+  if (t->fifo_fd > 0) {
     close(t->fifo_fd);
+  }
   remove(cfg.fifopath);
 }

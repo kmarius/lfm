@@ -19,14 +19,18 @@
 
 static inline const char *strend(const char* str)
 {
-  while (*str) str++;
+  while (*str) {
+    str++;
+  }
   return str;
 }
 
 
 static inline const wchar_t *wcsend(const wchar_t* str)
 {
-  while (*str) str++;
+  while (*str)  {
+    str++;
+  }
   return str;
 }
 
@@ -36,8 +40,9 @@ static inline char *rtrim(char *s)
   char *t = s;
   char *end = s - 1;
   while (*t) {
-    if (!isspace(*t))
+    if (!isspace(*t)) {
       end = t;
+    }
     t++;
   }
   *++end = 0;
@@ -48,7 +53,7 @@ static inline char *rtrim(char *s)
 static inline char *ltrim(char *s)
 {
   s--;
-  while (isspace(*++s));
+  while (isspace(*++s)) {}
   return s;
 }
 

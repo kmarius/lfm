@@ -60,8 +60,9 @@ void ui_resume(T *t)
     .flags = NCOPTION_NO_WINCH_SIGHANDLER | NCOPTION_SUPPRESS_BANNERS | NCOPTION_PRESERVE_CURSOR,
   };
   t->nc = notcurses_core_init(&ncopts, NULL);
-  if (!t->nc)
+  if (!t->nc) {
     exit(EXIT_FAILURE);
+  }
 
   struct ncplane *ncstd = notcurses_stdplane(t->nc);
 
@@ -103,8 +104,9 @@ void ui_suspend(T *t)
   t->planes.menu = NULL;
   t->planes.info = NULL;
   t->nc = NULL;
-  if (t->preview.preview)
+  if (t->preview.preview) {
     t->preview.preview = NULL;
+  }
 }
 
 
@@ -151,8 +153,9 @@ void ui_deinit(T *t)
 void kbblocking(bool blocking)
 {
   int val = fcntl(STDIN_FILENO, F_GETFL, 0);
-  if (val != -1)
+  if (val != -1) {
     fcntl(STDIN_FILENO, F_SETFL, blocking ? val & ~O_NONBLOCK : val | O_NONBLOCK);
+  }
 }
 
 
@@ -165,8 +168,9 @@ void ui_recol(T *t)
   t->ndirs = cvector_size(cfg.ratios);
 
   uint16_t sum = 0;
-  for (uint16_t i = 0; i < t->ndirs; i++)
+  for (uint16_t i = 0; i < t->ndirs; i++) {
     sum += cfg.ratios[i];
+  }
 
   struct ncplane_options opts = {
     .y = 1,
@@ -193,16 +197,21 @@ void ui_recol(T *t)
 
 void ui_draw(T *t)
 {
-  if (t->redraw & REDRAW_FM)
+  if (t->redraw & REDRAW_FM) {
     draw_dirs(t);
-  if (t->redraw & (REDRAW_MENU | REDRAW_MENU))
+  }
+  if (t->redraw & (REDRAW_MENU | REDRAW_MENU)) {
     draw_menu(t->planes.menu, t->menubuf);
-  if (t->redraw & (REDRAW_FM | REDRAW_CMDLINE))
+  }
+  if (t->redraw & (REDRAW_FM | REDRAW_CMDLINE)) {
     draw_cmdline(t);
-  if (t->redraw & (REDRAW_FM | REDRAW_INFO))
+  }
+  if (t->redraw & (REDRAW_FM | REDRAW_INFO)) {
     draw_info(t);
-  if (t->redraw & (REDRAW_FM | REDRAW_PREVIEW))
+  }
+  if (t->redraw & (REDRAW_FM | REDRAW_PREVIEW)) {
     draw_preview(t);
+  }
   if (t->redraw) {
     notcurses_render(t->nc);
   }
@@ -216,8 +225,9 @@ void ui_clear(T *t)
    * bleed into the first row */
   ncplane_erase(notcurses_stdplane(t->nc));
   ncplane_erase(t->planes.info);
-  for (uint16_t i = 0; i < t->ndirs; i++)
+  for (uint16_t i = 0; i < t->ndirs; i++) {
     ncplane_erase(t->planes.dirs[i]);
+  }
 
   ncplane_erase(t->planes.cmdline);
 
@@ -287,8 +297,9 @@ void ui_verror(T *t, const char *format, va_list args)
 
   cvector_push_back(t->messages, msg);
 
-  if (!t->nc)
+  if (!t->nc) {
     return;
+  }
 
   ncplane_erase(t->planes.cmdline);
   ncplane_set_fg_palindex(t->planes.cmdline, COLOR_RED);
@@ -306,8 +317,9 @@ void ui_vechom(T *t, const char *format, va_list args)
 
   cvector_push_back(t->messages, msg);
 
-  if (!t->nc)
+  if (!t->nc) {
     return;
+  }
 
   struct ncplane *n = t->planes.cmdline;
 
@@ -332,8 +344,9 @@ void ui_vechom(T *t, const char *format, va_list args)
 
 void ui_cmd_prefix_set(T *t, const char *prefix)
 {
-  if (!prefix)
+  if (!prefix) {
     return;
+  }
 
   t->message = false;
   notcurses_cursor_enable(t->nc, 0, 0);
@@ -372,8 +385,9 @@ static uint16_t int_sz(uint16_t n)
 
 void draw_cmdline(T *t)
 {
-  if (t->message)
+  if (t->message) {
     return;
+  }
 
   char nums[16];
   char size[32];
@@ -426,10 +440,11 @@ void draw_cmdline(T *t)
         ncplane_putchar(n, ' ');
       }
       if (cvector_size(t->fm->paste.buffer) > 0) {
-        if (t->fm->paste.mode == PASTE_MODE_COPY)
+        if (t->fm->paste.mode == PASTE_MODE_COPY) {
           ncplane_set_channels(n, cfg.colors.copy);
-        else
+        } else {
           ncplane_set_channels(n, cfg.colors.delete);
+        }
 
         rhs_sz += int_sz(cvector_size(t->fm->paste.buffer)) + 2 + 1;
         ncplane_printf_yx(n, 0, t->ncol-rhs_sz, " %lu ", cvector_size(t->fm->paste.buffer));
@@ -448,8 +463,9 @@ void draw_cmdline(T *t)
       if (t->keyseq) {
         char *str = NULL;
         for (size_t i = 0; i < cvector_size(t->keyseq); i++) {
-          for (const char *s = input_to_key_name(t->keyseq[i]); *s; s++)
+          for (const char *s = input_to_key_name(t->keyseq[i]); *s; s++) {
             cvector_push_back(str, *s);
+          }
         }
         cvector_push_back(str, 0);
         rhs_sz += mbstowcs(NULL, str, 0) + 1;
@@ -494,10 +510,11 @@ static void draw_info(T *t)
   ncplane_erase(n);
 
   ncplane_set_styles(n, NCSTYLE_BOLD);
-  if (uid == 0)
+  if (uid == 0) {
     ncplane_set_fg_palindex(n, COLOR_RED);
-  else
+  } else {
     ncplane_set_fg_palindex(n, COLOR_GREEN);
+  }
   ncplane_putstr_yx(n, 0, 0, user);
   ncplane_putchar(n, '@');
   ncplane_putstr(n, host);
@@ -530,16 +547,18 @@ static void draw_info(T *t)
     path += home_len;
   }
 
-  if (!dir_isroot(dir))
+  if (!dir_isroot(dir)) {
     remaining--; // printing another '/' later
+  }
 
-  // shorten path components if necessary
+  // shorten path components if necessary {}
   while (*path && end - path > remaining) {
     ncplane_putchar(n, '/');
     remaining--;
     wchar_t *next = wcschr(++path, '/');
-    if (!next)
+    if (!next) {
       next = end;
+    }
 
     if (end - next <= remaining) {
       // Everything after the next component fits, we can print some of this one
@@ -547,8 +566,9 @@ static void draw_info(T *t)
       if (m >= 2) {
         wchar_t *print_end = path + m;
         remaining -= m;
-        while (path < print_end)
+        while (path < print_end) {
           ncplane_putwc(n, *(path++));
+        }
 
         if (*path != '/') {
           ncplane_putwc(n, cfg.truncatechar);
@@ -569,8 +589,9 @@ static void draw_info(T *t)
   }
   ncplane_putwstr(n, path);
 
-  if (!dir_isroot(dir))
+  if (!dir_isroot(dir)) {
     ncplane_putchar(n, '/');
+  }
 
   if (file) {
     ncplane_cursor_yx(n, NULL, &remaining);
@@ -595,8 +616,9 @@ static void ansi_addstr(struct ncplane *n, const char *s)
     } else {
       const char *c;
       for (c = s; *s != 0 && *s != '\033'; s++);
-      if (ncplane_putnstr(n, s-c, c) == -1)
+      if (ncplane_putnstr(n, s-c, c) == -1) {
         return; // EOL
+      }
     }
   }
 }
@@ -604,8 +626,9 @@ static void ansi_addstr(struct ncplane *n, const char *s)
 
 static void draw_menu(struct ncplane *n, cvector_vector_type(char *) menubuf)
 {
-  if (!menubuf)
+  if (!menubuf) {
     return;
+  }
 
   ncplane_erase(n);
 
@@ -629,8 +652,9 @@ static void draw_menu(struct ncplane *n, cvector_vector_type(char *) menubuf)
         ncplane_putchar(n, ' ');
         s++;
         xpos++;
-        for (const uint16_t l = ((xpos/8)+1)*8; xpos < l; xpos++)
+        for (const uint16_t l = ((xpos/8)+1)*8; xpos < l; xpos++) {
           ncplane_putchar(n, ' ');
+        }
       }
     }
   }
@@ -648,8 +672,9 @@ static void menu_resize(T *t)
 
 static void menu_clear(T *t)
 {
-  if (!t->menubuf)
+  if (!t->menubuf) {
     return;
+  }
 
   ncplane_erase(t->planes.menu);
   ncplane_move_bottom(t->planes.menu);
@@ -679,8 +704,9 @@ static uint64_t ext_channel_get(const char *ext)
 {
   if (ext) {
     uint64_t *chan = hashtab_get(&cfg.colors.ext, ext);
-    if (chan)
+    if (chan) {
       return *chan;
+    }
   }
   return 0;
 }
@@ -688,13 +714,15 @@ static uint64_t ext_channel_get(const char *ext)
 
 static int print_shortened_w(struct ncplane *n, const wchar_t *name, int name_len, int max_len, bool has_ext)
 {
-  if (max_len <= 0)
+  if (max_len <= 0) {
     return 0;
+  }
 
   const wchar_t *ext = has_ext ? wcsrchr(name, L'.') : NULL;
 
-  if (!ext || ext == name)
+  if (!ext || ext == name) {
     ext = name + name_len;
+  }
   const int ext_len = name_len - (ext - name);
 
   int x = max_len;
@@ -705,8 +733,9 @@ static int print_shortened_w(struct ncplane *n, const wchar_t *name, int name_le
     // print extension and as much of the name as possible
     int print_name_ind = max_len - ext_len - 1;
     const wchar_t *print_name_ptr = name + print_name_ind;
-    while (name < print_name_ptr)
+    while (name < print_name_ptr) {
       ncplane_putwc(n, *(name++));
+    }
     ncplane_putwc(n, cfg.truncatechar);
     ncplane_putwstr(n, ext);
   } else if (max_len >= 5) {
@@ -714,13 +743,15 @@ static int print_shortened_w(struct ncplane *n, const wchar_t *name, int name_le
     ncplane_putwc(n, *(name));
     const wchar_t *ext_end = ext + max_len - 2 - 1;
     ncplane_putwc(n, cfg.truncatechar);
-    while (ext < ext_end)
+    while (ext < ext_end) {
       ncplane_putwc(n, *(ext++));
+    }
     ncplane_putwc(n, cfg.truncatechar);
   } else if (max_len > 1) {
     const wchar_t *name_end = name + max_len - 1;
-    while (name < name_end)
+    while (name < name_end) {
       ncplane_putwc(n, *(name++));
+    }
     ncplane_putwc(n, cfg.truncatechar);
   } else {
     ncplane_putwc(n, *name);
@@ -732,8 +763,9 @@ static int print_shortened_w(struct ncplane *n, const wchar_t *name, int name_le
 
 static inline int print_shortened(struct ncplane *n, const char *name, int max_len, bool has_ext)
 {
-  if (max_len <= 0)
+  if (max_len <= 0) {
     return 0;
+  }
 
   int name_len;
   wchar_t *namew = ambstowcs(name, &name_len);
@@ -745,15 +777,17 @@ static inline int print_shortened(struct ncplane *n, const char *name, int max_l
 
 static int print_highlighted_and_shortened(struct ncplane *n, const char *name, const char *hl, int max_len, bool has_ext)
 {
-  if (max_len <= 0)
+  if (max_len <= 0) {
     return 0;
+  }
 
   int name_len, hl_len;
   wchar_t *namew_ = ambstowcs(name, &name_len);
   wchar_t *hlw = ambstowcs(hl, &hl_len);
   wchar_t *extw = has_ext ? wcsrchr(namew_, L'.') : NULL;
-  if (!extw || extw == namew_)
+  if (!extw || extw == namew_) {
     extw = namew_ + name_len;
+  }
   int ext_len = name_len - (extw - namew_);
   const wchar_t *hl_begin = wstrcasestr(namew_, hlw);
   const wchar_t *hl_end = hl_begin + hl_len;
@@ -765,40 +799,48 @@ static int print_highlighted_and_shortened(struct ncplane *n, const char *name, 
   /* TODO: some of these branches can probably be optimized/combined (on 2022-02-18) */
   if (name_len <= max_len) {
     // everything fits
-    while (namew < hl_begin)
+    while (namew < hl_begin) {
       ncplane_putwc(n, *(namew++));
+    }
     ncplane_set_channels(n, cfg.colors.search);
-    while (namew < hl_end)
+    while (namew < hl_end) {
       ncplane_putwc(n, *(namew++));
+    }
     ncplane_set_channels(n, ch);
-    while (*namew)
+    while (*namew) {
       ncplane_putwc(n, *(namew++));
+    }
     x = name_len;
   } else if (max_len > ext_len + 1) {
     // print extension and as much of the name as possible
     wchar_t *print_name_end = namew + max_len - ext_len - 1;
     if (hl_begin < print_name_end) {
       // highlight begins before truncate
-      while (namew < hl_begin)
+      while (namew < hl_begin) {
         ncplane_putwc(n, *(namew++));
+      }
       ncplane_set_channels(n, cfg.colors.search);
       if (hl_end <= print_name_end) {
         // highlight ends before truncate
-        while (namew < hl_end)
+        while (namew < hl_end) {
           ncplane_putwc(n, *(namew++));
+        }
         ncplane_set_channels(n, ch);
-        while (namew < print_name_end)
+        while (namew < print_name_end) {
           ncplane_putwc(n, *(namew++));
+        }
       } else {
         // highlight continues during truncate
-        while (namew < print_name_end)
+        while (namew < print_name_end) {
           ncplane_putwc(n, *(namew++));
+        }
       }
       ncplane_putwc(n, cfg.truncatechar);
     } else {
       // highlight begins after truncate
-      while (namew < print_name_end)
+      while (namew < print_name_end) {
         ncplane_putwc(n, *(namew++));
+      }
       if (hl_begin < extw) {
         // highlight begins before extension begins
         ncplane_set_channels(n, cfg.colors.search);
@@ -806,21 +848,26 @@ static int print_highlighted_and_shortened(struct ncplane *n, const char *name, 
       ncplane_putwc(n, cfg.truncatechar);
     }
     if (hl_begin >= extw) {
-      while (extw < hl_begin)
+      while (extw < hl_begin) {
         ncplane_putwc(n, *(extw++));
+      }
       ncplane_set_channels(n, cfg.colors.search);
-      while (extw < hl_end)
+      while (extw < hl_end) {
         ncplane_putwc(n, *(extw++));
+      }
       ncplane_set_channels(n, ch);
-      while (*extw)
+      while (*extw) {
         ncplane_putwc(n, *(extw++));
+      }
     } else {
       // highlight was started before
-      while (extw < hl_end)
+      while (extw < hl_end) {
         ncplane_putwc(n, *(extw++));
+      }
       ncplane_set_channels(n, ch);
-      while (*extw)
+      while (*extw) {
         ncplane_putwc(n, *(extw++));
+      }
     }
   } else if (max_len >= 5) {
     const wchar_t *ext_end = extw + max_len - 2 - 1;
@@ -836,42 +883,51 @@ static int print_highlighted_and_shortened(struct ncplane *n, const char *name, 
       ncplane_set_channels(n, ch);
     }
     if (hl_begin >= extw) {
-      while (extw < hl_begin)
+      while (extw < hl_begin) {
         ncplane_putwc(n, *(extw++));
+      }
       ncplane_set_channels(n, cfg.colors.search);
       if (hl_end < ext_end) {
-        while (extw < hl_end)
+        while (extw < hl_end) {
           ncplane_putwc(n, *(extw++));
+        }
         ncplane_set_channels(n, ch);
       }
-      while (extw < ext_end)
+      while (extw < ext_end) {
         ncplane_putwc(n, *(extw++));
+      }
       ncplane_putwc(n, cfg.truncatechar);
       ncplane_set_channels(n, ch);
     } else {
-      while (extw < ext_end)
+      while (extw < ext_end) {
         ncplane_putwc(n, *(extw++));
+      }
       ncplane_putwc(n, cfg.truncatechar);
     }
   } else if (max_len > 1) {
     const wchar_t *name_end = namew_ + max_len - 1;
     if (hl_begin < name_end) {
-      while (namew < hl_begin)
+      while (namew < hl_begin) {
         ncplane_putwc(n, *(namew++));
+      }
       ncplane_set_channels(n, cfg.colors.search);
       if (hl_end < name_end) {
-        while (namew < hl_end)
+        while (namew < hl_end) {
           ncplane_putwc(n, *(namew++));
+        }
         ncplane_set_channels(n, ch);
-        while (namew < name_end)
+        while (namew < name_end) {
           ncplane_putwc(n, *(namew++));
+        }
       } else {
-        while (namew < name_end)
+        while (namew < name_end) {
           ncplane_putwc(n, *(namew++));
+        }
       }
     } else {
-      while (namew < name_end)
+      while (namew < name_end) {
         ncplane_putwc(n, *(namew++));
+      }
       ncplane_set_channels(n, cfg.colors.search);
     }
     ncplane_putwc(n, cfg.truncatechar);
@@ -908,34 +964,39 @@ static void print_file(struct ncplane *n, const File *file,
 
   if (print_sizes) {
     if (file_isdir(file)) {
-      if (file_dircount(file) < 0)
+      if (file_dircount(file) < 0) {
         snprintf(size, sizeof size, "?");
-      else
+      } else {
         snprintf(size, sizeof size, "%d", file_dircount(file));
+      }
     } else {
       file_size_readable(file, size);
     }
     rightmargin = strlen(size) + 1;
 
-    if (file_islink(file))
+    if (file_islink(file)) {
       rightmargin += 3; /* " ->" */
+    }
     if (file_ext(file)) {
-      if (ncol - 3 - rightmargin < 4)
+      if (ncol - 3 - rightmargin < 4) {
         rightmargin = 0;
+      }
     } else {
-      if (ncol - 3 - rightmargin < 2)
+      if (ncol - 3 - rightmargin < 2) {
         rightmargin = 0;
+      }
     }
   }
 
   ncplane_set_bg_default(n);
 
-  if (cvector_contains_str(sel, file_path(file)))
+  if (cvector_contains_str(sel, file_path(file))) {
     ncplane_set_channels(n, cfg.colors.selection);
-  else if (mode == PASTE_MODE_MOVE && cvector_contains_str(load, file_path(file)))
+  } else if (mode == PASTE_MODE_MOVE && cvector_contains_str(load, file_path(file))) {
     ncplane_set_channels(n, cfg.colors.delete);
-  else if (mode == PASTE_MODE_COPY && cvector_contains_str(load, file_path(file)))
+  } else if (mode == PASTE_MODE_COPY && cvector_contains_str(load, file_path(file))) {
     ncplane_set_channels(n, cfg.colors.copy);
+  }
 
   // this is needed because when selecting with space the filename is printed
   // as black (bug in notcurses)
@@ -963,25 +1024,29 @@ static void print_file(struct ncplane *n, const File *file,
     }
   }
 
-  if (iscurrent)
+  if (iscurrent) {
     ncplane_set_bchannel(n, cfg.colors.current);
+  }
 
   ncplane_putchar(n, ' ');
 
   const char *hlsubstr = highlight && highlight[0] ? strcasestr(file_name(file), highlight) : NULL;
   const int left_space = ncol - 3 - rightmargin;
-  if (hlsubstr)
+  if (hlsubstr) {
     x += print_highlighted_and_shortened(n, file_name(file), highlight, left_space, !file_isdir(file));
-  else
+  } else {
     x += print_shortened(n, file_name(file), left_space, !file_isdir(file));
+  }
 
-  for (; x < ncol - rightmargin - 1; x++)
+  for (; x < ncol - rightmargin - 1; x++) {
     ncplane_putchar(n, ' ');
+  }
 
   if (rightmargin > 0) {
     ncplane_cursor_move_yx(n, y0, ncol - rightmargin);
-    if (file_islink(file))
+    if (file_islink(file)) {
       ncplane_putstr(n, "-> ");
+    }
     ncplane_putstr(n, size);
     ncplane_putchar(n, ' ');
   }
@@ -1000,8 +1065,9 @@ static void plane_draw_dir(struct ncplane *n, Dir *dir, char **sel, char **load,
   ncplane_dim_yx(n, &nrow, NULL);
   ncplane_cursor_move_yx(n, 0, 0);
 
-  if (!dir)
+  if (!dir) {
     return;
+  }
 
   if (dir->error) {
     ncplane_putstr_yx(n, 0, 2, strerror(dir->error));
@@ -1018,8 +1084,9 @@ static void plane_draw_dir(struct ncplane *n, Dir *dir, char **sel, char **load,
 
     offset = max(dir->ind - dir->pos, 0);
 
-    if (dir->length <= (uint32_t) nrow)
+    if (dir->length <= (uint32_t) nrow) {
       offset = 0;
+    }
 
     const int l = min(dir->length - offset, nrow);
     for (i = 0; i < l; i++) {
@@ -1072,8 +1139,9 @@ static void update_preview(T *t)
             async_preview_load(t->preview.preview, nrow);
             t->preview.preview->loading = true;
           } else {
-            if (t->preview.preview->loadtime + 500 <= current_millis())
+            if (t->preview.preview->loadtime + 500 <= current_millis()) {
               async_preview_check(t->preview.preview);
+            }
           }
         }
       } else {
@@ -1195,10 +1263,11 @@ static const char *ansi_consoom(struct ncplane *w, const char *s)
     wansi_matchattr(w, nums[0]);
     wansi_matchattr(w, nums[1]);
   } else if (nnums == 3) {
-    if (nums[0] == 38 && nums[1] == 5)
+    if (nums[0] == 38 && nums[1] == 5) {
       ncplane_set_fg_palindex(w, nums[2]);
-    else if (nums[0] == 48 && nums[1] == 5)
+    } else if (nums[0] == 48 && nums[1] == 5) {
       log_error("trying to set background color per ansi code");
+    }
   } else if (nnums == 4) {
     wansi_matchattr(w, nums[0]);
     ncplane_set_fg_palindex(w, nums[3]);
@@ -1221,8 +1290,9 @@ static void plane_draw_file_preview(struct ncplane *n, Preview *pv)
 {
   ncplane_erase(n);
 
-  if (!pv)
+  if (!pv) {
     return;
+  }
 
   int nrow;
   ncplane_dim_yx(n, &nrow, NULL);
@@ -1242,8 +1312,9 @@ static void plane_draw_file_preview(struct ncplane *n, Preview *pv)
 
 void ui_drop_cache(T *t)
 {
-  if (t->preview.preview)
+  if (t->preview.preview) {
     t->preview.preview = NULL;
+  }
   hashtab_clear(&t->preview.cache);
   update_preview(t);
   ui_redraw(t, REDRAW_CMDLINE | REDRAW_PREVIEW);

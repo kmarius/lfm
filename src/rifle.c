@@ -68,8 +68,9 @@ static Condition *condition_create(check_fun *f, const char *arg, bool negate)
 
 static void condition_destroy(Condition *cd)
 {
-  if (!cd)
+  if (!cd) {
     return;
+  }
   free(cd->arg);
   free(cd);
 }
@@ -91,8 +92,9 @@ static Rule *rule_create(const char *command)
 
 static void rule_destroy(Rule *rl)
 {
-  if (!rl)
+  if (!rl) {
     return;
+  }
 
   cvector_ffree(rl->conditions, condition_destroy);
   free(rl->label);
@@ -128,8 +130,9 @@ static bool regex_match(const char *regex, const char *string)
   int pcre_error_offset;
 
   pcre *re_compiled = pcre_compile(regex, 0, &pcre_error_str, &pcre_error_offset, NULL);
-  if (!re_compiled)
+  if (!re_compiled) {
     return false;
+  }
 
   pcre_extra *pcre_extra = pcre_study(re_compiled, 0, &pcre_error_str);
   if (pcre_error_str) {
@@ -143,8 +146,9 @@ static bool regex_match(const char *regex, const char *string)
   pcre_free(re_compiled);
   pcre_free_study(pcre_extra);
 
-  if (pcre_exec_ret < 0)
+  if (pcre_exec_ret < 0) {
     return false;
+  }
 
   return true;
 }
@@ -179,8 +183,9 @@ static bool check_fun_file(Condition *cd, const FileInfo *info)
 static bool check_fun_dir(Condition *cd, const FileInfo *info)
 {
   struct stat statbuf;
-  if (stat(info->file, &statbuf) != 0)
+  if (stat(info->file, &statbuf) != 0) {
     return 0;
+  }
   return S_ISDIR(statbuf.st_mode) != cd->negate;
 }
 
@@ -232,8 +237,9 @@ static bool check_fun_mime(Condition *cd, const FileInfo *info)
 static bool check_fun_name(Condition *cd, const FileInfo *info)
 {
   const char *ptr = info->file + strlen(info->file);
-  while (ptr > info->file && *(ptr - 1) != '/')
+  while (ptr > info->file && *(ptr - 1) != '/') {
     ptr--;
+  }
   return regex_match(cd->arg, ptr) != cd->negate;
 }
 
@@ -255,8 +261,9 @@ static bool check_fun_has(Condition *cd, const FileInfo *info)
 
 static char *split_command(char *s)
 {
-  if ((s = strstr(s, DELIM_COMMAND)) == NULL)
+  if ((s = strstr(s, DELIM_COMMAND)) == NULL) {
     return NULL;
+  }
   *s = '\0';
   return trim(s + 3);
 }
@@ -265,7 +272,7 @@ static char *split_command(char *s)
 static bool is_comment_or_whitespace(char* s)
 {
   s--;
-  while (isspace(*++s));
+  while (isspace(*++s)) {}
   return *s == '#' || *s == '\0';
 }
 
@@ -273,8 +280,9 @@ static bool is_comment_or_whitespace(char* s)
 
 static bool rule_add_condition(Rule *r, char *cond_str)
 {
-  if (*cond_str == 0)
+  if (*cond_str == 0) {
     return true;
+  }
 
   cond_str = rtrim(cond_str);
 
@@ -332,8 +340,9 @@ static bool rule_add_condition(Rule *r, char *cond_str)
     }
   }
 
-  if (c)
+  if (c) {
     cvector_push_back(r->conditions, c);
+  }
 
   return true;
 }
@@ -358,8 +367,9 @@ static Rule *parse_rule(char *rule, const char *command)
 static bool check_rule(Rule *r, const FileInfo *info)
 {
   for (size_t i = 0; i < cvector_size(r->conditions); i++) {
-    if (!r->conditions[i]->check(r->conditions[i], info))
+    if (!r->conditions[i]->check(r->conditions[i], info)) {
       return false;
+    }
   }
   return true;
 }
@@ -403,8 +413,9 @@ static int l_rifle_query(lua_State *L)
     lua_pop(L, 1);
 
     lua_getfield(L, 2, "pick");
-    if (!lua_isnoneornil(L, -1))
+    if (!lua_isnoneornil(L, -1)) {
       pick = luaL_optstring(L, -1, NULL);
+    }
     lua_pop(L, 1);
   }
 
@@ -423,8 +434,9 @@ static int l_rifle_query(lua_State *L)
 
   for (size_t j = 0; j < cvector_size(rules); j++) {
     if (check_rule(rules[j], &info)) {
-      if (rules[j]->number > 0)
+      if (rules[j]->number > 0) {
         ct_match = rules[j]->number;
+      }
       ct_match++;
 
       if (pick != NULL && pick[0] != '\0') {
@@ -432,8 +444,9 @@ static int l_rifle_query(lua_State *L)
         const bool ok = (ind != 0 || pick[0] == '0');
         if ((ok && ind != ct_match-1) ||
             (!ok && ((rules[j])->label == NULL
-                 || strcmp(pick, rules[j]->label) != 0)))
+                 || strcmp(pick, rules[j]->label) != 0))) {
           continue;
+        }
       }
 
       lua_newtable(L); /* t = {} */
@@ -455,8 +468,9 @@ static int l_rifle_query(lua_State *L)
 
       lua_rawseti(L, -2, i++); /* m[i] = t */
 
-      if (limit > 0 && i > limit)
+      if (limit > 0 && i > limit) {
         break;
+      }
     }
   }
 
@@ -470,20 +484,24 @@ static void load_rules(lua_State *L, const char *config)
   char buf[BUFSIZE];
 
   FILE *fp = fopen(config, "r");
-  if (!fp)
+  if (!fp) {
     return;
+  }
 
   while (fgets(buf, BUFSIZE, fp) != NULL) {
-    if (is_comment_or_whitespace(buf))
+    if (is_comment_or_whitespace(buf)) {
       continue;
+    }
 
     char *command = split_command(buf);
-    if (!command)
+    if (!command) {
       continue;
+    }
 
     Rule *r = parse_rule(buf, command);
-    if (r)
+    if (r) {
       cvector_push_back(rules, r);
+    }
   }
 
   fclose(fp);
@@ -500,8 +518,9 @@ static int l_rifle_setup(lua_State *L)
     }
     lua_pop(L, 1);
   }
-  if (!config.config_file)
+  if (!config.config_file) {
     asprintf(&config.config_file, "%s/rifle.conf", cfg.configdir);
+  }
 
   cvector_fclear(rules, rule_destroy);
 

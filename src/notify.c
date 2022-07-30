@@ -34,8 +34,9 @@ int notify_init(App *app)
 {
   inotify_fd = inotify_init1(IN_NONBLOCK);
 
-  if (inotify_fd == -1)
+  if (inotify_fd == -1) {
     return -1;
+  }
 
   if ((fifo_wd = inotify_add_watch(inotify_fd, cfg.rundir, IN_CLOSE_WRITE)) == -1) {
     log_error("inotify: %s", strerror(errno));
@@ -52,8 +53,9 @@ int notify_init(App *app)
 
 void notify_deinit()
 {
-  if (inotify_fd == -1)
+  if (inotify_fd == -1) {
     return;
+  }
 
   cvector_ffree(watchers, unwatch);
   watchers = NULL;
@@ -65,8 +67,9 @@ void notify_deinit()
 static inline Dir *get_watcher_data(int wd)
 {
   for (size_t i = 0; i < cvector_size(watchers); i++) {
-    if (watchers[i].wd == wd)
+    if (watchers[i].wd == wd) {
       return watchers[i].dir;
+    }
   }
   return NULL;
 }
@@ -87,8 +90,9 @@ static void inotify_cb(EV_P_ ev_io *w, int revents)
     for (p = buf; p < buf + nread; p += EVENT_SIZE + event->len) {
       event = (struct inotify_event *) p;
 
-      if (event->len == 0)
+      if (event->len == 0) {
         continue;
+      }
 
       // we use inotify for the fifo because io watchers dont seem to work properly
       // with the fifo, the callback gets called every loop, even with clearerr
@@ -99,8 +103,9 @@ static void inotify_cb(EV_P_ ev_io *w, int revents)
       }
 
       Dir *dir = get_watcher_data(event->wd);
-      if (!dir)
+      if (!dir) {
         continue;
+      }
       loader_reload(dir);
     }
   }
@@ -109,17 +114,20 @@ static void inotify_cb(EV_P_ ev_io *w, int revents)
 
 void notify_add_watcher(Dir *dir)
 {
-  if (inotify_fd == -1)
+  if (inotify_fd == -1) {
     return;
+  }
 
   for (size_t i = 0; i < cvector_size(cfg.inotify_blacklist); i++) {
-    if (hasprefix(dir->path, cfg.inotify_blacklist[i]))
+    if (hasprefix(dir->path, cfg.inotify_blacklist[i])) {
       return;
+    }
   }
 
   for (size_t i = 0; i < cvector_size(watchers); i++) {
-    if (watchers[i].dir == dir)
+    if (watchers[i].dir == dir) {
       return;
+    }
   }
 
   const uint64_t t0 = current_millis();
@@ -132,8 +140,9 @@ void notify_add_watcher(Dir *dir)
 
   /* TODO: inotify_add_watch can take over 200ms for example on samba shares.
    * the only way to work around it is to add notify watches asnc. (on 2021-11-15) */
-  if (t1 - t0 > 10)
+  if (t1 - t0 > 10) {
     log_warn("inotify_add_watch(fd, \"%s\", ...) took %ums", dir->path, t1 - t0);
+  }
 
   cvector_push_back(watchers, ((struct notify_watcher_data) {wd, dir}));
 }
@@ -141,8 +150,9 @@ void notify_add_watcher(Dir *dir)
 
 void notify_remove_watcher(Dir *dir)
 {
-  if (inotify_fd == -1)
+  if (inotify_fd == -1) {
     return;
+  }
 
   for (size_t i = 0; i < cvector_size(watchers); i++) {
     if (watchers[i].dir == dir) {
@@ -155,13 +165,15 @@ void notify_remove_watcher(Dir *dir)
 
 void notify_set_watchers(Dir **dirs, uint16_t n)
 {
-  if (inotify_fd == -1)
+  if (inotify_fd == -1) {
     return;
+  }
 
   cvector_fclear(watchers, unwatch);
 
   for (uint16_t i = 0; i < n; i++) {
-    if (dirs[i])
+    if (dirs[i]) {
       notify_add_watcher(dirs[i]);
+    }
   }
 }

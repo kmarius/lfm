@@ -35,8 +35,9 @@ Config cfg = {
 
 void config_ratios_set(cvector_vector_type(uint16_t) ratios)
 {
-  if (cvector_size(ratios) == 0)
+  if (cvector_size(ratios) == 0) {
     return;
+  }
   cvector_free(cfg.ratios);
   cfg.ratios = ratios;
 }
@@ -65,23 +66,26 @@ void config_init()
   cfg.preview = true;
 
   const char *xdg_runtime = getenv("XDG_RUNTIME_DIR");
-  if (!xdg_runtime || *xdg_runtime == 0)
+  if (!xdg_runtime || *xdg_runtime == 0) {
     asprintf(&cfg.rundir, "/tmp/runtime-%s/lfm", getenv("USER"));
-  else
+  } else {
     asprintf(&cfg.rundir, "%s/lfm", xdg_runtime);
+  }
 
   const char *xdg_config = getenv("XDG_CONFIG_HOME");
-  if (!xdg_config || *xdg_config == 0)
+  if (!xdg_config || *xdg_config == 0) {
     asprintf(&cfg.configdir, "%s/.config/lfm", getenv("HOME"));
-  else
+  } else {
     asprintf(&cfg.configdir, "%s/lfm", xdg_config);
+  }
 
   // apparently, there is now XDG_STATE_HOME for history etc.
   const char *xdg_data = getenv("XDG_DATA_HOME");
-  if (!xdg_data || *xdg_data == 0)
+  if (!xdg_data || *xdg_data == 0) {
     asprintf(&cfg.user_datadir, "%s/.local/share/lfm", getenv("HOME"));
-  else
+  } else {
     asprintf(&cfg.user_datadir, "%s/lfm", xdg_data);
+  }
 
   cfg.datadir = strdup(default_data_dir);
 

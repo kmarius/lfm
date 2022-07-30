@@ -49,8 +49,9 @@ static void subfilter_init(struct subfilter *s, char *filter)
       s->atoms = realloc(s->atoms, s->capacity * sizeof *s->atoms);
     }
     s->atoms[s->length].negate = tok[0] == '!';
-    if (s->atoms[s->length].negate)
+    if (s->atoms[s->length].negate) {
       tok++;
+    }
     s->atoms[s->length++].string = strdup(tok);
   }
 }
@@ -82,12 +83,14 @@ T *filter_create(const char *filter)
 
 void filter_destroy(T *t)
 {
-  if (!t)
+  if (!t) {
     return;
+  }
 
   for (uint16_t i = 0; i < t->length; i++) {
-    for (uint16_t j = 0; j < t->filters[i].length; j++)
+    for (uint16_t j = 0; j < t->filters[i].length; j++) {
       free(t->filters[i].atoms[j].string);
+    }
     free(t->filters[i].atoms);
   }
   free(t->string);
@@ -110,17 +113,21 @@ static inline bool atom_match(const struct filter_atom *a, const char *str)
 
 static inline bool subfilter_match(const struct subfilter *s, const char *str)
 {
-  for (uint16_t i = 0; i < s->length; i++)
-    if (atom_match(&s->atoms[i], str))
+  for (uint16_t i = 0; i < s->length; i++) {
+    if (atom_match(&s->atoms[i], str)) {
       return true;
+    }
+  }
   return false;
 }
 
 
 bool filter_match(const T *t, const char *str)
 {
-  for (uint16_t i = 0; i < t->length; i++)
-    if (!subfilter_match(&t->filters[i], str))
+  for (uint16_t i = 0; i < t->length; i++) {
+    if (!subfilter_match(&t->filters[i], str)) {
       return false;
+    }
+  }
   return true;
 }

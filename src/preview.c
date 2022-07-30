@@ -34,8 +34,9 @@ static inline T *preview_create(const char *path, uint8_t nrow)
 
 static inline void preview_deinit(T *t)
 {
-  if (!t)
+  if (!t) {
     return;
+  }
 
   cvector_ffree(t->lines, free);
   free(t->path);
@@ -100,8 +101,9 @@ T *preview_create_from_file(const char *path, uint8_t nrow)
   struct stat statbuf;
   t->mtime = stat(path, &statbuf) != -1 ? statbuf.st_mtime : 0;
 
-  if (!cfg.previewer)
+  if (!cfg.previewer) {
     return t;
+  }
 
   /* TODO: redirect stderr? (on 2021-08-10) */
   char *const args[3] = {cfg.previewer, (char*) path, NULL};
@@ -111,8 +113,9 @@ T *preview_create_from_file(const char *path, uint8_t nrow)
     return t;
   }
 
-  while (nrow-- > 0 && fgets_seek(buf, sizeof buf, fp))
+  while (nrow-- > 0 && fgets_seek(buf, sizeof buf, fp)) {
     cvector_push_back(t->lines, strdup(buf));
+  }
 
   pclose(fp);
 

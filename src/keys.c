@@ -131,8 +131,9 @@ const char *input_to_key_name(input_t in)
       }
     }
   }
-  if (ISSHIFT(in)|ISALT(in)|ISCTRL(in) || name)
+  if (ISSHIFT(in)|ISALT(in)|ISCTRL(in) || name) {
     buf[j++] = '<';
+  }
 
   if (ISSHIFT(in)) {
     buf[j++] = 'S';
@@ -153,13 +154,15 @@ const char *input_to_key_name(input_t in)
     // not a special key
     // check if printable? otherwise notcurses won't print '>'
     int n = wctomb(buf+j, ID(in));
-    if (n < 0)
+    if (n < 0) {
       buf[j++] = '?';
-    else
+    } else {
       j += n;
+    }
   }
-  if (ISSHIFT(in)|ISALT(in)|ISCTRL(in) || name)
+  if (ISSHIFT(in)|ISALT(in)|ISCTRL(in) || name) {
     buf[j++] = '>';
+  }
   buf[j++] = 0;
   return buf;
 }
@@ -201,29 +204,35 @@ input_t *key_names_to_input(const char *keys, input_t *buf)
       if (in == NCKEY_INVALID) {
         wchar_t w;
         int l = mbtowc(&w, pos, 8);
-        if (l == -1)
+        if (l == -1) {
           break; // unrecognized key
+        }
 
-        if (ctrl)
+        if (ctrl) {
           in = towupper(w);
-        else
+        } else {
           in = towlower(w);
+        }
         pos += l;
       }
 
-      if (shift)
+      if (shift) {
         in = SHIFT(in);
-      if (ctrl)
+      }
+      if (ctrl) {
         in = CTRL(in);
-      if (alt)
+      }
+      if (alt) {
         in = ALT(in);
+      }
       buf[j++] = in;
       pos++;
     } else {
       wchar_t w;
       int l = mbtowc(&w, pos, 8);
-      if (l == -1)
+      if (l == -1) {
         break; // unrecognized key
+      }
       buf[j++] = w;
       pos += l;
     }

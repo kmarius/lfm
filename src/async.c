@@ -49,8 +49,9 @@ static void async_result_cb(EV_P_ ev_async *w, int revents)
   Result *res;
 
   pthread_mutex_lock(&data->queue->mutex);
-  while ((res = resultqueue_get(data->queue)))
+  while ((res = resultqueue_get(data->queue))) {
     result_process(res, data->app);
+  }
   pthread_mutex_unlock(&data->queue->mutex);
 
   ev_idle_start(loop, &data->app->redraw_watcher);
@@ -88,8 +89,9 @@ void async_deinit()
   async_tm = NULL;
 
   Result *res;
-  while ((res = resultqueue_get(&async_results)))
+  while ((res = resultqueue_get(&async_results))) {
     result_destroy(res);
+  }
   pthread_mutex_destroy(&async_results.mutex);
   free(async_res_watcher.data);
 
@@ -143,13 +145,15 @@ static Result *resultqueue_get(ResultQueue *t)
 {
   Result *res = t->head;
 
-  if (!res)
+  if (!res) {
     return NULL;
+  }
 
   t->head = res->next;
   res->next = NULL;
-  if (t->tail == res)
+  if (t->tail == res) {
     t->tail = NULL;
+  }
 
   return res;
 }
@@ -214,11 +218,13 @@ static void async_dir_check_worker(void *arg)
   struct dir_check_work *work = arg;
   struct stat statbuf;
 
-  if (stat(work->dir->path, &statbuf) == -1)
+  if (stat(work->dir->path, &statbuf) == -1) {
     goto cleanup;
+  }
 
-  if (statbuf.st_mtime <= work->loadtime)
+  if (statbuf.st_mtime <= work->loadtime) {
     goto cleanup;
+  }
 
   DirCheckResult *res = DirCheckResult_create(work->dir);
   enqueue_and_signal((Result *) res);
@@ -266,11 +272,13 @@ static void DirCountResult_process(DirCountResult *res, App *app)
    * applied in the meantime. This does not protect against the dir getting purged from
    * the cache.*/
   if (res->version == dircache->version && res->dir->updates <= 1)  {
-    for (size_t i = 0; i < cvector_size(res->dircounts); i++)
+    for (size_t i = 0; i < cvector_size(res->dircounts); i++) {
       file_dircount_set(res->dircounts[i].file, res->dircounts[i].count);
+    }
     ui_redraw(&app->ui, REDRAW_FM);
-    if (res->last)
+    if (res->last) {
       res->dir->dircounts = true;
+    }
   }
   cvector_free(res->dircounts);
   free(res);
@@ -398,10 +406,11 @@ static void async_dir_load_worker(void *arg)
   struct dir_load_work *work = arg;
 
   Dir *dir;
-  if (work->level > 0)
+  if (work->level > 0) {
     dir = dir_load_flat(work->path, work->level, work->dircounts);
-  else
+  } else {
     dir = dir_load(work->path, work->dircounts);
+  }
 
   DirUpdateResult *res = DirUpdateResult_create(work->dir, dir, work->version);
 
@@ -417,8 +426,9 @@ static void async_dir_load_worker(void *arg)
 
   enqueue_and_signal((Result *) res);
 
-  if (!work->dircounts && nfiles > 0)
+  if (!work->dircounts && nfiles > 0) {
     async_load_dircounts(work->dir, work->version, nfiles, files);
+  }
 
   free(work->path);
   free(work);
@@ -451,8 +461,9 @@ static void PreviewCheckResult_process(PreviewCheckResult *res, App *app)
 {
   (void) app;
   Preview *pv = hashtab_get(&app->ui.preview.cache, res->path);
-  if (pv)
+  if (pv) {
     async_preview_load(pv, res->nrow);
+  }
   free(res->path);
   free(res);
 }

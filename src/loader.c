@@ -55,8 +55,9 @@ void loader_reload(Dir *dir)
   uint64_t now = current_millis();
   uint64_t latest = dir->next;  // possibly in the future
 
-  if (latest >= now + cfg.inotify_timeout)
+  if (latest >= now + cfg.inotify_timeout) {
     return;  // discard
+  }
 
   // Add a small delay so we don't show files that exist only very briefly
   uint64_t next = now < latest + cfg.inotify_timeout
@@ -103,8 +104,9 @@ void loader_reschedule()
 {
   Dir **dirs = NULL;
   cvector_foreach(timer, timers) {
-    if (!cvector_contains(dirs, timer->data))
+    if (!cvector_contains(dirs, timer->data)) {
       cvector_push_back(dirs, timer->data);
+    }
     ev_timer_stop(loop, timer);
     free(timer);
   }

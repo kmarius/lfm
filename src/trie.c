@@ -26,12 +26,14 @@ T *trie_create()
 
 T *trie_find_child(const T* t, input_t key)
 {
-  if (!t)
+  if (!t) {
     return NULL;
+  }
 
   for (T *n = t->child; n; n = n->next) {
-    if (n->key == key)
+    if (n->key == key) {
       return n;
+    }
   }
 
   return NULL;
@@ -40,8 +42,9 @@ T *trie_find_child(const T* t, input_t key)
 
 T *trie_insert(T* t, const input_t *trie_keys, const char *keys, const char *desc)
 {
-  if (!t)
+  if (!t) {
     return NULL;
+  }
 
   for (const input_t *c = trie_keys; *c != 0; c++) {
     T *n = trie_find_child(t, *c);
@@ -87,24 +90,28 @@ T *trie_remove(T* t, const input_t *trie_keys)
 
 void trie_collect_leaves(Trie *t, cvector_vector_type(Trie *) *vec, bool prune)
 {
-  if (!t)
+  if (!t) {
     return;
+  }
 
   if (t->keys) {
     cvector_push_back(*vec, t);
-    if (prune)
+    if (prune) {
       return;
+    }
   }
 
-  for (T *n = t->child; n; n = n->next)
+  for (T *n = t->child; n; n = n->next) {
     trie_collect_leaves(n, vec, prune);
+  }
 }
 
 
 void trie_destroy(T *t)
 {
-  if (!t)
+  if (!t) {
     return;
+  }
 
   for (T* next, *n = t->child; n; n = next) {
     next = n->next;

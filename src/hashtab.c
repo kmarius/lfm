@@ -11,8 +11,9 @@
 static uint64_t hash(const char *s)
 {
   uint64_t h = 0xcbf29ce484222325;
-  while (*s)
+  while (*s) {
     h = (h ^ *s++) * 0x00000100000001B3;
+  }
   return h;
 }
 
@@ -33,12 +34,14 @@ void hashtab_deinit(T *t)
     if (t->buckets[i].val) {
       for (struct bucket *next, *b = t->buckets[i].next; b; b = next) {
         next = b->next;
-        if (t->free)
+        if (t->free) {
           t->free(b->val);
+        }
         free(b);
       }
-      if (t->free)
+      if (t->free) {
         t->free(t->buckets[i].val);
+      }
     }
   }
   free(t->buckets);
@@ -53,12 +56,15 @@ static bool probe(T *t, const char *key, struct bucket **b)
   *b = &t->buckets[hash(key) % t->nbuckets];
   for (;;) {
     struct bucket *bb = *b;
-    if (!bb->key)
+    if (!bb->key) {
       return false;
-    if (streq(bb->key, key))
+    }
+    if (streq(bb->key, key)) {
       return true;
-    if (!bb->next)
+    }
+    if (!bb->next) {
       return false;
+    }
     *b = bb->next;
   }
 }
@@ -82,8 +88,9 @@ void hashtab_set(T *t, const char *key, void *val)
 void *hashtab_get(T *t, const char *key)
 {
   struct bucket *b;
-  if (probe(t, key, &b))
+  if (probe(t, key, &b)) {
     return b->val;
+  }
   return NULL;
 }
 
@@ -94,12 +101,14 @@ void hashtab_clear(T *t)
     if (t->buckets[i].val) {
       for (struct bucket *next, *b = t->buckets[i].next; b; b = next) {
         next = b->next;
-        if (t->free)
+        if (t->free) {
           t->free(b->val);
+        }
         free(b);
       }
-      if (t->free)
+      if (t->free) {
         t->free(t->buckets[i].val);
+      }
       t->buckets[i].val = NULL;
       t->buckets[i].key = NULL;
       t->buckets[i].next = NULL;
@@ -121,8 +130,9 @@ struct ht_stats hashtab_stats(T *t)
         stats.nelems++;
         size++;
       }
-      if (size > stats.bucket_size_max)
+      if (size > stats.bucket_size_max) {
         stats.bucket_size_max = size;
+      }
     }
   }
 

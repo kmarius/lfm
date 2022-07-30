@@ -15,14 +15,17 @@
 
 const wchar_t *wstrcasestr(const wchar_t *str, const wchar_t *sub) {
 
-  if (*sub == 0)
+  if (*sub == 0) {
     return str;
+  }
 
   for (; *str != 0; str++) {
-    if (towlower(*str) != towlower(*sub))
+    if (towlower(*str) != towlower(*sub)) {
       continue;
-    if (haswcaseprefix(str, sub))
+    }
+    if (haswcaseprefix(str, sub)) {
       return str;
+    }
   }
 
   return NULL;
@@ -31,8 +34,9 @@ const wchar_t *wstrcasestr(const wchar_t *str, const wchar_t *sub) {
 bool haswprefix(const wchar_t *restrict string, const wchar_t *restrict prefix)
 {
   while (*prefix != 0) {
-    if (*prefix++ != *string++)
+    if (*prefix++ != *string++) {
       return false;
+    }
   }
   return true;
 }
@@ -40,8 +44,9 @@ bool haswprefix(const wchar_t *restrict string, const wchar_t *restrict prefix)
 bool haswcaseprefix(const wchar_t *restrict string, const wchar_t *restrict prefix)
 {
   while (*prefix != 0) {
-    if (towlower(*prefix++) != towlower(*string++))
+    if (towlower(*prefix++) != towlower(*string++)) {
       return false;
+    }
   }
   return true;
 }
@@ -49,14 +54,17 @@ bool haswcaseprefix(const wchar_t *restrict string, const wchar_t *restrict pref
 
 const char *strcasestr(const char *str, const char *sub) {
 
-  if (*sub == 0)
+  if (*sub == 0) {
     return str;
+  }
 
   for (; *str != 0; str++) {
-    if (tolower(*str) != tolower(*sub))
+    if (tolower(*str) != tolower(*sub)) {
       continue;
-    if (hascaseprefix(str, sub))
+    }
+    if (hascaseprefix(str, sub)) {
       return str;
+    }
   }
 
   return NULL;
@@ -66,8 +74,9 @@ const char *strcasestr(const char *str, const char *sub) {
 bool hascaseprefix(const char *restrict string, const char *restrict prefix)
 {
   while (*prefix != 0) {
-    if (tolower(*prefix++) != tolower(*string++))
+    if (tolower(*prefix++) != tolower(*string++)) {
       return false;
+    }
   }
   return true;
 }
@@ -76,8 +85,9 @@ bool hascaseprefix(const char *restrict string, const char *restrict prefix)
 bool hasprefix(const char *restrict string, const char *restrict prefix)
 {
   while (*prefix != 0) {
-    if (*prefix++ != *string++)
+    if (*prefix++ != *string++) {
       return false;
+    }
   }
   return true;
 }
@@ -94,8 +104,9 @@ const char *strcaserchr(const char *str, char c)
 {
   const char *last = NULL;
   for (; *str != 0; str++) {
-    if (*str == c)
+    if (*str == c) {
       last = str;
+    }
   }
   return last;
 }
@@ -192,8 +203,9 @@ wchar_t *ambstowcs(const char *s, int *len)
   const int l = mbstowcs(NULL, s, 0);
   wchar_t *ws = malloc((l + 1) * sizeof *ws);
   mbstowcs(ws, s, l + 1);
-  if (len)
+  if (len) {
     *len = l;
+  }
   return ws;
 }
 
@@ -224,8 +236,9 @@ char *dirname_s(const char *p)
 
 char *path_replace_tilde(const char* path)
 {
-  if (path[0] != '~' || path[1] != '/')
+  if (path[0] != '~' || path[1] != '/') {
     return strdup(path);
+  }
 
   const char *home = getenv("HOME");
   const int l1 = strlen(path);
@@ -273,18 +286,22 @@ char *path_qualify(const char* path)
       p += 2;
     } else if (*(p+1) == '.' && *(p+2) == '.' && (*(p+3) == '/' || *(p+3) == 0)) {
       p += 3;
-      if (q > ret)
+      if (q > ret) {
         q--;
-      while (*q && *q != '/')
+      }
+      while (*q && *q != '/') {
         q--;
+      }
     } else {
       *q++ = *p++;
-      while (*p && *p != '/')
+      while (*p && *p != '/') {
         *q++ = *p++;
+      }
     }
   }
-  if (q == ret)
+  if (q == ret) {
     q++;
+  }
   *q = 0;
 
   return ret;

@@ -17,10 +17,11 @@ bool find(Fm *fm, Ui *ui, const char *prefix)
   for (uint32_t i = 0; i < dir->length; i++) {
     const uint32_t ind = (dir->ind + i) % dir->length;
     if (hascaseprefix(file_name(dir->files[ind]), prefix)) {
-      if (++nmatches == 1)
+      if (++nmatches == 1) {
         first_match = ind;
-      else
+      } else {
         break;
+      }
     }
   }
   if (nmatches > 0) {
@@ -33,8 +34,9 @@ bool find(Fm *fm, Ui *ui, const char *prefix)
 
 void find_next(Fm *fm, Ui *ui)
 {
-  if (!find_prefix)
+  if (!find_prefix) {
     return;
+  }
 
   Dir *dir = fm_current_dir(fm);
   for (uint32_t i = 0; i < dir->length; i++) {
@@ -50,8 +52,9 @@ void find_next(Fm *fm, Ui *ui)
 
 void find_prev(Fm *fm, Ui *ui)
 {
-  if (!find_prefix)
+  if (!find_prefix) {
     return;
+  }
 
   Dir *dir = fm_current_dir(fm);
   for (uint32_t i = 0; i < dir->length; i++) {

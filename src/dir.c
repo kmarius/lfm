@@ -24,8 +24,9 @@
 
 File *dir_current_file(const T *t)
 {
-  if (!t || t->ind >= t->length)
+  if (!t || t->ind >= t->length) {
     return NULL;
+  }
 
   return t->files[t->ind];
 }
@@ -33,8 +34,9 @@ File *dir_current_file(const T *t)
 
 const char *dir_parent_path(const T *t)
 {
-  if (dir_isroot(t))
+  if (dir_isroot(t)) {
     return NULL;
+  }
 
   static char tmp[PATH_MAX + 1];
   strcpy(tmp, t->path);
@@ -47,8 +49,9 @@ static void apply_filter(T *t)
   if (t->filter) {
     uint32_t j = 0;
     for (uint32_t i = 0; i < t->length_sorted; i++) {
-      if (filter_match(t->filter, file_name(t->files_sorted[i])))
+      if (filter_match(t->filter, file_name(t->files_sorted[i]))) {
         t->files[j++] = t->files_sorted[i];
+      }
     }
     t->length = j;
   } else {
@@ -75,8 +78,9 @@ static inline void swap(File **a, File **b)
 // number generator.
 static void shuffle(void *arr, size_t n, size_t size)
 {
-  if (n <= 1)
+  if (n <= 1) {
     return;
+  }
 
   const size_t stride = size;
   char *tmp = malloc(n * size);
@@ -125,14 +129,16 @@ void dir_sort(T *t)
     if (t->dirfirst) {
       /* first pass: directories */
       for (uint32_t i = 0; i < t->length_all; i++) {
-        if (file_isdir(t->files_all[i]))
+        if (file_isdir(t->files_all[i])) {
           t->files_sorted[j++] = t->files_all[i];
+        }
       }
       ndirs = j;
       /* second pass: files */
       for (uint32_t i = 0; i < t->length_all; i++) {
-        if (!file_isdir(t->files_all[i]))
+        if (!file_isdir(t->files_all[i])) {
           t->files_sorted[j++] = t->files_all[i];
+        }
       }
     } else {
       j = t->length_all;
@@ -141,28 +147,33 @@ void dir_sort(T *t)
   } else {
     if (t->dirfirst) {
       for (uint32_t i = 0; i < t->length_all; i++) {
-        if (!file_hidden(t->files_all[i]) && file_isdir(t->files_all[i]))
+        if (!file_hidden(t->files_all[i]) && file_isdir(t->files_all[i])) {
           t->files_sorted[j++] = t->files_all[i];
+        }
       }
       ndirs = j;
       for (uint32_t i = 0; i < t->length_all; i++) {
-        if (!file_hidden(t->files_all[i]) && !file_isdir(t->files_all[i]))
+        if (!file_hidden(t->files_all[i]) && !file_isdir(t->files_all[i])) {
           t->files_sorted[j++] = t->files_all[i];
+        }
       }
     } else {
       for (uint32_t i = 0; i < t->length_all; i++) {
-        if (!file_hidden(t->files_all[i]))
+        if (!file_hidden(t->files_all[i])) {
           t->files_sorted[j++] = t->files_all[i];
+        }
       }
     }
   }
   t->length_sorted = j;
   t->length = j;
   if (t->reverse) {
-    for (uint32_t i = 0; i < ndirs / 2; i++)
+    for (uint32_t i = 0; i < ndirs / 2; i++) {
       swap(t->files_sorted+i, t->files_sorted + ndirs - i - 1);
-    for (uint32_t i = 0; i < (t->length_sorted - ndirs) / 2; i++)
+    }
+    for (uint32_t i = 0; i < (t->length_sorted - ndirs) / 2; i++) {
       swap(t->files_sorted + ndirs + i, t->files_sorted + t->length_sorted - i - 1);
+    }
   }
 
   apply_filter(t);
@@ -176,8 +187,9 @@ void dir_filter(T *t, const char *filter)
     t->filter = NULL;
   }
 
-  if (filter && filter[0] != 0)
+  if (filter && filter[0] != 0) {
     t->filter = filter_create(filter);
+  }
 
   apply_filter(t);
 }
@@ -231,13 +243,15 @@ T *dir_load(const char *path, bool load_dircount)
   while ((dp = readdir(dirp))) {
     if (dp->d_name[0] == '.' &&
         (dp->d_name[1] == 0 ||
-         (dp->d_name[1] == '.' && dp->d_name[2] == 0)))
+         (dp->d_name[1] == '.' && dp->d_name[2] == 0))) {
       continue;
+    }
 
     File *file = file_create(path, dp->d_name);
     if (file) {
-      if (load_dircount && file_isdir(file))
+      if (load_dircount && file_isdir(file)) {
         file->dircount = file_dircount_load(file);
+      }
 
       cvector_push_back(dir->files_all, file);
     }
@@ -289,26 +303,30 @@ T *dir_load_flat(const char *path, uint8_t level, bool load_dircount)
   while (queue.head) {
     struct queue_dirs_node *head = queue.head;
     queue.head = head->next;
-    if (!queue.head)
+    if (!queue.head) {
       queue.tail = NULL;
+    }
 
     DIR *dirp = opendir(head->path);
-    if (!dirp)
+    if (!dirp) {
       goto cont;
+    }
 
     struct dirent *dp;
     while ((dp = readdir(dirp))) {
       if (dp->d_name[0] == '.' &&
           (dp->d_name[1] == 0 ||
-           (dp->d_name[1] == '.' && dp->d_name[2] == 0)))
+           (dp->d_name[1] == '.' && dp->d_name[2] == 0))) {
         continue;
+      }
 
       File *file = file_create(head->path, dp->d_name);
       if (file) {
         file->hidden |= head->hidden;
         if (file_isdir(file)) {
-          if (load_dircount)
+          if (load_dircount) {
             file->dircount = file_dircount_load(file);
+          }
 
           if (head->level + 1 <= level) {
             struct queue_dirs_node *n = malloc(sizeof *n);
@@ -327,8 +345,9 @@ T *dir_load_flat(const char *path, uint8_t level, bool load_dircount)
         }
         for (uint8_t i = 0; i < head->level; i++) {
           file->name -= 2;
-          while (*(file->name-1) != '/')
+          while (*(file->name-1) != '/') {
             file->name--;
+          }
         }
 
         cvector_push_back(dir->files_all, file);
@@ -358,17 +377,19 @@ cont:
 void dir_cursor_move(T *t, int32_t ct, uint16_t height, uint16_t scrolloff)
 {
   t->ind = max(min(t->ind + ct, t->length - 1), 0);
-  if (ct < 0)
+  if (ct < 0) {
     t->pos = min(max(scrolloff, t->pos + ct), t->ind);
-  else
+  } else {
     t->pos = max(min(height - 1 - scrolloff, t->pos + ct), height - t->length + t->ind);
+  }
 }
 
 
 void dir_cursor_move_to(T *t, const char *name, uint16_t height, uint16_t scrolloff)
 {
-  if (!name)
+  if (!name) {
     return;
+  }
 
   if (!t->files) {
     free(t->sel);
@@ -388,8 +409,9 @@ void dir_cursor_move_to(T *t, const char *name, uint16_t height, uint16_t scroll
 
 void dir_update_with(T *t, Dir *update, uint16_t height, uint16_t scrolloff)
 {
-  if (!t->sel && t->ind < t->length)
+  if (!t->sel && t->ind < t->length) {
     t->sel = strdup(file_name(t->files[t->ind]));
+  }
 
   cvector_ffree(t->files_all, file_destroy);
   free(t->files_sorted);
@@ -422,8 +444,9 @@ void dir_update_with(T *t, Dir *update, uint16_t height, uint16_t scrolloff)
 
 void dir_deinit(T *t)
 {
-  if (!t)
+  if (!t) {
     return;
+  }
 
   cvector_ffree(t->files_all, file_destroy);
   filter_destroy(t->filter);

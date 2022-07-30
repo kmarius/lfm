@@ -29,8 +29,9 @@ void nohighlight(Ui *ui)
 
 inline void search(Ui *ui, const char *string, bool forward)
 {
-  if (string && string[0] == 0)
+  if (string && string[0] == 0) {
     string = NULL;
+  }
 
   if (!string) {
     free(search_string);
@@ -45,8 +46,9 @@ inline void search(Ui *ui, const char *string, bool forward)
 
 static void search_next_forward(Ui *ui, Fm *fm, bool inclusive)
 {
-  if (!search_string)
+  if (!search_string) {
     return;
+  }
 
   Dir *dir = fm_current_dir(fm);
   highlight(ui, NULL);
@@ -62,8 +64,9 @@ static void search_next_forward(Ui *ui, Fm *fm, bool inclusive)
 
 static void search_next_backwards(Ui *ui, Fm *fm, bool inclusive)
 {
-  if (!search_string)
+  if (!search_string) {
     return;
+  }
 
   Dir *dir = fm_current_dir(fm);
   highlight(ui, NULL);
@@ -79,17 +82,19 @@ static void search_next_backwards(Ui *ui, Fm *fm, bool inclusive)
 
 void search_next(Ui *ui, Fm *fm, bool inclusive)
 {
-  if (search_forward)
+  if (search_forward) {
     search_next_forward(ui, fm, inclusive);
-  else
+  } else {
     search_next_backwards(ui, fm, inclusive);
+  }
 }
 
 
 void search_prev(Ui *ui, Fm *fm, bool inclusive)
 {
-  if (search_forward)
+  if (search_forward) {
     search_next_backwards(ui, fm, inclusive);
-  else
+  } else {
     search_next_forward(ui, fm, inclusive);
+  }
 }

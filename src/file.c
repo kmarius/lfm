@@ -31,8 +31,9 @@ T *file_init(T *t, const char *dir, const char *name)
   t->name = strrchr(t->path, '/') + 1;
   t->hidden = *t->name == '.';
   t->ext = strrchr(t->name, '.');
-  if (t->ext == t->name)
+  if (t->ext == t->name) {
     t->ext = NULL;
+  }
 
   if (lstat(t->path, &t->lstat) == -1) {
     if (errno == ENOENT) {
@@ -50,17 +51,19 @@ T *file_init(T *t, const char *dir, const char *name)
       t->isbroken = true;
       t->stat = t->lstat;
     }
-    if (readlink(t->path, buf, sizeof buf) == -1)
+    if (readlink(t->path, buf, sizeof buf) == -1) {
       t->isbroken = true;
-    else
+    } else {
       t->link_target = strdup(buf);
+    }
   } else {
     // for non-symlinks stat == lstat
     t->stat = t->lstat;
   }
 
-  if (file_isdir(t))
+  if (file_isdir(t)) {
     t->ext = NULL;
+  }
   t->isexec = t->stat.st_mode & (1 | 8 | 64);
 
   return t;
@@ -75,8 +78,9 @@ T *file_create(const char *dir, const char *name)
 
 void file_deinit(T *t)
 {
-  if (!t)
+  if (!t) {
     return;
+  }
 
   free(t->path);
   free(t->link_target);
@@ -95,11 +99,12 @@ uint32_t path_dircount(const char *path)
   struct dirent *dp;
 
   DIR *dirp = opendir(path);
-  if (!dirp)
+  if (!dirp) {
     return 0;
+  }
 
   uint32_t ct;
-  for (ct = 0; (dp = readdir(dirp)); ct++) ;
+  for (ct = 0; (dp = readdir(dirp)); ct++) {}
   closedir(dirp);
   return ct - 2;
 }
@@ -109,30 +114,35 @@ static char filetypeletter(int mode)
 {
   char c;
 
-  if (S_ISREG(mode))
+  if (S_ISREG(mode)) {
     c = '-';
-  else if (S_ISDIR(mode))
+  } else if (S_ISDIR(mode)) {
     c = 'd';
-  else if (S_ISBLK(mode))
+  } else if (S_ISBLK(mode)) {
     c = 'b';
-  else if (S_ISCHR(mode))
+  } else if (S_ISCHR(mode)) {
     c = 'c';
+  }
 #ifdef S_ISFIFO
-  else if (S_ISFIFO(mode))
+  else if (S_ISFIFO(mode)) {
     c = 'p';
+  }
 #endif /* S_ISFIFO */
 #ifdef S_ISLNK
-  else if (S_ISLNK(mode))
+  else if (S_ISLNK(mode)) {
     c = 'l';
+  }
 #endif /* S_ISLNK */
 #ifdef S_ISSOCK
-  else if (S_ISSOCK(mode))
+  else if (S_ISSOCK(mode)) {
     c = 's';
+  }
 #endif /* S_ISSOCK */
 #ifdef S_ISDOOR
   /* Solaris 2.6, etc. */
-  else if (S_ISDOOR(mode))
+  else if (S_ISDOOR(mode)) {
     c = 'D';
+  }
 #endif /* S_ISDOOR */
   else {
     /* Unknown type -- possibly a regular file? */
@@ -154,12 +164,15 @@ const char *file_perms(const T *t)
   strcpy(&bits[1], rwx[(mode >> 6) & 7]);
   strcpy(&bits[4], rwx[(mode >> 3) & 7]);
   strcpy(&bits[7], rwx[(mode & 7)]);
-  if (mode & S_ISUID)
+  if (mode & S_ISUID) {
     bits[3] = (mode & S_IXUSR) ? 's' : 'S';
-  if (mode & S_ISGID)
+  }
+  if (mode & S_ISGID) {
     bits[6] = (mode & S_IXGRP) ? 's' : 'l';
-  if (mode & S_ISVTX)
+  }
+  if (mode & S_ISVTX) {
     bits[9] = (mode & S_IXOTH) ? 't' : 'T';
+  }
   bits[10] = '\0';
   return bits;
 }
