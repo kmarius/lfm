@@ -14,7 +14,11 @@
 
 #define DIRCOUNT_THRESHOLD 200  // send batches of dircounts around every 200ms
 
-typedef struct Result Result;
+typedef struct Result {
+  void (*callback)(void *, App *);
+  void (*destroy)(void *);
+  struct Result *next;
+} Result;
 
 typedef struct ResultQueue {
   Result *head;
@@ -28,8 +32,6 @@ struct async_watcher_data {
 };
 
 static Result *resultqueue_get(ResultQueue *queue);
-static void result_process(Result *res, App *app);
-static void result_destroy(Result *res);
 
 static ResultQueue async_results = {
   .head = NULL,
@@ -42,20 +44,22 @@ static ev_async async_res_watcher;
 static Hashtab *dircache = NULL;
 static Hashtab *previewcache = NULL;
 
+
 static void async_result_cb(EV_P_ ev_async *w, int revents)
 {
   (void) revents;
   struct async_watcher_data *data = w->data;
-  Result *res;
+  struct Result *res;
 
   pthread_mutex_lock(&data->queue->mutex);
   while ((res = resultqueue_get(data->queue))) {
-    result_process(res, data->app);
+    res->callback(res, data->app);
   }
   pthread_mutex_unlock(&data->queue->mutex);
 
   ev_idle_start(loop, &data->app->redraw_watcher);
 }
+
 
 void async_init(App *app)
 {
@@ -90,42 +94,13 @@ void async_deinit()
 
   Result *res;
   while ((res = resultqueue_get(&async_results))) {
-    result_destroy(res);
+    res->destroy(res);
   }
   pthread_mutex_destroy(&async_results.mutex);
   free(async_res_watcher.data);
 
   dircache = NULL;
   previewcache = NULL;
-}
-
-/*
- * `process` is run on the main thread and should do whatever is necessary to process Result,
- * consuming it (freeing whatever resources remain).
- *
- * `destroy` shall completely free all resources of a Result.
- */
-typedef struct Result_vtable {
-  void (*process)(Result *, App *);
-  void (*destroy)(Result *);
-} Result_vtable;
-
-
-typedef struct Result {
-  Result_vtable *vtable;
-  struct Result *next;
-} Result;
-
-
-static void result_process(Result *res, App *app)
-{
-  res->vtable->process(res, app);
-}
-
-
-static void result_destroy(Result *res)
-{
-  res->vtable->destroy(res);
 }
 
 
@@ -178,30 +153,27 @@ typedef struct DirCheckResult {
 
 // TODO: maybe on slow devices it is better to compare mtimes here? 2021-11-12
 // currently we could just schedule reload from the other thread
-static void DirCheckResult_process(DirCheckResult *res, App *app)
+static void DirCheckResult_callback(void *p, App *app)
 {
+  DirCheckResult *res = p;
   (void) app;
   loader_reload(res->dir);
   free(res);
 }
 
 
-static void DirCheckResult_destroy(DirCheckResult *res)
+static void DirCheckResult_destroy(void *p)
 {
+  DirCheckResult *res = p;
   free(res);
 }
-
-
-static Result_vtable res_dir_check_vtable = {
-  (void (*)(Result *, App *)) &DirCheckResult_process,
-  (void (*)(Result *)) &DirCheckResult_destroy,
-};
 
 
 static inline DirCheckResult *DirCheckResult_create(Dir *dir)
 {
   DirCheckResult *res = malloc(sizeof *res);
-  res->super.vtable = &res_dir_check_vtable;
+  res->super.callback = &DirCheckResult_callback;
+  res->super.destroy = &DirCheckResult_destroy;
   res->dir = dir;
   return res;
 }
@@ -265,8 +237,9 @@ struct file_path {
 };
 
 
-static void DirCountResult_process(DirCountResult *res, App *app)
+static void DirCountResult_callback(void *p, App *app)
 {
+  DirCountResult *res = p;
   /* TODO: we need to make sure that the original files/dir don't get freed (on 2022-01-15) */
   /* for now, just discard the dircount updates if any other update has been
    * applied in the meantime. This does not protect against the dir getting purged from
@@ -285,23 +258,19 @@ static void DirCountResult_process(DirCountResult *res, App *app)
 }
 
 
-static void DirCountResult_destroy(DirCountResult *res)
+static void DirCountResult_destroy(void *p)
 {
+  DirCountResult *res = p;
   cvector_free(res->dircounts);
   free(res);
 }
 
 
-static Result_vtable DirCountResult_vtable = {
-  (void (*)(Result *, App *)) &DirCountResult_process,
-  (void (*)(Result *)) &DirCountResult_destroy,
-};
-
-
 static inline DirCountResult *DirCountResult_create(Dir *dir, struct dircount* files, uint8_t version, bool last)
 {
   DirCountResult *res = malloc(sizeof *res);
-  res->super.vtable = &DirCountResult_vtable;
+  res->super.callback = &DirCountResult_callback;
+  res->super.destroy = &DirCountResult_destroy;
   res->super.next = NULL;
   res->dir = dir;
   res->dircounts = files;
@@ -351,8 +320,9 @@ typedef struct DirUpdateResult {
 } DirUpdateResult;
 
 
-static void DirUpdateResult_process(DirUpdateResult *res, App *app)
+static void DirUpdateResult_callback(void *p, App *app)
 {
+  DirUpdateResult *res = p;
   if (res->version == dircache->version
       && res->dir->flatten_level == res->update->flatten_level) {
     dir_update_with(res->dir, res->update, app->fm.height, cfg.scrolloff);
@@ -367,23 +337,19 @@ static void DirUpdateResult_process(DirUpdateResult *res, App *app)
 }
 
 
-static void DirUpdateResult_destroy(DirUpdateResult *res)
+static void DirUpdateResult_destroy(void *p)
 {
+  DirUpdateResult *res = p;
   dir_destroy(res->update);
   free(res);
 }
 
 
-static Result_vtable DirUpdateResult_vtable = {
-  (void (*)(Result *, App *)) &DirUpdateResult_process,
-  (void (*)(Result *)) &DirUpdateResult_destroy,
-};
-
-
 static inline DirUpdateResult *DirUpdateResult_create(Dir *dir, Dir *update, uint8_t version)
 {
   DirUpdateResult *res = malloc(sizeof *res);
-  res->super.vtable = &DirUpdateResult_vtable;
+  res->super.callback = &DirUpdateResult_callback;
+  res->super.destroy = &DirUpdateResult_destroy;
   res->super.next = NULL;
   res->dir = dir;
   res->update = update;
@@ -457,8 +423,9 @@ typedef struct PreviewCheckResult {
 } PreviewCheckResult;
 
 
-static void PreviewCheckResult_process(PreviewCheckResult *res, App *app)
+static void PreviewCheckResult_callback(void *p, App *app)
 {
+  PreviewCheckResult *res = p;
   (void) app;
   Preview *pv = hashtab_get(&app->ui.preview.cache, res->path);
   if (pv) {
@@ -469,23 +436,19 @@ static void PreviewCheckResult_process(PreviewCheckResult *res, App *app)
 }
 
 
-static void PreviewCheckResult_destroy(PreviewCheckResult *res)
+static void PreviewCheckResult_destroy(void *p)
 {
+  PreviewCheckResult *res = p;
   free(res->path);
   free(res);
 }
 
 
-static Result_vtable PrevewCheckResult_vtable = {
-  (void (*)(Result *, App *)) &PreviewCheckResult_process,
-  (void (*)(Result *)) &PreviewCheckResult_destroy,
-};
-
-
 static inline PreviewCheckResult *PreviewCheckResult_create(char *path, int nrow)
 {
   PreviewCheckResult *res = malloc(sizeof *res);
-  res->super.vtable = &PrevewCheckResult_vtable;
+  res->super.callback = &PreviewCheckResult_callback;
+  res->super.destroy = &PreviewCheckResult_destroy;
   res->super.next = NULL;
   res->path = path;
   res->nrow = nrow;
@@ -548,8 +511,9 @@ typedef struct PreviewLoadResult {
 } PreviewLoadResult;
 
 
-static void PreviewLoadResult_process(PreviewLoadResult *res, App *app)
+static void PreviewLoadResult_callback(void *p, App *app)
 {
+  PreviewLoadResult *res = p;
   // TODO: make this safer, previewcache.version protects against dropped
   // caches only (on 2022-02-06)
   if (res->version == previewcache->version) {
@@ -562,23 +526,19 @@ static void PreviewLoadResult_process(PreviewLoadResult *res, App *app)
 }
 
 
-static void PreviewLoadResult_destroy(PreviewLoadResult *res)
+static void PreviewLoadResult_destroy(void *p)
 {
+  PreviewLoadResult *res = p;
   preview_destroy(res->update);
   free(res);
 }
 
 
-static Result_vtable PreviewLoadResult_vtable = {
-  (void (*)(Result *, App *)) &PreviewLoadResult_process,
-  (void (*)(Result *)) &PreviewLoadResult_destroy,
-};
-
-
 static inline PreviewLoadResult *PreviewLoadResult_create(Preview *preview, Preview *update, uint8_t version)
 {
   PreviewLoadResult *res = malloc(sizeof *res);
-  res->super.vtable = &PreviewLoadResult_vtable;
+  res->super.callback = PreviewLoadResult_callback;
+  res->super.destroy = PreviewLoadResult_destroy;
   res->super.next = NULL;
   res->preview = preview;
   res->update = update;
