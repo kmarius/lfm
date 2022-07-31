@@ -37,7 +37,7 @@ end
 ---Execute a foreground command.
 ---If `command` is a single string, it is executed as `sh -c command`.
 ---@param command string|string[]
----@param t exec_opts
+---@param t? exec_opts
 function M.execute(command, t)
 	t = t or {}
 	if type(command) == "string" then
@@ -62,8 +62,10 @@ function M.popen(command)
 	end
 	local file = io.popen(command, "r")
 	local res = {}
-	for line in file:lines() do
-		table.insert(res, line)
+	if file then
+		for line in file:lines() do
+			table.insert(res, line)
+		end
 	end
 	return res
 end
@@ -78,7 +80,7 @@ end
 ---Build a function from a bash command. Unless `t.files == shell.ARGV` the
 ---functions arguments are passed to the shell.
 ---@param command string
----@param t bash_opts
+---@param t? bash_opts
 ---@return function
 function M.bash(command, t)
 	t = t or {}
@@ -107,7 +109,7 @@ end
 ---Build a function from a bash command to run in a `tmux new-window`. Unless
 ---`t.files == shell.ARGV` the functions arguments are passed to the shell.
 ---@param command string
----@param t tmux_opts
+---@param t? tmux_opts
 ---@return function
 function M.tmux(command, t)
 	t = t or {}
@@ -137,7 +139,7 @@ end
 ---Build a function from a shell command. Unless `t.files == shell.ARGV` the
 ---functions arguments are passed to the shell.
 ---@param command string
----@param t fish_opts
+---@param t? fish_opts
 ---@return function
 function M.fish(command, t)
 	t = t or {}
@@ -172,7 +174,7 @@ end
 ---Build a function from a shell command. Unless `t.files == shell.ARGV` the
 ---functions arguments are passed to the shell.
 ---@param command string
----@param t sh_opts
+---@param t? sh_opts
 ---@return function
 function M.sh(command, t)
 	t = t or {}

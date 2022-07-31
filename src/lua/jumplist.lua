@@ -45,7 +45,7 @@ end
 ---@field jump_prev_key string default "["
 
 ---Set up jumplist: sets the two keybinds and registers the necessary hook.
----@param t jumplist_setup_opts
+---@param t? jumplist_setup_opts
 function M.setup(t)
 	t = t or {}
 	if not registered_hook then

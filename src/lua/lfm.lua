@@ -120,7 +120,7 @@ lfm.commands = {}
 ---```
 ---@param name string Command name, can not contain whitespace.
 ---@param f function The function to execute or `nil` to unregister
----@param t table Additional options.
+---@param t? table Additional options.
 function lfm.register_command(name, f, t)
 	if (f) then
 		t = t or {}
@@ -406,7 +406,7 @@ map("V", fm.visual_toggle, {desc="toggle visual selection mode"})
 map("uv", c(fm.paste_buffer_set, fm.selection_set), {desc="selection-clear"})
 
 -- Navigation
-map("<Enter>", open, "open")
+map("<Enter>", open, {desc="open"})
 map("<Left>", fm.updir, {desc="go to parent directory"})
 map("<Right>", open, {desc="open file/directory"})
 map("j", fm.down, {desc="move cursor down"})

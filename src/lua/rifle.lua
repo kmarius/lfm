@@ -8,7 +8,6 @@ local M = lfm.rifle
 
 ---Navigate into a directory or open files.
 ---@param ... any
----@return boolean
 function M.open(...)
 	local t = {...}
 	local pick = t[1]
@@ -27,7 +26,6 @@ function M.open(...)
 				shell.execute({"sh", "-c", match.command, "_", unpack(files)},
 				{fork=match.fork, out=false, err=false})
 			end
-			return true
 		else
 			-- assume arguments are a command
 			for _, e in pairs(files) do

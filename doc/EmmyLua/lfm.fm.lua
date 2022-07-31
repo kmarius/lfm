@@ -43,7 +43,7 @@ function lfm.fm.selection_toggle() end
 function lfm.fm.selection_add(files) end
 
 ---Set the current selection. Empty table or nil clears.
----@param files string[] table of strings.
+---@param files? string[] table of strings.
 function lfm.fm.selection_set(files) end
 
 ---Get the current selection.
