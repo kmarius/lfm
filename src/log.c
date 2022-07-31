@@ -58,20 +58,20 @@ static void stdout_callback(log_Event *ev)
   fprintf(ev->udata, "%s %-5s %s:%d: ", buf, level_strings[ev->level],
       ev->file, ev->line);
 #endif
-  vfprintf(ev->udata, ev->fmt, ev->ap);
-  fprintf(ev->udata, "\x1b[0m\n");
-  fflush(ev->udata);
+	vfprintf(ev->udata, ev->fmt, ev->ap);
+	fprintf(ev->udata, "\n");
+	fflush(ev->udata);
 }
 
 static void file_callback(log_Event *ev)
 {
-  char buf[64];
-  buf[strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", ev->time)] = '\0';
-  fprintf(ev->udata, "%s %-5s %s:%d: ", buf, level_strings[ev->level],
-      ev->file, ev->line);
-  vfprintf(ev->udata, ev->fmt, ev->ap);
-  fprintf(ev->udata, "\x1b[0m\n");
-  fflush(ev->udata);
+	char buf[64];
+	buf[strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", ev->time)] = '\0';
+	fprintf(ev->udata, "%s %-5s %s:%d: ", buf, level_strings[ev->level],
+			ev->file, ev->line);
+	vfprintf(ev->udata, ev->fmt, ev->ap);
+	fprintf(ev->udata, "\n");
+	fflush(ev->udata);
 }
 
 static void lock(void)
