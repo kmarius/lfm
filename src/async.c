@@ -174,6 +174,7 @@ static inline DirCheckResult *DirCheckResult_create(Dir *dir)
   DirCheckResult *res = malloc(sizeof *res);
   res->super.callback = &DirCheckResult_callback;
   res->super.destroy = &DirCheckResult_destroy;
+  res->super.next = NULL;
   res->dir = dir;
   return res;
 }
