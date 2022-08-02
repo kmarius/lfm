@@ -1,4 +1,5 @@
 local lfs = require("lfs")
+_G.lfs = nil  -- lua-filesystem creates this global for some reason...
 
 local M = {}
 

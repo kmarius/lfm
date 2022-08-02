@@ -4,6 +4,7 @@ local line_get = lfm.cmd.line_get
 local line_set = lfm.cmd.line_set
 local commands = lfm.commands
 local lfs = require("lfs")
+_G.lfs = nil  -- lua-filesystem creates this global for some reason...
 
 local M = {}
 

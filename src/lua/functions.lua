@@ -4,6 +4,8 @@ local fm = lfm.fm
 
 local util = require("util")
 local lfs = require("lfs")
+_G.lfs = nil  -- lua-filesystem creates this global for some reason...
+
 local basename = util.basename
 local dirname = util.dirname
 local file_split = util.file_split
