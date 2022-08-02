@@ -494,8 +494,11 @@ lfm.register_command("glob-select", require("glob").glob_select, {tokenize=false
 lfm.register_command("glob-select-rec", require("glob").glob_select_recursive, {tokenize=false})
 
 lfm.register_command("mark-save", require("quickmarks").mark_save)
+lfm.register_command("mark-delete", require("quickmarks").mark_delete)
 lfm.register_mode(require("quickmarks").mode_mark_save)
+lfm.register_mode(require("quickmarks").mode_mark_delete)
 lfm.map("m", a(lfm.cmd.prefix_set, require("quickmarks").mode_mark_save.prefix), {desc="save quickmark"})
+lfm.map("dm", a(lfm.cmd.prefix_set, require("quickmarks").mode_mark_delete.prefix), {desc="delete quickmark"})
 
 local function gmap(key, location)
 	map("g"..key, function() fm.chdir(location) end, {desc="cd "..location})

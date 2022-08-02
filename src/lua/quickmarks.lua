@@ -9,8 +9,6 @@ local getenv = os.getenv
 -- TODO: there is also marks in fm.c, those should probably be removed, '' could
 -- be handled with hooks (on 2022-02-12)
 
--- TODO: add mark-delete (on 2022-07-31)
-
 local path = lfm.config.user_datadir .. "/quickmarks.lua"
 
 local marks = {}
@@ -58,6 +56,15 @@ local function mark_save(m)
 	save()
 end
 
+local function mark_delete(m)
+	if marks[m] then
+		load()
+		map("'"..m, nil)
+		marks[m] = nil
+		save()
+	end
+end
+
 ---@class setup_opts
 ---@field quickmarks table<char, path>
 
@@ -82,9 +89,21 @@ local mode_mark_save = {
 	end,
 }
 
+local mode_mark_delete = {
+	prefix = "mark-delete: ",
+	on_enter = clear,
+	on_esc = clear,
+	on_change = function()
+		mark_delete(line_get())
+		clear()
+	end,
+}
+
 return {
 	mark_add = mark_add,
 	mark_save = mark_save,
+	mark_delete = mark_delete,
 	setup = setup,
-	mode_mark_save = mode_mark_save
+	mode_mark_save = mode_mark_save,
+	mode_mark_delete = mode_mark_delete,
 }
