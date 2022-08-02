@@ -52,8 +52,8 @@ function M.setup(t)
 		lfm.register_hook("ChdirPost", on_chdir)
 		registered_hook = true
 	end
-	lfm.map(t.jump_next_key or "]", M.jump_next, "jumplist-next")
-	lfm.map(t.jump_prev_key or "[", M.jump_prev, "jumplist-prev")
+	lfm.map(t.jump_next_key or "]", M.jump_next, {desc="jumplist-next"})
+	lfm.map(t.jump_prev_key or "[", M.jump_prev, {desc="jumplist-prev"})
 end
 
 return M

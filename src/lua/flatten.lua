@@ -5,7 +5,7 @@ local fm = lfm.fm
 local M =  {}
 
 ---Set the flatten level of the current directory.
----@param level number
+---@param level number | string the level or "+" or "-"
 function M.flatten(level)
 	if level == "+" then
 		level = fm.flatten_level() + 1
