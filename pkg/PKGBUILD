@@ -1,12 +1,12 @@
 pkgname=lfm-git
 _pkgname=lfm
-pkgver=r507.be17de3
+pkgver=r612.d8387cf
 pkgrel=1
 pkgdesc="terminal file manager"
 url="https://github.com/kmarius/lfm"
 license=('MIT')
 arch=('x86_64' 'aarch64')
-depends=('luajit' 'libev' 'lua51-filesystem')
+depends=('luajit' 'libev' 'lua51-posix')
 makedepends=('git' 'cmake' 'gcc')
 optdepends=("trash-cli: trash files")
 source=(git+https://github.com/kmarius/lfm)
