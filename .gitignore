@@ -5,6 +5,7 @@
 /.clangd
 /.luarc.lua
 /.cache
+/.yabs
 /tags
 /tags.lock
 /tags.temp
