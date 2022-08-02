@@ -3,8 +3,8 @@ local lfm = lfm
 local line_get = lfm.cmd.line_get
 local line_set = lfm.cmd.line_set
 local commands = lfm.commands
-local lfs = require("lfs")
-_G.lfs = nil  -- lua-filesystem creates this global for some reason...
+local stat = require("posix.sys.stat")
+local dirent = require("posix.dirent")
 
 local M = {}
 
@@ -55,6 +55,10 @@ end
 
 local home = os.getenv("HOME")
 
+local function is_dir(path)
+	return stat.S_ISDIR(stat.stat(path).st_mode) == 1
+end
+
 ---Complete directories.
 function M.dirs(path)
 	if path == "~" then
@@ -73,12 +77,12 @@ function M.dirs(path)
 		dir = home .. string.sub(dir, 2)
 	end
 	local hidden = string.match(prefix, "^%.") ~= nil
-	if lfs.attributes(dir) then
-		for f in lfs.dir(dir) do
+	if stat.stat(dir) then
+		for f in dirent.files(dir) do
 			if f ~= "." and f ~= ".." then
 				if hidden == (string.sub(f, 1, 1) == ".") then
 					if string.sub(f, 1, #prefix) == prefix then
-						if lfs.attributes(dir .. f, "mode") == "directory" then
+						if is_dir(dir..f) then
 							table.insert(t, base..f)
 						end
 					end
@@ -107,12 +111,12 @@ function M.files(path)
 		dir = home .. string.sub(dir, 2)
 	end
 	local hidden = string.match(prefix, "^%.") ~= nil
-	if lfs.attributes(dir) then
-		for f in lfs.dir(dir) do
+	if stat.stat(dir) then
+		for f in dirent.files(dir) do
 			if f ~= "." and f ~= ".." then
 				if hidden == (string.sub(f, 1, 1) == ".") then
 					if string.sub(f, 1, #prefix) == prefix then
-						if lfs.attributes(dir..f, "mode") == "directory" then
+						if is_dir(dir..f) then
 							table.insert(t, base .. f .. "/")
 						else
 							table.insert(t, base .. f)

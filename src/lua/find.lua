@@ -1,5 +1,5 @@
-local lfs = require("lfs")
-_G.lfs = nil  -- lua-filesystem creates this global for some reason...
+local stat = require("posix.sys.stat")
+local dirent = require("posix.dirent")
 
 local M = {}
 
@@ -16,15 +16,16 @@ local M = {}
 ---@return fun(...: nil):...
 local function find(path, fn)
 	local yield = coroutine.yield
-	local attributes = lfs.attributes
 	return coroutine.wrap(function()
-		for f in lfs.dir(path) do
+		local stat_stat = stat.stat
+		local s_isdir = stat.S_ISDIR
+		for f in dirent.files(path) do
 			if f ~= "." and f ~= ".." then
 				local _f = path .. "/" .. f
 				if not fn or fn(_f) then
 					yield(_f)
 				end
-				if attributes(_f, "mode") == "directory" then
+				if s_isdir(stat_stat(_f).st_mode) == 1 then
 					for n in find(_f, fn) do
 						yield(n)
 					end

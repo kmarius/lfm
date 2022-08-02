@@ -3,8 +3,7 @@ local lfm = lfm
 local fm = lfm.fm
 
 local util = require("util")
-local lfs = require("lfs")
-_G.lfs = nil  -- lua-filesystem creates this global for some reason...
+local stat = require("posix.sys.stat")
 
 local basename = util.basename
 local dirname = util.dirname
@@ -14,7 +13,7 @@ local M = {}
 
 
 local function file_exists(path)
-	return lfs.attributes(path) ~= nil
+	return stat.stat(path) ~= nil
 end
 
 ---Copy a string to the clipboard.
@@ -172,7 +171,7 @@ function M.paste()
 	end
 	local pwd = lfm.fn.getpwd()
 	--- spawning all these shells is fine with a sane amount of files
-	local attributes = lfs.attributes
+	local stat_stat = stat.stat
 	local format = string.format
 	local cb = function(ret)
 		if ret ~= 0 then
@@ -186,7 +185,7 @@ function M.paste()
 		local base = basename(file)
 		local target = pwd.."/"..base
 		local num = 1
-		while attributes(target, "mode") do
+		while stat_stat(target) do
 			target = format("%s/%s.~%d~", pwd, base, num)
 			num = num + 1
 		end
