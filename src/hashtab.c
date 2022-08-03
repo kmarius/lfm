@@ -18,7 +18,7 @@ static uint64_t hash(const char *s)
 }
 
 
-T *hashtab_init(T *t, size_t size, free_fun free)
+T *ht_init(T *t, size_t size, free_fun free)
 {
   t->nbuckets = size;
   t->buckets = calloc(t->nbuckets, sizeof *t->buckets);
@@ -28,11 +28,11 @@ T *hashtab_init(T *t, size_t size, free_fun free)
 }
 
 
-void hashtab_deinit(T *t)
+void ht_deinit(T *t)
 {
   for (size_t i = 0; i < t->nbuckets; i++) {
     if (t->buckets[i].val) {
-      for (struct bucket *next, *b = t->buckets[i].next; b; b = next) {
+      for (struct ht_bucket *next, *b = t->buckets[i].next; b; b = next) {
         next = b->next;
         if (t->free) {
           t->free(b->val);
@@ -51,11 +51,11 @@ void hashtab_deinit(T *t)
 // Returns true if successfull and the corresponding bucket in b: Otherwise,
 // b contains the bucket (head of the list) if empty, or the element to which
 // the new node should be appended to (check with (*b)->val).
-static bool probe(T *t, const char *key, struct bucket **b)
+static bool probe(T *t, const char *key, struct ht_bucket **b)
 {
   *b = &t->buckets[hash(key) % t->nbuckets];
   for (;;) {
-    struct bucket *bb = *b;
+    struct ht_bucket *bb = *b;
     if (!bb->key) {
       return false;
     }
@@ -70,9 +70,9 @@ static bool probe(T *t, const char *key, struct bucket **b)
 }
 
 
-void hashtab_set(T *t, const char *key, void *val)
+void ht_set(T *t, const char *key, void *val)
 {
-  struct bucket *b;
+  struct ht_bucket *b;
   if (!probe(t, key, &b) && b->val) {
     b->next = malloc(sizeof *b->next);
     b = b->next;
@@ -85,9 +85,9 @@ void hashtab_set(T *t, const char *key, void *val)
 }
 
 
-void *hashtab_get(T *t, const char *key)
+void *ht_get(T *t, const char *key)
 {
-  struct bucket *b;
+  struct ht_bucket *b;
   if (probe(t, key, &b)) {
     return b->val;
   }
@@ -95,11 +95,11 @@ void *hashtab_get(T *t, const char *key)
 }
 
 
-void hashtab_clear(T *t)
+void ht_clear(T *t)
 {
   for (size_t i = 0; i < t->nbuckets; i++) {
     if (t->buckets[i].val) {
-      for (struct bucket *next, *b = t->buckets[i].next; b; b = next) {
+      for (struct ht_bucket *next, *b = t->buckets[i].next; b; b = next) {
         next = b->next;
         if (t->free) {
           t->free(b->val);
@@ -117,7 +117,7 @@ void hashtab_clear(T *t)
   t->version++;
 }
 
-struct ht_stats hashtab_stats(T *t)
+struct ht_stats ht_stats(T *t)
 {
   struct ht_stats stats = { .nbuckets = t->nbuckets, };
 
@@ -126,7 +126,7 @@ struct ht_stats hashtab_stats(T *t)
       uint16_t size = 1;
       stats.buckets_nonempty++;
       stats.nelems++;
-      for (struct bucket *b = t->buckets[i].next; b; b = b->next) {
+      for (struct ht_bucket *b = t->buckets[i].next; b; b = b->next) {
         stats.nelems++;
         size++;
       }

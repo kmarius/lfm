@@ -19,6 +19,7 @@
 #include "find.h"
 #include "fm.h"
 #include "hashtab.h"
+#include "linkedhashtab.h"
 #include "loader.h"
 #include "log.h"
 #include "lua.h"
@@ -55,7 +56,7 @@ static int command_count = -1;
 
 static int l_dircache_stats(lua_State *L)
 {
-  struct ht_stats stats = hashtab_stats(loader_hashtab());
+  struct ht_stats stats = ht_stats(loader_hashtab());
   lua_newtable(L);
 
   lua_pushnumber(L, stats.nbuckets);
@@ -1390,20 +1391,19 @@ static int l_fm_selection_toggle_current(lua_State *L)
 
 static int l_fm_selection_add(lua_State *L)
 {
-  fm_selection_add_file(fm, luaL_checkstring(L, 1));
+  fm_selection_add(fm, luaL_checkstring(L, 1));
   return 0;
 }
 
 
 static int l_fm_selection_set(lua_State *L)
 {
-  cvector_vector_type(char*) selection = NULL;
+  fm_selection_clear(fm);
   if (lua_istable(L, -1)) {
     for (lua_pushnil(L); lua_next(L, -2); lua_pop(L, 1)) {
-      cvector_push_back(selection, strdup(luaL_checkstring(L, -1)));
+      fm_selection_add(fm, luaL_checkstring(L, -1));
     }
   }
-  fm_selection_set(fm, selection);
   ui_redraw(ui, REDRAW_FM);
   return 0;
 }
@@ -1411,13 +1411,11 @@ static int l_fm_selection_set(lua_State *L)
 
 static int l_fm_selection_get(lua_State *L)
 {
-  lua_createtable(L, fm->selection.length, 0);
-  size_t j = 1;
-  for (size_t i = 0; i < cvector_size(fm->selection.paths); i++) {
-    if (fm->selection.paths[i]) {
-      lua_pushstring(L, fm->selection.paths[i]);
-      lua_rawseti(L, -2, j++);
-    }
+  lua_createtable(L, fm->selection.paths.size, 0);
+  size_t i = 1;
+  lht_foreach(char *path, &fm->selection.paths) {
+      lua_pushstring(L, path);
+      lua_rawseti(L, -2, i++);
   }
   return 1;
 }
@@ -1471,10 +1469,11 @@ static int l_fm_paste_mode_set(lua_State *L)
 
 static int l_fm_paste_buffer_get(lua_State *L)
 {
-  lua_createtable(L, cvector_size(fm->paste.buffer), 0);
-  for (size_t i = 0; i < cvector_size(fm->paste.buffer); i++) {
-    lua_pushstring(L, fm->paste.buffer[i]);
-    lua_rawseti(L, -2, i+1);
+  lua_createtable(L, fm->paste.buffer.size, 0);
+  int i = 1;
+  lht_foreach(char *path, &fm->paste.buffer) {
+    lua_pushstring(L, path);
+    lua_rawseti(L, -2, i++);
   }
   lua_pushstring(L, fm->paste.mode == PASTE_MODE_MOVE ? "move" : "copy");
   return 2;

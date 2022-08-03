@@ -7,24 +7,24 @@
 
 typedef void (*free_fun)(void *);
 
-struct bucket {
+struct ht_bucket {
   const char *key;
   void *val;
-  struct bucket *next;
+  struct ht_bucket *next;
 };
 
-typedef struct hashmap {
-  struct bucket *buckets;
+typedef struct hashtab {
+  struct ht_bucket *buckets;
   uint16_t nbuckets;
   free_fun free;
   uint8_t version;
 } Hashtab;
 
-Hashtab *hashtab_init(Hashtab *t, size_t size, free_fun free);
-void hashtab_deinit(Hashtab *t);
-void hashtab_set(Hashtab *t, const char *key, void *val);
-void *hashtab_get(Hashtab *t, const char *key);
-void hashtab_clear(Hashtab *t);
+Hashtab *ht_init(Hashtab *t, size_t size, free_fun free);
+void ht_deinit(Hashtab *t);
+void ht_set(Hashtab *t, const char *key, void *val);
+void *ht_get(Hashtab *t, const char *key);
+void ht_clear(Hashtab *t);
 
 struct ht_stats {
   uint16_t nbuckets;
@@ -35,9 +35,11 @@ struct ht_stats {
   double alpha;
 };
 
-struct ht_stats hashtab_stats(Hashtab *t);
+struct ht_stats ht_stats(Hashtab *t);
 
-#define hashtab_foreach(item, h) \
-  for (size_t hm_i = 0; hm_i < (h)->nbuckets; hm_i++) \
-  for (struct bucket *hm_cont, *b = &(h)->buckets[hm_i]; (hm_cont = b) && b->val; b = b->next) \
-  for (item = b->val; hm_cont; hm_cont = NULL)
+// iterate over values
+#define ht_foreach(item, h) \
+  for (size_t ht_i = 0; ht_i < (h)->nbuckets; ht_i++) \
+  for (struct ht_bucket *ht_cont, *ht_b = &(h)->buckets[ht_i]; \
+      (ht_cont = ht_b) && ht_b->val; ht_b = ht_b->next) \
+  for (item = ht_b->val; ht_cont; ht_cont = NULL)

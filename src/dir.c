@@ -385,6 +385,26 @@ void dir_cursor_move(T *t, int32_t ct, uint16_t height, uint16_t scrolloff)
 }
 
 
+static inline void dir_cursor_move_to_sel(T *t, uint16_t height, uint16_t scrolloff)
+{
+  if (!t->sel || !t->files) {
+    return;
+  }
+
+  for (uint32_t i = 0; i < t->length; i++) {
+    if (streq(file_name(t->files[i]), t->sel)) {
+      dir_cursor_move(t, i - t->ind, height, scrolloff);
+      goto cleanup;
+    }
+  }
+  t->ind = min(t->ind, t->length);
+
+cleanup:
+  free(t->sel);
+  t->sel = NULL;
+}
+
+
 void dir_cursor_move_to(T *t, const char *name, uint16_t height, uint16_t scrolloff)
 {
   if (!name) {
@@ -435,9 +455,7 @@ void dir_update_with(T *t, Dir *update, uint16_t height, uint16_t scrolloff)
   dir_sort(t);
 
   if (t->sel) {
-    dir_cursor_move_to(t, t->sel, height, scrolloff);
-    free(t->sel);
-    t->sel = NULL;
+    dir_cursor_move_to_sel(t, height, scrolloff);
   }
 }
 

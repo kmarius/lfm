@@ -7,6 +7,7 @@
 #include "dir.h"
 #include "file.h"
 #include "hashtab.h"
+#include "linkedhashtab.h"
 
 enum paste_mode_e {
   PASTE_MODE_MOVE,
@@ -35,17 +36,15 @@ typedef struct Fm {
   cvector_vector_type(struct jump_mark) marks;
 
   struct {
-    // Current selection, as a vector of paths
-    cvector_vector_type(char *) paths;
-    uint16_t length;
-
-    // Previous seletction, needed for visual selection mode
-    cvector_vector_type(char *) previous;
+    // Current and previous selection (needed for visual mode)
+    /* TODO: consider checking at some point if selected files even still exist (on 2022-08-03) */
+    LinkedHashtab paths;
+    LinkedHashtab previous;
   } selection;
 
   struct {
     // Copy/move buffer, vector of paths
-    cvector_vector_type(char *) buffer;
+    LinkedHashtab buffer;
     enum paste_mode_e mode;
   } paste;
 
@@ -151,13 +150,17 @@ bool fm_mark_load(Fm *fm, char mark);
 void fm_selection_toggle_current(Fm *fm);
 
 // Add `path` to the current selection if not already contained.
-void fm_selection_add_file(Fm *fm, const char *path);
-
-// Replace the current selection.
-void fm_selection_set(Fm *fm, cvector_vector_type(char*) selection);
+static inline void fm_selection_add(Fm *fm, const char *path)
+{
+  char *val = strdup(path);
+  lht_set(&fm->selection.paths, val, val);
+}
 
 // Clear the selection completely.
-void fm_selection_clear(Fm *fm);
+static inline void fm_selection_clear(Fm *fm)
+{
+  lht_clear(&fm->selection.paths);
+}
 
 // Reverse the file selection.
 void fm_selection_reverse(Fm *fm);
@@ -181,19 +184,19 @@ void fm_paste_mode_set(Fm *fm, enum paste_mode_e mode);
 // Clear copy/move buffer.
 static inline void fm_paste_buffer_clear(Fm *fm)
 {
-  cvector_fclear(fm->paste.buffer, free);
+  lht_clear(&fm->paste.buffer);
 }
 
 // Get the list of files in copy/move buffer. Returns a cvector of char*.
-static inline char *const *fm_paste_buffer_get(const Fm *fm)
+static inline const LinkedHashtab *fm_paste_buffer_get(const Fm *fm)
 {
-  return fm->paste.buffer;
+  return &fm->paste.buffer;
 }
 
-// Get the list of files in copy/move buffer. Returns a cvector of char*.
 static inline void fm_paste_buffer_add(Fm *fm, const char* file)
 {
-  cvector_push_back(fm->paste.buffer, strdup(file));
+  char *val = strdup(file);
+  lht_set(&fm->paste.buffer, val, val);
 }
 
 // Get the mode current load, one of `MODE_COPY`, `MODE_MOVE`.

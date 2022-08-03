@@ -12,8 +12,10 @@
 #include "app.h"
 #include "async.h"
 #include "config.h"
+#include "cvector.h"
 #include "fm.h"
 #include "hashtab.h"
+#include "linkedhashtab.h"
 #include "loader.h"
 #include "log.h"
 #include "lualfm.h"
@@ -21,6 +23,9 @@
 #include "util.h"
 
 #define T Fm
+
+/* TODO: use larger/growing hashtables to handle large nubmer of files (on 2022-08-03) */
+#define LHT_SIZE 128
 
 #define FM_INITIALIZER ((T){ \
     .paste.mode = PASTE_MODE_COPY, \
@@ -47,6 +52,10 @@ void fm_init(T *t)
   t->dirs.length = cvector_size(cfg.ratios) - (cfg.preview ? 1 : 0);
   cvector_grow(t->dirs.visible, t->dirs.length);
 
+  lht_init(&t->selection.paths, LHT_SIZE, free);
+  lht_init(&t->selection.previous, LHT_SIZE, NULL); // we only store pointers that are in selection.paths
+  lht_init(&t->paste.buffer, LHT_SIZE, free);
+
   fm_populate(t);
 
   fm_update_watchers(t);
@@ -62,11 +71,9 @@ void fm_init(T *t)
 void fm_deinit(T *t)
 {
   cvector_free(t->dirs.visible);
-  cvector_ffree(t->selection.paths, free);
-  /* prev_selection _never_ holds allocated paths that are not already
-   * free'd in fm->selection */
-  cvector_free(t->selection.previous);
-  cvector_ffree(t->paste.buffer, free);
+  lht_deinit(&t->selection.paths);
+  lht_deinit(&t->selection.previous);
+  lht_deinit(&t->paste.buffer);
 
   cvector_foreach_ptr(mark, t->marks) {
     free(mark->path);
@@ -322,49 +329,12 @@ void fm_update_preview(T *t)
 
 /* selection {{{ */
 
-void fm_selection_clear(T *t)
-{
-  cvector_fclear(t->selection.paths, free);
-  t->selection.length = 0;
-}
 
-
-void fm_selection_add_file(T *t, const char *path)
+static inline void fm_selection_toggle(T *t, const char *path)
 {
-  for (size_t i = 0; i < cvector_size(t->selection.paths); i++) {
-    if (t->selection.paths[i] && streq(t->selection.paths[i], path)) {
-      return;
-    }
+  if (!lht_delete(&t->selection.paths, path)) {
+    fm_selection_add(t, path);
   }
-  cvector_push_back(t->selection.paths, strdup(path));
-  t->selection.length++;
-}
-
-
-void fm_selection_set(T *t, cvector_vector_type(char*) selection)
-{
-  fm_selection_clear(t);
-  cvector_free(t->selection.paths);
-  t->selection.paths = selection;
-  t->selection.length = cvector_size(selection); // assume selection isnt sparse
-}
-
-
-void selection_toggle_file(T *t, const char *path)
-{
-  for (size_t i = 0; i < cvector_size(t->selection.paths); i++) {
-    if (t->selection.paths[i] && streq(t->selection.paths[i], path)) {
-      free(t->selection.paths[i]);
-      t->selection.paths[i] = NULL;
-      t->selection.length--;
-      if (t->selection.length == 0) {
-        cvector_set_size(t->selection.paths, 0);
-      }
-      return;
-    }
-  }
-  cvector_push_back(t->selection.paths, strdup(path));
-  t->selection.length++;
 }
 
 
@@ -375,7 +345,7 @@ void fm_selection_toggle_current(T *t)
   }
   File *file = fm_current_file(t);
   if (file) {
-    selection_toggle_file(t, file_path(file));
+    fm_selection_toggle(t, file_path(file));
   }
 }
 
@@ -384,7 +354,7 @@ void fm_selection_reverse(T *t)
 {
   const Dir *dir = fm_current_dir(t);
   for (uint16_t i = 0; i < dir->length; i++) {
-    selection_toggle_file(t, file_path(dir->files[i]));
+    fm_selection_toggle(t, file_path(dir->files[i]));
   }
 }
 
@@ -404,11 +374,10 @@ void fm_selection_visual_start(T *t)
    * active? (on 2021-11-15) */
   t->visual.active = true;
   t->visual.anchor = dir->ind;
-  fm_selection_add_file(t, file_path(dir->files[dir->ind]));
-  for (size_t i = 0; i < cvector_size(t->selection.paths); i++) {
-    if (t->selection.paths[i]) {
-      cvector_push_back(t->selection.previous, t->selection.paths[i]);
-    }
+  fm_selection_add(t, file_path(dir->files[dir->ind]));
+  lht_clear(&t->selection.previous);
+  lht_foreach(const char* path, &t->selection.paths) {
+    lht_set(&t->selection.previous, path, (void *) path);
   }
 }
 
@@ -421,9 +390,7 @@ void fm_selection_visual_stop(T *t)
 
   t->visual.active = false;
   t->visual.anchor = 0;
-  /* we dont free anything here because the old selection is always a subset of the
-   * new slection */
-  cvector_set_size(t->selection.previous, 0);
+  lht_clear(&t->selection.previous);
 }
 
 
@@ -466,8 +433,8 @@ static void selection_visual_update(T *t, uint32_t origin, uint32_t from, uint32
   const Dir *dir = fm_current_dir(t);
   for (; lo <= hi; lo++) {
     // never unselect the old selection
-    if (!cvector_contains_str(t->selection.previous, file_path(dir->files[lo]))) {
-      selection_toggle_file(t, file_path(dir->files[lo]));
+    if (!lht_get(&t->selection.previous, file_path(dir->files[lo]))) {
+      fm_selection_toggle(t, file_path(dir->files[lo]));
     }
   }
 }
@@ -486,12 +453,10 @@ void fm_selection_write(const T *t, const char *path)
     return;
   }
 
-  if (t->selection.length > 0) {
-    for (size_t i = 0; i< cvector_size(t->selection.paths); i++) {
-      if (t->selection.paths[i]) {
-        fputs(t->selection.paths[i], fp);
-        fputc('\n', fp);
-      }
+  if (t->selection.paths.size > 0) {
+    lht_foreach(char *path, &t->selection.paths) {
+      fputs(path, fp);
+      fputc('\n', fp);
     }
   } else {
     const File *file = fm_current_file(t);
@@ -512,15 +477,12 @@ void fm_paste_mode_set(T *t, enum paste_mode_e mode)
 {
   fm_selection_visual_stop(t);
   t->paste.mode = mode;
-  if (t->selection.length == 0) {
+  if (t->selection.paths.size == 0) {
     fm_selection_toggle_current(t);
   }
-  fm_paste_buffer_clear(t);
-  char **tmp = t->paste.buffer;
-  t->paste.buffer = t->selection.paths;
-  cvector_compact(t->paste.buffer);
-  t->selection.paths = tmp;
-  t->selection.length = 0;
+  lht_deinit(&t->paste.buffer);
+  memcpy(&t->paste.buffer, &t->selection.paths, sizeof(LinkedHashtab));
+  lht_init(&t->selection.paths, LHT_SIZE, free);
 }
 
 /* }}} */
@@ -685,7 +647,7 @@ void fm_resize(T *t, uint16_t height)
   }
 
   // is there a way to restore the position when just undoing a previous resize?
-  hashtab_foreach(Dir *dir, loader_hashtab()) {
+  ht_foreach(Dir *dir, loader_hashtab()) {
     if (height > t->height) {
       int scrolloff_top = dir->ind;
       if (scrolloff_top > scrolloff) {

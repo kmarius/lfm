@@ -428,7 +428,7 @@ static void PreviewCheckResult_callback(void *p, App *app)
 {
   PreviewCheckResult *res = p;
   (void) app;
-  Preview *pv = hashtab_get(&app->ui.preview.cache, res->path);
+  Preview *pv = ht_get(&app->ui.preview.cache, res->path);
   if (pv) {
     async_preview_load(pv, res->nrow);
   }

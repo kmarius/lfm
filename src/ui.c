@@ -18,6 +18,7 @@
 #include "file.h"
 #include "filter.h"
 #include "hashtab.h"
+#include "linkedhashtab.h"
 #include "log.h"
 #include "ui.h"
 #include "util.h"
@@ -25,8 +26,8 @@
 #define T Ui
 
 static void draw_dirs(T *t);
-static void plane_draw_dir(struct ncplane *n, Dir *dir, char **sel,
-    char **load, enum paste_mode_e mode, const char *highlight, bool print_sizes);
+static void plane_draw_dir(struct ncplane *n, Dir *dir, LinkedHashtab *sel,
+    LinkedHashtab *load, enum paste_mode_e mode, const char *highlight, bool print_sizes);
 static void draw_cmdline(T *t);
 static void draw_preview(T *t);
 static void plane_draw_file_preview(struct ncplane *n, Preview *pv);
@@ -115,7 +116,7 @@ void ui_init(T *t, Fm *fm)
 {
   t->fm = fm;
 
-  hashtab_init(&t->preview.cache, PREVIEW_CACHE_SIZE, (void(*)(void*)) preview_destroy);
+  ht_init(&t->preview.cache, PREVIEW_CACHE_SIZE, (void(*)(void*)) preview_destroy);
   cmdline_init(&t->cmdline);
   history_load(&t->history, cfg.historypath);
 
@@ -147,7 +148,7 @@ void ui_deinit(T *t)
   cvector_ffree(t->messages, free);
   cvector_ffree(t->menubuf, free);
   cmdline_deinit(&t->cmdline);
-  hashtab_deinit(&t->preview.cache);
+  ht_deinit(&t->preview.cache);
 }
 
 
@@ -249,8 +250,8 @@ static void draw_dirs(T *t)
   for (uint16_t i = 0; i < l; i++) {
     plane_draw_dir(t->planes.dirs[l-i-1],
         t->fm->dirs.visible[i],
-        t->fm->selection.paths,
-        t->fm->paste.buffer,
+        &t->fm->selection.paths,
+        &t->fm->paste.buffer,
         t->fm->paste.mode,
         i == 0 ? t->highlight : NULL, i == 0);
   }
@@ -261,8 +262,8 @@ static void draw_preview(T *t)
 {
   if (cfg.preview && t->ndirs > 1) {
     if (t->fm->dirs.preview) {
-      plane_draw_dir(t->planes.preview, t->fm->dirs.preview, t->fm->selection.paths,
-          t->fm->paste.buffer, t->fm->paste.mode, NULL, false);
+      plane_draw_dir(t->planes.preview, t->fm->dirs.preview, &t->fm->selection.paths,
+          &t->fm->paste.buffer, t->fm->paste.mode, NULL, false);
     } else {
       update_preview(t);
       plane_draw_file_preview(t->planes.preview, t->preview.preview);
@@ -449,23 +450,23 @@ void draw_cmdline(T *t)
         ncplane_set_fg_default(n);
         ncplane_putchar(n, ' ');
       }
-      if (cvector_size(t->fm->paste.buffer) > 0) {
+      if (t->fm->paste.buffer.size > 0) {
         if (t->fm->paste.mode == PASTE_MODE_COPY) {
           ncplane_set_channels(n, cfg.colors.copy);
         } else {
           ncplane_set_channels(n, cfg.colors.delete);
         }
 
-        rhs_sz += int_sz(cvector_size(t->fm->paste.buffer)) + 2 + 1;
-        ncplane_printf_yx(n, 0, t->ncol-rhs_sz, " %lu ", cvector_size(t->fm->paste.buffer));
+        rhs_sz += int_sz(t->fm->paste.buffer.size) + 2 + 1;
+        ncplane_printf_yx(n, 0, t->ncol-rhs_sz, " %u ", t->fm->paste.buffer.size);
         ncplane_set_bg_default(n);
         ncplane_set_fg_default(n);
         ncplane_putchar(n, ' ');
       }
-      if (t->fm->selection.length > 0) {
+      if (t->fm->selection.paths.size > 0) {
         ncplane_set_channels(n, cfg.colors.selection);
-        rhs_sz += int_sz(t->fm->selection.length) + 2 + 1;
-        ncplane_printf_yx(n, 0, t->ncol - rhs_sz, " %d ", t->fm->selection.length);
+        rhs_sz += int_sz(t->fm->selection.paths.size) + 2 + 1;
+        ncplane_printf_yx(n, 0, t->ncol - rhs_sz, " %u ", t->fm->selection.paths.size);
         ncplane_set_bg_default(n);
         ncplane_set_fg_default(n);
         ncplane_putchar(n, ' ');
@@ -713,7 +714,7 @@ void ui_showmenu(T *t, cvector_vector_type(char*) vec)
 static uint64_t ext_channel_get(const char *ext)
 {
   if (ext) {
-    uint64_t *chan = hashtab_get(&cfg.colors.ext, ext);
+    uint64_t *chan = ht_get(&cfg.colors.ext, ext);
     if (chan) {
       return *chan;
     }
@@ -961,7 +962,7 @@ static int print_highlighted_and_shortened(struct ncplane *n, const char *name, 
 
 
 static void print_file(struct ncplane *n, const File *file,
-    bool iscurrent, char **sel, char **load, enum paste_mode_e mode,
+    bool iscurrent, LinkedHashtab *sel, LinkedHashtab *load, enum paste_mode_e mode,
     const char *highlight, bool print_sizes)
 {
   int ncol, y0;
@@ -1000,11 +1001,11 @@ static void print_file(struct ncplane *n, const File *file,
 
   ncplane_set_bg_default(n);
 
-  if (cvector_contains_str(sel, file_path(file))) {
+  if (lht_get(sel, file_path(file))) {
     ncplane_set_channels(n, cfg.colors.selection);
-  } else if (mode == PASTE_MODE_MOVE && cvector_contains_str(load, file_path(file))) {
+  } else if (mode == PASTE_MODE_MOVE && lht_get(load, file_path(file))) {
     ncplane_set_channels(n, cfg.colors.delete);
-  } else if (mode == PASTE_MODE_COPY && cvector_contains_str(load, file_path(file))) {
+  } else if (mode == PASTE_MODE_COPY && lht_get(load, file_path(file))) {
     ncplane_set_channels(n, cfg.colors.copy);
   }
 
@@ -1066,7 +1067,7 @@ static void print_file(struct ncplane *n, const File *file,
 }
 
 
-static void plane_draw_dir(struct ncplane *n, Dir *dir, char **sel, char **load,
+static void plane_draw_dir(struct ncplane *n, Dir *dir, LinkedHashtab *sel, LinkedHashtab*load,
     enum paste_mode_e mode, const char *highlight, bool print_sizes)
 {
   int nrow, i, offset;
@@ -1115,7 +1116,7 @@ static Preview *load_preview(T *t, File *file)
   int ncol, nrow;
   ncplane_dim_yx(t->planes.preview, &nrow, &ncol);
 
-  Preview *pv = hashtab_get(&t->preview.cache, file_path(file));
+  Preview *pv = ht_get(&t->preview.cache, file_path(file));
   if (pv) {
     /* TODO: vv (on 2021-08-10) */
     /* might be checking too often here? or is it capped by inotify
@@ -1128,7 +1129,7 @@ static Preview *load_preview(T *t, File *file)
     }
   } else {
     pv = preview_create_loading(file_path(file), nrow);
-    hashtab_set(&t->preview.cache, pv->path, pv);
+    ht_set(&t->preview.cache, pv->path, pv);
     async_preview_load(pv, nrow);
   }
   return pv;
@@ -1325,7 +1326,7 @@ void ui_drop_cache(T *t)
   if (t->preview.preview) {
     t->preview.preview = NULL;
   }
-  hashtab_clear(&t->preview.cache);
+  ht_clear(&t->preview.cache);
   update_preview(t);
   ui_redraw(t, REDRAW_CMDLINE | REDRAW_PREVIEW);
 }

@@ -49,13 +49,13 @@ void config_ext_channel_add(const char *ext, uint64_t channel)
   char *s = malloc(sizeof(uint64_t) + strlen(ext) + 1);
   *(uint64_t *) s = channel;
   strcpy(s + sizeof(uint64_t), ext);
-  hashtab_set(&cfg.colors.ext, s + sizeof(uint64_t), s);
+  ht_set(&cfg.colors.ext, s + sizeof(uint64_t), s);
 }
 
 
 void config_init()
 {
-  hashtab_init(&cfg.colors.ext, EXT_CHANNEL_TAB_SIZE, free);
+  ht_init(&cfg.colors.ext, EXT_CHANNEL_TAB_SIZE, free);
   cvector_vector_type(uint16_t) r = NULL;
   cvector_push_back(r, 1);
   cvector_push_back(r, 2);
@@ -110,7 +110,7 @@ void config_init()
 void config_deinit()
 {
   config_colors_clear();
-  hashtab_deinit(&cfg.colors.ext);
+  ht_deinit(&cfg.colors.ext);
   cvector_free(cfg.ratios);
   cvector_free(cfg.commands);
   cvector_ffree(cfg.inotify_blacklist, free);
@@ -141,5 +141,5 @@ void config_colors_clear()
   cfg.colors.search = NCCHANNELS_INITIALIZER_PALINDEX(-1, -1);
   cfg.colors.selection = NCCHANNELS_INITIALIZER_PALINDEX(-1, -1);
 
-  hashtab_clear(&cfg.colors.ext);
+  ht_clear(&cfg.colors.ext);
 }
