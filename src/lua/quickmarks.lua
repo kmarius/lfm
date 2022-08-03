@@ -36,11 +36,17 @@ local function load()
 	end
 end
 
+local escape = {
+	['"'] = '\\"',
+	['\\'] = '\\\\',
+}
+
 local function save()
 	local file = open(path, "w")
 	if file then
 		file:write("return {\n")
 		for m, loc in pairs(marks) do
+			m = escape[m] or m
 			file:write(string.format('\t["%s"] = "%s",\n', m, loc))
 		end
 		file:write("}\n")
