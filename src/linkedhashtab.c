@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "linkedhashtab.h"
+#include "util.h"
 
 #define T LinkedHashtab
 

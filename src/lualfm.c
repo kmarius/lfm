@@ -859,7 +859,7 @@ static uint32_t read_channel(lua_State *L, int idx)
 
 static uint64_t read_color_pair(lua_State *L, int ind)
 {
-  uint32_t fg, bg;
+  uint32_t fg, bg = fg = 0;
   ncchannel_set_default(&fg);
   ncchannel_set_default(&bg);
 
