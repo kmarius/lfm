@@ -10,8 +10,7 @@ typedef void (*free_fun)(void *);
 struct lht_bucket {
   const char *key;
   void *val;
-  struct lht_bucket *next; // next/prev in overflow list
-  struct lht_bucket *prev; // i think we don't need this if we return it when probing internally
+  struct lht_bucket *next; // next in overflow list
   struct lht_bucket *order_next; // next/prev in the element ordering
   struct lht_bucket *order_prev;
 };
@@ -39,7 +38,7 @@ static inline void lht_destroy(LinkedHashtab *t)
 bool lht_set(LinkedHashtab *t, const char *key, void *val);
 // returns true on delete
 bool lht_delete(LinkedHashtab *t, const char *key);
-void *lht_get(LinkedHashtab *t, const char *key);
+void *lht_get(const LinkedHashtab *t, const char *key);
 void lht_clear(LinkedHashtab *t);
 
 // iterate over values

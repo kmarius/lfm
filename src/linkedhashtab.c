@@ -52,12 +52,17 @@ T *lht_deinit(T *t)
 }
 
 
-// Returns true if successfull and the corresponding bucket in b: Otherwise,
-// b contains the bucket (head of the list) if empty, or the element to which
-// the new node should be appended to (check with (*b)->val).
-static bool probe(T *t, const char *key, struct lht_bucket **b)
+// Returns true on successfull lookup, sets *b to the corresponding bucket.
+// On fail, b contains either the empty bucket in the bucket array OR the
+// nonempty bucket to which the next bucket should be appended to.
+// (distinguish with (*b)->val != NULL) if prev is non NULL, it will be set
+// to the previous bucket of the overflow list, which is needed for deletion.
+static bool probe(const T *t, const char *key, struct lht_bucket **b, struct lht_bucket **prev)
 {
   *b = &t->buckets[hash(key) % t->nbuckets];
+  if (prev) {
+    *prev = NULL;
+  }
   for (;;) {
     struct lht_bucket *bb = *b;
     if (!bb->key) {
@@ -69,6 +74,9 @@ static bool probe(T *t, const char *key, struct lht_bucket **b)
     if (!bb->next) {
       return false;
     }
+    if (prev) {
+      *prev = bb;
+    }
     *b = bb->next;
   }
 }
@@ -79,10 +87,9 @@ bool lht_set(T *t, const char *key, void *val)
 {
   bool ret = true;
   struct lht_bucket *b;
-  if (!probe(t, key, &b)) {
+  if (!probe(t, key, &b, NULL)) {
     if (b->val) {
       b->next = calloc(1, sizeof *b->next);
-      b->next->prev = b;
       b = b->next;
     }
     b->next = NULL;
@@ -109,8 +116,8 @@ bool lht_set(T *t, const char *key, void *val)
 
 bool lht_delete(T *t, const char *key)
 {
-  struct lht_bucket *b;
-  if (probe(t, key, &b) && b->val) {
+  struct lht_bucket *b, *prev;
+  if (probe(t, key, &b, &prev) && b->val) {
     t->size--;
     if (t->free) {
       t->free(b->val);
@@ -129,11 +136,8 @@ bool lht_delete(T *t, const char *key)
       if (b->order_next) {
         b->order_next->order_prev = b->order_prev;
       }
-      if (b->next) {
-        b->next->prev = b->prev;
-      }
-      if (b->prev) {
-        b->prev->next = b->next;
+      if (prev) {
+        prev->next = b->next;
       }
       free(b);
     } else {
@@ -146,9 +150,6 @@ bool lht_delete(T *t, const char *key)
         }
         if (next->order_next) {
           next->order_next->order_prev = b;
-        }
-        if (next->next) {
-          next->next->prev = b;
         }
         if (t->first == next) {
           t->first = b;
@@ -169,10 +170,10 @@ bool lht_delete(T *t, const char *key)
 }
 
 
-void *lht_get(T *t, const char *key)
+void *lht_get(const T *t, const char *key)
 {
   struct lht_bucket *b;
-  if (probe(t, key, &b)) {
+  if (probe(t, key, &b, NULL)) {
     return b->val;
   }
   return NULL;
