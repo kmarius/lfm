@@ -73,7 +73,6 @@ static bool probe(T *t, const char *key, struct lht_bucket **b)
   }
 }
 
-  #include <stdio.h>
 
 // update keeps the order
 bool lht_set(T *t, const char *key, void *val)
