@@ -353,7 +353,7 @@ void fm_selection_toggle_current(T *t)
 void fm_selection_reverse(T *t)
 {
   const Dir *dir = fm_current_dir(t);
-  for (uint16_t i = 0; i < dir->length; i++) {
+  for (uint32_t i = 0; i < dir->length; i++) {
     fm_selection_toggle(t, file_path(dir->files[i]));
   }
 }
