@@ -19,7 +19,6 @@
 #include "find.h"
 #include "fm.h"
 #include "hashtab.h"
-#include "linkedhashtab.h"
 #include "loader.h"
 #include "log.h"
 #include "lua.h"

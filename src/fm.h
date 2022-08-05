@@ -7,7 +7,6 @@
 #include "dir.h"
 #include "file.h"
 #include "hashtab.h"
-#include "linkedhashtab.h"
 
 enum paste_mode_e {
   PASTE_MODE_MOVE,

@@ -18,7 +18,6 @@
 #include "file.h"
 #include "filter.h"
 #include "hashtab.h"
-#include "linkedhashtab.h"
 #include "log.h"
 #include "ui.h"
 #include "util.h"
