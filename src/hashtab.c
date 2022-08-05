@@ -1,11 +1,15 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "hashtab.h"
 #include "util.h"
 
 #define T Hashtab
+
+#define GROW_THRESHOLD 0.75
+#define SHRINK_THRESHOLD 0.125
 
 // https://en.m.wikipedia.org/wiki/Fowler%E2%80%93Noll%E2%80%93Vo_hash_function
 static uint64_t hash(const char *s)
@@ -20,17 +24,18 @@ static uint64_t hash(const char *s)
 
 T *ht_init(T *t, size_t size, free_fun free)
 {
-  t->nbuckets = size;
-  t->buckets = calloc(t->nbuckets, sizeof *t->buckets);
+  memset(t, 0, sizeof *t);
+  t->capacity = size;
+  t->min_capacity = size;
+  t->buckets = calloc(t->capacity, sizeof *t->buckets);
   t->free = free;
-  t->version = 0;
   return t;
 }
 
 
-void ht_deinit(T *t)
+T *ht_deinit(T *t)
 {
-  for (size_t i = 0; i < t->nbuckets; i++) {
+  for (size_t i = 0; i < t->capacity; i++) {
     if (t->buckets[i].val) {
       for (struct ht_bucket *next, *b = t->buckets[i].next; b; b = next) {
         next = b->next;
@@ -45,7 +50,38 @@ void ht_deinit(T *t)
     }
   }
   free(t->buckets);
+  return t;
 }
+
+
+static inline void ht_resize(T *t, size_t capacity)
+{
+  // log_debug("resizing from %lu to %lu", t->capacity, capacity);
+  T *new = ht_create(capacity, t->free);
+  new->min_capacity = t->min_capacity;
+  ht_foreach_kv(const char *k, void *v, t) {
+    ht_set(new, k, v);
+  }
+  t->free = NULL;
+  ht_deinit(t);
+  memcpy(t, new, sizeof *t);
+  free(new);
+}
+
+
+static inline void ht_grow(T *t)
+{
+  ht_resize(t, t->capacity * 2);
+}
+
+
+// // we are not deleting single values, currenctly
+// static inline void ht_shrink(T *t)
+// {
+//   if (t->capacity/2 >= t->min_capacity) {
+//     ht_resize(t, t->capacity/2);
+//   }
+// }
 
 
 // Returns true if successfull and the corresponding bucket in b: Otherwise,
@@ -53,7 +89,7 @@ void ht_deinit(T *t)
 // the new node should be appended to (check with (*b)->val).
 static bool probe(T *t, const char *key, struct ht_bucket **b)
 {
-  *b = &t->buckets[hash(key) % t->nbuckets];
+  *b = &t->buckets[hash(key) % t->capacity];
   for (;;) {
     struct ht_bucket *bb = *b;
     if (!bb->key) {
@@ -80,8 +116,14 @@ void ht_set(T *t, const char *key, void *val)
   } else if (b->val && t->free) {
     t->free(b->val);
   }
+  if (!b->val) {
+    t->size++;
+  }
   b->key = key;
   b->val = val;
+  if (t->size > GROW_THRESHOLD * t->capacity) {
+    ht_grow(t);
+  }
 }
 
 
@@ -97,7 +139,7 @@ void *ht_get(T *t, const char *key)
 
 void ht_clear(T *t)
 {
-  for (size_t i = 0; i < t->nbuckets; i++) {
+  for (size_t i = 0; i < t->capacity; i++) {
     if (t->buckets[i].val) {
       for (struct ht_bucket *next, *b = t->buckets[i].next; b; b = next) {
         next = b->next;
@@ -114,29 +156,6 @@ void ht_clear(T *t)
       t->buckets[i].next = NULL;
     }
   }
+  ht_resize(t, t->min_capacity);
   t->version++;
-}
-
-struct ht_stats ht_stats(T *t)
-{
-  struct ht_stats stats = { .nbuckets = t->nbuckets, };
-
-  for (size_t i = 0; i < t->nbuckets; i++) {
-    if (t->buckets[i].val) {
-      uint16_t size = 1;
-      stats.buckets_nonempty++;
-      stats.nelems++;
-      for (struct ht_bucket *b = t->buckets[i].next; b; b = b->next) {
-        stats.nelems++;
-        size++;
-      }
-      if (size > stats.bucket_size_max) {
-        stats.bucket_size_max = size;
-      }
-    }
-  }
-
-  stats.alpha = 1.0 * stats.nelems / t->nbuckets;
-  stats.bucket_nonempty_avg_size = (1.0 * stats.buckets_nonempty) / stats.nelems;
-  return stats;
 }

@@ -2,11 +2,15 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 
 #include "linkedhashtab.h"
 #include "util.h"
 
 #define T LinkedHashtab
+
+#define GROW_THRESHOLD 0.75
+#define SHRINK_THRESHOLD 0.125
 
 // https://en.m.wikipedia.org/wiki/Fowler%E2%80%93Noll%E2%80%93Vo_hash_function
 static uint64_t hash(const char *s)
@@ -21,19 +25,18 @@ static uint64_t hash(const char *s)
 
 T *lht_init(T *t, size_t size, free_fun free)
 {
-  t->nbuckets = size;
-  t->buckets = calloc(t->nbuckets, sizeof *t->buckets);
-  t->size = 0;
+  memset(t, 0, sizeof *t);
+  t->capacity = size;
+  t->min_capacity = size;
+  t->buckets = calloc(t->capacity, sizeof *t->buckets);
   t->free = free;
-  t->first = NULL;
-  t->last = NULL;
   return t;
 }
 
 
 T *lht_deinit(T *t)
 {
-  for (size_t i = 0; i < t->nbuckets; i++) {
+  for (size_t i = 0; i < t->capacity; i++) {
     if (t->buckets[i].val) {
       for (struct lht_bucket *next, *b = t->buckets[i].next; b; b = next) {
         next = b->next;
@@ -59,7 +62,7 @@ T *lht_deinit(T *t)
 // to the previous bucket of the overflow list, which is needed for deletion.
 static bool probe(const T *t, const char *key, struct lht_bucket **b, struct lht_bucket **prev)
 {
-  *b = &t->buckets[hash(key) % t->nbuckets];
+  *b = &t->buckets[hash(key) % t->capacity];
   if (prev) {
     *prev = NULL;
   }
@@ -78,6 +81,38 @@ static bool probe(const T *t, const char *key, struct lht_bucket **b, struct lht
       *prev = bb;
     }
     *b = bb->next;
+  }
+}
+
+
+// it would be better to be able to give a size hint so we don't have to
+// resize multiple times if we fill the table e.g. with a huge directory
+// won't bother for now, because when does that even happen?
+static inline void lht_resize(T *t, size_t capacity)
+{
+  // log_debug("resizing from %lu to %lu", t->capacity, capacity);
+  T *new = lht_create(capacity, t->free);
+  new->min_capacity = t->min_capacity;
+  lht_foreach_kv(const char *k, void *v, t) {
+    lht_set(new, k, v);
+  }
+  t->free = NULL;
+  lht_deinit(t);
+  memcpy(t, new, sizeof *t);
+  free(new);
+}
+
+
+static inline void lht_grow(T *t)
+{
+  lht_resize(t, t->capacity * 2);
+}
+
+
+static inline void lht_shrink(T *t)
+{
+  if (t->capacity/2 >= t->min_capacity) {
+    lht_resize(t, t->capacity/2);
   }
 }
 
@@ -104,15 +139,21 @@ bool lht_set(T *t, const char *key, void *val)
     if (!t->first) {
       t->first = b;
     }
-    t->size++;
   } else if (b->val && t->free) {
     ret = false;
     t->free(b->val);
   }
+  if (!b->val) {
+    t->size++;
+  }
   b->key = key;
   b->val = val;
+  if (t->size > GROW_THRESHOLD * t->capacity) {
+    lht_grow(t);
+  }
   return ret;
 }
+
 
 bool lht_delete(T *t, const char *key)
 {
@@ -128,7 +169,7 @@ bool lht_delete(T *t, const char *key)
     if (t->last == b) {
       t->last = b->order_prev;
     }
-    if (b < t->buckets || b >= t->buckets + t->nbuckets) {
+    if (b < t->buckets || b >= t->buckets + t->capacity) {
       // overflow bucket
       if (b->order_prev) {
         b->order_prev->order_next = b->order_next;
@@ -164,6 +205,9 @@ bool lht_delete(T *t, const char *key)
         b->key = NULL;
       }
     }
+    if (t->size < SHRINK_THRESHOLD * t->capacity) {
+      lht_shrink(t);
+    }
     return true;
   }
   return false;
@@ -182,7 +226,7 @@ void *lht_get(const T *t, const char *key)
 
 void lht_clear(T *t)
 {
-  for (size_t i = 0; i < t->nbuckets; i++) {
+  for (size_t i = 0; i < t->capacity; i++) {
     if (t->buckets[i].val) {
       for (struct lht_bucket *next, *b = t->buckets[i].next; b; b = next) {
         next = b->next;
@@ -197,7 +241,7 @@ void lht_clear(T *t)
       memset(&t->buckets[i], 0, sizeof(struct lht_bucket));
     }
   }
+  lht_resize(t, t->min_capacity);
   t->first = NULL;
   t->last = NULL;
-  t->size = 0;
 }

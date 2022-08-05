@@ -17,7 +17,8 @@ struct lht_bucket {
 
 typedef struct LinkedHashtab {
   struct lht_bucket *buckets;
-  uint16_t nbuckets;
+  uint32_t capacity;
+  uint32_t min_capacity;
   uint32_t size;
   struct lht_bucket *first;
   struct lht_bucket *last;
@@ -42,7 +43,13 @@ void *lht_get(const LinkedHashtab *t, const char *key);
 void lht_clear(LinkedHashtab *t);
 
 // iterate over values
-#define lht_foreach(item, h) \
-  for (struct lht_bucket *lht_cont, *lht_b = (h)->first; \
+#define lht_foreach(item, t) \
+  for (struct lht_bucket *lht_cont, *lht_b = (t)->first; \
       (lht_cont = lht_b) && lht_b->val; lht_b = lht_b->order_next) \
   for (item = lht_b->val; lht_cont; lht_cont = NULL)
+
+#define lht_foreach_kv(k, v, t) \
+  for (struct lht_bucket *lht_cont, *lht_b = (t)->first; \
+      (lht_cont = lht_b) && lht_b->val; lht_b = lht_b->order_next) \
+  for (k = lht_b->key; lht_cont; ) \
+  for (v = lht_b->val; lht_cont; lht_cont = NULL)

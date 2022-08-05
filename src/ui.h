@@ -13,7 +13,7 @@
 #include "history.h"
 #include "preview.h"
 
-#define PREVIEW_CACHE_SIZE 1024
+#define PREVIEW_CACHE_SIZE 128
 
 #define REDRAW_INFO    1
 #define REDRAW_FM      2

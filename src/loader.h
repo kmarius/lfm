@@ -3,7 +3,7 @@
 #include "dir.h"
 #include "hashtab.h"
 
-#define LOADER_TAB_SIZE 1024  // size of the hashtab used as cache
+#define LOADER_TAB_SIZE 128  // initial size of the hashtab used as cache
 
 struct ev_loop;
 
