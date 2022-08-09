@@ -1514,11 +1514,10 @@ static int l_fm_filter(lua_State *L)
 }
 
 
-static int l_fm_mark_load(lua_State *L)
+static int l_fm_jump_automark(lua_State *L)
 {
-  /* TODO: what about umlauts (on 2022-01-14) */
-  const char *b = lua_tostring(L, 1);
-  fm_mark_load(fm, b[0]);
+  (void) L;
+  fm_jump_automark(fm);
   ui_redraw(ui, REDRAW_FM);
   return 0;
 }
@@ -1551,7 +1550,7 @@ static const struct luaL_Reg fm_lib[] = {
   {"down", l_fm_down},
   {"filter", l_fm_filter},
   {"getfilter", l_fm_filter_get},
-  {"mark_load", l_fm_mark_load},
+  {"jump_automark", l_fm_jump_automark},
   {"open", l_fm_open},
   {"current_dir", l_fm_current_dir},
   {"current_file", l_fm_current_file},

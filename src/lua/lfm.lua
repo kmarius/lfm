@@ -417,7 +417,7 @@ map("L", require("functions").follow_link)
 map("H", a(lfm.feedkeys, "''")) -- complementary to "L"
 map("gg", fm.top, {desc="go to top"})
 map("G", fm.bottom, {desc="go to bottom"})
-map("''", a(fm.mark_load, "'"), {desc="jump to previous directory"})
+map("''", fm.jump_automark, {desc="jump to previous directory"})
 map("cd", a(lfm.feedkeys, ":cd "), {desc=":cd "})
 map("<Up>", fm.up, {desc="move cursor up"})
 map("<Down>", fm.down, {desc="move cursor down"})

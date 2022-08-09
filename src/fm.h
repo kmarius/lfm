@@ -13,11 +13,6 @@ enum paste_mode_e {
   PASTE_MODE_COPY,
 };
 
-struct jump_mark {
-  char mark;
-  char *path;
-};
-
 typedef struct Fm {
 
   uint16_t height; // height of the ui
@@ -30,9 +25,6 @@ typedef struct Fm {
     // preview directory, NULL if there is none, e.g. if the cursor is resting on a file
     Dir *preview;
   } dirs;
-
-  // List of quickmarks including "'"
-  cvector_vector_type(struct jump_mark) marks;
 
   struct {
     // Current and previous selection (needed for visual mode)
@@ -51,6 +43,8 @@ typedef struct Fm {
     bool active;
     uint16_t anchor;
   } visual;
+
+  char *automark;
 } Fm;
 
 // Moves to the correct starting directory, loads initial dirs and sets up
@@ -111,7 +105,7 @@ bool fm_scroll_up(Fm *fm);
 bool fm_scroll_down(Fm *fm);
 
 // Changes directory to the directory given by `path`. If `save` then the current
-// directory will be saved as the special "'" mark. Returns `true´ if the directory has been changed.
+// directory will be saved as the special "'" automark. Returns `true´ if the directory has been changed.
 bool fm_chdir(Fm *fm, const char *path, bool save);
 
 // Open the currently selected file: if it is a directory, chdir into it.
@@ -142,8 +136,13 @@ void fm_hidden_set(Fm *fm, bool hidden);
 // necessary.
 void fm_check_dirs(const Fm *fm);
 
-// Chdir to the directory saved as `mark`.
-bool fm_mark_load(Fm *fm, char mark);
+// jump to previous directory
+static inline void fm_jump_automark(Fm *fm)
+{
+  if (fm->automark) {
+    fm_chdir(fm, fm->automark, true);
+  }
+}
 
 // Toggles the selection of the currently selected file.
 void fm_selection_toggle_current(Fm *fm);

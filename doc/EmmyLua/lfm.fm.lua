@@ -15,9 +15,8 @@ function lfm.fm.filter(filter) end
 ---@return string filter The filter string.
 function lfm.fm.getfilter() end
 
----Load a quickmark and navigate to the corrensponding directory.
----@param c string `char` of the mark. Currently only `'` supported.
-function lfm.fm.mark_load(c) end
+---Jump to the directory saved by the automatic mark (e.g. with '')
+function lfm.fm.jump_automark() end
 
 ---Navigate into the directory at the current cursor position. If the current file
 ---is not a directory, its path is returned instead.

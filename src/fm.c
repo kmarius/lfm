@@ -32,7 +32,6 @@
 
 static void fm_update_watchers(T *t);
 static void fm_remove_preview(T *t);
-static void fm_mark_save(T *t, char mark, const char *path);
 static void fm_populate(T *t);
 
 
@@ -73,11 +72,7 @@ void fm_deinit(T *t)
   lht_deinit(&t->selection.paths);
   lht_deinit(&t->selection.previous);
   lht_deinit(&t->paste.buffer);
-
-  cvector_foreach_ptr(mark, t->marks) {
-    free(mark->path);
-  }
-  cvector_free(t->marks);
+  free(t->automark);
 }
 
 
@@ -159,8 +154,11 @@ bool fm_chdir(T *t, const char *path, bool save)
 
   setenv("PWD", path, true);
 
-  if (save && !fm_current_dir(t)->error) {
-    fm_mark_save(t, '\'', fm_current_dir(t)->path);
+  if (save) {
+    free(t->automark);
+    t->automark = fm_current_dir(t)->error
+      ? NULL
+      : strdup(fm_current_dir(t)->path);
   }
 
   fm_remove_preview(t);
@@ -582,39 +580,6 @@ bool fm_updir(T *t)
   return true;
 }
 
-/* }}} */
-
-/* marks {{{ */
-static void fm_mark_save(T *t, char mark, const char *path)
-{
-  for (size_t i = 0; i < cvector_size(t->marks); i++) {
-    if (t->marks[i].mark == mark) {
-      if (!streq(t->marks[i].path, path)) {
-        t->marks[i].path = realloc(t->marks[i].path, strlen(path) + 1);
-        strcpy(t->marks[i].path, path);
-      }
-      return;
-    }
-  }
-  cvector_push_back(t->marks, ((struct jump_mark) {mark, strdup(path),}));
-}
-
-
-bool fm_mark_load(T *t, char mark)
-{
-  for (size_t i = 0; i < cvector_size(t->marks); i++) {
-    if (t->marks[i].mark == mark) {
-      if (!streq(t->marks[i].path, fm_current_dir(t)->path)) {
-        fm_chdir(t, t->marks[i].path, true);
-      }
-
-      /* TODO: shouldn't return true if chdir fails (on 2021-07-22) */
-      return true;
-    }
-  }
-  error("no such mark: %c", mark);
-  return false;
-}
 /* }}} */
 
 /* filter {{{ */
