@@ -22,11 +22,11 @@ static uint64_t hash(const char *s)
 }
 
 
-T *ht_init(T *t, size_t size, free_fun free)
+T *ht_init(T *t, size_t capacity, free_fun free)
 {
   memset(t, 0, sizeof *t);
-  t->capacity = size;
-  t->min_capacity = size;
+  t->capacity = capacity;
+  t->min_capacity = capacity;
   t->buckets = calloc(t->capacity, sizeof *t->buckets);
   t->free = free;
   return t;

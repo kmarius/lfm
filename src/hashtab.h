@@ -17,11 +17,11 @@ struct ht_bucket {
 
 typedef struct Hashtab {
   struct ht_bucket *buckets;
-  size_t size;
   size_t capacity;  // size of the actual table, not counting overflow lists
   size_t min_capacity;
-  free_fun free;
+  size_t size;
   uint8_t version;
+  free_fun free;
 } Hashtab;
 
 struct lht_bucket {
@@ -34,9 +34,9 @@ struct lht_bucket {
 
 typedef struct LinkedHashtab {
   struct lht_bucket *buckets;
-  uint32_t capacity;
-  uint32_t min_capacity;
-  uint32_t size;
+  size_t capacity;
+  size_t min_capacity;
+  size_t size;
   struct lht_bucket *first;
   struct lht_bucket *last;
   free_fun free;
@@ -72,11 +72,11 @@ void ht_clear(Hashtab *t);
   for (v = ht_b->val; ht_cont; ht_cont = NULL)
 
 
-LinkedHashtab *lht_init(LinkedHashtab *t, size_t size, free_fun free);
+LinkedHashtab *lht_init(LinkedHashtab *t, size_t capacity, free_fun free);
 LinkedHashtab *lht_deinit(LinkedHashtab *t);
-static inline LinkedHashtab *lht_create(size_t size, free_fun free)
+static inline LinkedHashtab *lht_create(size_t capacity, free_fun free)
 {
-  return lht_init(malloc(sizeof(LinkedHashtab)), size, free);
+  return lht_init(malloc(sizeof(LinkedHashtab)), capacity, free);
 }
 static inline void lht_destroy(LinkedHashtab *t)
 {

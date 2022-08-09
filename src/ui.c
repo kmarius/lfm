@@ -457,7 +457,7 @@ void draw_cmdline(T *t)
         }
 
         rhs_sz += int_sz(t->fm->paste.buffer.size) + 2 + 1;
-        ncplane_printf_yx(n, 0, t->ncol-rhs_sz, " %u ", t->fm->paste.buffer.size);
+        ncplane_printf_yx(n, 0, t->ncol-rhs_sz, " %zu ", t->fm->paste.buffer.size);
         ncplane_set_bg_default(n);
         ncplane_set_fg_default(n);
         ncplane_putchar(n, ' ');
@@ -465,7 +465,7 @@ void draw_cmdline(T *t)
       if (t->fm->selection.paths.size > 0) {
         ncplane_set_channels(n, cfg.colors.selection);
         rhs_sz += int_sz(t->fm->selection.paths.size) + 2 + 1;
-        ncplane_printf_yx(n, 0, t->ncol - rhs_sz, " %u ", t->fm->selection.paths.size);
+        ncplane_printf_yx(n, 0, t->ncol - rhs_sz, " %zu ", t->fm->selection.paths.size);
         ncplane_set_bg_default(n);
         ncplane_set_fg_default(n);
         ncplane_putchar(n, ' ');
