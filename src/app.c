@@ -389,8 +389,8 @@ static void add_child_watcher(T *t, int pid, int cb_index, ev_io *stdout_watcher
   struct child_watcher_data *data = malloc(sizeof *data);
   data->cb_index = cb_index > 0 ? cb_index : 0;
   data->app = t;
-  data->stderr_watcher = stderr_watcher;
   data->stdout_watcher = stdout_watcher;
+  data->stderr_watcher = stderr_watcher;
 
   ev_child *w = malloc(sizeof *w);
   ev_child_init(w, child_cb, pid, 0);
@@ -419,8 +419,7 @@ int app_spawn(T *t, const char *prog, char *const *args,
 
   if (out || out_cb_ind) {
     stdout_watcher = add_io_watcher(t, fout, out_cb_ind);
-  }
-  else {
+  } else {
     fclose(fout);
   }
 

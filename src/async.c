@@ -518,7 +518,7 @@ static void PreviewLoadResult_callback(void *p, App *app)
   // TODO: make this safer, previewcache.version protects against dropped
   // caches only (on 2022-02-06)
   if (res->version == previewcache->version) {
-    preview_update_with(res->preview, res->update);
+    preview_update(res->preview, res->update);
     ui_redraw(&app->ui, REDRAW_PREVIEW);
   } else {
     preview_destroy(res->update);
