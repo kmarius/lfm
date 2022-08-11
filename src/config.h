@@ -47,12 +47,12 @@ typedef struct Config {
   bool preview;
   char *previewer;
   bool hidden;
-  uint8_t scrolloff;
+  uint32_t scrolloff;
   cvector_vector_type(char *) commands;
-  cvector_vector_type(uint16_t) ratios;
+  cvector_vector_type(uint32_t) ratios;
   cvector_vector_type(char *) inotify_blacklist;
-  uint16_t inotify_timeout;
-  uint16_t inotify_delay;
+  uint32_t inotify_timeout;
+  uint32_t inotify_delay;
 
   struct colors {
     Hashtab ext;  // char* -> uint64
@@ -75,7 +75,7 @@ void config_init();
 
 void config_deinit();
 
-void config_ratios_set(cvector_vector_type(uint16_t) ratios);
+void config_ratios_set(cvector_vector_type(uint32_t) ratios);
 
 void config_ext_channel_add(const char *ext, uint64_t channel);
 

@@ -20,7 +20,7 @@ typedef struct Preview {
     cvector_vector_type(char *) lines;
     struct ncvisual *ncv;
   };
-  uint8_t nrow;
+  uint32_t nrow;
   time_t mtime;
   uint64_t loadtime;
   bool loading;
@@ -29,9 +29,9 @@ typedef struct Preview {
   preview_destroy_fun destroy;
 } Preview;
 
-Preview *preview_create_loading(const char *path, uint8_t nrow);
+Preview *preview_create_loading(const char *path, uint32_t nrow);
 
-Preview *preview_create_from_file(const char *path, uint8_t nrow);
+Preview *preview_create_from_file(const char *path, uint32_t nrow);
 
 static inline void preview_update(Preview *pv, Preview *u)
 {

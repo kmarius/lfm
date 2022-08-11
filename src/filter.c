@@ -18,8 +18,8 @@ struct subfilter;
 
 typedef struct Filter {
   char *string;
-  uint16_t length;
-  uint16_t capacity;
+  uint32_t length;
+  uint32_t capacity;
   struct subfilter *filters;
 } Filter;
 
@@ -29,8 +29,8 @@ struct filter_atom {
 };
 
 struct subfilter {
-  uint16_t length;
-  uint16_t capacity;
+  uint32_t length;
+  uint32_t capacity;
   struct filter_atom *atoms;
 };
 
@@ -87,8 +87,8 @@ void filter_destroy(T *t)
     return;
   }
 
-  for (uint16_t i = 0; i < t->length; i++) {
-    for (uint16_t j = 0; j < t->filters[i].length; j++) {
+  for (uint32_t i = 0; i < t->length; i++) {
+    for (uint32_t j = 0; j < t->filters[i].length; j++) {
       free(t->filters[i].atoms[j].string);
     }
     free(t->filters[i].atoms);
@@ -113,7 +113,7 @@ static inline bool atom_match(const struct filter_atom *a, const char *str)
 
 static inline bool subfilter_match(const struct subfilter *s, const char *str)
 {
-  for (uint16_t i = 0; i < s->length; i++) {
+  for (uint32_t i = 0; i < s->length; i++) {
     if (atom_match(&s->atoms[i], str)) {
       return true;
     }
@@ -124,7 +124,7 @@ static inline bool subfilter_match(const struct subfilter *s, const char *str)
 
 bool filter_match(const T *t, const char *str)
 {
-  for (uint16_t i = 0; i < t->length; i++) {
+  for (uint32_t i = 0; i < t->length; i++) {
     if (!subfilter_match(&t->filters[i], str)) {
       return false;
     }

@@ -4,7 +4,7 @@
 #include "ncutil.h"
 
 
-static void wansi_matchattr(struct ncplane *w, uint16_t a)
+static void wansi_matchattr(struct ncplane *w, uint32_t a)
 {
   if (a <= 9) {
     switch (a) {
@@ -59,9 +59,9 @@ static void wansi_matchattr(struct ncplane *w, uint16_t a)
 const char *ansi_consoom(struct ncplane *w, const char *s)
 {
   char c;
-  uint16_t acc = 0;
-  uint16_t nnums = 0;
-  uint16_t nums[6];
+  uint32_t acc = 0;
+  uint32_t nnums = 0;
+  uint32_t nums[6];
   s++; // first char guaranteed to be \033
   if (*s != '[') {
     log_error("there should be a [ here");

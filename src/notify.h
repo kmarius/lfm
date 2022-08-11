@@ -26,6 +26,6 @@ void notify_add_watcher(Dir *dir);
 
 void notify_remove_watcher(Dir *dir);
 
-void notify_set_watchers(Dir **dirs, uint16_t n);
+void notify_set_watchers(Dir **dirs, uint32_t n);
 
 void notify_deinit();

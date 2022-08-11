@@ -145,7 +145,7 @@ static int l_handle_key(lua_State *L)
 
 static int l_timeout(lua_State *L)
 {
-  const int16_t dur = luaL_checkinteger(L, 1);
+  const int32_t dur = luaL_checkinteger(L, 1);
   if (dur > 0) {
     app_timeout_set(app, dur);
   }
@@ -271,13 +271,13 @@ static int l_spawn(lua_State *L)
 
   luaL_checktype(L, 1, LUA_TTABLE);
 
-  const uint16_t n = lua_objlen(L, 1);
+  const uint32_t n = lua_objlen(L, 1);
   if (n == 0) {
     luaL_error(L, "no command given");
   }
 
   char **args = malloc((n + 1) * sizeof *args);
-  for (uint16_t i = 1; i <= n; i++) {
+  for (uint32_t i = 1; i <= n; i++) {
     lua_rawgeti(L, 1, i);
     args[i-1] = strdup(lua_tostring(L, -1));
     lua_pop(L, 1);
@@ -290,8 +290,8 @@ static int l_spawn(lua_State *L)
     if (lua_isstring(L, -1)) {
       cvector_push_back(stdin, strdup(lua_tostring(L, -1)));
     } else if (lua_istable(L, -1)) {
-      int m = lua_objlen(L, -1);
-      for (uint16_t i = 1; i <= m; i++) {
+      const size_t m = lua_objlen(L, -1);
+      for (uint32_t i = 1; i <= m; i++) {
         lua_rawgeti(L, -1, i);
         cvector_push_back(stdin, strdup(lua_tostring(L, -1)));
         lua_pop(L, 1);
@@ -326,7 +326,7 @@ static int l_spawn(lua_State *L)
   int pid = app_spawn(app, args[0], args, stdin, out, err, out_cb_index, err_cb_index, cb_index);
 
   cvector_ffree(stdin, free);
-  for (uint16_t i = 0; i < n; i++) {
+  for (uint32_t i = 0; i < n; i++) {
     free(args[i]);
   }
   free(args);
@@ -346,20 +346,20 @@ static int l_execute(lua_State *L)
 {
   luaL_checktype(L, 1, LUA_TTABLE);
 
-  const uint16_t n = lua_objlen(L, 1);
+  const uint32_t n = lua_objlen(L, 1);
   if (n == 0) {
     luaL_error(L, "no command given");
   }
 
   char **args = malloc((n + 1) * sizeof *args);
-  for (uint16_t i = 1; i <= n; i++) {
+  for (uint32_t i = 1; i <= n; i++) {
     lua_rawgeti(L, 1, i);
     args[i-1] = strdup(lua_tostring(L, -1));
     lua_pop(L, 1);
   }
   args[n] = NULL;
   bool ret = app_execute(app, args[0], args);
-  for (uint16_t i = 0; i < n; i++) {
+  for (uint32_t i = 0; i < n; i++) {
     free(args[i]);
   }
   free(args);
@@ -582,12 +582,12 @@ static int l_config_newindex(lua_State *L)
     fm_hidden_set(fm, hidden);
     ui_redraw(ui, REDRAW_FM);
   } else if (streq(key, "ratios")) {
-    const int l = lua_objlen(L, 3);
+    const size_t l = lua_objlen(L, 3);
     if (l == 0) {
       luaL_argerror(L, 3, "no ratios given");
     }
-    uint16_t *ratios = NULL;
-    for (uint16_t i = 1; i <= l; i++) {
+    uint32_t *ratios = NULL;
+    for (uint32_t i = 1; i <= l; i++) {
       lua_rawgeti(L, 3, i);
       cvector_push_back(ratios, lua_tointeger(L, -1));
       if (ratios[i-1] <= 0) {
@@ -1274,7 +1274,7 @@ static int l_fm_current_dir(lua_State *L)
   lua_setfield(L, -2, "name");
 
   lua_newtable(L);
-  for (uint16_t i = 0; i < dir->length; i++) {
+  for (uint32_t i = 0; i < dir->length; i++) {
     lua_pushstring(L, file_path(dir->files[i]));
     lua_rawseti(L, -2, i+1);
   }

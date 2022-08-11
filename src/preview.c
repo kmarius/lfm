@@ -32,7 +32,7 @@ static inline bool is_image(const char *path)
 }
 
 
-static inline T *preview_init(T *t, const char *path, uint8_t nrow)
+static inline T *preview_init(T *t, const char *path, uint32_t nrow)
 {
   memset(t, 0, sizeof *t);
   t->path = strdup(path);
@@ -50,7 +50,7 @@ static inline T *preview_init(T *t, const char *path, uint8_t nrow)
 }
 
 
-static inline T *preview_create(const char *path, uint8_t nrow)
+static inline T *preview_create(const char *path, uint32_t nrow)
 {
   return preview_init(malloc(sizeof(T)), path, nrow);
 }
@@ -67,7 +67,7 @@ static void destroy_text_preview(Preview *t)
 }
 
 
-T *preview_create_loading(const char *path, uint8_t nrow)
+T *preview_create_loading(const char *path, uint32_t nrow)
 {
   T *t = preview_create(path, nrow);
   t->loading = true;
@@ -127,7 +127,7 @@ static char* fgets_seek(char* dest, int n, FILE *fp)
 }
 
 
-T *preview_create_from_file(const char *path, uint8_t nrow)
+T *preview_create_from_file(const char *path, uint32_t nrow)
 {
   char buf[PREVIEW_MAX_LINE_LENGTH];
 

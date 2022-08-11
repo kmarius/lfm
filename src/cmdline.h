@@ -7,13 +7,13 @@
 struct vstr {
   char *str;
   size_t cap;
-  uint16_t len;
+  uint32_t len;
 };
 
 struct vwstr {
   wchar_t *str;
   size_t cap;
-  uint16_t len;
+  uint32_t len;
 };
 
 typedef struct Cmdline {
@@ -93,4 +93,4 @@ const char *cmdline_get(Cmdline *t);
 
 // Draw the command line into an ncplane. Returns the number of printed characters
 // of prefix, left so that the cursor can be positioned.
-uint16_t cmdline_print(Cmdline *t, struct ncplane *n);
+uint32_t cmdline_print(Cmdline *t, struct ncplane *n);

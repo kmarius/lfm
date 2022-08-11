@@ -33,7 +33,7 @@ Config cfg = {
 };
 
 
-void config_ratios_set(cvector_vector_type(uint16_t) ratios)
+void config_ratios_set(cvector_vector_type(uint32_t) ratios)
 {
   if (cvector_size(ratios) == 0) {
     return;
@@ -56,7 +56,7 @@ void config_ext_channel_add(const char *ext, uint64_t channel)
 void config_init()
 {
   ht_init(&cfg.colors.ext, EXT_CHANNEL_TAB_SIZE, free);
-  cvector_vector_type(uint16_t) r = NULL;
+  cvector_vector_type(uint32_t) r = NULL;
   cvector_push_back(r, 1);
   cvector_push_back(r, 2);
   cvector_push_back(r, 3);

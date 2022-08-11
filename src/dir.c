@@ -274,7 +274,7 @@ T *dir_load(const char *path, bool load_dircount)
 
 struct queue_dirs_node {
   const char *path;
-  uint8_t level;
+  uint32_t level;
   bool hidden;
   struct queue_dirs_node *next;
 };
@@ -285,7 +285,7 @@ struct queue_dirs {
 };
 
 
-T *dir_load_flat(const char *path, uint8_t level, bool load_dircount)
+T *dir_load_flat(const char *path, uint32_t level, bool load_dircount)
 {
   uint64_t t0 = current_millis();
 
@@ -343,7 +343,7 @@ T *dir_load_flat(const char *path, uint8_t level, bool load_dircount)
             }
           }
         }
-        for (uint8_t i = 0; i < head->level; i++) {
+        for (uint32_t i = 0; i < head->level; i++) {
           file->name -= 2;
           while (*(file->name-1) != '/') {
             file->name--;
@@ -374,7 +374,7 @@ cont:
 }
 
 
-void dir_cursor_move(T *t, int32_t ct, uint16_t height, uint16_t scrolloff)
+void dir_cursor_move(T *t, int32_t ct, uint32_t height, uint32_t scrolloff)
 {
   t->ind = max(min(t->ind + ct, t->length - 1), 0);
   if (ct < 0) {
@@ -385,7 +385,7 @@ void dir_cursor_move(T *t, int32_t ct, uint16_t height, uint16_t scrolloff)
 }
 
 
-static inline void dir_cursor_move_to_sel(T *t, uint16_t height, uint16_t scrolloff)
+static inline void dir_cursor_move_to_sel(T *t, uint32_t height, uint32_t scrolloff)
 {
   if (!t->sel || !t->files) {
     return;
@@ -405,7 +405,7 @@ cleanup:
 }
 
 
-void dir_cursor_move_to(T *t, const char *name, uint16_t height, uint16_t scrolloff)
+void dir_cursor_move_to(T *t, const char *name, uint32_t height, uint32_t scrolloff)
 {
   if (!name) {
     return;
@@ -427,7 +427,7 @@ void dir_cursor_move_to(T *t, const char *name, uint16_t height, uint16_t scroll
 }
 
 
-void dir_update_with(T *t, Dir *update, uint16_t height, uint16_t scrolloff)
+void dir_update_with(T *t, Dir *update, uint32_t height, uint32_t scrolloff)
 {
   if (!t->sel && t->ind < t->length) {
     t->sel = strdup(file_name(t->files[t->ind]));

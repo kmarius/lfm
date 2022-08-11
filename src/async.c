@@ -225,10 +225,10 @@ typedef struct DirCountResult {
   Dir *dir;
   struct dircount {
     File *file;
-    uint16_t count;
+    uint32_t count;
   } *dircounts;
   bool last;
-  uint8_t version;
+  uint32_t version;
 } DirCountResult;
 
 
@@ -267,7 +267,7 @@ static void DirCountResult_destroy(void *p)
 }
 
 
-static inline DirCountResult *DirCountResult_create(Dir *dir, struct dircount* files, uint8_t version, bool last)
+static inline DirCountResult *DirCountResult_create(Dir *dir, struct dircount* files, uint32_t version, bool last)
 {
   DirCountResult *res = malloc(sizeof *res);
   res->super.callback = &DirCountResult_callback;
@@ -282,14 +282,14 @@ static inline DirCountResult *DirCountResult_create(Dir *dir, struct dircount* f
 
 
 // Not a worker function because we just call it from async_dir_load_worker
-static void async_load_dircounts(Dir *dir, uint8_t version, uint16_t n, struct file_path *files)
+static void async_load_dircounts(Dir *dir, uint32_t version, uint32_t n, struct file_path *files)
 {
   cvector_vector_type(struct dircount) counts = NULL;
 
   uint64_t latest = current_millis();
 
   /* TODO: we need to make sure that the original files/dir don't get freed (on 2022-01-15) */
-  for (uint16_t i = 0; i < n; i++) {
+  for (uint32_t i = 0; i < n; i++) {
     cvector_push_back(counts, ((struct dircount) {files[i].file, path_dircount(files[i].path)}));
     free(files[i].path);
 
@@ -317,7 +317,7 @@ typedef struct DirUpdateResult {
   Result super;
   Dir *dir;
   Dir *update;
-  uint8_t version;
+  uint32_t version;
 } DirUpdateResult;
 
 
@@ -346,7 +346,7 @@ static void DirUpdateResult_destroy(void *p)
 }
 
 
-static inline DirUpdateResult *DirUpdateResult_create(Dir *dir, Dir *update, uint8_t version)
+static inline DirUpdateResult *DirUpdateResult_create(Dir *dir, Dir *update, uint32_t version)
 {
   DirUpdateResult *res = malloc(sizeof *res);
   res->super.callback = &DirUpdateResult_callback;
@@ -363,8 +363,8 @@ struct dir_load_work {
   Dir *dir;
   char *path;
   bool dircounts;
-  uint8_t level;
-  uint8_t version;
+  uint32_t level;
+  uint32_t version;
 };
 
 
@@ -381,11 +381,11 @@ static void async_dir_load_worker(void *arg)
 
   DirUpdateResult *res = DirUpdateResult_create(work->dir, dir, work->version);
 
-  const uint16_t nfiles = res->update->length_all;
+  const uint32_t nfiles = res->update->length_all;
   struct file_path *files = NULL;
   if (!work->dircounts && nfiles > 0) {
     files = malloc(nfiles * sizeof *files);
-    for (uint16_t i = 0; i < nfiles; i++) {
+    for (uint32_t i = 0; i < nfiles; i++) {
       files[i].file = res->update->files_all[i];
       files[i].path = strdup(res->update->files_all[i]->path);
     }
@@ -508,7 +508,7 @@ typedef struct PreviewLoadResult {
   Result super;
   Preview *preview;
   Preview *update;
-  uint8_t version;
+  uint32_t version;
 } PreviewLoadResult;
 
 
@@ -535,7 +535,7 @@ static void PreviewLoadResult_destroy(void *p)
 }
 
 
-static inline PreviewLoadResult *PreviewLoadResult_create(Preview *preview, Preview *update, uint8_t version)
+static inline PreviewLoadResult *PreviewLoadResult_create(Preview *preview, Preview *update, uint32_t version)
 {
   PreviewLoadResult *res = malloc(sizeof *res);
   res->super.callback = PreviewLoadResult_callback;
@@ -552,7 +552,7 @@ struct preview_load_work {
   char *path;
   Preview *preview;
   int nrow;
-  uint8_t version;
+  uint32_t version;
 };
 
 
@@ -571,7 +571,7 @@ static void async_preview_load_worker(void *arg)
 }
 
 
-void async_preview_load(Preview *pv, uint16_t nrow)
+void async_preview_load(Preview *pv, uint32_t nrow)
 {
   struct preview_load_work *work = malloc(sizeof *work);
   work->preview = pv;

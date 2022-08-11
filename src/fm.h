@@ -15,12 +15,12 @@ enum paste_mode_e {
 
 typedef struct Fm {
 
-  uint16_t height; // height of the ui
+  uint32_t height; // height of the ui
 
   struct {
     // Visible directories excluding preview
     cvector_vector_type(Dir *) visible;
-    uint16_t length;
+    uint32_t length;
 
     // preview directory, NULL if there is none, e.g. if the cursor is resting on a file
     Dir *preview;
@@ -41,7 +41,7 @@ typedef struct Fm {
 
   struct {
     bool active;
-    uint16_t anchor;
+    uint32_t anchor;
   } visual;
 
   char *automark;
@@ -213,6 +213,6 @@ void fm_reload(Fm *fm);
 void fm_update_preview(Fm *fm);
 
 // Flatten the current directory up to some level.
-void fm_flatten(Fm *fm, uint8_t level);
+void fm_flatten(Fm *fm, uint32_t level);
 
-void fm_resize(Fm *fm, uint16_t height);
+void fm_resize(Fm *fm, uint32_t height);

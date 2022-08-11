@@ -163,7 +163,7 @@ void notify_remove_watcher(Dir *dir)
 }
 
 
-void notify_set_watchers(Dir **dirs, uint16_t n)
+void notify_set_watchers(Dir **dirs, uint32_t n)
 {
   if (inotify_fd == -1) {
     return;
@@ -171,7 +171,7 @@ void notify_set_watchers(Dir **dirs, uint16_t n)
 
   cvector_fclear(watchers, unwatch);
 
-  for (uint16_t i = 0; i < n; i++) {
+  for (uint32_t i = 0; i < n; i++) {
     if (dirs[i]) {
       notify_add_watcher(dirs[i]);
     }

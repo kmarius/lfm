@@ -22,9 +22,9 @@
 #define REDRAW_PREVIEW 16
 
 typedef struct {
-  int nrow; // keep these as int for now until we can upgrade notcurses
-  int ncol;
-  uint16_t ndirs; /* number of columns including the preview */
+  uint32_t nrow; // keep these as int for now until we can upgrade notcurses
+  uint32_t ncol;
+  uint32_t ndirs; /* number of columns including the preview */
 
   Fm *fm;
 
@@ -50,7 +50,7 @@ typedef struct {
 
   const char *highlight;
 
-  uint8_t redraw;
+  uint32_t redraw;
 
   bool message;
   input_t *keyseq;
@@ -68,7 +68,7 @@ void ui_clear(Ui *ui);
 
 void ui_draw(Ui *ui);
 
-static inline void ui_redraw(Ui *ui, uint8_t mode)
+static inline void ui_redraw(Ui *ui, uint32_t mode)
 {
   ui->redraw |= mode;
 }

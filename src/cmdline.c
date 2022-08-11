@@ -1,3 +1,4 @@
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <wctype.h>
@@ -153,7 +154,7 @@ bool cmdline_delete_word(T *t)
     return false;
   }
 
-  int16_t i = t->left.len - 1;
+  int32_t i = t->left.len - 1;
   while (i > 0 && iswspace(t->left.str[i])) {
     i--;
   }
@@ -199,7 +200,7 @@ bool cmdline_word_left(T *t)
     return false;
   }
 
-  int16_t i = t->left.len;
+  int32_t i = t->left.len;
   if (i > 0 && iswpunct(t->left.str[i-1])) {
     i--;
   }
@@ -223,7 +224,7 @@ bool cmdline_word_right(T *t)
     return false;
   }
 
-  int16_t i = 0;
+  uint32_t i = 0;
   if (i < t->right.len && iswpunct(t->right.str[i])) {
     i++;
   }
@@ -351,18 +352,18 @@ const char *cmdline_get(T *t)
 }
 
 
-uint16_t cmdline_print(T *t, struct ncplane *n)
+uint32_t cmdline_print(T *t, struct ncplane *n)
 {
   int ncol, offset;
   ncplane_dim_yx(n, NULL, &ncol);
 
-  uint16_t ret = 0;
+  uint32_t ret = 0;
   ret += ncplane_putstr_yx(n, 0, 0, t->prefix.str);
   ncol -= ret;
 
   if (t->right.len == 0) {
     offset = t->left.len - ncol + 1;
-  } else if (t->right.len > ncol / 2) {
+  } else if (t->right.len > (uint32_t) ncol / 2) {
     offset = t->left.len - ncol + ncol / 2 + 1;
   } else {
     offset = t->left.len - ncol + t->right.len + 1;

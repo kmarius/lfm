@@ -23,12 +23,12 @@ typedef struct Dir {
   bool visible;
 
   time_t load_time; // used to check for changes
-  uint16_t updates; // number of applied updates
-  int16_t error; // shows errno if an error occured during loading, 0 otherwise
+  uint32_t updates; // number of applied updates
+  int32_t error; // shows errno if an error occured during loading, 0 otherwise
   uint64_t next;
 
   uint32_t ind; // cursor position in files[]
-  uint16_t pos; // cursor position in the ui, offset from the top row
+  uint32_t pos; // cursor position in the ui, offset from the top row
   char *sel;
 
   Filter *filter;
@@ -39,7 +39,7 @@ typedef struct Dir {
   bool reverse;
   bool dircounts;
   enum sorttype_e sorttype;
-  uint8_t flatten_level;
+  uint32_t flatten_level;
 } Dir;
 
 // Initialize a `Dir`, no files are loaded.
@@ -91,14 +91,14 @@ bool dir_check(const Dir *dir);
 
 // Move the cursor in the current dir by `ct`, respecting the `scrolloff`
 // setting by passing it and the current `height` of the viewport.
-void dir_cursor_move(Dir *dir, int32_t ct, uint16_t height, uint16_t scrolloff);
+void dir_cursor_move(Dir *dir, int32_t ct, uint32_t height, uint32_t scrolloff);
 
 // Move the cursor in the current dir to the file `name`, respecting the
 // `scrolloff` setting by passing it and the current `height` of the viewport.
-void dir_cursor_move_to(Dir *dir, const char *name, uint16_t height, uint16_t scrolloff);
+void dir_cursor_move_to(Dir *dir, const char *name, uint32_t height, uint32_t scrolloff);
 
 // Replace files and metadata of `dir` with those of `update`. Frees `update`.
-void dir_update_with(Dir *dir, Dir *update, uint16_t height, uint16_t scrolloff);
+void dir_update_with(Dir *dir, Dir *update, uint32_t height, uint32_t scrolloff);
 
 // Returns true `d` is the root directory.
 inline bool dir_isroot(const Dir *dir)
@@ -107,4 +107,4 @@ inline bool dir_isroot(const Dir *dir)
 }
 
 // Load a flat directorie showing files up `level`s deep.
-Dir *dir_load_flat(const char *path, uint8_t level, bool load_dircount);
+Dir *dir_load_flat(const char *path, uint32_t level, bool load_dircount);

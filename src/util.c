@@ -121,7 +121,7 @@ bool hascasesuffix(const char *suf, const char *str)
 
 char *readable_filesize(double size, char *buf)
 {
-  int16_t i = 0;
+  int32_t i = 0;
   const char *units[] = {"", "K", "M", "G", "T", "P", "E", "Z", "Y"};
   while (size > 1024) {
     size /= 1024;

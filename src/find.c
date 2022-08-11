@@ -12,7 +12,7 @@ bool find(Fm *fm, Ui *ui, const char *prefix)
   find_prefix = strdup(prefix);
 
   Dir *dir = fm_current_dir(fm);
-  uint8_t nmatches = 0;
+  uint32_t nmatches = 0;
   uint32_t first_match;
   for (uint32_t i = 0; i < dir->length; i++) {
     const uint32_t ind = (dir->ind + i) % dir->length;

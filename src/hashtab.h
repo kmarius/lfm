@@ -20,7 +20,7 @@ typedef struct Hashtab {
   size_t capacity;  // size of the actual table, not counting overflow lists
   size_t min_capacity;
   size_t size;
-  uint8_t version;
+  uint32_t version;
   free_fun free;
 } Hashtab;
 

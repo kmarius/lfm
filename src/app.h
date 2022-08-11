@@ -30,7 +30,7 @@ typedef struct app {
 } App;
 
 // Set input timout. Key input will be ignored for the next `duration` ms.
-static inline void app_timeout_set(App *app, uint16_t duration)
+static inline void app_timeout_set(App *app, uint32_t duration)
 {
   app->input_timeout = current_millis() + duration;
 }

@@ -41,7 +41,7 @@ static int print_shortened_w(struct ncplane *n, const wchar_t *name, int name_le
 static int resize_cb(struct ncplane *n)
 {
   T *ui = ncplane_userptr(n);
-  notcurses_stddim_yx(ui->nc, &ui->nrow, &ui->ncol);
+  notcurses_stddim_yx(ui->nc, (int *) &ui->nrow, (int *) &ui->ncol);
   ncplane_resize(ui->planes.info, 0, 0, 0, 0, 0, 0, 1, ui->ncol);
   ncplane_resize(ui->planes.cmdline, 0, 0, 0, 0, 0, 0, 1, ui->ncol);
   ncplane_move_yx(ui->planes.cmdline, ui->nrow - 1, 0);
@@ -66,7 +66,7 @@ void ui_resume(T *t)
 
   struct ncplane *ncstd = notcurses_stdplane(t->nc);
 
-  ncplane_dim_yx(ncstd, &t->nrow, &t->ncol);
+  ncplane_dim_yx(ncstd, (int *) &t->nrow, (int *) &t->ncol);
   t->fm->height = t->nrow - 2;
 
   struct ncplane_options opts = {
@@ -173,8 +173,8 @@ void ui_recol(T *t)
 
   t->ndirs = cvector_size(cfg.ratios);
 
-  uint16_t sum = 0;
-  for (uint16_t i = 0; i < t->ndirs; i++) {
+  uint32_t sum = 0;
+  for (uint32_t i = 0; i < t->ndirs; i++) {
     sum += cfg.ratios[i];
   }
 
@@ -183,8 +183,8 @@ void ui_recol(T *t)
     .rows = t->nrow - 2,
   };
 
-  uint16_t xpos = 0;
-  for (uint16_t i = 0; i < t->ndirs - 1; i++) {
+  uint32_t xpos = 0;
+  for (uint32_t i = 0; i < t->ndirs - 1; i++) {
     opts.cols = (t->ncol - t->ndirs + 1) * cfg.ratios[i] / sum;
     opts.x = xpos;
     cvector_push_back(t->planes.dirs, ncplane_create(ncstd, &opts));
@@ -231,7 +231,7 @@ void ui_clear(T *t)
    * bleed into the first row */
   ncplane_erase(notcurses_stdplane(t->nc));
   ncplane_erase(t->planes.info);
-  for (uint16_t i = 0; i < t->ndirs; i++) {
+  for (uint32_t i = 0; i < t->ndirs; i++) {
     ncplane_erase(t->planes.dirs[i]);
   }
 
@@ -250,8 +250,8 @@ void ui_clear(T *t)
 
 static void draw_dirs(T *t)
 {
-  const uint16_t l = t->fm->dirs.length;
-  for (uint16_t i = 0; i < l; i++) {
+  const uint32_t l = t->fm->dirs.length;
+  for (uint32_t i = 0; i < l; i++) {
     plane_draw_dir(t->planes.dirs[l-i-1],
         t->fm->dirs.visible[i],
         &t->fm->selection.paths,
@@ -389,9 +389,9 @@ static char *print_time(time_t time, char *buffer, size_t bufsz)
 }
 
 
-static uint16_t int_sz(uint16_t n)
+static uint32_t int_sz(uint32_t n)
 {
-  uint16_t i = 1;
+  uint32_t i = 1;
   while (n >= 10) {
     i++;
     n /= 10;
@@ -417,8 +417,8 @@ void draw_cmdline(T *t)
   ncplane_set_bg_default(n);
   ncplane_set_fg_default(n);
 
-  uint16_t rhs_sz = 0;
-  uint16_t lhs_sz = 0;
+  uint32_t rhs_sz = 0;
+  uint32_t lhs_sz = 0;
 
   if (!cmdline_prefix_get(&t->cmdline)) {
     const Dir *dir = t->fm->dirs.visible[0];
@@ -496,7 +496,7 @@ void draw_cmdline(T *t)
       }
     }
   } else {
-    const uint16_t cursor_pos = cmdline_print(&t->cmdline, n);
+    const uint32_t cursor_pos = cmdline_print(&t->cmdline, n);
     notcurses_cursor_enable(t->nc, t->nrow - 1, cursor_pos);
   }
 }
@@ -512,7 +512,7 @@ static void draw_info(T *t)
   static char user[32] = {0};
   static char host[HOST_NAME_MAX + 1] = {0};
   static char *home;
-  static uint16_t home_len;
+  static uint32_t home_len;
 
   if (user[0] == 0) {
     strncpy(user, getenv("USER"), sizeof user - 1);
@@ -640,7 +640,7 @@ static void draw_menu(struct ncplane *n, cvector_vector_type(char *) menubuf)
   for (size_t i = 0; i < cvector_size(menubuf); i++) {
     ncplane_cursor_move_yx(n, i, 0);
     const char *s = menubuf[i];
-    uint16_t xpos = 0;
+    uint32_t xpos = 0;
 
     while (*s != 0) {
       while (*s != 0 && *s != '\t' && *s != '\033') {
@@ -653,7 +653,7 @@ static void draw_menu(struct ncplane *n, cvector_vector_type(char *) menubuf)
         ncplane_putchar(n, ' ');
         s++;
         xpos++;
-        for (const uint16_t l = ((xpos/8)+1)*8; xpos < l; xpos++) {
+        for (const uint32_t l = ((xpos/8)+1)*8; xpos < l; xpos++) {
           ncplane_putchar(n, ' ');
         }
       }
@@ -665,7 +665,7 @@ static void draw_menu(struct ncplane *n, cvector_vector_type(char *) menubuf)
 static void menu_resize(T *t)
 {
   /* TODO: find out why, after resizing, the menu is behind the dirs (on 2021-10-30) */
-  const uint16_t h = max(1, min(cvector_size(t->menubuf), t->nrow - 2));
+  const uint32_t h = max(1, min(cvector_size(t->menubuf), t->nrow - 2));
   ncplane_resize(t->planes.menu, 0, 0, 0, 0, 0, 0, h, t->ncol);
   ncplane_move_yx(t->planes.menu, t->nrow - 1 - h, 0);
 }
@@ -1060,7 +1060,7 @@ static void print_file(struct ncplane *n, const File *file,
 static void plane_draw_dir(struct ncplane *n, Dir *dir, LinkedHashtab *sel, LinkedHashtab*load,
     enum paste_mode_e mode, const char *highlight, bool print_sizes)
 {
-  int nrow, i, offset;
+  int nrow;
 
   ncplane_erase(n);
   ncplane_dim_yx(n, &nrow, NULL);
@@ -1083,14 +1083,14 @@ static void plane_draw_dir(struct ncplane *n, Dir *dir, LinkedHashtab *sel, Link
   } else {
     dir->pos = min(min(dir->pos, nrow - 1), dir->ind);
 
-    offset = max(dir->ind - dir->pos, 0);
+    uint32_t offset = max(dir->ind - dir->pos, 0);
 
     if (dir->length <= (uint32_t) nrow) {
       offset = 0;
     }
 
-    const int l = min(dir->length - offset, nrow);
-    for (i = 0; i < l; i++) {
+    const uint32_t l = min(dir->length - offset, nrow);
+    for (uint32_t i = 0; i < l; i++) {
       ncplane_cursor_move_yx(n, i, 0);
       print_file(n, dir->files[i + offset],
           i == dir->pos, sel, load, mode, highlight, print_sizes);
@@ -1136,7 +1136,7 @@ static void update_preview(T *t)
     if (t->preview.preview) {
       if (streq(t->preview.preview->path, file_path(file))) {
         if (!t->preview.preview->loading) {
-          if (t->preview.preview->nrow < nrow) {
+          if (t->preview.preview->nrow < (uint32_t) nrow) {
             async_preview_load(t->preview.preview, nrow);
             t->preview.preview->loading = true;
           } else {

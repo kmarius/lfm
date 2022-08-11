@@ -90,7 +90,7 @@ static void fm_populate(T *t)
   t->dirs.visible[0] = loader_load_path(pwd); /* current dir */
   t->dirs.visible[0]->visible = true;
   Dir *d = fm_current_dir(t);
-  for (uint16_t i = 1; i < t->dirs.length; i++) {
+  for (uint32_t i = 1; i < t->dirs.length; i++) {
     if ((s = dir_parent_path(d))) {
       d = loader_load_path(s);
       d->visible = true;
@@ -106,13 +106,13 @@ static void fm_populate(T *t)
 void fm_recol(T *t)
 {
   fm_remove_preview(t);
-  for (uint16_t i = 0; i < t->dirs.length; i++) {
+  for (uint32_t i = 0; i < t->dirs.length; i++) {
     if (t->dirs.visible[i]) {
       t->dirs.visible[i]->visible = false;
     }
   }
 
-  const uint16_t l = max(1, cvector_size(cfg.ratios) - (cfg.preview ? 1 : 0));
+  const uint32_t l = max(1, cvector_size(cfg.ratios) - (cfg.preview ? 1 : 0));
   cvector_grow(t->dirs.visible, l);
   cvector_set_size(t->dirs.visible, l);
   t->dirs.length = l;
@@ -162,7 +162,7 @@ bool fm_chdir(T *t, const char *path, bool save)
   }
 
   fm_remove_preview(t);
-  for (uint16_t i = 0; i < t->dirs.length; i++) {
+  for (uint32_t i = 0; i < t->dirs.length; i++) {
     if (t->dirs.visible[i]) {
       t->dirs.visible[i]->visible = false;
     }
@@ -202,7 +202,7 @@ static inline void fm_sort_and_reselect(T *t, Dir *dir)
 
 void fm_sort(T *t)
 {
-  for (uint16_t i = 0; i < t->dirs.length; i++) {
+  for (uint32_t i = 0; i < t->dirs.length; i++) {
     fm_sort_and_reselect(t, t->dirs.visible[i]);
   }
   fm_sort_and_reselect(t, t->dirs.preview);
@@ -219,7 +219,7 @@ void fm_hidden_set(T *t, bool hidden)
 
 void fm_check_dirs(const T *t)
 {
-  for (uint16_t i = 0; i < t->dirs.length; i++) {
+  for (uint32_t i = 0; i < t->dirs.length; i++) {
     if (t->dirs.visible[i] && !dir_check(t->dirs.visible[i])) {
       loader_reload(t->dirs.visible[i]);
     }
@@ -248,7 +248,7 @@ void fm_drop_cache(T *t)
 
 void fm_reload(T *t)
 {
-  for (uint16_t i = 0; i < t->dirs.length; i++) {
+  for (uint32_t i = 0; i < t->dirs.length; i++) {
     if (t->dirs.visible[i]) {
       async_dir_load(t->dirs.visible[i], true);
     }
@@ -291,7 +291,7 @@ void fm_update_preview(T *t)
       }
 
       /* don't remove watcher if it is a currently visible (non-preview) dir */
-      uint16_t i;
+      uint32_t i;
       for (i = 0; i < t->dirs.length; i++) {
         if (t->dirs.visible[i] && streq(t->dirs.preview->path, t->dirs.visible[i]->path)) {
           break;
@@ -309,7 +309,7 @@ void fm_update_preview(T *t)
   } else {
     // file preview or empty
     if (t->dirs.preview) {
-      uint16_t i;
+      uint32_t i;
       for (i = 0; i < t->dirs.length; i++) {
         if (t->dirs.visible[i] && streq(t->dirs.preview->path, t->dirs.visible[i]->path)) {
           break;
@@ -596,16 +596,16 @@ void fm_filter(T *t, const char *filter)
 /* }}} */
 
 /* TODO: To reload flattened directories, more notify watchers are needed (on 2022-02-06) */
-void fm_flatten(T *t, uint8_t level)
+void fm_flatten(T *t, uint32_t level)
 {
   fm_current_dir(t)->flatten_level = level;
   async_dir_load(fm_current_dir(t), true);
 }
 
 
-void fm_resize(T *t, uint16_t height)
+void fm_resize(T *t, uint32_t height)
 {
-  int scrolloff = cfg.scrolloff;
+  uint32_t scrolloff = cfg.scrolloff;
   if (height < cfg.scrolloff * 2) {
     scrolloff = height / 2;
   }
@@ -613,7 +613,7 @@ void fm_resize(T *t, uint16_t height)
   // is there a way to restore the position when just undoing a previous resize?
   ht_foreach(Dir *dir, loader_hashtab()) {
     if (height > t->height) {
-      int scrolloff_top = dir->ind;
+      uint32_t scrolloff_top = dir->ind;
       if (scrolloff_top > scrolloff) {
         scrolloff_top = scrolloff;
       }
@@ -624,7 +624,7 @@ void fm_resize(T *t, uint16_t height)
         dir->pos = scrolloff_top;
       }
     } else if (height < t->height) {
-      int scrolloff_bot = dir->length - dir->ind;
+      uint32_t scrolloff_bot = dir->length - dir->ind;
       if (scrolloff_bot > scrolloff) {
         scrolloff_bot = scrolloff;
       }
