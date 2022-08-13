@@ -1825,21 +1825,19 @@ void lua_handle_key(lua_State *L, input_t in)
     }
     if (maps.cur->keys) {
       // A command is mapped to the current keysequence. Execute it and reset.
-      if (command_count < 0) {
-        command_count = 1;
-      }
       ui_showmenu(ui, NULL);
       lua_pushlightuserdata(L, (void *) maps.cur);
       maps.cur = NULL;
       ui_show_keyseq(ui, NULL);
       lua_gettable(L, LUA_REGISTRYINDEX);
-      for (int i = 0; i < command_count; i++) {
-        lua_pushvalue(L, -1);
-        if (lua_pcall(L, 0, 0, 0)) {
-          ui_error(ui, "handle_key: %s", lua_tostring(L, -1));
-        }
+      int nargs = 0;
+      if (command_count > 0) {
+        lua_pushnumber(L, command_count);
+        nargs++;
       }
-      lua_pop(L, 1);
+      if (lua_pcall(L, nargs, 0, 0)) {
+        ui_error(ui, "handle_key: %s", lua_tostring(L, -1));
+      }
     } else {
       // A command is mapped to the current keysequence. Execute it and reset.
       cvector_push_back(maps.seq, in);

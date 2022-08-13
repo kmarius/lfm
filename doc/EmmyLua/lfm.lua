@@ -82,8 +82,9 @@ function lfm.message_clear() end
 ---@param keys string
 function lfm.handle_key(keys) end
 
----Map a key sequence to a function in normal mode. Unmap by passing nil instead
----of a function.
+---Map a key sequence to a function in normal mode. The function is called with
+---the command repetition count if it greater than 0 or nil if not.
+---Unmap by passing nil instead of a function.
 ---@param seq string
 ---@param f? function
 ---@param opts? table Currently, only opts.desc is used for description
