@@ -51,11 +51,11 @@ void app_quit(App *app);
 void app_deinit(App *app);
 
 int app_spawn(App *app, const char *prog, char *const *args,
-    char **in, bool out, bool err, int out_cb_ind, int err_cb_ind, int cb_ind);
+    char **in, bool out, bool err, int out_cb_ref, int err_cb_ref, int cb_ref);
 
 bool app_execute(App *app, const char *prog, char *const *args);
 
-void app_schedule(App *app, int schedule_ind, uint32_t delay);
+void app_schedule(App *app, int ref, uint32_t delay);
 
 // Print a message in the UI. `printf` formatting applies.
 void print(const char *format, ...);

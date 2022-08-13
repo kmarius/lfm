@@ -46,12 +46,12 @@ static struct message *messages = NULL;
 struct stdout_watcher_data {
   App *app;
   FILE *stream;
-  int ind;
+  int ref;
 };
 
 struct child_watcher_data {
   App *app;
-  int cb_index;
+  int ref;
   ev_io *stdout_watcher;
   ev_io *stderr_watcher;
 };
@@ -65,8 +65,8 @@ static inline void destroy_io_watcher(ev_io *w)
   }
 
   struct stdout_watcher_data *data = w->data;
-  if (data->ind) {
-    lua_run_stdout_callback(data->app->L, data->ind, NULL);
+  if (data->ref) {
+    lua_run_stdout_callback(data->app->L, data->ref, NULL);
   }
   fclose(data->stream);
   free(data);
@@ -95,8 +95,8 @@ static void child_cb(EV_P_ ev_child *w, int revents)
 
   ev_child_stop(EV_A_ w);
 
-  if (data->cb_index > 0) {
-    lua_run_child_callback(data->app->L, data->cb_index, w->rstatus);
+  if (data->ref >= 0) {
+    lua_run_child_callback(data->app->L, data->ref, w->rstatus);
   }
 
   if (data->stdout_watcher) {
@@ -117,7 +117,7 @@ static void child_cb(EV_P_ ev_child *w, int revents)
 
 struct schedule_timer_data {
   App *app;
-  int ind;
+  int ref;
 };
 
 static inline void destroy_schedule_timer(ev_timer *w)
@@ -136,7 +136,7 @@ static void schedule_timer_cb(EV_P_ ev_timer *w, int revents)
   (void) revents;
   struct schedule_timer_data *data = w->data;
   ev_timer_stop(EV_A_ w);
-  lua_run_callback(data->app->L, data->ind);
+  lua_run_callback(data->app->L, data->ref);
   cvector_swap_remove(data->app->schedule_timers, w);
   destroy_schedule_timer(w);
   ev_idle_start(loop, &app->redraw_watcher);
@@ -185,8 +185,8 @@ static void command_stdout_cb(EV_P_ ev_io *w, int revents)
       line[read-1] = 0;
     }
 
-    if (data->ind) {
-      lua_run_stdout_callback(data->app->L, data->ind, line);
+    if (data->ref >= 0) {
+      lua_run_stdout_callback(data->app->L, data->ref, line);
     } else {
       ui_echom(&data->app->ui, "%s", line);
     }
@@ -355,7 +355,7 @@ void app_quit(T *t)
 }
 
 
-static ev_io *add_io_watcher(T *t, FILE* f, int ind)
+static ev_io *add_io_watcher(T *t, FILE* f, int ref)
 {
   if (!f) {
     return NULL;
@@ -373,7 +373,7 @@ static ev_io *add_io_watcher(T *t, FILE* f, int ind)
   struct stdout_watcher_data *data = malloc(sizeof *data);
   data->app = t;
   data->stream = f;
-  data->ind = ind;
+  data->ref = ref;
 
   ev_io *w = malloc(sizeof *w);
   ev_io_init(w, command_stdout_cb, fd, EV_READ);
@@ -384,10 +384,10 @@ static ev_io *add_io_watcher(T *t, FILE* f, int ind)
 }
 
 
-static void add_child_watcher(T *t, int pid, int cb_index, ev_io *stdout_watcher, ev_io *stderr_watcher)
+static void add_child_watcher(T *t, int pid, int ref, ev_io *stdout_watcher, ev_io *stderr_watcher)
 {
   struct child_watcher_data *data = malloc(sizeof *data);
-  data->cb_index = cb_index > 0 ? cb_index : 0;
+  data->ref = ref;
   data->app = t;
   data->stdout_watcher = stdout_watcher;
   data->stderr_watcher = stderr_watcher;
@@ -403,7 +403,7 @@ static void add_child_watcher(T *t, int pid, int cb_index, ev_io *stdout_watcher
 
 // spawn a background program
 int app_spawn(T *t, const char *prog, char *const *args,
-    char **in, bool out, bool err, int out_cb_ind, int err_cb_ind, int cb_ind)
+    char **in, bool out, bool err, int out_cb_ref, int err_cb_ref, int cb_ref)
 {
   FILE *fout, *ferr, *fin;
   ev_io *stderr_watcher = NULL;
@@ -417,14 +417,14 @@ int app_spawn(T *t, const char *prog, char *const *args,
     return -1;
   }
 
-  if (out || out_cb_ind) {
-    stdout_watcher = add_io_watcher(t, fout, out_cb_ind);
+  if (out || out_cb_ref >= 0) {
+    stdout_watcher = add_io_watcher(t, fout, out_cb_ref);
   } else {
     fclose(fout);
   }
 
-  if (err || err_cb_ind) {
-    stderr_watcher = add_io_watcher(t, ferr, err_cb_ind);
+  if (err || err_cb_ref >= 0) {
+    stderr_watcher = add_io_watcher(t, ferr, err_cb_ref);
   } else {
     fclose(ferr);
   }
@@ -437,7 +437,7 @@ int app_spawn(T *t, const char *prog, char *const *args,
     fclose(fin);
   }
 
-  add_child_watcher(t, pid, cb_ind, stdout_watcher, stderr_watcher);
+  add_child_watcher(t, pid, cb_ref, stdout_watcher, stderr_watcher);
   return pid;
 }
 
@@ -538,11 +538,11 @@ void app_read_fifo(T *t)
 }
 
 
-void app_schedule(T *t, int ind, uint32_t delay)
+void app_schedule(T *t, int ref, uint32_t delay)
 {
   struct schedule_timer_data *data = malloc(sizeof *data);
   data->app = t;
-  data->ind = ind;
+  data->ref = ref;
   ev_timer *w = malloc(sizeof *w);
   ev_timer_init(w, schedule_timer_cb, 1.0 * delay / 1000, 0);
   w->data = data;

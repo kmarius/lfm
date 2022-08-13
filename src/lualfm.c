@@ -32,8 +32,6 @@
 #include "ui.h"
 #include "util.h"
 
-#define TABLE_CALLBACKS "callbacks"
-
 #define luaL_optbool(L, i, d) \
   lua_isnoneornil(L, i) ? d : lua_toboolean(L, i)
 
@@ -54,52 +52,44 @@ static bool accept_count = true;
 
 /* lfm lib {{{ */
 
-// sets the function on top of the stack as callback and pops it.
-// returns the index with which to retreive it.
-static int lua_set_callback(lua_State *L)
+// stores the function on top of the stack in the registry and returns the
+// reference index
+static inline int lua_set_callback(lua_State *L)
 {
-  lua_getfield(L, LUA_REGISTRYINDEX, TABLE_CALLBACKS);
-  int ind = lua_objlen(L, -1) + 1;
-  lua_pushvalue(L, -2);
-  lua_rawseti(L, -2, ind);
-  lua_pop(L, 2);
-  return ind;
+  return luaL_ref(L, LUA_REGISTRYINDEX);
 }
 
 
-static bool lua_get_callback(lua_State *L, int ind, bool nil)
+static bool lua_get_callback(lua_State *L, int ref, bool unref)
 {
-  lua_getfield(L, LUA_REGISTRYINDEX, TABLE_CALLBACKS);
-  lua_rawgeti(L, -1, ind);
-  if (nil) {
-    lua_pushnil(L);
-    lua_rawseti(L, -3, ind);
-    lua_replace(L, -2);
+  lua_rawgeti(L, LUA_REGISTRYINDEX, ref);
+  if (unref) {
+    luaL_unref(L, LUA_REGISTRYINDEX, ref);
   }
   return lua_type(L, -1) == LUA_TFUNCTION;
 }
 
 
-void lua_run_callback(lua_State *L, int ind)
+void lua_run_callback(lua_State *L, int ref)
 {
-  if (lua_get_callback(L, ind, true)) {
+  if (lua_get_callback(L, ref, true)) {
     lua_call(L, 0, 0);
   }
 }
 
 
-void lua_run_child_callback(lua_State *L, int ind, int rstatus)
+void lua_run_child_callback(lua_State *L, int ref, int rstatus)
 {
-  if (lua_get_callback(L, ind, true)) {
+  if (lua_get_callback(L, ref, true)) {
     lua_pushnumber(L, rstatus);
     lua_call(L, 1, 0);
   }
 }
 
 
-void lua_run_stdout_callback(lua_State *L, int ind, const char *line)
+void lua_run_stdout_callback(lua_State *L, int ref, const char *line)
 {
-  if (lua_get_callback(L, ind, line == NULL) && line) {
+  if (lua_get_callback(L, ref, line == NULL) && line) {
     lua_pushstring(L, line);
     lua_insert(L, -1);
     lua_call(L, 1, 0);
@@ -266,9 +256,9 @@ static int l_spawn(lua_State *L)
   char **stdin = NULL;
   bool out = true;
   bool err = true;
-  int out_cb_index = 0;
-  int err_cb_index = 0;
-  int cb_index = 0;
+  int out_cb_ref = -1;
+  int err_cb_ref = -1;
+  int cb_ref = -1;
 
   luaL_checktype(L, 1, LUA_TTABLE);
 
@@ -302,7 +292,7 @@ static int l_spawn(lua_State *L)
 
     lua_getfield(L, 2, "out");
     if (lua_isfunction(L, -1)) {
-      out_cb_index = lua_set_callback(L);
+      out_cb_ref = lua_set_callback(L);
     } else {
       out = lua_toboolean(L, -1);
       lua_pop(L, 1);
@@ -310,7 +300,7 @@ static int l_spawn(lua_State *L)
 
     lua_getfield(L, 2, "err");
     if (lua_isfunction(L, -1)) {
-      err_cb_index = lua_set_callback(L);
+      err_cb_ref = lua_set_callback(L);
     } else {
       err = lua_toboolean(L, -1);
       lua_pop(L, 1);
@@ -318,13 +308,13 @@ static int l_spawn(lua_State *L)
 
     lua_getfield(L, 2, "callback");
     if (lua_isfunction(L, -1)) {
-      cb_index = lua_set_callback(L);
+      cb_ref = lua_set_callback(L);
     } else {
       lua_pop(L, 1);
     }
   }
 
-  int pid = app_spawn(app, args[0], args, stdin, out, err, out_cb_index, err_cb_index, cb_index);
+  int pid = app_spawn(app, args[0], args, stdin, out, err, out_cb_ref, err_cb_ref, cb_ref);
 
   cvector_ffree(stdin, free);
   for (uint32_t i = 0; i < n; i++) {
@@ -1836,9 +1826,9 @@ void lua_handle_key(lua_State *L, input_t in)
       // A command is mapped to the current keysequence. Execute it and reset.
       ui_showmenu(ui, NULL);
       lua_pushlightuserdata(L, (void *) maps.cur);
+      lua_gettable(L, LUA_REGISTRYINDEX);
       maps.cur = NULL;
       ui_show_keyseq(ui, NULL);
-      lua_gettable(L, LUA_REGISTRYINDEX);
       int nargs = 0;
       if (command_count > 0) {
         lua_pushnumber(L, command_count);
@@ -1945,7 +1935,6 @@ void lua_init(lua_State *L, App *_app)
   luaopen_lfm(L);
 
   lua_newtable(L);
-  lua_setfield(L, LUA_REGISTRYINDEX, TABLE_CALLBACKS);
 
   lua_load_file(L, cfg.corepath);
 }

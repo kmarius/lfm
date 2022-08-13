@@ -28,9 +28,9 @@ void lua_eval(lua_State *L, const char *expr);
 void lua_run_hook(lua_State *L, const char *hook);
 
 //  Run callback for finished child.
-void lua_run_child_callback(lua_State *L, int ind, int rstatus);
+void lua_run_child_callback(lua_State *L, int ref, int rstatus);
 
-void lua_run_callback(lua_State *L, int ind);
+void lua_run_callback(lua_State *L, int ref);
 
 // `line==NULL` removes callback from the registry.
-void lua_run_stdout_callback(lua_State *L, int ind, const char *line);
+void lua_run_stdout_callback(lua_State *L, int ref, const char *line);
