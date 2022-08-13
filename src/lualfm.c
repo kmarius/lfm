@@ -1741,7 +1741,7 @@ void lua_handle_key(lua_State *L, input_t in)
     cvector_set_size(maps.seq, 0);
     command_count = -1;
   }
-  if (!prefix && in >= '0' && in <= '9') {
+  if (!prefix && cvector_size(maps.seq) == 0 && '0' <= in && in <= '9') {
     if (command_count < 0) {
       command_count = in - '0';
     } else {
