@@ -73,7 +73,9 @@ static inline bool lua_get_callback(lua_State *L, int ref, bool unref)
 void lua_run_callback(lua_State *L, int ref)
 {
   if (lua_get_callback(L, ref, true)) {
-    lua_call(L, 0, 0);
+    if (lua_pcall(L, 0, 0, 0)) {
+      ui_error(ui, "cb: %s", lua_tostring(L, -1));
+    }
   }
 }
 
@@ -82,7 +84,9 @@ void lua_run_child_callback(lua_State *L, int ref, int rstatus)
 {
   if (lua_get_callback(L, ref, true)) {
     lua_pushnumber(L, rstatus);
-    lua_call(L, 1, 0);
+    if (lua_pcall(L, 1, 0, 0)) {
+      ui_error(ui, "cb: %s", lua_tostring(L, -1));
+    }
   }
 }
 
@@ -92,7 +96,9 @@ void lua_run_stdout_callback(lua_State *L, int ref, const char *line)
   if (lua_get_callback(L, ref, line == NULL) && line) {
     lua_pushstring(L, line);
     lua_insert(L, -1);
-    lua_call(L, 1, 0);
+    if (lua_pcall(L, 1, 0, 0)) {
+      ui_error(ui, "run_hook: %s", lua_tostring(L, -1));
+    }
   }
 }
 
@@ -101,11 +107,13 @@ static int l_schedule(lua_State *L)
 {
   luaL_checktype(L, 1, LUA_TFUNCTION);
   const int delay = luaL_checknumber(L, 2);
-    lua_pushvalue(L, 1);
+  lua_pushvalue(L, 1);
   if (delay > 0) {
     app_schedule(app, lua_set_callback(L), delay);
   } else {
-    lua_call(L, 0, 0);
+    if (lua_pcall(L, 0, 0, 0)) {
+      ui_error(ui, "run_hook: %s", lua_tostring(L, -1));
+    }
   }
   return 0;
 }
@@ -1376,8 +1384,8 @@ static int l_fm_selection_get(lua_State *L)
   lua_createtable(L, fm->selection.paths.size, 0);
   size_t i = 1;
   lht_foreach(char *path, &fm->selection.paths) {
-      lua_pushstring(L, path);
-      lua_rawseti(L, -2, i++);
+    lua_pushstring(L, path);
+    lua_rawseti(L, -2, i++);
   }
   return 1;
 }
