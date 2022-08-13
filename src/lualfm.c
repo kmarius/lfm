@@ -60,7 +60,7 @@ static inline int lua_set_callback(lua_State *L)
 }
 
 
-static bool lua_get_callback(lua_State *L, int ref, bool unref)
+static inline bool lua_get_callback(lua_State *L, int ref, bool unref)
 {
   lua_rawgeti(L, LUA_REGISTRYINDEX, ref);
   if (unref) {
@@ -101,11 +101,10 @@ static int l_schedule(lua_State *L)
 {
   luaL_checktype(L, 1, LUA_TFUNCTION);
   const int delay = luaL_checknumber(L, 2);
-  if (delay > 0) {
     lua_pushvalue(L, 1);
+  if (delay > 0) {
     app_schedule(app, lua_set_callback(L), delay);
   } else {
-    lua_pushvalue(L, 1);
     lua_call(L, 0, 0);
   }
   return 0;
@@ -805,7 +804,7 @@ static const struct luaL_Reg ui_lib[] = {
 
 /* color lib {{{ */
 
-static uint32_t read_channel(lua_State *L, int idx)
+static inline uint32_t read_channel(lua_State *L, int idx)
 {
   switch(lua_type(L, idx))
   {
@@ -820,7 +819,7 @@ static uint32_t read_channel(lua_State *L, int idx)
 }
 
 
-static uint64_t read_color_pair(lua_State *L, int ind)
+static inline uint64_t read_color_pair(lua_State *L, int ind)
 {
   uint32_t fg, bg = fg = 0;
   ncchannel_set_default(&fg);
@@ -1733,10 +1732,7 @@ void lua_handle_key(lua_State *L, input_t in)
     command_count = -1;
     accept_count = true;
   }
-  if (prefix) {
-    accept_count = false;
-  }
-  if (accept_count && '0' <= in && in <= '9') {
+  if (!prefix && accept_count && '0' <= in && in <= '9') {
     if (command_count < 0) {
       command_count = in - '0';
     } else {
@@ -1777,26 +1773,25 @@ void lua_handle_key(lua_State *L, input_t in)
       }
     } else {
       if (maps.cur->keys) {
-        lua_pushlightuserdata(L, (void *)maps.cur);
+        lua_pushlightuserdata(L, (void *) maps.cur);
         lua_gettable(L, LUA_REGISTRYINDEX);
         maps.cur = NULL;
         if (lua_pcall(L, 0, 0, 0)) {
           ui_error(ui, "handle_key: %s", lua_tostring(L, -1));
         }
       }
-      // no menu for cmaps
     }
   } else {
     // prefix == NULL, i.e. normal mode
-    if (in == 27) {
-      // If escape is pressed while there are keys in the buffer, we just
-      // clear the keys.
+    if (in == NCKEY_ESC) {
       if (cvector_size(maps.seq) > 0) {
+        // clear keys in the buffer
         maps.cur = NULL;
         ui_showmenu(ui, NULL);
         ui_show_keyseq(ui, NULL);
       } else {
-        /* TODO: this should be done properly with modes (on 2022-02-13) */
+        // clear selection etc
+        // TODO: this should be done properly with modes (on 2022-02-13)
         nohighlight(ui);
         fm_selection_visual_stop(fm);
         fm_selection_clear(fm);
@@ -1804,9 +1799,7 @@ void lua_handle_key(lua_State *L, input_t in)
       }
       ui->message = false;
       ui_redraw(ui, REDRAW_FM);
-      return;
-    }
-    if (!maps.cur) {
+    } else if (!maps.cur) {
       // no keymapping, print an error
       cvector_push_back(maps.seq, in);
       cvector_set_size(maps.str, 0);
@@ -1820,9 +1813,7 @@ void lua_handle_key(lua_State *L, input_t in)
           in, ID(in), ISSHIFT(in), ISCTRL(in), ISALT(in), maps.str);
       ui_showmenu(ui, NULL);
       ui_show_keyseq(ui, NULL);
-      return;
-    }
-    if (maps.cur->keys) {
+    } else if (maps.cur->keys) {
       // A command is mapped to the current keysequence. Execute it and reset.
       ui_showmenu(ui, NULL);
       lua_pushlightuserdata(L, (void *) maps.cur);
