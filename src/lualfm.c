@@ -50,6 +50,7 @@ static struct {
 } maps;
 
 static int command_count = -1;
+static bool accept_count = true;
 
 /* lfm lib {{{ */
 
@@ -1740,12 +1741,20 @@ void lua_handle_key(lua_State *L, input_t in)
     maps.cur = prefix ? maps.cmd : maps.normal;
     cvector_set_size(maps.seq, 0);
     command_count = -1;
+    accept_count = true;
   }
-  if (!prefix && cvector_size(maps.seq) == 0 && '0' <= in && in <= '9') {
+  if (prefix) {
+    accept_count = false;
+  }
+  if (accept_count && '0' <= in && in <= '9') {
     if (command_count < 0) {
       command_count = in - '0';
     } else {
       command_count = command_count * 10 + in - '0';
+    }
+    if (command_count > 0) {
+      cvector_push_back(maps.seq, in);
+      ui_show_keyseq(ui, maps.seq);
     }
     return;
   }
@@ -1839,9 +1848,9 @@ void lua_handle_key(lua_State *L, input_t in)
         ui_error(ui, "handle_key: %s", lua_tostring(L, -1));
       }
     } else {
-      // A command is mapped to the current keysequence. Execute it and reset.
       cvector_push_back(maps.seq, in);
       ui_show_keyseq(ui, maps.seq);
+      accept_count = false;
 
       cvector_vector_type(Trie *) leaves = NULL;
       trie_collect_leaves(maps.cur, &leaves, true);
