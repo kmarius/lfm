@@ -40,15 +40,13 @@ static Ui *ui = NULL;
 static Fm *fm = NULL;
 
 static struct {
-  Trie *normal;
-  Trie *cmd;
-  Trie *cur;
-  input_t *seq;
-  char *str;
+  Trie *normal;  // normal mode mappings
+  Trie *cmd;     // command mode mappings
+  Trie *cur;     // pointer to the current leaf in either of the tries
+  input_t *seq;  // current key sequence
+  int count;
+  bool accept_count;
 } maps;
-
-static int command_count = -1;
-static bool accept_count = true;
 
 /* lfm lib {{{ */
 
@@ -783,7 +781,7 @@ static int l_ui_menu(lua_State *L)
       cvector_push_back(menubuf, strdup(luaL_checkstring(L, -1)));
     }
   }
-  ui_showmenu(ui, menubuf);
+  ui_menu_show(ui, menubuf);
   return 0;
 }
 
@@ -1737,18 +1735,18 @@ void lua_handle_key(lua_State *L, input_t in)
   if (!maps.cur) {
     maps.cur = prefix ? maps.cmd : maps.normal;
     cvector_set_size(maps.seq, 0);
-    command_count = -1;
-    accept_count = true;
+    maps.count = -1;
+    maps.accept_count = true;
   }
-  if (!prefix && accept_count && '0' <= in && in <= '9') {
-    if (command_count < 0) {
-      command_count = in - '0';
+  if (!prefix && maps.accept_count && '0' <= in && in <= '9') {
+    if (maps.count < 0) {
+      maps.count = in - '0';
     } else {
-      command_count = command_count * 10 + in - '0';
+      maps.count = maps.count * 10 + in - '0';
     }
-    if (command_count > 0) {
+    if (maps.count > 0) {
       cvector_push_back(maps.seq, in);
-      ui_show_keyseq(ui, maps.seq);
+      ui_keyseq_show(ui, maps.seq);
     }
     return;
   }
@@ -1795,8 +1793,8 @@ void lua_handle_key(lua_State *L, input_t in)
       if (cvector_size(maps.seq) > 0) {
         // clear keys in the buffer
         maps.cur = NULL;
-        ui_showmenu(ui, NULL);
-        ui_show_keyseq(ui, NULL);
+        ui_menu_hide(ui);
+        ui_keyseq_hide(ui);
       } else {
         // clear selection etc
         // TODO: this should be done properly with modes (on 2022-02-13)
@@ -1810,27 +1808,28 @@ void lua_handle_key(lua_State *L, input_t in)
     } else if (!maps.cur) {
       // no keymapping, print an error
       cvector_push_back(maps.seq, in);
-      cvector_set_size(maps.str, 0);
+      char *str = NULL;
       for (size_t i = 0; i < cvector_size(maps.seq); i++) {
         for (const char *s = input_to_key_name(maps.seq[i]); *s; s++) {
-          cvector_push_back(maps.str, *s);
+          cvector_push_back(str, *s);
         }
       }
-      cvector_push_back(maps.str, 0);
+      cvector_push_back(str, 0);
       log_debug("key: %d, id: %d, shift: %d, ctrl: %d alt %d, %s",
-          in, ID(in), ISSHIFT(in), ISCTRL(in), ISALT(in), maps.str);
-      ui_showmenu(ui, NULL);
-      ui_show_keyseq(ui, NULL);
+          in, ID(in), ISSHIFT(in), ISCTRL(in), ISALT(in), str);
+      cvector_free(str);
+      ui_menu_hide(ui);
+      ui_keyseq_hide(ui);
     } else if (maps.cur->keys) {
       // A command is mapped to the current keysequence. Execute it and reset.
-      ui_showmenu(ui, NULL);
+      ui_menu_hide(ui);
       lua_pushlightuserdata(L, (void *) maps.cur);
       lua_gettable(L, LUA_REGISTRYINDEX);
       maps.cur = NULL;
-      ui_show_keyseq(ui, NULL);
+      ui_keyseq_hide(ui);
       int nargs = 0;
-      if (command_count > 0) {
-        lua_pushnumber(L, command_count);
+      if (maps.count > 0) {
+        lua_pushnumber(L, maps.count);
         nargs++;
       }
       if (lua_pcall(L, nargs, 0, 0)) {
@@ -1838,13 +1837,14 @@ void lua_handle_key(lua_State *L, input_t in)
       }
     } else {
       cvector_push_back(maps.seq, in);
-      ui_show_keyseq(ui, maps.seq);
-      accept_count = false;
+      ui_keyseq_show(ui, maps.seq);
+      maps.accept_count = false;
 
-      cvector_vector_type(Trie *) leaves = NULL;
+      Trie **leaves = NULL;
       trie_collect_leaves(maps.cur, &leaves, true);
 
-      cvector_vector_type(char *) menu = NULL;
+      char **menu = NULL;
+
       cvector_push_back(menu, strdup("\033[1mkeys\tcommand\033[0m"));
       char *s;
       for (size_t i = 0; i < cvector_size(leaves); i++) {
@@ -1852,7 +1852,7 @@ void lua_handle_key(lua_State *L, input_t in)
         cvector_push_back(menu, s);
       }
       cvector_free(leaves);
-      ui_showmenu(ui, menu);
+      ui_menu_show(ui, menu);
     }
   }
 }
@@ -1925,9 +1925,7 @@ void lua_init(lua_State *L, App *_app)
   maps.normal = trie_create();
   maps.cmd = trie_create();
   maps.cur = NULL;
-  maps.str = NULL;
   maps.seq = NULL;
-  cvector_push_back(maps.str, 0);
 
   luaL_openlibs(L);
   luaopen_jit(L);
@@ -1945,6 +1943,5 @@ void lua_deinit(lua_State *L)
   lua_close(L);
   trie_destroy(maps.normal);
   trie_destroy(maps.cmd);
-  cvector_free(maps.str);
   cvector_free(maps.seq);
 }

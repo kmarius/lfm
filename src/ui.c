@@ -377,7 +377,7 @@ void ui_cmd_clear(T *t)
   cmdline_clear(&t->cmdline);
   history_reset(&t->history);
   notcurses_cursor_disable(t->nc);
-  ui_showmenu(t, NULL);
+  ui_menu_show(t, NULL);
   ui_redraw(t, REDRAW_CMDLINE | REDRAW_MENU);
 }
 
@@ -682,7 +682,7 @@ static void menu_clear(T *t)
 }
 
 
-void ui_showmenu(T *t, cvector_vector_type(char*) vec)
+void ui_menu_show(T *t, cvector_vector_type(char*) vec)
 {
   if (t->menubuf) {
     menu_clear(t);

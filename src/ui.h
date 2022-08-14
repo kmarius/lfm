@@ -81,12 +81,22 @@ void ui_verror(Ui *ui, const char *format, va_list args);
 
 void ui_vechom(Ui *ui, const char *format, va_list args);
 
-void ui_showmenu(Ui *ui, cvector_vector_type(char*) vec);
+void ui_menu_show(Ui *ui, cvector_vector_type(char*) vec);
 
-static inline void ui_show_keyseq(Ui *ui, input_t *keyseq)
+static inline void ui_menu_hide(Ui *ui)
+{
+  ui_menu_show(ui, NULL);
+}
+
+static inline void ui_keyseq_show(Ui *ui, input_t *keyseq)
 {
   ui->keyseq = keyseq;
   ui_redraw(ui, REDRAW_CMDLINE);
+}
+
+static inline void ui_keyseq_hide(Ui *ui)
+{
+  ui_keyseq_show(ui, NULL);
 }
 
 void ui_cmd_delete(Ui *ui);
