@@ -58,7 +58,7 @@ function lfm.eval(line)
 			command.f(unpack(args))
 		else
 			local arg = string.gsub(line, "^[^ ]*%s*", "")
-			command.f(arg)
+			command.f(arg ~= "" and arg or nil)
 		end
 	else
 		log.debug("loadstring: " .. line)
