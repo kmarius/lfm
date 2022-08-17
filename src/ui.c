@@ -272,6 +272,8 @@ static void draw_preview(T *t)
       update_preview(t);
       if (t->preview.preview) {
         preview_draw(t->preview.preview, t->planes.preview);
+      } else {
+        ncplane_erase(t->planes.preview);
       }
     }
   }
