@@ -301,23 +301,19 @@ require("colors").set({
 			color = {fg = palette.magenta},
 			ext = {
 				".mp3", ".m4a", ".ogg", ".flac", ".mka",
-				".MP3", ".M4A", ".OGG", ".FLAC", ".MKA",
 				".mp4", ".mkv", ".m4v", ".webm", ".avi", ".flv", ".wmv", ".mov", ".mpg", ".mpeg", ".3gp",
-				".MP4", ".MKV", ".M4V", ".WEBM", ".AVI", ".FLV", ".WMV", ".MOV", ".MPG", ".MPEG", ".3GP",
 			},
 		},
 		{
 			color = {fg = palette.bright_red},
 			ext = {
 				".tar", ".zst", ".xz", ".gz", ".zip", ".rar", ".7z", ".bz2",
-				".TAR", ".ZST", ".XZ", ".GZ", ".ZIP", ".RAR", ".7Z", ".BZ2",
 			},
 		},
 		{
 			color = {fg = palette.yellow},
 			ext = {
 				".jpg", ".jpeg", ".png", ".bmp", ".webp", ".gif",
-				".JPG", ".JPEG", ".PNG", ".BMP", ".WEBP", ".GIF",
 			},
 		},
 	}

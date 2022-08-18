@@ -433,6 +433,7 @@ void dir_update_with(T *t, Dir *update, uint32_t height, uint32_t scrolloff)
     t->sel = strdup(file_name(t->files[t->ind]));
   }
 
+  /* TODO: random, rare segfault here... (on 2022-08-18) */
   cvector_ffree(t->files_all, file_destroy);
   free(t->files_sorted);
   free(t->files);

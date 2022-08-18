@@ -25,6 +25,8 @@
 
 #define T Ui
 
+#define EXT_MAX_LEN 128  // to convert the extension to lowercase
+
 static void draw_dirs(T *t);
 static void plane_draw_dir(struct ncplane *n, Dir *dir, LinkedHashtab *sel,
     LinkedHashtab *load, enum paste_mode_e mode, const char *highlight, bool print_sizes);
@@ -705,8 +707,16 @@ void ui_menu_show(T *t, cvector_vector_type(char*) vec)
 
 static uint64_t ext_channel_get(const char *ext)
 {
+  char buf[EXT_MAX_LEN];
+
   if (ext) {
-    uint64_t *chan = ht_get(&cfg.colors.ext, ext);
+    // lowercase for ascii - good enough for now
+    size_t i;
+    for (i = 0; ext[i] && i < EXT_MAX_LEN-1; i++) {
+      buf[i] = tolower(ext[i]);
+    }
+    buf[i] = 0;
+    uint64_t *chan = ht_get(&cfg.colors.ext, buf);
     if (chan) {
       return *chan;
     }
