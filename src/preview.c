@@ -146,6 +146,11 @@ T *preview_create_from_file(const char *path, uint32_t nrow)
     log_debug("created image preview for %s %p", path, t->ncv);
   } else {
     /* TODO: redirect stderr? (on 2021-08-10) */
+    // TODO:  (on 2022-08-21)
+    // we can not reliably get the return status of the child here because
+    // it might get reaped by ev in the main thread.
+    // Once we can do that, we should e.g. adhere to ranger and print the preview
+    // if the previewer exits with 7
     char *const args[3] = {cfg.previewer, (char*) path, NULL};
     FILE *fp = popen_arr(cfg.previewer, args, false);
     if (!fp) {
