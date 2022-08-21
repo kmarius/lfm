@@ -162,17 +162,18 @@ static void stdin_cb(EV_P_ ev_io *w, int revents)
     if (in.id == 0) {
       break;
     }
-    if (in.evtype == NCTYPE_RELEASE) {
-      continue;
-    }
-    if (in.id >= NCKEY_LSHIFT && in.id <= NCKEY_L5SHIFT) {
-      continue;
-    }
+    // to emulate legacy with the kitty protocol (once it works in notcurses)
+    // if (in.evtype == NCTYPE_RELEASE) {
+    //   continue;
+    // }
+    // if (in.id >= NCKEY_LSHIFT && in.id <= NCKEY_L5SHIFT) {
+    //   continue;
+    // }
     if (current_millis() <= app->input_timeout) {
       continue;
     }
 
-    log_debug("id: %d, shift: %d, ctrl: %d alt %d, type: %d, %s", in.id, in.shift, in.ctrl, in.alt, in.evtype, in.utf8);
+    // log_debug("id: %d, shift: %d, ctrl: %d alt %d, type: %d, %s", in.id, in.shift, in.ctrl, in.alt, in.evtype, in.utf8);
     lua_handle_key(app->L, ncinput_to_input(&in));
   }
 
