@@ -87,11 +87,6 @@ add_executable(lfm ${LFM_SOURCES} ${LFM_GENERATED_SOURCES})
 
 find_package(Notcurses REQUIRED)
 include_directories(SYSTEM ${NOTCURSES_INCLUDE_DIRS})
-set(NOTCURSES_DEPS m unistring ncursesw readline
-	# these are needed for showing images with ffmpeg (at least),
-	# check if we can remove these when upgrading notcurses:
-	# swscale
-	)
 
 find_package(LuaJit)
 include_directories(${LUAJIT_INCLUDE_DIRS})
@@ -102,8 +97,8 @@ find_package(Magic REQUIRED)
 find_package(Pcre REQUIRED)
 find_package(ZLIB REQUIRED)
 find_package(Ev REQUIRED)
-# builds locally, but not when building the package...
-# find_package(FFmpeg REQUIRED)
+find_package(FFmpeg REQUIRED COMPONENTS AVCODEC AVFORMAT AVUTIL SWSCALE)
+set(NOTCURSES_DEPS m unistring ncursesw readline deflate)
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
@@ -111,8 +106,8 @@ set(PTHREAD_LIBRARY Threads::Threads)
 
 target_link_libraries(lfm
 	PRIVATE
-	# ${FFMPEG_LIBRARIES}
 	${EV_LIBRARY}
+	${FFMPEG_LIBRARIES}
 	${LUAJIT_LIBRARY}
 	${NOTCURSES_LIBRARY}
 	${NOTCURSES_CORE_LIBRARY}

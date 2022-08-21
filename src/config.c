@@ -56,6 +56,10 @@ void config_ext_channel_add(const char *ext, uint64_t channel)
 void config_init()
 {
   ht_init(&cfg.colors.ext, EXT_CHANNEL_TAB_SIZE, free);
+  ht_init(&cfg.image_extensions, EXT_CHANNEL_TAB_SIZE, free);
+  image_extension_add(".jpg");
+  image_extension_add(".png");
+  image_extension_add(".webp");
   cvector_vector_type(uint32_t) r = NULL;
   cvector_push_back(r, 1);
   cvector_push_back(r, 2);
@@ -64,6 +68,7 @@ void config_init()
 
   cfg.previewer = strdup("stat");
   cfg.preview = true;
+  cfg.preview_images = false;
 
   const char *xdg_runtime = getenv("XDG_RUNTIME_DIR");
   if (!xdg_runtime || *xdg_runtime == 0) {
@@ -142,4 +147,5 @@ void config_colors_clear()
   cfg.colors.selection = NCCHANNELS_INITIALIZER_PALINDEX(-1, -1);
 
   ht_clear(&cfg.colors.ext);
+  ht_clear(&cfg.image_extensions);
 }

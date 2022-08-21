@@ -1,0 +1,11 @@
+--- src/lib/termdesc.c	2022-04-06 12:25:53.000000000 +0200
++++ src/lib/termdesc-patched.c	2022-08-21 11:45:34.835171822 +0200
+@@ -353,7 +353,7 @@
+ 
+ // request kitty keyboard protocol features 1, 2, and 8, first pushing current.
+ // see https://sw.kovidgoyal.net/kitty/keyboard-protocol/#progressive-enhancement
+-#define KKBDSUPPORT "\x1b[=11u"
++#define KKBDSUPPORT
+ 
+ // the kitty keyboard protocol allows unambiguous, complete identification of
+ // input events. this queries for the level of support. we want to do this

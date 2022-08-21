@@ -1,0 +1,28 @@
+--- CMakeLists.txt	2022-08-21 12:16:03.534428562 +0200
++++ CMakeLists.txt.~1~	2022-08-21 15:07:29.149471840 +0200
+@@ -574,12 +574,6 @@
+     ${NCPP_COMPILE_DEFINITIONS_PUBLIC}
+ )
+ 
+-file(GLOB NOTCURSES_HEADERS
+-  CONFIGURE_DEPENDS
+-  LIST_DIRECTORIES false
+-  ${PROJECT_SOURCE_DIR}/include/notcurses/*.h
+-  ${CMAKE_CURRENT_BINARY_DIR}/include/version.h)
+-
+ file(GLOB NCPP_HEADERS
+   CONFIGURE_DEPENDS
+   LIST_DIRECTORIES false
+@@ -591,6 +585,12 @@
+   ${PROJECT_SOURCE_DIR}/include/ncpp/internal/*.hh)
+ endif()
+ 
++file(GLOB NOTCURSES_HEADERS
++  CONFIGURE_DEPENDS
++  LIST_DIRECTORIES false
++  ${PROJECT_SOURCE_DIR}/include/notcurses/*.h
++  ${CMAKE_CURRENT_BINARY_DIR}/include/version.h)
++
+ export(PACKAGE notcurses)
+ 
+ install(FILES ${NOTCURSES_HEADERS} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/notcurses)

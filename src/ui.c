@@ -43,7 +43,7 @@ static int print_shortened_w(struct ncplane *n, const wchar_t *name, int name_le
 static int resize_cb(struct ncplane *n)
 {
   T *ui = ncplane_userptr(n);
-  notcurses_stddim_yx(ui->nc, (int *) &ui->nrow, (int *) &ui->ncol);
+  notcurses_stddim_yx(ui->nc, &ui->nrow, &ui->ncol);
   ncplane_resize(ui->planes.info, 0, 0, 0, 0, 0, 0, 1, ui->ncol);
   ncplane_resize(ui->planes.cmdline, 0, 0, 0, 0, 0, 0, 1, ui->ncol);
   ncplane_move_yx(ui->planes.cmdline, ui->nrow - 1, 0);
@@ -68,7 +68,7 @@ void ui_resume(T *t)
 
   struct ncplane *ncstd = notcurses_stdplane(t->nc);
 
-  ncplane_dim_yx(ncstd, (int *) &t->nrow, (int *) &t->ncol);
+  ncplane_dim_yx(ncstd, &t->nrow, &t->ncol);
   t->fm->height = t->nrow - 2;
 
   struct ncplane_options opts = {
@@ -196,6 +196,8 @@ void ui_recol(T *t)
   opts.cols = t->ncol - xpos - 1;
   cvector_push_back(t->planes.dirs, ncplane_create(ncstd, &opts));
   t->planes.preview = t->planes.dirs[t->ndirs-1];
+  t->preview.cols = opts.cols;
+  t->preview.rows = t->nrow - 2;
 }
 
 
@@ -554,7 +556,7 @@ static void draw_info(T *t)
 
   // shortening should work fine with ascii only names
   wchar_t *end = (wchar_t *) wcsend(path);
-  int remaining;
+  unsigned int remaining;
   ncplane_cursor_yx(n, NULL, &remaining);
   remaining = t->ncol - remaining;
   if (file) {
@@ -967,8 +969,8 @@ static void print_file(struct ncplane *n, const File *file,
     bool iscurrent, LinkedHashtab *sel, LinkedHashtab *load, enum paste_mode_e mode,
     const char *highlight, bool print_sizes)
 {
-  int ncol, y0;
-  int x = 0;
+  unsigned int ncol, y0;
+  unsigned int x = 0;
   char size[16];
   ncplane_dim_yx(n, NULL, &ncol);
   ncplane_cursor_yx(n, &y0, NULL);
@@ -1072,7 +1074,7 @@ static void print_file(struct ncplane *n, const File *file,
 static void plane_draw_dir(struct ncplane *n, Dir *dir, LinkedHashtab *sel, LinkedHashtab*load,
     enum paste_mode_e mode, const char *highlight, bool print_sizes)
 {
-  int nrow;
+  unsigned int nrow;
 
   ncplane_erase(n);
   ncplane_dim_yx(n, &nrow, NULL);
@@ -1113,9 +1115,26 @@ static void plane_draw_dir(struct ncplane *n, Dir *dir, LinkedHashtab *sel, Link
 
 /* preview {{{ */
 
+/* TODO: make a hashmap or something (on 2022-08-21) */
+static inline bool is_image(Hashtab *ht, const char *path)
+{
+  char buf[EXT_MAX_LEN];
+
+  if (path) {
+    size_t i;
+    for (i = 0; path[i] && i < EXT_MAX_LEN-1; i++) {
+      buf[i] = tolower(path[i]);
+    }
+    buf[i] = 0;
+    return NULL != ht_get(ht, buf);
+  }
+  return false;
+}
+
+
 static Preview *load_preview(T *t, File *file)
 {
-  int ncol, nrow;
+  unsigned int ncol, nrow;
   ncplane_dim_yx(t->planes.preview, &nrow, &ncol);
 
   Preview *pv = ht_get(&t->preview.cache, file_path(file));
@@ -1130,17 +1149,26 @@ static Preview *load_preview(T *t, File *file)
       async_preview_check(pv);
     }
   } else {
-    pv = preview_create_loading(file_path(file), nrow);
+    pv = preview_create_loading(file_path(file), nrow,
+        cfg.preview_images && notcurses_canopen_images(t->nc)
+        && is_image(&cfg.image_extensions, file_ext(file)));
     ht_set(&t->preview.cache, pv->path, pv);
     async_preview_load(pv, nrow);
   }
   return pv;
 }
 
+static inline void reset_preview_plane_size(T *t)
+{
+  // ncvisual_blit shrinks the ncplane to approximately fit the image, we
+  // need to fix it
+  ncplane_resize(t->planes.preview, 0, 0, 0, 0, 0, 0, t->preview.rows, t->preview.cols);
+}
+
 
 static void update_preview(T *t)
 {
-  int ncol, nrow;
+  unsigned int ncol, nrow;
   ncplane_dim_yx(t->planes.preview, &nrow, &ncol);
 
   File *file = fm_current_file(t->fm);
@@ -1158,10 +1186,12 @@ static void update_preview(T *t)
           }
         }
       } else {
+        reset_preview_plane_size(t);
         t->preview.preview = load_preview(t, file);
         ui_redraw(t, REDRAW_PREVIEW);
       }
     } else {
+      reset_preview_plane_size(t);
       t->preview.preview = load_preview(t, file);
       ui_redraw(t, REDRAW_PREVIEW);
     }

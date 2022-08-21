@@ -354,7 +354,8 @@ const char *cmdline_get(T *t)
 
 uint32_t cmdline_print(T *t, struct ncplane *n)
 {
-  int ncol, offset;
+  unsigned int ncol;
+  int offset;
   ncplane_dim_yx(n, NULL, &ncol);
 
   uint32_t ret = 0;
