@@ -455,6 +455,7 @@ int app_spawn(T *t, const char *prog, char *const *args,
 bool app_execute(T *t, const char *prog, char *const *args)
 {
   int pid, status, rc;
+  ev_io_stop(t->loop, &t->input_watcher);
   ui_suspend(&t->ui);
   kbblocking(true);
   if ((pid = fork()) < 0) {
@@ -473,6 +474,11 @@ bool app_execute(T *t, const char *prog, char *const *args)
   }
   kbblocking(false);
   ui_resume(&t->ui);
+
+  ev_io_init(&t->input_watcher, stdin_cb, notcurses_inputready_fd(t->ui.nc), EV_READ);
+  t->input_watcher.data = t;
+  ev_io_start(t->loop, &t->input_watcher);
+
   signal(SIGINT, SIG_IGN);
   ui_redraw(&t->ui, REDRAW_FM);
   return status == 0;
