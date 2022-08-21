@@ -196,6 +196,8 @@ void ui_recol(T *t)
   opts.cols = t->ncol - xpos - 1;
   cvector_push_back(t->planes.dirs, ncplane_create(ncstd, &opts));
   t->planes.preview = t->planes.dirs[t->ndirs-1];
+  t->preview.cols = opts.cols;
+  t->preview.rows = t->nrow - 2;
 }
 
 
@@ -267,6 +269,9 @@ static void draw_dirs(T *t)
 static void draw_preview(T *t)
 {
   if (cfg.preview && t->ndirs > 1) {
+    // ncvisual_blit shrinks the ncplane to approximately fit the image, we
+    // need to fix it
+    ncplane_resize(t->planes.preview, 0, 0, 0, 0, 0, 0, t->preview.rows, t->preview.cols);
     if (t->fm->dirs.preview) {
       plane_draw_dir(t->planes.preview, t->fm->dirs.preview, &t->fm->selection.paths,
           &t->fm->paste.buffer, t->fm->paste.mode, NULL, false);

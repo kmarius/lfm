@@ -27,7 +27,7 @@ static void destroy_image_preview(Preview *t);
 static inline bool is_image(const char *path)
 {
   /* TODO: disabled for now, until we can upgrade notcurses (on 2022-08-10) */
-  return false;
+  // return false;
   return strcasestr(path, ".png") || strcasestr(path, ".jpg");
 }
 
@@ -189,15 +189,14 @@ static void draw_image_preview(const T *t, struct ncplane *n)
     return;
   }
   log_debug("drawing image preview %s", t->path);
-  // struct ncvisual_options vopts = {
-  //   .scaling = NCSCALE_SCALE,
-  //   .n = n,
-  //   .blitter = NCBLIT_PIXEL,
-  // };
-  // deprecated
-  // if (ncvisual_render(ncplane_notcurses(n), t->ncv, &vopts) == NULL){
-  //   log_error("ncvisual_blit error");
-  // }
+  struct ncvisual_options vopts = {
+    .scaling = NCSCALE_SCALE,
+    .n = n,
+    .blitter = NCBLIT_PIXEL,
+  };
+  if (ncvisual_blit(ncplane_notcurses(n), t->ncv, &vopts) == NULL){
+    log_error("ncvisual_blit error");
+  }
 }
 
 
