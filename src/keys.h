@@ -20,9 +20,9 @@ typedef uint32_t input_t;
 // store modifier keys.
 #define ncinput_to_input(in) \
   (input_t) ((in)->id \
-      | ((in)->alt ? ALT_MASK : 0) \
-      | ((in)->ctrl ? CTRL_MASK : 0) \
-      | ((in)->shift ? SHIFT_MASK : 0))
+      | (ncinput_alt_p(in) ? ALT_MASK : 0) \
+      | (ncinput_ctrl_p(in) ? CTRL_MASK : 0) \
+      | (ncinput_shift_p(in) ? SHIFT_MASK : 0))
 
 // Map an `input_t` to a statically allocated string containing its readable
 // representation. Not thread safe.
