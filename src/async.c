@@ -9,6 +9,7 @@
 #include "hashtab.h"
 #include "loader.h"
 #include "log.h"
+#include "preview.h"
 #include "ui.h"
 #include "util.h"
 
@@ -552,6 +553,7 @@ struct preview_load_work {
   char *path;
   Preview *preview;
   int nrow;
+  bool image_preview;
   uint32_t version;
 };
 
@@ -562,7 +564,7 @@ static void async_preview_load_worker(void *arg)
 
   PreviewLoadResult *res = PreviewLoadResult_create(
       work->preview,
-      preview_create_from_file(work->path, work->nrow),
+      preview_create_from_file(work->path, work->nrow, work->image_preview),
       work->version);
   enqueue_and_signal((Result *) res);
 
@@ -578,6 +580,7 @@ void async_preview_load(Preview *pv, uint32_t nrow)
   work->path = strdup(pv->path);
   work->nrow = nrow;
   work->version = previewcache->version;
+  work->image_preview = preview_is_image_preview(pv);
   tpool_add_work(async_tm, async_preview_load_worker, work);
 }
 

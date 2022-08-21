@@ -45,6 +45,7 @@ typedef struct Config {
   char *startpath;
   char *startfile;
   bool preview;
+  bool preview_images;
   char *previewer;
   bool hidden;
   uint32_t scrolloff;

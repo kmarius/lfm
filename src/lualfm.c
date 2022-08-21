@@ -526,6 +526,9 @@ static int l_config_index(lua_State *L)
   } else if (streq(key, "preview")) {
     lua_pushboolean(L, cfg.preview);
     return 1;
+  } else if (streq(key, "preview_images")) {
+    lua_pushboolean(L, cfg.preview_images);
+    return 1;
   } else if (streq(key, "previewer")) {
     lua_pushstring(L, cfg.previewer ? cfg.previewer : "");
     return 1;
@@ -624,8 +627,18 @@ static int l_config_newindex(lua_State *L)
     cfg.scrolloff = max(luaL_checkinteger(L, 3), 0);
     return 0;
   } else if (streq(key, "preview")) {
+    /* TODO: clear image cache here (on 2022-08-21) */
     cfg.preview = lua_toboolean(L, 3);
+    if (cfg.preview) {
+      ui_drop_cache(ui);
+    }
     fm_recol(fm);
+    ui_redraw(ui, REDRAW_FM);
+    return 0;
+  } else if (streq(key, "preview_images")) {
+    cfg.preview_images = lua_toboolean(L, 3);
+    fm_recol(fm);
+    ui_drop_cache(ui);
     ui_redraw(ui, REDRAW_FM);
     return 0;
   } else if (streq(key, "previewer")) {

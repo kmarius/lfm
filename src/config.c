@@ -64,6 +64,7 @@ void config_init()
 
   cfg.previewer = strdup("stat");
   cfg.preview = true;
+  cfg.preview_images = false;
 
   const char *xdg_runtime = getenv("XDG_RUNTIME_DIR");
   if (!xdg_runtime || *xdg_runtime == 0) {

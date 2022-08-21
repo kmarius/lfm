@@ -1118,6 +1118,15 @@ static void plane_draw_dir(struct ncplane *n, Dir *dir, LinkedHashtab *sel, Link
 
 /* preview {{{ */
 
+/* TODO: make a hashmap or something (on 2022-08-21) */
+static inline bool is_image(const char *path)
+{
+  return path && (strcasestr(path, ".png")
+    || strcasestr(path, ".webp")
+    || strcasestr(path, ".jpg"));
+}
+
+
 static Preview *load_preview(T *t, File *file)
 {
   unsigned int ncol, nrow;
@@ -1135,7 +1144,9 @@ static Preview *load_preview(T *t, File *file)
       async_preview_check(pv);
     }
   } else {
-    pv = preview_create_loading(file_path(file), nrow);
+    pv = preview_create_loading(file_path(file), nrow,
+        cfg.preview_images && notcurses_canopen_images(t->nc)
+        && is_image(file_ext(file)));
     ht_set(&t->preview.cache, pv->path, pv);
     async_preview_load(pv, nrow);
   }

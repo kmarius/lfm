@@ -27,6 +27,7 @@
 ---@field scrolloff integer assignable
 ---@field hidden boolean assignable
 ---@field preview boolean assignable
+---@field preview_images boolean assignable
 ---@field previewer string assignable
 ---@field configpath string
 ---@field configdir string
