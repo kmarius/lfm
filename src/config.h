@@ -46,6 +46,7 @@ typedef struct Config {
   char *startfile;
   bool preview;
   bool preview_images;
+  Hashtab image_extensions;
   char *previewer;
   bool hidden;
   uint32_t scrolloff;
@@ -81,3 +82,9 @@ void config_ratios_set(cvector_vector_type(uint32_t) ratios);
 void config_ext_channel_add(const char *ext, uint64_t channel);
 
 void config_colors_clear();
+
+static inline void image_extension_add(const char *ext)
+{
+  char *val = strdup(ext);
+  ht_set(&cfg.image_extensions, val, val);
+}

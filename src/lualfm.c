@@ -529,6 +529,14 @@ static int l_config_index(lua_State *L)
   } else if (streq(key, "preview_images")) {
     lua_pushboolean(L, cfg.preview_images);
     return 1;
+  } else if (streq(key, "image_extensions")) {
+    lua_createtable(L, cfg.image_extensions.size, 0);
+    size_t i = 1;
+    ht_foreach(const char *ext, &cfg.image_extensions) {
+      lua_pushstring(L, ext);
+      lua_rawseti(L, -2, i++);
+    }
+    return 1;
   } else if (streq(key, "previewer")) {
     lua_pushstring(L, cfg.previewer ? cfg.previewer : "");
     return 1;
@@ -639,8 +647,18 @@ static int l_config_newindex(lua_State *L)
     cfg.preview_images = lua_toboolean(L, 3);
     fm_recol(fm);
     ui_drop_cache(ui);
-    ui_redraw(ui, REDRAW_FM);
+    ui_redraw(ui, REDRAW_PREVIEW);
     return 0;
+  } else if (streq(key, "image_extensions")) {
+    const size_t l = lua_objlen(L, 3);
+    ht_clear(&cfg.image_extensions);
+    for (uint32_t i = 1; i <= l; i++) {
+      lua_rawgeti(L, 3, i);
+      image_extension_add(lua_tostring(L, -1));
+      lua_pop(L, 1);
+    }
+    ui_drop_cache(ui);
+    ui_redraw(ui, REDRAW_PREVIEW);
   } else if (streq(key, "previewer")) {
     if (lua_isnoneornil(L, 3)) {
       free(cfg.previewer);
