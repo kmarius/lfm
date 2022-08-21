@@ -158,12 +158,21 @@ static void stdin_cb(EV_P_ ev_io *w, int revents)
   App *app = w->data;
   ncinput in;
 
-  while (notcurses_getc_nblock(app->ui.nc, &in) != (uint32_t) -1) {
+  while (notcurses_get_nblock(app->ui.nc, &in) != (uint32_t) -1) {
+    if (in.id == 0) {
+      break;
+    }
+    if (in.evtype == NCTYPE_RELEASE) {
+      continue;
+    }
+    if (in.id >= NCKEY_LSHIFT && in.id <= NCKEY_L5SHIFT) {
+      continue;
+    }
     if (current_millis() <= app->input_timeout) {
       continue;
     }
 
-    /* log_debug("id: %d, shift: %d, ctrl: %d alt %d", in.id, in.shift, in.ctrl, in.alt); */
+    log_debug("id: %d, shift: %d, ctrl: %d alt %d, type: %d, %s", in.id, in.shift, in.ctrl, in.alt, in.evtype, in.utf8);
     lua_handle_key(app->L, ncinput_to_input(&in));
   }
 
