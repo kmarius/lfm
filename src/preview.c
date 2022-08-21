@@ -165,7 +165,7 @@ static void draw_text_preview(const T *t, struct ncplane *n)
 {
   ncplane_erase(n);
 
-  int nrow;
+  unsigned int nrow;
   ncplane_dim_yx(n, &nrow, NULL);
   ncplane_set_styles(n, NCSTYLE_NONE);
   ncplane_set_fg_default(n);
@@ -189,14 +189,15 @@ static void draw_image_preview(const T *t, struct ncplane *n)
     return;
   }
   log_debug("drawing image preview %s", t->path);
-  struct ncvisual_options vopts = {
-    .scaling = NCSCALE_SCALE,
-    .n = n,
-    .blitter = NCBLIT_PIXEL,
-  };
-  if (ncvisual_render(ncplane_notcurses(n), t->ncv, &vopts) == NULL){
-    log_error("ncvisual_blit error");
-  }
+  // struct ncvisual_options vopts = {
+  //   .scaling = NCSCALE_SCALE,
+  //   .n = n,
+  //   .blitter = NCBLIT_PIXEL,
+  // };
+  // deprecated
+  // if (ncvisual_render(ncplane_notcurses(n), t->ncv, &vopts) == NULL){
+  //   log_error("ncvisual_blit error");
+  // }
 }
 
 

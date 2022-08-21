@@ -22,9 +22,9 @@
 #define REDRAW_PREVIEW 16
 
 typedef struct {
-  uint32_t nrow; // keep these as int for now until we can upgrade notcurses
+  uint32_t nrow;
   uint32_t ncol;
-  uint32_t ndirs; /* number of columns including the preview */
+  uint32_t ndirs;  // number of columns including the preview
 
   Fm *fm;
 

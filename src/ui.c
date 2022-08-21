@@ -43,7 +43,7 @@ static int print_shortened_w(struct ncplane *n, const wchar_t *name, int name_le
 static int resize_cb(struct ncplane *n)
 {
   T *ui = ncplane_userptr(n);
-  notcurses_stddim_yx(ui->nc, (int *) &ui->nrow, (int *) &ui->ncol);
+  notcurses_stddim_yx(ui->nc, &ui->nrow, &ui->ncol);
   ncplane_resize(ui->planes.info, 0, 0, 0, 0, 0, 0, 1, ui->ncol);
   ncplane_resize(ui->planes.cmdline, 0, 0, 0, 0, 0, 0, 1, ui->ncol);
   ncplane_move_yx(ui->planes.cmdline, ui->nrow - 1, 0);
@@ -68,7 +68,7 @@ void ui_resume(T *t)
 
   struct ncplane *ncstd = notcurses_stdplane(t->nc);
 
-  ncplane_dim_yx(ncstd, (int *) &t->nrow, (int *) &t->ncol);
+  ncplane_dim_yx(ncstd, &t->nrow, &t->ncol);
   t->fm->height = t->nrow - 2;
 
   struct ncplane_options opts = {
@@ -554,7 +554,7 @@ static void draw_info(T *t)
 
   // shortening should work fine with ascii only names
   wchar_t *end = (wchar_t *) wcsend(path);
-  int remaining;
+  unsigned int remaining;
   ncplane_cursor_yx(n, NULL, &remaining);
   remaining = t->ncol - remaining;
   if (file) {
@@ -967,8 +967,8 @@ static void print_file(struct ncplane *n, const File *file,
     bool iscurrent, LinkedHashtab *sel, LinkedHashtab *load, enum paste_mode_e mode,
     const char *highlight, bool print_sizes)
 {
-  int ncol, y0;
-  int x = 0;
+  unsigned int ncol, y0;
+  unsigned int x = 0;
   char size[16];
   ncplane_dim_yx(n, NULL, &ncol);
   ncplane_cursor_yx(n, &y0, NULL);
@@ -1072,7 +1072,7 @@ static void print_file(struct ncplane *n, const File *file,
 static void plane_draw_dir(struct ncplane *n, Dir *dir, LinkedHashtab *sel, LinkedHashtab*load,
     enum paste_mode_e mode, const char *highlight, bool print_sizes)
 {
-  int nrow;
+  unsigned int nrow;
 
   ncplane_erase(n);
   ncplane_dim_yx(n, &nrow, NULL);
@@ -1115,7 +1115,7 @@ static void plane_draw_dir(struct ncplane *n, Dir *dir, LinkedHashtab *sel, Link
 
 static Preview *load_preview(T *t, File *file)
 {
-  int ncol, nrow;
+  unsigned int ncol, nrow;
   ncplane_dim_yx(t->planes.preview, &nrow, &ncol);
 
   Preview *pv = ht_get(&t->preview.cache, file_path(file));
@@ -1140,7 +1140,7 @@ static Preview *load_preview(T *t, File *file)
 
 static void update_preview(T *t)
 {
-  int ncol, nrow;
+  unsigned int ncol, nrow;
   ncplane_dim_yx(t->planes.preview, &nrow, &ncol);
 
   File *file = fm_current_file(t->fm);
