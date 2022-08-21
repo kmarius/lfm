@@ -87,7 +87,7 @@ add_executable(lfm ${LFM_SOURCES} ${LFM_GENERATED_SOURCES})
 
 find_package(Notcurses REQUIRED)
 include_directories(SYSTEM ${NOTCURSES_INCLUDE_DIRS})
-set(NOTCURSES_DEPS m unistring ncursesw readline
+set(NOTCURSES_DEPS m unistring ncursesw readline deflate
 	# these are needed for showing images with ffmpeg (at least),
 	# check if we can remove these when upgrading notcurses:
 	# swscale
