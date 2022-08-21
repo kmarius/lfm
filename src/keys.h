@@ -18,9 +18,10 @@ typedef uint32_t input_t;
 
 // Convert an ncinput to ncinput_t. We use the three most significant bits to
 // store modifier keys.
+// ncinput_alt_p doesn't seem to work yet
 #define ncinput_to_input(in) \
   (input_t) ((in)->id \
-      | (ncinput_alt_p(in) ? ALT_MASK : 0) \
+      | ((in)->alt ? ALT_MASK : 0) \
       | (ncinput_ctrl_p(in) ? CTRL_MASK : 0) \
       | (ncinput_shift_p(in) ? SHIFT_MASK : 0))
 
