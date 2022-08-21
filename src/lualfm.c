@@ -635,7 +635,6 @@ static int l_config_newindex(lua_State *L)
     cfg.scrolloff = max(luaL_checkinteger(L, 3), 0);
     return 0;
   } else if (streq(key, "preview")) {
-    /* TODO: clear image cache here (on 2022-08-21) */
     cfg.preview = lua_toboolean(L, 3);
     if (cfg.preview) {
       ui_drop_cache(ui);

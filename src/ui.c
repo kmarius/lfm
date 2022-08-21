@@ -269,9 +269,6 @@ static void draw_dirs(T *t)
 static void draw_preview(T *t)
 {
   if (cfg.preview && t->ndirs > 1) {
-    // ncvisual_blit shrinks the ncplane to approximately fit the image, we
-    // need to fix it
-    ncplane_resize(t->planes.preview, 0, 0, 0, 0, 0, 0, t->preview.rows, t->preview.cols);
     if (t->fm->dirs.preview) {
       plane_draw_dir(t->planes.preview, t->fm->dirs.preview, &t->fm->selection.paths,
           &t->fm->paste.buffer, t->fm->paste.mode, NULL, false);
@@ -1161,6 +1158,13 @@ static Preview *load_preview(T *t, File *file)
   return pv;
 }
 
+static inline void reset_preview_plane_size(T *t)
+{
+  // ncvisual_blit shrinks the ncplane to approximately fit the image, we
+  // need to fix it
+  ncplane_resize(t->planes.preview, 0, 0, 0, 0, 0, 0, t->preview.rows, t->preview.cols);
+}
+
 
 static void update_preview(T *t)
 {
@@ -1182,10 +1186,12 @@ static void update_preview(T *t)
           }
         }
       } else {
+        reset_preview_plane_size(t);
         t->preview.preview = load_preview(t, file);
         ui_redraw(t, REDRAW_PREVIEW);
       }
     } else {
+      reset_preview_plane_size(t);
       t->preview.preview = load_preview(t, file);
       ui_redraw(t, REDRAW_PREVIEW);
     }
