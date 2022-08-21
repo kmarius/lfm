@@ -28,17 +28,17 @@ static void wansi_matchattr(struct ncplane *w, uint32_t a)
         break;
       case 5:
         /* not supported by notcurses */
-        ncplane_on_styles(w, NCSTYLE_BLINK);
+        // ncplane_on_styles(w, NCSTYLE_BLINK);
         break;
       case 6: /* nothing */
         break;
       case 7:
         /* not supported, needs workaround */
-        ncplane_on_styles(w, NCSTYLE_REVERSE);
+        // ncplane_on_styles(w, NCSTYLE_REVERSE);
         break;
       case 8:
         /* not supported by notcurses */
-        ncplane_on_styles(w, NCSTYLE_INVIS);
+        // ncplane_on_styles(w, NCSTYLE_INVIS);
         break;
       case 9: /* strikethrough */
         ncplane_on_styles(w, NCSTYLE_STRUCK);
