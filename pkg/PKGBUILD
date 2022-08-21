@@ -1,13 +1,13 @@
 pkgname=lfm-git
 _pkgname=lfm
-pkgver=r612.d8387cf
+pkgver=r658.acc1870
 pkgrel=1
 pkgdesc="terminal file manager"
 url="https://github.com/kmarius/lfm"
 license=('MIT')
 arch=('x86_64' 'aarch64')
-depends=('luajit' 'libev' 'lua51-posix')
-makedepends=('git' 'cmake' 'gcc')
+depends=('luajit' 'libev' 'ffmpeg' 'libdeflate' 'lua51-posix')
+makedepends=('git' 'cmake' 'ninja' 'gcc')
 optdepends=("trash-cli: trash files"
 	"wl-clipboard: clipboard support on wayland")
 source=(git+https://github.com/kmarius/lfm)
@@ -21,12 +21,13 @@ pkgver() {
 }
 
 build() {
-	cd "${_pkgname}"
-	cmake -Bbuild -DCMAKE_INSTALL_PREFIX="/usr" -DCMAKE_BUILD_TYPE=RelWithDebInfo
-	cmake --build build
+	mkdir -p "${_pkgname}"/build
+	cd "${_pkgname}"/build
+	cmake .. -GNinja -DCMAKE_INSTALL_PREFIX="/usr" -DCMAKE_BUILD_TYPE=RelWithDebInfo
+	ninja
 }
 
 package() {
-	cd "${_pkgname}"
-	DESTDIR="${pkgdir}" cmake --install build
+	cd "${_pkgname}"/build
+	DESTDIR=${pkgdir} ninja install
 }
