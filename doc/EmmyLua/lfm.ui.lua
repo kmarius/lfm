@@ -39,3 +39,27 @@ function lfm.ui.menu(menu) end
 ---Show all previously shown errors and messages.
 ---@return string[] messages
 function lfm.ui.messages() end
+
+---Con notcurses open images?
+---@return boolean
+function lfm.ui.notcurses_canopen_images() end
+
+---Con notcurses draw images with halfblocks?
+---@return boolean
+function lfm.ui.notcurses_canhalfblock() end
+
+---Con notcurses draw images with quadrants?
+---@return boolean
+function lfm.ui.notcurses_canquadrant() end
+
+---Con notcurses draw images with sextants?
+---@return boolean
+function lfm.ui.notcurses_cansextant() end
+
+---Con notcurses draw images with braille?
+---@return boolean
+function lfm.ui.notcurses_canbraille() end
+
+---Con notcurses draw pixel perfect bitmaps?
+---@return boolean
+function lfm.ui.notcurses_canpixel() end
