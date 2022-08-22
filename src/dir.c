@@ -425,6 +425,7 @@ void dir_update_with(Dir *d, Dir *update, uint32_t height, uint32_t scrolloff)
   if (!d->sel && d->ind < d->length) {
     d->sel = strdup(file_name(d->files[d->ind]));
   }
+  log_debug("updating %p with %p, updates=%d", d, update, d->updates);
 
   cvector_ffree(d->files_all, file_destroy);
   free(d->files_sorted);
@@ -458,6 +459,7 @@ void dir_destroy(Dir *d)
   if (!d) {
     return;
   }
+  log_debug("destroying %p, updates=%d", d, d->updates);
 
   cvector_ffree(d->files_all, file_destroy);
   filter_destroy(d->filter);
