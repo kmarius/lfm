@@ -137,11 +137,12 @@ void fm_hidden_set(Fm *fm, bool hidden);
 void fm_check_dirs(const Fm *fm);
 
 // jump to previous directory
-static inline void fm_jump_automark(Fm *fm)
+static inline bool fm_jump_automark(Fm *fm)
 {
   if (fm->automark) {
-    fm_chdir(fm, fm->automark, true);
+    return fm_chdir(fm, fm->automark, true);
   }
+  return false;
 }
 
 // Toggles the selection of the currently selected file.

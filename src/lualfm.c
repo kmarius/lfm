@@ -1543,7 +1543,10 @@ static int l_fm_filter(lua_State *L)
 static int l_fm_jump_automark(lua_State *L)
 {
   (void) L;
-  fm_jump_automark(fm);
+  lua_run_hook(L, LFM_HOOK_CHDIRPRE);
+  if (fm_jump_automark(fm)) {
+    lua_run_hook(L, LFM_HOOK_CHDIRPOST);
+  }
   ui_redraw(ui, REDRAW_FM);
   return 0;
 }
