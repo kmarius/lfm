@@ -22,6 +22,7 @@ In the root of this repository perform
 
     mkdir build && cd build
     cmake .. -DCMAKE_INSTALL_PREFIX=~/.local -DCMAKE_BUILD_TYPE=RelWithDebInfo
+    make
     make install
 
 This will install `lfm` into `~/.local`, make sure to add `~/.local/bin` to `PATH`. 
