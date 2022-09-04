@@ -154,6 +154,8 @@ end
 local compl = require("compl")
 lfm.compl = compl
 
+lfm.inspect = require("inspect")
+
 local shell = require("shell")
 lfm.shell = shell
 
