@@ -79,6 +79,7 @@ local hooks = {
 	ChdirPost = {},
 	SelectionChanged = {},
 	Resized = {},
+	PasteBufChange = {},
 }
 
 ---Register a function to hook into events. Curruntly supported hooks are

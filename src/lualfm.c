@@ -1542,6 +1542,10 @@ static int l_fm_paste_buffer_set(lua_State *L)
     error("unrecognized paste mode: %s", mode);
   }
 
+  if (luaL_optbool(L, 3, true)) {
+    lua_run_hook(L, LFM_HOOK_PASTEBUF);
+  }
+
   ui_redraw(ui, REDRAW_FM);
 
   return 0;
@@ -1550,8 +1554,8 @@ static int l_fm_paste_buffer_set(lua_State *L)
 
 static int l_fm_copy(lua_State *L)
 {
-  (void) L;
   fm_paste_mode_set(fm, PASTE_MODE_COPY);
+  lua_run_hook(L, LFM_HOOK_PASTEBUF);
   ui_redraw(ui, REDRAW_FM);
   return 0;
 }
@@ -1559,8 +1563,8 @@ static int l_fm_copy(lua_State *L)
 
 static int l_fm_cut(lua_State *L)
 {
-  (void) L;
   fm_paste_mode_set(fm, PASTE_MODE_MOVE);
+  lua_run_hook(L, LFM_HOOK_PASTEBUF);
   ui_redraw(ui, REDRAW_FM);
   return 0;
 }
@@ -1877,6 +1881,7 @@ void lua_handle_key(lua_State *L, input_t in)
         fm_selection_visual_stop(fm);
         fm_selection_clear(fm);
         fm_paste_buffer_clear(fm);
+        lua_run_hook(L, LFM_HOOK_PASTEBUF);
       }
       ui->message = false;
       ui_redraw(ui, REDRAW_FM);

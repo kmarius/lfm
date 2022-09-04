@@ -10,6 +10,7 @@
 #define LFM_HOOK_EXITPRE   "ExitPre"
 #define LFM_HOOK_CHDIRPRE  "ChdirPre"
 #define LFM_HOOK_CHDIRPOST "ChdirPost"
+#define LFM_HOOK_PASTEBUF  "PasteBufChange"
 
 // Initialize lua state, load libraries.
 void lua_init(lua_State *L, App *app);

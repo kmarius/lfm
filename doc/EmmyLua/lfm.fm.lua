@@ -102,7 +102,8 @@ function lfm.fm.paste_buffer_get() end
 ---Set the current paste buffer and mode. nil or {} clears the buffer.
 ---@param files string[]
 ---@param mode? pastemode (default: "copy")
-function lfm.fm.paste_buffer_set(files, mode) end
+---@param run_hook? boolean should PasteBufChange hook be run (default: true)
+function lfm.fm.paste_buffer_set(files, mode, run_hook) end
 
 ---Get current paste mode.
 ---@return pastemode mode
