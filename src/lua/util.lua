@@ -7,7 +7,7 @@ local M = {}
 
 ---Get dirname of path.
 ---@param path string
----@return string?
+---@return string
 function M.dirname(path)
 	if not path then return nil end
 	if not string.match(path, "^/") then
@@ -18,7 +18,7 @@ end
 
 ---Get basename of path.
 ---@param path string
----@return string?
+---@return string
 function M.basename(path)
 	if not path then return nil end
 	return (string.gsub(path, "^.*/", ""))
@@ -26,7 +26,7 @@ end
 
 ---Split a file into its base name and extension
 ---@param file string
----@return string? name
+---@return string name
 ---@return string? extension
 function M.file_split(file)
 	if not file then return nil end
