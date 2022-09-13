@@ -10,7 +10,7 @@
 #include "preview.h"
 #include "tpool.h"
 
-void async_init(Lfm *app);
+void async_init(Lfm *lfm);
 
 void async_deinit();
 

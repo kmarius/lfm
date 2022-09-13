@@ -30,32 +30,32 @@ typedef struct app_s {
 } Lfm;
 
 // Set input timout. Key input will be ignored for the next `duration` ms.
-static inline void app_timeout_set(Lfm *app, uint32_t duration)
+static inline void app_timeout_set(Lfm *lfm, uint32_t duration)
 {
-  app->input_timeout = current_millis() + duration;
+  lfm->input_timeout = current_millis() + duration;
 }
 
 // Try reading from the $LFMFIFO
-void app_read_fifo(Lfm *app);
+void app_read_fifo(Lfm *lfm);
 
 // Initialize ui, fm and the lua_State.
-void app_init(Lfm *app);
+void app_init(Lfm *lfm);
 
 // Start the main event loop.
-void app_run(Lfm *app);
+void app_run(Lfm *lfm);
 
 // Stop the main event loop.
-void app_quit(Lfm *app);
+void app_quit(Lfm *lfm);
 
 // Free all recources i.e. ui, fm and the lua_State.
-void app_deinit(Lfm *app);
+void app_deinit(Lfm *lfm);
 
-int app_spawn(Lfm *app, const char *prog, char *const *args,
+int app_spawn(Lfm *lfm, const char *prog, char *const *args,
     char **in, bool out, bool err, int out_cb_ref, int err_cb_ref, int cb_ref);
 
-bool app_execute(Lfm *app, const char *prog, char *const *args);
+bool app_execute(Lfm *lfm, const char *prog, char *const *args);
 
-void app_schedule(Lfm *app, int ref, uint32_t delay);
+void app_schedule(Lfm *lfm, int ref, uint32_t delay);
 
 // Print a message in the UI. `printf` formatting applies.
 void print(const char *format, ...);

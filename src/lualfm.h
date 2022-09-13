@@ -13,7 +13,7 @@
 #define LFM_HOOK_PASTEBUF  "PasteBufChange"
 
 // Initialize lua state, load libraries.
-void lua_init(lua_State *L, Lfm *app);
+void lua_init(lua_State *L, Lfm *lfm);
 
 void lua_deinit(lua_State *L);
 

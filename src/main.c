@@ -44,7 +44,7 @@ static void version(const char *progname)
 
 int main(int argc, char **argv)
 {
-  Lfm app;
+  Lfm lfm;
   int ret = EXIT_SUCCESS;
 
   const uint64_t t0 = current_micros();
@@ -110,12 +110,12 @@ int main(int argc, char **argv)
 
   srand(time(NULL));
 
-  app_init(&app);
+  app_init(&lfm);
 
   log_debug("starting main loop after %.2f ms", (current_micros() - t0)/1000.0);
-  app_run(&app);
+  app_run(&lfm);
 
-  app_deinit(&app);
+  app_deinit(&lfm);
 
   /* selection is written in lualfm.c */
   if (cfg.lastdir) {

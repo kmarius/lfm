@@ -30,7 +30,7 @@ static struct notify_watcher_data {
 static void inotify_cb(EV_P_ ev_io *w, int revents);
 
 
-int notify_init(Lfm *app)
+int notify_init(Lfm *lfm)
 {
   inotify_fd = inotify_init1(IN_NONBLOCK);
 
@@ -44,8 +44,8 @@ int notify_init(Lfm *app)
   }
 
   ev_io_init(&inotify_watcher, inotify_cb, inotify_fd, EV_READ);
-  inotify_watcher.data = app;
-  ev_io_start(app->loop, &inotify_watcher);
+  inotify_watcher.data = lfm;
+  ev_io_start(lfm->loop, &inotify_watcher);
 
   return inotify_fd;
 }
@@ -81,7 +81,7 @@ static void inotify_cb(EV_P_ ev_io *w, int revents)
 {
   (void) loop;
   (void) revents;
-  Lfm *app = w->data;
+  Lfm *lfm = w->data;
   int nread;
   char buf[EVENT_BUFLEN], *p;
   struct inotify_event *event;
@@ -98,7 +98,7 @@ static void inotify_cb(EV_P_ ev_io *w, int revents)
       // with the fifo, the callback gets called every loop, even with clearerr
       /* TODO: we could filter for our pipe here (on 2021-08-13) */
       if (event->wd == fifo_wd) {
-        app_read_fifo(app);
+        app_read_fifo(lfm);
         continue;
       }
 

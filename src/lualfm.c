@@ -35,7 +35,7 @@
 #define luaL_optbool(L, i, d) \
   lua_isnoneornil(L, i) ? d : lua_toboolean(L, i)
 
-static Lfm *app = NULL;
+static Lfm *lfm = NULL;
 static Ui *ui = NULL;
 static Fm *fm = NULL;
 
@@ -107,7 +107,7 @@ static int l_schedule(lua_State *L)
   const int delay = luaL_checknumber(L, 2);
   lua_pushvalue(L, 1);
   if (delay > 0) {
-    app_schedule(app, lua_set_callback(L), delay);
+    app_schedule(lfm, lua_set_callback(L), delay);
   } else {
     if (lua_pcall(L, 0, 0, 0)) {
       ui_error(ui, "run_hook: %s", lua_tostring(L, -1));
@@ -143,7 +143,7 @@ static int l_timeout(lua_State *L)
 {
   const int32_t dur = luaL_checkinteger(L, 1);
   if (dur > 0) {
-    app_timeout_set(app, dur);
+    app_timeout_set(lfm, dur);
   }
   return 0;
 }
@@ -228,7 +228,7 @@ static int l_crash(lua_State *L)
 static int l_quit(lua_State *L)
 {
   (void) L;
-  app_quit(app);
+  app_quit(lfm);
   return 0;
 }
 
@@ -319,7 +319,7 @@ static int l_spawn(lua_State *L)
     }
   }
 
-  int pid = app_spawn(app, args[0], args, stdin, out, err, out_cb_ref, err_cb_ref, cb_ref);
+  int pid = app_spawn(lfm, args[0], args, stdin, out, err, out_cb_ref, err_cb_ref, cb_ref);
 
   cvector_ffree(stdin, free);
   for (uint32_t i = 0; i < n; i++) {
@@ -354,7 +354,7 @@ static int l_execute(lua_State *L)
     lua_pop(L, 1);
   }
   args[n] = NULL;
-  bool ret = app_execute(app, args[0], args);
+  bool ret = app_execute(lfm, args[0], args);
   for (uint32_t i = 0; i < n; i++) {
     free(args[i]);
   }
@@ -1311,7 +1311,7 @@ static int l_fm_open(lua_State *L)
     if (cfg.selfile) {
       /* lastdir is written in main */
       fm_selection_write(fm, cfg.selfile);
-      app_quit(app);
+      app_quit(lfm);
       return 0;
     }
 
@@ -1807,7 +1807,7 @@ void lua_eval(lua_State *L, const char *expr)
 void lua_handle_key(lua_State *L, input_t in)
 {
   if (in == CTRL('Q')) {
-    app_quit(app);
+    app_quit(lfm);
     return;
   }
   const char *prefix = cmdline_prefix_get(&ui->cmdline);
@@ -1998,7 +1998,7 @@ int luaopen_lfm(lua_State *L)
 
 void lua_init(lua_State *L, Lfm *_app)
 {
-  app = _app;
+  lfm = _app;
   ui = &_app->ui;
   fm = &_app->fm;
 

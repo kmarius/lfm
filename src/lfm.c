@@ -26,7 +26,7 @@
 
 #define TICK 1  // in seconds
 
-static Lfm *app = NULL;  // only needed for print/error
+static Lfm *lfm = NULL;  // only needed for print/error
 
 struct message {
   char *text;
@@ -40,13 +40,13 @@ static struct message *messages = NULL;
 // child watchers {{{
 
 struct stdout_watcher_data {
-  Lfm *app;
+  Lfm *lfm;
   FILE *stream;
   int ref;
 };
 
 struct child_watcher_data {
-  Lfm *app;
+  Lfm *lfm;
   int ref;
   ev_io *stdout_watcher;
   ev_io *stderr_watcher;
@@ -62,7 +62,7 @@ static inline void destroy_io_watcher(ev_io *w)
 
   struct stdout_watcher_data *data = w->data;
   if (data->ref) {
-    lua_run_stdout_callback(data->app->L, data->ref, NULL);
+    lua_run_stdout_callback(data->lfm->L, data->ref, NULL);
   }
   fclose(data->stream);
   free(data);
@@ -92,7 +92,7 @@ static void child_cb(EV_P_ ev_child *w, int revents)
   ev_child_stop(EV_A_ w);
 
   if (data->ref >= 0) {
-    lua_run_child_callback(data->app->L, data->ref, w->rstatus);
+    lua_run_child_callback(data->lfm->L, data->ref, w->rstatus);
   }
 
   if (data->stdout_watcher) {
@@ -103,7 +103,7 @@ static void child_cb(EV_P_ ev_child *w, int revents)
     ev_io_stop(loop, data->stderr_watcher);
   }
 
-  cvector_swap_remove(data->app->child_watchers, w);
+  cvector_swap_remove(data->lfm->child_watchers, w);
   destroy_child_watcher(w);
 }
 
@@ -112,7 +112,7 @@ static void child_cb(EV_P_ ev_child *w, int revents)
 // scheduling timers {{{
 
 struct schedule_timer_data {
-  Lfm *app;
+  Lfm *lfm;
   int ref;
 };
 
@@ -132,10 +132,10 @@ static void schedule_timer_cb(EV_P_ ev_timer *w, int revents)
   (void) revents;
   struct schedule_timer_data *data = w->data;
   ev_timer_stop(EV_A_ w);
-  lua_run_callback(data->app->L, data->ref);
-  cvector_swap_remove(data->app->schedule_timers, w);
+  lua_run_callback(data->lfm->L, data->ref);
+  cvector_swap_remove(data->lfm->schedule_timers, w);
   destroy_schedule_timer(w);
-  ev_idle_start(loop, &app->redraw_watcher);
+  ev_idle_start(loop, &lfm->redraw_watcher);
 }
 
 // }}}
@@ -143,7 +143,7 @@ static void schedule_timer_cb(EV_P_ ev_timer *w, int revents)
 static void timer_cb(EV_P_ ev_timer *w, int revents)
 {
   (void) revents;
-  /* Lfm *app = w->data; */
+  /* Lfm *lfm = w->data; */
   ev_timer_stop(loop, w);
 }
 
@@ -151,10 +151,10 @@ static void timer_cb(EV_P_ ev_timer *w, int revents)
 static void stdin_cb(EV_P_ ev_io *w, int revents)
 {
   (void) revents;
-  Lfm *app = w->data;
+  Lfm *lfm = w->data;
   ncinput in;
 
-  while (notcurses_get_nblock(app->ui.nc, &in) != (uint32_t) -1) {
+  while (notcurses_get_nblock(lfm->ui.nc, &in) != (uint32_t) -1) {
     if (in.id == 0) {
       break;
     }
@@ -165,15 +165,15 @@ static void stdin_cb(EV_P_ ev_io *w, int revents)
     // if (in.id >= NCKEY_LSHIFT && in.id <= NCKEY_L5SHIFT) {
     //   continue;
     // }
-    if (current_millis() <= app->input_timeout) {
+    if (current_millis() <= lfm->input_timeout) {
       continue;
     }
 
     // log_debug("id: %d, shift: %d, ctrl: %d alt %d, type: %d, %s", in.id, in.shift, in.ctrl, in.alt, in.evtype, in.utf8);
-    lua_handle_key(app->L, ncinput_to_input(&in));
+    lua_handle_key(lfm->L, ncinput_to_input(&in));
   }
 
-  ev_idle_start(loop, &app->redraw_watcher);
+  ev_idle_start(loop, &lfm->redraw_watcher);
 }
 
 
@@ -192,9 +192,9 @@ static void command_stdout_cb(EV_P_ ev_io *w, int revents)
     }
 
     if (data->ref >= 0) {
-      lua_run_stdout_callback(data->app->L, data->ref, line);
+      lua_run_stdout_callback(data->lfm->L, data->ref, line);
     } else {
-      ui_echom(&data->app->ui, "%s", line);
+      ui_echom(&data->lfm->ui, "%s", line);
     }
   }
   free(line);
@@ -204,7 +204,7 @@ static void command_stdout_cb(EV_P_ ev_io *w, int revents)
     clearerr(data->stream);
   }
 
-  ev_idle_start(loop, &data->app->redraw_watcher);
+  ev_idle_start(loop, &data->lfm->redraw_watcher);
 }
 
 
@@ -213,11 +213,11 @@ static void command_stdout_cb(EV_P_ ev_io *w, int revents)
 static void prepare_cb(EV_P_ ev_prepare *w, int revents)
 {
   (void) revents;
-  Lfm *app = w->data;
+  Lfm *lfm = w->data;
 
   if (cfg.commands) {
     for (size_t i = 0; i < cvector_size(cfg.commands); i++) {
-      lua_eval(app->L, cfg.commands[i]);
+      lua_eval(lfm->L, cfg.commands[i]);
     }
 
     // commands are from argv, don't free them
@@ -237,7 +237,7 @@ static void prepare_cb(EV_P_ ev_prepare *w, int revents)
     cvector_free(messages);
   }
 
-  lua_run_hook(app->L, LFM_HOOK_ENTER);
+  lua_run_hook(lfm->L, LFM_HOOK_ENTER);
   ev_prepare_stop(loop, w);
 }
 
@@ -245,10 +245,10 @@ static void prepare_cb(EV_P_ ev_prepare *w, int revents)
 static void sigwinch_cb(EV_P_ ev_signal *w, int revents)
 {
   (void) revents;
-  Lfm *app = w->data;
-  ui_clear(&app->ui);
-  lua_run_hook(app->L, LFM_HOOK_RESIZED);
-  ev_idle_start(loop, &app->redraw_watcher);
+  Lfm *lfm = w->data;
+  ui_clear(&lfm->ui);
+  lua_run_hook(lfm->L, LFM_HOOK_RESIZED);
+  ev_idle_start(loop, &lfm->redraw_watcher);
 }
 
 
@@ -271,8 +271,8 @@ static void sighup_cb(EV_P_ ev_signal *w, int revents)
 static void redraw_cb(EV_P_ ev_idle *w, int revents)
 {
   (void) revents;
-  Lfm *app = w->data;
-  ui_draw(&app->ui);
+  Lfm *lfm = w->data;
+  ui_draw(&lfm->ui);
   ev_idle_stop(loop, w);
 }
 
@@ -280,7 +280,7 @@ static void redraw_cb(EV_P_ ev_idle *w, int revents)
 
 void app_init(T *t)
 {
-  app = t;
+  lfm = t;
 
   memset(t, 0, sizeof *t);
   t->fifo_fd = -1;
@@ -307,7 +307,7 @@ void app_init(T *t)
 
   t->ui.messages = NULL; /* needed to keep errors on fm startup */
 
-  loader_init(app->loop);
+  loader_init(lfm->loop);
 
   async_init(t);
 
@@ -347,7 +347,7 @@ void app_init(T *t)
   t->L = luaL_newstate();
   lua_init(t->L, t);
 
-  log_info("initialized app");
+  log_info("initialized lfm");
 }
 
 
@@ -380,7 +380,7 @@ static ev_io *add_io_watcher(T *t, FILE* f, int ref)
   fcntl(fd, F_SETFL, flags | O_NONBLOCK);
 
   struct stdout_watcher_data *data = malloc(sizeof *data);
-  data->app = t;
+  data->lfm = t;
   data->stream = f;
   data->ref = ref;
 
@@ -397,7 +397,7 @@ static void add_child_watcher(T *t, int pid, int ref, ev_io *stdout_watcher, ev_
 {
   struct child_watcher_data *data = malloc(sizeof *data);
   data->ref = ref;
-  data->app = t;
+  data->lfm = t;
   data->stdout_watcher = stdout_watcher;
   data->stderr_watcher = stderr_watcher;
 
@@ -490,12 +490,12 @@ void print(const char *format, ...)
   va_list args;
   va_start(args, format);
 
-  if (!app) {
+  if (!lfm) {
     struct message msg = {.error = false};
     vasprintf(&msg.text, format, args);
     cvector_push_back(messages, msg);
   } else {
-    ui_vechom(&app->ui, format, args);
+    ui_vechom(&lfm->ui, format, args);
   }
 
   va_end(args);
@@ -507,12 +507,12 @@ void error(const char *format, ...)
   va_list args;
   va_start(args, format);
 
-  if (!app) {
+  if (!lfm) {
     struct message msg = {.error = true};
     vasprintf(&msg.text, format, args);
     cvector_push_back(messages, msg);
   } else {
-    ui_verror(&app->ui, format, args);
+    ui_verror(&lfm->ui, format, args);
   }
 
   va_end(args);
@@ -549,14 +549,14 @@ void app_read_fifo(T *t)
     free(dyn);
   }
 
-  ev_idle_start(t->loop, &app->redraw_watcher);
+  ev_idle_start(t->loop, &lfm->redraw_watcher);
 }
 
 
 void app_schedule(T *t, int ref, uint32_t delay)
 {
   struct schedule_timer_data *data = malloc(sizeof *data);
-  data->app = t;
+  data->lfm = t;
   data->ref = ref;
   ev_timer *w = malloc(sizeof *w);
   ev_timer_init(w, schedule_timer_cb, 1.0 * delay / 1000, 0);

@@ -28,7 +28,7 @@ typedef struct result_queue_s {
 } ResultQueue;
 
 struct async_watcher_data {
-  Lfm *app;
+  Lfm *lfm;
   ResultQueue *queue;
 };
 
@@ -43,7 +43,7 @@ static ResultQueue async_results = {
 static tpool_t *async_tm = NULL;
 static ev_async async_res_watcher;
 static Hashtab *dircache = NULL;
-static Lfm *app = NULL;
+static Lfm *lfm = NULL;
 
 
 static void async_result_cb(EV_P_ ev_async *w, int revents)
@@ -54,11 +54,11 @@ static void async_result_cb(EV_P_ ev_async *w, int revents)
 
   pthread_mutex_lock(&data->queue->mutex);
   while ((res = resultqueue_get(data->queue))) {
-    res->callback(res, data->app);
+    res->callback(res, data->lfm);
   }
   pthread_mutex_unlock(&data->queue->mutex);
 
-  ev_idle_start(loop, &data->app->redraw_watcher);
+  ev_idle_start(loop, &data->lfm->redraw_watcher);
 }
 
 
@@ -67,7 +67,7 @@ void async_init(Lfm *_app)
   ev_async_init(&async_res_watcher, async_result_cb);
   ev_async_start(_app->loop, &async_res_watcher);
 
-  app = _app;
+  lfm = _app;
   dircache = loader_hashtab();
 
   if (pthread_mutex_init(&async_results.mutex, NULL) != 0) {
@@ -76,7 +76,7 @@ void async_init(Lfm *_app)
   }
 
   struct async_watcher_data *data = malloc(sizeof *data);
-  data->app = _app;
+  data->lfm = _app;
   data->queue = &async_results;
   async_res_watcher.data = data;
 
@@ -153,10 +153,10 @@ typedef struct dir_check_result_s {
 
 // TODO: maybe on slow devices it is better to compare mtimes here? 2021-11-12
 // currently we could just schedule reload from the other thread
-static void DirCheckResult_callback(void *p, Lfm *app)
+static void DirCheckResult_callback(void *p, Lfm *lfm)
 {
   DirCheckResult *res = p;
-  (void) app;
+  (void) lfm;
   loader_reload(res->dir);
   free(res);
 }
@@ -238,7 +238,7 @@ struct file_path {
 };
 
 
-static void DirCountResult_callback(void *p, Lfm *app)
+static void DirCountResult_callback(void *p, Lfm *lfm)
 {
   DirCountResult *res = p;
   /* TODO: we need to make sure that the original files/dir don't get freed (on 2022-01-15) */
@@ -249,7 +249,7 @@ static void DirCountResult_callback(void *p, Lfm *app)
     for (size_t i = 0; i < cvector_size(res->dircounts); i++) {
       file_dircount_set(res->dircounts[i].file, res->dircounts[i].count);
     }
-    ui_redraw(&app->ui, REDRAW_FM);
+    ui_redraw(&lfm->ui, REDRAW_FM);
     if (res->last) {
       res->dir->dircounts = true;
     }
@@ -321,15 +321,15 @@ typedef struct dir_update_result_s {
 } DirUpdateResult;
 
 
-static void DirUpdateResult_callback(void *p, Lfm *app)
+static void DirUpdateResult_callback(void *p, Lfm *lfm)
 {
   DirUpdateResult *res = p;
   if (res->version == dircache->version
       && res->dir->flatten_level == res->update->flatten_level) {
-    dir_update_with(res->dir, res->update, app->fm.height, cfg.scrolloff);
+    dir_update_with(res->dir, res->update, lfm->fm.height, cfg.scrolloff);
     if (res->dir->visible) {
-      fm_update_preview(&app->fm);
-      ui_redraw(&app->ui, REDRAW_FM);
+      fm_update_preview(&lfm->fm);
+      ui_redraw(&lfm->ui, REDRAW_FM);
     }
   } else {
     dir_destroy(res->update);
@@ -424,11 +424,11 @@ typedef struct preview_check_result_s {
 } PreviewCheckResult;
 
 
-static void PreviewCheckResult_callback(void *p, Lfm *app)
+static void PreviewCheckResult_callback(void *p, Lfm *lfm)
 {
   PreviewCheckResult *res = p;
-  (void) app;
-  Preview *pv = ht_get(app->ui.preview.cache, res->path);
+  (void) lfm;
+  Preview *pv = ht_get(lfm->ui.preview.cache, res->path);
   if (pv) {
     async_preview_load(pv, res->nrow);
   }
@@ -512,14 +512,14 @@ typedef struct preview_load_result_s {
 } PreviewLoadResult;
 
 
-static void PreviewLoadResult_callback(void *p, Lfm *app)
+static void PreviewLoadResult_callback(void *p, Lfm *lfm)
 {
   PreviewLoadResult *res = p;
   // TODO: make this safer, preview.cache.version protects against dropped
   // caches only (on 2022-02-06)
-  if (res->version == app->ui.preview.cache->version) {
+  if (res->version == lfm->ui.preview.cache->version) {
     preview_update(res->preview, res->update);
-    ui_redraw(&app->ui, REDRAW_PREVIEW);
+    ui_redraw(&lfm->ui, REDRAW_PREVIEW);
   } else {
     preview_destroy(res->update);
   }
@@ -578,7 +578,7 @@ void async_preview_load(Preview *pv, uint32_t nrow)
   work->preview = pv;
   work->path = strdup(pv->path);
   work->nrow = nrow;
-  work->version = app->ui.preview.cache->version;
+  work->version = lfm->ui.preview.cache->version;
   work->image_preview = preview_is_image_preview(pv);
   tpool_add_work(async_tm, async_preview_load_worker, work);
 }
