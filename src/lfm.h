@@ -27,35 +27,35 @@ typedef struct app_s {
 
   cvector_vector_type(ev_timer *) schedule_timers;
   cvector_vector_type(ev_child *) child_watchers; /* to run callbacks when processes finish */
-} App;
+} Lfm;
 
 // Set input timout. Key input will be ignored for the next `duration` ms.
-static inline void app_timeout_set(App *app, uint32_t duration)
+static inline void app_timeout_set(Lfm *app, uint32_t duration)
 {
   app->input_timeout = current_millis() + duration;
 }
 
 // Try reading from the $LFMFIFO
-void app_read_fifo(App *app);
+void app_read_fifo(Lfm *app);
 
 // Initialize ui, fm and the lua_State.
-void app_init(App *app);
+void app_init(Lfm *app);
 
 // Start the main event loop.
-void app_run(App *app);
+void app_run(Lfm *app);
 
 // Stop the main event loop.
-void app_quit(App *app);
+void app_quit(Lfm *app);
 
 // Free all recources i.e. ui, fm and the lua_State.
-void app_deinit(App *app);
+void app_deinit(Lfm *app);
 
-int app_spawn(App *app, const char *prog, char *const *args,
+int app_spawn(Lfm *app, const char *prog, char *const *args,
     char **in, bool out, bool err, int out_cb_ref, int err_cb_ref, int cb_ref);
 
-bool app_execute(App *app, const char *prog, char *const *args);
+bool app_execute(Lfm *app, const char *prog, char *const *args);
 
-void app_schedule(App *app, int ref, uint32_t delay);
+void app_schedule(Lfm *app, int ref, uint32_t delay);
 
 // Print a message in the UI. `printf` formatting applies.
 void print(const char *format, ...);

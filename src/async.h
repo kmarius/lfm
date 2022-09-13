@@ -5,12 +5,12 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "app.h"
+#include "lfm.h"
 #include "dir.h"
 #include "preview.h"
 #include "tpool.h"
 
-void async_init(App *app);
+void async_init(Lfm *app);
 
 void async_deinit();
 

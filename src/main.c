@@ -7,7 +7,7 @@
 #include <sys/stat.h>
 #include <sys/time.h>
 
-#include "app.h"
+#include "lfm.h"
 #include "auto/versiondef.h"
 #include "config.h"
 #include "cvector.h"
@@ -44,7 +44,7 @@ static void version(const char *progname)
 
 int main(int argc, char **argv)
 {
-  App app;
+  Lfm app;
   int ret = EXIT_SUCCESS;
 
   const uint64_t t0 = current_micros();

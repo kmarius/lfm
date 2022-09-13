@@ -30,7 +30,7 @@ static struct notify_watcher_data {
 static void inotify_cb(EV_P_ ev_io *w, int revents);
 
 
-int notify_init(App *app)
+int notify_init(Lfm *app)
 {
   inotify_fd = inotify_init1(IN_NONBLOCK);
 
@@ -81,7 +81,7 @@ static void inotify_cb(EV_P_ ev_io *w, int revents)
 {
   (void) loop;
   (void) revents;
-  App *app = w->data;
+  Lfm *app = w->data;
   int nread;
   char buf[EVENT_BUFLEN], *p;
   struct inotify_event *event;

@@ -82,7 +82,7 @@ void dir_sort(Dir *dir);
 // Returns the path of the parent of `dir` and `NULL` for the root directory.
 const char *dir_parent_path(const Dir *dir);
 
-// Applies the filter string `filter` to `dir`. `NULL` or `""` clears the filter.
+// Lfmlies the filter string `filter` to `dir`. `NULL` or `""` clears the filter.
 void dir_filter(Dir *dir, const char *filter);
 
 // Check `dir` for changes on disk by comparing mtime. Returns `true` if there

@@ -35,7 +35,7 @@
 #define luaL_optbool(L, i, d) \
   lua_isnoneornil(L, i) ? d : lua_toboolean(L, i)
 
-static App *app = NULL;
+static Lfm *app = NULL;
 static Ui *ui = NULL;
 static Fm *fm = NULL;
 
@@ -1996,7 +1996,7 @@ int luaopen_lfm(lua_State *L)
 }
 
 
-void lua_init(lua_State *L, App *_app)
+void lua_init(lua_State *L, Lfm *_app)
 {
   app = _app;
   ui = &_app->ui;

@@ -120,7 +120,7 @@ bool fm_updir(Fm *fm);
 // decreases)
 void fm_move_cursor_to(Fm *fm, const char *name);
 
-// Apply the filter string given by `filter` to the current directory.
+// Lfmly the filter string given by `filter` to the current directory.
 void fm_filter(Fm *fm, const char *filter);
 
 // Return the filter string of the currently selected directory.

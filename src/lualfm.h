@@ -2,7 +2,7 @@
 
 #include <lua.h>
 
-#include "app.h"
+#include "lfm.h"
 #include "keys.h"
 
 #define LFM_HOOK_RESIZED   "Resized"
@@ -13,7 +13,7 @@
 #define LFM_HOOK_PASTEBUF  "PasteBufChange"
 
 // Initialize lua state, load libraries.
-void lua_init(lua_State *L, App *app);
+void lua_init(lua_State *L, Lfm *app);
 
 void lua_deinit(lua_State *L);
 

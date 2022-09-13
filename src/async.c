@@ -16,7 +16,7 @@
 #define DIRCOUNT_THRESHOLD 200  // send batches of dircounts around every 200ms
 
 typedef struct result_s {
-  void (*callback)(void *, App *);
+  void (*callback)(void *, Lfm *);
   void (*destroy)(void *);
   struct result_s *next;
 } Result;
@@ -28,7 +28,7 @@ typedef struct result_queue_s {
 } ResultQueue;
 
 struct async_watcher_data {
-  App *app;
+  Lfm *app;
   ResultQueue *queue;
 };
 
@@ -43,7 +43,7 @@ static ResultQueue async_results = {
 static tpool_t *async_tm = NULL;
 static ev_async async_res_watcher;
 static Hashtab *dircache = NULL;
-static App *app = NULL;
+static Lfm *app = NULL;
 
 
 static void async_result_cb(EV_P_ ev_async *w, int revents)
@@ -62,7 +62,7 @@ static void async_result_cb(EV_P_ ev_async *w, int revents)
 }
 
 
-void async_init(App *_app)
+void async_init(Lfm *_app)
 {
   ev_async_init(&async_res_watcher, async_result_cb);
   ev_async_start(_app->loop, &async_res_watcher);
@@ -153,7 +153,7 @@ typedef struct dir_check_result_s {
 
 // TODO: maybe on slow devices it is better to compare mtimes here? 2021-11-12
 // currently we could just schedule reload from the other thread
-static void DirCheckResult_callback(void *p, App *app)
+static void DirCheckResult_callback(void *p, Lfm *app)
 {
   DirCheckResult *res = p;
   (void) app;
@@ -238,7 +238,7 @@ struct file_path {
 };
 
 
-static void DirCountResult_callback(void *p, App *app)
+static void DirCountResult_callback(void *p, Lfm *app)
 {
   DirCountResult *res = p;
   /* TODO: we need to make sure that the original files/dir don't get freed (on 2022-01-15) */
@@ -321,7 +321,7 @@ typedef struct dir_update_result_s {
 } DirUpdateResult;
 
 
-static void DirUpdateResult_callback(void *p, App *app)
+static void DirUpdateResult_callback(void *p, Lfm *app)
 {
   DirUpdateResult *res = p;
   if (res->version == dircache->version
@@ -424,7 +424,7 @@ typedef struct preview_check_result_s {
 } PreviewCheckResult;
 
 
-static void PreviewCheckResult_callback(void *p, App *app)
+static void PreviewCheckResult_callback(void *p, Lfm *app)
 {
   PreviewCheckResult *res = p;
   (void) app;
@@ -512,7 +512,7 @@ typedef struct preview_load_result_s {
 } PreviewLoadResult;
 
 
-static void PreviewLoadResult_callback(void *p, App *app)
+static void PreviewLoadResult_callback(void *p, Lfm *app)
 {
   PreviewLoadResult *res = p;
   // TODO: make this safer, preview.cache.version protects against dropped

@@ -9,7 +9,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include "app.h"
+#include "lfm.h"
 #include "async.h"
 #include "config.h"
 #include "cvector.h"

@@ -4,7 +4,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "app.h"
+#include "lfm.h"
 #include "dir.h"
 
 #define NOTIFY_TIMEOUT 1000  // minimum time between directory reloads
@@ -20,7 +20,7 @@
 #define EVENT_BUFLEN (EVENT_MAX * (EVENT_SIZE + EVENT_MAX_LEN))
 
 // Returns a file descriptor or -1 on failure.
-int notify_init(App *app);
+int notify_init(Lfm *app);
 
 void notify_add_watcher(Dir *dir);
 

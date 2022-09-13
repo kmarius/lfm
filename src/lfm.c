@@ -10,7 +10,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-#include "app.h"
+#include "lfm.h"
 #include "async.h"
 #include "config.h"
 #include "cvector.h"
@@ -22,15 +22,11 @@
 #include "popen_arr.h"
 #include "util.h"
 
-#define T App
-
-#define APP_INITIALIZER ((App){ \
-    .fifo_fd = -1, \
-    })
+#define T Lfm
 
 #define TICK 1  // in seconds
 
-static App *app = NULL;  // only needed for print/error
+static Lfm *app = NULL;  // only needed for print/error
 
 struct message {
   char *text;
@@ -44,13 +40,13 @@ static struct message *messages = NULL;
 // child watchers {{{
 
 struct stdout_watcher_data {
-  App *app;
+  Lfm *app;
   FILE *stream;
   int ref;
 };
 
 struct child_watcher_data {
-  App *app;
+  Lfm *app;
   int ref;
   ev_io *stdout_watcher;
   ev_io *stderr_watcher;
@@ -116,7 +112,7 @@ static void child_cb(EV_P_ ev_child *w, int revents)
 // scheduling timers {{{
 
 struct schedule_timer_data {
-  App *app;
+  Lfm *app;
   int ref;
 };
 
@@ -147,7 +143,7 @@ static void schedule_timer_cb(EV_P_ ev_timer *w, int revents)
 static void timer_cb(EV_P_ ev_timer *w, int revents)
 {
   (void) revents;
-  /* App *app = w->data; */
+  /* Lfm *app = w->data; */
   ev_timer_stop(loop, w);
 }
 
@@ -155,7 +151,7 @@ static void timer_cb(EV_P_ ev_timer *w, int revents)
 static void stdin_cb(EV_P_ ev_io *w, int revents)
 {
   (void) revents;
-  App *app = w->data;
+  Lfm *app = w->data;
   ncinput in;
 
   while (notcurses_get_nblock(app->ui.nc, &in) != (uint32_t) -1) {
@@ -217,7 +213,7 @@ static void command_stdout_cb(EV_P_ ev_io *w, int revents)
 static void prepare_cb(EV_P_ ev_prepare *w, int revents)
 {
   (void) revents;
-  App *app = w->data;
+  Lfm *app = w->data;
 
   if (cfg.commands) {
     for (size_t i = 0; i < cvector_size(cfg.commands); i++) {
@@ -249,7 +245,7 @@ static void prepare_cb(EV_P_ ev_prepare *w, int revents)
 static void sigwinch_cb(EV_P_ ev_signal *w, int revents)
 {
   (void) revents;
-  App *app = w->data;
+  Lfm *app = w->data;
   ui_clear(&app->ui);
   lua_run_hook(app->L, LFM_HOOK_RESIZED);
   ev_idle_start(loop, &app->redraw_watcher);
@@ -275,7 +271,7 @@ static void sighup_cb(EV_P_ ev_signal *w, int revents)
 static void redraw_cb(EV_P_ ev_idle *w, int revents)
 {
   (void) revents;
-  App *app = w->data;
+  Lfm *app = w->data;
   ui_draw(&app->ui);
   ev_idle_stop(loop, w);
 }
@@ -285,7 +281,9 @@ static void redraw_cb(EV_P_ ev_idle *w, int revents)
 void app_init(T *t)
 {
   app = t;
-  *t = APP_INITIALIZER;
+
+  memset(t, 0, sizeof *t);
+  t->fifo_fd = -1;
 
   t->loop = ev_default_loop(EVFLAG_NOENV);
 

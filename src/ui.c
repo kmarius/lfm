@@ -9,7 +9,7 @@
 #include <unistd.h>
 #include <wchar.h>
 
-#include "app.h"
+#include "lfm.h"
 #include "async.h"
 #include "cmdline.h"
 #include "config.h"
