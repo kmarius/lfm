@@ -50,9 +50,9 @@ void fm_init(T *t)
   t->dirs.length = cvector_size(cfg.ratios) - (cfg.preview ? 1 : 0);
   cvector_grow(t->dirs.visible, t->dirs.length);
 
-  lht_init(&t->selection.paths, LHT_SIZE, free);
-  lht_init(&t->selection.previous, LHT_SIZE, NULL); // we only store pointers that are in selection.paths
-  lht_init(&t->paste.buffer, LHT_SIZE, free);
+  t->selection.paths = lht_create(LHT_SIZE, free);
+  t->selection.previous = ht_create(LHT_SIZE, NULL);
+  t->paste.buffer = lht_create(LHT_SIZE, free);
 
   fm_populate(t);
 
@@ -69,9 +69,9 @@ void fm_init(T *t)
 void fm_deinit(T *t)
 {
   cvector_free(t->dirs.visible);
-  lht_deinit(&t->selection.paths);
-  lht_deinit(&t->selection.previous);
-  lht_deinit(&t->paste.buffer);
+  lht_destroy(t->selection.paths);
+  ht_destroy(t->selection.previous);
+  lht_destroy(t->paste.buffer);
   free(t->automark);
 }
 
@@ -329,7 +329,7 @@ void fm_update_preview(T *t)
 
 static inline void fm_selection_toggle(T *t, const char *path)
 {
-  if (!lht_delete(&t->selection.paths, path)) {
+  if (!lht_delete(t->selection.paths, path)) {
     fm_selection_add(t, path);
   }
 }
@@ -372,9 +372,9 @@ void fm_selection_visual_start(T *t)
   t->visual.active = true;
   t->visual.anchor = dir->ind;
   fm_selection_add(t, file_path(dir->files[dir->ind]));
-  lht_clear(&t->selection.previous);
-  lht_foreach(const char* path, &t->selection.paths) {
-    lht_set(&t->selection.previous, path, (void *) path);
+  ht_clear(t->selection.previous);
+  lht_foreach(char* path, t->selection.paths) {
+    ht_set(t->selection.previous, path, path);
   }
 }
 
@@ -387,7 +387,7 @@ void fm_selection_visual_stop(T *t)
 
   t->visual.active = false;
   t->visual.anchor = 0;
-  lht_clear(&t->selection.previous);
+  ht_clear(t->selection.previous);
 }
 
 
@@ -430,7 +430,7 @@ static void selection_visual_update(T *t, uint32_t origin, uint32_t from, uint32
   const Dir *dir = fm_current_dir(t);
   for (; lo <= hi; lo++) {
     // never unselect the old selection
-    if (!lht_get(&t->selection.previous, file_path(dir->files[lo]))) {
+    if (!ht_get(t->selection.previous, file_path(dir->files[lo]))) {
       fm_selection_toggle(t, file_path(dir->files[lo]));
     }
   }
@@ -450,8 +450,8 @@ void fm_selection_write(const T *t, const char *path)
     return;
   }
 
-  if (t->selection.paths.size > 0) {
-    lht_foreach(char *path, &t->selection.paths) {
+  if (t->selection.paths->size > 0) {
+    lht_foreach(char *path, t->selection.paths) {
       fputs(path, fp);
       fputc('\n', fp);
     }
@@ -474,12 +474,12 @@ void fm_paste_mode_set(T *t, enum paste_mode_e mode)
 {
   fm_selection_visual_stop(t);
   t->paste.mode = mode;
-  if (t->selection.paths.size == 0) {
+  if (t->selection.paths->size == 0) {
     fm_selection_toggle_current(t);
   }
-  lht_deinit(&t->paste.buffer);
-  memcpy(&t->paste.buffer, &t->selection.paths, sizeof(LinkedHashtab));
-  lht_init(&t->selection.paths, LHT_SIZE, free);
+  lht_destroy(t->paste.buffer);
+  t->paste.buffer = t->selection.paths;
+  t->selection.paths = lht_create(LHT_SIZE, free);
 }
 
 /* }}} */

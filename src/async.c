@@ -43,7 +43,7 @@ static ResultQueue async_results = {
 static tpool_t *async_tm = NULL;
 static ev_async async_res_watcher;
 static Hashtab *dircache = NULL;
-static Hashtab *previewcache = NULL;
+static App *app = NULL;
 
 
 static void async_result_cb(EV_P_ ev_async *w, int revents)
@@ -62,13 +62,13 @@ static void async_result_cb(EV_P_ ev_async *w, int revents)
 }
 
 
-void async_init(App *app)
+void async_init(App *_app)
 {
   ev_async_init(&async_res_watcher, async_result_cb);
-  ev_async_start(app->loop, &async_res_watcher);
+  ev_async_start(_app->loop, &async_res_watcher);
 
+  app = _app;
   dircache = loader_hashtab();
-  previewcache = &app->ui.preview.cache;
 
   if (pthread_mutex_init(&async_results.mutex, NULL) != 0) {
     log_error("pthread_mutex_init: %s", strerror(errno));
@@ -76,7 +76,7 @@ void async_init(App *app)
   }
 
   struct async_watcher_data *data = malloc(sizeof *data);
-  data->app = app;
+  data->app = _app;
   data->queue = &async_results;
   async_res_watcher.data = data;
 
@@ -101,7 +101,6 @@ void async_deinit()
   free(async_res_watcher.data);
 
   dircache = NULL;
-  previewcache = NULL;
 }
 
 
@@ -429,7 +428,7 @@ static void PreviewCheckResult_callback(void *p, App *app)
 {
   PreviewCheckResult *res = p;
   (void) app;
-  Preview *pv = ht_get(&app->ui.preview.cache, res->path);
+  Preview *pv = ht_get(app->ui.preview.cache, res->path);
   if (pv) {
     async_preview_load(pv, res->nrow);
   }
@@ -516,9 +515,9 @@ typedef struct PreviewLoadResult {
 static void PreviewLoadResult_callback(void *p, App *app)
 {
   PreviewLoadResult *res = p;
-  // TODO: make this safer, previewcache.version protects against dropped
+  // TODO: make this safer, preview.cache.version protects against dropped
   // caches only (on 2022-02-06)
-  if (res->version == previewcache->version) {
+  if (res->version == app->ui.preview.cache->version) {
     preview_update(res->preview, res->update);
     ui_redraw(&app->ui, REDRAW_PREVIEW);
   } else {
@@ -579,7 +578,7 @@ void async_preview_load(Preview *pv, uint32_t nrow)
   work->preview = pv;
   work->path = strdup(pv->path);
   work->nrow = nrow;
-  work->version = previewcache->version;
+  work->version = app->ui.preview.cache->version;
   work->image_preview = preview_is_image_preview(pv);
   tpool_add_work(async_tm, async_preview_load_worker, work);
 }

@@ -46,7 +46,7 @@ typedef struct Config {
   char *startfile;
   bool preview;
   bool preview_images;
-  Hashtab image_extensions;
+  Hashtab *image_extensions;
   char *previewer;
   bool hidden;
   uint32_t scrolloff;
@@ -57,7 +57,7 @@ typedef struct Config {
   uint32_t inotify_delay;
 
   struct colors {
-    Hashtab ext;  // char* -> uint64
+    Hashtab *ext;  // char* -> uint64
 
     uint64_t normal;
     uint64_t selection;
@@ -86,5 +86,5 @@ void config_colors_clear();
 static inline void image_extension_add(const char *ext)
 {
   char *val = strdup(ext);
-  ht_set(&cfg.image_extensions, val, val);
+  ht_set(cfg.image_extensions, val, val);
 }

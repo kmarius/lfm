@@ -45,7 +45,7 @@ typedef struct {
 
   struct {
     Preview *preview;
-    Hashtab cache;
+    Hashtab *cache;
     unsigned int cols;
     unsigned int rows;
   } preview;

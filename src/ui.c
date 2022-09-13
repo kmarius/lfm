@@ -116,7 +116,7 @@ void ui_init(T *t, Fm *fm)
 {
   t->fm = fm;
 
-  ht_init(&t->preview.cache, PREVIEW_CACHE_SIZE, (void(*)(void*)) preview_destroy);
+  t->preview.cache = ht_create(PREVIEW_CACHE_SIZE, (void(*)(void*)) preview_destroy);
   cmdline_init(&t->cmdline);
   history_load(&t->history, cfg.historypath);
 
@@ -154,7 +154,7 @@ void ui_deinit(T *t)
   cvector_ffree(t->messages, free);
   cvector_ffree(t->menubuf, free);
   cmdline_deinit(&t->cmdline);
-  ht_deinit(&t->preview.cache);
+  ht_destroy(t->preview.cache);
 }
 
 
@@ -258,8 +258,8 @@ static void draw_dirs(T *t)
   for (uint32_t i = 0; i < l; i++) {
     plane_draw_dir(t->planes.dirs[l-i-1],
         t->fm->dirs.visible[i],
-        &t->fm->selection.paths,
-        &t->fm->paste.buffer,
+        t->fm->selection.paths,
+        t->fm->paste.buffer,
         t->fm->paste.mode,
         i == 0 ? t->highlight : NULL, i == 0);
   }
@@ -270,8 +270,8 @@ static void draw_preview(T *t)
 {
   if (cfg.preview && t->ndirs > 1) {
     if (t->fm->dirs.preview) {
-      plane_draw_dir(t->planes.preview, t->fm->dirs.preview, &t->fm->selection.paths,
-          &t->fm->paste.buffer, t->fm->paste.mode, NULL, false);
+      plane_draw_dir(t->planes.preview, t->fm->dirs.preview, t->fm->selection.paths,
+          t->fm->paste.buffer, t->fm->paste.mode, NULL, false);
     } else {
       update_preview(t);
       if (t->preview.preview) {
@@ -462,23 +462,23 @@ void draw_cmdline(T *t)
         ncplane_set_fg_default(n);
         ncplane_putchar(n, ' ');
       }
-      if (t->fm->paste.buffer.size > 0) {
+      if (t->fm->paste.buffer->size > 0) {
         if (t->fm->paste.mode == PASTE_MODE_COPY) {
           ncplane_set_channels(n, cfg.colors.copy);
         } else {
           ncplane_set_channels(n, cfg.colors.delete);
         }
 
-        rhs_sz += int_sz(t->fm->paste.buffer.size) + 2 + 1;
-        ncplane_printf_yx(n, 0, t->ncol-rhs_sz, " %zu ", t->fm->paste.buffer.size);
+        rhs_sz += int_sz(t->fm->paste.buffer->size) + 2 + 1;
+        ncplane_printf_yx(n, 0, t->ncol-rhs_sz, " %zu ", t->fm->paste.buffer->size);
         ncplane_set_bg_default(n);
         ncplane_set_fg_default(n);
         ncplane_putchar(n, ' ');
       }
-      if (t->fm->selection.paths.size > 0) {
+      if (t->fm->selection.paths->size > 0) {
         ncplane_set_channels(n, cfg.colors.selection);
-        rhs_sz += int_sz(t->fm->selection.paths.size) + 2 + 1;
-        ncplane_printf_yx(n, 0, t->ncol - rhs_sz, " %zu ", t->fm->selection.paths.size);
+        rhs_sz += int_sz(t->fm->selection.paths->size) + 2 + 1;
+        ncplane_printf_yx(n, 0, t->ncol - rhs_sz, " %zu ", t->fm->selection.paths->size);
         ncplane_set_bg_default(n);
         ncplane_set_fg_default(n);
         ncplane_putchar(n, ' ');
@@ -718,7 +718,7 @@ static uint64_t ext_channel_get(const char *ext)
       buf[i] = tolower(ext[i]);
     }
     buf[i] = 0;
-    uint64_t *chan = ht_get(&cfg.colors.ext, buf);
+    uint64_t *chan = ht_get(cfg.colors.ext, buf);
     if (chan) {
       return *chan;
     }
@@ -1137,7 +1137,7 @@ static Preview *load_preview(T *t, File *file)
   unsigned int ncol, nrow;
   ncplane_dim_yx(t->planes.preview, &nrow, &ncol);
 
-  Preview *pv = ht_get(&t->preview.cache, file_path(file));
+  Preview *pv = ht_get(t->preview.cache, file_path(file));
   if (pv) {
     /* TODO: vv (on 2021-08-10) */
     /* might be checking too often here? or is it capped by inotify
@@ -1151,8 +1151,8 @@ static Preview *load_preview(T *t, File *file)
   } else {
     pv = preview_create_loading(file_path(file), nrow,
         cfg.preview_images && notcurses_canopen_images(t->nc)
-        && is_image(&cfg.image_extensions, file_ext(file)));
-    ht_set(&t->preview.cache, pv->path, pv);
+        && is_image(cfg.image_extensions, file_ext(file)));
+    ht_set(t->preview.cache, pv->path, pv);
     async_preview_load(pv, nrow);
   }
   return pv;
@@ -1209,7 +1209,7 @@ void ui_drop_cache(T *t)
   if (t->preview.preview) {
     t->preview.preview = NULL;
   }
-  ht_clear(&t->preview.cache);
+  ht_clear(t->preview.cache);
   update_preview(t);
   ui_redraw(t, REDRAW_CMDLINE | REDRAW_PREVIEW);
 }

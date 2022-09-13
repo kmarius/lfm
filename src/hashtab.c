@@ -22,7 +22,7 @@ static uint64_t hash(const char *s)
 }
 
 
-T *ht_init(T *t, size_t capacity, free_fun free)
+static inline T *ht_init(T *t, size_t capacity, free_fun free)
 {
   memset(t, 0, sizeof *t);
   t->capacity = capacity;
@@ -33,7 +33,7 @@ T *ht_init(T *t, size_t capacity, free_fun free)
 }
 
 
-T *ht_deinit(T *t)
+static inline T *ht_deinit(T *t)
 {
   for (size_t i = 0; i < t->capacity; i++) {
     if (t->buckets[i].val) {
@@ -51,6 +51,18 @@ T *ht_deinit(T *t)
   }
   free(t->buckets);
   return t;
+}
+
+
+T *ht_create(size_t capacity, free_fun free)
+{
+  return ht_init(malloc(sizeof(T)), capacity, free);
+}
+
+
+void ht_destroy(T *t)
+{
+  free(ht_deinit(t));
 }
 
 

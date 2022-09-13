@@ -29,13 +29,13 @@ typedef struct Fm {
   struct {
     // Current and previous selection (needed for visual mode)
     /* TODO: consider checking at some point if selected files even still exist (on 2022-08-03) */
-    LinkedHashtab paths;
-    LinkedHashtab previous;
+    LinkedHashtab *paths;
+    Hashtab *previous;
   } selection;
 
   struct {
     // Copy/move buffer, vector of paths
-    LinkedHashtab buffer;
+    LinkedHashtab *buffer;
     enum paste_mode_e mode;
   } paste;
 
@@ -152,13 +152,13 @@ void fm_selection_toggle_current(Fm *fm);
 static inline void fm_selection_add(Fm *fm, const char *path)
 {
   char *val = strdup(path);
-  lht_set(&fm->selection.paths, val, val);
+  lht_set(fm->selection.paths, val, val);
 }
 
 // Clear the selection completely.
 static inline void fm_selection_clear(Fm *fm)
 {
-  lht_clear(&fm->selection.paths);
+  lht_clear(fm->selection.paths);
 }
 
 // Reverse the file selection.
@@ -183,19 +183,19 @@ void fm_paste_mode_set(Fm *fm, enum paste_mode_e mode);
 // Clear copy/move buffer.
 static inline void fm_paste_buffer_clear(Fm *fm)
 {
-  lht_clear(&fm->paste.buffer);
+  lht_clear(fm->paste.buffer);
 }
 
 // Get the list of files in copy/move buffer. Returns a cvector of char*.
 static inline const LinkedHashtab *fm_paste_buffer_get(const Fm *fm)
 {
-  return &fm->paste.buffer;
+  return fm->paste.buffer;
 }
 
 static inline void fm_paste_buffer_add(Fm *fm, const char* file)
 {
   char *val = strdup(file);
-  lht_set(&fm->paste.buffer, val, val);
+  lht_set(fm->paste.buffer, val, val);
 }
 
 // Get the mode current load, one of `MODE_COPY`, `MODE_MOVE`.

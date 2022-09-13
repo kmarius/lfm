@@ -43,16 +43,8 @@ typedef struct LinkedHashtab {
 } LinkedHashtab;
 
 
-Hashtab *ht_init(Hashtab *t, size_t capacity, free_fun free);
-Hashtab *ht_deinit(Hashtab *t);
-static inline Hashtab *ht_create(size_t capacity, free_fun free)
-{
-  return ht_init(malloc(sizeof(Hashtab)), capacity, free);
-}
-static inline void ht_destroy(Hashtab *t)
-{
-  free(ht_deinit(t));
-}
+Hashtab *ht_create(size_t capacity, free_fun free);
+void ht_destroy(Hashtab *t);
 void ht_set(Hashtab *t, const char *key, void *val);
 void *ht_get(Hashtab *t, const char *key);
 void ht_clear(Hashtab *t);
@@ -72,16 +64,8 @@ void ht_clear(Hashtab *t);
   for (v = ht_b->val; ht_cont; ht_cont = NULL)
 
 
-LinkedHashtab *lht_init(LinkedHashtab *t, size_t capacity, free_fun free);
-LinkedHashtab *lht_deinit(LinkedHashtab *t);
-static inline LinkedHashtab *lht_create(size_t capacity, free_fun free)
-{
-  return lht_init(malloc(sizeof(LinkedHashtab)), capacity, free);
-}
-static inline void lht_destroy(LinkedHashtab *t)
-{
-  free(lht_deinit(t));
-}
+LinkedHashtab *lht_create(size_t capacity, free_fun free);
+void lht_destroy(LinkedHashtab *t);
 // returns false on update
 bool lht_set(LinkedHashtab *t, const char *key, void *val);
 // returns true on delete

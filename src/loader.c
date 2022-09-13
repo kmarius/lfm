@@ -10,13 +10,13 @@
 
 static struct ev_loop *loop = NULL;
 static ev_timer **timers = NULL;
-Hashtab tab;
+Hashtab *tab = NULL;
 
 
 void loader_init(struct ev_loop *_loop)
 {
   loop = _loop;
-  ht_init(&tab, LOADER_TAB_SIZE, (free_fun) dir_destroy);
+  tab = ht_create(LOADER_TAB_SIZE, (free_fun) dir_destroy);
 }
 
 
@@ -26,7 +26,7 @@ void loader_deinit()
     free(timer);
   }
   cvector_free(timers);
-  ht_deinit(&tab);
+  ht_destroy(tab);
 }
 
 
@@ -76,7 +76,7 @@ Dir *loader_load_path(const char *path)
     path = fullpath;
   }
 
-  Dir *dir = ht_get(&tab, path);
+  Dir *dir = ht_get(tab, path);
   if (dir) {
     async_dir_check(dir);
     dir->hidden = cfg.hidden;
@@ -93,7 +93,7 @@ Dir *loader_load_path(const char *path)
      */
     dir = dir_create(path);
     dir->hidden = cfg.hidden;
-    ht_set(&tab, dir->path, dir);
+    ht_set(tab, dir->path, dir);
     async_dir_load(dir, false);
   }
   return dir;
@@ -122,13 +122,13 @@ void loader_reschedule()
 
 Hashtab *loader_hashtab()
 {
-  return &tab;
+  return tab;
 }
 
 
 void loader_drop_cache()
 {
-  ht_clear(&tab);
+  ht_clear(tab);
   cvector_foreach(timer, timers) {
     ev_timer_stop(loop, timer);
     free(timer);

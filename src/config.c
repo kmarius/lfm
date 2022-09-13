@@ -49,14 +49,14 @@ void config_ext_channel_add(const char *ext, uint64_t channel)
   char *s = malloc(sizeof(uint64_t) + strlen(ext) + 1);
   *(uint64_t *) s = channel;
   strcpy(s + sizeof(uint64_t), ext);
-  ht_set(&cfg.colors.ext, s + sizeof(uint64_t), s);
+  ht_set(cfg.colors.ext, s + sizeof(uint64_t), s);
 }
 
 
 void config_init()
 {
-  ht_init(&cfg.colors.ext, EXT_CHANNEL_TAB_SIZE, free);
-  ht_init(&cfg.image_extensions, EXT_CHANNEL_TAB_SIZE, free);
+  cfg.colors.ext = ht_create(EXT_CHANNEL_TAB_SIZE, free);
+  cfg.image_extensions = ht_create(EXT_CHANNEL_TAB_SIZE, free);
   image_extension_add(".jpg");
   image_extension_add(".png");
   image_extension_add(".webp");
@@ -115,7 +115,7 @@ void config_init()
 void config_deinit()
 {
   config_colors_clear();
-  ht_deinit(&cfg.colors.ext);
+  ht_destroy(cfg.colors.ext);
   cvector_free(cfg.ratios);
   cvector_free(cfg.commands);
   cvector_ffree(cfg.inotify_blacklist, free);
@@ -146,6 +146,6 @@ void config_colors_clear()
   cfg.colors.search = NCCHANNELS_INITIALIZER_PALINDEX(-1, -1);
   cfg.colors.selection = NCCHANNELS_INITIALIZER_PALINDEX(-1, -1);
 
-  ht_clear(&cfg.colors.ext);
-  ht_clear(&cfg.image_extensions);
+  ht_clear(cfg.colors.ext);
+  ht_clear(cfg.image_extensions);
 }

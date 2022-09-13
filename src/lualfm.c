@@ -530,9 +530,9 @@ static int l_config_index(lua_State *L)
     lua_pushboolean(L, cfg.preview_images);
     return 1;
   } else if (streq(key, "image_extensions")) {
-    lua_createtable(L, cfg.image_extensions.size, 0);
+    lua_createtable(L, cfg.image_extensions->size, 0);
     size_t i = 1;
-    ht_foreach(const char *ext, &cfg.image_extensions) {
+    ht_foreach(const char *ext, cfg.image_extensions) {
       lua_pushstring(L, ext);
       lua_rawseti(L, -2, i++);
     }
@@ -650,7 +650,7 @@ static int l_config_newindex(lua_State *L)
     return 0;
   } else if (streq(key, "image_extensions")) {
     const size_t l = lua_objlen(L, 3);
-    ht_clear(&cfg.image_extensions);
+    ht_clear(cfg.image_extensions);
     for (uint32_t i = 1; i <= l; i++) {
       lua_rawgeti(L, 3, i);
       image_extension_add(lua_tostring(L, -1));
@@ -1451,9 +1451,9 @@ static int l_fm_selection_set(lua_State *L)
 
 static int l_fm_selection_get(lua_State *L)
 {
-  lua_createtable(L, fm->selection.paths.size, 0);
+  lua_createtable(L, fm->selection.paths->size, 0);
   size_t i = 1;
-  lht_foreach(char *path, &fm->selection.paths) {
+  lht_foreach(char *path, fm->selection.paths) {
     lua_pushstring(L, path);
     lua_rawseti(L, -2, i++);
   }
@@ -1509,9 +1509,9 @@ static int l_fm_paste_mode_set(lua_State *L)
 
 static int l_fm_paste_buffer_get(lua_State *L)
 {
-  lua_createtable(L, fm->paste.buffer.size, 0);
+  lua_createtable(L, fm->paste.buffer->size, 0);
   int i = 1;
-  lht_foreach(char *path, &fm->paste.buffer) {
+  lht_foreach(char *path, fm->paste.buffer) {
     lua_pushstring(L, path);
     lua_rawseti(L, -2, i++);
   }

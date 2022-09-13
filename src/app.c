@@ -309,9 +309,10 @@ void app_init(T *t)
 
   t->ui.messages = NULL; /* needed to keep errors on fm startup */
 
+  loader_init(app->loop);
+
   async_init(t);
 
-  loader_init(app->loop);
   fm_init(&t->fm);
   ui_init(&t->ui, &t->fm);
 
