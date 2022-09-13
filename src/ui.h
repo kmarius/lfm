@@ -21,7 +21,7 @@
 #define REDRAW_MENU    8
 #define REDRAW_PREVIEW 16
 
-typedef struct {
+typedef struct ui_s {
   uint32_t nrow;
   uint32_t ncol;
   uint32_t ndirs;  // number of columns including the preview

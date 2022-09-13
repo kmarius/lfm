@@ -13,7 +13,7 @@ enum paste_mode_e {
   PASTE_MODE_COPY,
 };
 
-typedef struct Fm {
+typedef struct fm_s {
 
   uint32_t height; // height of the ui
 

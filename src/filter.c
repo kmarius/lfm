@@ -16,7 +16,7 @@
 
 struct subfilter;
 
-typedef struct Filter {
+typedef struct filter_s {
   char *string;
   uint32_t length;
   uint32_t capacity;

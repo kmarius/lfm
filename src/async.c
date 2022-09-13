@@ -15,13 +15,13 @@
 
 #define DIRCOUNT_THRESHOLD 200  // send batches of dircounts around every 200ms
 
-typedef struct Result {
+typedef struct result_s {
   void (*callback)(void *, App *);
   void (*destroy)(void *);
-  struct Result *next;
+  struct result_s *next;
 } Result;
 
-typedef struct ResultQueue {
+typedef struct result_queue_s {
   Result *head;
   Result *tail;
   pthread_mutex_t mutex;
@@ -50,7 +50,7 @@ static void async_result_cb(EV_P_ ev_async *w, int revents)
 {
   (void) revents;
   struct async_watcher_data *data = w->data;
-  struct Result *res;
+  Result *res;
 
   pthread_mutex_lock(&data->queue->mutex);
   while ((res = resultqueue_get(data->queue))) {
@@ -145,7 +145,7 @@ static inline void enqueue_and_signal(Result *res)
 /* dir_check {{{ */
 
 
-typedef struct DirCheckResult {
+typedef struct dir_check_result_s {
   Result super;
   Dir *dir;
 } DirCheckResult;
@@ -220,7 +220,7 @@ void async_dir_check(Dir *dir)
 
 /* dircount {{{ */
 
-typedef struct DirCountResult {
+typedef struct dir_count_result_s {
   Result super;
   Dir *dir;
   struct dircount {
@@ -313,7 +313,7 @@ static void async_load_dircounts(Dir *dir, uint32_t version, uint32_t n, struct 
 /* dir_update {{{ */
 
 
-typedef struct DirUpdateResult {
+typedef struct dir_update_result_s {
   Result super;
   Dir *dir;
   Dir *update;
@@ -417,7 +417,7 @@ void async_dir_load(Dir *dir, bool dircounts)
 
 /* preview_check {{{ */
 
-typedef struct PreviewCheckResult {
+typedef struct preview_check_result_s {
   Result super;
   char *path;
   int nrow;
@@ -504,7 +504,7 @@ void async_preview_check(Preview *pv)
 
 /* preview_load {{{ */
 
-typedef struct PreviewLoadResult {
+typedef struct preview_load_result_s {
   Result super;
   Preview *preview;
   Preview *update;

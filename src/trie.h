@@ -8,12 +8,12 @@
 // trie_node.keys is the indicator that a command for the current key sequence
 // exists.
 
-typedef struct Trie {
+typedef struct trie_s {
   input_t key;
   char *keys;          // full key sequence (used for menu), NULL for non-leaves
   char *desc;          // description of the command, can be NULL
-  struct Trie *child;  // can be NULL
-  struct Trie *next;   // next sibling, can be NULL
+  struct trie_s *child;  // can be NULL
+  struct trie_s *next;   // next sibling, can be NULL
 } Trie;
 
 // Allocate a new trie root.

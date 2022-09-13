@@ -15,7 +15,7 @@ struct ht_bucket {
   struct ht_bucket *next;
 };
 
-typedef struct Hashtab {
+typedef struct hashtab_s {
   struct ht_bucket *buckets;
   size_t capacity;  // size of the actual table, not counting overflow lists
   size_t min_capacity;
@@ -32,7 +32,7 @@ struct lht_bucket {
   struct lht_bucket *order_prev;
 };
 
-typedef struct LinkedHashtab {
+typedef struct linked_hashtab_s {
   struct lht_bucket *buckets;
   size_t capacity;
   size_t min_capacity;

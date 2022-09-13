@@ -22,19 +22,19 @@
 #define DELIM_CONDITION ","
 #define DELIM_COMMAND " = "
 
-struct FileInfo;
+struct fileinfo_s;
 
-struct Condition;
+struct condition_s;
 
-typedef bool(check_fun)(struct Condition *, const struct FileInfo *);
+typedef bool(check_fun)(struct condition_s *, const struct fileinfo_s *);
 
-typedef struct Condition {
+typedef struct condition_s {
   bool negate;
   char *arg;
   check_fun *check;
 } Condition;
 
-typedef struct Rule {
+typedef struct rule_s {
   Condition **conditions;
   char *command;
   char *label;
@@ -44,7 +44,7 @@ typedef struct Rule {
   bool flag_esc;
 } Rule;
 
-typedef struct FileInfo {
+typedef struct fileinfo_s {
   const char *file;
   const char *path;
   const char *mime;

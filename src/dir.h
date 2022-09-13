@@ -9,7 +9,7 @@
 
 enum sorttype_e { SORT_NATURAL, SORT_NAME, SORT_SIZE, SORT_CTIME, SORT_RAND, };
 
-typedef struct Dir {
+typedef struct dir_s {
   char *path;
   char *name; // substring of path
 

@@ -28,7 +28,7 @@
 extern char *default_data_dir;
 extern char *default_lua_dir;
 
-typedef struct Config {
+typedef struct config_s {
   char *configdir;      // ~/.config/lfm
   char *configpath;     // ~/.config/lfm/init.lua
   char *user_datadir;   // ~/.local/share/lfm
