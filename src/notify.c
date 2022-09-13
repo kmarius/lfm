@@ -98,7 +98,7 @@ static void inotify_cb(EV_P_ ev_io *w, int revents)
       // with the fifo, the callback gets called every loop, even with clearerr
       /* TODO: we could filter for our pipe here (on 2021-08-13) */
       if (event->wd == fifo_wd) {
-        app_read_fifo(lfm);
+        lfm_read_fifo(lfm);
         continue;
       }
 

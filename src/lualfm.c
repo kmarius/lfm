@@ -107,7 +107,7 @@ static int l_schedule(lua_State *L)
   const int delay = luaL_checknumber(L, 2);
   lua_pushvalue(L, 1);
   if (delay > 0) {
-    app_schedule(lfm, lua_set_callback(L), delay);
+    lfm_schedule(lfm, lua_set_callback(L), delay);
   } else {
     if (lua_pcall(L, 0, 0, 0)) {
       ui_error(ui, "run_hook: %s", lua_tostring(L, -1));
@@ -143,7 +143,7 @@ static int l_timeout(lua_State *L)
 {
   const int32_t dur = luaL_checkinteger(L, 1);
   if (dur > 0) {
-    app_timeout_set(lfm, dur);
+    lfm_timeout_set(lfm, dur);
   }
   return 0;
 }
@@ -228,7 +228,7 @@ static int l_crash(lua_State *L)
 static int l_quit(lua_State *L)
 {
   (void) L;
-  app_quit(lfm);
+  lfm_quit(lfm);
   return 0;
 }
 
@@ -319,7 +319,7 @@ static int l_spawn(lua_State *L)
     }
   }
 
-  int pid = app_spawn(lfm, args[0], args, stdin, out, err, out_cb_ref, err_cb_ref, cb_ref);
+  int pid = lfm_spawn(lfm, args[0], args, stdin, out, err, out_cb_ref, err_cb_ref, cb_ref);
 
   cvector_ffree(stdin, free);
   for (uint32_t i = 0; i < n; i++) {
@@ -354,7 +354,7 @@ static int l_execute(lua_State *L)
     lua_pop(L, 1);
   }
   args[n] = NULL;
-  bool ret = app_execute(lfm, args[0], args);
+  bool ret = lfm_execute(lfm, args[0], args);
   for (uint32_t i = 0; i < n; i++) {
     free(args[i]);
   }
@@ -740,9 +740,9 @@ static const struct luaL_Reg log_lib[] = {
 
 /* ui lib {{{ */
 
-static int l_ui_history_append(lua_State *L)
+static int l_ui_history_lfmend(lua_State *L)
 {
-  history_append(&ui->history, luaL_checkstring(L, 1));
+  history_lfmend(&ui->history, luaL_checkstring(L, 1));
   return 0;
 }
 
@@ -871,7 +871,7 @@ static const struct luaL_Reg ui_lib[] = {
   {"get_height", l_ui_get_height},
   {"clear", l_ui_clear},
   {"draw", l_ui_draw},
-  {"history_append", l_ui_history_append},
+  {"history_lfmend", l_ui_history_lfmend},
   {"history_next", l_ui_history_next},
   {"history_prev", l_ui_history_prev},
   {"menu", l_ui_menu},
@@ -1311,7 +1311,7 @@ static int l_fm_open(lua_State *L)
     if (cfg.selfile) {
       /* lastdir is written in main */
       fm_selection_write(fm, cfg.selfile);
-      app_quit(lfm);
+      lfm_quit(lfm);
       return 0;
     }
 
@@ -1807,7 +1807,7 @@ void lua_eval(lua_State *L, const char *expr)
 void lua_handle_key(lua_State *L, input_t in)
 {
   if (in == CTRL('Q')) {
-    app_quit(lfm);
+    lfm_quit(lfm);
     return;
   }
   const char *prefix = cmdline_prefix_get(&ui->cmdline);
@@ -1996,11 +1996,11 @@ int luaopen_lfm(lua_State *L)
 }
 
 
-void lua_init(lua_State *L, Lfm *_app)
+void lua_init(lua_State *L, Lfm *_lfm)
 {
-  lfm = _app;
-  ui = &_app->ui;
-  fm = &_app->fm;
+  lfm = _lfm;
+  ui = &_lfm->ui;
+  fm = &_lfm->fm;
 
   maps.normal = trie_create();
   maps.cmd = trie_create();

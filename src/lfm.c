@@ -256,7 +256,7 @@ static void sigterm_cb(EV_P_ ev_signal *w, int revents)
 {
   (void) revents;
   (void) loop;
-  app_quit(w->data);
+  lfm_quit(w->data);
 }
 
 
@@ -264,7 +264,7 @@ static void sighup_cb(EV_P_ ev_signal *w, int revents)
 {
   (void) revents;
   (void) loop;
-  app_quit(w->data);
+  lfm_quit(w->data);
 }
 
 
@@ -278,7 +278,7 @@ static void redraw_cb(EV_P_ ev_idle *w, int revents)
 
 /* callbacks }}} */
 
-void app_init(T *t)
+void lfm_init(T *t)
 {
   lfm = t;
 
@@ -351,13 +351,13 @@ void app_init(T *t)
 }
 
 
-void app_run(T *t)
+void lfm_run(T *t)
 {
   ev_run(t->loop, 0);
 }
 
 
-void app_quit(T *t)
+void lfm_quit(T *t)
 {
   lua_run_hook(t->L, LFM_HOOK_EXITPRE);
   ev_break(t->loop, EVBREAK_ALL);
@@ -411,7 +411,7 @@ static void add_child_watcher(T *t, int pid, int ref, ev_io *stdout_watcher, ev_
 
 
 // spawn a background program
-int app_spawn(T *t, const char *prog, char *const *args,
+int lfm_spawn(T *t, const char *prog, char *const *args,
     char **in, bool out, bool err, int out_cb_ref, int err_cb_ref, int cb_ref)
 {
   FILE *fout, *ferr, *fin;
@@ -452,7 +452,7 @@ int app_spawn(T *t, const char *prog, char *const *args,
 
 
 // execute a foreground program
-bool app_execute(T *t, const char *prog, char *const *args)
+bool lfm_execute(T *t, const char *prog, char *const *args)
 {
   int pid, status, rc;
   ev_io_stop(t->loop, &t->input_watcher);
@@ -519,7 +519,7 @@ void error(const char *format, ...)
 }
 
 
-void app_read_fifo(T *t)
+void lfm_read_fifo(T *t)
 {
   char buf[512];
 
@@ -553,7 +553,7 @@ void app_read_fifo(T *t)
 }
 
 
-void app_schedule(T *t, int ref, uint32_t delay)
+void lfm_schedule(T *t, int ref, uint32_t delay)
 {
   struct schedule_timer_data *data = malloc(sizeof *data);
   data->lfm = t;
@@ -566,7 +566,7 @@ void app_schedule(T *t, int ref, uint32_t delay)
 }
 
 
-void app_deinit(T *t)
+void lfm_deinit(T *t)
 {
   cvector_ffree(t->child_watchers, destroy_child_watcher);
   cvector_ffree(t->schedule_timers, destroy_schedule_timer);

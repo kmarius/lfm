@@ -110,12 +110,12 @@ int main(int argc, char **argv)
 
   srand(time(NULL));
 
-  app_init(&lfm);
+  lfm_init(&lfm);
 
   log_debug("starting main loop after %.2f ms", (current_micros() - t0)/1000.0);
-  app_run(&lfm);
+  lfm_run(&lfm);
 
-  app_deinit(&lfm);
+  lfm_deinit(&lfm);
 
   /* selection is written in lualfm.c */
   if (cfg.lastdir) {

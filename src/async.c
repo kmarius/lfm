@@ -62,12 +62,12 @@ static void async_result_cb(EV_P_ ev_async *w, int revents)
 }
 
 
-void async_init(Lfm *_app)
+void async_init(Lfm *_lfm)
 {
   ev_async_init(&async_res_watcher, async_result_cb);
-  ev_async_start(_app->loop, &async_res_watcher);
+  ev_async_start(_lfm->loop, &async_res_watcher);
 
-  lfm = _app;
+  lfm = _lfm;
   dircache = loader_hashtab();
 
   if (pthread_mutex_init(&async_results.mutex, NULL) != 0) {
@@ -76,7 +76,7 @@ void async_init(Lfm *_app)
   }
 
   struct async_watcher_data *data = malloc(sizeof *data);
-  data->lfm = _app;
+  data->lfm = _lfm;
   data->queue = &async_results;
   async_res_watcher.data = data;
 

@@ -11,7 +11,7 @@ typedef struct history_s {
 
 void history_load(History *h, const char *path);
 void history_write(History *h, const char *path);
-void history_append(History *h, const char *line);
+void history_lfmend(History *h, const char *line);
 void history_reset(History *h);
 void history_deinit(History *h);
 const char *history_next(History *h);

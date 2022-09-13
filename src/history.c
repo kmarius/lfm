@@ -78,7 +78,7 @@ void history_deinit(T *t)
 }
 
 
-void history_append(T *t, const char *line)
+void history_lfmend(T *t, const char *line)
 {
   struct history_entry *end = cvector_end(t->vec);
   if (end && streq((end - 1)->line, line)) {
