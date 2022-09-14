@@ -13,8 +13,6 @@
 #include "history.h"
 #include "preview.h"
 
-#define PREVIEW_CACHE_SIZE 128
-
 #define REDRAW_INFO    1
 #define REDRAW_FM      2
 #define REDRAW_CMDLINE 4
@@ -45,7 +43,6 @@ typedef struct ui_s {
 
   struct {
     Preview *preview;
-    Hashtab *cache;
     unsigned int cols;
     unsigned int rows;
   } preview;

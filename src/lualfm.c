@@ -645,6 +645,8 @@ static int l_config_newindex(lua_State *L)
   } else if (streq(key, "preview_images")) {
     cfg.preview_images = lua_toboolean(L, 3);
     fm_recol(fm);
+    /* TODO: check if the setting changed when loading previews
+     * instead of dropping the cache (on 2022-09-14) */
     ui_drop_cache(ui);
     ui_redraw(ui, REDRAW_PREVIEW);
     return 0;

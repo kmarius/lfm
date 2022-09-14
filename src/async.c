@@ -43,6 +43,7 @@ static ResultQueue async_results = {
 static tpool_t *async_tm = NULL;
 static ev_async async_res_watcher;
 static Hashtab *dircache = NULL;
+static Hashtab *pvcache = NULL;
 static Lfm *lfm = NULL;
 
 
@@ -68,7 +69,8 @@ void async_init(Lfm *_lfm)
   ev_async_start(_lfm->loop, &async_res_watcher);
 
   lfm = _lfm;
-  dircache = loader_hashtab();
+  dircache = loader_dir_hashtab();
+  pvcache = loader_pv_hashtab();
 
   if (pthread_mutex_init(&async_results.mutex, NULL) != 0) {
     log_error("pthread_mutex_init: %s", strerror(errno));
@@ -157,7 +159,7 @@ static void DirCheckResult_callback(void *p, Lfm *lfm)
 {
   DirCheckResult *res = p;
   (void) lfm;
-  loader_reload(res->dir);
+  loader_dir_reload(res->dir);
   free(res);
 }
 
@@ -428,9 +430,9 @@ static void PreviewCheckResult_callback(void *p, Lfm *lfm)
 {
   PreviewCheckResult *res = p;
   (void) lfm;
-  Preview *pv = ht_get(lfm->ui.preview.cache, res->path);
+  Preview *pv = ht_get(pvcache, res->path);
   if (pv) {
-    async_preview_load(pv, res->nrow);
+    loader_preview_reload(pv);
   }
   free(res->path);
   free(res);
@@ -517,7 +519,7 @@ static void PreviewLoadResult_callback(void *p, Lfm *lfm)
   PreviewLoadResult *res = p;
   // TODO: make this safer, preview.cache.version protects against dropped
   // caches only (on 2022-02-06)
-  if (res->version == lfm->ui.preview.cache->version) {
+  if (res->version == pvcache->version) {
     preview_update(res->preview, res->update);
     ui_redraw(&lfm->ui, REDRAW_PREVIEW);
   } else {
@@ -578,7 +580,7 @@ void async_preview_load(Preview *pv, uint32_t nrow)
   work->preview = pv;
   work->path = strdup(pv->path);
   work->nrow = nrow;
-  work->version = lfm->ui.preview.cache->version;
+  work->version = pvcache->version;
   work->image_preview = preview_is_image_preview(pv);
   tpool_add_work(async_tm, async_preview_load_worker, work);
 }

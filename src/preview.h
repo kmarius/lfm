@@ -21,6 +21,7 @@ typedef struct preview_s {
     struct ncvisual *ncv;
   };
   uint32_t nrow;
+  uint64_t next;
   time_t mtime;
   uint64_t loadtime;
   bool loading;

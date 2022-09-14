@@ -307,7 +307,7 @@ void lfm_init(T *t)
 
   t->ui.messages = NULL; /* needed to keep errors on fm startup */
 
-  loader_init(lfm->loop);
+  loader_init(lfm);
 
   async_init(t);
 

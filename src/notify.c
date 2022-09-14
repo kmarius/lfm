@@ -106,7 +106,7 @@ static void inotify_cb(EV_P_ ev_io *w, int revents)
       if (!dir) {
         continue;
       }
-      loader_reload(dir);
+      loader_dir_reload(dir);
     }
   }
 }

@@ -35,6 +35,7 @@ static inline T *preview_init(T *t, const char *path, uint32_t nrow, bool image)
   memset(t, 0, sizeof *t);
   t->path = strdup(path);
   t->nrow = nrow;
+  t->next = current_millis();
   if (image) {
     t->draw = draw_image_preview;
     t->update = update_image_preview;

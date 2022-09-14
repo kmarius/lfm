@@ -18,6 +18,7 @@
 #include "file.h"
 #include "filter.h"
 #include "hashtab.h"
+#include "loader.h"
 #include "log.h"
 #include "ncutil.h"
 #include "ui.h"
@@ -116,7 +117,6 @@ void ui_init(T *t, Fm *fm)
 {
   t->fm = fm;
 
-  t->preview.cache = ht_create(PREVIEW_CACHE_SIZE, (void(*)(void*)) preview_destroy);
   cmdline_init(&t->cmdline);
   history_load(&t->history, cfg.historypath);
 
@@ -154,7 +154,6 @@ void ui_deinit(T *t)
   cvector_ffree(t->messages, free);
   cvector_ffree(t->menubuf, free);
   cmdline_deinit(&t->cmdline);
-  ht_destroy(t->preview.cache);
 }
 
 
@@ -1132,31 +1131,14 @@ static inline bool is_image(Hashtab *ht, const char *path)
 }
 
 
-static Preview *load_preview(T *t, File *file)
+static inline Preview *load_preview(T *t, File *file)
 {
-  unsigned int ncol, nrow;
-  ncplane_dim_yx(t->planes.preview, &nrow, &ncol);
-
-  Preview *pv = ht_get(t->preview.cache, file_path(file));
-  if (pv) {
-    /* TODO: vv (on 2021-08-10) */
-    /* might be checking too often here? or is it capped by inotify
-     * timeout? */
-    if (pv->nrow < t->nrow - 2) {
-      async_preview_load(pv, nrow);
-      pv->loading = true;
-    } else {
-      async_preview_check(pv);
-    }
-  } else {
-    pv = preview_create_loading(file_path(file), nrow,
-        cfg.preview_images && notcurses_canopen_images(t->nc)
-        && is_image(cfg.image_extensions, file_ext(file)));
-    ht_set(t->preview.cache, pv->path, pv);
-    async_preview_load(pv, nrow);
-  }
-  return pv;
+  return loader_preview_from_path(
+      file_path(file),
+      cfg.preview_images && notcurses_canopen_images(t->nc)
+      && is_image(cfg.image_extensions, file_ext(file)));
 }
+
 
 static inline void reset_preview_plane_size(T *t)
 {
@@ -1209,7 +1191,7 @@ void ui_drop_cache(T *t)
   if (t->preview.preview) {
     t->preview.preview = NULL;
   }
-  ht_clear(t->preview.cache);
+  loader_drop_preview_cache();
   update_preview(t);
   ui_redraw(t, REDRAW_CMDLINE | REDRAW_PREVIEW);
 }
