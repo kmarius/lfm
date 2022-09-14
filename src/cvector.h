@@ -336,13 +336,16 @@
   for (typeof(*vec) *cv_cont, *(cv_ptr) = cvector_begin(vec); \
       (cv_ptr) < cvector_end(vec) && (cv_cont = cv_ptr); \
       (cv_ptr)++) \
-  for (typeof(*vec) item = *cv_ptr; cv_cont; cv_cont = NULL)
+  for (item = *cv_ptr; cv_cont; cv_cont = NULL)
 
 /*
  *
  */
 #define cvector_foreach_ptr(ptr, vec) \
-  for (typeof(*vec) *(ptr) = cvector_begin(vec); (ptr) < cvector_end(vec); (ptr)++)
+  for (typeof(*vec) *cv_cont, *(cv_ptr) = cvector_begin(vec); \
+      (cv_ptr) < cvector_end(vec) && (cv_cont = cv_ptr); \
+      (cv_ptr)++) \
+  for (ptr = cv_ptr; cv_cont; cv_cont = NULL)
 
 /**
  * @brief cvector_push_back - adds an element to the end of the vector

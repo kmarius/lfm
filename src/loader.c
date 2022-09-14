@@ -181,7 +181,7 @@ Hashtab *loader_pv_hashtab()
 void loader_drop_preview_cache()
 {
   ht_clear(pv_tab);
-  cvector_foreach(timer, pv_timers) {
+  cvector_foreach(ev_timer *timer, pv_timers) {
     ev_timer_stop(loop, timer);
     free(timer);
   }
@@ -192,7 +192,7 @@ void loader_drop_preview_cache()
 void loader_drop_dir_cache()
 {
   ht_clear(dir_tab);
-  cvector_foreach(timer, dir_timers) {
+  cvector_foreach(ev_timer *timer, dir_timers) {
     ev_timer_stop(loop, timer);
     free(timer);
   }
@@ -203,7 +203,7 @@ void loader_drop_dir_cache()
 void loader_reschedule()
 {
   Dir **dirs = NULL;
-  cvector_foreach(timer, dir_timers) {
+  cvector_foreach(ev_timer *timer, dir_timers) {
     if (!cvector_contains(dirs, timer->data)) {
       cvector_push_back(dirs, timer->data);
     }
@@ -213,7 +213,7 @@ void loader_reschedule()
   cvector_set_size(dir_timers, 0);
 
   Preview **previews = NULL;
-  cvector_foreach(timer, pv_timers) {
+  cvector_foreach(ev_timer *timer, pv_timers) {
     if (!cvector_contains(previews, timer->data)) {
       cvector_push_back(previews, timer->data);
     }
@@ -224,10 +224,10 @@ void loader_reschedule()
 
   uint64_t next = current_millis() + cfg.inotify_timeout + cfg.inotify_delay;
 
-  cvector_foreach(dir, dirs) {
+  cvector_foreach(Dir *dir, dirs) {
     schedule_dir_load(dir, next);
   }
-  cvector_foreach(pv, previews) {
+  cvector_foreach(Preview *pv, previews) {
     schedule_preview_load(pv, next);
   }
   cvector_free(dirs);
