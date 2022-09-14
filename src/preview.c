@@ -80,6 +80,7 @@ static void update_text_preview(T *t, Preview *u)
   cvector_ffree(t->lines, free);
   t->lines = u->lines;
   t->mtime = u->mtime;
+  t->nrow = u->nrow;
   t->loadtime = u->loadtime;
   t->loading = false;
 

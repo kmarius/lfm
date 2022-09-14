@@ -156,7 +156,12 @@ Preview *loader_preview_from_path(const char *path, bool image)
 
   Preview *pv = ht_get(pv_tab, path);
   if (pv) {
-    async_preview_check(pv);
+    if (pv->nrow < lfm->ui.nrow) {
+      /* TODO: don't need to reload if the actual file holds fewer lines (on 2022-09-14) */
+      async_preview_load(pv, lfm->ui.nrow);
+    } else {
+      async_preview_check(pv);
+    }
   } else {
     pv = preview_create_loading(path, lfm->ui.nrow, image);
     ht_set(pv_tab, pv->path, pv);
