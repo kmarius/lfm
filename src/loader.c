@@ -9,31 +9,31 @@
 #include "log.h"
 #include "util.h"
 
-static Lfm *lfm = NULL;
-static struct ev_loop *loop = NULL;
+static Lfm *g_lfm = NULL;
+static struct ev_loop *g_loop = NULL;
 
-static ev_timer **dir_timers = NULL;
-Hashtab *dir_tab = NULL;
+static ev_timer **g_dir_timers = NULL;
+Hashtab *g_dir_tab = NULL;
 
-static ev_timer **pv_timers = NULL;
-Hashtab *pv_tab = NULL;
+static ev_timer **g_pv_timers = NULL;
+Hashtab *g_pv_tab = NULL;
 
 
 void loader_init(void *_lfm)
 {
-  lfm = _lfm;
-  loop = lfm->loop;
-  dir_tab = ht_create(LOADER_TAB_SIZE, (free_fun) dir_destroy);
-  pv_tab = ht_create(LOADER_TAB_SIZE, (free_fun) preview_destroy);
+  g_lfm = _lfm;
+  g_loop = g_lfm->loop;
+  g_dir_tab = ht_create(LOADER_TAB_SIZE, (free_fun) dir_destroy);
+  g_pv_tab = ht_create(LOADER_TAB_SIZE, (free_fun) preview_destroy);
 }
 
 
 void loader_deinit()
 {
-  cvector_ffree(dir_timers, free);
-  cvector_ffree(pv_timers, free);
-  ht_destroy(dir_tab);
-  ht_destroy(pv_tab);
+  cvector_ffree(g_dir_timers, free);
+  cvector_ffree(g_pv_timers, free);
+  ht_destroy(g_dir_tab);
+  ht_destroy(g_pv_tab);
 }
 
 
@@ -43,17 +43,17 @@ static void dir_timer_cb(EV_P_ ev_timer *w, int revents)
   async_dir_load(w->data, true);
   ev_timer_stop(loop, w);
   free(w);
-  cvector_swap_remove(dir_timers, w);
+  cvector_swap_remove(g_dir_timers, w);
 }
 
 
 static void pv_timer_cb(EV_P_ ev_timer *w, int revents)
 {
   (void) revents;
-  async_preview_load(w->data, lfm->ui.nrow);
+  async_preview_load(w->data, g_lfm->ui.nrow);
   ev_timer_stop(loop, w);
   free(w);
-  cvector_swap_remove(pv_timers, w);
+  cvector_swap_remove(g_pv_timers, w);
 }
 
 
@@ -63,8 +63,8 @@ static inline void schedule_dir_load(Dir *dir, uint64_t time)
   ev_timer *timer = malloc(sizeof *timer);
   ev_timer_init(timer, dir_timer_cb, 0, (time - current_millis()) / 1000.);
   timer->data = dir;
-  ev_timer_again(loop, timer);
-  cvector_push_back(dir_timers, timer);
+  ev_timer_again(g_loop, timer);
+  cvector_push_back(g_dir_timers, timer);
 }
 
 
@@ -73,8 +73,8 @@ static inline void schedule_preview_load(Preview *pv, uint64_t time)
   ev_timer *timer = malloc(sizeof *timer);
   ev_timer_init(timer, pv_timer_cb, 0, (time - current_millis()) / 1000.);
   timer->data = pv;
-  ev_timer_again(loop, timer);
-  cvector_push_back(pv_timers, timer);
+  ev_timer_again(g_loop, timer);
+  cvector_push_back(g_pv_timers, timer);
 }
 
 
@@ -122,7 +122,7 @@ Dir *loader_dir_from_path(const char *path)
     path = fullpath;
   }
 
-  Dir *dir = ht_get(dir_tab, path);
+  Dir *dir = ht_get(g_dir_tab, path);
   if (dir) {
     async_dir_check(dir);
     dir->hidden = cfg.hidden;
@@ -139,7 +139,7 @@ Dir *loader_dir_from_path(const char *path)
      */
     dir = dir_create(path);
     dir->hidden = cfg.hidden;
-    ht_set(dir_tab, dir->path, dir);
+    ht_set(g_dir_tab, dir->path, dir);
     async_dir_load(dir, false);
   }
   return dir;
@@ -154,18 +154,18 @@ Preview *loader_preview_from_path(const char *path, bool image)
     path = fullpath;
   }
 
-  Preview *pv = ht_get(pv_tab, path);
+  Preview *pv = ht_get(g_pv_tab, path);
   if (pv) {
-    if (pv->nrow < lfm->ui.nrow) {
+    if (pv->nrow < g_lfm->ui.nrow) {
       /* TODO: don't need to reload if the actual file holds fewer lines (on 2022-09-14) */
-      async_preview_load(pv, lfm->ui.nrow);
+      async_preview_load(pv, g_lfm->ui.nrow);
     } else {
       async_preview_check(pv);
     }
   } else {
-    pv = preview_create_loading(path, lfm->ui.nrow, image);
-    ht_set(pv_tab, pv->path, pv);
-    async_preview_load(pv, lfm->ui.nrow);
+    pv = preview_create_loading(path, g_lfm->ui.nrow, image);
+    ht_set(g_pv_tab, pv->path, pv);
+    async_preview_load(pv, g_lfm->ui.nrow);
   }
   return pv;
 }
@@ -173,59 +173,59 @@ Preview *loader_preview_from_path(const char *path, bool image)
 
 Hashtab *loader_dir_hashtab()
 {
-  return dir_tab;
+  return g_dir_tab;
 }
 
 
 Hashtab *loader_pv_hashtab()
 {
-  return pv_tab;
+  return g_pv_tab;
 }
 
 
 void loader_drop_preview_cache()
 {
-  ht_clear(pv_tab);
-  cvector_foreach(ev_timer *timer, pv_timers) {
-    ev_timer_stop(loop, timer);
+  ht_clear(g_pv_tab);
+  cvector_foreach(ev_timer *timer, g_pv_timers) {
+    ev_timer_stop(g_loop, timer);
     free(timer);
   }
-  cvector_set_size(pv_timers, 0);
+  cvector_set_size(g_pv_timers, 0);
 }
 
 
 void loader_drop_dir_cache()
 {
-  ht_clear(dir_tab);
-  cvector_foreach(ev_timer *timer, dir_timers) {
-    ev_timer_stop(loop, timer);
+  ht_clear(g_dir_tab);
+  cvector_foreach(ev_timer *timer, g_dir_timers) {
+    ev_timer_stop(g_loop, timer);
     free(timer);
   }
-  cvector_set_size(dir_timers, 0);
+  cvector_set_size(g_dir_timers, 0);
 }
 
 
 void loader_reschedule()
 {
   Dir **dirs = NULL;
-  cvector_foreach(ev_timer *timer, dir_timers) {
+  cvector_foreach(ev_timer *timer, g_dir_timers) {
     if (!cvector_contains(dirs, timer->data)) {
       cvector_push_back(dirs, timer->data);
     }
-    ev_timer_stop(loop, timer);
+    ev_timer_stop(g_loop, timer);
     free(timer);
   }
-  cvector_set_size(dir_timers, 0);
+  cvector_set_size(g_dir_timers, 0);
 
   Preview **previews = NULL;
-  cvector_foreach(ev_timer *timer, pv_timers) {
+  cvector_foreach(ev_timer *timer, g_pv_timers) {
     if (!cvector_contains(previews, timer->data)) {
       cvector_push_back(previews, timer->data);
     }
-    ev_timer_stop(loop, timer);
+    ev_timer_stop(g_loop, timer);
     free(timer);
   }
-  cvector_set_size(pv_timers, 0);
+  cvector_set_size(g_pv_timers, 0);
 
   uint64_t next = current_millis() + cfg.inotify_timeout + cfg.inotify_delay;
 

@@ -26,14 +26,14 @@
 
 #define TICK 1  // in seconds
 
-static Lfm *lfm = NULL;  // only needed for print/error
+static Lfm *g_lfm = NULL;  // only needed for print/error
 
 struct message {
   char *text;
   bool error;
 };
 
-static struct message *messages = NULL;
+static struct message *g_messages = NULL;
 
 // callbacks {{{
 
@@ -135,7 +135,7 @@ static void schedule_timer_cb(EV_P_ ev_timer *w, int revents)
   lua_run_callback(data->lfm->L, data->ref);
   cvector_swap_remove(data->lfm->schedule_timers, w);
   destroy_schedule_timer(w);
-  ev_idle_start(loop, &lfm->redraw_watcher);
+  ev_idle_start(loop, &g_lfm->redraw_watcher);
 }
 
 // }}}
@@ -225,8 +225,8 @@ static void prepare_cb(EV_P_ ev_prepare *w, int revents)
     cfg.commands = NULL;
   }
 
-  if (messages) {
-    cvector_foreach_ptr(struct message *m, messages) {
+  if (g_messages) {
+    cvector_foreach_ptr(struct message *m, g_messages) {
       if (m->error) {
         error("%s", m->text);
       } else {
@@ -234,7 +234,7 @@ static void prepare_cb(EV_P_ ev_prepare *w, int revents)
       }
       free(m->text);
     }
-    cvector_free(messages);
+    cvector_free(g_messages);
   }
 
   lua_run_hook(lfm->L, LFM_HOOK_ENTER);
@@ -280,7 +280,7 @@ static void redraw_cb(EV_P_ ev_idle *w, int revents)
 
 void lfm_init(T *t)
 {
-  lfm = t;
+  g_lfm = t;
 
   memset(t, 0, sizeof *t);
   t->fifo_fd = -1;
@@ -307,7 +307,7 @@ void lfm_init(T *t)
 
   t->ui.messages = NULL; /* needed to keep errors on fm startup */
 
-  loader_init(lfm);
+  loader_init(g_lfm);
 
   async_init(t);
 
@@ -490,12 +490,12 @@ void print(const char *format, ...)
   va_list args;
   va_start(args, format);
 
-  if (!lfm) {
+  if (!g_lfm) {
     struct message msg = {.error = false};
     vasprintf(&msg.text, format, args);
-    cvector_push_back(messages, msg);
+    cvector_push_back(g_messages, msg);
   } else {
-    ui_vechom(&lfm->ui, format, args);
+    ui_vechom(&g_lfm->ui, format, args);
   }
 
   va_end(args);
@@ -507,12 +507,12 @@ void error(const char *format, ...)
   va_list args;
   va_start(args, format);
 
-  if (!lfm) {
+  if (!g_lfm) {
     struct message msg = {.error = true};
     vasprintf(&msg.text, format, args);
-    cvector_push_back(messages, msg);
+    cvector_push_back(g_messages, msg);
   } else {
-    ui_verror(&lfm->ui, format, args);
+    ui_verror(&g_lfm->ui, format, args);
   }
 
   va_end(args);
@@ -549,7 +549,7 @@ void lfm_read_fifo(T *t)
     free(dyn);
   }
 
-  ev_idle_start(t->loop, &lfm->redraw_watcher);
+  ev_idle_start(t->loop, &g_lfm->redraw_watcher);
 }
 
 

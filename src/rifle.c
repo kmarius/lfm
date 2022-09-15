@@ -54,7 +54,7 @@ static struct {
   char *config_file;
 } config = { NULL };
 
-static Rule **rules = NULL;
+static Rule **g_rules = NULL;
 
 static Condition *condition_create(check_fun *f, const char *arg, bool negate)
 {
@@ -432,10 +432,10 @@ static int l_rifle_query(lua_State *L)
   int i = 1;
   int ct_match = 0;
 
-  for (size_t j = 0; j < cvector_size(rules); j++) {
-    if (check_rule(rules[j], &info)) {
-      if (rules[j]->number > 0) {
-        ct_match = rules[j]->number;
+  for (size_t j = 0; j < cvector_size(g_rules); j++) {
+    if (check_rule(g_rules[j], &info)) {
+      if (g_rules[j]->number > 0) {
+        ct_match = g_rules[j]->number;
       }
       ct_match++;
 
@@ -443,24 +443,24 @@ static int l_rifle_query(lua_State *L)
         const int ind = atoi(pick);
         const bool ok = (ind != 0 || pick[0] == '0');
         if ((ok && ind != ct_match-1) ||
-            (!ok && ((rules[j])->label == NULL
-                 || strcmp(pick, rules[j]->label) != 0))) {
+            (!ok && ((g_rules[j])->label == NULL
+                 || strcmp(pick, g_rules[j]->label) != 0))) {
           continue;
         }
       }
 
       lua_newtable(L); /* t = {} */
 
-      lua_pushstring(L, rules[j]->command);
+      lua_pushstring(L, g_rules[j]->command);
       lua_setfield(L, -2, "command"); /* t.command = ... */
 
-      lua_pushboolean(L, rules[j]->flag_fork);
+      lua_pushboolean(L, g_rules[j]->flag_fork);
       lua_setfield(L, -2, "fork"); /* t.fork = ... */
 
-      lua_pushboolean(L, rules[j]->flag_term);
+      lua_pushboolean(L, g_rules[j]->flag_term);
       lua_setfield(L, -2, "term");
 
-      lua_pushboolean(L, rules[j]->flag_esc);
+      lua_pushboolean(L, g_rules[j]->flag_esc);
       lua_setfield(L, -2, "esc");
 
       lua_pushinteger(L, ct_match-1);
@@ -500,7 +500,7 @@ static void load_rules(lua_State *L, const char *config)
 
     Rule *r = parse_rule(buf, command);
     if (r) {
-      cvector_push_back(rules, r);
+      cvector_push_back(g_rules, r);
     }
   }
 
@@ -522,7 +522,7 @@ static int l_rifle_setup(lua_State *L)
     asprintf(&config.config_file, "%s/rifle.conf", cfg.configdir);
   }
 
-  cvector_fclear(rules, rule_destroy);
+  cvector_fclear(g_rules, rule_destroy);
 
   load_rules(L, config.config_file);
 
@@ -532,7 +532,7 @@ static int l_rifle_setup(lua_State *L)
 
 static int l_rifle_nrules(lua_State *L)
 {
-  lua_pushinteger(L, cvector_size(rules));
+  lua_pushinteger(L, cvector_size(g_rules));
   return 1;
 }
 
@@ -580,8 +580,8 @@ int lua_register_rifle(lua_State *L)
 int lua_rifle_clear(lua_State *L)
 {
   (void) L;
-  cvector_ffree(rules, rule_destroy);
-  rules = NULL;
+  cvector_ffree(g_rules, rule_destroy);
+  g_rules = NULL;
 
   free(config.config_file);
   config.config_file = NULL;

@@ -23,12 +23,7 @@
 
 #define T Fm
 
-/* TODO: use larger/growing hashtables to handle large nubmer of files (on 2022-08-03) */
 #define LHT_SIZE 128
-
-#define FM_INITIALIZER ((T){ \
-    .paste.mode = PASTE_MODE_COPY, \
-    })
 
 static void fm_update_watchers(T *t);
 static void fm_remove_preview(T *t);
@@ -37,7 +32,7 @@ static void fm_populate(T *t);
 
 void fm_init(T *t)
 {
-  *t = FM_INITIALIZER;
+  t->paste.mode = PASTE_MODE_COPY;
 
   if (cfg.startpath) {
     if (chdir(cfg.startpath) != 0) {

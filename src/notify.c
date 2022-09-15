@@ -13,9 +13,9 @@
 #include "notify.h"
 #include "util.h"
 
-static int inotify_fd = -1;
-static int fifo_wd = -1;
-static ev_io inotify_watcher;
+static int g_inotify_fd = -1;
+static int g_fifo_wd = -1;
+static ev_io g_inotify_watcher;
 
 static struct notify_watcher_data {
   int wd;
@@ -32,35 +32,35 @@ static void inotify_cb(EV_P_ ev_io *w, int revents);
 
 int notify_init(Lfm *lfm)
 {
-  inotify_fd = inotify_init1(IN_NONBLOCK);
+  g_inotify_fd = inotify_init1(IN_NONBLOCK);
 
-  if (inotify_fd == -1) {
+  if (g_inotify_fd == -1) {
     return -1;
   }
 
-  if ((fifo_wd = inotify_add_watch(inotify_fd, cfg.rundir, IN_CLOSE_WRITE)) == -1) {
+  if ((g_fifo_wd = inotify_add_watch(g_inotify_fd, cfg.rundir, IN_CLOSE_WRITE)) == -1) {
     log_error("inotify: %s", strerror(errno));
     return -1;
   }
 
-  ev_io_init(&inotify_watcher, inotify_cb, inotify_fd, EV_READ);
-  inotify_watcher.data = lfm;
-  ev_io_start(lfm->loop, &inotify_watcher);
+  ev_io_init(&g_inotify_watcher, inotify_cb, g_inotify_fd, EV_READ);
+  g_inotify_watcher.data = lfm;
+  ev_io_start(lfm->loop, &g_inotify_watcher);
 
-  return inotify_fd;
+  return g_inotify_fd;
 }
 
 
 void notify_deinit()
 {
-  if (inotify_fd == -1) {
+  if (g_inotify_fd == -1) {
     return;
   }
 
   cvector_ffree(watchers, unwatch);
   watchers = NULL;
-  close(inotify_fd);
-  inotify_fd = -1;
+  close(g_inotify_fd);
+  g_inotify_fd = -1;
 }
 
 
@@ -86,7 +86,7 @@ static void inotify_cb(EV_P_ ev_io *w, int revents)
   char buf[EVENT_BUFLEN], *p;
   struct inotify_event *event;
 
-  while ((nread = read(inotify_fd, buf, EVENT_BUFLEN)) > 0) {
+  while ((nread = read(g_inotify_fd, buf, EVENT_BUFLEN)) > 0) {
     for (p = buf; p < buf + nread; p += EVENT_SIZE + event->len) {
       event = (struct inotify_event *) p;
 
@@ -97,7 +97,7 @@ static void inotify_cb(EV_P_ ev_io *w, int revents)
       // we use inotify for the fifo because io watchers dont seem to work properly
       // with the fifo, the callback gets called every loop, even with clearerr
       /* TODO: we could filter for our pipe here (on 2021-08-13) */
-      if (event->wd == fifo_wd) {
+      if (event->wd == g_fifo_wd) {
         lfm_read_fifo(lfm);
         continue;
       }
@@ -114,7 +114,7 @@ static void inotify_cb(EV_P_ ev_io *w, int revents)
 
 void notify_add_watcher(Dir *dir)
 {
-  if (inotify_fd == -1) {
+  if (g_inotify_fd == -1) {
     return;
   }
 
@@ -131,7 +131,7 @@ void notify_add_watcher(Dir *dir)
   }
 
   const uint64_t t0 = current_millis();
-  int wd = inotify_add_watch(inotify_fd, dir->path, NOTIFY_EVENTS);
+  int wd = inotify_add_watch(g_inotify_fd, dir->path, NOTIFY_EVENTS);
   if (wd == -1) {
     log_error("inotify: %s", strerror(errno));
     return;
@@ -150,7 +150,7 @@ void notify_add_watcher(Dir *dir)
 
 void notify_remove_watcher(Dir *dir)
 {
-  if (inotify_fd == -1) {
+  if (g_inotify_fd == -1) {
     return;
   }
 
@@ -165,7 +165,7 @@ void notify_remove_watcher(Dir *dir)
 
 void notify_set_watchers(Dir **dirs, uint32_t n)
 {
-  if (inotify_fd == -1) {
+  if (g_inotify_fd == -1) {
     return;
   }
 
