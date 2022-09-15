@@ -45,11 +45,13 @@ typedef struct fm_s {
   } visual;
 
   char *automark;
+
+  struct lfm_s *lfm;
 } Fm;
 
 // Moves to the correct starting directory, loads initial dirs and sets up
 // previews and inotify watchers.
-void fm_init(Fm *fm);
+void fm_init(Fm *fm, struct lfm_s *lfm);
 
 // Unloads directories and frees all resources.
 void fm_deinit(Fm *fm);

@@ -24,8 +24,6 @@ typedef struct ui_s {
   uint32_t ncol;
   uint32_t ndirs;  // number of columns including the preview
 
-  Fm *fm;
-
   struct notcurses *nc;
   struct {
     struct ncplane *cmdline;
@@ -53,11 +51,13 @@ typedef struct ui_s {
 
   bool message;
   input_t *keyseq;
+
+  struct lfm_s *lfm;
 } Ui;
 
 void kbblocking(bool blocking);
 
-void ui_init(Ui *ui, Fm *fm);
+void ui_init(Ui *ui, struct lfm_s *lfm);
 
 void ui_recol(Ui *ui);
 

@@ -54,7 +54,7 @@ static inline T *ht_deinit(T *t)
 }
 
 
-T *ht_create(size_t capacity, free_fun free)
+T *ht_with_capacity(size_t capacity, free_fun free)
 {
   return ht_init(malloc(sizeof(T)), capacity, free);
 }
@@ -69,7 +69,7 @@ void ht_destroy(T *t)
 static inline void ht_resize(T *t, size_t capacity)
 {
   // log_debug("resizing from %lu to %lu", t->capacity, capacity);
-  T *new = ht_create(capacity, t->free);
+  T *new = ht_with_capacity(capacity, t->free);
   new->min_capacity = t->min_capacity;
   ht_foreach_kv(const char *k, void *v, t) {
     ht_set(new, k, v);

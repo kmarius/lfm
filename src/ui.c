@@ -50,7 +50,7 @@ static int resize_cb(struct ncplane *n)
   ncplane_move_yx(ui->planes.cmdline, ui->nrow - 1, 0);
   menu_resize(ui);
   ui_recol(ui);
-  fm_resize(ui->fm, ui->nrow - 2);
+  fm_resize(&ui->lfm->fm, ui->nrow - 2);
   ui_clear(ui);
   return 0;
 }
@@ -70,7 +70,7 @@ void ui_resume(T *t)
   struct ncplane *ncstd = notcurses_stdplane(t->nc);
 
   ncplane_dim_yx(ncstd, &t->nrow, &t->ncol);
-  t->fm->height = t->nrow - 2;
+  t->lfm->fm.height = t->nrow - 2;
 
   struct ncplane_options opts = {
     .y = 0,
@@ -113,9 +113,9 @@ void ui_suspend(T *t)
 }
 
 
-void ui_init(T *t, Fm *fm)
+void ui_init(T *t, struct lfm_s *lfm)
 {
-  t->fm = fm;
+  t->lfm = lfm;
 
   cmdline_init(&t->cmdline);
   history_load(&t->history, cfg.historypath);
@@ -253,13 +253,14 @@ void ui_clear(T *t)
 
 static void draw_dirs(T *t)
 {
-  const uint32_t l = t->fm->dirs.length;
+  Fm *fm = &t->lfm->fm;
+  const uint32_t l = fm->dirs.length;
   for (uint32_t i = 0; i < l; i++) {
     plane_draw_dir(t->planes.dirs[l-i-1],
-        t->fm->dirs.visible[i],
-        t->fm->selection.paths,
-        t->fm->paste.buffer,
-        t->fm->paste.mode,
+        fm->dirs.visible[i],
+        fm->selection.paths,
+        fm->paste.buffer,
+        fm->paste.mode,
         i == 0 ? t->highlight : NULL, i == 0);
   }
 }
@@ -267,10 +268,11 @@ static void draw_dirs(T *t)
 
 static void draw_preview(T *t)
 {
+  Fm *fm = &t->lfm->fm;
   if (cfg.preview && t->ndirs > 1) {
-    if (t->fm->dirs.preview) {
-      plane_draw_dir(t->planes.preview, t->fm->dirs.preview, t->fm->selection.paths,
-          t->fm->paste.buffer, t->fm->paste.mode, NULL, false);
+    if (fm->dirs.preview) {
+      plane_draw_dir(t->planes.preview, fm->dirs.preview, fm->selection.paths,
+          fm->paste.buffer, fm->paste.mode, NULL, false);
     } else {
       update_preview(t);
       if (t->preview.preview) {
@@ -410,6 +412,7 @@ void draw_cmdline(T *t)
   if (t->message) {
     return;
   }
+  Fm *fm = &t->lfm->fm;
 
   char nums[16];
   char size[32];
@@ -426,7 +429,7 @@ void draw_cmdline(T *t)
   uint32_t lhs_sz = 0;
 
   if (!cmdline_prefix_get(&t->cmdline)) {
-    const Dir *dir = t->fm->dirs.visible[0];
+    const Dir *dir = fm->dirs.visible[0];
     if (dir) {
       const File *file = dir_current_file(dir);
       if (file) {
@@ -461,23 +464,23 @@ void draw_cmdline(T *t)
         ncplane_set_fg_default(n);
         ncplane_putchar(n, ' ');
       }
-      if (t->fm->paste.buffer->size > 0) {
-        if (t->fm->paste.mode == PASTE_MODE_COPY) {
+      if (fm->paste.buffer->size > 0) {
+        if (fm->paste.mode == PASTE_MODE_COPY) {
           ncplane_set_channels(n, cfg.colors.copy);
         } else {
           ncplane_set_channels(n, cfg.colors.delete);
         }
 
-        rhs_sz += int_sz(t->fm->paste.buffer->size) + 2 + 1;
-        ncplane_printf_yx(n, 0, t->ncol-rhs_sz, " %zu ", t->fm->paste.buffer->size);
+        rhs_sz += int_sz(fm->paste.buffer->size) + 2 + 1;
+        ncplane_printf_yx(n, 0, t->ncol-rhs_sz, " %zu ", fm->paste.buffer->size);
         ncplane_set_bg_default(n);
         ncplane_set_fg_default(n);
         ncplane_putchar(n, ' ');
       }
-      if (t->fm->selection.paths->size > 0) {
+      if (fm->selection.paths->size > 0) {
         ncplane_set_channels(n, cfg.colors.selection);
-        rhs_sz += int_sz(t->fm->selection.paths->size) + 2 + 1;
-        ncplane_printf_yx(n, 0, t->ncol - rhs_sz, " %zu ", t->fm->selection.paths->size);
+        rhs_sz += int_sz(fm->selection.paths->size) + 2 + 1;
+        ncplane_printf_yx(n, 0, t->ncol - rhs_sz, " %zu ", fm->selection.paths->size);
         ncplane_set_bg_default(n);
         ncplane_set_fg_default(n);
         ncplane_putchar(n, ' ');
@@ -546,7 +549,7 @@ static void draw_info(T *t)
   ncplane_putchar(n, ':');
   ncplane_set_styles(n, NCSTYLE_BOLD);
 
-  const Dir *dir = fm_current_dir(t->fm);
+  const Dir *dir = fm_current_dir(&t->lfm->fm);
   const File *file = dir_current_file(dir);
   int path_len, name_len;
   wchar_t *path_ = ambstowcs(dir->path, &path_len);
@@ -1153,7 +1156,7 @@ static void update_preview(T *t)
   unsigned int ncol, nrow;
   ncplane_dim_yx(t->planes.preview, &nrow, &ncol);
 
-  File *file = fm_current_file(t->fm);
+  File *file = fm_current_file(&t->lfm->fm);
   if (file && !file_isdir(file)) {
     if (t->preview.preview) {
       if (streq(t->preview.preview->path, file_path(file))) {

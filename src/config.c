@@ -15,8 +15,6 @@
 #include "notify.h"
 #include "util.h"
 
-#define EXT_CHANNEL_TAB_SIZE 128  // size of the hashtable mapping extensions to color channels
-                                  //
 // automatically generated, see config/pathdefs.c.in
 extern char *default_data_dir;
 extern char *default_lua_dir;
@@ -62,8 +60,8 @@ void config_ext_channel_add(const char *ext, uint64_t channel)
 
 void config_init()
 {
-  cfg.colors.ext = ht_create(EXT_CHANNEL_TAB_SIZE, free);
-  cfg.image_extensions = ht_create(EXT_CHANNEL_TAB_SIZE, free);
+  cfg.colors.ext = ht_create(free);
+  cfg.image_extensions = ht_create(free);
   image_extension_add(".jpg");
   image_extension_add(".png");
   image_extension_add(".webp");

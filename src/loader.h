@@ -4,8 +4,6 @@
 #include "hashtab.h"
 #include "preview.h"
 
-#define LOADER_TAB_SIZE 128  // initial size of the hashtab used as cache
-
 struct ev_loop;
 
 void loader_init(void *lfm);

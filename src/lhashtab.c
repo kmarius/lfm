@@ -55,7 +55,7 @@ static inline T *lht_deinit(T *t)
 }
 
 
-T *lht_create(size_t capacity, free_fun free)
+T *lht_with_capacity(size_t capacity, free_fun free)
 {
   return lht_init(malloc(sizeof(T)), capacity, free);
 }
@@ -103,7 +103,7 @@ static bool probe(const T *t, const char *key, struct lht_bucket **b, struct lht
 static inline void lht_resize(T *t, size_t capacity)
 {
   // log_debug("resizing from %lu to %lu", t->capacity, capacity);
-  T *new = lht_create(capacity, t->free);
+  T *new = lht_with_capacity(capacity, t->free);
   new->min_capacity = t->min_capacity;
   lht_foreach_kv(const char *k, void *v, t) {
     lht_set(new, k, v);

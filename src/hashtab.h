@@ -7,6 +7,8 @@
 
 // minimal hashtable and linked hash table
 
+#define HT_DEFAULT_CAPACITY 128
+
 typedef void (*free_fun)(void *);
 
 struct ht_bucket {
@@ -43,7 +45,11 @@ typedef struct linked_hashtab_s {
 } LinkedHashtab;
 
 
-Hashtab *ht_create(size_t capacity, free_fun free);
+Hashtab *ht_with_capacity(size_t capacity, free_fun free);
+static inline Hashtab *ht_create(free_fun free)
+{
+  return ht_with_capacity(HT_DEFAULT_CAPACITY, free);
+}
 void ht_destroy(Hashtab *t);
 void ht_set(Hashtab *t, const char *key, void *val);
 void *ht_get(Hashtab *t, const char *key);
@@ -64,7 +70,11 @@ void ht_clear(Hashtab *t);
   for (v = ht_b->val; ht_cont; ht_cont = NULL)
 
 
-LinkedHashtab *lht_create(size_t capacity, free_fun free);
+LinkedHashtab *lht_with_capacity(size_t capacity, free_fun free);
+static inline LinkedHashtab *lht_create(free_fun free)
+{
+  return lht_with_capacity(HT_DEFAULT_CAPACITY, free);
+}
 void lht_destroy(LinkedHashtab *t);
 // returns false on update
 bool lht_set(LinkedHashtab *t, const char *key, void *val);

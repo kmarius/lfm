@@ -23,16 +23,15 @@
 
 #define T Fm
 
-#define LHT_SIZE 128
-
 static void fm_update_watchers(T *t);
 static void fm_remove_preview(T *t);
 static void fm_populate(T *t);
 
 
-void fm_init(T *t)
+void fm_init(T *t, struct lfm_s *lfm)
 {
   t->paste.mode = PASTE_MODE_COPY;
+  t->lfm = lfm;
 
   if (cfg.startpath) {
     if (chdir(cfg.startpath) != 0) {
@@ -45,9 +44,9 @@ void fm_init(T *t)
   t->dirs.length = cvector_size(cfg.ratios) - (cfg.preview ? 1 : 0);
   cvector_grow(t->dirs.visible, t->dirs.length);
 
-  t->selection.paths = lht_create(LHT_SIZE, free);
-  t->selection.previous = ht_create(LHT_SIZE, NULL);
-  t->paste.buffer = lht_create(LHT_SIZE, free);
+  t->selection.paths = lht_create(free);
+  t->selection.previous = ht_create(NULL);
+  t->paste.buffer = lht_create(free);
 
   fm_populate(t);
 
@@ -474,7 +473,7 @@ void fm_paste_mode_set(T *t, enum paste_mode_e mode)
   }
   lht_destroy(t->paste.buffer);
   t->paste.buffer = t->selection.paths;
-  t->selection.paths = lht_create(LHT_SIZE, free);
+  t->selection.paths = lht_create(free);
 }
 
 /* }}} */

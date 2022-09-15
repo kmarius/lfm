@@ -311,8 +311,8 @@ void lfm_init(T *t)
 
   async_init(t);
 
-  fm_init(&t->fm);
-  ui_init(&t->ui, &t->fm);
+  fm_init(&t->fm, t);
+  ui_init(&t->ui, t);
 
   ev_idle_init(&t->redraw_watcher, redraw_cb);
   t->redraw_watcher.data = t;

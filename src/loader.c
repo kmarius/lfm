@@ -23,8 +23,8 @@ void loader_init(void *_lfm)
 {
   g_lfm = _lfm;
   g_loop = g_lfm->loop;
-  g_dir_tab = ht_create(LOADER_TAB_SIZE, (free_fun) dir_destroy);
-  g_pv_tab = ht_create(LOADER_TAB_SIZE, (free_fun) preview_destroy);
+  g_dir_tab = ht_create((free_fun) dir_destroy);
+  g_pv_tab = ht_create((free_fun) preview_destroy);
 }
 
 
