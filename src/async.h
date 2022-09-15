@@ -5,12 +5,13 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "lfm.h"
 #include "dir.h"
 #include "preview.h"
 #include "tpool.h"
 
-void async_init(Lfm *lfm);
+struct lfm_s;
+
+void async_init(struct lfm_s *lfm);
 
 void async_deinit();
 

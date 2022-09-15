@@ -8,6 +8,7 @@
 #include "fm.h"
 #include "hashtab.h"
 #include "loader.h"
+#include "lfm.h"
 #include "log.h"
 #include "preview.h"
 #include "ui.h"
@@ -44,7 +45,6 @@ static tpool_t *g_async_tm = NULL;
 static ev_async g_async_res_watcher;
 static Hashtab *g_dircache = NULL;
 static Hashtab *g_pvcache = NULL;
-static Lfm *g_lfm = NULL;
 
 
 static void async_result_cb(EV_P_ ev_async *w, int revents)
@@ -63,14 +63,13 @@ static void async_result_cb(EV_P_ ev_async *w, int revents)
 }
 
 
-void async_init(Lfm *_lfm)
+void async_init(Lfm *lfm)
 {
   ev_async_init(&g_async_res_watcher, async_result_cb);
-  ev_async_start(_lfm->loop, &g_async_res_watcher);
+  ev_async_start(lfm->loop, &g_async_res_watcher);
 
-  g_lfm = _lfm;
-  g_dircache = loader_dir_hashtab();
-  g_pvcache = loader_pv_hashtab();
+  g_dircache = loader_dir_hashtab(&lfm->loader);
+  g_pvcache = loader_pv_hashtab(&lfm->loader);
 
   if (pthread_mutex_init(&async_results.mutex, NULL) != 0) {
     log_error("pthread_mutex_init: %s", strerror(errno));
@@ -78,7 +77,7 @@ void async_init(Lfm *_lfm)
   }
 
   struct async_watcher_data *data = malloc(sizeof *data);
-  data->lfm = _lfm;
+  data->lfm = lfm;
   data->queue = &async_results;
   g_async_res_watcher.data = data;
 
@@ -159,7 +158,7 @@ static void DirCheckResult_callback(void *p, Lfm *lfm)
 {
   DirCheckResult *res = p;
   (void) lfm;
-  loader_dir_reload(res->dir);
+  loader_dir_reload(&lfm->loader, res->dir);
   free(res);
 }
 
@@ -432,7 +431,7 @@ static void PreviewCheckResult_callback(void *p, Lfm *lfm)
   (void) lfm;
   Preview *pv = ht_get(g_pvcache, res->path);
   if (pv) {
-    loader_preview_reload(pv);
+    loader_preview_reload(&lfm->loader, pv);
   }
   free(res->path);
   free(res);

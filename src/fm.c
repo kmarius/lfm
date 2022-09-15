@@ -81,12 +81,12 @@ static void fm_populate(T *t)
     getcwd(pwd, sizeof pwd);
   }
 
-  t->dirs.visible[0] = loader_dir_from_path(pwd); /* current dir */
+  t->dirs.visible[0] = loader_dir_from_path(&t->lfm->loader, pwd); /* current dir */
   t->dirs.visible[0]->visible = true;
   Dir *d = fm_current_dir(t);
   for (uint32_t i = 1; i < t->dirs.length; i++) {
     if ((s = dir_parent_path(d))) {
-      d = loader_dir_from_path(s);
+      d = loader_dir_from_path(&t->lfm->loader, s);
       d->visible = true;
       t->dirs.visible[i] = d;
       dir_cursor_move_to(d, t->dirs.visible[i-1]->name, t->height, cfg.scrolloff);
@@ -215,12 +215,12 @@ void fm_check_dirs(const T *t)
 {
   for (uint32_t i = 0; i < t->dirs.length; i++) {
     if (t->dirs.visible[i] && !dir_check(t->dirs.visible[i])) {
-      loader_dir_reload(t->dirs.visible[i]);
+      loader_dir_reload(&t->lfm->loader, t->dirs.visible[i]);
     }
   }
 
   if (t->dirs.preview && !dir_check(t->dirs.preview)) {
-    loader_dir_reload(t->dirs.preview);
+    loader_dir_reload(&t->lfm->loader, t->dirs.preview);
   }
 }
 
@@ -232,7 +232,7 @@ void fm_drop_cache(T *t)
   log_debug("dropping cache");
   fm_remove_preview(t);
 
-  loader_drop_dir_cache();
+  loader_drop_dir_cache(&t->lfm->loader);
 
   fm_populate(t);
   fm_update_preview(t);
@@ -296,7 +296,7 @@ void fm_update_preview(T *t)
         t->dirs.preview->visible = false;
       }
     }
-    t->dirs.preview = loader_dir_from_path(file_path(file));
+    t->dirs.preview = loader_dir_from_path(&t->lfm->loader, file_path(file));
     t->dirs.preview->visible = true;
     // sometimes very slow on smb (> 200ms)
     notify_add_watcher(&t->lfm->notify, t->dirs.preview);
@@ -605,7 +605,7 @@ void fm_resize(T *t, uint32_t height)
   }
 
   // is there a way to restore the position when just undoing a previous resize?
-  ht_foreach(Dir *dir, loader_dir_hashtab()) {
+  ht_foreach(Dir *dir, t->lfm->loader.dir_cache) {
     if (height > t->height) {
       uint32_t scrolloff_top = dir->ind;
       if (scrolloff_top > scrolloff) {

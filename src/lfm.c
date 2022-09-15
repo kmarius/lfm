@@ -307,7 +307,7 @@ void lfm_init(T *t)
 
   t->ui.messages = NULL; /* needed to keep errors on fm startup */
 
-  loader_init(g_lfm);
+  loader_init(&t->loader, t);
 
   async_init(t);
 
@@ -574,7 +574,7 @@ void lfm_deinit(T *t)
   lua_deinit(t->L);
   ui_deinit(&t->ui);
   fm_deinit(&t->fm);
-  loader_deinit();
+  loader_deinit(&t->loader);
   async_deinit();
   if (t->fifo_fd > 0) {
     close(t->fifo_fd);

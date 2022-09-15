@@ -8,6 +8,7 @@
 #include "config.h"
 #include "cvector.h"
 #include "dir.h"
+#include "lfm.h"
 #include "loader.h"
 #include "log.h"
 #include "notify.h"
@@ -93,7 +94,7 @@ static void inotify_cb(EV_P_ ev_io *w, int revents)
       if (!dir) {
         continue;
       }
-      loader_dir_reload(dir);
+      loader_dir_reload(&lfm->loader, dir);
     }
   }
 }

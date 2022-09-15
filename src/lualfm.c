@@ -625,12 +625,12 @@ static int l_config_newindex(lua_State *L)
       luaL_argerror(L, 3, "timeout must be larger than 100");
     }
     cfg.inotify_timeout = n;
-    loader_reschedule();
+    loader_reschedule(&lfm->loader);
     return 0;
   } else if (streq(key, "inotify_delay")) {
     int n = luaL_checkinteger(L, 3);
     cfg.inotify_delay = n;
-    loader_reschedule();
+    loader_reschedule(&lfm->loader);
     return 0;
   } else if (streq(key, "scrolloff")) {
     cfg.scrolloff = max(luaL_checkinteger(L, 3), 0);

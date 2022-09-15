@@ -1137,6 +1137,7 @@ static inline bool is_image(Hashtab *ht, const char *path)
 static inline Preview *load_preview(T *t, File *file)
 {
   return loader_preview_from_path(
+      &t->lfm->loader,
       file_path(file),
       cfg.preview_images && notcurses_canopen_images(t->nc)
       && is_image(cfg.image_extensions, file_ext(file)));
@@ -1194,7 +1195,7 @@ void ui_drop_cache(T *t)
   if (t->preview.preview) {
     t->preview.preview = NULL;
   }
-  loader_drop_preview_cache();
+  loader_drop_preview_cache(&t->lfm->loader);
   update_preview(t);
   ui_redraw(t, REDRAW_CMDLINE | REDRAW_PREVIEW);
 }

@@ -5,6 +5,7 @@
 #include <stdint.h>
 
 #include "fm.h"
+#include "loader.h"
 #include "notify.h"
 #include "ui.h"
 
@@ -14,6 +15,7 @@ typedef struct lfm_s {
   lua_State *L;
   struct ev_loop *loop;
   Notify notify;
+  Loader loader;
 
   int fifo_fd;
 
