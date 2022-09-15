@@ -8,26 +8,6 @@
 #include "cvector.h"
 #include "hashtab.h"
 
-#define EXT_CHANNEL_TAB_SIZE 128  // size of the hashtable mapping extensions to color channels
-
-#define NCCHANNEL_INITIALIZER_PALINDEX(ind) \
-  (ind < 0 \
-   ? ~NC_BGDEFAULT_MASK & 0xff000000lu \
-   : (((NC_BGDEFAULT_MASK | NC_BG_PALETTE) & 0xff000000lu) | (ind & 0xff)))
-
-#define NCCHANNEL_INITIALIZER_HEX(hex) \
-  (hex < 0 \
-   ? ~NC_BGDEFAULT_MASK & 0xff000000lu \
-   : ((NC_BGDEFAULT_MASK & 0xff000000lu) | (hex & 0xffffff)))
-
-#define NCCHANNELS_INITIALIZER_PALINDEX(fg, bg) \
-  ((NCCHANNEL_INITIALIZER_PALINDEX(fg) << 32lu) \
-   | NCCHANNEL_INITIALIZER_PALINDEX(bg))
-
-// automatically generated, see config/pathdefs.c.in
-extern char *default_data_dir;
-extern char *default_lua_dir;
-
 typedef struct config_s {
   char *configdir;      // ~/.config/lfm
   char *configpath;     // ~/.config/lfm/init.lua

@@ -20,10 +20,10 @@ static ev_io g_inotify_watcher;
 static struct notify_watcher_data {
   int wd;
   Dir *dir;
-} *watchers = NULL;
+} *g_watchers = NULL;
 
 #define unwatch(t) do { \
-    inotify_rm_watch(inotify_fd, (t).wd); \
+    inotify_rm_watch(g_inotify_fd, (t).wd); \
   } while (0)
 
 
@@ -57,8 +57,8 @@ void notify_deinit()
     return;
   }
 
-  cvector_ffree(watchers, unwatch);
-  watchers = NULL;
+  cvector_ffree(g_watchers, unwatch);
+  g_watchers = NULL;
   close(g_inotify_fd);
   g_inotify_fd = -1;
 }
@@ -66,9 +66,9 @@ void notify_deinit()
 
 static inline Dir *get_watcher_data(int wd)
 {
-  for (size_t i = 0; i < cvector_size(watchers); i++) {
-    if (watchers[i].wd == wd) {
-      return watchers[i].dir;
+  for (size_t i = 0; i < cvector_size(g_watchers); i++) {
+    if (g_watchers[i].wd == wd) {
+      return g_watchers[i].dir;
     }
   }
   return NULL;
@@ -124,8 +124,8 @@ void notify_add_watcher(Dir *dir)
     }
   }
 
-  for (size_t i = 0; i < cvector_size(watchers); i++) {
-    if (watchers[i].dir == dir) {
+  for (size_t i = 0; i < cvector_size(g_watchers); i++) {
+    if (g_watchers[i].dir == dir) {
       return;
     }
   }
@@ -144,7 +144,7 @@ void notify_add_watcher(Dir *dir)
     log_warn("inotify_add_watch(fd, \"%s\", ...) took %ums", dir->path, t1 - t0);
   }
 
-  cvector_push_back(watchers, ((struct notify_watcher_data) {wd, dir}));
+  cvector_push_back(g_watchers, ((struct notify_watcher_data) {wd, dir}));
 }
 
 
@@ -154,9 +154,9 @@ void notify_remove_watcher(Dir *dir)
     return;
   }
 
-  for (size_t i = 0; i < cvector_size(watchers); i++) {
-    if (watchers[i].dir == dir) {
-      cvector_swap_ferase(watchers, unwatch, i);
+  for (size_t i = 0; i < cvector_size(g_watchers); i++) {
+    if (g_watchers[i].dir == dir) {
+      cvector_swap_ferase(g_watchers, unwatch, i);
       return;
     }
   }
@@ -169,7 +169,7 @@ void notify_set_watchers(Dir **dirs, uint32_t n)
     return;
   }
 
-  cvector_fclear(watchers, unwatch);
+  cvector_fclear(g_watchers, unwatch);
 
   for (uint32_t i = 0; i < n; i++) {
     if (dirs[i]) {

@@ -11,8 +11,15 @@
 #include "cvector.h"
 #include "hashtab.h"
 #include "log.h"
-#include "util.h"
+#include "ncutil.h"
 #include "notify.h"
+#include "util.h"
+
+#define EXT_CHANNEL_TAB_SIZE 128  // size of the hashtable mapping extensions to color channels
+                                  //
+// automatically generated, see config/pathdefs.c.in
+extern char *default_data_dir;
+extern char *default_lua_dir;
 
 Config cfg = {
   .truncatechar = L'~',

@@ -23,6 +23,7 @@
 #include "log.h"
 #include "lua.h"
 #include "lualfm.h"
+#include "ncutil.h"
 #include "notify.h"
 #include "rifle.h"
 #include "search.h"
