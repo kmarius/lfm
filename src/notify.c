@@ -30,12 +30,11 @@ static struct notify_watcher_data {
 static void inotify_cb(EV_P_ ev_io *w, int revents);
 
 
-int notify_init(Lfm *lfm)
+bool notify_init(Lfm *lfm)
 {
   g_inotify_fd = inotify_init1(IN_NONBLOCK);
-
   if (g_inotify_fd == -1) {
-    return -1;
+    return false;
   }
 
   if ((g_fifo_wd = inotify_add_watch(g_inotify_fd, cfg.rundir, IN_CLOSE_WRITE)) == -1) {
@@ -47,7 +46,7 @@ int notify_init(Lfm *lfm)
   g_inotify_watcher.data = lfm;
   ev_io_start(lfm->loop, &g_inotify_watcher);
 
-  return g_inotify_fd;
+  return true;
 }
 
 

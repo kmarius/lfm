@@ -19,8 +19,8 @@
 #define EVENT_SIZE (sizeof(struct inotify_event))
 #define EVENT_BUFLEN (EVENT_MAX * (EVENT_SIZE + EVENT_MAX_LEN))
 
-// Returns a file descriptor or -1 on failure.
-int notify_init(Lfm *lfm);
+// Returns false on failure
+bool notify_init(Lfm *lfm);
 
 void notify_add_watcher(Dir *dir);
 

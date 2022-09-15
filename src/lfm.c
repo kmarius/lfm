@@ -300,7 +300,7 @@ void lfm_init(T *t)
   setenv("LFMFIFO", cfg.fifopath, 1);
 
   /* inotify should be available on fm startup */
-  if (notify_init(t) == -1) {
+  if (!notify_init(t)) {
     log_error("inotify: %s", strerror(errno));
     exit(EXIT_FAILURE);
   }
