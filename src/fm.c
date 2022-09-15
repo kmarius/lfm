@@ -244,11 +244,11 @@ void fm_reload(T *t)
 {
   for (uint32_t i = 0; i < t->dirs.length; i++) {
     if (t->dirs.visible[i]) {
-      async_dir_load(t->dirs.visible[i], true);
+      async_dir_load(&t->lfm->async, t->dirs.visible[i], true);
     }
   }
   if (t->dirs.preview) {
-    async_dir_load(t->dirs.preview, true);
+    async_dir_load(&t->lfm->async, t->dirs.preview, true);
   }
 }
 
@@ -593,7 +593,7 @@ void fm_filter(T *t, const char *filter)
 void fm_flatten(T *t, uint32_t level)
 {
   fm_current_dir(t)->flatten_level = level;
-  async_dir_load(fm_current_dir(t), true);
+  async_dir_load(&t->lfm->async, fm_current_dir(t), true);
 }
 
 

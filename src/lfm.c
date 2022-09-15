@@ -309,7 +309,7 @@ void lfm_init(T *t)
 
   loader_init(&t->loader, t);
 
-  async_init(t);
+  async_init(&t->async, t);
 
   fm_init(&t->fm, t);
   ui_init(&t->ui, t);
@@ -575,7 +575,7 @@ void lfm_deinit(T *t)
   ui_deinit(&t->ui);
   fm_deinit(&t->fm);
   loader_deinit(&t->loader);
-  async_deinit();
+  async_deinit(&t->async);
   if (t->fifo_fd > 0) {
     close(t->fifo_fd);
   }

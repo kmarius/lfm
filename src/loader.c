@@ -40,7 +40,7 @@ static void dir_timer_cb(EV_P_ ev_timer *w, int revents)
 {
   (void) revents;
   struct timer_data *data = w->data;
-  async_dir_load(data->dir, true);
+  async_dir_load(&data->lfm->async, data->dir, true);
   ev_timer_stop(loop, w);
   cvector_swap_remove(data->lfm->loader.dir_timers, w);
   free(data);
@@ -52,7 +52,7 @@ static void pv_timer_cb(EV_P_ ev_timer *w, int revents)
 {
   (void) revents;
   struct timer_data *data = w->data;
-  async_preview_load(data->preview, data->lfm->ui.nrow);
+  async_preview_load(&data->lfm->async, data->preview, data->lfm->ui.nrow);
   ev_timer_stop(loop, w);
   cvector_swap_remove(data->lfm->loader.preview_timers, w);
   free(data);
@@ -133,7 +133,7 @@ Dir *loader_dir_from_path(Loader *loader, const char *path)
 
   Dir *dir = ht_get(loader->dir_cache, path);
   if (dir) {
-    async_dir_check(dir);
+    async_dir_check(&loader->lfm->async, dir);
     dir->hidden = cfg.hidden;
     dir_sort(dir);
   } else {
@@ -149,7 +149,7 @@ Dir *loader_dir_from_path(Loader *loader, const char *path)
     dir = dir_create(path);
     dir->hidden = cfg.hidden;
     ht_set(loader->dir_cache, dir->path, dir);
-    async_dir_load(dir, false);
+    async_dir_load(&loader->lfm->async, dir, false);
   }
   return dir;
 }
@@ -167,14 +167,14 @@ Preview *loader_preview_from_path(Loader *loader, const char *path, bool image)
   if (pv) {
     if (pv->nrow < loader->lfm->ui.nrow) {
       /* TODO: don't need to reload if the actual file holds fewer lines (on 2022-09-14) */
-      async_preview_load(pv, loader->lfm->ui.nrow);
+      async_preview_load(&loader->lfm->async, pv, loader->lfm->ui.nrow);
     } else {
-      async_preview_check(pv);
+      async_preview_check(&loader->lfm->async, pv);
     }
   } else {
     pv = preview_create_loading(path, loader->lfm->ui.nrow, image);
     ht_set(loader->preview_cache, pv->path, pv);
-    async_preview_load(pv, loader->lfm->ui.nrow);
+    async_preview_load(&loader->lfm->async, pv, loader->lfm->ui.nrow);
   }
   return pv;
 }

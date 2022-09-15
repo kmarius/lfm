@@ -4,6 +4,7 @@
 #include <lua.h>
 #include <stdint.h>
 
+#include "async.h"
 #include "fm.h"
 #include "loader.h"
 #include "notify.h"
@@ -16,6 +17,7 @@ typedef struct lfm_s {
   struct ev_loop *loop;
   Notify notify;
   Loader loader;
+  Async async;
 
   int fifo_fd;
 
