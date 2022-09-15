@@ -10,7 +10,6 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#include "config.h"
 #include "cvector.h"
 #include "rifle.h"
 #include "util.h"
@@ -52,7 +51,7 @@ typedef struct fileinfo_s {
 
 static struct {
   char *config_file;
-} config = { NULL };
+} g_rifle_cfg = { NULL };
 
 static Rule **g_rules = NULL;
 
@@ -478,12 +477,16 @@ static int l_rifle_query(lua_State *L)
 }
 
 
-static void load_rules(lua_State *L, const char *config)
+static void load_rules(lua_State *L, const char *config_file)
 {
   (void) L;
   char buf[BUFSIZE];
 
-  FILE *fp = fopen(config, "r");
+  if (!config_file) {
+    return;
+  }
+
+  FILE *fp = fopen(config_file, "r");
   if (!fp) {
     return;
   }
@@ -513,18 +516,15 @@ static int l_rifle_setup(lua_State *L)
   if (lua_istable(L, 1)) {
     lua_getfield(L, 1, "config");
     if (!lua_isnoneornil(L, -1)) {
-      free(config.config_file);
-      config.config_file = path_replace_tilde(lua_tostring(L, -1));
+      free(g_rifle_cfg.config_file);
+      g_rifle_cfg.config_file = path_replace_tilde(lua_tostring(L, -1));
     }
     lua_pop(L, 1);
-  }
-  if (!config.config_file) {
-    asprintf(&config.config_file, "%s/rifle.conf", cfg.configdir);
   }
 
   cvector_fclear(g_rules, rule_destroy);
 
-  load_rules(L, config.config_file);
+  load_rules(L, g_rifle_cfg.config_file);
 
   return 0;
 }
@@ -583,7 +583,7 @@ int lua_rifle_clear(lua_State *L)
   cvector_ffree(g_rules, rule_destroy);
   g_rules = NULL;
 
-  free(config.config_file);
-  config.config_file = NULL;
+  free(g_rifle_cfg.config_file);
+  g_rifle_cfg.config_file = NULL;
   return 0;
 }

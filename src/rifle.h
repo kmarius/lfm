@@ -3,8 +3,7 @@
 #include <lua.h>
 #include <stdbool.h>
 
-// arbitrary
-#define MIME_MAX 128
+#define MIME_MAX 128  // arbitrary
 
 int lua_register_rifle(lua_State *L);
 

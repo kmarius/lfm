@@ -51,7 +51,7 @@ function M.ask()
 end
 
 -- overwrite the builtin setup
-local setup = M.setup
+local _setup = M.setup
 
 ---@class rifle_setup_opts
 ---@field config string path to configuration file e.g. a rifle.conf (default: ~/.config/lfm/opener.conf)
@@ -59,7 +59,9 @@ local setup = M.setup
 ---Set up opener.
 ---@param t rifle_setup_opts
 function M.setup(t)
-	setup(t)
+	t = t or {}
+	t.config = t.config or (lfm.config.configdir .. "/opener.conf")
+	_setup(t)
 	lfm.register_command("open", M.open, {tokenize = true})
 	lfm.map("r", M.ask, {desc="show opener options"})
 end
