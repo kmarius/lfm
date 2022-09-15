@@ -144,7 +144,7 @@ bool fm_chdir(T *t, const char *path, bool save)
     log_debug("chdir(\"%s\") took %ums", path, t1-t0);
   }
 
-  notify_set_watchers(NULL, 0);
+  notify_set_watchers(&t->lfm->notify, NULL, 0);
 
   setenv("PWD", path, true);
 
@@ -173,7 +173,7 @@ bool fm_chdir(T *t, const char *path, bool save)
 static inline void fm_update_watchers(T *t)
 {
   // watcher for preview is updated in update_preview
-  notify_set_watchers(t->dirs.visible, t->dirs.length);
+  notify_set_watchers(&t->lfm->notify, t->dirs.visible, t->dirs.length);
 }
 
 
@@ -227,7 +227,7 @@ void fm_check_dirs(const T *t)
 
 void fm_drop_cache(T *t)
 {
-  notify_set_watchers(NULL, 0);
+  notify_set_watchers(&t->lfm->notify, NULL, 0);
 
   log_debug("dropping cache");
   fm_remove_preview(t);
@@ -259,7 +259,7 @@ static void fm_remove_preview(T *t)
     return;
   }
 
-  notify_remove_watcher(t->dirs.preview);
+  notify_remove_watcher(&t->lfm->notify, t->dirs.preview);
   t->dirs.preview->visible = false;
   t->dirs.preview = NULL;
 }
@@ -292,14 +292,14 @@ void fm_update_preview(T *t)
         }
       }
       if (i >= t->dirs.length) {
-        notify_remove_watcher(t->dirs.preview);
+        notify_remove_watcher(&t->lfm->notify, t->dirs.preview);
         t->dirs.preview->visible = false;
       }
     }
     t->dirs.preview = loader_dir_from_path(file_path(file));
     t->dirs.preview->visible = true;
     // sometimes very slow on smb (> 200ms)
-    notify_add_watcher(t->dirs.preview);
+    notify_add_watcher(&t->lfm->notify, t->dirs.preview);
   } else {
     // file preview or empty
     if (t->dirs.preview) {
@@ -310,7 +310,7 @@ void fm_update_preview(T *t)
         }
       }
       if (i == t->dirs.length) {
-        notify_remove_watcher(t->dirs.preview);
+        notify_remove_watcher(&t->lfm->notify, t->dirs.preview);
         t->dirs.preview->visible = false;
       }
       t->dirs.preview = NULL;

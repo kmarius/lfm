@@ -5,6 +5,7 @@
 #include <stdint.h>
 
 #include "fm.h"
+#include "notify.h"
 #include "ui.h"
 
 typedef struct lfm_s {
@@ -12,6 +13,7 @@ typedef struct lfm_s {
   Fm fm;
   lua_State *L;
   struct ev_loop *loop;
+  Notify notify;
 
   int fifo_fd;
 

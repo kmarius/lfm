@@ -13,61 +13,48 @@
 #include "notify.h"
 #include "util.h"
 
-static int g_inotify_fd = -1;
-static int g_fifo_wd = -1;
-static ev_io g_inotify_watcher;
-
-static struct notify_watcher_data {
-  int wd;
-  Dir *dir;
-} *g_watchers = NULL;
-
-#define unwatch(t) do { \
-    inotify_rm_watch(g_inotify_fd, (t).wd); \
-  } while (0)
-
-
 static void inotify_cb(EV_P_ ev_io *w, int revents);
 
-
-bool notify_init(Lfm *lfm)
+bool notify_init(Notify *notify, Lfm *lfm)
 {
-  g_inotify_fd = inotify_init1(IN_NONBLOCK);
-  if (g_inotify_fd == -1) {
+  notify->inotify_fd = inotify_init1(IN_NONBLOCK);
+  if (notify->inotify_fd == -1) {
     return false;
   }
 
-  if ((g_fifo_wd = inotify_add_watch(g_inotify_fd, cfg.rundir, IN_CLOSE_WRITE)) == -1) {
+  if ((notify->fifo_wd = inotify_add_watch(notify->inotify_fd, cfg.rundir, IN_CLOSE_WRITE)) == -1) {
     log_error("inotify: %s", strerror(errno));
     return -1;
   }
 
-  ev_io_init(&g_inotify_watcher, inotify_cb, g_inotify_fd, EV_READ);
-  g_inotify_watcher.data = lfm;
-  ev_io_start(lfm->loop, &g_inotify_watcher);
+  ev_io_init(&notify->watcher, inotify_cb, notify->inotify_fd, EV_READ);
+  notify->watcher.data = lfm;
+  ev_io_start(lfm->loop, &notify->watcher);
 
   return true;
 }
 
-
-void notify_deinit()
+void notify_deinit(Notify *notify)
 {
-  if (g_inotify_fd == -1) {
+  if (notify->inotify_fd == -1) {
     return;
   }
 
-  cvector_ffree(g_watchers, unwatch);
-  g_watchers = NULL;
-  close(g_inotify_fd);
-  g_inotify_fd = -1;
+  cvector_foreach_ptr(struct notify_watcher_data *d, notify->watchers) {
+    inotify_rm_watch(notify->inotify_fd, d->wd);
+  }
+  cvector_free(notify->watchers);
+  notify->watchers = NULL;
+  close(notify->inotify_fd);
+  notify->inotify_fd = -1;
 }
 
 
-static inline Dir *get_watcher_data(int wd)
+static inline Dir *get_watcher_data(Notify *notify, int wd)
 {
-  for (size_t i = 0; i < cvector_size(g_watchers); i++) {
-    if (g_watchers[i].wd == wd) {
-      return g_watchers[i].dir;
+  for (size_t i = 0; i < cvector_size(notify->watchers); i++) {
+    if (notify->watchers[i].wd == wd) {
+      return notify->watchers[i].dir;
     }
   }
   return NULL;
@@ -81,11 +68,12 @@ static void inotify_cb(EV_P_ ev_io *w, int revents)
   (void) loop;
   (void) revents;
   Lfm *lfm = w->data;
+  Notify *notify = &lfm->notify;
   int nread;
   char buf[EVENT_BUFLEN], *p;
   struct inotify_event *event;
 
-  while ((nread = read(g_inotify_fd, buf, EVENT_BUFLEN)) > 0) {
+  while ((nread = read(notify->inotify_fd, buf, EVENT_BUFLEN)) > 0) {
     for (p = buf; p < buf + nread; p += EVENT_SIZE + event->len) {
       event = (struct inotify_event *) p;
 
@@ -96,12 +84,12 @@ static void inotify_cb(EV_P_ ev_io *w, int revents)
       // we use inotify for the fifo because io watchers dont seem to work properly
       // with the fifo, the callback gets called every loop, even with clearerr
       /* TODO: we could filter for our pipe here (on 2021-08-13) */
-      if (event->wd == g_fifo_wd) {
+      if (event->wd == notify->fifo_wd) {
         lfm_read_fifo(lfm);
         continue;
       }
 
-      Dir *dir = get_watcher_data(event->wd);
+      Dir *dir = get_watcher_data(notify, event->wd);
       if (!dir) {
         continue;
       }
@@ -111,9 +99,9 @@ static void inotify_cb(EV_P_ ev_io *w, int revents)
 }
 
 
-void notify_add_watcher(Dir *dir)
+void notify_add_watcher(Notify *notify, Dir *dir)
 {
-  if (g_inotify_fd == -1) {
+  if (notify->inotify_fd == -1) {
     return;
   }
 
@@ -123,14 +111,14 @@ void notify_add_watcher(Dir *dir)
     }
   }
 
-  for (size_t i = 0; i < cvector_size(g_watchers); i++) {
-    if (g_watchers[i].dir == dir) {
+  for (size_t i = 0; i < cvector_size(notify->watchers); i++) {
+    if (notify->watchers[i].dir == dir) {
       return;
     }
   }
 
   const uint64_t t0 = current_millis();
-  int wd = inotify_add_watch(g_inotify_fd, dir->path, NOTIFY_EVENTS);
+  int wd = inotify_add_watch(notify->inotify_fd, dir->path, NOTIFY_EVENTS);
   if (wd == -1) {
     log_error("inotify: %s", strerror(errno));
     return;
@@ -143,36 +131,39 @@ void notify_add_watcher(Dir *dir)
     log_warn("inotify_add_watch(fd, \"%s\", ...) took %ums", dir->path, t1 - t0);
   }
 
-  cvector_push_back(g_watchers, ((struct notify_watcher_data) {wd, dir}));
+  cvector_push_back(notify->watchers, ((struct notify_watcher_data) {wd, dir}));
 }
 
 
-void notify_remove_watcher(Dir *dir)
+void notify_remove_watcher(Notify *notify, Dir *dir)
 {
-  if (g_inotify_fd == -1) {
+  if (notify->inotify_fd == -1) {
     return;
   }
 
-  for (size_t i = 0; i < cvector_size(g_watchers); i++) {
-    if (g_watchers[i].dir == dir) {
-      cvector_swap_ferase(g_watchers, unwatch, i);
+  for (size_t i = 0; i < cvector_size(notify->watchers); i++) {
+    if (notify->watchers[i].dir == dir) {
+      inotify_rm_watch(notify->inotify_fd, notify->watchers[i].wd);
+      cvector_swap_erase(notify->watchers, i);
       return;
     }
   }
 }
 
 
-void notify_set_watchers(Dir **dirs, uint32_t n)
+void notify_set_watchers(Notify *notify, Dir **dirs, uint32_t n)
 {
-  if (g_inotify_fd == -1) {
+  if (notify->inotify_fd == -1) {
     return;
   }
 
-  cvector_fclear(g_watchers, unwatch);
+  cvector_foreach_ptr(struct notify_watcher_data *d, notify->watchers) {
+    inotify_rm_watch(notify->inotify_fd, d->wd);
+  }
 
   for (uint32_t i = 0; i < n; i++) {
     if (dirs[i]) {
-      notify_add_watcher(dirs[i]);
+      notify_add_watcher(notify, dirs[i]);
     }
   }
 }

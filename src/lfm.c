@@ -299,8 +299,8 @@ void lfm_init(T *t)
   }
   setenv("LFMFIFO", cfg.fifopath, 1);
 
-  /* inotify should be available on fm startup */
-  if (!notify_init(t)) {
+  /* notify should be available on fm startup */
+  if (!notify_init(&t->notify, t)) {
     log_error("inotify: %s", strerror(errno));
     exit(EXIT_FAILURE);
   }
@@ -570,7 +570,7 @@ void lfm_deinit(T *t)
 {
   cvector_ffree(t->child_watchers, destroy_child_watcher);
   cvector_ffree(t->schedule_timers, destroy_schedule_timer);
-  notify_deinit();
+  notify_deinit(&t->notify);
   lua_deinit(t->L);
   ui_deinit(&t->ui);
   fm_deinit(&t->fm);
