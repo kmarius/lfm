@@ -104,6 +104,7 @@ void loader_dir_reload(Loader *loader, Dir *dir)
   if (latest >= now + cfg.inotify_timeout) {
     return;  // discard
   }
+  log_debug("loader_dir_reload %s", dir->path);
 
   // Add a small delay so we don't show files that exist only very briefly
   uint64_t next = now < latest + cfg.inotify_timeout

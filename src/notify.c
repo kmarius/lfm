@@ -113,6 +113,7 @@ static void inotify_cb(EV_P_ ev_io *w, int revents)
 
 void notify_add_watcher(Notify *notify, Dir *dir)
 {
+  log_debug("notify_add_watcher %s", dir->path);
   if (notify->inotify_fd == -1) {
     return;
   }
