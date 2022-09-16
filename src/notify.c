@@ -25,7 +25,7 @@ bool notify_init(Notify *notify, Lfm *lfm)
 
   if ((notify->fifo_wd = inotify_add_watch(notify->inotify_fd, cfg.rundir, IN_CLOSE_WRITE)) == -1) {
     log_error("inotify: %s", strerror(errno));
-    return -1;
+    return false;
   }
 
   ev_io_init(&notify->watcher, inotify_cb, notify->inotify_fd, EV_READ);
@@ -34,6 +34,7 @@ bool notify_init(Notify *notify, Lfm *lfm)
 
   return true;
 }
+
 
 void notify_deinit(Notify *notify)
 {
@@ -51,11 +52,11 @@ void notify_deinit(Notify *notify)
 }
 
 
-static inline Dir *get_watcher_data(Notify *notify, int wd)
+static inline Dir *get_watched_dir(Notify *notify, int wd)
 {
-  for (size_t i = 0; i < cvector_size(notify->watchers); i++) {
-    if (notify->watchers[i].wd == wd) {
-      return notify->watchers[i].dir;
+  cvector_foreach_ptr(struct notify_watcher_data *d, notify->watchers) {
+    if (d->wd == wd) {
+      return d->dir;
     }
   }
   return NULL;
@@ -68,8 +69,10 @@ static void inotify_cb(EV_P_ ev_io *w, int revents)
 {
   (void) loop;
   (void) revents;
+
   Lfm *lfm = w->data;
   Notify *notify = &lfm->notify;
+
   int nread;
   char buf[EVENT_BUFLEN], *p;
   struct inotify_event *event;
@@ -90,11 +93,10 @@ static void inotify_cb(EV_P_ ev_io *w, int revents)
         continue;
       }
 
-      Dir *dir = get_watcher_data(notify, event->wd);
-      if (!dir) {
-        continue;
+      Dir *dir = get_watched_dir(notify, event->wd);
+      if (dir) {
+        loader_dir_reload(&lfm->loader, dir);
       }
-      loader_dir_reload(&lfm->loader, dir);
     }
   }
 }
@@ -106,14 +108,14 @@ void notify_add_watcher(Notify *notify, Dir *dir)
     return;
   }
 
-  for (size_t i = 0; i < cvector_size(cfg.inotify_blacklist); i++) {
-    if (hasprefix(dir->path, cfg.inotify_blacklist[i])) {
+  cvector_foreach(const char *s, cfg.inotify_blacklist) {
+    if (hasprefix(dir->path, s)) {
       return;
     }
   }
 
-  for (size_t i = 0; i < cvector_size(notify->watchers); i++) {
-    if (notify->watchers[i].dir == dir) {
+  cvector_foreach_ptr(struct notify_watcher_data *d, notify->watchers) {
+    if (d->dir == dir) {
       return;
     }
   }
@@ -161,6 +163,7 @@ void notify_set_watchers(Notify *notify, Dir **dirs, uint32_t n)
   cvector_foreach_ptr(struct notify_watcher_data *d, notify->watchers) {
     inotify_rm_watch(notify->inotify_fd, d->wd);
   }
+  cvector_set_size(notify->watchers, 0);
 
   for (uint32_t i = 0; i < n; i++) {
     if (dirs[i]) {
