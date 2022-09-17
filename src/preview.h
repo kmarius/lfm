@@ -5,7 +5,6 @@
 #include <time.h>
 
 #include "cvector.h"
-#include "log.h"
 
 struct ncplane;
 struct preview_s;

@@ -4,13 +4,13 @@
 #include <stdarg.h>
 #include <stdint.h>
 
-#include "hashtab.h"
 #include "cmdline.h"
 #include "cvector.h"
 #include "dir.h"
 #include "fm.h"
-#include "keys.h"
+#include "hashtab.h"
 #include "history.h"
+#include "keys.h"
 #include "preview.h"
 
 #define REDRAW_INFO    1

@@ -3,7 +3,6 @@
 #include "log.h"
 #include "ncutil.h"
 
-
 static void wansi_matchattr(struct ncplane *w, uint32_t a)
 {
   if (a <= 9) {

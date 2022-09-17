@@ -1,5 +1,5 @@
 #include <linux/limits.h>
-#include <ncurses.h> // COLOR_ constants
+#include <ncurses.h>  // COLOR_ constants
 #include <notcurses/notcurses.h>
 #include <stdarg.h>
 #include <stdint.h>

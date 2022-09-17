@@ -3,15 +3,15 @@
 #include <errno.h>
 #include <grp.h>
 #include <limits.h>
-#include <linux/limits.h> // PATH_MAX
+#include <linux/limits.h>  // PATH_MAX
 #include <pwd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h> // readlink
+#include <unistd.h>  // readlink
 
 #include "file.h"
-#include "util.h" // asprintf
+#include "util.h"  // asprintf
 
 #define T File
 

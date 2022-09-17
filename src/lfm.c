@@ -10,11 +10,11 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-#include "lfm.h"
 #include "async.h"
 #include "config.h"
 #include "cvector.h"
 #include "keys.h"
+#include "lfm.h"
 #include "loader.h"
 #include "log.h"
 #include "lualfm.h"

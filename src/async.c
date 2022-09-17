@@ -1,8 +1,8 @@
+#include <errno.h>
 #include <ev.h>
 #include <pthread.h>
 #include <stdint.h>
 #include <sys/sysinfo.h>
-#include <errno.h>
 
 #include "async.h"
 #include "config.h"

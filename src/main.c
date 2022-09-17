@@ -7,24 +7,23 @@
 #include <sys/stat.h>
 #include <sys/time.h>
 
-#include "lfm.h"
 #include "auto/versiondef.h"
 #include "config.h"
 #include "cvector.h"
 #include "fm.h"
+#include "lfm.h"
 #include "log.h"
-#include "lualfm.h"
 #include "ui.h"
 #include "util.h"
 
-#define USAGE_FMT                                                          \
-  "Usage:\n  %s [options] <directory>\n\n"                               \
-  "Options:\n"                                                           \
-  "  -c <cmd>     Execute <cmd> after loading the config\n"              \
-  "  -h           Print this help message\n"                             \
-  "  -l <file>    Write last visited directory to file on exit\n"        \
-  "  -s <file>    Write selection to file and quit\n"                    \
-  "  -u <config>  Use this config file\n"                                \
+#define USAGE_FMT                                                  \
+  "Usage:\n  %s [options] <directory>\n\n"                         \
+  "Options:\n"                                                     \
+  "  -c <cmd>     Execute <cmd> after loading the config\n"        \
+  "  -h           Print this help message\n"                       \
+  "  -l <file>    Write last visited directory to file on exit\n"  \
+  "  -s <file>    Write selection to file and quit\n"              \
+  "  -u <config>  Use this config file\n"                          \
   "  -v           Print version information\n"
 
 #define VERSION_FMT "%s " LFM_VERSION "\n"

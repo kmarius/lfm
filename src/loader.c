@@ -19,7 +19,7 @@ struct timer_data {
 };
 
 
-void loader_init(Loader *loader, void *_lfm)
+void loader_init(Loader *loader, struct lfm_s *_lfm)
 {
   loader->lfm = _lfm;
   loader->dir_cache = ht_create((free_fun) dir_destroy);

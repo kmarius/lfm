@@ -9,7 +9,6 @@
 #include <unistd.h>
 #include <wchar.h>
 
-#include "lfm.h"
 #include "async.h"
 #include "cmdline.h"
 #include "config.h"
@@ -18,6 +17,7 @@
 #include "file.h"
 #include "filter.h"
 #include "hashtab.h"
+#include "lfm.h"
 #include "loader.h"
 #include "log.h"
 #include "ncutil.h"

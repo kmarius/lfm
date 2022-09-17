@@ -2,8 +2,8 @@
 
 #include <lua.h>
 
-#include "lfm.h"
 #include "keys.h"
+#include "lfm.h"
 
 #define LFM_HOOK_RESIZED   "Resized"
 #define LFM_HOOK_ENTER     "LfmEnter"

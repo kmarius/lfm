@@ -1,7 +1,6 @@
 #include "file.h"
 #include "strnatcmp.h"
 
-
 int compare_name(const void *a, const void *b)
 {
   return strcasecmp(file_name(*(File **) a), file_name(*(File **) b));

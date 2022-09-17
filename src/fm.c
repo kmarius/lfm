@@ -9,12 +9,12 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include "lfm.h"
 #include "async.h"
 #include "config.h"
 #include "cvector.h"
 #include "fm.h"
 #include "hashtab.h"
+#include "lfm.h"
 #include "loader.h"
 #include "log.h"
 #include "lualfm.h"
