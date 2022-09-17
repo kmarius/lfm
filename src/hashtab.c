@@ -169,7 +169,6 @@ void ht_clear(T *t)
     }
   }
   ht_resize(t, t->min_capacity);
-  t->version++;
 }
 
 #undef T

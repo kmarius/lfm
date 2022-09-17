@@ -194,6 +194,7 @@ Hashtab *loader_pv_hashtab(Loader *loader)
 
 void loader_drop_preview_cache(Loader *loader)
 {
+  loader->preview_cache_version++;
   ht_clear(loader->preview_cache);
   cvector_foreach(ev_timer *timer, loader->preview_timers) {
     ev_timer_stop(loader->lfm->loop, timer);
@@ -205,6 +206,7 @@ void loader_drop_preview_cache(Loader *loader)
 
 void loader_drop_dir_cache(Loader *loader)
 {
+  loader->dir_cache_version++;
   ht_clear(loader->dir_cache);
   cvector_foreach(ev_timer *timer, loader->dir_timers) {
     ev_timer_stop(loader->lfm->loop, timer);

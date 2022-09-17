@@ -52,7 +52,6 @@ typedef struct hashtab_s {
   size_t capacity;  // size of the actual table, not counting overflow lists
   size_t min_capacity;
   size_t size;
-  uint32_t version;
   ht_free_fun free;
 } Hashtab;
 

@@ -223,7 +223,7 @@ static void DirCountResult_callback(void *p, Lfm *lfm)
   /* for now, just discard the dircount updates if any other update has been
    * applied in the meantime. This does not protect against the dir getting purged from
    * the cache.*/
-  if (res->version == lfm->loader.dir_cache->version && res->dir->updates <= 1)  {
+  if (res->version == lfm->loader.dir_cache_version && res->dir->updates <= 1)  {
     for (size_t i = 0; i < cvector_size(res->dircounts); i++) {
       file_dircount_set(res->dircounts[i].file, res->dircounts[i].count);
     }
@@ -302,7 +302,7 @@ typedef struct dir_update_result_s {
 static void DirUpdateResult_callback(void *p, Lfm *lfm)
 {
   DirUpdateResult *res = p;
-  if (res->version == lfm->loader.dir_cache->version
+  if (res->version == lfm->loader.dir_cache_version
       && res->dir->flatten_level == res->update->flatten_level) {
     dir_update_with(res->dir, res->update, lfm->fm.height, cfg.scrolloff);
     if (res->dir->visible) {
@@ -388,7 +388,7 @@ void async_dir_load(Async *async, Dir *dir, bool dircounts)
   work->path = strdup(dir->path);
   work->dircounts = dircounts;
   work->level = dir->flatten_level;
-  work->version = async->lfm->loader.dir_cache->version;
+  work->version = async->lfm->loader.dir_cache_version;
   tpool_add_work(async->tpool, async_dir_load_worker, work);
 }
 
@@ -498,7 +498,7 @@ static void PreviewLoadResult_callback(void *p, Lfm *lfm)
   PreviewLoadResult *res = p;
   // TODO: make this safer, preview.cache.version protects against dropped
   // caches only (on 2022-02-06)
-  if (res->version == lfm->loader.preview_cache->version) {
+  if (res->version == lfm->loader.preview_cache_version) {
     preview_update(res->preview, res->update);
     ui_redraw(&lfm->ui, REDRAW_PREVIEW);
   } else {
@@ -561,7 +561,7 @@ void async_preview_load(Async *async, Preview *pv)
   work->preview = pv;
   work->path = strdup(pv->path);
   work->nrow = async->lfm->ui.nrow;
-  work->version = async->lfm->loader.preview_cache->version;
+  work->version = async->lfm->loader.preview_cache_version;
   work->image_preview = preview_is_image_preview(pv);
   tpool_add_work(async->tpool, async_preview_load_worker, work);
 }
