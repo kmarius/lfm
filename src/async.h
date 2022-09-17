@@ -5,10 +5,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-struct lfm_s;
 struct dir_s;
 struct preview_s;
-struct result_s;
 
 struct result_queue {
   struct result_s *head;
@@ -39,4 +37,4 @@ void async_dir_load(Async *async, struct dir_s *dir, bool dircounts);
 void async_preview_check(Async *async, struct preview_s *pv);
 
 // Reloads preview of the file at `path` with `nrow` lines from disk.
-void async_preview_load(Async *async, struct preview_s *pv, uint32_t nrow);
+void async_preview_load(Async *async, struct preview_s *pv);

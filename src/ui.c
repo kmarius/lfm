@@ -1163,7 +1163,7 @@ static void update_preview(T *t)
       if (streq(t->preview.preview->path, file_path(file))) {
         if (!t->preview.preview->loading) {
           if (t->preview.preview->nrow < (uint32_t) nrow) {
-            async_preview_load(&t->lfm->async, t->preview.preview, nrow);
+            async_preview_load(&t->lfm->async, t->preview.preview);
             t->preview.preview->loading = true;
           } else {
             if (t->preview.preview->loadtime + 500 <= current_millis()) {

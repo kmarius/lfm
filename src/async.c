@@ -554,13 +554,13 @@ static void async_preview_load_worker(void *arg)
 }
 
 
-void async_preview_load(Async *async, Preview *pv, uint32_t nrow)
+void async_preview_load(Async *async, Preview *pv)
 {
   struct preview_load_work *work = malloc(sizeof *work);
   work->async = async;
   work->preview = pv;
   work->path = strdup(pv->path);
-  work->nrow = nrow;
+  work->nrow = async->lfm->ui.nrow;
   work->version = async->lfm->loader.preview_cache->version;
   work->image_preview = preview_is_image_preview(pv);
   tpool_add_work(async->tpool, async_preview_load_worker, work);

@@ -52,7 +52,7 @@ static void pv_timer_cb(EV_P_ ev_timer *w, int revents)
 {
   (void) revents;
   struct timer_data *data = w->data;
-  async_preview_load(&data->lfm->async, data->preview, data->lfm->ui.nrow);
+  async_preview_load(&data->lfm->async, data->preview);
   ev_timer_stop(loop, w);
   cvector_swap_remove(data->lfm->loader.preview_timers, w);
   free(data);
@@ -167,14 +167,14 @@ Preview *loader_preview_from_path(Loader *loader, const char *path, bool image)
   if (pv) {
     if (pv->nrow < loader->lfm->ui.nrow) {
       /* TODO: don't need to reload if the actual file holds fewer lines (on 2022-09-14) */
-      async_preview_load(&loader->lfm->async, pv, loader->lfm->ui.nrow);
+      async_preview_load(&loader->lfm->async, pv);
     } else {
       async_preview_check(&loader->lfm->async, pv);
     }
   } else {
     pv = preview_create_loading(path, loader->lfm->ui.nrow, image);
     ht_set(loader->preview_cache, pv->path, pv);
-    async_preview_load(&loader->lfm->async, pv, loader->lfm->ui.nrow);
+    async_preview_load(&loader->lfm->async, pv);
   }
   return pv;
 }
