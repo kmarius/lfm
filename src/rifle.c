@@ -38,6 +38,7 @@ typedef struct rule_s {
   char *command;
   char *label;
   int number;
+  bool has_mime;
   bool flag_fork;
   bool flag_term;
   bool flag_esc;
@@ -82,6 +83,7 @@ static Rule *rule_create(const char *command)
   rl->conditions = NULL;
   rl->label = NULL;
   rl->number = -1;
+  rl->has_mime = false;
   rl->flag_fork = false;
   rl->flag_term = false;
   rl->flag_esc = false;
@@ -325,6 +327,9 @@ static bool rule_add_condition(Rule *r, char *cond_str)
       c = condition_create(check_fun_path, arg, negate);
     } else if (streq(func, "mime")) {
       c = condition_create(check_fun_mime, arg, negate);
+      if (!negate) {
+        r->has_mime = true;
+      }
     } else if (streq(func, "name")) {
       c = condition_create(check_fun_name, arg, negate);
     } else if (streq(func, "match")) {
@@ -399,6 +404,85 @@ static int l_rifle_fileinfo(lua_State *L)
 }
 
 
+static inline int push_rule(lua_State *L, const Rule *r, int num)
+{
+  lua_newtable(L);
+
+  lua_pushstring(L, r->command);
+  lua_setfield(L, -2, "command");
+
+  lua_pushboolean(L, r->flag_fork);
+  lua_setfield(L, -2, "fork");
+
+  lua_pushboolean(L, r->flag_term);
+  lua_setfield(L, -2, "term");
+
+  lua_pushboolean(L, r->flag_esc);
+  lua_setfield(L, -2, "esc");
+
+  lua_pushinteger(L, num);
+  lua_setfield(L, -2, "number");
+
+  return 1;
+}
+
+
+static int l_rifle_query_mime(lua_State *L)
+{
+  const char *mime = luaL_checkstring(L, 1);
+
+  int limit = 0;
+  const char *pick = NULL;
+
+  if (lua_istable(L, 2)) {
+    lua_getfield(L, 2, "limit");
+    limit = luaL_optinteger(L, -1, 0);
+    lua_pop(L, 1);
+
+    lua_getfield(L, 2, "pick");
+    if (!lua_isnoneornil(L, -1)) {
+      pick = luaL_optstring(L, -1, NULL);
+    }
+    lua_pop(L, 1);
+  }
+
+  const FileInfo info = {.file = "", .path = "", .mime = mime};
+
+  lua_newtable(L);
+
+  int i = 1;
+  int ct_match = 0;
+
+  for (size_t j = 0; j < cvector_size(g_rules); j++) {
+    if (g_rules[j]->has_mime && check_rule(g_rules[j], &info)) {
+      if (g_rules[j]->number > 0) {
+        ct_match = g_rules[j]->number;
+      }
+      ct_match++;
+
+      if (pick != NULL && pick[0] != '\0') {
+        const int ind = atoi(pick);
+        const bool ok = (ind != 0 || pick[0] == '0');
+        if ((ok && ind != ct_match-1) ||
+            (!ok && ((g_rules[j])->label == NULL
+                     || strcmp(pick, g_rules[j]->label) != 0))) {
+          continue;
+        }
+      }
+
+      push_rule(L, g_rules[j], ct_match-1);
+      lua_rawseti(L, -2, i++);
+
+      if (limit > 0 && i > limit) {
+        break;
+      }
+    }
+  }
+
+  return 1;
+}
+
+
 static int l_rifle_query(lua_State *L)
 {
   const char *file = luaL_checkstring(L, 1);
@@ -443,28 +527,12 @@ static int l_rifle_query(lua_State *L)
         const bool ok = (ind != 0 || pick[0] == '0');
         if ((ok && ind != ct_match-1) ||
             (!ok && ((g_rules[j])->label == NULL
-                 || strcmp(pick, g_rules[j]->label) != 0))) {
+                     || strcmp(pick, g_rules[j]->label) != 0))) {
           continue;
         }
       }
 
-      lua_newtable(L); /* t = {} */
-
-      lua_pushstring(L, g_rules[j]->command);
-      lua_setfield(L, -2, "command"); /* t.command = ... */
-
-      lua_pushboolean(L, g_rules[j]->flag_fork);
-      lua_setfield(L, -2, "fork"); /* t.fork = ... */
-
-      lua_pushboolean(L, g_rules[j]->flag_term);
-      lua_setfield(L, -2, "term");
-
-      lua_pushboolean(L, g_rules[j]->flag_esc);
-      lua_setfield(L, -2, "esc");
-
-      lua_pushinteger(L, ct_match-1);
-      lua_setfield(L, -2, "number");
-
+      push_rule(L, g_rules[j], ct_match-1);
       lua_rawseti(L, -2, i++); /* m[i] = t */
 
       if (limit > 0 && i > limit) {
@@ -557,6 +625,7 @@ static const luaL_Reg rifle_lib[] = {
   {"fileinfo", l_rifle_fileinfo},
   {"nrules", l_rifle_nrules},
   {"query", l_rifle_query},
+  {"query_mime", l_rifle_query_mime},
   {"setup", l_rifle_setup},
   {NULL, NULL}};
 

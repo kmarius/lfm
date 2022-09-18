@@ -6,6 +6,8 @@ local shell = require("shell")
 
 local M = lfm.rifle
 
+local config = lfm.config.configdir .. "/opener.conf"
+
 ---Navigate into a directory or open files.
 ---@param ... any
 function M.open(...)
@@ -22,6 +24,13 @@ function M.open(...)
 		if match then
 			if match.command == "ask" then
 				lfm.cmd.line_set(":", "shell ", ' "${files[@]}"')
+			elseif match.term then
+				local term = M.query_mime("rifle/x-terminal-emulator", {limit=1})[1]
+				if not term then
+					error("rifle: no terminal configured in "..config)
+				end
+				shell.execute({"sh", "-c", term.command, "_", "sh", "-c", match.command, unpack(files)},
+				{fork=true, out=false, err=false})
 			else
 				shell.execute({"sh", "-c", match.command, "_", unpack(files)},
 				{fork=match.fork, out=false, err=false})
@@ -60,7 +69,8 @@ local _setup = M.setup
 ---@param t rifle_setup_opts
 function M.setup(t)
 	t = t or {}
-	t.config = t.config or (lfm.config.configdir .. "/opener.conf")
+	t.config = t.config or config
+	config = t.config
 	_setup(t)
 	lfm.register_command("open", M.open, {tokenize = true})
 	lfm.map("r", M.ask, {desc="show opener options"})
