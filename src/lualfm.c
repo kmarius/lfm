@@ -541,6 +541,16 @@ static int l_config_index(lua_State *L)
   } else if (streq(key, "previewer")) {
     lua_pushstring(L, cfg.previewer ? cfg.previewer : "");
     return 1;
+  } else if (streq(key, "icons")) {
+    lua_pushboolean(L, cfg.icons);
+    return 1;
+  } else if (streq(key, "icon_map")) {
+    lua_createtable(L, 0, cfg.icon_map->size);
+    ht_foreach_kv(const char *key, const char *val, cfg.icon_map) {
+      lua_pushstring(L, val);
+      lua_setfield(L, -2, key);
+    }
+    return 1;
   } else if (streq(key, "fifopath")) {
     lua_pushstring(L, cfg.fifopath);
     return 1;
@@ -661,6 +671,15 @@ static int l_config_newindex(lua_State *L)
     }
     ui_drop_cache(ui);
     ui_redraw(ui, REDRAW_PREVIEW);
+  } else if (streq(key, "icons")) {
+    cfg.icons = lua_toboolean(L, 3);
+    ui_redraw(ui, REDRAW_FM);
+  } else if (streq(key, "icon_map")) {
+    ht_clear(cfg.icon_map);
+     for (lua_pushnil(L); lua_next(L, -2) != 0; lua_pop(L, 1)) {
+       config_icon_map_add(lua_tostring(L, -2), lua_tostring(L, -1));
+     }
+     ui_redraw(ui, REDRAW_FM);
   } else if (streq(key, "previewer")) {
     if (lua_isnoneornil(L, 3)) {
       free(cfg.previewer);

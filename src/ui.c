@@ -235,7 +235,7 @@ void ui_clear(T *t)
   notcurses_cursor_enable(t->nc, 0, 0);
   notcurses_cursor_disable(t->nc);
 
-  ui_redraw(t, REDRAW_FM|REDRAW_MENU|REDRAW_CMDLINE|REDRAW_INFO|REDRAW_PREVIEW);
+  ui_redraw(t, REDRAW_FULL);
 }
 
 
@@ -983,11 +983,11 @@ static void print_file(struct ncplane *n, const File *file,
       rightmargin += 3; /* " ->" */
     }
     if (file_ext(file)) {
-      if (ncol - 3 - rightmargin < 4) {
+      if (ncol - 3 - rightmargin - (cfg.icons ? 2 : 0) < 4) {
         rightmargin = 0;
       }
     } else {
-      if (ncol - 3 - rightmargin < 2) {
+      if (ncol - 3 - rightmargin - (cfg.icons ? 2 : 0) < 2) {
         rightmargin = 0;
       }
     }
@@ -1036,21 +1036,69 @@ static void print_file(struct ncplane *n, const File *file,
   ncplane_putchar(n, ' ');
 
   if (cfg.icons) {
-    if (file_isdir(file)) {
-      ncplane_putstr(n, " ");
+    const char *key = NULL;
+
+    if (file_islink(file)) {
+      key = file_isbroken(file) ? "or" : "ln";
+    } else if (file_isdir(file)) {
+      key = "di";
+      /* TODO: add these (on 2022-09-18) */
+      // case f.IsDir() && f.Mode()&os.ModeSticky != 0 && f.Mode()&0002 != 0:
+      //       key = "tw"
+      // case f.IsDir() && f.Mode()&0002 != 0:
+      //         key = "ow"
+      // case f.IsDir() && f.Mode()&os.ModeSticky != 0:
+      //           key = "st"
+      // case f.Mode()&os.ModeNamedPipe != 0:
+      //               key = "pi";
+      // case f.Mode()&os.ModeSocket != 0:
+      //                 key = "so";
+      // case f.Mode()&os.ModeDevice != 0:
+      //                   key = "bd";
+      // case f.Mode()&os.ModeCharDevice != 0:
+      //                     key = "cd";
+      // case f.Mode()&os.ModeSetuid != 0:
+      //                       key = "su";
+      // case f.Mode()&os.ModeSetgid != 0:
+    } else if (file_isexec(file)) {
+      key = "ex";
+    }
+
+    const char *icon = NULL;
+
+    if (key) {
+      icon = ht_get(cfg.icon_map, key);
+    }
+
+    if (!icon && file_ext(file)) {
+      icon = ht_get(cfg.icon_map, file_ext(file));
+    }
+
+    if (!icon) {
+      icon = ht_get(cfg.icon_map, "fi");
+    }
+
+    if (icon) {
+      // move the corsor to make sure we only print one char
+      ncplane_putstr(n, icon);
+      ncplane_putstr_yx(n, y0, 3, " ");
+    } else {
+      ncplane_putstr(n, "  ");
     }
   }
 
   const char *hlsubstr = highlight && highlight[0] ? strcasestr(file_name(file), highlight) : NULL;
-  const int left_space = ncol - 3 - rightmargin;
-  if (hlsubstr) {
-    x += print_highlighted_and_shortened(n, file_name(file), highlight, left_space, !file_isdir(file));
-  } else {
-    x += print_shortened(n, file_name(file), left_space, !file_isdir(file));
-  }
+  const int left_space = ncol - 3 - rightmargin - (cfg.icons ? 2 : 0);
+  if (left_space > 0) {
+    if (hlsubstr) {
+      x += print_highlighted_and_shortened(n, file_name(file), highlight, left_space, !file_isdir(file));
+    } else {
+      x += print_shortened(n, file_name(file), left_space, !file_isdir(file));
+    }
 
-  for (; x < ncol - rightmargin - 1; x++) {
-    ncplane_putchar(n, ' ');
+    for (; x < ncol - rightmargin - 1; x++) {
+      ncplane_putchar(n, ' ');
+    }
   }
 
   if (rightmargin > 0) {

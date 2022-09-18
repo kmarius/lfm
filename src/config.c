@@ -24,7 +24,6 @@ Config cfg = {
   .scrolloff = 4,
   .inotify_timeout = NOTIFY_TIMEOUT,
   .inotify_delay = NOTIFY_DELAY,
-  .icons = true,
   .colors = {
     .normal = NCCHANNELS_INITIALIZER_PALINDEX(-1, -1),
     .copy = NCCHANNELS_INITIALIZER_PALINDEX(COLOR_BLACK, COLOR_YELLOW),
@@ -71,6 +70,22 @@ void config_init()
   cvector_push_back(r, 2);
   cvector_push_back(r, 3);
   config_ratios_set(r);
+
+  cfg.icon_map  = ht_create(free);
+  config_icon_map_add("ln", "l");
+  config_icon_map_add("or", "l");
+  config_icon_map_add("tw", "t");
+  config_icon_map_add("ow", "d");
+  config_icon_map_add("st", "t");
+  config_icon_map_add("di", "d");
+  config_icon_map_add("pi", "p");
+  config_icon_map_add("so", "s");
+  config_icon_map_add("bd", "b");
+  config_icon_map_add("cd", "c");
+  config_icon_map_add("su", "u");
+  config_icon_map_add("sg", "g");
+  config_icon_map_add("ex", "x");
+  config_icon_map_add("fi", "-");
 
   cfg.previewer = strdup("stat");
   cfg.preview = true;

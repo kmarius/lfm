@@ -28,6 +28,7 @@ typedef struct config_s {
   bool preview_images;
   Hashtab *image_extensions;
   bool icons;
+  Hashtab *icon_map;
   char *previewer;
   bool hidden;
   uint32_t scrolloff;
@@ -68,4 +69,13 @@ static inline void image_extension_add(const char *ext)
 {
   char *val = strdup(ext);
   ht_set(cfg.image_extensions, val, val);
+}
+
+static inline void config_icon_map_add(const char *ext, const char *icon)
+{
+  const size_t l = strlen(icon);
+  char *val = malloc(l + strlen(ext) + 2);
+  strcpy(val, icon);
+  strcpy(val + l + 1, ext);
+  ht_set(cfg.icon_map, val + l + 1, val);
 }

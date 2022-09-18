@@ -18,6 +18,7 @@
 #define REDRAW_CMDLINE 4
 #define REDRAW_MENU    8
 #define REDRAW_PREVIEW 16
+#define REDRAW_FULL    (REDRAW_INFO|REDRAW_FM|REDRAW_CMDLINE|REDRAW_MENU|REDRAW_PREVIEW)
 
 typedef struct ui_s {
   uint32_t nrow;
