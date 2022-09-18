@@ -27,6 +27,7 @@ typedef struct config_s {
   bool preview;
   bool preview_images;
   Hashtab *image_extensions;
+  bool icons;
   char *previewer;
   bool hidden;
   uint32_t scrolloff;

@@ -1035,6 +1035,12 @@ static void print_file(struct ncplane *n, const File *file,
 
   ncplane_putchar(n, ' ');
 
+  if (cfg.icons) {
+    if (file_isdir(file)) {
+      ncplane_putstr(n, " ");
+    }
+  }
+
   const char *hlsubstr = highlight && highlight[0] ? strcasestr(file_name(file), highlight) : NULL;
   const int left_space = ncol - 3 - rightmargin;
   if (hlsubstr) {
