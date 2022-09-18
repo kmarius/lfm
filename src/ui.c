@@ -230,24 +230,12 @@ void ui_draw(T *t)
 
 void ui_clear(T *t)
 {
-  /* infoline and dirs have to be cleared *and* rendered, otherwise they will
-   * bleed into the first row */
-  ncplane_erase(notcurses_stdplane(t->nc));
-  ncplane_erase(t->planes.info);
-  for (uint32_t i = 0; i < t->ndirs; i++) {
-    ncplane_erase(t->planes.dirs[i]);
-  }
-
-  ncplane_erase(t->planes.cmdline);
-
-  notcurses_render(t->nc);
-
   notcurses_refresh(t->nc, NULL, NULL);
 
   notcurses_cursor_enable(t->nc, 0, 0);
   notcurses_cursor_disable(t->nc);
 
-  ui_redraw(t, REDRAW_FM);
+  ui_redraw(t, REDRAW_FM|REDRAW_MENU|REDRAW_CMDLINE|REDRAW_INFO|REDRAW_PREVIEW);
 }
 
 
