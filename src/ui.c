@@ -621,6 +621,7 @@ static void draw_info(T *t)
 
 /* menu {{{ */
 
+/* most notably, replaces tabs with (up to) 8 spaces */
 static void draw_menu(struct ncplane *n, cvector_vector_type(char *) menubuf)
 {
   if (!menubuf) {
@@ -629,29 +630,29 @@ static void draw_menu(struct ncplane *n, cvector_vector_type(char *) menubuf)
 
   ncplane_erase(n);
 
-  /* otherwise this doesn't draw over the directories */
-  /* Still needed as of 2022-01-16 */
+  /* needed to draw over directories */
   ncplane_set_base(n, " ", 0, 0);
 
   for (size_t i = 0; i < cvector_size(menubuf); i++) {
     ncplane_cursor_move_yx(n, i, 0);
-    const char *s = menubuf[i];
+    const char *str = menubuf[i];
     uint32_t xpos = 0;
 
-    while (*s != 0) {
-      while (*s != 0 && *s != '\t' && *s != '\033') {
-        ncplane_putchar(n, *(s++));
-        xpos++;
+    while (*str) {
+      const char *start = str;
+      while (*str && *str != '\t' && *str != '\033') {
+        str++;
       }
-      if (*s == '\033')
-        s = ansi_consoom(n, s);
-      if (*s == '\t') {
+      xpos += ncplane_putnstr(n, str - start, start);
+      if (*str == '\033') {
+        str = ansi_consoom(n, str);
+      } else if (*str == '\t') {
         ncplane_putchar(n, ' ');
-        s++;
         xpos++;
         for (const uint32_t l = ((xpos/8)+1)*8; xpos < l; xpos++) {
           ncplane_putchar(n, ' ');
         }
+        str++;
       }
     }
   }
