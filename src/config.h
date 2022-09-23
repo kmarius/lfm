@@ -59,9 +59,22 @@ void config_init();
 
 void config_deinit();
 
-void config_ratios_set(cvector_vector_type(uint32_t) ratios);
+static inline void config_ratios_set(cvector_vector_type(uint32_t) ratios)
+{
+  if (cvector_size(ratios) == 0) {
+    return;
+  }
+  cvector_free(cfg.ratios);
+  cfg.ratios = ratios;
+}
 
-void config_ext_channel_add(const char *ext, uint64_t channel);
+static inline void config_ext_channel_add(const char *ext, uint64_t channel)
+{
+  char *s = malloc(sizeof(uint64_t) + strlen(ext) + 1);
+  *(uint64_t *) s = channel;
+  strcpy(s + sizeof(uint64_t), ext);
+  ht_set(cfg.colors.ext, s + sizeof(uint64_t), s);
+}
 
 void config_colors_clear();
 

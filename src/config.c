@@ -38,26 +38,6 @@ Config cfg = {
 };
 
 
-void config_ratios_set(cvector_vector_type(uint32_t) ratios)
-{
-  if (cvector_size(ratios) == 0) {
-    return;
-  }
-  cvector_free(cfg.ratios);
-  cfg.ratios = ratios;
-}
-
-
-// store ext right after the channel so we can easily free both
-void config_ext_channel_add(const char *ext, uint64_t channel)
-{
-  char *s = malloc(sizeof(uint64_t) + strlen(ext) + 1);
-  *(uint64_t *) s = channel;
-  strcpy(s + sizeof(uint64_t), ext);
-  ht_set(cfg.colors.ext, s + sizeof(uint64_t), s);
-}
-
-
 void config_init()
 {
   cfg.colors.ext = ht_create(free);
@@ -137,6 +117,8 @@ void config_deinit()
 {
   config_colors_clear();
   ht_destroy(cfg.colors.ext);
+  ht_destroy(cfg.image_extensions);
+  ht_destroy(cfg.icon_map);
   cvector_free(cfg.ratios);
   cvector_free(cfg.commands);
   cvector_ffree(cfg.inotify_blacklist, free);
@@ -168,5 +150,4 @@ void config_colors_clear()
   cfg.colors.selection = NCCHANNELS_INITIALIZER_PALINDEX(-1, -1);
 
   ht_clear(cfg.colors.ext);
-  ht_clear(cfg.image_extensions);
 }
