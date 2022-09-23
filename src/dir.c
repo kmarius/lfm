@@ -17,11 +17,6 @@
 
 #define T Dir
 
-#define DIR_INITIALIZER ((T){ \
-    .dirfirst = true, \
-    .sorttype = SORT_NATURAL, \
-    })
-
 File *dir_current_file(const T *t)
 {
   if (!t || t->ind >= t->length) {
@@ -208,7 +203,9 @@ bool dir_check(const T *t)
 
 T *dir_init(T *t, const char *path)
 {
-  *t = DIR_INITIALIZER;
+  memset(t, 0, sizeof *t);
+  t->dirfirst = true;
+  t->sorttype = SORT_NATURAL;
 
   if (path[0] != '/') {
     char buf[PATH_MAX + 1];
