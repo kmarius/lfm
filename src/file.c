@@ -15,15 +15,13 @@
 
 #define T File
 
-#define FILE_INITIALIZER ((T) { \
-    .dircount = -1,\
-    })
 
 T *file_init(T *t, const char *dir, const char *name)
 {
   char buf[PATH_MAX] = {0};
 
-  *t = FILE_INITIALIZER;
+  memset(t, 0, sizeof *t);
+  t->dircount = -1;
 
   bool isroot = dir[1] == 0 && dir[0] == '/';
   asprintf(&t->path, "%s/%s", isroot ? "" : dir, name);
