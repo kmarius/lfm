@@ -13,82 +13,79 @@
 #include "file.h"
 #include "util.h"  // asprintf
 
-#define T File
-
-
-T *file_init(T *t, const char *dir, const char *name)
+File *file_init(File *f, const char *dir, const char *name)
 {
   char buf[PATH_MAX] = {0};
 
-  memset(t, 0, sizeof *t);
-  t->dircount = -1;
+  memset(f, 0, sizeof *f);
+  f->dircount = -1;
 
   bool isroot = dir[1] == 0 && dir[0] == '/';
-  asprintf(&t->path, "%s/%s", isroot ? "" : dir, name);
+  asprintf(&f->path, "%s/%s", isroot ? "" : dir, name);
 
-  t->name = strrchr(t->path, '/') + 1;
-  t->hidden = *t->name == '.';
-  t->ext = strrchr(t->name, '.');
-  if (t->ext == t->name) {
-    t->ext = NULL;
+  f->name = strrchr(f->path, '/') + 1;
+  f->hidden = *f->name == '.';
+  f->ext = strrchr(f->name, '.');
+  if (f->ext == f->name) {
+    f->ext = NULL;
   }
 
-  if (lstat(t->path, &t->lstat) == -1) {
+  if (lstat(f->path, &f->lstat) == -1) {
     if (errno == ENOENT) {
-      free(t->path);
-      free(t);
+      free(f->path);
+      free(f);
       return NULL;
     } else {
-      t->error = errno;
-      return t;
+      f->error = errno;
+      return f;
     }
   }
 
-  if (S_ISLNK(t->lstat.st_mode)) {
-    if (stat(t->path, &t->stat) == -1) {
-      t->isbroken = true;
-      t->stat = t->lstat;
+  if (S_ISLNK(f->lstat.st_mode)) {
+    if (stat(f->path, &f->stat) == -1) {
+      f->isbroken = true;
+      f->stat = f->lstat;
     }
-    if (readlink(t->path, buf, sizeof buf) == -1) {
-      t->isbroken = true;
+    if (readlink(f->path, buf, sizeof buf) == -1) {
+      f->isbroken = true;
     } else {
-      t->link_target = strdup(buf);
+      f->link_target = strdup(buf);
     }
   } else {
     // for non-symlinks stat == lstat
-    t->stat = t->lstat;
+    f->stat = f->lstat;
   }
 
-  if (file_isdir(t)) {
-    t->ext = NULL;
+  if (file_isdir(f)) {
+    f->ext = NULL;
   }
-  t->isexec = t->stat.st_mode & (1 | 8 | 64);
+  f->isexec = f->stat.st_mode & (1 | 8 | 64);
 
-  return t;
+  return f;
 }
 
 
-T *file_create(const char *dir, const char *name)
+File *file_create(const char *dir, const char *name)
 {
-  return file_init(malloc(sizeof(T)), dir, name);
+  return file_init(malloc(sizeof(File)), dir, name);
 }
 
 
-void file_deinit(T *t)
+void file_deinit(File *f)
 {
-  if (!t) {
+  if (!f) {
     return;
   }
 
-  free(t->path);
-  free(t->link_target);
+  free(f->path);
+  free(f->link_target);
 }
 
 
-void file_destroy(T *t)
+void file_destroy(File *f)
 {
-  file_deinit(t);
-  free(t);
+  file_deinit(f);
+  free(f);
 }
 
 
@@ -150,14 +147,14 @@ static char filetypeletter(int mode)
 }
 
 
-const char *file_perms(const T *t)
+const char *file_perms(const File *f)
 {
   static const char *rwx[] = {
     "---", "--x", "-w-", "-wx",
     "r--", "r-x", "rw-", "rwx"};
   static char bits[11];
 
-  const int mode = t->stat.st_mode;
+  const int mode = f->stat.st_mode;
   bits[0] = filetypeletter(mode);
   strcpy(&bits[1], rwx[(mode >> 6) & 7]);
   strcpy(&bits[4], rwx[(mode >> 3) & 7]);
@@ -176,17 +173,17 @@ const char *file_perms(const T *t)
 }
 
 
-const char* file_owner(const T *t)
+const char* file_owner(const File *f)
 {
   static char owner[32];
   static uid_t cached_uid = UINT_MAX;
   struct passwd *pwd;
 
-  if (t->lstat.st_uid != cached_uid) {
-    if ((pwd = getpwuid(t->lstat.st_uid))) {
+  if (f->lstat.st_uid != cached_uid) {
+    if ((pwd = getpwuid(f->lstat.st_uid))) {
       strncpy(owner, pwd->pw_name, sizeof owner - 1);
       owner[sizeof owner - 1] = 0;
-      cached_uid = t->lstat.st_uid;
+      cached_uid = f->lstat.st_uid;
     } else {
       owner[0] = 0;
       cached_uid = INT_MAX;
@@ -197,17 +194,17 @@ const char* file_owner(const T *t)
 
 
 // getgrgid() is somewhat slow, so we cache one call
-const char *file_group(const T *t)
+const char *file_group(const File *f)
 {
   static char group[32];
   static gid_t cached_gid = UINT_MAX;
   struct group *grp;
 
-  if (t->lstat.st_gid != cached_gid) {
-    if ((grp = getgrgid(t->lstat.st_gid))) {
+  if (f->lstat.st_gid != cached_gid) {
+    if ((grp = getgrgid(f->lstat.st_gid))) {
       strncpy(group, grp->gr_name, sizeof group - 1);
       group[sizeof group - 1] = 0;
-      cached_gid = t->lstat.st_gid;
+      cached_gid = f->lstat.st_gid;
     } else {
       group[0] = 0;
       cached_gid = INT_MAX;
