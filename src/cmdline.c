@@ -5,8 +5,6 @@
 
 #include "cmdline.h"
 
-#define T Cmdline
-
 #define VSTR_INIT(vec, c) \
   do { \
     (vec).str = malloc(((c) + 1) * sizeof *(vec).str); \
@@ -55,324 +53,324 @@
   } while (0)
 
 
-void cmdline_init(T *t)
+void cmdline_init(Cmdline *c)
 {
-  VSTR_INIT(t->prefix, 8);
-  VSTR_INIT(t->left, 8);
-  VSTR_INIT(t->right, 8);
-  VSTR_INIT(t->buf, 8);
-  t->overwrite = false;
+  VSTR_INIT(c->prefix, 8);
+  VSTR_INIT(c->left, 8);
+  VSTR_INIT(c->right, 8);
+  VSTR_INIT(c->buf, 8);
+  c->overwrite = false;
 }
 
 
-void cmdline_deinit(T *t) {
-  if (!t) {
+void cmdline_deinit(Cmdline *c) {
+  if (!c) {
     return;
   }
 
   fputs("\033[2 q", stdout);
 
-  free(t->prefix.str);
-  free(t->left.str);
-  free(t->right.str);
-  free(t->buf.str);
+  free(c->prefix.str);
+  free(c->left.str);
+  free(c->right.str);
+  free(c->buf.str);
 }
 
 
-bool cmdline_prefix_set(T *t, const char *prefix)
+bool cmdline_prefix_set(Cmdline *c, const char *prefix)
 {
   if (!prefix) {
     return false;
   }
 
   const unsigned long l = strlen(prefix);
-  ENSURE_CAPACITY(t->prefix, l);
-  strcpy(t->prefix.str, prefix);
-  t->prefix.len = l;
+  ENSURE_CAPACITY(c->prefix, l);
+  strcpy(c->prefix.str, prefix);
+  c->prefix.len = l;
   return true;
 }
 
 
-const char *cmdline_prefix_get(T *t)
+const char *cmdline_prefix_get(Cmdline *c)
 {
-  return t->prefix.len == 0 ? NULL : t->prefix.str;
+  return c->prefix.len == 0 ? NULL : c->prefix.str;
 }
 
 
-bool cmdline_insert(T *t, const char *key)
+bool cmdline_insert(Cmdline *c, const char *key)
 {
-  if (t->prefix.len == 0) {
+  if (c->prefix.len == 0) {
     return false;
   }
 
-  ENSURE_SPACE(t->left, 1);
-  mbtowc(t->left.str+t->left.len, key, strlen(key));
-  t->left.len++;
-  t->left.str[t->left.len] = 0;
-  if (t->overwrite && t->right.len > 0) {
-    memmove(t->right.str, t->right.str+1, t->right.len * sizeof *t->right.str);
-    t->right.len--;
+  ENSURE_SPACE(c->left, 1);
+  mbtowc(c->left.str+c->left.len, key, strlen(key));
+  c->left.len++;
+  c->left.str[c->left.len] = 0;
+  if (c->overwrite && c->right.len > 0) {
+    memmove(c->right.str, c->right.str+1, c->right.len * sizeof *c->right.str);
+    c->right.len--;
   }
   return true;
 }
 
 
-bool cmdline_toggle_overwrite(Cmdline *t)
+bool cmdline_toggle_overwrite(Cmdline *c)
 {
-  t->overwrite = !t->overwrite;
+  c->overwrite = !c->overwrite;
   return true;
 }
 
 
-bool cmdline_delete(T *t)
+bool cmdline_delete(Cmdline *c)
 {
-  if (t->prefix.len == 0 || t->left.len == 0) {
+  if (c->prefix.len == 0 || c->left.len == 0) {
     return false;
   }
 
-  t->left.str[t->left.len - 1] = 0;
-  t->left.len--;
+  c->left.str[c->left.len - 1] = 0;
+  c->left.len--;
   return true;
 }
 
 
-bool cmdline_delete_right(T *t)
+bool cmdline_delete_right(Cmdline *c)
 {
-  if (t->prefix.len == 0 || t->right.len == 0) {
+  if (c->prefix.len == 0 || c->right.len == 0) {
     return false;
   }
 
-  memmove(t->right.str, t->right.str+1, t->right.len * sizeof *t->right.str);
-  t->right.len--;
+  memmove(c->right.str, c->right.str+1, c->right.len * sizeof *c->right.str);
+  c->right.len--;
   return true;
 }
 
 
-bool cmdline_delete_word(T *t)
+bool cmdline_delete_word(Cmdline *c)
 {
-  if (t->prefix.len == 0 || t->left.len == 0) {
+  if (c->prefix.len == 0 || c->left.len == 0) {
     return false;
   }
 
-  int32_t i = t->left.len - 1;
-  while (i > 0 && iswspace(t->left.str[i])) {
+  int32_t i = c->left.len - 1;
+  while (i > 0 && iswspace(c->left.str[i])) {
     i--;
   }
-  while (i > 0 && t->left.str[i] == '/' && !iswspace(t->left.str[i-1])) {
+  while (i > 0 && c->left.str[i] == '/' && !iswspace(c->left.str[i-1])) {
     i--;
   }
-  while (i > 0 && !(iswspace(t->left.str[i-1]) || t->left.str[i-1] == '/')) {
+  while (i > 0 && !(iswspace(c->left.str[i-1]) || c->left.str[i-1] == '/')) {
     i--;
   }
-  t->left.len = i;
-  t->left.str[i] = 0;
+  c->left.len = i;
+  c->left.str[i] = 0;
   return true;
 }
 
 
-bool cmdline_delete_line_left(T *t)
+bool cmdline_delete_line_left(Cmdline *c)
 {
-  if (t->prefix.len == 0 || t->left.len == 0) {
+  if (c->prefix.len == 0 || c->left.len == 0) {
     return false;
   }
 
-  t->left.len = 0;
-  t->left.str[t->left.len] = 0;
+  c->left.len = 0;
+  c->left.str[c->left.len] = 0;
   return true;
 }
 
 
 /* pass a ct argument to move over words? */
-bool cmdline_left(T *t)
+bool cmdline_left(Cmdline *c)
 {
-  if (t->prefix.len == 0 || t->left.len == 0) {
+  if (c->prefix.len == 0 || c->left.len == 0) {
     return false;
   }
 
-  SHIFT_RIGHT(t, 1);
+  SHIFT_RIGHT(c, 1);
   return true;
 }
 
 
-bool cmdline_word_left(T *t)
+bool cmdline_word_left(Cmdline *c)
 {
-  if (t->prefix.len == 0 || t->left.len == 0) {
+  if (c->prefix.len == 0 || c->left.len == 0) {
     return false;
   }
 
-  int32_t i = t->left.len;
-  if (i > 0 && iswpunct(t->left.str[i-1])) {
+  int32_t i = c->left.len;
+  if (i > 0 && iswpunct(c->left.str[i-1])) {
     i--;
   }
-  if (i > 0 && iswspace(t->left.str[i-1]))  {
-    while (i > 0 && iswspace(t->left.str[i-1])) {
+  if (i > 0 && iswspace(c->left.str[i-1]))  {
+    while (i > 0 && iswspace(c->left.str[i-1])) {
       i--;
     }
   } else {
-    while (i > 0 && !(iswspace(t->left.str[i-1]) || iswpunct(t->left.str[i-1]))) {
+    while (i > 0 && !(iswspace(c->left.str[i-1]) || iswpunct(c->left.str[i-1]))) {
       i--;
     }
   }
-  SHIFT_RIGHT(t, t->left.len-i);
+  SHIFT_RIGHT(c, c->left.len-i);
   return true;
 }
 
 
-bool cmdline_word_right(T *t)
+bool cmdline_word_right(Cmdline *c)
 {
-  if (t->prefix.len == 0 || t->right.len == 0) {
+  if (c->prefix.len == 0 || c->right.len == 0) {
     return false;
   }
 
   uint32_t i = 0;
-  if (i < t->right.len && iswpunct(t->right.str[i])) {
+  if (i < c->right.len && iswpunct(c->right.str[i])) {
     i++;
   }
-  if (i < t->right.len && iswspace(t->right.str[i])) {
-    while (i < t->right.len && iswspace(t->right.str[i])) {
+  if (i < c->right.len && iswspace(c->right.str[i])) {
+    while (i < c->right.len && iswspace(c->right.str[i])) {
       i++;
     }
   } else {
-    while (i < t->right.len && !(iswspace(t->right.str[i]) || iswpunct(t->right.str[i]))) {
+    while (i < c->right.len && !(iswspace(c->right.str[i]) || iswpunct(c->right.str[i]))) {
       i++;
     }
   }
-  SHIFT_LEFT(t, i);
+  SHIFT_LEFT(c, i);
   return true;
 }
 
 
-bool cmdline_right(T *t)
+bool cmdline_right(Cmdline *c)
 {
-  if (t->prefix.len == 0 || t->right.len == 0) {
+  if (c->prefix.len == 0 || c->right.len == 0) {
     return false;
   }
 
-  SHIFT_LEFT(t, 1);
+  SHIFT_LEFT(c, 1);
   return true;
 }
 
 
-bool cmdline_home(T *t)
+bool cmdline_home(Cmdline *c)
 {
-  if (t->prefix.len == 0 || t->left.len == 0) {
+  if (c->prefix.len == 0 || c->left.len == 0) {
     return false;
   }
 
-  SHIFT_RIGHT(t, t->left.len);
+  SHIFT_RIGHT(c, c->left.len);
   return true;
 }
 
 
-bool cmdline_end(T *t)
+bool cmdline_end(Cmdline *c)
 {
-  if (t->prefix.len == 0 || t->right.len == 0) {
+  if (c->prefix.len == 0 || c->right.len == 0) {
     return false;
   }
 
-  SHIFT_LEFT(t, t->right.len);
+  SHIFT_LEFT(c, c->right.len);
   return true;
 }
 
 
-bool cmdline_clear(T *t)
+bool cmdline_clear(Cmdline *c)
 {
-  t->prefix.str[0] = 0;
-  t->prefix.len = 0;
-  t->left.str[0] = 0;
-  t->left.len = 0;
-  t->right.str[0] = 0;
-  t->right.len = 0;
-  t->overwrite = false;
+  c->prefix.str[0] = 0;
+  c->prefix.len = 0;
+  c->left.str[0] = 0;
+  c->left.len = 0;
+  c->right.str[0] = 0;
+  c->right.len = 0;
+  c->overwrite = false;
   return true;
 }
 
 
-bool cmdline_set_whole(T *t, const char *prefix, const char *left, const char *right)
+bool cmdline_set_whole(Cmdline *c, const char *prefix, const char *left, const char *right)
 {
-  ENSURE_SPACE(t->left, strlen(left));
-  ENSURE_SPACE(t->right, strlen(right));
-  cmdline_prefix_set(t, prefix);
-  size_t n = mbstowcs(t->left.str, left, t->left.cap + 1);
+  ENSURE_SPACE(c->left, strlen(left));
+  ENSURE_SPACE(c->right, strlen(right));
+  cmdline_prefix_set(c, prefix);
+  size_t n = mbstowcs(c->left.str, left, c->left.cap + 1);
   if (n == (size_t) -1) {
-    t->left.len = 0;
-    t->left.str[0] = 0;
+    c->left.len = 0;
+    c->left.str[0] = 0;
   } else {
-    t->left.len = n;
+    c->left.len = n;
   }
-  n = mbstowcs(t->right.str, right, t->right.cap + 1);
+  n = mbstowcs(c->right.str, right, c->right.cap + 1);
   if (n == (size_t) -1) {
-    t->right.len = 0;
-    t->right.str[0] = 0;
+    c->right.len = 0;
+    c->right.str[0] = 0;
   } else {
-    t->right.len = n;
+    c->right.len = n;
   }
   return true;
 }
 
 
-bool cmdline_set(T *t, const char *line)
+bool cmdline_set(Cmdline *c, const char *line)
 {
-  if (t->prefix.len == 0) {
+  if (c->prefix.len == 0) {
     return false;
   }
 
-  t->right.str[0] = 0;
-  t->right.len = 0;
-  ENSURE_SPACE(t->left, strlen(line));
-  const size_t n = mbstowcs(t->left.str, line, t->left.cap + 1);
+  c->right.str[0] = 0;
+  c->right.len = 0;
+  ENSURE_SPACE(c->left, strlen(line));
+  const size_t n = mbstowcs(c->left.str, line, c->left.cap + 1);
   if (n == (size_t) -1) {
-    t->left.len = 0;
-    t->left.str[0] = 0;
+    c->left.len = 0;
+    c->left.str[0] = 0;
   } else {
-    t->left.len = n;
+    c->left.len = n;
   }
   return true;
 }
 
 
-const char *cmdline_get(T *t)
+const char *cmdline_get(Cmdline *c)
 {
-  t->buf.str[0] = 0;
-  if (t->prefix.len != 0) {
-    ENSURE_SPACE(t->buf, (size_t) (t->left.len + t->right.len) * MB_CUR_MAX);
-    size_t n = wcstombs(t->buf.str, t->left.str, t->left.len * MB_CUR_MAX);
+  c->buf.str[0] = 0;
+  if (c->prefix.len != 0) {
+    ENSURE_SPACE(c->buf, (size_t) (c->left.len + c->right.len) * MB_CUR_MAX);
+    size_t n = wcstombs(c->buf.str, c->left.str, c->left.len * MB_CUR_MAX);
     if (n == (size_t) -1) {
       return "";
     }
 
-    size_t m = wcstombs(t->buf.str + n, t->right.str, t->right.len * MB_CUR_MAX);
+    size_t m = wcstombs(c->buf.str + n, c->right.str, c->right.len * MB_CUR_MAX);
     if (m == (size_t) -1) {
       return "";
     }
 
-    t->buf.str[n+m] = 0;
+    c->buf.str[n+m] = 0;
   }
-  return t->buf.str;
+  return c->buf.str;
 }
 
 
-uint32_t cmdline_print(T *t, struct ncplane *n)
+uint32_t cmdline_print(Cmdline *c, struct ncplane *n)
 {
   unsigned int ncol;
   int offset;
   ncplane_dim_yx(n, NULL, &ncol);
 
   uint32_t ret = 0;
-  ret += ncplane_putstr_yx(n, 0, 0, t->prefix.str);
+  ret += ncplane_putstr_yx(n, 0, 0, c->prefix.str);
   ncol -= ret;
 
-  if (t->right.len == 0) {
-    offset = t->left.len - ncol + 1;
-  } else if (t->right.len > (uint32_t) ncol / 2) {
-    offset = t->left.len - ncol + ncol / 2 + 1;
+  if (c->right.len == 0) {
+    offset = c->left.len - ncol + 1;
+  } else if (c->right.len > (uint32_t) ncol / 2) {
+    offset = c->left.len - ncol + ncol / 2 + 1;
   } else {
-    offset = t->left.len - ncol + t->right.len + 1;
+    offset = c->left.len - ncol + c->right.len + 1;
   }
-  ret += ncplane_putwstr(n, t->left.str + (offset > 0 ? offset : 0));
-  ncplane_putwstr(n, t->right.str);
+  ret += ncplane_putwstr(n, c->left.str + (offset > 0 ? offset : 0));
+  ncplane_putwstr(n, c->right.str);
 
-  fputs(t->right.len == 0 ? "\033[2 q" : t->overwrite ? "\033[4 q" : "\033[6 q", stdout);  // block/bar cursor
+  fputs(c->right.len == 0 ? "\033[2 q" : c->overwrite ? "\033[4 q" : "\033[6 q", stdout);  // block/bar cursor
 
   return ret;
 }
