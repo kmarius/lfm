@@ -2001,8 +2001,7 @@ int luaopen_lfm(lua_State *L)
   luaL_register(L, NULL, fn_lib);
   lua_setfield(L, -2, "fn"); /* lfm.fn = {...} */
 
-  lua_newtable(L); /* lfm.rifle */
-  lua_register_rifle(L);
+  luaopen_rifle(L);
   lua_setfield(L, -2, "rifle"); /* lfm.rifle = {...} */
 
   return 1;
@@ -2030,7 +2029,6 @@ void lua_init(lua_State *L, Lfm *_lfm)
 
 void lua_deinit(lua_State *L)
 {
-  lua_rifle_clear(L);
   lua_close(L);
   trie_destroy(lfm->maps.normal);
   trie_destroy(lfm->maps.cmd);

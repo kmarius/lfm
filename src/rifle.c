@@ -14,6 +14,8 @@
 #include "rifle.h"
 #include "util.h"
 
+#define RIFLE_META "rifle_meta"
+
 // arbitrary, max binary name length for `has`
 #define EXECUTABLE_MAX 256
 
@@ -50,11 +52,10 @@ typedef struct fileinfo_s {
   const char *mime;
 } FileInfo;
 
-static struct {
+struct rifle_s {
   char *config_file;
-} g_rifle_cfg = { NULL };
-
-static Rule **g_rules = NULL;
+  Rule **rules;
+};
 
 static Condition *condition_create(check_fun *f, const char *arg, bool negate)
 {
@@ -379,7 +380,7 @@ static bool check_rule(Rule *r, const FileInfo *info)
 }
 
 
-static int l_rifle_fileinfo(lua_State *L)
+static int rifle_fileinfo(lua_State *L)
 {
   const char *file = luaL_checkstring(L, 1);
 
@@ -427,8 +428,9 @@ static inline int push_rule(lua_State *L, const Rule *r, int num)
 }
 
 
-static int l_rifle_query_mime(lua_State *L)
+static int rifle_query_mime(lua_State *L)
 {
+  struct rifle_s *rifle = lua_touserdata(L, lua_upvalueindex(1));
   const char *mime = luaL_checkstring(L, 1);
 
   int limit = 0;
@@ -453,10 +455,10 @@ static int l_rifle_query_mime(lua_State *L)
   int i = 1;
   int ct_match = 0;
 
-  for (size_t j = 0; j < cvector_size(g_rules); j++) {
-    if (g_rules[j]->has_mime && check_rule(g_rules[j], &info)) {
-      if (g_rules[j]->number > 0) {
-        ct_match = g_rules[j]->number;
+  for (size_t j = 0; j < cvector_size(rifle->rules); j++) {
+    if (rifle->rules[j]->has_mime && check_rule(rifle->rules[j], &info)) {
+      if (rifle->rules[j]->number > 0) {
+        ct_match = rifle->rules[j]->number;
       }
       ct_match++;
 
@@ -464,13 +466,13 @@ static int l_rifle_query_mime(lua_State *L)
         const int ind = atoi(pick);
         const bool ok = (ind != 0 || pick[0] == '0');
         if ((ok && ind != ct_match-1) ||
-            (!ok && ((g_rules[j])->label == NULL
-                     || strcmp(pick, g_rules[j]->label) != 0))) {
+            (!ok && ((rifle->rules[j])->label == NULL
+                     || strcmp(pick, rifle->rules[j]->label) != 0))) {
           continue;
         }
       }
 
-      push_rule(L, g_rules[j], ct_match-1);
+      push_rule(L, rifle->rules[j], ct_match-1);
       lua_rawseti(L, -2, i++);
 
       if (limit > 0 && i > limit) {
@@ -483,8 +485,9 @@ static int l_rifle_query_mime(lua_State *L)
 }
 
 
-static int l_rifle_query(lua_State *L)
+static int rifle_query(lua_State *L)
 {
+  struct rifle_s *rifle = lua_touserdata(L, lua_upvalueindex(1));
   const char *file = luaL_checkstring(L, 1);
 
   int limit = 0;
@@ -515,10 +518,10 @@ static int l_rifle_query(lua_State *L)
   int i = 1;
   int ct_match = 0;
 
-  for (size_t j = 0; j < cvector_size(g_rules); j++) {
-    if (check_rule(g_rules[j], &info)) {
-      if (g_rules[j]->number > 0) {
-        ct_match = g_rules[j]->number;
+  for (size_t j = 0; j < cvector_size(rifle->rules); j++) {
+    if (check_rule(rifle->rules[j], &info)) {
+      if (rifle->rules[j]->number > 0) {
+        ct_match = rifle->rules[j]->number;
       }
       ct_match++;
 
@@ -526,13 +529,13 @@ static int l_rifle_query(lua_State *L)
         const int ind = atoi(pick);
         const bool ok = (ind != 0 || pick[0] == '0');
         if ((ok && ind != ct_match-1) ||
-            (!ok && ((g_rules[j])->label == NULL
-                     || strcmp(pick, g_rules[j]->label) != 0))) {
+            (!ok && ((rifle->rules[j])->label == NULL
+                     || strcmp(pick, rifle->rules[j]->label) != 0))) {
           continue;
         }
       }
 
-      push_rule(L, g_rules[j], ct_match-1);
+      push_rule(L, rifle->rules[j], ct_match-1);
       lua_rawseti(L, -2, i++); /* m[i] = t */
 
       if (limit > 0 && i > limit) {
@@ -547,7 +550,8 @@ static int l_rifle_query(lua_State *L)
 
 static void load_rules(lua_State *L, const char *config_file)
 {
-  (void) L;
+  struct rifle_s *rifle = lua_touserdata(L, lua_upvalueindex(1));
+
   char buf[BUFSIZE];
 
   if (!config_file) {
@@ -571,7 +575,7 @@ static void load_rules(lua_State *L, const char *config_file)
 
     Rule *r = parse_rule(buf, command);
     if (r) {
-      cvector_push_back(g_rules, r);
+      cvector_push_back(rifle->rules, r);
     }
   }
 
@@ -579,80 +583,63 @@ static void load_rules(lua_State *L, const char *config_file)
 }
 
 
-static int l_rifle_setup(lua_State *L)
+static int rifle_setup(lua_State *L)
 {
+  struct rifle_s *rifle = lua_touserdata(L, lua_upvalueindex(1));
+
   if (lua_istable(L, 1)) {
     lua_getfield(L, 1, "config");
     if (!lua_isnoneornil(L, -1)) {
-      free(g_rifle_cfg.config_file);
-      g_rifle_cfg.config_file = path_replace_tilde(lua_tostring(L, -1));
+      free(rifle->config_file);
+      rifle->config_file = path_replace_tilde(lua_tostring(L, -1));
     }
     lua_pop(L, 1);
   }
 
-  cvector_fclear(g_rules, rule_destroy);
+  cvector_fclear(rifle->rules, rule_destroy);
 
-  load_rules(L, g_rifle_cfg.config_file);
+  load_rules(L, rifle->config_file);
 
   return 0;
 }
 
 
-static int l_rifle_nrules(lua_State *L)
+static int rifle_nrules(lua_State *L)
 {
-  lua_pushinteger(L, cvector_size(g_rules));
+  struct rifle_s *rifle = lua_touserdata(L, lua_upvalueindex(1));
+  lua_pushinteger(L, cvector_size(rifle->rules));
   return 1;
 }
 
 
-/* static int l_rifle_gc(lua_State *L) { */
-/*  (void) L; */
-/*  cvector_ffree(rules, rule_destroy); */
-/*  rules = NULL; */
-/**/
-/*  free(cfg.config); */
-/*  cfg.config = NULL; */
-/**/
-/*  return 0; */
-/* } */
-/**/
-/* static struct luaL_Reg rifle_meta[] = { */
-/*  {"__gc", l_rifle_gc}, */
-/*  {NULL, NULL}}; */
+static int rifle_gc(lua_State *L) {
+  struct rifle_s *r = luaL_checkudata(L, 1, RIFLE_META);
+  cvector_ffree(r->rules, rule_destroy);
+  free(r->config_file);
+  return 0;
+}
 
 
 static const luaL_Reg rifle_lib[] = {
-  {"fileinfo", l_rifle_fileinfo},
-  {"nrules", l_rifle_nrules},
-  {"query", l_rifle_query},
-  {"query_mime", l_rifle_query_mime},
-  {"setup", l_rifle_setup},
+  {"fileinfo", rifle_fileinfo},
+  {"nrules", rifle_nrules},
+  {"query", rifle_query},
+  {"query_mime", rifle_query_mime},
+  {"setup", rifle_setup},
   {NULL, NULL}};
 
 
-int lua_register_rifle(lua_State *L)
+int luaopen_rifle(lua_State *L)
 {
-  luaL_register(L, NULL, rifle_lib);
+  lua_newtable(L);
 
-  /* lua_newuserdata(L, 0); */
-  /*  */
-  /* luaL_newmetatable(L, "rifle_meta"); */
-  /* luaL_register(L, NULL, rifle_meta); */
-  /* lua_setmetatable(L, -2); */
-  /*  */
-  /* lua_setfield(L, -2, "dummy"); */
+  struct rifle_s *r = lua_newuserdata(L, sizeof *r);
+  luaL_newmetatable(L, RIFLE_META);
+  lua_pushcfunction(L, rifle_gc);
+  lua_setfield(L, -2, "__gc");
+  lua_setmetatable(L, -2);
+
+  luaL_setfuncs(L, rifle_lib, 1);
 
   return 1;
-}
-
-
-int lua_rifle_clear(lua_State *L)
-{
-  (void) L;
-  cvector_ffree(g_rules, rule_destroy);
-  g_rules = NULL;
-
-  free(g_rifle_cfg.config_file);
-  g_rifle_cfg.config_file = NULL;
-  return 0;
 }
