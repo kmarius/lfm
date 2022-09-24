@@ -4,11 +4,9 @@
 #include "cvector.h"
 #include "trie.h"
 
-#define T Trie
-
-static inline T *trie_node_create(input_t key, T *next)
+static inline Trie *trie_node_create(input_t key, Trie *next)
 {
-  T *n = malloc(sizeof *n);
+  Trie *n = malloc(sizeof *n);
   n->key = key;
   n->keys = NULL;
   n->desc = NULL;
@@ -18,19 +16,19 @@ static inline T *trie_node_create(input_t key, T *next)
 }
 
 
-T *trie_create()
+Trie *trie_create()
 {
   return trie_node_create(0, NULL);
 }
 
 
-T *trie_find_child(const T* t, input_t key)
+Trie *trie_find_child(const Trie* t, input_t key)
 {
   if (!t) {
     return NULL;
   }
 
-  for (T *n = t->child; n; n = n->next) {
+  for (Trie *n = t->child; n; n = n->next) {
     if (n->key == key) {
       return n;
     }
@@ -40,14 +38,14 @@ T *trie_find_child(const T* t, input_t key)
 }
 
 
-T *trie_insert(T* t, const input_t *trie_keys, const char *keys, const char *desc)
+Trie *trie_insert(Trie* t, const input_t *trie_keys, const char *keys, const char *desc)
 {
   if (!t) {
     return NULL;
   }
 
   for (const input_t *c = trie_keys; *c != 0; c++) {
-    T *n = trie_find_child(t, *c);
+    Trie *n = trie_find_child(t, *c);
     if (!n) {
       n = trie_node_create(*c, t->child);
       t->child = n;
@@ -62,7 +60,7 @@ T *trie_insert(T* t, const input_t *trie_keys, const char *keys, const char *des
 }
 
 
-T *trie_remove(T* t, const input_t *trie_keys)
+Trie *trie_remove(Trie* t, const input_t *trie_keys)
 {
   if (*trie_keys == 0) {
     free(t->keys);
@@ -72,10 +70,10 @@ T *trie_remove(T* t, const input_t *trie_keys)
     return t;
   }
 
-  T **prev = &t->child;
-  for (T *n = t->child; n; n = n->next) {
+  Trie **prev = &t->child;
+  for (Trie *n = t->child; n; n = n->next) {
     if (n->key == *trie_keys) {
-      T *ret = trie_remove(n, trie_keys + 1);
+      Trie *ret = trie_remove(n, trie_keys + 1);
       if (!n->child && !n->keys) {
         *prev = n->next;
         free(n);
@@ -101,19 +99,19 @@ void trie_collect_leaves(Trie *t, cvector_vector_type(Trie *) *vec, bool prune)
     }
   }
 
-  for (T *n = t->child; n; n = n->next) {
+  for (Trie *n = t->child; n; n = n->next) {
     trie_collect_leaves(n, vec, prune);
   }
 }
 
 
-void trie_destroy(T *t)
+void trie_destroy(Trie *t)
 {
   if (!t) {
     return;
   }
 
-  for (T* next, *n = t->child; n; n = next) {
+  for (Trie* next, *n = t->child; n; n = next) {
     next = n->next;
     trie_destroy(n);
   }
