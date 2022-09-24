@@ -22,8 +22,6 @@
 #include "popen_arr.h"
 #include "util.h"
 
-#define T Lfm
-
 #define TICK 1  // in seconds
 
 static Lfm *g_lfm = NULL;  // only needed for print/error
@@ -278,14 +276,14 @@ static void redraw_cb(EV_P_ ev_idle *w, int revents)
 
 /* callbacks }}} */
 
-void lfm_init(T *t)
+void lfm_init(Lfm *lfm)
 {
-  g_lfm = t;
+  g_lfm = lfm;
 
-  memset(t, 0, sizeof *t);
-  t->fifo_fd = -1;
+  memset(lfm, 0, sizeof *lfm);
+  lfm->fifo_fd = -1;
 
-  t->loop = ev_default_loop(EVFLAG_NOENV);
+  lfm->loop = ev_default_loop(EVFLAG_NOENV);
 
   if (mkdir_p(cfg.rundir, 0700) == -1 && errno != EEXIST) {
     fprintf(stderr, "mkdir: %s", strerror(errno));
@@ -293,78 +291,78 @@ void lfm_init(T *t)
   }
 
   if ((mkfifo(cfg.fifopath, 0600) == -1 && errno != EEXIST) ||
-      (t->fifo_fd = open(cfg.fifopath, O_RDONLY|O_NONBLOCK, 0)) == -1) {
+      (lfm->fifo_fd = open(cfg.fifopath, O_RDONLY|O_NONBLOCK, 0)) == -1) {
     log_error("fifo: %s", strerror(errno));
     exit(EXIT_FAILURE);
   }
   setenv("LFMFIFO", cfg.fifopath, 1);
 
   /* notify should be available on fm startup */
-  if (!notify_init(&t->notify, t)) {
+  if (!notify_init(&lfm->notify, lfm)) {
     log_error("inotify: %s", strerror(errno));
     exit(EXIT_FAILURE);
   }
 
-  t->ui.messages = NULL; /* needed to keep errors on fm startup */
+  lfm->ui.messages = NULL; /* needed to keep errors on fm startup */
 
-  loader_init(&t->loader, t);
+  loader_init(&lfm->loader, lfm);
 
-  async_init(&t->async, t);
+  async_init(&lfm->async, lfm);
 
-  fm_init(&t->fm, t);
-  ui_init(&t->ui, t);
+  fm_init(&lfm->fm, lfm);
+  ui_init(&lfm->ui, lfm);
 
-  ev_idle_init(&t->redraw_watcher, redraw_cb);
-  t->redraw_watcher.data = t;
-  ev_idle_start(t->loop, &t->redraw_watcher);
+  ev_idle_init(&lfm->redraw_watcher, redraw_cb);
+  lfm->redraw_watcher.data = lfm;
+  ev_idle_start(lfm->loop, &lfm->redraw_watcher);
 
-  ev_prepare_init(&t->prepare_watcher, prepare_cb);
-  t->prepare_watcher.data = t;
-  ev_prepare_start(t->loop, &t->prepare_watcher);
+  ev_prepare_init(&lfm->prepare_watcher, prepare_cb);
+  lfm->prepare_watcher.data = lfm;
+  ev_prepare_start(lfm->loop, &lfm->prepare_watcher);
 
-  ev_timer_init(&t->timer_watcher, timer_cb, TICK, TICK);
-  t->timer_watcher.data = t;
-  ev_timer_start(t->loop, &t->timer_watcher);
+  ev_timer_init(&lfm->timer_watcher, timer_cb, TICK, TICK);
+  lfm->timer_watcher.data = lfm;
+  ev_timer_start(lfm->loop, &lfm->timer_watcher);
 
-  ev_io_init(&t->input_watcher, stdin_cb, notcurses_inputready_fd(t->ui.nc), EV_READ);
-  t->input_watcher.data = t;
-  ev_io_start(t->loop, &t->input_watcher);
+  ev_io_init(&lfm->input_watcher, stdin_cb, notcurses_inputready_fd(lfm->ui.nc), EV_READ);
+  lfm->input_watcher.data = lfm;
+  ev_io_start(lfm->loop, &lfm->input_watcher);
 
   signal(SIGINT, SIG_IGN);
 
-  ev_signal_init(&t->sigwinch_watcher, sigwinch_cb, SIGWINCH);
-  t->sigwinch_watcher.data = t;
-  ev_signal_start(t->loop, &t->sigwinch_watcher);
+  ev_signal_init(&lfm->sigwinch_watcher, sigwinch_cb, SIGWINCH);
+  lfm->sigwinch_watcher.data = lfm;
+  ev_signal_start(lfm->loop, &lfm->sigwinch_watcher);
 
-  ev_signal_init(&t->sigterm_watcher, sigterm_cb, SIGTERM);
-  t->sigterm_watcher.data = t;
-  ev_signal_start(t->loop, &t->sigterm_watcher);
+  ev_signal_init(&lfm->sigterm_watcher, sigterm_cb, SIGTERM);
+  lfm->sigterm_watcher.data = lfm;
+  ev_signal_start(lfm->loop, &lfm->sigterm_watcher);
 
-  ev_signal_init(&t->sighup_watcher, sighup_cb, SIGHUP);
-  t->sighup_watcher.data = t;
-  ev_signal_start(t->loop, &t->sighup_watcher);
+  ev_signal_init(&lfm->sighup_watcher, sighup_cb, SIGHUP);
+  lfm->sighup_watcher.data = lfm;
+  ev_signal_start(lfm->loop, &lfm->sighup_watcher);
 
-  t->L = luaL_newstate();
-  lua_init(t->L, t);
+  lfm->L = luaL_newstate();
+  lua_init(lfm->L, lfm);
 
   log_info("initialized lfm");
 }
 
 
-void lfm_run(T *t)
+void lfm_run(Lfm *lfm)
 {
-  ev_run(t->loop, 0);
+  ev_run(lfm->loop, 0);
 }
 
 
-void lfm_quit(T *t)
+void lfm_quit(Lfm *lfm)
 {
-  lua_run_hook(t->L, LFM_HOOK_EXITPRE);
-  ev_break(t->loop, EVBREAK_ALL);
+  lua_run_hook(lfm->L, LFM_HOOK_EXITPRE);
+  ev_break(lfm->loop, EVBREAK_ALL);
 }
 
 
-static ev_io *add_io_watcher(T *t, FILE* f, int ref)
+static ev_io *add_io_watcher(Lfm *lfm, FILE* f, int ref)
 {
   if (!f) {
     return NULL;
@@ -380,38 +378,38 @@ static ev_io *add_io_watcher(T *t, FILE* f, int ref)
   fcntl(fd, F_SETFL, flags | O_NONBLOCK);
 
   struct stdout_watcher_data *data = malloc(sizeof *data);
-  data->lfm = t;
+  data->lfm = lfm;
   data->stream = f;
   data->ref = ref;
 
   ev_io *w = malloc(sizeof *w);
   ev_io_init(w, command_stdout_cb, fd, EV_READ);
   w->data = data;
-  ev_io_start(t->loop, w);
+  ev_io_start(lfm->loop, w);
 
   return w;
 }
 
 
-static void add_child_watcher(T *t, int pid, int ref, ev_io *stdout_watcher, ev_io *stderr_watcher)
+static void add_child_watcher(Lfm *lfm, int pid, int ref, ev_io *stdout_watcher, ev_io *stderr_watcher)
 {
   struct child_watcher_data *data = malloc(sizeof *data);
   data->ref = ref;
-  data->lfm = t;
+  data->lfm = lfm;
   data->stdout_watcher = stdout_watcher;
   data->stderr_watcher = stderr_watcher;
 
   ev_child *w = malloc(sizeof *w);
   ev_child_init(w, child_cb, pid, 0);
   w->data = data;
-  ev_child_start(t->loop, w);
+  ev_child_start(lfm->loop, w);
 
-  cvector_push_back(t->child_watchers, w);
+  cvector_push_back(lfm->child_watchers, w);
 }
 
 
 // spawn a background program
-int lfm_spawn(T *t, const char *prog, char *const *args,
+int lfm_spawn(Lfm *lfm, const char *prog, char *const *args,
     char **in, bool out, bool err, int out_cb_ref, int err_cb_ref, int cb_ref)
 {
   FILE *fout, *ferr, *fin;
@@ -427,13 +425,13 @@ int lfm_spawn(T *t, const char *prog, char *const *args,
   }
 
   if (out || out_cb_ref >= 0) {
-    stdout_watcher = add_io_watcher(t, fout, out_cb_ref);
+    stdout_watcher = add_io_watcher(lfm, fout, out_cb_ref);
   } else {
     fclose(fout);
   }
 
   if (err || err_cb_ref >= 0) {
-    stderr_watcher = add_io_watcher(t, ferr, err_cb_ref);
+    stderr_watcher = add_io_watcher(lfm, ferr, err_cb_ref);
   } else {
     fclose(ferr);
   }
@@ -446,17 +444,17 @@ int lfm_spawn(T *t, const char *prog, char *const *args,
     fclose(fin);
   }
 
-  add_child_watcher(t, pid, cb_ref, stdout_watcher, stderr_watcher);
+  add_child_watcher(lfm, pid, cb_ref, stdout_watcher, stderr_watcher);
   return pid;
 }
 
 
 // execute a foreground program
-bool lfm_execute(T *t, const char *prog, char *const *args)
+bool lfm_execute(Lfm *lfm, const char *prog, char *const *args)
 {
   int pid, status, rc;
-  ev_io_stop(t->loop, &t->input_watcher);
-  ui_suspend(&t->ui);
+  ev_io_stop(lfm->loop, &lfm->input_watcher);
+  ui_suspend(&lfm->ui);
   kbblocking(true);
   if ((pid = fork()) < 0) {
     status = -1;
@@ -473,14 +471,14 @@ bool lfm_execute(T *t, const char *prog, char *const *args)
     } while ((rc == -1) && (errno == EINTR));
   }
   kbblocking(false);
-  ui_resume(&t->ui);
+  ui_resume(&lfm->ui);
 
-  ev_io_init(&t->input_watcher, stdin_cb, notcurses_inputready_fd(t->ui.nc), EV_READ);
-  t->input_watcher.data = t;
-  ev_io_start(t->loop, &t->input_watcher);
+  ev_io_init(&lfm->input_watcher, stdin_cb, notcurses_inputready_fd(lfm->ui.nc), EV_READ);
+  lfm->input_watcher.data = lfm;
+  ev_io_start(lfm->loop, &lfm->input_watcher);
 
   signal(SIGINT, SIG_IGN);
-  ui_redraw(&t->ui, REDRAW_FM);
+  ui_redraw(&lfm->ui, REDRAW_FM);
   return status == 0;
 }
 
@@ -519,11 +517,11 @@ void error(const char *format, ...)
 }
 
 
-void lfm_read_fifo(T *t)
+void lfm_read_fifo(Lfm *lfm)
 {
   char buf[512];
 
-  ssize_t nbytes = read(t->fifo_fd, buf, sizeof buf);
+  ssize_t nbytes = read(lfm->fifo_fd, buf, sizeof buf);
 
   if (nbytes <= 0) {
     return;
@@ -531,13 +529,13 @@ void lfm_read_fifo(T *t)
 
   if ((size_t) nbytes < sizeof buf) {
     buf[nbytes - 1] = 0;
-    lua_eval(t->L, buf);
+    lua_eval(lfm->L, buf);
   } else {
     size_t cap = 2 * sizeof(buf) / sizeof(*buf);
     char *dyn = malloc(cap * sizeof *dyn);
     size_t len = nbytes;
     memcpy(dyn, buf, nbytes);
-    while ((nbytes = read(t->fifo_fd, dyn + len, cap - len)) > 0) {
+    while ((nbytes = read(lfm->fifo_fd, dyn + len, cap - len)) > 0) {
       len += nbytes;
       if (len == cap) {
         cap *= 2;
@@ -545,39 +543,39 @@ void lfm_read_fifo(T *t)
       }
     }
     dyn[len] = 0;
-    lua_eval(t->L, dyn);
+    lua_eval(lfm->L, dyn);
     free(dyn);
   }
 
-  ev_idle_start(t->loop, &g_lfm->redraw_watcher);
+  ev_idle_start(lfm->loop, &g_lfm->redraw_watcher);
 }
 
 
-void lfm_schedule(T *t, int ref, uint32_t delay)
+void lfm_schedule(Lfm *lfm, int ref, uint32_t delay)
 {
   struct schedule_timer_data *data = malloc(sizeof *data);
-  data->lfm = t;
+  data->lfm = lfm;
   data->ref = ref;
   ev_timer *w = malloc(sizeof *w);
   ev_timer_init(w, schedule_timer_cb, 1.0 * delay / 1000, 0);
   w->data = data;
-  ev_timer_start(t->loop, w);
-  cvector_push_back(t->schedule_timers, w);
+  ev_timer_start(lfm->loop, w);
+  cvector_push_back(lfm->schedule_timers, w);
 }
 
 
-void lfm_deinit(T *t)
+void lfm_deinit(Lfm *lfm)
 {
-  cvector_ffree(t->child_watchers, destroy_child_watcher);
-  cvector_ffree(t->schedule_timers, destroy_schedule_timer);
-  notify_deinit(&t->notify);
-  lua_deinit(t->L);
-  ui_deinit(&t->ui);
-  fm_deinit(&t->fm);
-  loader_deinit(&t->loader);
-  async_deinit(&t->async);
-  if (t->fifo_fd > 0) {
-    close(t->fifo_fd);
+  cvector_ffree(lfm->child_watchers, destroy_child_watcher);
+  cvector_ffree(lfm->schedule_timers, destroy_schedule_timer);
+  notify_deinit(&lfm->notify);
+  lua_deinit(lfm->L);
+  ui_deinit(&lfm->ui);
+  fm_deinit(&lfm->fm);
+  loader_deinit(&lfm->loader);
+  async_deinit(&lfm->async);
+  if (lfm->fifo_fd > 0) {
+    close(lfm->fifo_fd);
   }
   remove(cfg.fifopath);
 }
