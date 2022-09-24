@@ -44,6 +44,8 @@ typedef struct fm_s {
     uint32_t anchor;
   } visual;
 
+  char *find_prefix;
+
   char *automark;
 
   struct lfm_s *lfm;

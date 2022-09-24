@@ -67,6 +67,7 @@ void fm_deinit(T *t)
   ht_destroy(t->selection.previous);
   lht_destroy(t->paste.buffer);
   free(t->automark);
+  free(t->find_prefix);
 }
 
 

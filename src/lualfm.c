@@ -190,7 +190,7 @@ static int l_search_prev(lua_State *L)
 
 static int l_find(lua_State *L)
 {
-  lua_pushboolean(L, find(fm, ui, luaL_checkstring(L, 1)));
+  lua_pushboolean(L, find(fm, luaL_checkstring(L, 1)));
   return 1;
 }
 
@@ -198,7 +198,7 @@ static int l_find(lua_State *L)
 static int l_find_clear(lua_State *L)
 {
   (void) L;
-  find_clear(fm, ui);
+  find_clear(fm);
   return 0;
 }
 
@@ -206,7 +206,7 @@ static int l_find_clear(lua_State *L)
 static int l_find_next(lua_State *L)
 {
   (void) L;
-  find_next(fm, ui);
+  find_next(fm);
   return 0;
 }
 
@@ -214,7 +214,7 @@ static int l_find_next(lua_State *L)
 static int l_find_prev(lua_State *L)
 {
   (void) L;
-  find_prev(fm, ui);
+  find_prev(fm);
   return 0;
 }
 

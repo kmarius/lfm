@@ -2,14 +2,13 @@
 #include <stdint.h>
 
 #include "fm.h"
+#include "lfm.h"
 #include "ui.h"
 
-static char *g_find_prefix = NULL;
-
-bool find(Fm *fm, Ui *ui, const char *prefix)
+bool find(Fm *fm, const char *prefix)
 {
-  free(g_find_prefix);
-  g_find_prefix = strdup(prefix);
+  free(fm->find_prefix);
+  fm->find_prefix = strdup(prefix);
 
   Dir *dir = fm_current_dir(fm);
   uint32_t nmatches = 0;
@@ -26,50 +25,50 @@ bool find(Fm *fm, Ui *ui, const char *prefix)
   }
   if (nmatches > 0) {
     fm_cursor_move_to_ind(fm, first_match);
-    ui_redraw(ui, REDRAW_FM);
+    ui_redraw(&fm->lfm->ui, REDRAW_FM);
   }
   return nmatches == 1;
 }
 
 
-void find_next(Fm *fm, Ui *ui)
+void find_next(Fm *fm)
 {
-  if (!g_find_prefix) {
+  if (!fm->find_prefix) {
     return;
   }
 
   Dir *dir = fm_current_dir(fm);
   for (uint32_t i = 0; i < dir->length; i++) {
     const uint32_t ind = (dir->ind + 1 + i) % dir->length;
-    if (hascaseprefix(file_name(dir->files[ind]), g_find_prefix)) {
+    if (hascaseprefix(file_name(dir->files[ind]), fm->find_prefix)) {
       fm_cursor_move_to_ind(fm, ind);
-      ui_redraw(ui, REDRAW_FM);
+      ui_redraw(&fm->lfm->ui, REDRAW_FM);
       return;
     }
   }
 }
 
 
-void find_prev(Fm *fm, Ui *ui)
+void find_prev(Fm *fm)
 {
-  if (!g_find_prefix) {
+  if (!fm->find_prefix) {
     return;
   }
 
   Dir *dir = fm_current_dir(fm);
   for (uint32_t i = 0; i < dir->length; i++) {
     const uint32_t ind = (dir->ind - 1 - i + dir->length) % dir->length;
-    if (hascaseprefix(file_name(dir->files[ind]), g_find_prefix)) {
+    if (hascaseprefix(file_name(dir->files[ind]), fm->find_prefix)) {
       fm_cursor_move_to_ind(fm, ind);
-      ui_redraw(ui, REDRAW_FM);
+      ui_redraw(&fm->lfm->ui, REDRAW_FM);
       return;
     }
   }
 }
 
 
-void find_clear()
+void find_clear(Fm *fm)
 {
-  free(g_find_prefix);
-  g_find_prefix = NULL;
+  free(fm->find_prefix);
+  fm->find_prefix = NULL;
 }
