@@ -32,7 +32,7 @@ void fm_init(Fm *fm, struct lfm_s *lfm)
 
   if (cfg.startpath) {
     if (chdir(cfg.startpath) != 0) {
-      error("chdir: %s", strerror(errno));
+      lfm_error(fm->lfm, "chdir: %s", strerror(errno));
     } else {
       setenv("PWD", cfg.startpath, true);
     }
@@ -54,6 +54,7 @@ void fm_init(Fm *fm, struct lfm_s *lfm)
   }
 
   fm_update_preview(fm);
+
 }
 
 
@@ -133,7 +134,7 @@ bool fm_chdir(Fm *fm, const char *path, bool save)
       log_debug("chdir(\"%s\") took %ums", path, t1-t0);
     }
 
-    error("chdir: %s", strerror(errno));
+    lfm_error(fm->lfm, "chdir: %s", strerror(errno));
     return false;
   }
 
@@ -438,7 +439,7 @@ void fm_selection_write(const Fm *fm, const char *path)
 
   FILE *fp = fopen(path, "w");
   if (!fp) {
-    error("selfile: %s", strerror(errno));
+    lfm_error(fm->lfm, "selfile: %s", strerror(errno));
     return;
   }
 

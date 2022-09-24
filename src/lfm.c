@@ -24,14 +24,10 @@
 
 #define TICK 1  // in seconds
 
-static Lfm *g_lfm = NULL;  // only needed for print/error
-
 struct message {
   char *text;
   bool error;
 };
-
-static struct message *g_messages = NULL;
 
 // callbacks {{{
 
@@ -132,8 +128,8 @@ static void schedule_timer_cb(EV_P_ ev_timer *w, int revents)
   ev_timer_stop(EV_A_ w);
   lua_run_callback(data->lfm->L, data->ref);
   cvector_swap_remove(data->lfm->schedule_timers, w);
+  ev_idle_start(loop, &data->lfm->redraw_watcher);
   destroy_schedule_timer(w);
-  ev_idle_start(loop, &g_lfm->redraw_watcher);
 }
 
 // }}}
@@ -214,25 +210,24 @@ static void prepare_cb(EV_P_ ev_prepare *w, int revents)
   Lfm *lfm = w->data;
 
   if (cfg.commands) {
-    for (size_t i = 0; i < cvector_size(cfg.commands); i++) {
-      lua_eval(lfm->L, cfg.commands[i]);
+    cvector_foreach(const char *cmd, cfg.commands) {
+      lua_eval(lfm->L, cmd);
     }
-
-    // commands are from argv, don't free them
     cvector_free(cfg.commands);
     cfg.commands = NULL;
   }
 
-  if (g_messages) {
-    cvector_foreach_ptr(struct message *m, g_messages) {
+  if (lfm->messages) {
+    cvector_foreach_ptr(struct message *m, lfm->messages) {
       if (m->error) {
-        error("%s", m->text);
+        lfm_error(lfm, "%s", m->text);
       } else {
-        print("%s", m->text);
+        lfm_print(lfm, "%s", m->text);
       }
       free(m->text);
     }
-    cvector_free(g_messages);
+    cvector_free(lfm->messages);
+    lfm->messages = NULL;
   }
 
   lua_run_hook(lfm->L, LFM_HOOK_ENTER);
@@ -278,8 +273,6 @@ static void redraw_cb(EV_P_ ev_idle *w, int revents)
 
 void lfm_init(Lfm *lfm)
 {
-  g_lfm = lfm;
-
   memset(lfm, 0, sizeof *lfm);
   lfm->fifo_fd = -1;
 
@@ -302,8 +295,6 @@ void lfm_init(Lfm *lfm)
     log_error("inotify: %s", strerror(errno));
     exit(EXIT_FAILURE);
   }
-
-  lfm->ui.messages = NULL; /* needed to keep errors on fm startup */
 
   loader_init(&lfm->loader, lfm);
 
@@ -420,7 +411,7 @@ int lfm_spawn(Lfm *lfm, const char *prog, char *const *args,
   int pid = popen2_arr_p(in ? &fin : NULL, &fout, &ferr, prog, args, NULL);
 
   if (pid == -1) {
-    error("popen2_arr_p: %s", strerror(errno));  // not sure if set
+    lfm_error(lfm, "popen2_arr_p: %s", strerror(errno));  // not sure if set
     return -1;
   }
 
@@ -483,34 +474,34 @@ bool lfm_execute(Lfm *lfm, const char *prog, char *const *args)
 }
 
 
-void print(const char *format, ...)
+void lfm_print(Lfm *lfm ,const char *format, ...)
 {
   va_list args;
   va_start(args, format);
 
-  if (!g_lfm) {
+  if (!lfm->ui.lfm) {
     struct message msg = {.error = false};
     vasprintf(&msg.text, format, args);
-    cvector_push_back(g_messages, msg);
+    cvector_push_back(lfm->messages, msg);
   } else {
-    ui_vechom(&g_lfm->ui, format, args);
+    ui_vechom(&lfm->ui, format, args);
   }
 
   va_end(args);
 }
 
 
-void error(const char *format, ...)
+void lfm_error(Lfm *lfm, const char *format, ...)
 {
   va_list args;
   va_start(args, format);
 
-  if (!g_lfm) {
+  if (!lfm->ui.lfm) {
     struct message msg = {.error = true};
     vasprintf(&msg.text, format, args);
-    cvector_push_back(g_messages, msg);
+    cvector_push_back(lfm->messages, msg);
   } else {
-    ui_verror(&g_lfm->ui, format, args);
+    ui_verror(&lfm->ui, format, args);
   }
 
   va_end(args);
@@ -547,7 +538,7 @@ void lfm_read_fifo(Lfm *lfm)
     free(dyn);
   }
 
-  ev_idle_start(lfm->loop, &g_lfm->redraw_watcher);
+  ev_idle_start(lfm->loop, &lfm->redraw_watcher);
 }
 
 

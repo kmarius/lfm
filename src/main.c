@@ -40,10 +40,10 @@ static void version(const char *progname)
   fprintf(stderr, VERSION_FMT, progname);
 }
 
+static Lfm lfm;
 
 int main(int argc, char **argv)
 {
-  Lfm lfm;
   int ret = EXIT_SUCCESS;
 
   const uint64_t t0 = current_micros();
@@ -92,7 +92,8 @@ int main(int argc, char **argv)
     cfg.startpath = realpath_a(argv[optind]);
     struct stat statbuf;
     if (stat(cfg.startpath, &statbuf) == -1) {
-      error("%s: %s", strerror(errno), cfg.startpath);
+      // can't print to Ui yet, maybe pass something to init?
+      log_error("%s: %s", strerror(errno), cfg.startpath);
       free(cfg.startpath);
       cfg.startpath = NULL;
     } else {

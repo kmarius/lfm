@@ -96,7 +96,7 @@ void lua_run_stdout_callback(lua_State *L, int ref, const char *line)
     lua_pushstring(L, line);
     lua_insert(L, -1);
     if (lua_pcall(L, 1, 0, 0)) {
-      ui_error(ui, "run_hook: %s", lua_tostring(L, -1));
+      ui_error(ui, "cb: %s", lua_tostring(L, -1));
     }
   }
 }
@@ -105,15 +105,15 @@ void lua_run_stdout_callback(lua_State *L, int ref, const char *line)
 static int l_schedule(lua_State *L)
 {
   luaL_checktype(L, 1, LUA_TFUNCTION);
-  const int delay = luaL_checknumber(L, 2);
-  lua_pushvalue(L, 1);
-  if (delay > 0) {
-    lfm_schedule(lfm, lua_set_callback(L), delay);
-  } else {
-    if (lua_pcall(L, 0, 0, 0)) {
-      ui_error(ui, "run_hook: %s", lua_tostring(L, -1));
-    }
+  int delay = 0;
+  if (lua_gettop(L) >= 2) {
+    delay = luaL_checknumber(L, 2);
   }
+  if (delay < 0) {
+    delay = 0;
+  }
+  lua_pushvalue(L, 1);
+  lfm_schedule(lfm, lua_set_callback(L), delay);
   return 0;
 }
 
@@ -1521,7 +1521,7 @@ static int l_fm_paste_mode_set(lua_State *L)
   } else if (streq(mode, "move")) {
     fm->paste.mode = PASTE_MODE_MOVE;
   } else {
-    error("unrecognized paste mode: %s", mode);
+    luaL_error(L, "unrecognized paste mode: %s", mode);
   }
   ui_redraw(ui, REDRAW_FM);
 
@@ -1561,7 +1561,7 @@ static int l_fm_paste_buffer_set(lua_State *L)
   } else if (streq(mode, "move")) {
     fm->paste.mode = PASTE_MODE_MOVE;
   } else {
-    error("unrecognized paste mode: %s", mode);
+    luaL_error(L, "unrecognized paste mode: %s", mode);
   }
 
   if (luaL_optbool(L, 3, true)) {
@@ -1963,7 +1963,7 @@ void lua_handle_key(lua_State *L, input_t in)
 bool lua_load_file(lua_State *L, const char *path)
 {
   if (luaL_loadfile(L, path) || lua_pcall(L, 0, 0, 0)) {
-    ui_error(ui, "loadfile : %s", lua_tostring(L, -1));
+    ui_error(ui, "loadfile: %s", lua_tostring(L, -1));
     return false;
   }
   return true;

@@ -23,6 +23,8 @@ typedef struct lfm_s {
 
   uint64_t input_timeout;
 
+  struct message *messages;
+
   ev_io input_watcher;
   ev_idle redraw_watcher;
   ev_prepare prepare_watcher;
@@ -64,7 +66,7 @@ bool lfm_execute(Lfm *lfm, const char *prog, char *const *args);
 void lfm_schedule(Lfm *lfm, int ref, uint32_t delay);
 
 // Print a message in the UI. `printf` formatting applies.
-void print(const char *format, ...);
+void lfm_print(Lfm *lfm, const char *format, ...);
 
 // Print an error in the UI. `printf` formatting applies.
-void error(const char *format, ...);
+void lfm_error(Lfm *lfm, const char *format, ...);
