@@ -6,8 +6,6 @@
 #include "hashtab.h"
 #include "util.h"
 
-#define T Hashtab
-
 #define GROW_THRESHOLD 0.75
 #define SHRINK_THRESHOLD 0.125
 
@@ -22,76 +20,76 @@ static uint64_t hash(const char *s)
 }
 
 
-static inline T *ht_init(T *t, size_t capacity, ht_free_fun free)
+static inline Hashtab *ht_init(Hashtab *ht, size_t capacity, ht_free_fun free)
 {
-  memset(t, 0, sizeof *t);
-  t->capacity = capacity;
-  t->min_capacity = capacity;
-  t->buckets = calloc(t->capacity, sizeof *t->buckets);
-  t->free = free;
-  return t;
+  memset(ht, 0, sizeof *ht);
+  ht->capacity = capacity;
+  ht->min_capacity = capacity;
+  ht->buckets = calloc(ht->capacity, sizeof *ht->buckets);
+  ht->free = free;
+  return ht;
 }
 
 
-static inline T *ht_deinit(T *t)
+static inline Hashtab *ht_deinit(Hashtab *ht)
 {
-  for (size_t i = 0; i < t->capacity; i++) {
-    if (t->buckets[i].val) {
-      for (struct ht_bucket *next, *b = t->buckets[i].next; b; b = next) {
+  for (size_t i = 0; i < ht->capacity; i++) {
+    if (ht->buckets[i].val) {
+      for (struct ht_bucket *next, *b = ht->buckets[i].next; b; b = next) {
         next = b->next;
-        if (t->free) {
-          t->free(b->val);
+        if (ht->free) {
+          ht->free(b->val);
         }
         free(b);
       }
-      if (t->free) {
-        t->free(t->buckets[i].val);
+      if (ht->free) {
+        ht->free(ht->buckets[i].val);
       }
     }
   }
-  free(t->buckets);
-  return t;
+  free(ht->buckets);
+  return ht;
 }
 
 
-T *ht_with_capacity(size_t capacity, ht_free_fun free)
+Hashtab *ht_with_capacity(size_t capacity, ht_free_fun free)
 {
-  return ht_init(malloc(sizeof(T)), capacity, free);
+  return ht_init(malloc(sizeof(Hashtab)), capacity, free);
 }
 
 
-void ht_destroy(T *t)
+void ht_destroy(Hashtab *ht)
 {
-  free(ht_deinit(t));
+  free(ht_deinit(ht));
 }
 
 
-static inline void ht_resize(T *t, size_t capacity)
+static inline void ht_resize(Hashtab *ht, size_t capacity)
 {
-  // log_debug("resizing from %lu to %lu", t->capacity, capacity);
-  T *new = ht_with_capacity(capacity, t->free);
-  new->min_capacity = t->min_capacity;
-  ht_foreach_kv(const char *k, void *v, t) {
+  // log_debug("resizing from %lu to %lu", ht->capacity, capacity);
+  Hashtab *new = ht_with_capacity(capacity, ht->free);
+  new->min_capacity = ht->min_capacity;
+  ht_foreach_kv(const char *k, void *v, ht) {
     ht_set(new, k, v);
   }
-  t->free = NULL;
-  ht_deinit(t);
-  memcpy(t, new, sizeof *t);
+  ht->free = NULL;
+  ht_deinit(ht);
+  memcpy(ht, new, sizeof *ht);
   free(new);
 }
 
 
-static inline void ht_grow(T *t)
+static inline void ht_grow(Hashtab *ht)
 {
-  ht_resize(t, t->capacity * 2);
+  ht_resize(ht, ht->capacity * 2);
 }
 
 
 // // we are not deleting single values, currenctly
-// static inline void ht_shrink(T *t)
+// static inline void ht_shrink(ht *ht)
 // {
-//   if (t->capacity/2 >= t->min_capacity) {
-//     ht_resize(t, t->capacity/2);
+//   if (ht->capacity/2 >= ht->min_capacity) {
+//     ht_resize(ht, ht->capacity/2);
 //   }
 // }
 
@@ -99,9 +97,9 @@ static inline void ht_grow(T *t)
 // Returns true if successfull and the corresponding bucket in b: Otherwise,
 // b contains the bucket (head of the list) if empty, or the element to which
 // the new node should be appended to (check with (*b)->val).
-static bool ht_probe(T *t, const char *key, struct ht_bucket **b)
+static bool ht_probe(Hashtab *ht, const char *key, struct ht_bucket **b)
 {
-  *b = &t->buckets[hash(key) % t->capacity];
+  *b = &ht->buckets[hash(key) % ht->capacity];
   for (;;) {
     struct ht_bucket *bb = *b;
     if (!bb->key) {
@@ -118,103 +116,101 @@ static bool ht_probe(T *t, const char *key, struct ht_bucket **b)
 }
 
 
-void ht_set(T *t, const char *key, void *val)
+void ht_set(Hashtab *ht, const char *key, void *val)
 {
   struct ht_bucket *b;
-  if (!ht_probe(t, key, &b) && b->val) {
+  if (!ht_probe(ht, key, &b) && b->val) {
     b->next = malloc(sizeof *b->next);
     b = b->next;
     b->next = NULL;
-  } else if (b->val && t->free) {
-    t->free(b->val);
+  } else if (b->val && ht->free) {
+    ht->free(b->val);
   }
   if (!b->val) {
-    t->size++;
+    ht->size++;
   }
   b->key = key;
   b->val = val;
-  if (t->size > GROW_THRESHOLD * t->capacity) {
-    ht_grow(t);
+  if (ht->size > GROW_THRESHOLD * ht->capacity) {
+    ht_grow(ht);
   }
 }
 
 
-void *ht_get(T *t, const char *key)
+void *ht_get(Hashtab *ht, const char *key)
 {
   struct ht_bucket *b;
-  if (ht_probe(t, key, &b)) {
+  if (ht_probe(ht, key, &b)) {
     return b->val;
   }
   return NULL;
 }
 
 
-void ht_clear(T *t)
+void ht_clear(Hashtab *ht)
 {
-  for (size_t i = 0; i < t->capacity; i++) {
-    if (t->buckets[i].val) {
-      for (struct ht_bucket *next, *b = t->buckets[i].next; b; b = next) {
+  for (size_t i = 0; i < ht->capacity; i++) {
+    if (ht->buckets[i].val) {
+      for (struct ht_bucket *next, *b = ht->buckets[i].next; b; b = next) {
         next = b->next;
-        if (t->free) {
-          t->free(b->val);
+        if (ht->free) {
+          ht->free(b->val);
         }
         free(b);
       }
-      if (t->free) {
-        t->free(t->buckets[i].val);
+      if (ht->free) {
+        ht->free(ht->buckets[i].val);
       }
-      t->buckets[i].val = NULL;
-      t->buckets[i].key = NULL;
-      t->buckets[i].next = NULL;
+      ht->buckets[i].val = NULL;
+      ht->buckets[i].key = NULL;
+      ht->buckets[i].next = NULL;
     }
   }
-  ht_resize(t, t->min_capacity);
-}
-
-#undef T
-#define T LinkedHashtab
-
-static inline T *lht_init(T *t, size_t capacity, ht_free_fun free)
-{
-  memset(t, 0, sizeof *t);
-  t->capacity = capacity;
-  t->min_capacity = capacity;
-  t->buckets = calloc(t->capacity, sizeof *t->buckets);
-  t->free = free;
-  return t;
+  ht_resize(ht, ht->min_capacity);
 }
 
 
-static inline T *lht_deinit(T *t)
+static inline LinkedHashtab *lht_init(LinkedHashtab *lht, size_t capacity, ht_free_fun free)
 {
-  for (size_t i = 0; i < t->capacity; i++) {
-    if (t->buckets[i].val) {
-      for (struct lht_bucket *next, *b = t->buckets[i].next; b; b = next) {
+  memset(lht, 0, sizeof *lht);
+  lht->capacity = capacity;
+  lht->min_capacity = capacity;
+  lht->buckets = calloc(lht->capacity, sizeof *lht->buckets);
+  lht->free = free;
+  return lht;
+}
+
+
+static inline LinkedHashtab *lht_deinit(LinkedHashtab *lht)
+{
+  for (size_t i = 0; i < lht->capacity; i++) {
+    if (lht->buckets[i].val) {
+      for (struct lht_bucket *next, *b = lht->buckets[i].next; b; b = next) {
         next = b->next;
-        if (t->free) {
-          t->free(b->val);
+        if (lht->free) {
+          lht->free(b->val);
         }
         free(b);
       }
-      if (t->free) {
-        t->free(t->buckets[i].val);
+      if (lht->free) {
+        lht->free(lht->buckets[i].val);
       }
     }
   }
-  free(t->buckets);
-  return t;
+  free(lht->buckets);
+  return lht;
 }
 
 
-T *lht_with_capacity(size_t capacity, ht_free_fun free)
+LinkedHashtab *lht_with_capacity(size_t capacity, ht_free_fun free)
 {
-  return lht_init(malloc(sizeof(T)), capacity, free);
+  return lht_init(malloc(sizeof(LinkedHashtab)), capacity, free);
 }
 
 
-void lht_destroy(T *t)
+void lht_destroy(LinkedHashtab *lht)
 {
-  free(lht_deinit(t));
+  free(lht_deinit(lht));
 }
 
 
@@ -223,9 +219,9 @@ void lht_destroy(T *t)
 // nonempty bucket to which the next bucket should be appended to.
 // (distinguish with (*b)->val != NULL) if prev is non NULL, it will be set
 // to the previous bucket of the overflow list, which is needed for deletion.
-static bool lht_probe(const T *t, const char *key, struct lht_bucket **b, struct lht_bucket **prev)
+static bool lht_probe(const LinkedHashtab *lht, const char *key, struct lht_bucket **b, struct lht_bucket **prev)
 {
-  *b = &t->buckets[hash(key) % t->capacity];
+  *b = &lht->buckets[hash(key) % lht->capacity];
   if (prev) {
     *prev = NULL;
   }
@@ -248,91 +244,91 @@ static bool lht_probe(const T *t, const char *key, struct lht_bucket **b, struct
 }
 
 
-// it would be better to be able to give a size hint so we don't have to
+// it would be better to be able to give a size hint so we don'lht have to
 // resize multiple times if we fill the table e.g. with a huge directory
-// won't bother for now, because when does that even happen?
-static inline void lht_resize(T *t, size_t capacity)
+// won'lht bother for now, because when does that even happen?
+static inline void lht_resize(LinkedHashtab *lht, size_t capacity)
 {
-  // log_debug("resizing from %lu to %lu", t->capacity, capacity);
-  T *new = lht_with_capacity(capacity, t->free);
-  new->min_capacity = t->min_capacity;
-  lht_foreach_kv(const char *k, void *v, t) {
+  // log_debug("resizing from %lu to %lu", lht->capacity, capacity);
+  LinkedHashtab *new = lht_with_capacity(capacity, lht->free);
+  new->min_capacity = lht->min_capacity;
+  lht_foreach_kv(const char *k, void *v, lht) {
     lht_set(new, k, v);
   }
-  t->free = NULL;
-  lht_deinit(t);
-  memcpy(t, new, sizeof *t);
+  lht->free = NULL;
+  lht_deinit(lht);
+  memcpy(lht, new, sizeof *lht);
   free(new);
 }
 
 
-static inline void lht_grow(T *t)
+static inline void lht_grow(LinkedHashtab *lht)
 {
-  lht_resize(t, t->capacity * 2);
+  lht_resize(lht, lht->capacity * 2);
 }
 
 
-static inline void lht_shrink(T *t)
+static inline void lht_shrink(LinkedHashtab *lht)
 {
-  if (t->capacity/2 >= t->min_capacity) {
-    lht_resize(t, t->capacity/2);
+  if (lht->capacity/2 >= lht->min_capacity) {
+    lht_resize(lht, lht->capacity/2);
   }
 }
 
 
 // update keeps the order
-bool lht_set(T *t, const char *key, void *val)
+bool lht_set(LinkedHashtab *lht, const char *key, void *val)
 {
   bool ret = true;
   struct lht_bucket *b;
-  if (!lht_probe(t, key, &b, NULL)) {
+  if (!lht_probe(lht, key, &b, NULL)) {
     if (b->val) {
       b->next = calloc(1, sizeof *b->next);
       b = b->next;
     }
     b->next = NULL;
     b->order_next = NULL;
-    if (t->last) {
-      t->last->order_next = b;
-      b->order_prev = t->last;
+    if (lht->last) {
+      lht->last->order_next = b;
+      b->order_prev = lht->last;
     } else {
       b->order_prev = NULL;
     }
-    t->last = b;
-    if (!t->first) {
-      t->first = b;
+    lht->last = b;
+    if (!lht->first) {
+      lht->first = b;
     }
-  } else if (b->val && t->free) {
+  } else if (b->val && lht->free) {
     ret = false;
-    t->free(b->val);
+    lht->free(b->val);
   }
   if (!b->val) {
-    t->size++;
+    lht->size++;
   }
   b->key = key;
   b->val = val;
-  if (t->size > GROW_THRESHOLD * t->capacity) {
-    lht_grow(t);
+  if (lht->size > GROW_THRESHOLD * lht->capacity) {
+    lht_grow(lht);
   }
   return ret;
 }
 
 
-bool lht_delete(T *t, const char *key)
+bool lht_delete(LinkedHashtab *lht, const char *key)
 {
   struct lht_bucket *b, *prev;
-  if (lht_probe(t, key, &b, &prev) && b->val) {
-    t->size--;
-    if (t->free) {
-      t->free(b->val);
+  if (lht_probe(lht, key, &b, &prev) && b->val) {
+    lht->size--;
+    if (lht->free) {
+      lht->free(b->val);
     }
-    if (t->first == b) {
-      t->first = b->order_next;
+    if (lht->first == b) {
+      lht->first = b->order_next;
     }
-    if (t->last == b) {
-      t->last = b->order_prev;
+    if (lht->last == b) {
+      lht->last = b->order_prev;
     }
-    if (b < t->buckets || b >= t->buckets + t->capacity) {
+    if (b < lht->buckets || b >= lht->buckets + lht->capacity) {
       // overflow bucket
       if (b->order_prev) {
         b->order_prev->order_next = b->order_next;
@@ -355,11 +351,11 @@ bool lht_delete(T *t, const char *key)
         if (next->order_next) {
           next->order_next->order_prev = b;
         }
-        if (t->first == next) {
-          t->first = b;
+        if (lht->first == next) {
+          lht->first = b;
         }
-        if (t->last == next) {
-          t->last = b;
+        if (lht->last == next) {
+          lht->last = b;
         }
         memcpy(b, next, sizeof *b);
         free(next);
@@ -368,8 +364,8 @@ bool lht_delete(T *t, const char *key)
         b->key = NULL;
       }
     }
-    if (t->size < SHRINK_THRESHOLD * t->capacity) {
-      lht_shrink(t);
+    if (lht->size < SHRINK_THRESHOLD * lht->capacity) {
+      lht_shrink(lht);
     }
     return true;
   }
@@ -377,34 +373,34 @@ bool lht_delete(T *t, const char *key)
 }
 
 
-void *lht_get(const T *t, const char *key)
+void *lht_get(const LinkedHashtab *lht, const char *key)
 {
   struct lht_bucket *b;
-  if (lht_probe(t, key, &b, NULL)) {
+  if (lht_probe(lht, key, &b, NULL)) {
     return b->val;
   }
   return NULL;
 }
 
 
-void lht_clear(T *t)
+void lht_clear(LinkedHashtab *lht)
 {
-  for (size_t i = 0; i < t->capacity; i++) {
-    if (t->buckets[i].val) {
-      for (struct lht_bucket *next, *b = t->buckets[i].next; b; b = next) {
+  for (size_t i = 0; i < lht->capacity; i++) {
+    if (lht->buckets[i].val) {
+      for (struct lht_bucket *next, *b = lht->buckets[i].next; b; b = next) {
         next = b->next;
-        if (t->free) {
-          t->free(b->val);
+        if (lht->free) {
+          lht->free(b->val);
         }
         free(b);
       }
-      if (t->free) {
-        t->free(t->buckets[i].val);
+      if (lht->free) {
+        lht->free(lht->buckets[i].val);
       }
-      memset(&t->buckets[i], 0, sizeof(struct lht_bucket));
+      memset(&lht->buckets[i], 0, sizeof(struct lht_bucket));
     }
   }
-  lht_resize(t, t->min_capacity);
-  t->first = NULL;
-  t->last = NULL;
+  lht_resize(lht, lht->min_capacity);
+  lht->first = NULL;
+  lht->last = NULL;
 }

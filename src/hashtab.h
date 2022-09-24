@@ -28,6 +28,7 @@ void ht_set(struct hashtab_s *t, const char *key, void *val);
 void *ht_get(struct hashtab_s *t, const char *key);
 void ht_clear(struct hashtab_s *t);
 
+
 struct linked_hashtab_s *lht_with_capacity(size_t capacity, ht_free_fun free);
 static inline struct linked_hashtab_s *lht_create(ht_free_fun free)
 {
