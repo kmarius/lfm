@@ -15,7 +15,7 @@ enum paste_mode_e {
 
 typedef struct fm_s {
 
-  uint32_t height; // height of the ui
+  uint32_t height;  // height of the fm
 
   struct {
     // Visible directories excluding preview

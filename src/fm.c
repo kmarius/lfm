@@ -21,17 +21,14 @@
 #include "notify.h"
 #include "util.h"
 
-#define T Fm
+static void fm_update_watchers(Fm *fm);
+static void fm_remove_preview(Fm *fm);
+static void fm_populate(Fm *fm);
 
-static void fm_update_watchers(T *t);
-static void fm_remove_preview(T *t);
-static void fm_populate(T *t);
-
-
-void fm_init(T *t, struct lfm_s *lfm)
+void fm_init(Fm *fm, struct lfm_s *lfm)
 {
-  t->paste.mode = PASTE_MODE_COPY;
-  t->lfm = lfm;
+  fm->paste.mode = PASTE_MODE_COPY;
+  fm->lfm = lfm;
 
   if (cfg.startpath) {
     if (chdir(cfg.startpath) != 0) {
@@ -41,37 +38,37 @@ void fm_init(T *t, struct lfm_s *lfm)
     }
   }
 
-  t->dirs.length = cvector_size(cfg.ratios) - (cfg.preview ? 1 : 0);
-  cvector_grow(t->dirs.visible, t->dirs.length);
+  fm->dirs.length = cvector_size(cfg.ratios) - (cfg.preview ? 1 : 0);
+  cvector_grow(fm->dirs.visible, fm->dirs.length);
 
-  t->selection.paths = lht_create(free);
-  t->selection.previous = ht_create(NULL);
-  t->paste.buffer = lht_create(free);
+  fm->selection.paths = lht_create(free);
+  fm->selection.previous = ht_create(NULL);
+  fm->paste.buffer = lht_create(free);
 
-  fm_populate(t);
+  fm_populate(fm);
 
-  fm_update_watchers(t);
+  fm_update_watchers(fm);
 
   if (cfg.startfile) {
-    fm_move_cursor_to(t, cfg.startfile);
+    fm_move_cursor_to(fm, cfg.startfile);
   }
 
-  fm_update_preview(t);
+  fm_update_preview(fm);
 }
 
 
-void fm_deinit(T *t)
+void fm_deinit(Fm *fm)
 {
-  cvector_free(t->dirs.visible);
-  lht_destroy(t->selection.paths);
-  ht_destroy(t->selection.previous);
-  lht_destroy(t->paste.buffer);
-  free(t->automark);
-  free(t->find_prefix);
+  cvector_free(fm->dirs.visible);
+  lht_destroy(fm->selection.paths);
+  ht_destroy(fm->selection.previous);
+  lht_destroy(fm->paste.buffer);
+  free(fm->automark);
+  free(fm->find_prefix);
 }
 
 
-static void fm_populate(T *t)
+static void fm_populate(Fm *fm)
 {
   char pwd[PATH_MAX];
 
@@ -82,45 +79,45 @@ static void fm_populate(T *t)
     getcwd(pwd, sizeof pwd);
   }
 
-  t->dirs.visible[0] = loader_dir_from_path(&t->lfm->loader, pwd); /* current dir */
-  t->dirs.visible[0]->visible = true;
-  Dir *d = fm_current_dir(t);
-  for (uint32_t i = 1; i < t->dirs.length; i++) {
+  fm->dirs.visible[0] = loader_dir_from_path(&fm->lfm->loader, pwd); /* current dir */
+  fm->dirs.visible[0]->visible = true;
+  Dir *d = fm_current_dir(fm);
+  for (uint32_t i = 1; i < fm->dirs.length; i++) {
     if ((s = dir_parent_path(d))) {
-      d = loader_dir_from_path(&t->lfm->loader, s);
+      d = loader_dir_from_path(&fm->lfm->loader, s);
       d->visible = true;
-      t->dirs.visible[i] = d;
-      dir_cursor_move_to(d, t->dirs.visible[i-1]->name, t->height, cfg.scrolloff);
+      fm->dirs.visible[i] = d;
+      dir_cursor_move_to(d, fm->dirs.visible[i-1]->name, fm->height, cfg.scrolloff);
     } else {
-      t->dirs.visible[i] = NULL;
+      fm->dirs.visible[i] = NULL;
     }
   }
 }
 
 
-void fm_recol(T *t)
+void fm_recol(Fm *fm)
 {
-  fm_remove_preview(t);
-  for (uint32_t i = 0; i < t->dirs.length; i++) {
-    if (t->dirs.visible[i]) {
-      t->dirs.visible[i]->visible = false;
+  fm_remove_preview(fm);
+  for (uint32_t i = 0; i < fm->dirs.length; i++) {
+    if (fm->dirs.visible[i]) {
+      fm->dirs.visible[i]->visible = false;
     }
   }
 
   const uint32_t l = max(1, cvector_size(cfg.ratios) - (cfg.preview ? 1 : 0));
-  cvector_grow(t->dirs.visible, l);
-  cvector_set_size(t->dirs.visible, l);
-  t->dirs.length = l;
+  cvector_grow(fm->dirs.visible, l);
+  cvector_set_size(fm->dirs.visible, l);
+  fm->dirs.length = l;
 
-  fm_populate(t);
-  fm_update_watchers(t);
-  fm_update_preview(t);
+  fm_populate(fm);
+  fm_update_watchers(fm);
+  fm_update_preview(fm);
 }
 
 
-bool fm_chdir(T *t, const char *path, bool save)
+bool fm_chdir(Fm *fm, const char *path, bool save)
 {
-  fm_selection_visual_stop(t);
+  fm_selection_visual_stop(fm);
 
   char fullpath[PATH_MAX];
   if (path_is_relative(path)) {
@@ -145,42 +142,42 @@ bool fm_chdir(T *t, const char *path, bool save)
     log_debug("chdir(\"%s\") took %ums", path, t1-t0);
   }
 
-  notify_set_watchers(&t->lfm->notify, NULL, 0);
+  notify_set_watchers(&fm->lfm->notify, NULL, 0);
 
   setenv("PWD", path, true);
 
   if (save) {
-    free(t->automark);
-    t->automark = fm_current_dir(t)->error
+    free(fm->automark);
+    fm->automark = fm_current_dir(fm)->error
       ? NULL
-      : strdup(fm_current_dir(t)->path);
+      : strdup(fm_current_dir(fm)->path);
   }
 
-  fm_remove_preview(t);
-  for (uint32_t i = 0; i < t->dirs.length; i++) {
-    if (t->dirs.visible[i]) {
-      t->dirs.visible[i]->visible = false;
+  fm_remove_preview(fm);
+  for (uint32_t i = 0; i < fm->dirs.length; i++) {
+    if (fm->dirs.visible[i]) {
+      fm->dirs.visible[i]->visible = false;
     }
   }
 
-  fm_populate(t);
-  fm_update_watchers(t);
-  fm_update_preview(t);
+  fm_populate(fm);
+  fm_update_watchers(fm);
+  fm_update_preview(fm);
 
   return true;
 }
 
 
-static inline void fm_update_watchers(T *t)
+static inline void fm_update_watchers(Fm *fm)
 {
   // watcher for preview is updated in update_preview
-  notify_set_watchers(&t->lfm->notify, t->dirs.visible, t->dirs.length);
+  notify_set_watchers(&fm->lfm->notify, fm->dirs.visible, fm->dirs.length);
 }
 
 
 /* TODO: maybe we can select the closest non-hidden file in case the
  * current one will be hidden (on 2021-10-17) */
-static inline void fm_sort_and_reselect(T *t, Dir *dir)
+static inline void fm_sort_and_reselect(Fm *fm, Dir *dir)
 {
   if (!dir) {
     return;
@@ -190,79 +187,79 @@ static inline void fm_sort_and_reselect(T *t, Dir *dir)
   const File *file = dir_current_file(dir);
   dir_sort(dir);
   if (file) {
-    dir_cursor_move_to(dir, file_name(file), t->height, cfg.scrolloff);
+    dir_cursor_move_to(dir, file_name(file), fm->height, cfg.scrolloff);
   }
 }
 
 
-void fm_sort(T *t)
+void fm_sort(Fm *fm)
 {
-  for (uint32_t i = 0; i < t->dirs.length; i++) {
-    fm_sort_and_reselect(t, t->dirs.visible[i]);
+  for (uint32_t i = 0; i < fm->dirs.length; i++) {
+    fm_sort_and_reselect(fm, fm->dirs.visible[i]);
   }
-  fm_sort_and_reselect(t, t->dirs.preview);
+  fm_sort_and_reselect(fm, fm->dirs.preview);
 }
 
 
-void fm_hidden_set(T *t, bool hidden)
+void fm_hidden_set(Fm *fm, bool hidden)
 {
   cfg.hidden = hidden;
-  fm_sort(t);
-  fm_update_preview(t);
+  fm_sort(fm);
+  fm_update_preview(fm);
 }
 
 
-void fm_check_dirs(const T *t)
+void fm_check_dirs(const Fm *fm)
 {
-  for (uint32_t i = 0; i < t->dirs.length; i++) {
-    if (t->dirs.visible[i] && !dir_check(t->dirs.visible[i])) {
-      loader_dir_reload(&t->lfm->loader, t->dirs.visible[i]);
+  for (uint32_t i = 0; i < fm->dirs.length; i++) {
+    if (fm->dirs.visible[i] && !dir_check(fm->dirs.visible[i])) {
+      loader_dir_reload(&fm->lfm->loader, fm->dirs.visible[i]);
     }
   }
 
-  if (t->dirs.preview && !dir_check(t->dirs.preview)) {
-    loader_dir_reload(&t->lfm->loader, t->dirs.preview);
+  if (fm->dirs.preview && !dir_check(fm->dirs.preview)) {
+    loader_dir_reload(&fm->lfm->loader, fm->dirs.preview);
   }
 }
 
 
-void fm_drop_cache(T *t)
+void fm_drop_cache(Fm *fm)
 {
-  notify_set_watchers(&t->lfm->notify, NULL, 0);
+  notify_set_watchers(&fm->lfm->notify, NULL, 0);
 
   log_debug("dropping cache");
-  fm_remove_preview(t);
+  fm_remove_preview(fm);
 
-  loader_drop_dir_cache(&t->lfm->loader);
+  loader_drop_dir_cache(&fm->lfm->loader);
 
-  fm_populate(t);
-  fm_update_preview(t);
-  fm_update_watchers(t);
+  fm_populate(fm);
+  fm_update_preview(fm);
+  fm_update_watchers(fm);
 }
 
 
-void fm_reload(T *t)
+void fm_reload(Fm *fm)
 {
-  for (uint32_t i = 0; i < t->dirs.length; i++) {
-    if (t->dirs.visible[i]) {
-      async_dir_load(&t->lfm->async, t->dirs.visible[i], true);
+  for (uint32_t i = 0; i < fm->dirs.length; i++) {
+    if (fm->dirs.visible[i]) {
+      async_dir_load(&fm->lfm->async, fm->dirs.visible[i], true);
     }
   }
-  if (t->dirs.preview) {
-    async_dir_load(&t->lfm->async, t->dirs.preview, true);
+  if (fm->dirs.preview) {
+    async_dir_load(&fm->lfm->async, fm->dirs.preview, true);
   }
 }
 
 
-static void fm_remove_preview(T *t)
+static void fm_remove_preview(Fm *fm)
 {
-  if (!t->dirs.preview) {
+  if (!fm->dirs.preview) {
     return;
   }
 
-  notify_remove_watcher(&t->lfm->notify, t->dirs.preview);
-  t->dirs.preview->visible = false;
-  t->dirs.preview = NULL;
+  notify_remove_watcher(&fm->lfm->notify, fm->dirs.preview);
+  fm->dirs.preview->visible = false;
+  fm->dirs.preview = NULL;
 }
 
 
@@ -271,50 +268,50 @@ static void fm_remove_preview(T *t)
 // on the directory for a second or so. This should greatly increase
 // responsiveness when scrolling through directories on a slow device (setting
 // watchers can be slow)
-void fm_update_preview(T *t)
+void fm_update_preview(Fm *fm)
 {
   if (!cfg.preview) {
-    fm_remove_preview(t);
+    fm_remove_preview(fm);
     return;
   }
 
-  const File *file = fm_current_file(t);
+  const File *file = fm_current_file(fm);
   if (file && file_isdir(file)) {
-    if (t->dirs.preview) {
-      if (streq(t->dirs.preview->path, file_path(file))) {
+    if (fm->dirs.preview) {
+      if (streq(fm->dirs.preview->path, file_path(file))) {
         return;
       }
 
-      /* don't remove watcher if it is a currently visible (non-preview) dir */
+      /* don'fm remove watcher if it is a currently visible (non-preview) dir */
       uint32_t i;
-      for (i = 0; i < t->dirs.length; i++) {
-        if (t->dirs.visible[i] && streq(t->dirs.preview->path, t->dirs.visible[i]->path)) {
+      for (i = 0; i < fm->dirs.length; i++) {
+        if (fm->dirs.visible[i] && streq(fm->dirs.preview->path, fm->dirs.visible[i]->path)) {
           break;
         }
       }
-      if (i >= t->dirs.length) {
-        notify_remove_watcher(&t->lfm->notify, t->dirs.preview);
-        t->dirs.preview->visible = false;
+      if (i >= fm->dirs.length) {
+        notify_remove_watcher(&fm->lfm->notify, fm->dirs.preview);
+        fm->dirs.preview->visible = false;
       }
     }
-    t->dirs.preview = loader_dir_from_path(&t->lfm->loader, file_path(file));
-    t->dirs.preview->visible = true;
+    fm->dirs.preview = loader_dir_from_path(&fm->lfm->loader, file_path(file));
+    fm->dirs.preview->visible = true;
     // sometimes very slow on smb (> 200ms)
-    notify_add_watcher(&t->lfm->notify, t->dirs.preview);
+    notify_add_watcher(&fm->lfm->notify, fm->dirs.preview);
   } else {
     // file preview or empty
-    if (t->dirs.preview) {
+    if (fm->dirs.preview) {
       uint32_t i;
-      for (i = 0; i < t->dirs.length; i++) {
-        if (t->dirs.visible[i] && streq(t->dirs.preview->path, t->dirs.visible[i]->path)) {
+      for (i = 0; i < fm->dirs.length; i++) {
+        if (fm->dirs.visible[i] && streq(fm->dirs.preview->path, fm->dirs.visible[i]->path)) {
           break;
         }
       }
-      if (i == t->dirs.length) {
-        notify_remove_watcher(&t->lfm->notify, t->dirs.preview);
-        t->dirs.preview->visible = false;
+      if (i == fm->dirs.length) {
+        notify_remove_watcher(&fm->lfm->notify, fm->dirs.preview);
+        fm->dirs.preview->visible = false;
       }
-      t->dirs.preview = NULL;
+      fm->dirs.preview = NULL;
     }
   }
 }
@@ -322,81 +319,81 @@ void fm_update_preview(T *t)
 /* selection {{{ */
 
 
-static inline void fm_selection_toggle(T *t, const char *path)
+static inline void fm_selection_toggle(Fm *fm, const char *path)
 {
-  if (!lht_delete(t->selection.paths, path)) {
-    fm_selection_add(t, path);
+  if (!lht_delete(fm->selection.paths, path)) {
+    fm_selection_add(fm, path);
   }
 }
 
 
-void fm_selection_toggle_current(T *t)
+void fm_selection_toggle_current(Fm *fm)
 {
-  if (t->visual.active) {
+  if (fm->visual.active) {
     return;
   }
-  File *file = fm_current_file(t);
+  File *file = fm_current_file(fm);
   if (file) {
-    fm_selection_toggle(t, file_path(file));
+    fm_selection_toggle(fm, file_path(file));
   }
 }
 
 
-void fm_selection_reverse(T *t)
+void fm_selection_reverse(Fm *fm)
 {
-  const Dir *dir = fm_current_dir(t);
+  const Dir *dir = fm_current_dir(fm);
   for (uint32_t i = 0; i < dir->length; i++) {
-    fm_selection_toggle(t, file_path(dir->files[i]));
+    fm_selection_toggle(fm, file_path(dir->files[i]));
   }
 }
 
 
-void fm_selection_visual_start(T *t)
+void fm_selection_visual_start(Fm *fm)
 {
-  if (t->visual.active) {
+  if (fm->visual.active) {
     return;
   }
 
-  Dir *dir = fm_current_dir(t);
+  Dir *dir = fm_current_dir(fm);
   if (dir->length == 0) {
     return;
   }
 
   /* TODO: what actually happens if we change sortoptions while visual is
    * active? (on 2021-11-15) */
-  t->visual.active = true;
-  t->visual.anchor = dir->ind;
-  fm_selection_add(t, file_path(dir->files[dir->ind]));
-  ht_clear(t->selection.previous);
-  lht_foreach(char* path, t->selection.paths) {
-    ht_set(t->selection.previous, path, path);
+  fm->visual.active = true;
+  fm->visual.anchor = dir->ind;
+  fm_selection_add(fm, file_path(dir->files[dir->ind]));
+  ht_clear(fm->selection.previous);
+  lht_foreach(char* path, fm->selection.paths) {
+    ht_set(fm->selection.previous, path, path);
   }
 }
 
 
-void fm_selection_visual_stop(T *t)
+void fm_selection_visual_stop(Fm *fm)
 {
-  if (!t->visual.active) {
+  if (!fm->visual.active) {
     return;
   }
 
-  t->visual.active = false;
-  t->visual.anchor = 0;
-  ht_clear(t->selection.previous);
+  fm->visual.active = false;
+  fm->visual.anchor = 0;
+  ht_clear(fm->selection.previous);
 }
 
 
-void fm_selection_visual_toggle(T *t)
+void fm_selection_visual_toggle(Fm *fm)
 {
-  if (t->visual.active) {
-    fm_selection_visual_stop(t);
+  if (fm->visual.active) {
+    fm_selection_visual_stop(fm);
   } else {
-    fm_selection_visual_start(t);
+    fm_selection_visual_start(fm);
   }
 }
 
 
-static void selection_visual_update(T *t, uint32_t origin, uint32_t from, uint32_t to)
+static void selection_visual_update(Fm *fm, uint32_t origin, uint32_t from, uint32_t to)
 {
   uint32_t hi, lo;
   if (from >= origin) {
@@ -422,17 +419,17 @@ static void selection_visual_update(T *t, uint32_t origin, uint32_t from, uint32
       hi = to - 1;
     }
   }
-  const Dir *dir = fm_current_dir(t);
+  const Dir *dir = fm_current_dir(fm);
   for (; lo <= hi; lo++) {
     // never unselect the old selection
-    if (!ht_get(t->selection.previous, file_path(dir->files[lo]))) {
-      fm_selection_toggle(t, file_path(dir->files[lo]));
+    if (!ht_get(fm->selection.previous, file_path(dir->files[lo]))) {
+      fm_selection_toggle(fm, file_path(dir->files[lo]));
     }
   }
 }
 
 
-void fm_selection_write(const T *t, const char *path)
+void fm_selection_write(const Fm *fm, const char *path)
 {
   char *dir, *buf = strdup(path);
   dir = dirname(buf);
@@ -445,13 +442,13 @@ void fm_selection_write(const T *t, const char *path)
     return;
   }
 
-  if (t->selection.paths->size > 0) {
-    lht_foreach(char *path, t->selection.paths) {
+  if (fm->selection.paths->size > 0) {
+    lht_foreach(char *path, fm->selection.paths) {
       fputs(path, fp);
       fputc('\n', fp);
     }
   } else {
-    const File *file = fm_current_file(t);
+    const File *file = fm_current_file(fm);
     if (file) {
       fputs(file_path(file), fp);
       fputc('\n', fp);
@@ -465,69 +462,69 @@ void fm_selection_write(const T *t, const char *path)
 /* load/copy/move {{{ */
 
 /* TODO: Make it possible to append to cut/copy buffer (on 2021-07-25) */
-void fm_paste_mode_set(T *t, enum paste_mode_e mode)
+void fm_paste_mode_set(Fm *fm, enum paste_mode_e mode)
 {
-  fm_selection_visual_stop(t);
-  t->paste.mode = mode;
-  if (t->selection.paths->size == 0) {
-    fm_selection_toggle_current(t);
+  fm_selection_visual_stop(fm);
+  fm->paste.mode = mode;
+  if (fm->selection.paths->size == 0) {
+    fm_selection_toggle_current(fm);
   }
-  lht_destroy(t->paste.buffer);
-  t->paste.buffer = t->selection.paths;
-  t->selection.paths = lht_create(free);
+  lht_destroy(fm->paste.buffer);
+  fm->paste.buffer = fm->selection.paths;
+  fm->selection.paths = lht_create(free);
 }
 
 /* }}} */
 
 /* navigation {{{ */
 
-bool fm_cursor_move(T *t, int32_t ct)
+bool fm_cursor_move(Fm *fm, int32_t ct)
 {
-  Dir *dir = fm_current_dir(t);
+  Dir *dir = fm_current_dir(fm);
   const uint32_t cur = dir->ind;
-  dir_cursor_move(dir, ct, t->height, cfg.scrolloff);
+  dir_cursor_move(dir, ct, fm->height, cfg.scrolloff);
   if (dir->ind != cur) {
-    if (t->visual.active) {
-      selection_visual_update(t, t->visual.anchor, cur, dir->ind);
+    if (fm->visual.active) {
+      selection_visual_update(fm, fm->visual.anchor, cur, dir->ind);
     }
-    fm_update_preview(t);
+    fm_update_preview(fm);
   }
   return dir->ind != cur;
 }
 
 
-void fm_move_cursor_to(T *t, const char *name)
+void fm_move_cursor_to(Fm *fm, const char *name)
 {
-  dir_cursor_move_to(fm_current_dir(t), name, t->height, cfg.scrolloff);
-  fm_update_preview(t);
+  dir_cursor_move_to(fm_current_dir(fm), name, fm->height, cfg.scrolloff);
+  fm_update_preview(fm);
 }
 
 
-bool fm_scroll_up(T *t)
+bool fm_scroll_up(Fm *fm)
 {
-  Dir *dir = fm_current_dir(t);
+  Dir *dir = fm_current_dir(fm);
   if (dir->ind > 0 && dir->ind == dir->pos) {
-    return fm_up(t, 1);
+    return fm_up(fm, 1);
   }
-  if (dir->pos < t->height - cfg.scrolloff - 1) {
+  if (dir->pos < fm->height - cfg.scrolloff - 1) {
     dir->pos++;
   } else {
-    dir->pos = t->height - cfg.scrolloff - 1;
+    dir->pos = fm->height - cfg.scrolloff - 1;
     dir->ind--;
     if (dir->ind > dir->length - cfg.scrolloff - 1) {
       dir->ind = dir->length - cfg.scrolloff - 1;
     }
-    fm_update_preview(t);
+    fm_update_preview(fm);
   }
   return true;
 }
 
 
-bool fm_scroll_down(T *t)
+bool fm_scroll_down(Fm *fm)
 {
-  Dir *dir = fm_current_dir(t);
-  if (dir->length - dir->ind + dir->pos - 1 < t->height) {
-    return fm_down(t, 1);
+  Dir *dir = fm_current_dir(fm);
+  if (dir->length - dir->ind + dir->pos - 1 < fm->height) {
+    return fm_down(fm, 1);
   }
   if (dir->pos > cfg.scrolloff) {
     dir->pos--;
@@ -537,41 +534,41 @@ bool fm_scroll_down(T *t)
     if (dir->ind < dir->pos) {
       dir->ind = dir->pos;
     }
-    fm_update_preview(t);
+    fm_update_preview(fm);
   }
   return true;
 }
 
 
-File *fm_open(T *t)
+File *fm_open(Fm *fm)
 {
-  File *file = fm_current_file(t);
+  File *file = fm_current_file(fm);
   if (!file) {
     return NULL;
   }
 
-  fm_selection_visual_stop(t);
+  fm_selection_visual_stop(fm);
   if (!file_isdir(file)) {
     return file;
   }
 
-  fm_chdir(t, file_path(file), false);
+  fm_chdir(fm, file_path(file), false);
   return NULL;
 }
 
 
-/* TODO: allow updir into directories that don't exist so we can move out of
+/* TODO: allow updir into directories that don'fm exist so we can move out of
  * deleted directories (on 2021-11-18) */
-bool fm_updir(T *t)
+bool fm_updir(Fm *fm)
 {
-  if (dir_isroot(fm_current_dir(t))) {
+  if (dir_isroot(fm_current_dir(fm))) {
     return false;
   }
 
-  const char *name = fm_current_dir(t)->name;
-  fm_chdir(t, dir_parent_path(fm_current_dir(t)), false);
-  fm_move_cursor_to(t, name);
-  fm_update_preview(t);
+  const char *name = fm_current_dir(fm)->name;
+  fm_chdir(fm, dir_parent_path(fm_current_dir(fm)), false);
+  fm_move_cursor_to(fm, name);
+  fm_update_preview(fm);
   return true;
 }
 
@@ -579,26 +576,26 @@ bool fm_updir(T *t)
 
 /* filter {{{ */
 
-void fm_filter(T *t, const char *filter)
+void fm_filter(Fm *fm, const char *filter)
 {
-  Dir *dir = fm_current_dir(t);
+  Dir *dir = fm_current_dir(fm);
   File *file = dir_current_file(dir);
   dir_filter(dir, filter);
-  dir_cursor_move_to(dir, file ? file_name(file) : NULL, t->height, cfg.scrolloff);
-  fm_update_preview(t);
+  dir_cursor_move_to(dir, file ? file_name(file) : NULL, fm->height, cfg.scrolloff);
+  fm_update_preview(fm);
 }
 
 /* }}} */
 
 /* TODO: To reload flattened directories, more notify watchers are needed (on 2022-02-06) */
-void fm_flatten(T *t, uint32_t level)
+void fm_flatten(Fm *fm, uint32_t level)
 {
-  fm_current_dir(t)->flatten_level = level;
-  async_dir_load(&t->lfm->async, fm_current_dir(t), true);
+  fm_current_dir(fm)->flatten_level = level;
+  async_dir_load(&fm->lfm->async, fm_current_dir(fm), true);
 }
 
 
-void fm_resize(T *t, uint32_t height)
+void fm_resize(Fm *fm, uint32_t height)
 {
   uint32_t scrolloff = cfg.scrolloff;
   if (height < cfg.scrolloff * 2) {
@@ -606,8 +603,8 @@ void fm_resize(T *t, uint32_t height)
   }
 
   // is there a way to restore the position when just undoing a previous resize?
-  ht_foreach(Dir *dir, t->lfm->loader.dir_cache) {
-    if (height > t->height) {
+  ht_foreach(Dir *dir, fm->lfm->loader.dir_cache) {
+    if (height > fm->height) {
       uint32_t scrolloff_top = dir->ind;
       if (scrolloff_top > scrolloff) {
         scrolloff_top = scrolloff;
@@ -618,7 +615,7 @@ void fm_resize(T *t, uint32_t height)
       if (dir->length > height && dir->pos < scrolloff_top) {
         dir->pos = scrolloff_top;
       }
-    } else if (height < t->height) {
+    } else if (height < fm->height) {
       uint32_t scrolloff_bot = dir->length - dir->ind;
       if (scrolloff_bot > scrolloff) {
         scrolloff_bot = scrolloff;
@@ -629,5 +626,5 @@ void fm_resize(T *t, uint32_t height)
     }
   }
 
-  t->height = height;
+  fm->height = height;
 }
