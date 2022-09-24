@@ -762,9 +762,9 @@ static const struct luaL_Reg log_lib[] = {
 
 /* ui lib {{{ */
 
-static int l_ui_history_lfmend(lua_State *L)
+static int l_ui_history_append(lua_State *L)
 {
-  history_lfmend(&ui->history, luaL_checkstring(L, 1));
+  history_append(&ui->history, luaL_checkstring(L, 1));
   return 0;
 }
 
@@ -893,7 +893,7 @@ static const struct luaL_Reg ui_lib[] = {
   {"get_height", l_ui_get_height},
   {"clear", l_ui_clear},
   {"draw", l_ui_draw},
-  {"history_lfmend", l_ui_history_lfmend},
+  {"history_lfmend", l_ui_history_append},
   {"history_next", l_ui_history_next},
   {"history_prev", l_ui_history_prev},
   {"menu", l_ui_menu},
