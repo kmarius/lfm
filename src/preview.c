@@ -12,93 +12,91 @@
 #include "preview.h"
 #include "util.h"
 
-#define T Preview
-
 #define PREVIEW_MAX_LINE_LENGTH 1024  // includes escapes and color codes
 
-static void draw_text_preview(const T *t, struct ncplane *n);
-static void update_text_preview(T *t, Preview *u);
-static void destroy_text_preview(Preview *t);
+static void draw_text_preview(const Preview *p, struct ncplane *n);
+static void update_text_preview(Preview *p, Preview *u);
+static void destroy_text_preview(Preview *p);
 
-static void draw_image_preview(const T *t, struct ncplane *n);
-static void update_image_preview(T *t, Preview *u);
-static void destroy_image_preview(Preview *t);
+static void draw_image_preview(const Preview *p, struct ncplane *n);
+static void update_image_preview(Preview *p, Preview *u);
+static void destroy_image_preview(Preview *p);
 
-bool preview_is_image_preview(const T *t)
+bool preview_is_image_preview(const Preview *p)
 {
-  return t->draw == draw_image_preview;
+  return p->draw == draw_image_preview;
 }
 
 
-static inline T *preview_init(T *t, const char *path, uint32_t nrow, bool image)
+static inline Preview *preview_init(Preview *p, const char *path, uint32_t nrow, bool image)
 {
-  memset(t, 0, sizeof *t);
-  t->path = strdup(path);
-  t->nrow = nrow;
-  t->next = current_millis();
+  memset(p, 0, sizeof *p);
+  p->path = strdup(path);
+  p->nrow = nrow;
+  p->next = current_millis();
   if (image) {
-    t->draw = draw_image_preview;
-    t->update = update_image_preview;
-    t->destroy = destroy_image_preview;
+    p->draw = draw_image_preview;
+    p->update = update_image_preview;
+    p->destroy = destroy_image_preview;
   } else {
-    t->draw = draw_text_preview;
-    t->update = update_text_preview;
-    t->destroy = destroy_text_preview;
+    p->draw = draw_text_preview;
+    p->update = update_text_preview;
+    p->destroy = destroy_text_preview;
   }
-  return t;
+  return p;
 }
 
 
-static inline T *preview_create(const char *path, uint32_t nrow, bool image)
+static inline Preview *preview_create(const char *path, uint32_t nrow, bool image)
 {
-  return preview_init(malloc(sizeof(T)), path, nrow, image);
+  return preview_init(malloc(sizeof(Preview)), path, nrow, image);
 }
 
 
-static void destroy_text_preview(Preview *t)
+static void destroy_text_preview(Preview *p)
 {
-  if (!t) {
+  if (!p) {
     return;
   }
-  cvector_ffree(t->lines, free);
-  free(t->path);
-  free(t);
+  cvector_ffree(p->lines, free);
+  free(p->path);
+  free(p);
 }
 
 
-T *preview_create_loading(const char *path, uint32_t nrow, bool image)
+Preview *preview_create_loading(const char *path, uint32_t nrow, bool image)
 {
-  T *t = preview_create(path, nrow, image);
-  t->loading = true;
-  return t;
+  Preview *p = preview_create(path, nrow, image);
+  p->loading = true;
+  return p;
 }
 
 
-static void update_text_preview(T *t, Preview *u)
+static void update_text_preview(Preview *p, Preview *u)
 {
-  log_debug("update_text_preview %s", t->path);
-  cvector_ffree(t->lines, free);
-  t->lines = u->lines;
-  t->mtime = u->mtime;
-  t->nrow = u->nrow;
-  t->loadtime = u->loadtime;
-  t->loading = false;
+  log_debug("update_text_preview %s", p->path);
+  cvector_ffree(p->lines, free);
+  p->lines = u->lines;
+  p->mtime = u->mtime;
+  p->nrow = u->nrow;
+  p->loadtime = u->loadtime;
+  p->loading = false;
 
   free(u->path);
   free(u);
 }
 
 
-static void update_image_preview(T *t, Preview *u)
+static void update_image_preview(Preview *p, Preview *u)
 {
-  log_debug("update_image_preview %s", t->path);
-  if (t->ncv) {
-    ncvisual_destroy(t->ncv);
+  log_debug("update_image_preview %s", p->path);
+  if (p->ncv) {
+    ncvisual_destroy(p->ncv);
   }
-  t->ncv = u->ncv;
-  t->mtime = u->mtime;
-  t->loadtime = u->loadtime;
-  t->loading = false;
+  p->ncv = u->ncv;
+  p->mtime = u->mtime;
+  p->loadtime = u->loadtime;
+  p->loading = false;
 
   free(u->path);
   free(u);
@@ -127,36 +125,36 @@ static char* fgets_seek(char* dest, int n, FILE *fp)
 }
 
 
-static inline T *create_image_preview(const char *path, uint32_t nrow)
+static inline Preview *create_image_preview(const char *path, uint32_t nrow)
 {
-  T *t = preview_create(path, nrow, true);
-  t->loadtime = current_millis();
+  Preview *p = preview_create(path, nrow, true);
+  p->loadtime = current_millis();
 
   struct stat statbuf;
-  t->mtime = stat(path, &statbuf) != -1 ? statbuf.st_mtime : 0;
+  p->mtime = stat(path, &statbuf) != -1 ? statbuf.st_mtime : 0;
 
   if (!cfg.previewer) {
-    return t;
+    return p;
   }
-  t->ncv = ncvisual_from_file(path);
-  log_debug("created image preview for %s %p", path, t->ncv);
+  p->ncv = ncvisual_from_file(path);
+  log_debug("created image preview for %s %p", path, p->ncv);
 
-  return t;
+  return p;
 }
 
 
-static inline T *create_text_preview(const char *path, uint32_t nrow)
+static inline Preview *create_text_preview(const char *path, uint32_t nrow)
 {
   char buf[PREVIEW_MAX_LINE_LENGTH];
 
-  T *t = preview_create(path, nrow, false);
-  t->loadtime = current_millis();
+  Preview *p = preview_create(path, nrow, false);
+  p->loadtime = current_millis();
 
   struct stat statbuf;
-  t->mtime = stat(path, &statbuf) != -1 ? statbuf.st_mtime : 0;
+  p->mtime = stat(path, &statbuf) != -1 ? statbuf.st_mtime : 0;
 
   if (!cfg.previewer) {
-    return t;
+    return p;
   }
 
   /* TODO: redirect stderr? (on 2021-08-10) */
@@ -165,21 +163,21 @@ static inline T *create_text_preview(const char *path, uint32_t nrow)
   // it might get reaped by ev in the main thread.
   // Once we can do that, we should e.g. adhere to ranger and print the preview
   // if the previewer exits with 7
-  char *const args[3] = {cfg.previewer, (char*) t->path, NULL};
+  char *const args[3] = {cfg.previewer, (char*) p->path, NULL};
   FILE *fp = popen_arr(cfg.previewer, args, false);
   if (!fp) {
     log_error("preview: %s", strerror(errno));
-    return t;
+    return p;
   }
   while (nrow-- > 0 && fgets_seek(buf, sizeof buf, fp)) {
-    cvector_push_back(t->lines, strdup(buf));
+    cvector_push_back(p->lines, strdup(buf));
   }
   pclose(fp);
-  return t;
+  return p;
 }
 
 
-T *preview_create_from_file(const char *path, uint32_t nrow, bool image)
+Preview *preview_create_from_file(const char *path, uint32_t nrow, bool image)
 {
   if (image) {
     return create_image_preview(path, nrow);
@@ -189,7 +187,7 @@ T *preview_create_from_file(const char *path, uint32_t nrow, bool image)
 }
 
 
-static void draw_text_preview(const T *t, struct ncplane *n)
+static void draw_text_preview(const Preview *p, struct ncplane *n)
 {
   ncplane_erase(n);
 
@@ -199,44 +197,44 @@ static void draw_text_preview(const T *t, struct ncplane *n)
   ncplane_set_fg_default(n);
   ncplane_set_bg_default(n);
 
-  for (size_t i = 0; i < cvector_size(t->lines) && i < (size_t) nrow; i++) {
+  for (size_t i = 0; i < cvector_size(p->lines) && i < (size_t) nrow; i++) {
     ncplane_cursor_move_yx(n, i, 0);
     ncplane_set_fg_default(n);
     ncplane_set_bg_default(n);
     ncplane_set_styles(n, NCSTYLE_NONE);
-    ansi_addstr(n, t->lines[i]);
+    ansi_addstr(n, p->lines[i]);
   }
 }
 
 
-static void draw_image_preview(const T *t, struct ncplane *n)
+static void draw_image_preview(const Preview *p, struct ncplane *n)
 {
   ncplane_erase(n);
 
-  if (!t->ncv) {
+  if (!p->ncv) {
     return;
   }
-  log_debug("drawing image preview %s", t->path);
+  log_debug("drawing image preview %s", p->path);
   struct ncvisual_options vopts = {
     .scaling = NCSCALE_SCALE,
     .n = n,
     .blitter = NCBLIT_PIXEL,
   };
-  if (ncvisual_blit(ncplane_notcurses(n), t->ncv, &vopts) == NULL){
+  if (ncvisual_blit(ncplane_notcurses(n), p->ncv, &vopts) == NULL){
     log_error("ncvisual_blit error");
   }
 }
 
 
-static void destroy_image_preview(Preview *t)
+static void destroy_image_preview(Preview *p)
 {
-  if (!t) {
+  if (!p) {
     return;
   }
-  if (t->ncv) {
-    ncvisual_destroy(t->ncv);
-    t->ncv = NULL;
+  if (p->ncv) {
+    ncvisual_destroy(p->ncv);
+    p->ncv = NULL;
   }
-  free(t->path);
-  free(t);
+  free(p->path);
+  free(p);
 }
