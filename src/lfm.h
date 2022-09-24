@@ -22,6 +22,14 @@ typedef struct lfm_s {
   int fifo_fd;
 
   uint64_t input_timeout;
+  struct {
+    struct trie_s *normal;  // normal mode mappings
+    struct trie_s *cmd;     // command mode mappings
+    struct trie_s *cur;     // pointer to the current leaf in either of the tries
+    input_t *seq;  // current key sequence
+    int count;
+    bool accept_count;
+  } maps;
 
   struct message *messages;
 
