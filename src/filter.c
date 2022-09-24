@@ -8,8 +8,6 @@
 
 #define FILTER_INITIAL_CAPACITY 2
 
-#define T Filter
-
 // Performance is surprisingly good even on very large directories (100k-1m files).
 // Unless something changes don't bother with incrementally extending and existing
 // filter and just rebuild it every time.
@@ -57,51 +55,51 @@ static void subfilter_init(struct subfilter *s, char *filter)
 }
 
 
-T *filter_create(const char *filter)
+Filter *filter_create(const char *filter)
 {
-  T *t = malloc(sizeof *t);
-  t->capacity = FILTER_INITIAL_CAPACITY;
-  t->filters = malloc(t->capacity * sizeof *t->filters);
-  t->length = 0;
-  t->string = strdup(filter);
+  Filter *f = malloc(sizeof *f);
+  f->capacity = FILTER_INITIAL_CAPACITY;
+  f->filters = malloc(f->capacity * sizeof *f->filters);
+  f->length = 0;
+  f->string = strdup(filter);
 
   char *buf = strdup(filter);
   for (char *tok = strtok(buf, " ");
       tok != NULL;
       tok = strtok(NULL, " ")) {
-    if (t->length == t->capacity) {
-      t->capacity *= 2;
-      t->filters = realloc(t->filters, t->capacity * sizeof *t->filters);
+    if (f->length == f->capacity) {
+      f->capacity *= 2;
+      f->filters = realloc(f->filters, f->capacity * sizeof *f->filters);
     }
-    subfilter_init(&t->filters[t->length++], tok);
+    subfilter_init(&f->filters[f->length++], tok);
   }
 
   free(buf);
-  return t;
+  return f;
 }
 
 
-void filter_destroy(T *t)
+void filter_destroy(Filter *s)
 {
-  if (!t) {
+  if (!s) {
     return;
   }
 
-  for (uint32_t i = 0; i < t->length; i++) {
-    for (uint32_t j = 0; j < t->filters[i].length; j++) {
-      free(t->filters[i].atoms[j].string);
+  for (uint32_t i = 0; i < s->length; i++) {
+    for (uint32_t j = 0; j < s->filters[i].length; j++) {
+      free(s->filters[i].atoms[j].string);
     }
-    free(t->filters[i].atoms);
+    free(s->filters[i].atoms);
   }
-  free(t->string);
-  free(t->filters);
-  free(t);
+  free(s->string);
+  free(s->filters);
+  free(s);
 }
 
 
-const char *filter_string(const T *t)
+const char *filter_string(const Filter *f)
 {
-  return t ? t->string : "";
+  return f ? f->string : "";
 }
 
 
@@ -122,10 +120,10 @@ static inline bool subfilter_match(const struct subfilter *s, const char *str)
 }
 
 
-bool filter_match(const T *t, const char *str)
+bool filter_match(const Filter *f, const char *str)
 {
-  for (uint32_t i = 0; i < t->length; i++) {
-    if (!subfilter_match(&t->filters[i], str)) {
+  for (uint32_t i = 0; i < f->length; i++) {
+    if (!subfilter_match(&f->filters[i], str)) {
       return false;
     }
   }
