@@ -634,6 +634,7 @@ int luaopen_rifle(lua_State *L)
   lua_newtable(L);
 
   struct rifle_s *r = lua_newuserdata(L, sizeof *r);
+  memset(r, 0, sizeof *r);
   luaL_newmetatable(L, RIFLE_META);
   lua_pushcfunction(L, rifle_gc);
   lua_setfield(L, -2, "__gc");
