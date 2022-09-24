@@ -113,24 +113,10 @@ void ui_suspend(Ui *ui)
 
 void ui_init(Ui *ui, struct lfm_s *lfm)
 {
-  ui->lfm = lfm;
-
   cmdline_init(&ui->cmdline);
   history_load(&ui->history, cfg.historypath);
 
-  ui->planes.dirs = NULL;
-  ui->planes.cmdline = NULL;
-  ui->planes.menu = NULL;
-  ui->planes.info = NULL;
-
-  ui->ndirs = 0;
-
-  ui->preview.preview = NULL;
-
-  ui->highlight = NULL;
-
-  ui->menubuf = NULL;
-  ui->message = false;
+  ui->lfm = lfm;
 
   ui_resume(ui);
 
