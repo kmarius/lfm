@@ -154,6 +154,7 @@ void ui_deinit(T *t)
   cvector_ffree(t->messages, free);
   cvector_ffree(t->menubuf, free);
   cmdline_deinit(&t->cmdline);
+  free(t->search_string);
 }
 
 

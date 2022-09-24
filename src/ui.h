@@ -46,7 +46,9 @@ typedef struct ui_s {
     unsigned int rows;
   } preview;
 
-  const char *highlight;
+  const char *highlight; /* pointer to search_string, or NULL */
+  char *search_string;
+  bool search_forward;
 
   uint32_t redraw;
 
