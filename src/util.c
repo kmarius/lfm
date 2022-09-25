@@ -2,6 +2,7 @@
 #include <errno.h>
 #include <libgen.h>
 #include <linux/limits.h>
+#include <magic.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -304,5 +305,23 @@ char *path_qualify(const char* path)
   }
   *q = 0;
 
+  return ret;
+}
+
+
+// https://stackoverflow.com/questions/9152978/include-unix-utility-file-in-c-program
+bool get_mimetype(const char *path, char *dest, size_t sz)
+{
+  bool ret = true;
+  magic_t magic = magic_open(MAGIC_MIME_TYPE);
+  magic_load(magic, NULL);
+  const char *mime = magic_file(magic, path);
+  if (!mime || hasprefix(mime, "cannot open")) {
+    ret = false;
+    *dest = 0;
+  } else {
+    strncpy(dest, mime, sz);
+  }
+  magic_close(magic);
   return ret;
 }

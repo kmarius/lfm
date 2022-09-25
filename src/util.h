@@ -150,3 +150,7 @@ static inline bool path_is_absolute(const char *path)
 {
   return *path == '/';
 }
+
+// Writes the mimetype of the file at PATH into the buffer dest of length sz.
+// Returns true on success, false on failure with *dest == '\0'
+bool get_mimetype(const char *path, char *dest, size_t sz);

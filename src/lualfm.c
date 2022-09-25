@@ -1675,9 +1675,9 @@ static const struct luaL_Reg fm_lib[] = {
 
 static int l_fn_mime(lua_State *L)
 {
-  char mime[MIME_MAX];
+  char mime[256];
   const char *path = luaL_checkstring(L, 1);
-  if (get_mimetype(path, mime)) {
+  if (get_mimetype(path, mime, sizeof mime)) {
     lua_pushstring(L, mime);
     return 1;
   }

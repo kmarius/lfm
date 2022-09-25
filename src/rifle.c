@@ -2,7 +2,6 @@
 #include <linux/limits.h>
 #include <lua.h>
 #include <lualib.h>
-#include <magic.h>
 #include <pcre.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -153,24 +152,6 @@ static bool regex_match(const char *regex, const char *string)
   }
 
   return true;
-}
-
-
-// https://stackoverflow.com/questions/9152978/include-unix-utility-file-in-c-program
-bool get_mimetype(const char *path, char *dest)
-{
-  bool ret = true;
-  magic_t magic = magic_open(MAGIC_MIME_TYPE);
-  magic_load(magic, NULL);
-  const char *mime = magic_file(magic, path);
-  if (!mime || hasprefix(mime, "cannot open")) {
-    ret = false;
-    *dest = 0;
-  } else {
-    strncpy(dest, mime, MIME_MAX);
-  }
-  magic_close(magic);
-  return ret;
 }
 
 
@@ -387,8 +368,8 @@ static int rifle_fileinfo(lua_State *L)
   char path[PATH_MAX + 1];
   realpath(file, path);
 
-  char mime[MIME_MAX + 1];
-  get_mimetype(path, mime);
+  char mime[256];
+  get_mimetype(path, mime, sizeof mime);
 
   lua_newtable(L);
 
@@ -508,8 +489,8 @@ static int rifle_query(lua_State *L)
   char path[PATH_MAX + 1];
   realpath(file, path);
 
-  char mime[MIME_MAX + 1];
-  get_mimetype(path, mime);
+  char mime[256];
+  get_mimetype(path, mime, sizeof mime);
 
   const FileInfo info = {.file = file, .path = path, .mime = mime};
 
