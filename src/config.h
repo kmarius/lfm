@@ -17,6 +17,7 @@ typedef struct config_s {
   char *luadir;         // /usr/share/lfm/lua
   char *corepath;       // /usr/share/lfm/lua/core.lua
   char *rundir;         // $XDG_RUNTIME_DIR or /tmp/runtime-$USER
+  char *cachedir;       // $XDG_CACHE_HOME/lfm or ~/.cache/lfm
   char *fifopath;       // rundir/$PID.fifo
   char *logpath;        // /tmp/lfm.$PID.log
   wchar_t truncatechar; // '~'
@@ -26,7 +27,6 @@ typedef struct config_s {
   char *startfile;
   bool preview;
   bool preview_images;
-  Hashtab *image_extensions;
   bool icons;
   Hashtab *icon_map;
   char *previewer;
@@ -77,12 +77,6 @@ static inline void config_ext_channel_add(const char *ext, uint64_t channel)
 }
 
 void config_colors_clear();
-
-static inline void image_extension_add(const char *ext)
-{
-  char *val = strdup(ext);
-  ht_set(cfg.image_extensions, val, val);
-}
 
 static inline void config_icon_map_add(const char *ext, const char *icon)
 {

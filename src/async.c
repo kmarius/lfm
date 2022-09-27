@@ -534,7 +534,6 @@ struct preview_load_work {
   char *path;
   Preview *preview;
   int nrow;
-  bool image_preview;
   uint32_t version;
 };
 
@@ -545,7 +544,7 @@ static void async_preview_load_worker(void *arg)
 
   PreviewLoadResult *res = PreviewLoadResult_create(
       work->preview,
-      preview_create_from_file(work->path, work->nrow, work->image_preview),
+      preview_create_from_file(work->path, work->nrow),
       work->version);
   enqueue_and_signal(work->async, (Result *) res);
 
@@ -562,7 +561,6 @@ void async_preview_load(Async *async, Preview *pv)
   work->path = strdup(pv->path);
   work->nrow = async->lfm->ui.nrow;
   work->version = async->lfm->loader.preview_cache_version;
-  work->image_preview = preview_is_image_preview(pv);
   tpool_add_work(async->tpool, async_preview_load_worker, work);
 }
 

@@ -29,9 +29,9 @@ typedef struct preview_s {
   preview_destroy_fun destroy;
 } Preview;
 
-Preview *preview_create_loading(const char *path, uint32_t nrow, bool image);
+Preview *preview_create_loading(const char *path, uint32_t nrow);
 
-Preview *preview_create_from_file(const char *path, uint32_t nrow, bool image);
+Preview *preview_create_from_file(const char *path, uint32_t nrow);
 
 bool preview_is_image_preview(const Preview *pv);
 

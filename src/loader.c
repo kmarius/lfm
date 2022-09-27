@@ -155,7 +155,7 @@ Dir *loader_dir_from_path(Loader *loader, const char *path)
 }
 
 
-Preview *loader_preview_from_path(Loader *loader, const char *path, bool image)
+Preview *loader_preview_from_path(Loader *loader, const char *path)
 {
   char fullpath[PATH_MAX];
   if (path_is_relative(path)) {
@@ -172,7 +172,7 @@ Preview *loader_preview_from_path(Loader *loader, const char *path, bool image)
       async_preview_check(&loader->lfm->async, pv);
     }
   } else {
-    pv = preview_create_loading(path, loader->lfm->ui.nrow, image);
+    pv = preview_create_loading(path, loader->lfm->ui.nrow);
     ht_set(loader->preview_cache, pv->path, pv);
     async_preview_load(&loader->lfm->async, pv);
   }

@@ -28,7 +28,7 @@ void loader_dir_reload(Loader *loader, Dir *dir);
 Hashtab *loader_dir_hashtab(Loader *loader);
 void loader_drop_dir_cache(Loader *loader);
 
-Preview *loader_preview_from_path(Loader *loader, const char *path, bool image);
+Preview *loader_preview_from_path(Loader *loader, const char *path);
 void loader_preview_reload(Loader *loader, Preview *pv);
 Hashtab *loader_pv_hashtab(Loader *loader);
 void loader_drop_preview_cache(Loader *loader);

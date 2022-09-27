@@ -31,7 +31,6 @@
 ---@field previewer string assignable
 ---@field icons boolean assignable
 ---@field icon_map table<string, string> assignable
----@field image_extensions string[] assignable file extensions that should be previewed as images
 ---@field configpath string
 ---@field configdir string
 ---@field luadir string

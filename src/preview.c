@@ -1,8 +1,10 @@
 #include <errno.h>
+#include <linux/limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/stat.h>
 #include <time.h>
+#include <sys/wait.h>
 
 #include "config.h"
 #include "cvector.h"
@@ -10,6 +12,7 @@
 #include "ncutil.h"
 #include "popen_arr.h"
 #include "preview.h"
+#include "sha256.h"
 #include "util.h"
 
 #define PREVIEW_MAX_LINE_LENGTH 1024  // includes escapes and color codes
@@ -28,28 +31,24 @@ bool preview_is_image_preview(const Preview *p)
 }
 
 
-static inline Preview *preview_init(Preview *p, const char *path, uint32_t nrow, bool image)
+static inline Preview *preview_init(Preview *p, const char *path, uint32_t nrow)
 {
   memset(p, 0, sizeof *p);
   p->path = strdup(path);
   p->nrow = nrow;
   p->next = current_millis();
-  if (image) {
-    p->draw = draw_image_preview;
-    p->update = update_image_preview;
-    p->destroy = destroy_image_preview;
-  } else {
-    p->draw = draw_text_preview;
-    p->update = update_text_preview;
-    p->destroy = destroy_text_preview;
-  }
+
+  p->draw = draw_text_preview;
+  p->update = update_text_preview;
+  p->destroy = destroy_text_preview;
+
   return p;
 }
 
 
-static inline Preview *preview_create(const char *path, uint32_t nrow, bool image)
+static inline Preview *preview_create(const char *path, uint32_t nrow)
 {
-  return preview_init(malloc(sizeof(Preview)), path, nrow, image);
+  return preview_init(malloc(sizeof(Preview)), path, nrow);
 }
 
 
@@ -64,9 +63,9 @@ static void destroy_text_preview(Preview *p)
 }
 
 
-Preview *preview_create_loading(const char *path, uint32_t nrow, bool image)
+Preview *preview_create_loading(const char *path, uint32_t nrow)
 {
-  Preview *p = preview_create(path, nrow, image);
+  Preview *p = preview_create(path, nrow);
   p->loading = true;
   return p;
 }
@@ -81,6 +80,10 @@ static void update_text_preview(Preview *p, Preview *u)
   p->nrow = u->nrow;
   p->loadtime = u->loadtime;
   p->loading = false;
+
+  p->draw = u->draw;
+  p->update = u->update;
+  p->destroy = u->destroy;
 
   free(u->path);
   free(u);
@@ -124,30 +127,29 @@ static char* fgets_seek(char* dest, int n, FILE *fp)
   return (c == EOF && cs == dest) ? NULL : dest;
 }
 
-
-static inline Preview *create_image_preview(const char *path, uint32_t nrow)
+static inline void gen_cache_path(char *cache_path, const char *path)
 {
-  Preview *p = preview_create(path, nrow, true);
-  p->loadtime = current_millis();
-
-  struct stat statbuf;
-  p->mtime = stat(path, &statbuf) != -1 ? statbuf.st_mtime : 0;
-
-  if (!cfg.previewer) {
-    return p;
+  uint8_t buf[32];
+  SHA256_CTX ctx;
+  sha256_init(&ctx);
+  sha256_update(&ctx, (uint8_t *) path, strlen(path));
+  cache_path += sprintf(cache_path, "%s/img/", cfg.cachedir);
+  sha256_final(&ctx, buf);
+  for (size_t i = 0; i < sizeof buf; i++) {
+    const char upper = buf[i] >> 4;
+    const char lower = buf[i] & 0x0f;
+    cache_path[2*i] = lower < 10 ? '0' + lower : 'a' + lower - 10;
+    cache_path[2*i+1] = upper < 10 ? '0' + upper : 'a' + upper - 10;
   }
-  p->ncv = ncvisual_from_file(path);
-  log_debug("created image preview for %s %p", path, p->ncv);
-
-  return p;
+  cache_path[2*32] = 0;
 }
 
 
-static inline Preview *create_text_preview(const char *path, uint32_t nrow)
+Preview *preview_create_from_file(const char *path, uint32_t nrow)
 {
   char buf[PREVIEW_MAX_LINE_LENGTH];
 
-  Preview *p = preview_create(path, nrow, false);
+  Preview *p = preview_create(path, nrow);
   p->loadtime = current_millis();
 
   struct stat statbuf;
@@ -157,33 +159,90 @@ static inline Preview *create_text_preview(const char *path, uint32_t nrow)
     return p;
   }
 
-  /* TODO: redirect stderr? (on 2021-08-10) */
-  // TODO:  (on 2022-08-21)
-  // we can not reliably get the return status of the child here because
-  // it might get reaped by ev in the main thread.
-  // Once we can do that, we should e.g. adhere to ranger and print the preview
-  // if the previewer exits with 7
-  char *const args[3] = {cfg.previewer, (char*) p->path, NULL};
-  FILE *fp = popen_arr(cfg.previewer, args, false);
+  /* TODO: make proper use of the cache (on 2022-09-27) */
+  /* we currently only use it as a place for the previewer to write to */
+  char cache_path[PATH_MAX];
+  if (cfg.preview_images) {
+    gen_cache_path(cache_path, path);
+    log_debug("generated: %s", cache_path);
+  } else {
+    cache_path[0] = 0;
+  }
+
+  char *const args[7] = {
+    cfg.previewer,
+    (char*) p->path,
+    "0", "0",  // width, height
+    cache_path,
+    cfg.preview_images ? "True" : "False",
+    NULL};
+
+  FILE *fp = NULL;
+  int pid = popen2_arr_p(NULL, &fp, NULL, args[0], args, NULL);
   if (!fp) {
+    cvector_push_back(p->lines, strerror(errno));
     log_error("preview: %s", strerror(errno));
     return p;
   }
+
   while (nrow-- > 0 && fgets_seek(buf, sizeof buf, fp)) {
     cvector_push_back(p->lines, strdup(buf));
   }
+
+  int status;
+  if (waitpid(pid, &status, 0) == -1) {
+    log_error("waitpid failed");
+  } else {
+    /* TODO: what other statuses are possible here? (on 2022-09-27) */
+    if (WIFEXITED(status)) {
+      const int ret = WEXITSTATUS(status);
+      // return code interpretation taken from ranger:
+      switch (ret) {
+        case 0: break; // display stdout
+        case 1: cvector_fclear(p->lines, free); break; // no preview
+       // case 2: // show file content
+       // case 3: // fix width
+       // case 4: // fix height
+       // case 5: // fix both
+        case 6: if (cfg.preview_images) { // load from cache path passed to the previewer
+                  struct ncvisual *ncv = ncvisual_from_file(cache_path);
+                  if (ncv) {
+                    cvector_ffree(p->lines, free);
+                    p->ncv = ncv;
+                    p->draw = draw_image_preview;
+                    p->update = update_image_preview;
+                    p->destroy = destroy_image_preview;
+                  } else {
+                    cvector_fclear(p->lines, free);
+                    cvector_push_back(p->lines, strdup("error loading image preview"));
+                    log_error("error loading image preview from %s", cache_path);
+                  }
+                }
+                break;
+        case 7: if (cfg.preview_images) { // load file as image
+                                          // try to load image preview
+                  struct ncvisual *ncv = ncvisual_from_file(path);
+                  if (ncv) {
+                    cvector_ffree(p->lines, free);
+                    p->ncv = ncv;
+                    p->draw = draw_image_preview;
+                    p->update = update_image_preview;
+                    p->destroy = destroy_image_preview;
+                  } else {
+                    cvector_fclear(p->lines, free);
+                    cvector_push_back(p->lines, strdup("error (ncvisual_from_file)"));
+                    log_error("error loading image preview");
+                  }
+                }
+                break;
+        default:
+                log_error("unexpected return code %d from previewer for file %s", ret, path);
+      }
+    }
+  }
+
   pclose(fp);
   return p;
-}
-
-
-Preview *preview_create_from_file(const char *path, uint32_t nrow, bool image)
-{
-  if (image) {
-    return create_image_preview(path, nrow);
-  } else {
-    return create_text_preview(path, nrow);
-  }
 }
 
 
@@ -214,7 +273,6 @@ static void draw_image_preview(const Preview *p, struct ncplane *n)
   if (!p->ncv) {
     return;
   }
-  log_debug("drawing image preview %s", p->path);
   struct ncvisual_options vopts = {
     .scaling = NCSCALE_SCALE,
     .n = n,

@@ -1145,30 +1145,9 @@ static void plane_draw_dir(struct ncplane *n, Dir *dir, LinkedHashtab *sel, Link
 
 /* preview {{{ */
 
-/* TODO: make a hashmap or something (on 2022-08-21) */
-static inline bool is_image(Hashtab *ht, const char *path)
-{
-  char buf[EXT_MAX_LEN];
-
-  if (path) {
-    size_t i;
-    for (i = 0; path[i] && i < EXT_MAX_LEN-1; i++) {
-      buf[i] = tolower(path[i]);
-    }
-    buf[i] = 0;
-    return NULL != ht_get(ht, buf);
-  }
-  return false;
-}
-
-
 static inline Preview *load_preview(Ui *ui, File *file)
 {
-  return loader_preview_from_path(
-      &ui->lfm->loader,
-      file_path(file),
-      cfg.preview_images && notcurses_canopen_images(ui->nc)
-      && is_image(cfg.image_extensions, file_ext(file)));
+  return loader_preview_from_path(&ui->lfm->loader, file_path(file));
 }
 
 

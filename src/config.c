@@ -41,10 +41,6 @@ Config cfg = {
 void config_init()
 {
   cfg.colors.ext = ht_create(free);
-  cfg.image_extensions = ht_create(free);
-  image_extension_add(".jpg");
-  image_extension_add(".png");
-  image_extension_add(".webp");
   cvector_vector_type(uint32_t) r = NULL;
   cvector_push_back(r, 1);
   cvector_push_back(r, 2);
@@ -69,13 +65,19 @@ void config_init()
 
   cfg.previewer = strdup("stat");
   cfg.preview = true;
-  cfg.preview_images = false;
 
   const char *xdg_runtime = getenv("XDG_RUNTIME_DIR");
   if (!xdg_runtime || *xdg_runtime == 0) {
     asprintf(&cfg.rundir, "/tmp/runtime-%s/lfm", getenv("USER"));
   } else {
     asprintf(&cfg.rundir, "%s/lfm", xdg_runtime);
+  }
+
+  const char *xdg_cache_home = getenv("XDG_CACHE_HOME");
+  if (!xdg_cache_home || *xdg_cache_home == 0) {
+    asprintf(&cfg.cachedir, "/home/%s/.cache/lfm", getenv("USER"));
+  } else {
+    asprintf(&cfg.cachedir, "%s/lfm", xdg_cache_home);
   }
 
   const char *xdg_config = getenv("XDG_CONFIG_HOME");
@@ -117,7 +119,6 @@ void config_deinit()
 {
   config_colors_clear();
   ht_destroy(cfg.colors.ext);
-  ht_destroy(cfg.image_extensions);
   ht_destroy(cfg.icon_map);
   cvector_free(cfg.ratios);
   cvector_free(cfg.commands);
@@ -127,6 +128,7 @@ void config_deinit()
   free(cfg.corepath);
   free(cfg.user_datadir);
   free(cfg.datadir);
+  free(cfg.cachedir);
   free(cfg.fifopath);
   free(cfg.historypath);
   free(cfg.logpath);
