@@ -6,6 +6,8 @@
 
 #include "async.h"
 #include "config.h"
+#include "dir.h"
+#include "file.h"
 #include "fm.h"
 #include "hashtab.h"
 #include "lfm.h"
@@ -304,6 +306,21 @@ static void DirUpdateResult_callback(void *p, Lfm *lfm)
   DirUpdateResult *res = p;
   if (res->version == lfm->loader.dir_cache_version
       && res->dir->flatten_level == res->update->flatten_level) {
+    if (res->update->length_all != res->dir->length_all) {
+      // try update parent dircount
+      const char *parent_path = dir_parent_path(res->dir);
+      if (parent_path) {
+        Dir *parent = ht_get(lfm->loader.dir_cache, parent_path);
+        if (parent) {
+          cvector_foreach(File *file, parent->files_all) {
+            if (streq(file_name(file), res->dir->name)) {
+              file_dircount_set(file, res->update->length_all);
+              break;
+            }
+          }
+        }
+      }
+    }
     dir_update_with(res->dir, res->update, lfm->fm.height, cfg.scrolloff);
     if (res->dir->visible) {
       fm_update_preview(&lfm->fm);
