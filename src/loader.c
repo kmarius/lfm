@@ -29,8 +29,16 @@ void loader_init(Loader *loader, struct lfm_s *_lfm)
 
 void loader_deinit(Loader *loader)
 {
-  cvector_ffree(loader->dir_timers, free);
-  cvector_ffree(loader->preview_timers, free);
+  cvector_foreach(struct ev_timer *timer, loader->dir_timers) {
+    free(timer->data);
+    free(timer);
+  }
+  cvector_foreach(struct ev_timer *timer, loader->preview_timers) {
+    free(timer->data);
+    free(timer);
+  }
+  cvector_free(loader->dir_timers);
+  cvector_free(loader->preview_timers);
   ht_destroy(loader->dir_cache);
   ht_destroy(loader->preview_cache);
 }
