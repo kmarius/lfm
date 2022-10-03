@@ -150,7 +150,7 @@ Preview *preview_create_from_file(const char *path, uint32_t width, uint32_t hei
 {
   char buf[PREVIEW_MAX_LINE_LENGTH];
 
-  Preview *p = preview_create(path, width);
+  Preview *p = preview_create(path, height);
   p->loadtime = current_millis();
 
   struct stat statbuf;
@@ -191,9 +191,10 @@ Preview *preview_create_from_file(const char *path, uint32_t width, uint32_t hei
     return p;
   }
 
-  while (fgets_seek(buf, sizeof buf, fp)) {
+  while (height-- > 0 && fgets_seek(buf, sizeof buf, fp)) {
     cvector_push_back(p->lines, strdup(buf));
   }
+  while (getc(fp) != EOF) {}
 
   // if we try to close the pipe (so that the child exits), the process gets reaped
   // by libev and we can not wait and get the return status. Hence we read the
