@@ -30,6 +30,7 @@ void loader_init(Loader *loader, struct lfm_s *_lfm)
 
 void loader_deinit(Loader *loader)
 {
+  log_debug("loader_deinit");
   cvector_foreach(struct ev_timer *timer, loader->dir_timers) {
     free(timer->data);
     free(timer);
@@ -42,6 +43,7 @@ void loader_deinit(Loader *loader)
   cvector_free(loader->preview_timers);
   ht_destroy(loader->dir_cache);
   ht_destroy(loader->preview_cache);
+  log_debug("loader_deinit complete");
 }
 
 

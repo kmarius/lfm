@@ -72,14 +72,18 @@ void async_init(Async *async, Lfm *lfm)
 
 void async_deinit(Async *async)
 {
+  log_debug("async_deinit");
   tpool_wait(async->tpool);
+  log_debug("async_wait complete");
   tpool_destroy(async->tpool);
+  log_debug("async_destroy complete");
 
   Result *res;
   while ((res = resultqueue_get(&async->queue))) {
     res->destroy(res);
   }
   pthread_mutex_destroy(&async->queue.mutex);
+  log_debug("async_deinit complete");
 }
 
 
