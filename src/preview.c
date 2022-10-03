@@ -1,5 +1,6 @@
 #include <errno.h>
 #include <linux/limits.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/stat.h>
@@ -145,11 +146,11 @@ static inline void gen_cache_path(char *cache_path, const char *path)
 }
 
 
-Preview *preview_create_from_file(const char *path, uint32_t nrow)
+Preview *preview_create_from_file(const char *path, uint32_t width, uint32_t height)
 {
   char buf[PREVIEW_MAX_LINE_LENGTH];
 
-  Preview *p = preview_create(path, nrow);
+  Preview *p = preview_create(path, width);
   p->loadtime = current_millis();
 
   struct stat statbuf;
@@ -169,10 +170,15 @@ Preview *preview_create_from_file(const char *path, uint32_t nrow)
     cache_path[0] = 0;
   }
 
+  char w[32];
+  char h[32];
+  snprintf(w, sizeof w, "%u", width);
+  snprintf(h, sizeof h, "%u", height);
+
   char *const args[7] = {
     cfg.previewer,
     (char*) p->path,
-    "0", "0",  // width, height
+    w, h,
     cache_path,
     cfg.preview_images ? "True" : "False",
     NULL};
@@ -185,10 +191,13 @@ Preview *preview_create_from_file(const char *path, uint32_t nrow)
     return p;
   }
 
-  while (nrow-- > 0 && fgets_seek(buf, sizeof buf, fp)) {
+  while (fgets_seek(buf, sizeof buf, fp)) {
     cvector_push_back(p->lines, strdup(buf));
   }
 
+  // if we try to close the pipe (so that the child exits), the process gets reaped
+  // by libev and we can not wait and get the return status. Hence we read the
+  // whole output of the previewer and let it exit on its own.
   int status;
   if (waitpid(pid, &status, 0) == -1) {
     log_error("waitpid failed");
@@ -241,7 +250,7 @@ Preview *preview_create_from_file(const char *path, uint32_t nrow)
     }
   }
 
-  pclose(fp);
+  fclose(fp);
   return p;
 }
 

@@ -31,7 +31,7 @@ typedef struct preview_s {
 
 Preview *preview_create_loading(const char *path, uint32_t nrow);
 
-Preview *preview_create_from_file(const char *path, uint32_t nrow);
+Preview *preview_create_from_file(const char *path, uint32_t width, uint32_t height);
 
 bool preview_is_image_preview(const Preview *pv);
 
