@@ -134,7 +134,7 @@ static inline void gen_cache_path(char *cache_path, const char *path)
   SHA256_CTX ctx;
   sha256_init(&ctx);
   sha256_update(&ctx, (uint8_t *) path, strlen(path));
-  cache_path += sprintf(cache_path, "%s/img/", cfg.cachedir);
+  cache_path += sprintf(cache_path, "%s/", cfg.cachedir);
   sha256_final(&ctx, buf);
   for (size_t i = 0; i < sizeof buf; i++) {
     const char upper = buf[i] >> 4;
@@ -177,7 +177,7 @@ Preview *preview_create_from_file(const char *path, uint32_t width, uint32_t hei
 
   char *const args[7] = {
     cfg.previewer,
-    (char*) p->path,
+    p->path,
     w, h,
     cache_path,
     cfg.preview_images ? "True" : "False",

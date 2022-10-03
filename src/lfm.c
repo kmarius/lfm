@@ -274,7 +274,6 @@ static void redraw_cb(EV_P_ ev_idle *w, int revents)
 void lfm_init(Lfm *lfm)
 {
   memset(lfm, 0, sizeof *lfm);
-  lfm->fifo_fd = -1;
 
   lfm->loop = ev_default_loop(EVFLAG_NOENV);
 
@@ -289,6 +288,10 @@ void lfm_init(Lfm *lfm)
     exit(EXIT_FAILURE);
   }
   setenv("LFMFIFO", cfg.fifopath, 1);
+
+  if (mkdir_p(cfg.cachedir, 0700) == -1 && errno != EEXIST) {
+    log_error("fifo: %s", strerror(errno));
+  }
 
   /* notify should be available on fm startup */
   if (!notify_init(&lfm->notify, lfm)) {
