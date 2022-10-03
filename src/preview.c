@@ -26,12 +26,6 @@ static void draw_image_preview(const Preview *p, struct ncplane *n);
 static void update_image_preview(Preview *p, Preview *u);
 static void destroy_image_preview(Preview *p);
 
-bool preview_is_image_preview(const Preview *p)
-{
-  return p->draw == draw_image_preview;
-}
-
-
 static inline Preview *preview_init(Preview *p, const char *path, uint32_t nrow)
 {
   memset(p, 0, sizeof *p);
@@ -108,7 +102,7 @@ static void update_image_preview(Preview *p, Preview *u)
 
 
 // like fgets, but seeks to the next line if dest is full.
-static char* fgets_seek(char* dest, int n, FILE *fp)
+static inline char *fgets_seek(char* dest, int n, FILE *fp)
 {
   int c;
   char* cs;
@@ -128,15 +122,16 @@ static char* fgets_seek(char* dest, int n, FILE *fp)
   return (c == EOF && cs == dest) ? NULL : dest;
 }
 
+
 static inline void gen_cache_path(char *cache_path, const char *path)
 {
   uint8_t buf[32];
   SHA256_CTX ctx;
   sha256_init(&ctx);
   sha256_update(&ctx, (uint8_t *) path, strlen(path));
-  cache_path += sprintf(cache_path, "%s/", cfg.cachedir);
   sha256_final(&ctx, buf);
-  for (size_t i = 0; i < sizeof buf; i++) {
+  cache_path += sprintf(cache_path, "%s/", cfg.cachedir);
+  for (size_t i = 0; i < 32; i++) {
     const char upper = buf[i] >> 4;
     const char lower = buf[i] & 0x0f;
     cache_path[2*i] = lower < 10 ? '0' + lower : 'a' + lower - 10;
