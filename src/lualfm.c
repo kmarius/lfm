@@ -1215,6 +1215,13 @@ static int l_fm_check(lua_State *L)
 }
 
 
+static int l_fm_load(lua_State *L)
+{
+  loader_dir_from_path(&lfm->loader, luaL_checkstring(L, 1));
+  return 0;
+}
+
+
 static int l_fm_sel(lua_State *L)
 {
   fm_move_cursor_to(fm, luaL_checkstring(L, 1));
@@ -1645,6 +1652,7 @@ static const struct luaL_Reg fm_lib[] = {
   {"cut", l_fm_cut},
   {"copy", l_fm_copy},
   {"check", l_fm_check},
+  {"load", l_fm_load},
   {"drop_cache", l_fm_drop_cache},
   {"reload", l_fm_reload},
   {"sel", l_fm_sel},

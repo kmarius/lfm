@@ -122,6 +122,10 @@ function lfm.fm.copy() end
 ---Check the current directory for changes and reload if necessary.
 function lfm.fm.check() end
 
+---(Re)load a directory from disk.
+---@param path string
+function lfm.fm.load(path) end
+
 ---Drop directory cache and reload visible directories from disk.
 -- function lfm.fm.drop_cache() end
 
