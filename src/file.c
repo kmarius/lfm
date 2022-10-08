@@ -13,14 +13,16 @@
 #include "file.h"
 #include "util.h"  // asprintf
 
-File *file_init(File *f, const char *dir, const char *name)
+File *file_create(const char *dir, const char *name)
 {
   char buf[PATH_MAX] = {0};
 
+  File *f = calloc(1, sizeof *f);
   memset(f, 0, sizeof *f);
+
   f->dircount = -1;
 
-  bool isroot = dir[1] == 0 && dir[0] == '/';
+  const bool isroot = dir[1] == 0 && dir[0] == '/';
   asprintf(&f->path, "%s/%s", isroot ? "" : dir, name);
 
   f->name = strrchr(f->path, '/') + 1;
@@ -64,13 +66,7 @@ File *file_init(File *f, const char *dir, const char *name)
 }
 
 
-File *file_create(const char *dir, const char *name)
-{
-  return file_init(malloc(sizeof(File)), dir, name);
-}
-
-
-void file_deinit(File *f)
+void file_destroy(File *f)
 {
   if (!f) {
     return;
@@ -78,12 +74,6 @@ void file_deinit(File *f)
 
   free(f->path);
   free(f->link_target);
-}
-
-
-void file_destroy(File *f)
-{
-  file_deinit(f);
   free(f);
 }
 

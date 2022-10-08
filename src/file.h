@@ -19,11 +19,7 @@ typedef struct file_s {
   int error;
 } File;
 
-File *file_init(File *file, const char *dir, const char *name);
-
 File *file_create(const char *dir, const char *name);
-
-void file_deinit(File *file);
 
 void file_destroy(File *file);
 
