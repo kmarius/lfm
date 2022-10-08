@@ -42,28 +42,15 @@ typedef struct dir_s {
   uint32_t flatten_level;
 } Dir;
 
-// Initialize a `Dir`, no files are loaded.
-Dir *dir_init(Dir *dir, const char *path);
-
 // Creates a directory, no files are loaded.
-static inline Dir *dir_create(const char *path)
-{
-  return dir_init(malloc(sizeof(Dir)), path);
-}
+Dir *dir_create(const char *path);
 
 // Loads the directory at `path` from disk. Additionally count the files in each
 // subdirectory if `load_filecount` is `true`.
 Dir *dir_load(const char *path, bool load_dircount);
 
-// Deinitialize a `Dir`.
-void dir_deinit(Dir *dir);
-
 // Free all resources belonging to `dir`.
-static inline void dir_destroy(Dir *dir)
-{
-  dir_deinit(dir);
-  free(dir);
-}
+void dir_destroy(Dir *dir);
 
 // Is the directory in the process of being loaded?
 static inline bool dir_loading(const Dir *dir)

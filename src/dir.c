@@ -199,9 +199,9 @@ bool dir_check(const Dir *d)
 }
 
 
-Dir *dir_init(Dir *d, const char *path)
+Dir *dir_create(const char *path)
 {
-  memset(d, 0, sizeof *d);
+  Dir *d = calloc(1, sizeof *d);
   d->dirfirst = true;
   d->sorttype = SORT_NATURAL;
 
@@ -456,7 +456,7 @@ void dir_update_with(Dir *d, Dir *update, uint32_t height, uint32_t scrolloff)
 }
 
 
-void dir_deinit(Dir *d)
+void dir_destroy(Dir *d)
 {
   if (!d) {
     return;
@@ -468,4 +468,5 @@ void dir_deinit(Dir *d)
   free(d->files);
   free(d->sel);
   free(d->path);
+  free(d);
 }
