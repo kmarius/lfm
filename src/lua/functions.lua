@@ -173,7 +173,16 @@ function M.paste()
 	--- spawning all these shells is fine with a sane amount of files
 	local stat_stat = stat.stat
 	local format = string.format
+	local reload_dirs = {[pwd] = true}
+	if mode == "move" then
+		for _, file in ipairs(files) do
+			reload_dirs[dirname(file)] = true
+		end
+	end
 	local cb = function(ret)
+		for dir, _ in pairs(reload_dirs) do
+			fm.load(dir)
+		end
 		if ret ~= 0 then
 			return
 		end
@@ -211,6 +220,23 @@ function M.paste_overwrite()
 	if #files == 0 then
 		return
 	end
+	local reload_dirs = {[fm.pwd()] = true}
+	if mode == "move" then
+		for _, file in ipairs(files) do
+			reload_dirs[dirname(file)] = true
+		end
+	end
+	local cb = function(ret)
+		for dir, _ in pairs(reload_dirs) do
+			fm.load(dir)
+		end
+		if ret ~= 0 then
+			return
+		end
+		local operation = mode == "move" and "moving" or "copying"
+		local msg = string.format(green .. "finished %s %d %s", operation, #files, #files == 1 and "file" or "files")
+		print(msg)
+	end
 	-- this doesn't "move" on the same filesystem, it copies and deletes
 	local cmd
 	if mode == "move" then
@@ -221,7 +247,7 @@ function M.paste_overwrite()
 		-- not reached
 	end
 	table.insert(cmd, "./")
-	lfm.spawn(cmd)
+	lfm.spawn(cmd, {callback=cb})
 	fm.paste_buffer_set({})
 end
 
