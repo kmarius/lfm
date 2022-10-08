@@ -59,7 +59,6 @@ File *file_init(File *f, const char *dir, const char *name)
   if (file_isdir(f)) {
     f->ext = NULL;
   }
-  f->isexec = f->stat.st_mode & (1 | 8 | 64);
 
   return f;
 }

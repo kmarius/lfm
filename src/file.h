@@ -14,7 +14,6 @@ typedef struct file_s {
   struct stat stat;
   char *link_target;
   bool isbroken;
-  bool isexec;
   bool hidden;
   int32_t dircount; // in case of a directory, < 0 if not loaded yet
   int error;
@@ -63,7 +62,7 @@ static inline bool file_isdir(const File *file)
 // target is.
 static inline bool file_isexec(const File *file)
 {
-  return file->isexec;
+  return file->stat.st_mode & (1 | 8 | 64);
 }
 
 // Returns `true` if the file is a symbolic link.
