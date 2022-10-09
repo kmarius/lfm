@@ -10,6 +10,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 
 #define HT_DEFAULT_CAPACITY 128
 
@@ -25,6 +26,14 @@ static inline struct hashtab_s *ht_create(ht_free_fun free)
 }
 void ht_destroy(struct hashtab_s *t);
 void ht_set(struct hashtab_s *t, const char *key, void *val);
+// create a copy of key/val and inserts it into the table
+static inline void ht_set_copy(struct hashtab_s *t, const char *key, const void *val, size_t sz)
+{
+  char *mem = malloc(sz + strlen(key) + 1);
+  memcpy(mem, val, sz);
+  strcpy(mem + sz, key);
+  ht_set(t, mem+sz, mem);
+}
 bool ht_delete(struct hashtab_s *t, const char *key);
 void *ht_get(struct hashtab_s *t, const char *key);
 void ht_clear(struct hashtab_s *t);

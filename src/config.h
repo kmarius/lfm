@@ -75,27 +75,17 @@ static inline void config_ratios_set(cvector_vector_type(uint32_t) ratios)
 
 static inline void config_color_map_add(const char *ext, uint64_t channel)
 {
-  char *s = malloc(sizeof(uint64_t) + strlen(ext) + 1);
-  *(uint64_t *) s = channel;
-  strcpy(s + sizeof(uint64_t), ext);
-  ht_set(cfg.colors.color_map, s + sizeof(uint64_t), s);
+  ht_set_copy(cfg.colors.color_map, ext, &channel, sizeof channel);
 }
 
 static inline void config_dir_setting_add(const char *path, const struct dir_settings *s)
 {
-  char *val = malloc((sizeof *s) + strlen(path) + 1);
-  memcpy(val, s, sizeof *s);
-  strcpy(val + sizeof *s, path);
-  ht_set(cfg.dir_settings_map, val + sizeof *s, val);
+  ht_set_copy(cfg.dir_settings_map, path, s, sizeof *s);
 }
-
-void config_colors_clear();
 
 static inline void config_icon_map_add(const char *ext, const char *icon)
 {
-  const size_t l = strlen(icon);
-  char *val = malloc(l + strlen(ext) + 2);
-  strcpy(val, icon);
-  strcpy(val + l + 1, ext);
-  ht_set(cfg.icon_map, val + l + 1, val);
+  ht_set_copy(cfg.icon_map, ext, icon, strlen(icon) + 1);
 }
+
+void config_colors_clear();
