@@ -208,11 +208,8 @@ input_t *key_names_to_input(const char *keys, input_t *buf)
           break; // unrecognized key
         }
 
-        if (ctrl) {
-          in = towupper(w);
-        } else {
-          in = towlower(w);
-        }
+        // notcurses always sends uppercase with ctrl
+        in = ctrl ? towupper(w) : (input_t) w;
         pos += l;
       }
 
