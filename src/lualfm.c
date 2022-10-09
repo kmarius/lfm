@@ -1088,7 +1088,7 @@ static int l_colors_newindex(lua_State *L)
 
         lua_getfield(L, -1, "ext");
         for (lua_pushnil(L); lua_next(L, -2); lua_pop(L, 1)) {
-          config_ext_channel_add(lua_tostring(L, -1), ch);
+          config_color_map_add(lua_tostring(L, -1), ch);
         }
         lua_pop(L, 1);
       }

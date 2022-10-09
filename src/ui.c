@@ -694,7 +694,7 @@ static uint64_t ext_channel_get(const char *ext)
       buf[i] = tolower(ext[i]);
     }
     buf[i] = 0;
-    uint64_t *chan = ht_get(cfg.colors.ext, buf);
+    uint64_t *chan = ht_get(cfg.colors.color_map, buf);
     if (chan) {
       return *chan;
     }

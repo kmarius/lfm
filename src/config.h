@@ -44,7 +44,7 @@ typedef struct config_s {
   Hashtab *dir_settings_map;         // path -> dir_settings
 
   struct colors {
-    Hashtab *ext;  // char* -> uint64
+    Hashtab *color_map;  // char* -> uint64
 
     uint64_t normal;
     uint64_t selection;
@@ -73,12 +73,12 @@ static inline void config_ratios_set(cvector_vector_type(uint32_t) ratios)
   cfg.ratios = ratios;
 }
 
-static inline void config_ext_channel_add(const char *ext, uint64_t channel)
+static inline void config_color_map_add(const char *ext, uint64_t channel)
 {
   char *s = malloc(sizeof(uint64_t) + strlen(ext) + 1);
   *(uint64_t *) s = channel;
   strcpy(s + sizeof(uint64_t), ext);
-  ht_set(cfg.colors.ext, s + sizeof(uint64_t), s);
+  ht_set(cfg.colors.color_map, s + sizeof(uint64_t), s);
 }
 
 static inline void config_dir_setting_add(const char *path, const struct dir_settings *s)

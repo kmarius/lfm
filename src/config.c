@@ -41,7 +41,7 @@ Config cfg = {
 
 void config_init()
 {
-  cfg.colors.ext = ht_create(free);
+  cfg.colors.color_map = ht_create(free);
   cvector_vector_type(uint32_t) r = NULL;
   cvector_push_back(r, 1);
   cvector_push_back(r, 2);
@@ -125,7 +125,7 @@ void config_init()
 void config_deinit()
 {
   config_colors_clear();
-  ht_destroy(cfg.colors.ext);
+  ht_destroy(cfg.colors.color_map);
   ht_destroy(cfg.icon_map);
   ht_destroy(cfg.dir_settings_map);
   cvector_free(cfg.ratios);
@@ -159,5 +159,5 @@ void config_colors_clear()
   cfg.colors.search = NCCHANNELS_INITIALIZER_PALINDEX(-1, -1);
   cfg.colors.selection = NCCHANNELS_INITIALIZER_PALINDEX(-1, -1);
 
-  ht_clear(cfg.colors.ext);
+  ht_clear(cfg.colors.color_map);
 }
