@@ -184,7 +184,8 @@ static inline void fm_sort_and_reselect(Fm *fm, Dir *dir)
     return;
   }
 
-  dir->hidden = cfg.hidden;
+  /* TODO: shouldn't apply the global hidden setting (on 2022-10-09) */
+  dir->settings.hidden = cfg.dir_settings.hidden;
   const File *file = dir_current_file(dir);
   dir_sort(dir);
   if (file) {
@@ -204,7 +205,7 @@ void fm_sort(Fm *fm)
 
 void fm_hidden_set(Fm *fm, bool hidden)
 {
-  cfg.hidden = hidden;
+  cfg.dir_settings.hidden = hidden;
   fm_sort(fm);
   fm_update_preview(fm);
 }

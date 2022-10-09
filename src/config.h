@@ -6,6 +6,7 @@
 #include <wchar.h>
 
 #include "cvector.h"
+#include "dir.h"
 #include "hashtab.h"
 
 typedef struct config_s {
@@ -20,6 +21,7 @@ typedef struct config_s {
   char *cachedir;       // $XDG_CACHE_HOME/lfm or ~/.cache/lfm
   char *fifopath;       // rundir/$PID.fifo
   char *logpath;        // /tmp/lfm.$PID.log
+
   wchar_t truncatechar; // '~'
   char *lastdir;
   char *selfile;
@@ -27,16 +29,19 @@ typedef struct config_s {
   char *startfile;
   bool preview;
   bool preview_images;
+  char *previewer;
   bool icons;
   Hashtab *icon_map;
-  char *previewer;
-  bool hidden;
   uint32_t scrolloff;
   cvector_vector_type(char *) commands;
   cvector_vector_type(uint32_t) ratios;
+
   cvector_vector_type(char *) inotify_blacklist;
   uint32_t inotify_timeout;
   uint32_t inotify_delay;
+
+  struct dir_settings dir_settings;  // default dir_settings
+  Hashtab *dir_settings_map;         // path -> dir_settings
 
   struct colors {
     Hashtab *ext;  // char* -> uint64
@@ -74,6 +79,14 @@ static inline void config_ext_channel_add(const char *ext, uint64_t channel)
   *(uint64_t *) s = channel;
   strcpy(s + sizeof(uint64_t), ext);
   ht_set(cfg.colors.ext, s + sizeof(uint64_t), s);
+}
+
+static inline void config_dir_setting_add(const char *path, const struct dir_settings *s)
+{
+  char *val = malloc((sizeof *s) + strlen(path) + 1);
+  memcpy(val, s, sizeof *s);
+  strcpy(val + sizeof *s, path);
+  ht_set(cfg.dir_settings_map, val + sizeof *s, val);
 }
 
 void config_colors_clear();

@@ -1,5 +1,11 @@
 ---@meta
 
+---@class DirSetting
+---@field sorttype sortoption
+---@field dirfirst boolean
+---@field reverse boolean
+---@field hidden boolean
+
 ---@alias Color string|integer
 
 ---@class ColorPair
@@ -22,6 +28,7 @@
 ---@field current ColorPair
 
 ---@class configlib
+---@field dir_settings table<path, DirSetting>
 ---@field ratios integer[] assignable
 ---@field truncatechar string assignable, only the first character is used
 ---@field scrolloff integer assignable

@@ -33,6 +33,10 @@
 #include "ui.h"
 #include "util.h"
 
+#define DIR_SETTINGS_META "dir_settings_mt"
+#define CONFIG_META "config_mt"
+#define COLORS_META "colors_mt"
+
 #define luaL_optbool(L, i, d) \
   lua_isnoneornil(L, i) ? d : lua_toboolean(L, i)
 
@@ -474,6 +478,119 @@ static const struct luaL_Reg lfm_lib[] = {
 
 /* config lib {{{ */
 
+
+static inline int lua_dir_settings_set(lua_State *L, const char *path, int ind)
+{
+  if (lua_isnil(L, ind)) {
+    ht_delete(cfg.dir_settings_map, path);
+    Dir *d = ht_get(lfm->loader.dir_cache, path);
+    if (d) {
+      memcpy(&d->settings, &cfg.dir_settings, sizeof d->settings);
+    }
+    return 0;
+  }
+
+  luaL_checktype(L, ind, LUA_TTABLE);
+
+  struct dir_settings s;
+  memcpy(&s, &cfg.dir_settings, sizeof s);
+
+  lua_getfield(L, ind, "sorttype");
+  if (!lua_isnil(L, -1)) {
+    const char *op = luaL_checkstring(L, -1);
+    if (streq(op, "name")) {
+      s.sorttype = SORT_NAME;
+    } else if (streq(op, "natural")) {
+      s.sorttype = SORT_NATURAL;
+    } else if (streq(op, "ctime")) {
+      s.sorttype = SORT_CTIME;
+    } else if (streq(op, "size")) {
+      s.sorttype = SORT_SIZE;
+    } else if (streq(op, "random")) {
+      s.sorttype = SORT_RAND;
+    }
+  }
+  lua_pop(L, 1);
+
+  lua_getfield(L, ind, "dirfirst");
+  if (!lua_isnil(L, -1)) {
+    s.dirfirst = lua_toboolean(L, -1);
+  }
+  lua_pop(L, 1);
+
+  lua_getfield(L, ind, "reverse");
+  if (!lua_isnil(L, -1)) {
+    s.reverse = lua_toboolean(L, -1);
+  }
+  lua_pop(L, 1);
+
+  lua_getfield(L, ind, "hidden");
+  // this is probably not applied correctly because it essentially
+  // treated as a global setting via cfg.dir_settings
+  if (!lua_isnil(L, -1)) {
+    s.hidden = lua_toboolean(L, -1);
+  }
+  lua_pop(L, 1);
+
+  config_dir_setting_add(path, &s);
+  Dir *d = ht_get(lfm->loader.dir_cache, path);
+  if (d) {
+    memcpy(&d->settings, &s, sizeof s);
+  }
+
+  return 0;
+}
+
+
+static int l_dir_settings_index(lua_State *L)
+{
+  (void) L;
+  const char *key = luaL_checkstring(L, 2);
+  struct dir_settings *s = ht_get(cfg.dir_settings_map, key);
+  if (s) {
+    lua_newtable(L);
+    lua_pushboolean(L, s->dirfirst);
+    lua_setfield(L, -2, "dirfirst");
+    lua_pushboolean(L, s->hidden);
+    lua_setfield(L, -2, "hidden");
+    lua_pushboolean(L, s->reverse);
+    lua_setfield(L, -2, "reverse");
+    /* TODO: refactor this if we need to convert enum <-> string more often (on 2022-10-09) */
+    switch (s->sorttype) {
+      case SORT_NATURAL:
+        lua_pushstring(L, "natural"); break;
+      case SORT_NAME:
+        lua_pushstring(L, "name"); break;
+      case SORT_SIZE:
+        lua_pushstring(L, "size"); break;
+      case SORT_CTIME:
+        lua_pushstring(L, "ctime"); break;
+      case SORT_RAND:
+        lua_pushstring(L, "random"); break;
+      default:
+        lua_pushstring(L, "unknown"); break;
+    }
+    lua_setfield(L, -2, "sorttype");
+    return 1;
+  } else {
+    return 0;
+  }
+}
+
+
+static int l_dir_settings_newindex(lua_State *L)
+{
+  lua_dir_settings_set(L, luaL_checkstring(L, 2), 3);
+  return 0;
+}
+
+
+static const struct luaL_Reg dir_settings_mt[] = {
+  {"__index", l_dir_settings_index},
+  {"__newindex", l_dir_settings_newindex},
+  {NULL, NULL}};
+
+
 static int l_config_index(lua_State *L)
 {
   const char *key = luaL_checkstring(L, 2);
@@ -488,7 +605,7 @@ static int l_config_index(lua_State *L)
     lua_pushstring(L, buf);
     return 1;
   } else if (streq(key, "hidden")) {
-    lua_pushboolean(L, cfg.hidden);
+    lua_pushboolean(L, cfg.dir_settings.hidden);
     return 1;
   } else if (streq(key, "ratios")) {
     const size_t l = cvector_size(cfg.ratios);
@@ -557,6 +674,11 @@ static int l_config_index(lua_State *L)
     return 1;
   } else if (streq(key, "runtime_dir")) {
     lua_pushstring(L, cfg.rundir);
+    return 1;
+  } else if (streq(key, "dir_settings")) {
+    lua_newtable(L);
+    luaL_newmetatable(L, DIR_SETTINGS_META);
+    lua_setmetatable(L, -2);
     return 1;
   } else {
     luaL_error(L, "unexpected key %s", key);
@@ -649,10 +771,18 @@ static int l_config_newindex(lua_State *L)
     ui_redraw(ui, REDRAW_FM);
   } else if (streq(key, "icon_map")) {
     ht_clear(cfg.icon_map);
-     for (lua_pushnil(L); lua_next(L, -2) != 0; lua_pop(L, 1)) {
-       config_icon_map_add(lua_tostring(L, -2), lua_tostring(L, -1));
-     }
-     ui_redraw(ui, REDRAW_FM);
+    for (lua_pushnil(L); lua_next(L, -2) != 0; lua_pop(L, 1)) {
+      config_icon_map_add(lua_tostring(L, -2), lua_tostring(L, -1));
+    }
+    ui_redraw(ui, REDRAW_FM);
+  } else if (streq(key, "dir_settings")) {
+    if (lua_type(L, 3) != LUA_TTABLE) {
+      luaL_argerror(L, 3, "table<path, DirSetting> expected");
+    }
+    ht_clear(cfg.dir_settings_map);
+    for (lua_pushnil(L); lua_next(L, -2) != 0; lua_pop(L, 1)) {
+      lua_dir_settings_set(L, luaL_checkstring(L, -2), -1);
+    }
   } else if (streq(key, "previewer")) {
     if (lua_isnoneornil(L, 3)) {
       free(cfg.previewer);
@@ -1389,23 +1519,23 @@ static int l_fm_sortby(lua_State *L)
   for (int i = 0; i < l; i++) {
     op = luaL_checkstring(L, i + 1);
     if (streq(op, "name")) {
-      dir->sorttype = SORT_NAME;
+      dir->settings.sorttype = SORT_NAME;
     } else if (streq(op, "natural")) {
-      dir->sorttype = SORT_NATURAL;
+      dir->settings.sorttype = SORT_NATURAL;
     } else if (streq(op, "ctime")) {
-      dir->sorttype = SORT_CTIME;
+      dir->settings.sorttype = SORT_CTIME;
     } else if (streq(op, "size")) {
-      dir->sorttype = SORT_SIZE;
+      dir->settings.sorttype = SORT_SIZE;
     } else if (streq(op, "random")) {
-      dir->sorttype = SORT_RAND;
+      dir->settings.sorttype = SORT_RAND;
     } else if (streq(op, "dirfirst")) {
-      dir->dirfirst = true;
+      dir->settings.dirfirst = true;
     } else if (streq(op, "nodirfirst")) {
-      dir->dirfirst = false;
+      dir->settings.dirfirst = false;
     } else if (streq(op, "reverse")) {
-      dir->reverse = true;
+      dir->settings.reverse = true;
     } else if (streq(op, "noreverse")) {
-      dir->reverse = false;
+      dir->settings.reverse = false;
     } else {
       luaL_error(L, "sortby: unrecognized option: %s", op);
       // not reached
@@ -1960,14 +2090,18 @@ int luaopen_lfm(lua_State *L)
   lua_newtable(L); /* lfm.cfg */
 
   lua_newtable(L); /* lfm.cfg.colors */
-  luaL_newmetatable(L, "colors_mt");
+  luaL_newmetatable(L, COLORS_META);
   luaL_register(L, NULL, colors_mt);
   lua_setmetatable(L, -2);
   lua_setfield(L, -2, "colors"); /* lfm.cfg.colors = {...} */
 
-  luaL_newmetatable(L, "config_mt");
+  luaL_newmetatable(L, CONFIG_META);
   luaL_register(L, NULL, config_mt);
   lua_setmetatable(L, -2);
+
+  luaL_newmetatable(L, DIR_SETTINGS_META);
+  luaL_register(L, NULL, dir_settings_mt);
+  lua_pop(L, 1);
 
   lua_setfield(L, -2, "config"); /* lfm.config = {...} */
 

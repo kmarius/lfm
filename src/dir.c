@@ -96,7 +96,7 @@ static void shuffle(void *arr, size_t n, size_t size)
 void dir_sort(Dir *d)
 {
   if (!d->sorted) {
-    switch (d->sorttype) {
+    switch (d->settings.sorttype) {
       case SORT_NATURAL:
         qsort(d->files_all, d->length_all, sizeof *d->files_all, compare_natural);
         break;
@@ -118,8 +118,8 @@ void dir_sort(Dir *d)
   }
   uint32_t ndirs = 0;
   uint32_t j = 0;
-  if (d->hidden) {
-    if (d->dirfirst) {
+  if (d->settings.hidden) {
+    if (d->settings.dirfirst) {
       /* first pass: directories */
       for (uint32_t i = 0; i < d->length_all; i++) {
         if (file_isdir(d->files_all[i])) {
@@ -138,7 +138,7 @@ void dir_sort(Dir *d)
       memcpy(d->files_sorted, d->files, d->length_all * sizeof *d->files_all);
     }
   } else {
-    if (d->dirfirst) {
+    if (d->settings.dirfirst) {
       for (uint32_t i = 0; i < d->length_all; i++) {
         if (!file_hidden(d->files_all[i]) && file_isdir(d->files_all[i])) {
           d->files_sorted[j++] = d->files_all[i];
@@ -160,7 +160,7 @@ void dir_sort(Dir *d)
   }
   d->length_sorted = j;
   d->length = j;
-  if (d->reverse) {
+  if (d->settings.reverse) {
     for (uint32_t i = 0; i < ndirs / 2; i++) {
       swap(d->files_sorted+i, d->files_sorted + ndirs - i - 1);
     }
@@ -202,15 +202,13 @@ bool dir_check(const Dir *d)
 Dir *dir_create(const char *path)
 {
   Dir *d = calloc(1, sizeof *d);
-  d->dirfirst = true;
-  d->sorttype = SORT_NATURAL;
 
   if (path[0] != '/') {
     char buf[PATH_MAX + 1];
     realpath(path, buf);
     d->path = strdup(buf);
   } else {
-    /* to preserve symlinks we don'Dir use realpath */
+    /* to preserve symlinks we don't use realpath */
     d->path = strdup(path);
   }
 

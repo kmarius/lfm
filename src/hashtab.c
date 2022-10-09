@@ -85,21 +85,23 @@ static inline void ht_grow(Hashtab *ht)
 }
 
 
-// // we are not deleting single values, currenctly
-// static inline void ht_shrink(ht *ht)
-// {
-//   if (ht->capacity/2 >= ht->min_capacity) {
-//     ht_resize(ht, ht->capacity/2);
-//   }
-// }
+static inline void ht_shrink(Hashtab *ht)
+{
+  if (ht->capacity/2 >= ht->min_capacity) {
+    ht_resize(ht, ht->capacity/2);
+  }
+}
 
 
 // Returns true if successfull and the corresponding bucket in b: Otherwise,
 // b contains the bucket (head of the list) if empty, or the element to which
 // the new node should be appended to (check with (*b)->val).
-static bool ht_probe(Hashtab *ht, const char *key, struct ht_bucket **b)
+static bool ht_probe(Hashtab *ht, const char *key, struct ht_bucket **b, struct ht_bucket **prev)
 {
   *b = &ht->buckets[hash(key) % ht->capacity];
+  if (prev) {
+    *prev = NULL;
+  }
   for (;;) {
     struct ht_bucket *bb = *b;
     if (!bb->key) {
@@ -111,6 +113,9 @@ static bool ht_probe(Hashtab *ht, const char *key, struct ht_bucket **b)
     if (!bb->next) {
       return false;
     }
+    if (prev) {
+      *prev = bb;
+    }
     *b = bb->next;
   }
 }
@@ -119,7 +124,7 @@ static bool ht_probe(Hashtab *ht, const char *key, struct ht_bucket **b)
 void ht_set(Hashtab *ht, const char *key, void *val)
 {
   struct ht_bucket *b;
-  if (!ht_probe(ht, key, &b) && b->val) {
+  if (!ht_probe(ht, key, &b, NULL) && b->val) {
     b->next = malloc(sizeof *b->next);
     b = b->next;
     b->next = NULL;
@@ -140,10 +145,43 @@ void ht_set(Hashtab *ht, const char *key, void *val)
 void *ht_get(Hashtab *ht, const char *key)
 {
   struct ht_bucket *b;
-  if (ht_probe(ht, key, &b)) {
+  if (ht_probe(ht, key, &b, NULL)) {
     return b->val;
   }
   return NULL;
+}
+
+
+bool ht_delete(Hashtab *ht, const char *key)
+{
+  struct ht_bucket *b, *prev;
+  if (ht_probe(ht, key, &b, &prev) && b->val) {
+    ht->size--;
+    if (ht->free) {
+      ht->free(b->val);
+    }
+    if (prev) {
+      // overflow bucket
+      prev->next = b->next;
+      free(b);
+    } else {
+      // array bucket
+      if (b->next) {
+        // move overflow bucket into array
+        struct ht_bucket *next = b->next;
+        memcpy(b, next, sizeof *b);
+        free(next);
+      } else {
+        b->val = NULL;
+        b->key = NULL;
+      }
+    }
+    if (ht->size < SHRINK_THRESHOLD * ht->capacity) {
+      ht_shrink(ht);
+    }
+    return true;
+  }
+  return false;
 }
 
 
@@ -328,7 +366,7 @@ bool lht_delete(LinkedHashtab *lht, const char *key)
     if (lht->last == b) {
       lht->last = b->order_prev;
     }
-    if (b < lht->buckets || b >= lht->buckets + lht->capacity) {
+    if (prev) {
       // overflow bucket
       if (b->order_prev) {
         b->order_prev->order_next = b->order_next;

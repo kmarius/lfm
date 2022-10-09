@@ -142,20 +142,13 @@ Dir *loader_dir_from_path(Loader *loader, const char *path)
   Dir *dir = ht_get(loader->dir_cache, path);
   if (dir) {
     async_dir_check(&loader->lfm->async, dir);
-    dir->hidden = cfg.hidden;
+    /* TODO: no (on 2022-10-09) */
+    dir->settings.hidden = cfg.dir_settings.hidden;
     dir_sort(dir);
   } else {
-    /* At this point, we should not print this new directory, but
-     * start a timer for, say, 250ms. When the timer runs out we draw the
-     * "loading" directory regardless. The timer should be cancelled when:
-     * 1. the actual directory arrives after loading from disk
-     * 2. we navigate to a different directory (possibly restart a timer there)
-     *
-     * Check how this behaves in the preview pane when just scrolling over
-     * directories.
-     */
     dir = dir_create(path);
-    dir->hidden = cfg.hidden;
+    struct dir_settings *s = ht_get(cfg.dir_settings_map, path);
+    memcpy(&dir->settings, s ? s : &cfg.dir_settings, sizeof *s);
     ht_set(loader->dir_cache, dir->path, dir);
     async_dir_load(&loader->lfm->async, dir, false);
   }

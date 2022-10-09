@@ -9,6 +9,13 @@
 
 enum sorttype_e { SORT_NATURAL, SORT_NAME, SORT_SIZE, SORT_CTIME, SORT_RAND, };
 
+struct dir_settings {
+  bool hidden;
+  bool dirfirst;
+  bool reverse;
+  enum sorttype_e sorttype;
+};
+
 typedef struct dir_s {
   char *path;
   char *name; // substring of path
@@ -33,13 +40,11 @@ typedef struct dir_s {
 
   Filter *filter;
 
-  bool sorted;
-  bool hidden;
-  bool dirfirst;
-  bool reverse;
-  bool dircounts;
-  enum sorttype_e sorttype;
   uint32_t flatten_level;
+  bool dircounts;
+  bool sorted;
+
+  struct dir_settings settings;
 } Dir;
 
 // Creates a directory, no files are loaded.

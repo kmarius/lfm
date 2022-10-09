@@ -9,6 +9,7 @@
 
 #include "config.h"
 #include "cvector.h"
+#include "dir.h"
 #include "hashtab.h"
 #include "log.h"
 #include "ncutil.h"
@@ -62,6 +63,12 @@ void config_init()
   config_icon_map_add("sg", "g");
   config_icon_map_add("ex", "x");
   config_icon_map_add("fi", "-");
+
+  cfg.dir_settings_map = ht_create(free);
+  cfg.dir_settings.dirfirst = true;
+  cfg.dir_settings.reverse = false;
+  cfg.dir_settings.sorttype = SORT_NATURAL;
+  cfg.dir_settings.hidden = false;
 
   cfg.previewer = strdup("stat");
   cfg.preview = true;
@@ -120,6 +127,7 @@ void config_deinit()
   config_colors_clear();
   ht_destroy(cfg.colors.ext);
   ht_destroy(cfg.icon_map);
+  ht_destroy(cfg.dir_settings_map);
   cvector_free(cfg.ratios);
   cvector_free(cfg.commands);
   cvector_ffree(cfg.inotify_blacklist, free);
