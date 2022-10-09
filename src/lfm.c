@@ -15,6 +15,7 @@
 #include "cvector.h"
 #include "keys.h"
 #include "hashtab.h"
+#include "hooks.h"
 #include "lfm.h"
 #include "loader.h"
 #include "log.h"
@@ -231,7 +232,7 @@ static void prepare_cb(EV_P_ ev_prepare *w, int revents)
     lfm->messages = NULL;
   }
 
-  lua_run_hook(lfm->L, LFM_HOOK_ENTER);
+  lfm_run_hook(lfm, LFM_HOOK_ENTER);
   ev_prepare_stop(loop, w);
 }
 
@@ -241,7 +242,7 @@ static void sigwinch_cb(EV_P_ ev_signal *w, int revents)
   (void) revents;
   Lfm *lfm = w->data;
   ui_clear(&lfm->ui);
-  lua_run_hook(lfm->L, LFM_HOOK_RESIZED);
+  lfm_run_hook(lfm, LFM_HOOK_RESIZED);
   ev_idle_start(loop, &lfm->redraw_watcher);
 }
 
@@ -341,7 +342,7 @@ void lfm_init(Lfm *lfm)
   lua_init(lfm->L, lfm);
   // can't run these hooks in the loader before initialization
   ht_foreach(Dir *dir, lfm->loader.dir_cache) {
-    lua_run_hook1(lfm->L, LFM_HOOK_DIRLOADED, dir->path);
+    lfm_run_hook1(lfm, LFM_HOOK_DIRLOADED, dir->path);
   }
 
   log_info("initialized lfm");
@@ -356,7 +357,7 @@ void lfm_run(Lfm *lfm)
 
 void lfm_quit(Lfm *lfm)
 {
-  lua_run_hook(lfm->L, LFM_HOOK_EXITPRE);
+  lfm_run_hook(lfm, LFM_HOOK_EXITPRE);
   ev_break(lfm->loop, EVBREAK_ALL);
 }
 

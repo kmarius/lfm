@@ -19,6 +19,7 @@
 #include "find.h"
 #include "fm.h"
 #include "hashtab.h"
+#include "hooks.h"
 #include "loader.h"
 #include "log.h"
 #include "lua.h"
@@ -1423,7 +1424,7 @@ static int l_fm_updir(lua_State *L)
 {
   (void) L;
   if (fm_updir(fm)) {
-    lua_run_hook(L, LFM_HOOK_CHDIRPOST);
+    lfm_run_hook(lfm, LFM_HOOK_CHDIRPOST);
   }
   nohighlight(ui);
   ui_redraw(ui, REDRAW_FM);
@@ -1435,7 +1436,7 @@ static int l_fm_open(lua_State *L)
 {
   File *file = fm_open(fm);
   if (!file) {
-    lua_run_hook(L, LFM_HOOK_CHDIRPOST);
+    lfm_run_hook(lfm, LFM_HOOK_CHDIRPOST);
     /* changed directory */
     ui_redraw(ui, REDRAW_FM);
     nohighlight(ui);
@@ -1607,9 +1608,9 @@ static int l_fm_chdir(lua_State *L)
 {
   char *path = path_qualify(luaL_optstring(L, 1, "~"));
   nohighlight(ui);
-  lua_run_hook(L, LFM_HOOK_CHDIRPRE);
+  lfm_run_hook(lfm, LFM_HOOK_CHDIRPRE);
   if (fm_chdir(fm, path, true)) {
-    lua_run_hook(L, LFM_HOOK_CHDIRPOST);
+    lfm_run_hook(lfm, LFM_HOOK_CHDIRPOST);
   }
   ui_redraw(ui, REDRAW_FM);
   free(path);
@@ -1676,7 +1677,7 @@ static int l_fm_paste_buffer_set(lua_State *L)
   }
 
   if (luaL_optbool(L, 3, true)) {
-    lua_run_hook(L, LFM_HOOK_PASTEBUF);
+    lfm_run_hook(lfm, LFM_HOOK_PASTEBUF);
   }
 
   ui_redraw(ui, REDRAW_FM);
@@ -1687,8 +1688,9 @@ static int l_fm_paste_buffer_set(lua_State *L)
 
 static int l_fm_copy(lua_State *L)
 {
+  (void) L;
   fm_paste_mode_set(fm, PASTE_MODE_COPY);
-  lua_run_hook(L, LFM_HOOK_PASTEBUF);
+  lfm_run_hook(lfm, LFM_HOOK_PASTEBUF);
   ui_redraw(ui, REDRAW_FM);
   return 0;
 }
@@ -1696,8 +1698,9 @@ static int l_fm_copy(lua_State *L)
 
 static int l_fm_cut(lua_State *L)
 {
+  (void) L;
   fm_paste_mode_set(fm, PASTE_MODE_MOVE);
-  lua_run_hook(L, LFM_HOOK_PASTEBUF);
+  lfm_run_hook(lfm, LFM_HOOK_PASTEBUF);
   ui_redraw(ui, REDRAW_FM);
   return 0;
 }
@@ -1722,9 +1725,9 @@ static int l_fm_filter(lua_State *L)
 static int l_fm_jump_automark(lua_State *L)
 {
   (void) L;
-  lua_run_hook(L, LFM_HOOK_CHDIRPRE);
+  lfm_run_hook(lfm, LFM_HOOK_CHDIRPRE);
   if (fm_jump_automark(fm)) {
-    lua_run_hook(L, LFM_HOOK_CHDIRPOST);
+    lfm_run_hook(lfm, LFM_HOOK_CHDIRPOST);
   }
   ui_redraw(ui, REDRAW_FM);
   return 0;
@@ -2027,7 +2030,7 @@ void lua_handle_key(lua_State *L, input_t in)
         fm_selection_visual_stop(fm);
         fm_selection_clear(fm);
         fm_paste_buffer_clear(fm);
-        lua_run_hook(L, LFM_HOOK_PASTEBUF);
+        lfm_run_hook(lfm, LFM_HOOK_PASTEBUF);
       }
       ui->message = false;
       ui_redraw(ui, REDRAW_FM);

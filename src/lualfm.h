@@ -5,14 +5,6 @@
 #include "keys.h"
 #include "lfm.h"
 
-#define LFM_HOOK_RESIZED   "Resized"
-#define LFM_HOOK_ENTER     "LfmEnter"
-#define LFM_HOOK_EXITPRE   "ExitPre"
-#define LFM_HOOK_CHDIRPRE  "ChdirPre"
-#define LFM_HOOK_CHDIRPOST "ChdirPost"
-#define LFM_HOOK_PASTEBUF  "PasteBufChange"
-#define LFM_HOOK_DIRLOADED  "DirLoaded"
-
 // Initialize lua state, load libraries.
 void lua_init(lua_State *L, Lfm *lfm);
 

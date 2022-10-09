@@ -5,6 +5,7 @@
 #include "cvector.h"
 #include "dir.h"
 #include "hashtab.h"
+#include "hooks.h"
 #include "lfm.h"
 #include "loader.h"
 #include "log.h"
@@ -153,7 +154,7 @@ Dir *loader_dir_from_path(Loader *loader, const char *path)
     ht_set(loader->dir_cache, dir->path, dir);
     async_dir_load(&loader->lfm->async, dir, false);
     if (loader->lfm->L) {
-      lua_run_hook1(loader->lfm->L, LFM_HOOK_DIRLOADED, path);
+      lfm_run_hook1(loader->lfm, LFM_HOOK_DIRLOADED, path);
     }
   }
   return dir;
