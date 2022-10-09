@@ -14,6 +14,7 @@
 #include "config.h"
 #include "cvector.h"
 #include "keys.h"
+#include "hashtab.h"
 #include "lfm.h"
 #include "loader.h"
 #include "log.h"
@@ -338,6 +339,10 @@ void lfm_init(Lfm *lfm)
 
   lfm->L = luaL_newstate();
   lua_init(lfm->L, lfm);
+  // can't run these hooks in the loader before initialization
+  ht_foreach(Dir *dir, lfm->loader.dir_cache) {
+    lua_run_hook1(lfm->L, LFM_HOOK_DIRLOADED, dir->path);
+  }
 
   log_info("initialized lfm");
 }

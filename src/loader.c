@@ -8,6 +8,7 @@
 #include "lfm.h"
 #include "loader.h"
 #include "log.h"
+#include "lualfm.h"
 #include "util.h"
 
 struct timer_data {
@@ -151,6 +152,9 @@ Dir *loader_dir_from_path(Loader *loader, const char *path)
     memcpy(&dir->settings, s ? s : &cfg.dir_settings, sizeof *s);
     ht_set(loader->dir_cache, dir->path, dir);
     async_dir_load(&loader->lfm->async, dir, false);
+    if (loader->lfm->L) {
+      lua_run_hook1(loader->lfm->L, LFM_HOOK_DIRLOADED, path);
+    }
   }
   return dir;
 }

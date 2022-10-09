@@ -80,6 +80,7 @@ local hooks = {
 	SelectionChanged = {},
 	Resized = {},
 	PasteBufChange = {},
+	DirLoaded = {},
 }
 
 ---Register a function to hook into events. Curruntly supported hooks are
@@ -90,6 +91,7 @@ local hooks = {
 --- ChdirPost        emitted after changin directories
 --- SelectionChanged the selection changed
 --- Resized          the window was resized
+--- DirLoaded        a new directory was loaded from disk
 ---
 ---```
 ---@param name string
@@ -102,11 +104,11 @@ end
 
 ---Execute all functions registered to a hook.
 ---@param name string
-function lfm.run_hook(name)
+function lfm.run_hook(name, ...)
 	log.debug("running hook: " .. name)
 	if hooks[name] then
 		for _, f in pairs(hooks[name]) do
-			f()
+			f(...)
 		end
 	end
 end

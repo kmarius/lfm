@@ -11,6 +11,7 @@
 #define LFM_HOOK_CHDIRPRE  "ChdirPre"
 #define LFM_HOOK_CHDIRPOST "ChdirPost"
 #define LFM_HOOK_PASTEBUF  "PasteBufChange"
+#define LFM_HOOK_DIRLOADED  "DirLoaded"
 
 // Initialize lua state, load libraries.
 void lua_init(lua_State *L, Lfm *lfm);
@@ -27,6 +28,8 @@ void lua_eval(lua_State *L, const char *expr);
 
 // Run hooks. Hook need to be registered in core.lua.
 void lua_run_hook(lua_State *L, const char *hook);
+
+void lua_run_hook1(lua_State *L, const char *hook, const char* arg1);
 
 //  Run callback for finished child.
 void lua_run_child_callback(lua_State *L, int ref, int rstatus);
