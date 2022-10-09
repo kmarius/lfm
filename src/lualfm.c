@@ -705,6 +705,7 @@ static int l_config_newindex(lua_State *L)
     fm_hidden_set(fm, hidden);
     ui_redraw(ui, REDRAW_FM);
   } else if (streq(key, "ratios")) {
+    luaL_checktype(L, 3, LUA_TTABLE);
     const size_t l = lua_objlen(L, 3);
     if (l == 0) {
       luaL_argerror(L, 3, "no ratios given");
@@ -725,6 +726,7 @@ static int l_config_newindex(lua_State *L)
     ui_recol(ui);
     ui_redraw(ui, REDRAW_FM);
   } else if (streq(key, "inotify_blacklist")) {
+    luaL_checktype(L, 3, LUA_TTABLE);
     const size_t l = lua_objlen(L, 3);
     cvector_ffree(cfg.inotify_blacklist, free);
     cfg.inotify_blacklist = NULL;
@@ -770,15 +772,14 @@ static int l_config_newindex(lua_State *L)
     cfg.icons = lua_toboolean(L, 3);
     ui_redraw(ui, REDRAW_FM);
   } else if (streq(key, "icon_map")) {
+    luaL_checktype(L, 3, LUA_TTABLE);
     ht_clear(cfg.icon_map);
     for (lua_pushnil(L); lua_next(L, -2) != 0; lua_pop(L, 1)) {
       config_icon_map_add(lua_tostring(L, -2), lua_tostring(L, -1));
     }
     ui_redraw(ui, REDRAW_FM);
   } else if (streq(key, "dir_settings")) {
-    if (lua_type(L, 3) != LUA_TTABLE) {
-      luaL_argerror(L, 3, "table<path, DirSetting> expected");
-    }
+    luaL_checktype(L, 3, LUA_TTABLE);
     ht_clear(cfg.dir_settings_map);
     for (lua_pushnil(L); lua_next(L, -2) != 0; lua_pop(L, 1)) {
       lua_dir_settings_set(L, luaL_checkstring(L, -2), -1);
