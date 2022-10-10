@@ -220,7 +220,7 @@ function M.paste_overwrite()
 	if #files == 0 then
 		return
 	end
-	local reload_dirs = {[fm.pwd()] = true}
+	local reload_dirs = {[lfm.fn.pwd()] = true}
 	if mode == "move" then
 		for _, file in ipairs(files) do
 			reload_dirs[dirname(file)] = true

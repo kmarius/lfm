@@ -684,8 +684,8 @@ static int l_config_index(lua_State *L)
   } else if (streq(key, "datadir")) {
     lua_pushstring(L, cfg.datadir);
     return 1;
-  } else if (streq(key, "user_datadir")) {
-    lua_pushstring(L, cfg.user_datadir);
+  } else if (streq(key, "statedir")) {
+    lua_pushstring(L, cfg.statedir);
     return 1;
   } else if (streq(key, "runtime_dir")) {
     lua_pushstring(L, cfg.rundir);

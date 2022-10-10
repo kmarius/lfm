@@ -80,11 +80,11 @@ void config_init()
     asprintf(&cfg.rundir, "%s/lfm", xdg_runtime);
   }
 
-  const char *xdg_cache_home = getenv("XDG_CACHE_HOME");
-  if (!xdg_cache_home || *xdg_cache_home == 0) {
+  const char *xdg_cache = getenv("XDG_CACHE_HOME");
+  if (!xdg_cache || *xdg_cache == 0) {
     asprintf(&cfg.cachedir, "/home/%s/.cache/lfm", getenv("USER"));
   } else {
-    asprintf(&cfg.cachedir, "%s/lfm", xdg_cache_home);
+    asprintf(&cfg.cachedir, "%s/lfm", xdg_cache);
   }
 
   const char *xdg_config = getenv("XDG_CONFIG_HOME");
@@ -94,19 +94,18 @@ void config_init()
     asprintf(&cfg.configdir, "%s/lfm", xdg_config);
   }
 
-  // apparently, there is now XDG_STATE_HOME for history etc.
-  const char *xdg_data = getenv("XDG_DATA_HOME");
-  if (!xdg_data || *xdg_data == 0) {
-    asprintf(&cfg.user_datadir, "%s/.local/share/lfm", getenv("HOME"));
+  const char *xdg_state = getenv("XDG_STATE_HOME");
+  if (!xdg_state || *xdg_state == 0) {
+    asprintf(&cfg.statedir, "%s/.local/state/lfm", getenv("HOME"));
   } else {
-    asprintf(&cfg.user_datadir, "%s/lfm", xdg_data);
+    asprintf(&cfg.statedir, "%s/lfm", xdg_state);
   }
 
   cfg.datadir = strdup(default_data_dir);
 
   asprintf(&cfg.configpath, "%s/init.lua", cfg.configdir);
 
-  asprintf(&cfg.historypath, "%s/history", cfg.user_datadir);
+  asprintf(&cfg.historypath, "%s/history", cfg.statedir);
 
   cfg.luadir = strdup(default_lua_dir);
 
@@ -134,7 +133,7 @@ void config_deinit()
   free(cfg.configdir);
   free(cfg.configpath);
   free(cfg.corepath);
-  free(cfg.user_datadir);
+  free(cfg.statedir);
   free(cfg.datadir);
   free(cfg.cachedir);
   free(cfg.fifopath);

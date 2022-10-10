@@ -42,7 +42,7 @@
 ---@field configdir string
 ---@field luadir string
 ---@field datadir string
----@field user_datadir string
+---@field statedir string
 ---@field runtime_dir string
 ---@field logpath string
 ---@field fifopath string

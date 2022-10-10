@@ -285,6 +285,11 @@ void lfm_init(Lfm *lfm)
     exit(EXIT_FAILURE);
   }
 
+  if (mkdir_p(cfg.statedir, 0700) == -1 && errno != EEXIST) {
+    fprintf(stderr, "mkdir: %s", strerror(errno));
+    exit(EXIT_FAILURE);
+  }
+
   if ((mkfifo(cfg.fifopath, 0600) == -1 && errno != EEXIST) ||
       (lfm->fifo_fd = open(cfg.fifopath, O_RDONLY|O_NONBLOCK, 0)) == -1) {
     log_error("fifo: %s", strerror(errno));

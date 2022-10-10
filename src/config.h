@@ -12,8 +12,8 @@
 typedef struct config_s {
   char *configdir;      // ~/.config/lfm
   char *configpath;     // ~/.config/lfm/init.lua
-  char *user_datadir;   // ~/.local/share/lfm
-  char *historypath;    // ~/.local/share/lfm/history
+  char *statedir;       // ~/.local/state/lfm
+  char *historypath;    // ~/.local/state/lfm/history
   char *datadir;        // /usr/share/lfm
   char *luadir;         // /usr/share/lfm/lua
   char *corepath;       // /usr/share/lfm/lua/core.lua
