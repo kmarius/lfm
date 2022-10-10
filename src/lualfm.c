@@ -20,6 +20,7 @@
 #include "fm.h"
 #include "hashtab.h"
 #include "hooks.h"
+#include "input.h"
 #include "loader.h"
 #include "log.h"
 #include "lua.h"
@@ -129,7 +130,7 @@ static int l_handle_key(lua_State *L)
   input_t *buf = malloc((strlen(keys) + 1) * sizeof *buf);
   key_names_to_input(keys, buf);
   for (input_t *u = buf; *u; u++) {
-    lua_handle_key(L, *u);
+    lfm_handle_key(lfm, *u);
   }
   free(buf);
   return 0;
@@ -370,6 +371,10 @@ static int l_execute(lua_State *L)
 
 static inline int map_key(lua_State *L, Trie *trie)
 {
+  if (!(lua_type(L, 2) == LUA_TFUNCTION || lua_isnil(L, 2))) {
+    luaL_argerror(L, 2, "expected function or nil");
+  }
+
   const char *desc = NULL;
   if (lua_type(L, 3) == LUA_TTABLE) {
     lua_getfield(L, 3, "desc");
@@ -378,28 +383,38 @@ static inline int map_key(lua_State *L, Trie *trie)
     }
     lua_pop(L, 1);
   }
-
   const char *keys = luaL_checkstring(L, 1);
 
-  if (!(lua_type(L, 2) == LUA_TFUNCTION || lua_isnil(L, 2))) {
-    luaL_argerror(L, 2, "expected function or nil");
-  }
-
-  input_t *buf = malloc((strlen(keys) + 1) * sizeof *buf);
-  Trie *ptr;
+  int ref = 0;
   if (!lua_isnil(L, 2)) {
-    ptr = trie_insert(trie, key_names_to_input(keys, buf), keys, desc);
-  } else {
-    ptr = trie_remove(trie, key_names_to_input(keys, buf));
-  }
-  free(buf);
-
-  if (ptr) {
-    lua_pushlightuserdata(L, (void *) ptr);
     lua_pushvalue(L, 2);
-    lua_settable(L, LUA_REGISTRYINDEX);
+    ref = luaL_ref(L, LUA_REGISTRYINDEX);
   }
+
+  int old_ref = input_map(trie, keys, ref, desc);
+  if (old_ref) {
+    luaL_unref(L, LUA_REGISTRYINDEX, old_ref);
+  }
+
   return 0;
+}
+
+
+void lua_call_on_change(lua_State *L, const char *prefix)
+{
+  lua_getglobal(L, "lfm");
+  if (lua_type(L, -1) == LUA_TTABLE) {
+    lua_getfield(L, -1, "modes");
+    if (lua_type(L, -1) == LUA_TTABLE) {
+      lua_getfield(L, -1, prefix);
+      if (lua_type(L, -1) == LUA_TTABLE) {
+        lua_getfield(L, -1, "on_change");
+        if (lua_type(L, -1) == LUA_TFUNCTION) {
+          lua_pcall(L, 0, 0, 0);
+        }
+      }
+    }
+  }
 }
 
 
@@ -426,8 +441,7 @@ static inline void lua_push_maps(lua_State *L, Trie *trie, bool prune)
     lua_setfield(L, -2, "desc");
     lua_pushstring(L, keymaps[i]->keys);
     lua_setfield(L, -2, "keys");
-    lua_pushlightuserdata(L, (void *) keymaps[i]);
-    lua_gettable(L, LUA_REGISTRYINDEX);
+    lua_rawgeti(L, LUA_REGISTRYINDEX, keymaps[i]->ref);
     lua_setfield(L, -2, "f");
     lua_rawseti(L, -2, i + 1);
   }
@@ -1942,6 +1956,18 @@ void lua_run_hook1(lua_State *L, const char *hook, const char* arg1)
 }
 
 
+void lua_call_from_ref(lua_State *L, int ref, int count)
+{
+  lua_rawgeti(L, LUA_REGISTRYINDEX, ref);
+  if (count > 0) {
+    lua_pushnumber(L, count);
+  }
+  if (lua_pcall(L, count > 0 ? 1 : 0, 0, 0)) {
+    ui_error(ui, "handle_key: %s", lua_tostring(L, -1));
+  }
+}
+
+
 void lua_eval(lua_State *L, const char *expr)
 {
   log_debug("eval %s", expr);
@@ -1950,139 +1976,6 @@ void lua_eval(lua_State *L, const char *expr)
   lua_pushstring(L, expr);
   if (lua_pcall(L, 1, 0, 0)) {
     ui_error(ui, "eval: %s", lua_tostring(L, -1));
-  }
-}
-
-void lua_handle_key(lua_State *L, input_t in)
-{
-  if (in == CTRL('Q')) {
-    lfm_quit(lfm);
-    return;
-  }
-  const char *prefix = cmdline_prefix_get(&ui->cmdline);
-  if (!lfm->maps.cur) {
-    lfm->maps.cur = prefix ? lfm->maps.cmd : lfm->maps.normal;
-    cvector_set_size(lfm->maps.seq, 0);
-    lfm->maps.count = -1;
-    lfm->maps.accept_count = true;
-  }
-  if (!prefix && lfm->maps.accept_count && '0' <= in && in <= '9') {
-    if (lfm->maps.count < 0) {
-      lfm->maps.count = in - '0';
-    } else {
-      lfm->maps.count = lfm->maps.count * 10 + in - '0';
-    }
-    if (lfm->maps.count > 0) {
-      cvector_push_back(lfm->maps.seq, in);
-      ui_keyseq_show(ui, lfm->maps.seq);
-    }
-    return;
-  }
-  lfm->maps.cur = trie_find_child(lfm->maps.cur, in);
-  if (prefix) {
-    if (!lfm->maps.cur) {
-      if (iswprint(in)) {
-        char buf[MB_LEN_MAX+1];
-        int n = wctomb(buf, in);
-        if (n < 0) {
-          n = 0; // invalid character or borked shift/ctrl/alt
-        }
-        buf[n] = '\0';
-        if (cmdline_insert(&ui->cmdline, buf)) {
-          ui_redraw(ui, REDRAW_CMDLINE);
-        }
-      }
-      lua_getglobal(L, "lfm");
-      if (lua_type(L, -1) == LUA_TTABLE) {
-        lua_getfield(L, -1, "modes");
-        if (lua_type(L, -1) == LUA_TTABLE) {
-          lua_getfield(L, -1, prefix);
-          if (lua_type(L, -1) == LUA_TTABLE) {
-            lua_getfield(L, -1, "on_change");
-            if (lua_type(L, -1) == LUA_TFUNCTION) {
-              lua_pcall(L, 0, 0, 0);
-            }
-          }
-        }
-      }
-    } else {
-      if (lfm->maps.cur->keys) {
-        lua_pushlightuserdata(L, (void *) lfm->maps.cur);
-        lua_gettable(L, LUA_REGISTRYINDEX);
-        lfm->maps.cur = NULL;
-        if (lua_pcall(L, 0, 0, 0)) {
-          ui_error(ui, "handle_key: %s", lua_tostring(L, -1));
-        }
-      }
-    }
-  } else {
-    // prefix == NULL, i.e. normal mode
-    if (in == NCKEY_ESC) {
-      if (cvector_size(lfm->maps.seq) > 0) {
-        // clear keys in the buffer
-        lfm->maps.cur = NULL;
-        ui_menu_hide(ui);
-        ui_keyseq_hide(ui);
-      } else {
-        // clear selection etc
-        // TODO: this should be done properly with modes (on 2022-02-13)
-        nohighlight(ui);
-        fm_selection_visual_stop(fm);
-        fm_selection_clear(fm);
-        fm_paste_buffer_clear(fm);
-        lfm_run_hook(lfm, LFM_HOOK_PASTEBUF);
-      }
-      ui->message = false;
-      ui_redraw(ui, REDRAW_FM);
-    } else if (!lfm->maps.cur) {
-      // no keymapping, print an error
-      cvector_push_back(lfm->maps.seq, in);
-      char *str = NULL;
-      for (size_t i = 0; i < cvector_size(lfm->maps.seq); i++) {
-        for (const char *s = input_to_key_name(lfm->maps.seq[i]); *s; s++) {
-          cvector_push_back(str, *s);
-        }
-      }
-      cvector_push_back(str, 0);
-      log_debug("key: %d, id: %d, shift: %d, ctrl: %d alt %d, %s",
-          in, ID(in), ISSHIFT(in), ISCTRL(in), ISALT(in), str);
-      cvector_free(str);
-      ui_menu_hide(ui);
-      ui_keyseq_hide(ui);
-    } else if (lfm->maps.cur->keys) {
-      // A command is mapped to the current keysequence. Execute it and reset.
-      ui_menu_hide(ui);
-      lua_pushlightuserdata(L, (void *) lfm->maps.cur);
-      lua_gettable(L, LUA_REGISTRYINDEX);
-      lfm->maps.cur = NULL;
-      ui_keyseq_hide(ui);
-      int nargs = 0;
-      if (lfm->maps.count > 0) {
-        lua_pushnumber(L, lfm->maps.count);
-        nargs++;
-      }
-      if (lua_pcall(L, nargs, 0, 0)) {
-        ui_error(ui, "handle_key: %s", lua_tostring(L, -1));
-      }
-    } else {
-      cvector_push_back(lfm->maps.seq, in);
-      ui_keyseq_show(ui, lfm->maps.seq);
-      lfm->maps.accept_count = false;
-
-      Trie **leaves = NULL;
-      trie_collect_leaves(lfm->maps.cur, &leaves, true);
-
-      char **menu = NULL;
-
-      cvector_push_back(menu, strdup("\033[1mkeys\tcommand\033[0m"));
-      char *s;
-      for (size_t i = 0; i < cvector_size(leaves); i++) {
-        asprintf(&s, "%s\t%s", leaves[i]->keys, leaves[i]->desc ? leaves[i]->desc : "");
-        cvector_push_back(menu, s);
-      }
-      cvector_free(leaves);
-      ui_menu_show(ui, menu);
-    }
   }
 }
 
@@ -2154,9 +2047,6 @@ void lua_init(lua_State *L, Lfm *_lfm)
   ui = &_lfm->ui;
   fm = &_lfm->fm;
 
-  lfm->maps.normal = trie_create();
-  lfm->maps.cmd = trie_create();
-
   luaL_openlibs(L);
   luaopen_jit(L);
   luaopen_lfm(L);
@@ -2170,7 +2060,4 @@ void lua_init(lua_State *L, Lfm *_lfm)
 void lua_deinit(lua_State *L)
 {
   lua_close(L);
-  trie_destroy(lfm->maps.normal);
-  trie_destroy(lfm->maps.cmd);
-  cvector_free(lfm->maps.seq);
 }

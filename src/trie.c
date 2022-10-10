@@ -6,11 +6,8 @@
 
 static inline Trie *trie_node_create(input_t key, Trie *next)
 {
-  Trie *n = malloc(sizeof *n);
+  Trie *n = calloc(1, sizeof *n);
   n->key = key;
-  n->keys = NULL;
-  n->desc = NULL;
-  n->child = NULL;
   n->next = next;
   return n;
 }
@@ -38,10 +35,10 @@ Trie *trie_find_child(const Trie* t, input_t key)
 }
 
 
-Trie *trie_insert(Trie* t, const input_t *trie_keys, const char *keys, const char *desc)
+int trie_insert(Trie* t, const input_t *trie_keys, int ref, const char *keys, const char *desc)
 {
   if (!t) {
-    return NULL;
+    return 0;
   }
 
   for (const input_t *c = trie_keys; *c != 0; c++) {
@@ -56,24 +53,29 @@ Trie *trie_insert(Trie* t, const input_t *trie_keys, const char *keys, const cha
   free(t->keys);
   t->desc = desc ? strdup(desc) : NULL;
   t->keys = keys ? strdup(keys) : NULL;
-  return t;
+  int ret = t->ref;
+  t->ref = ref;
+
+  return ret;
 }
 
 
-Trie *trie_remove(Trie* t, const input_t *trie_keys)
+int trie_remove(Trie* t, const input_t *trie_keys)
 {
   if (*trie_keys == 0) {
     free(t->keys);
     free(t->desc);
     t->keys = NULL;
     t->desc = NULL;
-    return t;
+    int ret = t->ref;
+    t->ref = 0;
+    return ret;
   }
 
   Trie **prev = &t->child;
   for (Trie *n = t->child; n; n = n->next) {
     if (n->key == *trie_keys) {
-      Trie *ret = trie_remove(n, trie_keys + 1);
+      int ret = trie_remove(n, trie_keys + 1);
       if (!n->child && !n->keys) {
         *prev = n->next;
         free(n);
@@ -82,7 +84,7 @@ Trie *trie_remove(Trie* t, const input_t *trie_keys)
     }
     prev = &n->next;
   }
-  return NULL;
+  return 0;
 }
 
 

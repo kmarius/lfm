@@ -3,15 +3,14 @@
 #include "cvector.h"
 #include "keys.h"
 
-// Keybinds get maped to lua functions. We use the (unique) address of the node
-// to look up lua functions hence there is no dedicated field. The existence of
-// trie_node.keys is the indicator that a command for the current key sequence
-// exists.
+// Stores key-value of input_t* -> int. Can't store 0 because it signals that a
+// node is empty.
 
 typedef struct trie_s {
   input_t key;
-  char *keys;          // full key sequence (used for menu), NULL for non-leaves
-  char *desc;          // description of the command, can be NULL
+  int ref;
+  char *keys;            // full key sequence (used for menu), NULL for non-leaves
+  char *desc;            // description of the command, can be NULL
   struct trie_s *child;  // can be NULL
   struct trie_s *next;   // next sibling, can be NULL
 } Trie;
@@ -22,15 +21,13 @@ Trie *trie_create();
 // Free all resources belonging to the trie.
 void trie_destroy(Trie *trie);
 
-// Insert a new key sequence into the tree. keys should be the (printable) key
-// sequence, `trie\_keys` is the sequence of keys converted to `input_t` and
-// `desc` an optional description of the command. Returns the pointer of the
-// final node the word is ended in.
-Trie *trie_insert(Trie* trie, const input_t *trie_keys, const char *keys, const char *desc);
+// Insert a new key/val tuple into the tree. `keys` should be the (printable)
+// key sequence, `desc` an optional description of the command.
+// Returns the value that was replaced (or 0 if none was).
+int trie_insert(Trie* trie, const input_t *trie_keys, int ref, const char *keys, const char *desc);
 
-// Remove a word from the trie and prunes empty branches. Returns the address
-// of the invalidated node.
-Trie *trie_remove(Trie* trie, const input_t *trie_keys);
+// Remove a key/val from the trie and returns the value.
+int trie_remove(Trie* trie, const input_t *trie_keys);
 
 // Finds the top level child belonging to key if it exists, NULL otherwise.
 Trie *trie_find_child(const Trie* trie, input_t key);

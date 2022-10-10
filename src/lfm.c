@@ -16,6 +16,7 @@
 #include "keys.h"
 #include "hashtab.h"
 #include "hooks.h"
+#include "input.h"
 #include "lfm.h"
 #include "loader.h"
 #include "log.h"
@@ -166,7 +167,7 @@ static void stdin_cb(EV_P_ ev_io *w, int revents)
     }
 
     // log_debug("id: %d, shift: %d, ctrl: %d alt %d, type: %d, %s", in.id, in.shift, in.ctrl, in.alt, in.evtype, in.utf8);
-    lua_handle_key(lfm->L, ncinput_to_input(&in));
+    lfm_handle_key(lfm, ncinput_to_input(&in));
   }
 
   ev_idle_start(loop, &lfm->redraw_watcher);
@@ -307,6 +308,8 @@ void lfm_init(Lfm *lfm)
 
   fm_init(&lfm->fm, lfm);
   ui_init(&lfm->ui, lfm);
+
+  input_init(lfm);
 
   ev_idle_init(&lfm->redraw_watcher, redraw_cb);
   lfm->redraw_watcher.data = lfm;
@@ -569,6 +572,7 @@ void lfm_deinit(Lfm *lfm)
   cvector_ffree(lfm->child_watchers, destroy_child_watcher);
   cvector_ffree(lfm->schedule_timers, destroy_schedule_timer);
   notify_deinit(&lfm->notify);
+  input_deinit(lfm);
   lua_deinit(lfm->L);
   ui_deinit(&lfm->ui);
   fm_deinit(&lfm->fm);
