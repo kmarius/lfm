@@ -40,6 +40,7 @@ struct tpool {
   pthread_cond_t working_cond;
   size_t working_cnt;
   size_t thread_cnt;
+  size_t kill_cnt;
   bool stop;
 };
 
@@ -93,11 +94,16 @@ static void *tpool_worker(void *arg)
   while (1) {
     pthread_mutex_lock(&(tm->work_mutex));
 
-    while (tm->work_first == NULL && !tm->stop)
+    while (tm->work_first == NULL && !tm->stop && tm->kill_cnt == 0)
       pthread_cond_wait(&(tm->work_cond), &(tm->work_mutex));
 
     if (tm->stop)
       break;
+
+    if (tm->kill_cnt) {
+      tm->kill_cnt--;
+      break;
+    }
 
     work = tpool_work_get(tm);
     tm->working_cnt++;
@@ -218,5 +224,38 @@ void tpool_wait(tpool_t *tm)
       break;
     }
   }
+  pthread_mutex_unlock(&(tm->work_mutex));
+}
+
+size_t tpool_size(const tpool_t *tm)
+{
+  if (tm == NULL)
+    return 0;
+
+  return tm->thread_cnt;
+}
+
+void tpool_resize(tpool_t *tm, size_t num)
+{
+  if (tm == NULL)
+    return;
+
+  if (num == 0) {
+    num = 2;
+  }
+
+  pthread_mutex_lock(&(tm->work_mutex));
+  if (num >= tm->thread_cnt) {
+    pthread_t thread;
+    for (; tm->thread_cnt < num; tm->thread_cnt++) {
+      pthread_create(&thread, NULL, tpool_worker, tm);
+      pthread_detach(thread);
+    }
+    tm->thread_cnt = num;
+    tm->kill_cnt = 0;
+  } else {
+    tm->kill_cnt = tm->thread_cnt - num;
+  }
+  pthread_cond_broadcast(&(tm->work_cond));
   pthread_mutex_unlock(&(tm->work_mutex));
 }

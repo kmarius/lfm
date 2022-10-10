@@ -695,6 +695,9 @@ static int l_config_index(lua_State *L)
     luaL_newmetatable(L, DIR_SETTINGS_META);
     lua_setmetatable(L, -2);
     return 1;
+  } else if (streq(key, "threads")) {
+    lua_pushnumber(L, tpool_size(lfm->async.tpool));
+    return 1;
   } else {
     luaL_error(L, "unexpected key %s", key);
   }
@@ -809,6 +812,11 @@ static int l_config_newindex(lua_State *L)
       cfg.previewer = str[0] != 0 ? path_replace_tilde(str) : NULL;
     }
     ui_drop_cache(ui);
+    return 0;
+  } else if (streq(key, "threads")) {
+    const int num = luaL_checknumber(L, 3);
+    luaL_argcheck(L, num >= 2, 3, "argument must be at least 2");
+    tpool_resize(lfm->async.tpool, num);
     return 0;
   } else {
     luaL_error(L, "unexpected key %s", key);

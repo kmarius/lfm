@@ -37,3 +37,7 @@ void tpool_destroy(tpool_t *tm);
 bool tpool_add_work(tpool_t *tm, thread_func_t func, void *arg);
 
 void tpool_wait(tpool_t *tm);
+
+size_t tpool_size(const tpool_t *tm);
+
+void tpool_resize(tpool_t *tm, size_t num);
