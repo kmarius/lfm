@@ -233,7 +233,7 @@ static int l_quit(lua_State *L)
 
 static int l_echo(lua_State *L)
 {
-  ui_echom(ui, luaL_optstring(L, 1, ""));
+  ui_echom(ui, "%s", luaL_optstring(L, 1, ""));
   return 0;
 }
 
