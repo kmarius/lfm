@@ -268,18 +268,18 @@ static int l_spawn(lua_State *L)
 
   luaL_checktype(L, 1, LUA_TTABLE);
 
-  const uint32_t n = lua_objlen(L, 1);
+  const int n = lua_objlen(L, 1);
   if (n == 0) {
     luaL_error(L, "no command given");
   }
 
-  char **args = malloc((n + 1) * sizeof *args);
-  for (uint32_t i = 1; i <= n; i++) {
+  char **args = NULL;
+  for (int i = 1; i <= n; i++) {
     lua_rawgeti(L, 1, i);
-    args[i-1] = strdup(lua_tostring(L, -1));
+    cvector_push_back(args, strdup(lua_tostring(L, -1)));
     lua_pop(L, 1);
   }
-  args[n] = NULL;
+  cvector_push_back(args, NULL);
   if (lua_gettop(L) >= 2) {
     luaL_checktype(L, 2, LUA_TTABLE);
 
@@ -323,10 +323,7 @@ static int l_spawn(lua_State *L)
   int pid = lfm_spawn(lfm, args[0], args, stdin, out, err, out_cb_ref, err_cb_ref, cb_ref);
 
   cvector_ffree(stdin, free);
-  for (uint32_t i = 0; i < n; i++) {
-    free(args[i]);
-  }
-  free(args);
+  cvector_ffree(args, free);
 
   if (pid != -1) {
     lua_pushnumber(L, pid);
@@ -343,23 +340,22 @@ static int l_execute(lua_State *L)
 {
   luaL_checktype(L, 1, LUA_TTABLE);
 
-  const uint32_t n = lua_objlen(L, 1);
+  const int n = lua_objlen(L, 1);
   if (n == 0) {
     luaL_error(L, "no command given");
   }
 
-  char **args = malloc((n + 1) * sizeof *args);
-  for (uint32_t i = 1; i <= n; i++) {
+  char **args = NULL;
+  for (int i = 1; i <= n; i++) {
     lua_rawgeti(L, 1, i);
-    args[i-1] = strdup(lua_tostring(L, -1));
+    cvector_push_back(args, strdup(lua_tostring(L, -1)));
     lua_pop(L, 1);
   }
-  args[n] = NULL;
+  cvector_push_back(args, NULL);
+
   bool ret = lfm_execute(lfm, args[0], args);
-  for (uint32_t i = 0; i < n; i++) {
-    free(args[i]);
-  }
-  free(args);
+
+  cvector_ffree(args, free);
 
   if (ret) {
     lua_pushboolean(L, true);
