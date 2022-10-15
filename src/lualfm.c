@@ -12,6 +12,7 @@
 #include <wctype.h>
 
 #include "async.h"
+#include "auto/versiondef.h"
 #include "cmdline.h"
 #include "config.h"
 #include "cvector.h"
@@ -2043,6 +2044,9 @@ int luaopen_lfm(lua_State *L)
 
   luaopen_rifle(L);
   lua_setfield(L, -2, "rifle"); /* lfm.rifle = {...} */
+
+  lua_pushstring(L, LFM_VERSION);
+  lua_setfield(L, -2, "version"); /* lfm.rifle = {...} */
 
   return 1;
 }

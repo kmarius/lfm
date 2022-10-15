@@ -1,6 +1,7 @@
 ---@meta
 
 ---@class lfmlib
+---@field version string version information
 lfm = {}
 
 ---Evaluate `expr` as if typed into the command line.
