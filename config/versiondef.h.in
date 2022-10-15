@@ -1,3 +1,7 @@
 #pragma once
 
-#define LFM_VERSION "@LFM_VERSION@"
+#define LFM_VERSION    "@LFM_VERSION@"
+#define LFM_COMMIT     "@LFM_COMMIT@"
+#define LFM_REVCOUNT   "@LFM_REVCOUNT@"
+#define LFM_BRANCH     "@LFM_BRANCH@"
+#define LFM_BUILD_TYPE "@CMAKE_BUILD_TYPE@"

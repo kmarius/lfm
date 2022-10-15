@@ -23,6 +23,10 @@
 # and adjusting the output so that it tests false if there was no exact
 # matching tag.
 #
+#  git_get_branch(<var>)
+#
+# Returns the current branch.
+#
 #  git_local_changes(<var>)
 #
 # Returns either "CLEAN" or "DIRTY" with respect to uncommitted changes.
@@ -235,6 +239,39 @@ function(git_revcount _var)
 
     execute_process(
         COMMAND "${GIT_EXECUTABLE}" rev-list --count master
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+        RESULT_VARIABLE res
+        OUTPUT_VARIABLE out
+        ERROR_QUIET OUTPUT_STRIP_TRAILING_WHITESPACE)
+    if(NOT res EQUAL 0)
+        set(out "${out}-${res}-NOTFOUND")
+    endif()
+
+    set(${_var}
+        "${out}"
+        PARENT_SCOPE)
+endfunction()
+
+function(git_get_branch _var)
+    if(NOT GIT_FOUND)
+        find_package(Git QUIET)
+    endif()
+    get_git_head_revision(refspec hash)
+    if(NOT GIT_FOUND)
+        set(${_var}
+            "GIT-NOTFOUND"
+            PARENT_SCOPE)
+        return()
+    endif()
+    if(NOT hash)
+        set(${_var}
+            "HEAD-HASH-NOTFOUND"
+            PARENT_SCOPE)
+        return()
+    endif()
+
+    execute_process(
+        COMMAND "${GIT_EXECUTABLE}" rev-parse --abbrev-ref HEAD
         WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
         RESULT_VARIABLE res
         OUTPUT_VARIABLE out

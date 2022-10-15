@@ -2043,8 +2043,24 @@ int luaopen_lfm(lua_State *L)
   luaopen_rifle(L);
   lua_setfield(L, -2, "rifle"); /* lfm.rifle = {...} */
 
+  lua_newtable(L);
+
   lua_pushstring(L, LFM_VERSION);
-  lua_setfield(L, -2, "version"); /* lfm.rifle = {...} */
+  lua_setfield(L, -2, "info");
+
+  lua_pushstring(L, LFM_REVCOUNT);
+  lua_setfield(L, -2, "revcount");
+
+  lua_pushstring(L, LFM_COMMIT);
+  lua_setfield(L, -2, "commit");
+
+  lua_pushstring(L, LFM_BUILD_TYPE);
+  lua_setfield(L, -2, "build_type");
+
+  lua_pushstring(L, LFM_BRANCH);
+  lua_setfield(L, -2, "branch");
+
+  lua_setfield(L, -2, "version");
 
   return 1;
 }

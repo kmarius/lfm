@@ -1,7 +1,14 @@
 ---@meta
 
+---@class infolib
+---field info string version information string
+---field branch string branch
+---field commit string commit hash
+---field revcount string revision count
+---field build_type string build type
+
 ---@class lfmlib
----@field version string version information
+---@field version infolib version information
 lfm = {}
 
 ---Evaluate `expr` as if typed into the command line.

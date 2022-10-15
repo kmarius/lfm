@@ -71,12 +71,17 @@ message(STATUS "data dir: ${LFM_DATA_DIR}")
 include(GetGitRevisionDescription)
 git_describe(GIT_SHA1)
 git_revcount(GIT_REVCOUNT)
+git_get_branch(GIT_BRANCH)
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
 	set(LFM_VERSION "r${GIT_REVCOUNT}.${GIT_SHA1}-debug")
 else()
 	set(LFM_VERSION "r${GIT_REVCOUNT}.${GIT_SHA1}")
 endif()
+
+set(LFM_COMMIT "${GIT_SHA1}")
+set(LFM_REVCOUNT "${GIT_REVCOUNT}")
+set(LFM_BRANCH "${GIT_BRANCH}")
 
 add_subdirectory(config)
 list(APPEND LFM_GENERATED_SOURCES
