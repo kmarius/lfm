@@ -3,16 +3,18 @@
 #include "cvector.h"
 #include "keys.h"
 
-// Stores key-value of input_t* -> int. Can't store 0 because it signals that a
+// Stores key-values of input_t* -> int. Can't store 0 because it signals that a
 // node is empty.
 
 typedef struct trie_s {
   input_t key;
-  int ref;
-  char *keys;            // full key sequence (used for menu), NULL for non-leaves
-  char *desc;            // description of the command, can be NULL
   struct trie_s *child;  // can be NULL
   struct trie_s *next;   // next sibling, can be NULL
+  struct {
+    int ref;             // reference to a function in the registry, or 0
+    char *keys;          // full key sequence (used for menu), NULL for non-leaves
+    char *desc;          // description of the command, can be NULL
+  };
 } Trie;
 
 // Allocate a new trie root.
