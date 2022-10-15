@@ -6,6 +6,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
@@ -30,7 +31,13 @@ typedef bool(check_fun)(struct condition_s *, const struct fileinfo_s *);
 
 typedef struct condition_s {
   bool negate;
-  char *arg;
+  union {
+    char *arg;
+    struct {
+      pcre *pcre;
+      pcre_extra *pcre_extra;
+    };
+  };
   check_fun *check;
 } Condition;
 
@@ -65,16 +72,19 @@ static inline Condition *condition_create(check_fun *f, const char *arg, bool ne
   return cd;
 }
 
-
 static inline void condition_destroy(Condition *cd)
 {
   if (!cd) {
     return;
   }
-  free(cd->arg);
+  if (cd->pcre_extra) {
+    pcre_free(cd->pcre);
+    pcre_free(cd->pcre_extra);
+  } else {
+    free(cd->arg);
+  }
   free(cd);
 }
-
 
 static inline Rule *rule_create(const char *command)
 {
@@ -83,7 +93,6 @@ static inline Rule *rule_create(const char *command)
   rl->number = -1;
   return rl;
 }
-
 
 static inline void rule_destroy(Rule *rl)
 {
@@ -95,7 +104,6 @@ static inline void rule_destroy(Rule *rl)
   free(rl->command);
   free(rl);
 }
-
 
 static inline void rule_set_flags(Rule *r, const char *flags)
 {
@@ -115,39 +123,12 @@ static inline void rule_set_flags(Rule *r, const char *flags)
   }
 }
 
-
-// see https://www.mitchr.me/SS/exampleCode/AUPG/pcre_example.c.html
-/* TODO: we could save the compiled regex object in the Conditions (on 2022-09-25) */
-static inline bool regex_match(const char *regex, const char *string)
+static inline bool re_match(pcre *re, pcre_extra* re_extra, const char *string)
 {
   int substr_vec[32];
-  const char *pcre_error_str;
-  int pcre_error_offset;
-
-  pcre *re_compiled = pcre_compile(regex, 0, &pcre_error_str, &pcre_error_offset, NULL);
-  if (!re_compiled) {
-    return false;
-  }
-
-  pcre_extra *pcre_extra = pcre_study(re_compiled, 0, &pcre_error_str);
-  if (pcre_error_str) {
-    pcre_free(re_compiled);
-    return false;
-  }
-
-  int pcre_exec_ret = pcre_exec(re_compiled, pcre_extra, string,
-      strlen(string), 0, 0, substr_vec, 30);
-
-  pcre_free(re_compiled);
-  pcre_free_study(pcre_extra);
-
-  if (pcre_exec_ret < 0) {
-    return false;
-  }
-
-  return true;
+  return pcre_exec(re, re_extra, string,
+      strlen(string), 0, 0, substr_vec, 30) >= 0;
 }
-
 
 static bool check_fun_file(Condition *cd, const FileInfo *info)
 {
@@ -158,7 +139,6 @@ static bool check_fun_file(Condition *cd, const FileInfo *info)
   return S_ISREG(path_stat.st_mode) != cd->negate;
 }
 
-
 static bool check_fun_dir(Condition *cd, const FileInfo *info)
 {
   struct stat statbuf;
@@ -168,14 +148,12 @@ static bool check_fun_dir(Condition *cd, const FileInfo *info)
   return S_ISDIR(statbuf.st_mode) != cd->negate;
 }
 
-
 // not sure if this even works from within lfm
 static bool check_fun_term(Condition *cd, const FileInfo *info)
 {
   (void) info;
   return (isatty(0) && isatty(1) && isatty(2)) != cd->negate;
 }
-
 
 static bool check_fun_env(Condition *cd, const FileInfo *info)
 {
@@ -184,51 +162,52 @@ static bool check_fun_env(Condition *cd, const FileInfo *info)
   return (val && *val) != cd->negate;
 }
 
-
 static bool check_fun_else(Condition *cd, const FileInfo *info)
 {
   (void) info;
   return !cd->negate;
 }
 
-
-static bool check_fun_ext(Condition *cd, const FileInfo *info)
+/* TODO: log errors (on 2022-10-15) */
+static inline Condition *condition_create_re(check_fun *f, const char *re, bool negate)
 {
-  char *regex_str = malloc(strlen(cd->arg) + 8);
-  sprintf(regex_str, "\\.(%s)$", cd->arg);
-  bool ret = regex_match(regex_str, info->file) != cd->negate;
-  free(regex_str);
-  return ret;
+  const char *pcre_error_str;
+  int pcre_error_offset;
+  Condition *c = condition_create(f, NULL, negate);
+  c->pcre = pcre_compile(re, 0, &pcre_error_str, &pcre_error_offset, NULL);
+  if (!c->pcre) {
+    free(c);
+    return NULL;
+  }
+  c->pcre_extra = pcre_study(c->pcre, 0, &pcre_error_str);
+  if (pcre_error_str) {
+    pcre_free(c->pcre);
+    free(c);
+    return NULL;
+  }
+  return c;
 }
-
 
 static bool check_fun_path(Condition *cd, const FileInfo *info)
 {
-  return regex_match(cd->arg, info->path) != cd->negate;
+  return re_match(cd->pcre, cd->pcre_extra, info->path) != cd->negate;
 }
-
 
 static bool check_fun_mime(Condition *cd, const FileInfo *info)
 {
-  return regex_match(cd->arg, info->mime) != cd->negate;
+  return re_match(cd->pcre, cd->pcre_extra, info->mime) != cd->negate;
 }
-
 
 static bool check_fun_name(Condition *cd, const FileInfo *info)
 {
-  const char *ptr = info->file + strlen(info->file);
-  while (ptr > info->file && *(ptr - 1) != '/') {
-    ptr--;
-  }
-  return regex_match(cd->arg, ptr) != cd->negate;
+  const char *ptr = strrchr(info->file, '/');
+  return re_match(cd->pcre, cd->pcre_extra, ptr ? ptr : info->file) != cd->negate;
 }
-
 
 static bool check_fun_match(Condition *cd, const FileInfo *info)
 {
-  return regex_match(cd->arg, info->file) != cd->negate;
+  return re_match(cd->pcre, cd->pcre_extra, info->file) != cd->negate;
 }
-
 
 static bool check_fun_has(Condition *cd, const FileInfo *info)
 {
@@ -238,6 +217,30 @@ static bool check_fun_has(Condition *cd, const FileInfo *info)
   return !system(cmd) != cd->negate;
 }
 
+static inline Condition *condition_create_re_name(const char *arg, bool negate)
+{
+  return condition_create_re(check_fun_name, arg, negate);
+}
+
+static inline Condition *condition_create_re_ext(const char *arg, bool negate)
+{
+  char *regex_str = malloc(strlen(arg) + 8);
+  sprintf(regex_str, "\\.(%s)$", arg);
+  Condition *c = condition_create_re(check_fun_name, regex_str, negate);
+  c->check = check_fun_name;
+  free(regex_str);
+  return c;
+}
+
+static inline Condition *condition_create_re_mime(const char *arg, bool negate)
+{
+  return condition_create_re(check_fun_mime, arg, negate);
+}
+
+static inline Condition *condition_create_re_match(const char *arg, bool negate)
+{
+  return condition_create_re(check_fun_match, arg, negate);
+}
 
 static inline char *split_command(char *s)
 {
@@ -248,14 +251,12 @@ static inline char *split_command(char *s)
   return trim(s + 3);
 }
 
-
 static inline bool is_comment_or_whitespace(char* s)
 {
   s--;
   while (isspace(*++s)) {}
   return *s == '#' || *s == '\0';
 }
-
 
 static inline bool rule_add_condition(Rule *r, char *cond_str)
 {
@@ -288,8 +289,9 @@ static inline bool rule_add_condition(Rule *r, char *cond_str)
   } else if (streq(func, "else")) {
     c = condition_create(check_fun_else, NULL, negate);
   } else {
-    if ((arg = strtok_r(cond_str, "\0", &cond_str)) == NULL)
+    if ((arg = strtok_r(cond_str, "\0", &cond_str)) == NULL) {
       return false;
+    }
 
     if (streq(func, "label")) {
       r->label = strdup(arg);
@@ -300,18 +302,18 @@ static inline bool rule_add_condition(Rule *r, char *cond_str)
     } else if (streq(func, "flag")) {
       rule_set_flags(r, arg);
     } else if (streq(func, "ext")) {
-      c = condition_create(check_fun_ext, arg, negate);
+      c = condition_create_re_ext(arg, negate);
     } else if (streq(func, "path")) {
       c = condition_create(check_fun_path, arg, negate);
     } else if (streq(func, "mime")) {
-      c = condition_create(check_fun_mime, arg, negate);
+      c = condition_create_re_mime(arg, negate);
       if (!negate) {
         r->has_mime = true;
       }
     } else if (streq(func, "name")) {
-      c = condition_create(check_fun_name, arg, negate);
+      c = condition_create_re_name(arg, negate);
     } else if (streq(func, "match")) {
-      c = condition_create(check_fun_match, arg, negate);
+      c = condition_create_re_match(arg, negate);
     } else if (streq(func, "env")) {
       c = condition_create(check_fun_env, arg, negate);
     } else if (streq(func, "has")) {
@@ -329,7 +331,6 @@ static inline bool rule_add_condition(Rule *r, char *cond_str)
   return true;
 }
 
-
 static inline Rule *parse_rule(char *rule, const char *command)
 {
   Rule *r = rule_create(command);
@@ -345,7 +346,6 @@ static inline Rule *parse_rule(char *rule, const char *command)
   return r;
 }
 
-
 static inline bool rule_check(Rule *r, const FileInfo *info)
 {
   cvector_foreach(Condition *c, r->conditions) {
@@ -355,7 +355,6 @@ static inline bool rule_check(Rule *r, const FileInfo *info)
   }
   return true;
 }
-
 
 static int l_rifle_fileinfo(lua_State *L)
 {
@@ -381,7 +380,6 @@ static int l_rifle_fileinfo(lua_State *L)
   return 1;
 }
 
-
 static inline int lua_push_rule(lua_State *L, const Rule *r, int num)
 {
   lua_newtable(L);
@@ -403,7 +401,6 @@ static inline int lua_push_rule(lua_State *L, const Rule *r, int num)
 
   return 1;
 }
-
 
 static int l_rifle_query_mime(lua_State *L)
 {
@@ -459,7 +456,6 @@ static int l_rifle_query_mime(lua_State *L)
 
   return 1;
 }
-
 
 static int l_rifle_query(lua_State *L)
 {
@@ -522,7 +518,6 @@ static int l_rifle_query(lua_State *L)
   return 1;
 }
 
-
 static void load_rules(Rifle *rifle)
 {
   if (!rifle->config_file) {
@@ -554,7 +549,6 @@ static void load_rules(Rifle *rifle)
   fclose(fp);
 }
 
-
 static int l_rifle_setup(lua_State *L)
 {
   Rifle *rifle = lua_touserdata(L, lua_upvalueindex(1));
@@ -575,14 +569,12 @@ static int l_rifle_setup(lua_State *L)
   return 0;
 }
 
-
 static int l_rifle_nrules(lua_State *L)
 {
   Rifle *rifle = lua_touserdata(L, lua_upvalueindex(1));
   lua_pushinteger(L, cvector_size(rifle->rules));
   return 1;
 }
-
 
 static int l_rifle_gc(lua_State *L) {
   Rifle *r = luaL_checkudata(L, 1, RIFLE_META);
@@ -591,7 +583,6 @@ static int l_rifle_gc(lua_State *L) {
   return 0;
 }
 
-
 static const luaL_Reg rifle_lib[] = {
   {"fileinfo", l_rifle_fileinfo},
   {"nrules", l_rifle_nrules},
@@ -599,7 +590,6 @@ static const luaL_Reg rifle_lib[] = {
   {"query_mime", l_rifle_query_mime},
   {"setup", l_rifle_setup},
   {NULL, NULL}};
-
 
 int luaopen_rifle(lua_State *L)
 {
