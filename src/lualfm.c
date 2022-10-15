@@ -958,6 +958,20 @@ static int l_ui_menu(lua_State *L)
     for (lua_pushnil(L); lua_next(L, -2); lua_pop(L, 1)) {
       cvector_push_back(menubuf, strdup(luaL_checkstring(L, -1)));
     }
+  } else if (lua_type(L, -1) == LUA_TSTRING) {
+    const char *str = lua_tostring(L, 1);
+    for (;;) {
+      const char *nl = strchr(str, '\n');
+      if (!nl) {
+        cvector_push_back(menubuf, strdup(str));
+        break;
+      }
+      char *line = malloc(nl - str);
+      strncpy(line, str, nl - str);
+      line[nl - str] = 0;
+      cvector_push_back(menubuf, line);
+      str = nl + 1;
+    }
   }
   ui_menu_show(ui, menubuf);
   return 0;
