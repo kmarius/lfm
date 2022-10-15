@@ -83,6 +83,16 @@ local hooks = {
 	DirLoaded = {},
 }
 
+---@alias hook_name
+---| '"LfmEnter"'
+---| '"ExitPre"'
+---| '"ChdirPre"'
+---| '"ChdirPost"'
+---| '"SelectionChanged"'
+---| '"Resized"'
+---| '"PasteBufChange"'
+---| '"DirLoaded"'
+
 ---Register a function to hook into events. Curruntly supported hooks are
 ---```
 --- LfmEnter         lfm has started and read all configuration
@@ -91,10 +101,11 @@ local hooks = {
 --- ChdirPost        emitted after changin directories
 --- SelectionChanged the selection changed
 --- Resized          the window was resized
+--- PasteBufChange   the paste buffer changed
 --- DirLoaded        a new directory was loaded from disk
 ---
 ---```
----@param name string
+---@param name hook_name
 ---@param f function
 function lfm.register_hook(name, f)
 	if hooks[name] then
@@ -103,7 +114,7 @@ function lfm.register_hook(name, f)
 end
 
 ---Execute all functions registered to a hook.
----@param name string
+---@param name hook_name
 function lfm.run_hook(name, ...)
 	log.debug("running hook: " .. name)
 	if hooks[name] then
@@ -116,14 +127,19 @@ end
 -- Commands
 lfm.commands = {}
 
+---@class command_params
+---@field tokenize boolean tokenize arguments (default: true)
+---@field compl function completion function
+
 ---Register a function as a lfm command or unregister a command. Supported options
 ---```
 --- tokenize: tokenize the argument by whitespace and pass them as a table (default: false)
+--- compl:    completion function
 ---
 ---```
 ---@param name string Command name, can not contain whitespace.
 ---@param f function The function to execute or `nil` to unregister
----@param t? table Additional options.
+---@param t? command_params Additional options.
 function lfm.register_command(name, f, t)
 	if (f) then
 		t = t or {}
@@ -138,15 +154,20 @@ end
 lfm.modes = {}
 local modes = lfm.modes
 
----Register a mode to lfm. A mode is given by a table t that should contain the following fields:
+---@class mode_definition
+---@field prefix string
+---@field on_enter function
+---@field on_esc function
+---@field on_change function
+
+---Register a mode to lfm. A mode is given by a table t containing the following fields:
 ---```
---- t.prefix  The prefix, a string, shown in the command line and used to distinguish modes.
---- t.on_enter   A function that is executed when pressing enter while the mode is active.
---- t.on_esc     A function that is executed when pressing esc while the mode is active.
---- t.on_change  A function that is executed when the command line changes, e.g. keys are typed/deleted.
----
+--- t.prefix     The prefix, a string, shown in the command line and used to distinguish modes.
+--- t.on_enter   A function that is called when pressing enter while the mode is active.
+--- t.on_esc     A function that is called when pressing esc while the mode is active.
+--- t.on_change  A function that is called when the command line changes, e.g. keys are typed/deleted.
 ---```
----@param t table
+---@param t mode_definition
 function lfm.register_mode(t)
 	t = t or {}
 	assert(t.prefix ~= nil, "no prefix given")
