@@ -2000,7 +2000,7 @@ int luaopen_lfm(lua_State *L)
 {
   log_debug("opening lualfm libs");
 
-  luaL_openlib(L, "lfm", lfm_lib, 1);
+  luaL_openlib(L, "lfm", lfm_lib, 0);
 
   lua_newtable(L); /* lfm.cfg */
 
