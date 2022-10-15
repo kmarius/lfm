@@ -25,6 +25,8 @@ typedef struct ui_s {
   uint32_t ncol;
   uint32_t ndirs;  // number of columns including the preview
 
+  bool running;
+
   struct notcurses *nc;
   struct {
     struct ncplane *cmdline;

@@ -90,6 +90,7 @@ void ui_resume(Ui *ui)
   opts.rows = opts.cols = 1;
   ui->planes.menu = ncplane_create(ncstd, &opts);
   ncplane_move_bottom(ui->planes.menu);
+  ui->running = true;
 }
 
 
@@ -108,6 +109,7 @@ void ui_suspend(Ui *ui)
   if (ui->preview.preview) {
     ui->preview.preview = NULL;
   }
+  ui->running = false;
 }
 
 
@@ -285,7 +287,7 @@ void ui_verror(Ui *ui, const char *format, va_list args)
 
   cvector_push_back(ui->messages, msg);
 
-  if (!ui->nc) {
+  if (!ui->running) {
     return;
   }
 
@@ -305,7 +307,7 @@ void ui_vechom(Ui *ui, const char *format, va_list args)
 
   cvector_push_back(ui->messages, msg);
 
-  if (!ui->nc) {
+  if (!ui->running) {
     return;
   }
 

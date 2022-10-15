@@ -229,7 +229,7 @@ static int l_quit(lua_State *L)
   (void) L;
   lfm_quit(lfm);
   // hand back control to the C caller
-  luaL_error(L, "TODO: can we quit without erroring?");
+  luaL_error(L, "quit");
   return 0;
 }
 
