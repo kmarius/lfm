@@ -30,6 +30,15 @@ void fm_init(Fm *fm, struct lfm_s *lfm)
   fm->paste.mode = PASTE_MODE_COPY;
   fm->lfm = lfm;
 
+  char pwd[PATH_MAX];
+  const char *s = getenv("PWD");
+  if (s) {
+    fm->pwd = strdup(s);
+  } else {
+    getcwd(pwd, sizeof pwd);
+    fm->pwd = strdup(pwd);
+  }
+
   if (cfg.startpath) {
     if (chdir(cfg.startpath) != 0) {
       lfm_error(fm->lfm, "chdir: %s", strerror(errno));
@@ -66,25 +75,18 @@ void fm_deinit(Fm *fm)
   lht_destroy(fm->paste.buffer);
   free(fm->automark);
   free(fm->find_prefix);
+  free(fm->pwd);
 }
 
 
 static void fm_populate(Fm *fm)
 {
-  char pwd[PATH_MAX];
-
-  const char *s = getenv("PWD");
-  if (s) {
-    strncpy(pwd, s, sizeof pwd - 1);
-  } else {
-    getcwd(pwd, sizeof pwd);
-  }
-
-  fm->dirs.visible[0] = loader_dir_from_path(&fm->lfm->loader, pwd); /* current dir */
+  fm->dirs.visible[0] = loader_dir_from_path(&fm->lfm->loader, fm->pwd); /* current dir */
   fm->dirs.visible[0]->visible = true;
   Dir *d = fm_current_dir(fm);
   for (uint32_t i = 1; i < fm->dirs.length; i++) {
-    if ((s = dir_parent_path(d))) {
+    const char *s = dir_parent_path(d);
+    if (s) {
       d = loader_dir_from_path(&fm->lfm->loader, s);
       d->visible = true;
       fm->dirs.visible[i] = d;
@@ -126,26 +128,15 @@ bool fm_chdir(Fm *fm, const char *path, bool save)
     path = fullpath;
   }
 
-  uint64_t t0 = current_millis();
-  if (chdir(path) != 0) {
-
-    uint64_t t1 = current_millis();
-    if (t1 - t0 > 10) {
-      log_debug("chdir(\"%s\") took %ums", path, t1-t0);
-    }
-
-    lfm_error(fm->lfm, "chdir: %s", strerror(errno));
-    return false;
-  }
-
-  uint64_t t1 = current_millis();
-  if (t1 - t0 > 10) {
-    log_debug("chdir(\"%s\") took %ums", path, t1-t0);
-  }
+  // find something else since we are not chdiring anymore
+  // if (chdir(path) != 0) {
+  //   lfm_error(fm->lfm, "chdir: %s", strerror(errno));
+  // }
 
   notify_set_watchers(&fm->lfm->notify, NULL, 0);
 
-  setenv("PWD", path, true);
+  free(fm->pwd);
+  fm->pwd = strdup(path);
 
   if (save) {
     free(fm->automark);

@@ -30,7 +30,7 @@
 #include "popen_arr.h"
 
 static int popen2_impl(FILE** in, FILE** out, FILE** err, const char* program,
-    char* const argv[], char* const envp[], int lookup_path)
+    char* const argv[], const char *pwd, int lookup_path)
 {
   int child_stdout = -1;
   int child_stdin = -1;
@@ -115,20 +115,13 @@ static int popen2_impl(FILE** in, FILE** out, FILE** err, const char* program,
     } else {
       close(2);
     }
+    if (pwd) {
+      chdir(pwd);
+    }
     if (lookup_path) {
-      if (envp != NULL) {
-        /* TODO: GNU extension. Implement this should we ever need it (on 2022-02-04) */
-        return 0;
-        // execvpe(program, (char**) argv, (char**) envp);
-      } else {
-        execvp(program, (char**) argv);
-      }
+      execvp(program, (char**) argv);
     } else {
-      if (envp != NULL) {
-        execve(program, (char**) argv, (char**) envp);
-      } else {
-        execv(program, (char**) argv);
-      }
+      execv(program, (char**) argv);
     }
     _exit(ENOSYS);
   }
@@ -147,17 +140,17 @@ static int popen2_impl(FILE** in, FILE** out, FILE** err, const char* program,
 }
 
 int popen2_arr(FILE **in, FILE **out, FILE **err, const char *program,
-    char *const argv[], char *const envp[])
+    char *const argv[], const char *pwd)
 {
   signal(SIGPIPE, SIG_IGN);
-  return popen2_impl(in, out, err, program, argv, envp, 0);
+  return popen2_impl(in, out, err, program, argv, pwd, 0);
 }
 
 int popen2_arr_p(FILE **in, FILE **out, FILE **err, const char *program,
-    char *const argv[], char *const envp[])
+    char *const argv[], char const *pwd)
 {
   signal(SIGPIPE, SIG_IGN);
-  return popen2_impl(in, out, err, program, argv, envp, 1);
+  return popen2_impl(in, out, err, program, argv, pwd, 1);
 }
 
 FILE* popen_arr(const char* program, char *const argv[], int pipe_into_program)

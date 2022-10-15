@@ -115,18 +115,18 @@ int main(int argc, char **argv)
   log_debug("starting main loop after %.2f ms", (current_micros() - t0)/1000.0);
   lfm_run(&lfm);
 
-  lfm_deinit(&lfm);
-
   /* selection is written in lualfm.c */
   if (cfg.lastdir) {
     FILE *fp = fopen(cfg.lastdir, "w");
     if (!fp) {
       log_error("lastdir: %s", strerror(errno));
     } else {
-      fputs(getenv("PWD"), fp);
+      fputs(lfm.fm.pwd, fp);
       fclose(fp);
     }
   }
+
+  lfm_deinit(&lfm);
 
 cleanup:
 

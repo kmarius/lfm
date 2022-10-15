@@ -1922,8 +1922,7 @@ static int l_fn_getcwd(lua_State *L)
 
 static int l_fn_getpwd(lua_State *L)
 {
-  const char *pwd = getenv("PWD");
-  lua_pushstring(L, pwd ? pwd : "");
+  lua_pushstring(L, fm->pwd);
   return 1;
 }
 

@@ -425,7 +425,7 @@ int lfm_spawn(Lfm *lfm, const char *prog, char *const *args,
   ev_io *stdout_watcher = NULL;
 
   // always pass out and err because popen2_arr_p doesnt close the fds
-  int pid = popen2_arr_p(in ? &fin : NULL, &fout, &ferr, prog, args, NULL);
+  int pid = popen2_arr_p(in ? &fin : NULL, &fout, &ferr, prog, args, lfm->fm.pwd);
 
   if (pid == -1) {
     lfm_error(lfm, "popen2_arr_p: %s", strerror(errno));  // not sure if set
@@ -469,6 +469,7 @@ bool lfm_execute(Lfm *lfm, const char *prog, char *const *args)
   } else if (pid == 0) {
     // child
     signal(SIGINT, SIG_DFL);
+    chdir(lfm->fm.pwd);
     execvp(prog, (char* const *) args);
     _exit(127); // execl error
   } else {
