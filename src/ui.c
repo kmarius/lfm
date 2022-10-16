@@ -46,10 +46,10 @@ static int resize_cb(struct ncplane *n)
   ncplane_resize(ui->planes.info, 0, 0, 0, 0, 0, 0, 1, ui->ncol);
   ncplane_resize(ui->planes.cmdline, 0, 0, 0, 0, 0, 0, 1, ui->ncol);
   ncplane_move_yx(ui->planes.cmdline, ui->nrow - 1, 0);
-  menu_resize(ui);
   ui_recol(ui);
   fm_resize(&ui->lfm->fm, ui->nrow - 2);
   ui_clear(ui);
+  menu_resize(ui);
   return 0;
 }
 
@@ -648,10 +648,10 @@ static void draw_menu(struct ncplane *n, cvector_vector_type(char *) menubuf)
 
 static void menu_resize(Ui *ui)
 {
-  /* TODO: find out why, after resizing, the menu is behind the dirs (on 2021-10-30) */
   const uint32_t h = max(1, min(cvector_size(ui->menubuf), ui->nrow - 2));
   ncplane_resize(ui->planes.menu, 0, 0, 0, 0, 0, 0, h, ui->ncol);
   ncplane_move_yx(ui->planes.menu, ui->nrow - 1 - h, 0);
+  ncplane_move_top(ui->planes.menu);
 }
 
 
