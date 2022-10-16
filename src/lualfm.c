@@ -1635,7 +1635,7 @@ static int l_fm_selection_reverse(lua_State *L)
 
 static int l_fm_chdir(lua_State *L)
 {
-  char *path = path_qualify(luaL_optstring(L, 1, "~"));
+  char *path = path_qualify(luaL_optstring(L, 1, "~"), fm->pwd);
   nohighlight(ui);
   lfm_run_hook(lfm, LFM_HOOK_CHDIRPRE);
   if (fm_chdir(fm, path, true)) {
@@ -1826,6 +1826,15 @@ static const struct luaL_Reg fm_lib[] = {
 
 /* fn lib {{{ */
 
+static int l_fn_qualify(lua_State *L)
+{
+  char *path = path_qualify(luaL_checkstring(L, 1), fm->pwd);
+  lua_pushstring(L, path);
+  free(path);
+  return 1;
+}
+
+
 static int l_fn_mime(lua_State *L)
 {
   char mime[256];
@@ -1940,6 +1949,7 @@ static const struct luaL_Reg fn_lib[] = {
   {"unquote_space", l_fn_unquote_space},
   {"tokenize", l_fn_tokenize},
   {"mime", l_fn_mime},
+  {"qualify", l_fn_qualify},
   {"getpid", l_fn_getpid},
   {"getcwd", l_fn_getcwd},
   {"getpwd", l_fn_getpwd},

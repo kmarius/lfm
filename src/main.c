@@ -89,7 +89,7 @@ int main(int argc, char **argv)
   // TODO: make it possible to move the cursor to a directory instead
   // of cd'ing into it
   if (optind < argc) {
-    char *path = path_qualify(argv[optind]);
+    char *path = path_qualify(argv[optind], NULL);
     struct stat statbuf;
     if (stat(path, &statbuf) == -1) {
       // can't print to Ui yet, maybe pass something to init?

@@ -46,7 +46,7 @@ function M.glob_select_recursive(glob)
 	local match = string.match
 	local insert = table.insert
 	local function filter(f) return match(f, pat) end
-	for f in find(os.getenv("PWD"), filter) do
+	for f in find(lfm.fn.getpwd(), filter) do
 		insert(sel, f)
 	end
 	selection_set(sel)

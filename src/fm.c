@@ -133,6 +133,8 @@ bool fm_chdir(Fm *fm, const char *path, bool save)
   //   lfm_error(fm->lfm, "chdir: %s", strerror(errno));
   // }
 
+  async_chdir(&fm->lfm->async, path);
+
   notify_set_watchers(&fm->lfm->notify, NULL, 0);
 
   free(fm->pwd);

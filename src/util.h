@@ -141,7 +141,7 @@ char *path_replace_tilde(const char* path);
 // Allocates a new absolute path with all ~, ., .., // replaced
 // TODO: currently uses PWD, if needed add it as an additional parameter (on
 // 2022-10-16)
-char *path_qualify(const char* path);
+char *path_qualify(const char* path, const char *pwd);
 
 static inline bool path_is_relative(const char *path)
 {

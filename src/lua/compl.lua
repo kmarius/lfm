@@ -56,7 +56,8 @@ end
 local home = os.getenv("HOME")
 
 local function is_dir(path)
-	return stat.S_ISDIR(stat.stat(path).st_mode) == 1
+	local s = stat.stat(path)
+	return s and stat.S_ISDIR(s.st_mode) == 1
 end
 
 ---Complete directories.

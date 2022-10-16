@@ -38,3 +38,5 @@ void async_preview_check(Async *async, struct preview_s *pv);
 
 // Reloads preview of the file at `path` with `nrow` lines from disk.
 void async_preview_load(Async *async, struct preview_s *pv);
+
+void async_chdir(Async *async, const char *path);

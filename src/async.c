@@ -578,3 +578,20 @@ void async_preview_load(Async *async, Preview *pv)
 }
 
 /* }}} */
+
+/* TODO: test this (on 2022-10-16) */
+static void async_chdir_worker(void *arg)
+{
+  char *path = arg;
+  if (chdir(path) != 0) {
+    log_error("chdir: %s: %s", strerror(errno), path);
+  } else {
+    setenv("PWD", path, true);
+  }
+  free(path);
+}
+
+void async_chdir(Async *async, const char *path)
+{
+  tpool_add_work(async->tpool, async_chdir_worker, strdup(path));
+}

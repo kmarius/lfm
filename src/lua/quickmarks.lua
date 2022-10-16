@@ -55,7 +55,7 @@ end
 ---@param m char
 local function mark_save(m)
 	load()
-	mark_add(m, getenv("PWD"))
+	mark_add(m, lfm.fn.getpwd())
 	save()
 end
 
