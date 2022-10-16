@@ -89,19 +89,19 @@ int main(int argc, char **argv)
   // TODO: make it possible to move the cursor to a directory instead
   // of cd'ing into it
   if (optind < argc) {
-    cfg.startpath = realpath_a(argv[optind]);
+    char *path = path_qualify(argv[optind]);
     struct stat statbuf;
-    if (stat(cfg.startpath, &statbuf) == -1) {
+    if (stat(path, &statbuf) == -1) {
       // can't print to Ui yet, maybe pass something to init?
       log_error("%s: %s", strerror(errno), cfg.startpath);
-      free(cfg.startpath);
-      cfg.startpath = NULL;
+      free(path);
     } else {
       if (!S_ISDIR(statbuf.st_mode)) {
-        char *f = cfg.startpath;
-        cfg.startfile = basename_a(cfg.startpath);
-        cfg.startpath = dirname_a(cfg.startpath);
-        free(f);
+        cfg.startfile = basename_a(path);
+        cfg.startpath = dirname_a(path);
+        free(path);
+      } else {
+        cfg.startpath = path;
       }
     }
   }

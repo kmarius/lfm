@@ -30,20 +30,20 @@ void fm_init(Fm *fm, struct lfm_s *lfm)
   fm->paste.mode = PASTE_MODE_COPY;
   fm->lfm = lfm;
 
-  char pwd[PATH_MAX];
-  const char *s = getenv("PWD");
-  if (s) {
-    fm->pwd = strdup(s);
-  } else {
-    getcwd(pwd, sizeof pwd);
-    fm->pwd = strdup(pwd);
-  }
-
   if (cfg.startpath) {
     if (chdir(cfg.startpath) != 0) {
       lfm_error(fm->lfm, "chdir: %s", strerror(errno));
     } else {
-      setenv("PWD", cfg.startpath, true);
+      fm->pwd = strdup(cfg.startpath);
+    }
+  } else {
+    const char *s = getenv("PWD");
+    if (s) {
+      fm->pwd = strdup(s);
+    } else {
+      char pwd[PATH_MAX];
+      getcwd(pwd, sizeof pwd);
+      fm->pwd = strdup(pwd);
     }
   }
 
