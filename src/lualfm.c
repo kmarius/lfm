@@ -966,7 +966,7 @@ static int l_ui_menu(lua_State *L)
         cvector_push_back(menubuf, strdup(str));
         break;
       }
-      char *line = malloc(nl - str);
+      char *line = malloc(nl - str + 1);
       strncpy(line, str, nl - str);
       line[nl - str] = 0;
       cvector_push_back(menubuf, line);
