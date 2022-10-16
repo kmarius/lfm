@@ -6,9 +6,6 @@ local map = lfm.map
 local open = io.open
 local getenv = os.getenv
 
--- TODO: there is also marks in fm.c, those should probably be removed, '' could
--- be handled with hooks (on 2022-02-12)
-
 local path = lfm.config.statedir .. "/quickmarks.lua"
 
 local marks = {}

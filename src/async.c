@@ -129,7 +129,7 @@ typedef struct dir_check_result_s {
 } DirCheckResult;
 
 
-// TODO: maybe on slow devices it is better to compare mtimes here? 2021-11-12
+// TODO: maybe on slow devices it is better to compare mtimes *here*? 2021-11-12
 // currently we could just schedule reload from the other thread
 static void DirCheckResult_callback(void *p, Lfm *lfm)
 {
@@ -221,10 +221,7 @@ struct file_path {
 static void DirCountResult_callback(void *p, Lfm *lfm)
 {
   DirCountResult *res = p;
-  /* TODO: we need to make sure that the original files/dir don't get freed (on 2022-01-15) */
-  /* for now, just discard the dircount updates if any other update has been
-   * applied in the meantime. This does not protect against the dir getting purged from
-   * the cache.*/
+  // discard if any other update has been applied in the meantime
   if (res->version == lfm->loader.dir_cache_version && res->dir->updates <= 1)  {
     for (size_t i = 0; i < cvector_size(res->dircounts); i++) {
       file_dircount_set(res->dircounts[i].file, res->dircounts[i].count);
@@ -268,7 +265,6 @@ static void async_load_dircounts(Async *async, Dir *dir, uint32_t version, uint3
 
   uint64_t latest = current_millis();
 
-  /* TODO: we need to make sure that the original files/dir don't get freed (on 2022-01-15) */
   for (uint32_t i = 0; i < n; i++) {
     cvector_push_back(counts, ((struct dircount) {files[i].file, path_dircount(files[i].path)}));
     free(files[i].path);
@@ -513,8 +509,6 @@ typedef struct preview_load_result_s {
 static void PreviewLoadResult_callback(void *p, Lfm *lfm)
 {
   PreviewLoadResult *res = p;
-  // TODO: make this safer, preview.cache.version protects against dropped
-  // caches only (on 2022-02-06)
   if (res->version == lfm->loader.preview_cache_version) {
     preview_update(res->preview, res->update);
     ui_redraw(&lfm->ui, REDRAW_PREVIEW);
