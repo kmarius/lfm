@@ -11,8 +11,8 @@ typedef struct loader_s {
 
   Hashtab *dir_cache;
   Hashtab *preview_cache;
-  uint32_t dir_cache_version;  // number of times the cache has been dropped
-  uint32_t preview_cache_version;
+  size_t dir_cache_version;  // number of times the cache has been dropped
+  size_t preview_cache_version;
 
   ev_timer **dir_timers;
   ev_timer **preview_timers;

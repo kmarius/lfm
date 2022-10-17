@@ -13,6 +13,7 @@
 #include "lfm.h"
 #include "loader.h"
 #include "log.h"
+#include "notify.h"
 #include "preview.h"
 #include "tpool.h"
 #include "ui.h"
@@ -579,19 +580,162 @@ void async_preview_load(Async *async, Preview *pv)
 
 /* }}} */
 
-/* TODO: test this (on 2022-10-16) */
+static inline void *result_create(
+  void (*callback)(void *, Lfm *),
+  void (*destroy)(void *), size_t size)
+{
+  struct result_s *res = calloc(1, size);
+  res->callback = callback;
+  res->destroy = destroy;
+  return res;
+}
+
+typedef struct chdir_result_s {
+  Result super;
+  char *path;
+} chdir_result;
+
+static void chdir_result_callback(void *p, Lfm *lfm)
+{
+  chdir_result *res = p;
+  if (streq(res->path, lfm->fm.pwd)) {
+    if (chdir(res->path) != 0) {
+      log_error("chdir: %s: %s", strerror(errno), res->path);
+    } else {
+      setenv("PWD", res->path, true);
+    }
+  }
+  free(res->path);
+  free(res);
+}
+
+static void chdir_result_destroy(void *p)
+{
+  chdir_result *res = p;
+  free(res->path);
+  free(res);
+}
+
+struct chdir_work {
+  char *path;
+  Async *async;
+};
+
 static void async_chdir_worker(void *arg)
 {
-  char *path = arg;
-  if (chdir(path) != 0) {
-    log_error("chdir: %s: %s", strerror(errno), path);
-  } else {
-    setenv("PWD", path, true);
+  struct chdir_work *work = arg;
+
+  struct stat statbuf;
+
+  if (stat(work->path, &statbuf) == -1) {
+    free(work->path);
+    goto cleanup;
   }
-  free(path);
+
+  chdir_result *res = result_create(
+      chdir_result_callback,
+      chdir_result_destroy,
+      sizeof *res);
+  res->path = work->path;
+
+  enqueue_and_signal(work->async, (Result *) res);
+
+cleanup:
+  free(work);
 }
 
 void async_chdir(Async *async, const char *path)
 {
-  tpool_add_work(async->tpool, async_chdir_worker, strdup(path));
+  struct chdir_work *work = malloc(sizeof *work);
+  work->path = strdup(path);
+  work->async = async;
+  tpool_add_work(async->tpool, async_chdir_worker, work);
+}
+
+
+typedef struct notify_add_result_s {
+  Result super;
+  Dir *dir;
+  void *version;
+  void **version_cmp;
+  void *version2;
+  void **version2_cmp;
+} notify_add_result;
+
+static void notify_add_result_callback(void *p, Lfm *lfm)
+{
+  notify_add_result *res = p;
+  if (res->version == *res->version_cmp && res->version2 == *res->version2_cmp) {
+    notify_add_watcher(&lfm->notify, res->dir);
+  }
+  free(res);
+}
+
+static void notify_add_result_destroy(void *p)
+{
+  notify_add_result *res = p;
+  free(res);
+}
+
+struct notify_work {
+  Async *async;
+  char *path;
+  Dir *dir;
+  void *version;
+  void **version_cmp;
+  void *version2;
+  void **version2_cmp;
+};
+
+void async_notify_add_worker(void *arg)
+{
+  struct notify_work *work = arg;
+
+  struct stat statbuf;
+
+  if (stat(work->path, &statbuf) == -1) {
+    goto cleanup;
+  }
+
+  notify_add_result *res = result_create(
+      notify_add_result_callback,
+      notify_add_result_destroy,
+      sizeof *res);
+  res->dir = work->dir;
+  res->version = work->version;
+  res->version2 = work->version2;
+  res->version_cmp = work->version_cmp;
+  res->version2_cmp = work->version2_cmp;
+
+  enqueue_and_signal(work->async, (Result *) res);
+
+cleanup:
+  free(work->path);
+  free(work);
+}
+
+void async_notify_add(Async *async, Dir *dir)
+{
+  struct notify_work *work = malloc(sizeof *work);
+  work->async = async;
+  work->path = strdup(dir->path);
+  work->dir = dir;
+  work->version = (void *) async->lfm->notify.version;
+  work->version_cmp = (void **) &async->lfm->notify.version;
+  work->version2 = (void *) async->lfm->loader.dir_cache_version;
+  work->version2_cmp = (void **) &async->lfm->loader.dir_cache_version;
+  tpool_add_work(async->tpool, async_notify_add_worker, work);
+}
+
+void async_notify_preview_add(Async *async, Dir *dir)
+{
+  struct notify_work *work = malloc(sizeof *work);
+  work->async = async;
+  work->path = strdup(dir->path);
+  work->dir = dir;
+  work->version = (void *) async->lfm->notify.version;
+  work->version_cmp = (void **) &async->lfm->notify.version;
+  work->version2 = (void *) async->lfm->fm.dirs.preview;
+  work->version2_cmp = (void **) &async->lfm->fm.dirs.preview;
+  tpool_add_work(async->tpool, async_notify_add_worker, work);
 }

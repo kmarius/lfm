@@ -128,11 +128,6 @@ bool fm_chdir(Fm *fm, const char *path, bool save)
     path = fullpath;
   }
 
-  // find something else since we are not chdiring anymore
-  // if (chdir(path) != 0) {
-  //   lfm_error(fm->lfm, "chdir: %s", strerror(errno));
-  // }
-
   async_chdir(&fm->lfm->async, path);
 
   notify_set_watchers(&fm->lfm->notify, NULL, 0);
@@ -165,7 +160,12 @@ bool fm_chdir(Fm *fm, const char *path, bool save)
 static inline void fm_update_watchers(Fm *fm)
 {
   // watcher for preview is updated in update_preview
-  notify_set_watchers(&fm->lfm->notify, fm->dirs.visible, fm->dirs.length);
+  notify_set_watchers(&fm->lfm->notify, NULL, 0);
+  for (size_t i = 0; i < fm->dirs.length; i++) {
+    if (fm->dirs.visible[i]) {
+      async_notify_add(&fm->lfm->async, fm->dirs.visible[i]);
+    }
+  }
 }
 
 
@@ -291,8 +291,7 @@ void fm_update_preview(Fm *fm)
     }
     fm->dirs.preview = loader_dir_from_path(&fm->lfm->loader, file_path(file));
     fm->dirs.preview->visible = true;
-    // sometimes very slow on smb (> 200ms)
-    notify_add_watcher(&fm->lfm->notify, fm->dirs.preview);
+    async_notify_preview_add(&fm->lfm->async, fm->dirs.preview);
   } else {
     // file preview or empty
     if (fm->dirs.preview) {

@@ -20,6 +20,8 @@ typedef struct notify_s {
     int wd;
     Dir *dir;
   } *watchers;
+
+  size_t version;
 } Notify;
 
 // This is plenty of space, most file names are shorter and as long as

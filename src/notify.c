@@ -170,4 +170,6 @@ void notify_set_watchers(Notify *notify, Dir **dirs, uint32_t n)
       notify_add_watcher(notify, dirs[i]);
     }
   }
+
+  notify->version++;
 }

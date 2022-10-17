@@ -40,3 +40,7 @@ void async_preview_check(Async *async, struct preview_s *pv);
 void async_preview_load(Async *async, struct preview_s *pv);
 
 void async_chdir(Async *async, const char *path);
+
+void async_notify_add(Async *async, struct dir_s *dir);
+
+void async_notify_preview_add(Async *async, struct dir_s *dir);
