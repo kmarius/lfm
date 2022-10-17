@@ -155,6 +155,11 @@ static void stdin_cb(EV_P_ ev_io *w, int revents)
     if (in.id == 0) {
       break;
     }
+
+    if (in.id == NCKEY_EOF) {
+      lfm_quit(lfm);
+      return;
+    }
     // to emulate legacy with the kitty protocol (once it works in notcurses)
     // if (in.evtype == NCTYPE_RELEASE) {
     //   continue;
