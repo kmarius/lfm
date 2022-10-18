@@ -41,4 +41,9 @@ void notify_remove_watcher(Notify *notify, Dir *dir);
 
 void notify_set_watchers(Notify *notify, Dir **dirs, uint32_t n);
 
+static inline void notify_remove_watchers(Notify *notify)
+{
+  notify_set_watchers(notify, NULL, 0);
+}
+
 void notify_deinit(Notify *notify);

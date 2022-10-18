@@ -130,7 +130,7 @@ bool fm_chdir(Fm *fm, const char *path, bool save)
 
   async_chdir(&fm->lfm->async, path);
 
-  notify_set_watchers(&fm->lfm->notify, NULL, 0);
+  notify_remove_watchers(&fm->lfm->notify);
 
   free(fm->pwd);
   fm->pwd = strdup(path);
@@ -160,7 +160,7 @@ bool fm_chdir(Fm *fm, const char *path, bool save)
 static inline void fm_update_watchers(Fm *fm)
 {
   // watcher for preview is updated in update_preview
-  notify_set_watchers(&fm->lfm->notify, NULL, 0);
+  notify_remove_watchers(&fm->lfm->notify);
   for (size_t i = 0; i < fm->dirs.length; i++) {
     if (fm->dirs.visible[i]) {
       async_notify_add(&fm->lfm->async, fm->dirs.visible[i]);
@@ -220,9 +220,9 @@ void fm_check_dirs(const Fm *fm)
 
 void fm_drop_cache(Fm *fm)
 {
-  notify_set_watchers(&fm->lfm->notify, NULL, 0);
-
   log_debug("dropping cache");
+
+  notify_remove_watchers(&fm->lfm->notify);
   fm_remove_preview(fm);
 
   loader_drop_dir_cache(&fm->lfm->loader);
@@ -246,7 +246,7 @@ void fm_reload(Fm *fm)
 }
 
 
-static void fm_remove_preview(Fm *fm)
+static inline void fm_remove_preview(Fm *fm)
 {
   if (!fm->dirs.preview) {
     return;
