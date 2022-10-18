@@ -14,6 +14,15 @@
 #include "notify.h"
 #include "util.h"
 
+// This is plenty of space, most file names are shorter and as long as
+// *one* event fits we should not get overwhelmed
+#define EVENT_MAX 8
+#define EVENT_MAX_LEN 128  // max filename length, arbitrary
+#define EVENT_SIZE (sizeof(struct inotify_event))
+#define EVENT_BUFLEN (EVENT_MAX * (EVENT_SIZE + EVENT_MAX_LEN))
+
+#define NOTIFY_EVENTS (IN_MODIFY | IN_CREATE | IN_DELETE | IN_MOVED_FROM | IN_MOVED_TO | IN_ATTRIB)
+
 static void inotify_cb(EV_P_ ev_io *w, int revents);
 
 bool notify_init(Notify *notify, Lfm *lfm)
