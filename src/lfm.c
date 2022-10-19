@@ -22,6 +22,7 @@
 #include "lualfm.h"
 #include "notify.h"
 #include "popen_arr.h"
+#include "ui.h"
 #include "util.h"
 
 #define TICK 1  // in seconds
@@ -208,12 +209,13 @@ static void prepare_cb(EV_P_ ev_prepare *w, int revents)
 }
 
 
+// unclear if this happens before/after resizecb is called by notcurses
 static void sigwinch_cb(EV_P_ ev_signal *w, int revents)
 {
   (void) revents;
   Lfm *lfm = w->data;
-  ui_clear(&lfm->ui);
   lfm_run_hook(lfm, LFM_HOOK_RESIZED);
+  ui_clear(&lfm->ui);
   ev_idle_start(loop, &lfm->redraw_watcher);
 }
 
