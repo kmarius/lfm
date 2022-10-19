@@ -21,6 +21,7 @@ typedef struct lfm_s {
 
   int fifo_fd;
 
+  ev_io input_watcher;
   uint64_t input_timeout;
   struct {
     struct trie_s *normal;  // normal mode mappings
@@ -33,7 +34,6 @@ typedef struct lfm_s {
 
   struct message *messages;
 
-  ev_io input_watcher;
   ev_idle redraw_watcher;
   ev_prepare prepare_watcher;
   ev_signal sigwinch_watcher;

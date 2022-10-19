@@ -1,18 +1,26 @@
+#include <notcurses/notcurses.h>
+
+#include "fm.h"
+#include "hooks.h"
+#include "input.h"
 #include "lfm.h"
-#include "lualfm.h"
 #include "log.h"
 #include "lua.h"
+#include "lualfm.h"
 #include "search.h"
 #include "trie.h"
 #include "ui.h"
-#include "fm.h"
-#include "hooks.h"
+
+static void stdin_cb(EV_P_ ev_io *w, int revents);
+void input_resume(Lfm *lfm);
 
 void input_init(Lfm *lfm)
 {
   lfm->maps.normal = trie_create();
   lfm->maps.cmd = trie_create();
   lfm->maps.seq = NULL;
+
+  input_resume(lfm);
 }
 
 void input_deinit(Lfm *lfm)
@@ -21,6 +29,54 @@ void input_deinit(Lfm *lfm)
   trie_destroy(lfm->maps.cmd);
   cvector_free(lfm->maps.seq);
 }
+
+void input_resume(Lfm *lfm)
+{
+  ev_io_init(&lfm->input_watcher, stdin_cb, notcurses_inputready_fd(lfm->ui.nc), EV_READ);
+  lfm->input_watcher.data = lfm;
+  ev_io_start(lfm->loop, &lfm->input_watcher);
+}
+
+void input_suspend(Lfm *lfm)
+{
+  ev_io_stop(lfm->loop, &lfm->input_watcher);
+}
+
+
+static void stdin_cb(EV_P_ ev_io *w, int revents)
+{
+  (void) revents;
+  Lfm *lfm = w->data;
+  ncinput in;
+
+  while (notcurses_get_nblock(lfm->ui.nc, &in) != (uint32_t) -1) {
+    if (in.id == 0) {
+      break;
+    }
+
+    if (in.id == NCKEY_EOF) {
+      lfm_quit(lfm);
+      return;
+    }
+    // to emulate legacy with the kitty protocol (once it works in notcurses)
+    // if (in.evtype == NCTYPE_RELEASE) {
+    //   continue;
+    // }
+    // if (in.id >= NCKEY_LSHIFT && in.id <= NCKEY_L5SHIFT) {
+    //   continue;
+    // }
+    if (current_millis() <= lfm->input_timeout) {
+      continue;
+    }
+
+    // log_debug("id: %d, shift: %d, ctrl: %d alt %d, type: %d, %s", in.id, in.shift, in.ctrl, in.alt, in.evtype, in.utf8);
+    lfm_handle_key(lfm, ncinput_to_input(&in));
+  }
+
+  ev_idle_start(loop, &lfm->redraw_watcher);
+}
+
+
 
 void lfm_handle_key(Lfm *lfm, input_t in)
 {

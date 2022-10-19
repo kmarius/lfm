@@ -13,7 +13,6 @@
 #include "async.h"
 #include "config.h"
 #include "cvector.h"
-#include "keys.h"
 #include "hashtab.h"
 #include "hooks.h"
 #include "input.h"
@@ -142,40 +141,6 @@ static void timer_cb(EV_P_ ev_timer *w, int revents)
   (void) revents;
   /* Lfm *lfm = w->data; */
   ev_timer_stop(loop, w);
-}
-
-
-static void stdin_cb(EV_P_ ev_io *w, int revents)
-{
-  (void) revents;
-  Lfm *lfm = w->data;
-  ncinput in;
-
-  while (notcurses_get_nblock(lfm->ui.nc, &in) != (uint32_t) -1) {
-    if (in.id == 0) {
-      break;
-    }
-
-    if (in.id == NCKEY_EOF) {
-      lfm_quit(lfm);
-      return;
-    }
-    // to emulate legacy with the kitty protocol (once it works in notcurses)
-    // if (in.evtype == NCTYPE_RELEASE) {
-    //   continue;
-    // }
-    // if (in.id >= NCKEY_LSHIFT && in.id <= NCKEY_L5SHIFT) {
-    //   continue;
-    // }
-    if (current_millis() <= lfm->input_timeout) {
-      continue;
-    }
-
-    // log_debug("id: %d, shift: %d, ctrl: %d alt %d, type: %d, %s", in.id, in.shift, in.ctrl, in.alt, in.evtype, in.utf8);
-    lfm_handle_key(lfm, ncinput_to_input(&in));
-  }
-
-  ev_idle_start(loop, &lfm->redraw_watcher);
 }
 
 
@@ -333,10 +298,6 @@ void lfm_init(Lfm *lfm)
   lfm->timer_watcher.data = lfm;
   ev_timer_start(lfm->loop, &lfm->timer_watcher);
 
-  ev_io_init(&lfm->input_watcher, stdin_cb, notcurses_inputready_fd(lfm->ui.nc), EV_READ);
-  lfm->input_watcher.data = lfm;
-  ev_io_start(lfm->loop, &lfm->input_watcher);
-
   signal(SIGINT, SIG_IGN);
 
   ev_signal_init(&lfm->sigwinch_watcher, sigwinch_cb, SIGWINCH);
@@ -469,7 +430,7 @@ int lfm_spawn(Lfm *lfm, const char *prog, char *const *args,
 bool lfm_execute(Lfm *lfm, const char *prog, char *const *args)
 {
   int pid, status, rc;
-  ev_io_stop(lfm->loop, &lfm->input_watcher);
+  input_suspend(lfm);
   ui_suspend(&lfm->ui);
   kbblocking(true);
   if ((pid = fork()) < 0) {
@@ -488,13 +449,11 @@ bool lfm_execute(Lfm *lfm, const char *prog, char *const *args)
     } while ((rc == -1) && (errno == EINTR));
   }
   kbblocking(false);
+
   ui_resume(&lfm->ui);
-
-  ev_io_init(&lfm->input_watcher, stdin_cb, notcurses_inputready_fd(lfm->ui.nc), EV_READ);
-  lfm->input_watcher.data = lfm;
-  ev_io_start(lfm->loop, &lfm->input_watcher);
-
+  input_resume(lfm);
   signal(SIGINT, SIG_IGN);
+
   ui_redraw(&lfm->ui, REDRAW_FM);
   return status == 0;
 }

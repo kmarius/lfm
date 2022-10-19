@@ -3,8 +3,15 @@
 
 struct lfm_s;
 
+// Initialization needs to happen after notcurses is running.
 void input_init(struct lfm_s *lfm);
 void input_deinit(struct lfm_s *lfm);
+
+// Needs to be called when notcurses is restarted, because inputready_fd changes.
+void input_resume(struct lfm_s *lfm);
+
+// Stop listening to input:
+void input_suspend(struct lfm_s *lfm);
 
 void lfm_handle_key(struct lfm_s *lfm, input_t in);
 
@@ -21,6 +28,7 @@ static inline int input_map(Trie *trie, const char *keys, int ref, const char *d
   return ret;
 }
 
+// Unmap a key sequence.
 static inline int input_unmap(Trie *trie, const char *keys)
 {
   return input_map(trie, keys, 0, NULL);
