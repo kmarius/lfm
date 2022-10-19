@@ -3,6 +3,7 @@
 #include "fm.h"
 #include "hooks.h"
 #include "input.h"
+#include "keys.h"
 #include "lfm.h"
 #include "log.h"
 #include "lua.h"
@@ -10,6 +11,7 @@
 #include "search.h"
 #include "trie.h"
 #include "ui.h"
+#include "util.h"
 
 static void stdin_cb(EV_P_ ev_io *w, int revents);
 void input_resume(Lfm *lfm);
@@ -42,6 +44,21 @@ void input_suspend(Lfm *lfm)
   ev_io_stop(lfm->loop, &lfm->input_watcher);
 }
 
+void input_timeout_set(struct lfm_s *lfm, uint32_t duration)
+{
+  lfm->input_timeout = current_millis() + duration;
+}
+
+int input_map(Trie *trie, const char *keys, int ref, const char *desc)
+{
+  input_t *buf = malloc((strlen(keys) + 1) * sizeof *buf);
+  key_names_to_input(keys, buf);
+  int ret = ref ?
+    trie_insert(trie, buf, ref, keys, desc)
+    : trie_remove(trie, buf);
+  free(buf);
+  return ret;
+}
 
 static void stdin_cb(EV_P_ ev_io *w, int revents)
 {
@@ -75,8 +92,6 @@ static void stdin_cb(EV_P_ ev_io *w, int revents)
 
   ev_idle_start(loop, &lfm->redraw_watcher);
 }
-
-
 
 void lfm_handle_key(Lfm *lfm, input_t in)
 {

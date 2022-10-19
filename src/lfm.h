@@ -45,12 +45,6 @@ typedef struct lfm_s {
   cvector_vector_type(ev_child *) child_watchers; /* to run callbacks when processes finish */
 } Lfm;
 
-// Set input timout. Key input will be ignored for the next `duration` ms.
-static inline void lfm_timeout_set(Lfm *lfm, uint32_t duration)
-{
-  lfm->input_timeout = current_millis() + duration;
-}
-
 // Try reading from the $LFMFIFO
 void lfm_read_fifo(Lfm *lfm);
 

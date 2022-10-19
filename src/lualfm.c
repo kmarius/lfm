@@ -218,7 +218,7 @@ static int l_timeout(lua_State *L)
 {
   const int32_t dur = luaL_checkinteger(L, 1);
   if (dur > 0) {
-    lfm_timeout_set(lfm, dur);
+    input_timeout_set(lfm, dur);
   }
   return 0;
 }
