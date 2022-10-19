@@ -2,92 +2,93 @@
 #include <string.h>
 
 #include "dir.h"
+#include "lfm.h"
 #include "search.h"
 
 /* pass NULL to highlight previous search */
-static inline void highlight(Ui *ui, const char *string)
+static inline void search_highlight(Lfm *lfm, const char *string)
 {
   if (string) {
-    free(ui->search_string);
-    ui->search_string = strdup(string);
+    free(lfm->ui.search_string);
+    lfm->ui.search_string = strdup(string);
   }
-  ui->highlight = ui->search_string;
-  ui_redraw(ui, REDRAW_FM);
+  lfm->ui.highlight = lfm->ui.search_string;
+  ui_redraw(&lfm->ui, REDRAW_FM);
 }
 
 
 // don't remove search_string here
-void nohighlight(Ui *ui)
+void search_nohighlight(Lfm *lfm)
 {
-  ui->highlight = NULL;
-  ui_redraw(ui, REDRAW_FM);
+  lfm->ui.highlight = NULL;
+  ui_redraw(&lfm->ui, REDRAW_FM);
 }
 
 
-inline void search(Ui *ui, const char *string, bool forward)
+void search(Lfm *lfm, const char *string, bool forward)
 {
   if (!string || *string == 0) {
-    free(ui->search_string);
-    ui->search_string = NULL;
-    nohighlight(ui);
+    free(lfm->ui.search_string);
+    lfm->ui.search_string = NULL;
+    search_nohighlight(lfm);
   } else {
-    ui->search_forward = forward;
-    highlight(ui, string);
+    lfm->ui.search_forward = forward;
+    search_highlight(lfm, string);
   }
 }
 
 
-static void search_next_forward(Ui *ui, Fm *fm, bool inclusive)
+static void search_next_forward(Lfm *lfm, bool inclusive)
 {
-  if (!ui->search_string) {
+  if (!lfm->ui.search_string) {
     return;
   }
 
-  Dir *dir = fm_current_dir(fm);
-  highlight(ui, NULL);
+  Dir *dir = fm_current_dir(&lfm->fm);
+  search_highlight(lfm, NULL);
   for (uint32_t i = inclusive ? 0 : 1; i < dir->length; i++) {
     const uint32_t ind = (dir->ind + i) % dir->length;
-    if (strcasestr(file_name(dir->files[ind]), ui->search_string)) {
-      fm_cursor_move_to_ind(fm, ind);
+    if (strcasestr(file_name(dir->files[ind]), lfm->ui.search_string)) {
+      fm_cursor_move_to_ind(&lfm->fm, ind);
       return;
     }
   }
 }
 
 
-static void search_next_backwards(Ui *ui, Fm *fm, bool inclusive)
+static void search_next_backwards(Lfm *lfm, bool inclusive)
 {
-  if (!ui->search_string) {
+  if (!lfm->ui.search_string) {
     return;
   }
 
-  Dir *dir = fm_current_dir(fm);
-  highlight(ui, NULL);
+  Dir *dir = fm_current_dir(&lfm->fm);
+  search_highlight(lfm, NULL);
   for (uint32_t i = inclusive ? 0 : 1 ; i < dir->length; i++) {
     const uint32_t ind = (dir->ind - i + dir->length) % dir->length;
-    if (strcasestr(file_name(dir->files[ind]), ui->search_string)) {
-      fm_cursor_move_to_ind(fm, ind);
+    if (strcasestr(file_name(dir->files[ind]), lfm->ui.search_string)) {
+      fm_cursor_move_to_ind(&lfm->fm, ind);
       return;
     }
   }
 }
 
 
-void search_next(Ui *ui, Fm *fm, bool inclusive)
+void search_next(Lfm *lfm, bool inclusive)
 {
-  if (ui->search_forward) {
-    search_next_forward(ui, fm, inclusive);
+  if (lfm->ui.search_forward) {
+    search_next_forward(lfm, inclusive);
   } else {
-    search_next_backwards(ui, fm, inclusive);
+    search_next_backwards(lfm, inclusive);
   }
 }
 
 
-void search_prev(Ui *ui, Fm *fm, bool inclusive)
+void search_prev(Lfm *lfm, bool inclusive)
 {
-  if (ui->search_forward) {
-    search_next_backwards(ui, fm, inclusive);
+  if (lfm->ui.search_forward) {
+    search_next_backwards(lfm, inclusive);
   } else {
-    search_next_forward(ui, fm, inclusive);
+    search_next_forward(lfm, inclusive);
   }
 }

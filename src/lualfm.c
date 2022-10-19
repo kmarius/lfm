@@ -47,8 +47,6 @@ static Lfm *lfm = NULL;
 static Ui *ui = NULL;
 static Fm *fm = NULL;
 
-/* lfm lib {{{ */
-
 // stores the function on top of the stack in the registry and returns the
 // reference index
 static inline int lua_set_callback(lua_State *L)
@@ -98,6 +96,84 @@ void lua_run_stdout_callback(lua_State *L, int ref, const char *line)
     }
   }
 }
+
+
+void lua_run_hook(lua_State *L, const char *hook)
+{
+  lua_getglobal(L, "lfm");
+  lua_getfield(L, -1, "run_hook");
+  lua_pushstring(L, hook);
+  if (lua_pcall(L, 1, 0, 0)) {
+    ui_error(ui, "run_hook: %s", lua_tostring(L, -1));
+  }
+}
+
+
+void lua_run_hook1(lua_State *L, const char *hook, const char* arg1)
+{
+  lua_getglobal(L, "lfm");
+  lua_getfield(L, -1, "run_hook");
+  lua_pushstring(L, hook);
+  lua_pushstring(L, arg1);
+  if (lua_pcall(L, 2, 0, 0)) {
+    ui_error(ui, "run_hook: %s", lua_tostring(L, -1));
+  }
+}
+
+
+void lua_call_from_ref(lua_State *L, int ref, int count)
+{
+  lua_rawgeti(L, LUA_REGISTRYINDEX, ref);
+  if (count > 0) {
+    lua_pushnumber(L, count);
+  }
+  if (lua_pcall(L, count > 0 ? 1 : 0, 0, 0)) {
+    ui_error(ui, "handle_key: %s", lua_tostring(L, -1));
+  }
+}
+
+
+void lua_eval(lua_State *L, const char *expr)
+{
+  log_debug("eval %s", expr);
+  lua_getglobal(L, "lfm");
+  lua_getfield(L, -1, "eval");
+  lua_pushstring(L, expr);
+  if (lua_pcall(L, 1, 0, 0)) {
+    ui_error(ui, "eval: %s", lua_tostring(L, -1));
+  }
+}
+
+
+bool lua_load_file(lua_State *L, const char *path)
+{
+  if (luaL_loadfile(L, path) || lua_pcall(L, 0, 0, 0)) {
+    ui_error(ui, "loadfile: %s", lua_tostring(L, -1));
+    return false;
+  }
+  return true;
+}
+
+
+void lua_call_on_change(lua_State *L, const char *prefix)
+{
+  lua_getglobal(L, "lfm");
+  if (lua_type(L, -1) == LUA_TTABLE) {
+    lua_getfield(L, -1, "modes");
+    if (lua_type(L, -1) == LUA_TTABLE) {
+      lua_getfield(L, -1, prefix);
+      if (lua_type(L, -1) == LUA_TTABLE) {
+        lua_getfield(L, -1, "on_change");
+        if (lua_type(L, -1) == LUA_TFUNCTION) {
+          lua_pcall(L, 0, 0, 0);
+        }
+      }
+    }
+  }
+}
+
+
+/* lfm lib {{{ */
 
 
 static int l_schedule(lua_State *L)
@@ -150,14 +226,14 @@ static int l_timeout(lua_State *L)
 
 static int l_search(lua_State *L)
 {
-  search(ui, luaL_optstring(L, 1, NULL), true);
+  search(lfm, luaL_optstring(L, 1, NULL), true);
   return 0;
 }
 
 
 static int l_search_backwards(lua_State *L)
 {
-  search(ui, luaL_optstring(L, 1, NULL), false);
+  search(lfm, luaL_optstring(L, 1, NULL), false);
   return 0;
 }
 
@@ -165,23 +241,21 @@ static int l_search_backwards(lua_State *L)
 static int l_nohighlight(lua_State *L)
 {
   (void) L;
-  nohighlight(ui);
+  search_nohighlight(lfm);
   return 0;
 }
 
 
 static int l_search_next(lua_State *L)
 {
-  (void) L;
-  search_next(ui, fm, luaL_optbool(L, 1, false));
+  search_next(lfm, luaL_optbool(L, 1, false));
   return 0;
 }
 
 
 static int l_search_prev(lua_State *L)
 {
-  (void) L;
-  search_prev(ui, fm, luaL_optbool(L, 1, false));
+  search_prev(lfm, luaL_optbool(L, 1, false));
   return 0;
 }
 
@@ -226,7 +300,6 @@ static int l_crash(lua_State *L)
 
 static int l_quit(lua_State *L)
 {
-  (void) L;
   lfm_quit(lfm);
   // hand back control to the C caller
   luaL_error(L, "quit");
@@ -399,24 +472,6 @@ static inline int map_key(lua_State *L, Trie *trie)
 }
 
 
-void lua_call_on_change(lua_State *L, const char *prefix)
-{
-  lua_getglobal(L, "lfm");
-  if (lua_type(L, -1) == LUA_TTABLE) {
-    lua_getfield(L, -1, "modes");
-    if (lua_type(L, -1) == LUA_TTABLE) {
-      lua_getfield(L, -1, prefix);
-      if (lua_type(L, -1) == LUA_TTABLE) {
-        lua_getfield(L, -1, "on_change");
-        if (lua_type(L, -1) == LUA_TFUNCTION) {
-          lua_pcall(L, 0, 0, 0);
-        }
-      }
-    }
-  }
-}
-
-
 static int l_map_key(lua_State *L)
 {
   return map_key(L, lfm->maps.normal);
@@ -558,7 +613,6 @@ static inline int lua_dir_settings_set(lua_State *L, const char *path, int ind)
 
 static int l_dir_settings_index(lua_State *L)
 {
-  (void) L;
   const char *key = luaL_checkstring(L, 2);
   struct dir_settings *s = ht_get(cfg.dir_settings_map, key);
   if (s) {
@@ -975,7 +1029,7 @@ static int l_ui_menu(lua_State *L)
 static int l_ui_draw(lua_State *L)
 {
   (void) L;
-  ui_redraw(ui, REDRAW_FM);
+  ui_redraw(ui, REDRAW_FULL);
   return 0;
 }
 
@@ -1455,7 +1509,7 @@ static int l_fm_updir(lua_State *L)
   if (fm_updir(fm)) {
     lfm_run_hook(lfm, LFM_HOOK_CHDIRPOST);
   }
-  nohighlight(ui);
+  search_nohighlight(lfm);
   ui_redraw(ui, REDRAW_FM);
   return 0;
 }
@@ -1468,7 +1522,7 @@ static int l_fm_open(lua_State *L)
     lfm_run_hook(lfm, LFM_HOOK_CHDIRPOST);
     /* changed directory */
     ui_redraw(ui, REDRAW_FM);
-    nohighlight(ui);
+    search_nohighlight(lfm);
     return 0;
   } else {
     if (cfg.selfile) {
@@ -1547,8 +1601,8 @@ static int l_fm_sortby(lua_State *L)
   const int l = lua_gettop(L);
   const char *op;
   Dir *dir = fm_current_dir(fm);
-  for (int i = 0; i < l; i++) {
-    op = luaL_checkstring(L, i + 1);
+  for (int i = 1; i <= l; i++) {
+    op = luaL_checkstring(L, i);
     if (streq(op, "name")) {
       dir->settings.sorttype = SORT_NAME;
     } else if (streq(op, "natural")) {
@@ -1636,7 +1690,7 @@ static int l_fm_selection_reverse(lua_State *L)
 static int l_fm_chdir(lua_State *L)
 {
   char *path = path_qualify(luaL_optstring(L, 1, "~"), fm->pwd);
-  nohighlight(ui);
+  search_nohighlight(lfm);
   lfm_run_hook(lfm, LFM_HOOK_CHDIRPRE);
   if (fm_chdir(fm, path, true)) {
     lfm_run_hook(lfm, LFM_HOOK_CHDIRPOST);
@@ -1957,109 +2011,53 @@ static const struct luaL_Reg fn_lib[] = {
 
 /* }}} */
 
-void lua_run_hook(lua_State *L, const char *hook)
-{
-  lua_getglobal(L, "lfm");
-  lua_getfield(L, -1, "run_hook");
-  lua_pushstring(L, hook);
-  if (lua_pcall(L, 1, 0, 0)) {
-    ui_error(ui, "run_hook: %s", lua_tostring(L, -1));
-  }
-}
-
-
-void lua_run_hook1(lua_State *L, const char *hook, const char* arg1)
-{
-  lua_getglobal(L, "lfm");
-  lua_getfield(L, -1, "run_hook");
-  lua_pushstring(L, hook);
-  lua_pushstring(L, arg1);
-  if (lua_pcall(L, 2, 0, 0)) {
-    ui_error(ui, "run_hook: %s", lua_tostring(L, -1));
-  }
-}
-
-
-void lua_call_from_ref(lua_State *L, int ref, int count)
-{
-  lua_rawgeti(L, LUA_REGISTRYINDEX, ref);
-  if (count > 0) {
-    lua_pushnumber(L, count);
-  }
-  if (lua_pcall(L, count > 0 ? 1 : 0, 0, 0)) {
-    ui_error(ui, "handle_key: %s", lua_tostring(L, -1));
-  }
-}
-
-
-void lua_eval(lua_State *L, const char *expr)
-{
-  log_debug("eval %s", expr);
-  lua_getglobal(L, "lfm");
-  lua_getfield(L, -1, "eval");
-  lua_pushstring(L, expr);
-  if (lua_pcall(L, 1, 0, 0)) {
-    ui_error(ui, "eval: %s", lua_tostring(L, -1));
-  }
-}
-
-
-bool lua_load_file(lua_State *L, const char *path)
-{
-  if (luaL_loadfile(L, path) || lua_pcall(L, 0, 0, 0)) {
-    ui_error(ui, "loadfile: %s", lua_tostring(L, -1));
-    return false;
-  }
-  return true;
-}
-
-
 int luaopen_lfm(lua_State *L)
 {
   log_debug("opening lualfm libs");
-
-  luaL_openlib(L, "lfm", lfm_lib, 0);
-
-  lua_newtable(L); /* lfm.cfg */
-
-  lua_newtable(L); /* lfm.cfg.colors */
-  luaL_newmetatable(L, COLORS_META);
-  luaL_register(L, NULL, colors_mt);
-  lua_setmetatable(L, -2);
-  lua_setfield(L, -2, "colors"); /* lfm.cfg.colors = {...} */
-
-  luaL_newmetatable(L, CONFIG_META);
-  luaL_register(L, NULL, config_mt);
-  lua_setmetatable(L, -2);
 
   luaL_newmetatable(L, DIR_SETTINGS_META);
   luaL_register(L, NULL, dir_settings_mt);
   lua_pop(L, 1);
 
-  lua_setfield(L, -2, "config"); /* lfm.config = {...} */
+  luaL_openlib(L, "lfm", lfm_lib, 0);
 
-  lua_newtable(L); /* lfm.log */
+  lua_newtable(L);
+
+  lua_newtable(L);
+  luaL_newmetatable(L, COLORS_META);
+  luaL_register(L, NULL, colors_mt);
+  lua_setmetatable(L, -2);
+  lua_setfield(L, -2, "colors");  // lfm.config.colors
+
+  luaL_newmetatable(L, CONFIG_META);
+  luaL_register(L, NULL, config_mt);
+  lua_setmetatable(L, -2);
+
+  lua_setfield(L, -2, "config");  // lfm.config
+
+  lua_newtable(L);
   luaL_register(L, NULL, log_lib);
-  lua_setfield(L, -2, "log"); /* lfm.log = {...} */
+  lua_setfield(L, -2, "log");  // lfm.log
 
-  lua_newtable(L); /* lfm.ui */
+  lua_newtable(L);
   luaL_register(L, NULL, ui_lib);
-  lua_setfield(L, -2, "ui"); /* lfm.ui = {...} */
+  lua_setfield(L, -2, "ui");  // lfm.ui
 
-  lua_newtable(L); /* lfm.cmd */
+  lua_newtable(L);
   luaL_register(L, NULL, cmd_lib);
-  lua_setfield(L, -2, "cmd"); /* lfm.cmd = {...} */
+  lua_setfield(L, -2, "cmd");  // lfm.cmd
 
-  lua_newtable(L); /* lfm.fm */
+  lua_newtable(L);
   luaL_register(L, NULL, fm_lib);
-  lua_setfield(L, -2, "fm"); /* lfm.fm = {...} */
+  lua_setfield(L, -2, "fm");  // lfm.fm
 
-  lua_newtable(L); /* lfm.fn */
+  lua_newtable(L);
   luaL_register(L, NULL, fn_lib);
-  lua_setfield(L, -2, "fn"); /* lfm.fn = {...} */
+  lua_setfield(L, -2, "fn");  // lfm.fn
 
   luaopen_rifle(L);
-  lua_setfield(L, -2, "rifle"); /* lfm.rifle = {...} */
+  lua_setfield(L, -2, "rifle"); // lfm.rifle
+
 
   lua_newtable(L);
 
@@ -2078,7 +2076,7 @@ int luaopen_lfm(lua_State *L)
   lua_pushstring(L, LFM_BRANCH);
   lua_setfield(L, -2, "branch");
 
-  lua_setfield(L, -2, "version");
+  lua_setfield(L, -2, "version");  // lfm.version
 
   return 1;
 }
@@ -2093,8 +2091,6 @@ void lua_init(lua_State *L, Lfm *_lfm)
   luaL_openlibs(L);
   luaopen_jit(L);
   luaopen_lfm(L);
-
-  lua_newtable(L);
 
   lua_load_file(L, cfg.corepath);
 }

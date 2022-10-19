@@ -220,7 +220,7 @@ void fm_check_dirs(const Fm *fm)
 
 void fm_drop_cache(Fm *fm)
 {
-  log_debug("dropping cache");
+  log_debug("dropping directory cache");
 
   notify_remove_watchers(&fm->lfm->notify);
   fm_remove_preview(fm);

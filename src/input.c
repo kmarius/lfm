@@ -84,7 +84,7 @@ void lfm_handle_key(Lfm *lfm, input_t in)
       } else {
         // clear selection etc
         // TODO: this should be done properly with modes (on 2022-02-13)
-        nohighlight(ui);
+        search_nohighlight(lfm);
         fm_selection_visual_stop(fm);
         fm_selection_clear(fm);
         fm_paste_buffer_clear(fm);
