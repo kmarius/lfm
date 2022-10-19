@@ -186,18 +186,6 @@ Preview *loader_preview_from_path(Loader *loader, const char *path)
 }
 
 
-Hashtab *loader_dir_hashtab(Loader *loader)
-{
-  return loader->dir_cache;
-}
-
-
-Hashtab *loader_pv_hashtab(Loader *loader)
-{
-  return loader->preview_cache;
-}
-
-
 void loader_drop_preview_cache(Loader *loader)
 {
   loader->preview_cache_version++;
