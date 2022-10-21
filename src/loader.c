@@ -9,7 +9,6 @@
 #include "lfm.h"
 #include "loader.h"
 #include "log.h"
-#include "lualfm.h"
 #include "util.h"
 
 struct timer_data {

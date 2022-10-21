@@ -3,7 +3,7 @@
 /* TODO: move hook data structures from lua (on 2022-10-09) */
 
 #include "lfm.h"
-#include "lualfm.h"
+#include "lua/lfmlua.h"
 
 #define LFM_HOOK_RESIZED   "Resized"
 #define LFM_HOOK_ENTER     "LfmEnter"

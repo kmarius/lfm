@@ -19,7 +19,7 @@
 #include "lfm.h"
 #include "loader.h"
 #include "log.h"
-#include "lualfm.h"
+#include "lua/lfmlua.h"
 #include "notify.h"
 #include "popen_arr.h"
 #include "ui.h"

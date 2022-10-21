@@ -7,7 +7,6 @@
 #include "lfm.h"
 #include "log.h"
 #include "lua.h"
-#include "lualfm.h"
 #include "search.h"
 #include "trie.h"
 #include "ui.h"
