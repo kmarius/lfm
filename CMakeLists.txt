@@ -52,7 +52,7 @@ if(NOT EXISTS ${DEPS_PREFIX})
     set(DEPS_PREFIX ${DEPS_BUILD_DIR}/usr)
 endif()
 
-file(GLOB LFM_SOURCES src/*.c /src/*.h)
+file(GLOB LFM_SOURCES src/*.c /src/*.h src/lua/*.c /src/lua/*.h)
 
 option(DEV "dev" OFF)
 
@@ -60,9 +60,9 @@ option(DEV "dev" OFF)
 set(LFM_DATA_DIR ${CMAKE_INSTALL_PREFIX}/share/lfm)
 
 if(DEV STREQUAL "ON")
-	set(LFM_LUA_DIR "${CMAKE_SOURCE_DIR}/src/lua")
+	set(LFM_LUA_DIR "${CMAKE_SOURCE_DIR}/runtime/lua")
 else()
-	set(LFM_LUA_DIR "${LFM_DATA_DIR}/lua")
+	set(LFM_LUA_DIR "${LFM_DATA_DIR}/runtime/lua")
 endif()
 
 message(STATUS "lua dir: ${LFM_LUA_DIR}")
@@ -124,5 +124,5 @@ target_link_libraries(lfm
 	${PCRE_LIBRARY})
 
 install(TARGETS lfm DESTINATION bin)
-install(DIRECTORY src/lua DESTINATION share/lfm)
+install(DIRECTORY runtime DESTINATION share/lfm)
 install(DIRECTORY doc/EmmyLua DESTINATION share/lfm)

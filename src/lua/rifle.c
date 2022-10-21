@@ -10,9 +10,9 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#include "cvector.h"
 #include "rifle.h"
-#include "util.h"
+#include "../cvector.h"
+#include "../util.h"
 
 #define RIFLE_META "rifle_meta"
 
