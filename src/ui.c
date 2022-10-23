@@ -140,6 +140,7 @@ void ui_deinit(Ui *ui)
   cvector_ffree(ui->menubuf, free);
   cmdline_deinit(&ui->cmdline);
   free(ui->search_string);
+  free(ui->infoline);
 }
 
 
