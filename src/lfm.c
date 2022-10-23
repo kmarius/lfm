@@ -66,7 +66,6 @@ static inline void destroy_io_watcher(ev_io *w)
   free(w);
 }
 
-
 static inline void destroy_child_watcher(ev_child *w)
 {
   if(!w) {
@@ -93,10 +92,12 @@ static void child_cb(EV_P_ ev_child *w, int revents)
   }
 
   if (data->stdout_watcher) {
+    data->stdout_watcher->cb(loop, data->stdout_watcher, 0);
     ev_io_stop(loop, data->stdout_watcher);
   }
 
   if (data->stderr_watcher) {
+    data->stdout_watcher->cb(loop, data->stdout_watcher, 0);
     ev_io_stop(loop, data->stderr_watcher);
   }
 
