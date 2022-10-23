@@ -320,6 +320,7 @@ static void DirUpdateResult_callback(void *p, Lfm *lfm)
       }
     }
     dir_update_with(res->dir, res->update, lfm->fm.height, cfg.scrolloff);
+    lfm_run_hook1(lfm, LFM_HOOK_DIRUPDATED, res->dir->path);
     if (res->dir->visible) {
       fm_update_preview(&lfm->fm);
       ui_redraw(&lfm->ui, REDRAW_FM);

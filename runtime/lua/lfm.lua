@@ -81,6 +81,7 @@ local hooks = {
 	Resized = {},
 	PasteBufChange = {},
 	DirLoaded = {},
+	DirUpdated = {},
 }
 
 ---@alias hook_name
@@ -92,6 +93,7 @@ local hooks = {
 ---| '"Resized"'
 ---| '"PasteBufChange"'
 ---| '"DirLoaded"'
+---| '"DirUpdated"'
 
 ---Register a function to hook into events. Curruntly supported hooks are
 ---```
