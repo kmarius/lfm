@@ -100,6 +100,7 @@ static void child_cb(EV_P_ ev_child *w, int revents)
     ev_io_stop(loop, data->stderr_watcher);
   }
 
+  ev_idle_start(loop, &data->lfm->redraw_watcher);
   cvector_swap_remove(data->lfm->child_watchers, w);
   destroy_child_watcher(w);
 }
