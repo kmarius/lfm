@@ -28,6 +28,7 @@
 ---@field current ColorPair
 
 ---@class configlib
+---@field infoline string|nil string to be printed in the info line
 ---@field threads number number of threads in the pool (at least 2, default: nprocs+1)
 ---@field dir_settings table<path, DirSetting>
 ---@field ratios integer[] assignable

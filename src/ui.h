@@ -58,6 +58,8 @@ typedef struct ui_s {
   input_t *keyseq;
 
   struct lfm_s *lfm;
+
+  char *infoline;
 } Ui;
 
 void kbblocking(bool blocking);
@@ -114,3 +116,5 @@ void ui_drop_cache(Ui *ui);
 void ui_resume(Ui *ui);
 
 void ui_suspend(Ui *ui);
+
+void ui_set_infoline(Ui *ui, const char *line);

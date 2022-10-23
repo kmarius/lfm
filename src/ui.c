@@ -599,6 +599,19 @@ static void draw_info(Ui *ui)
     print_shortened_w(n, name, name_len, remaining, !file_isdir(file));
   }
 
+  if (ui->infoline) {
+    ncplane_cursor_yx(n, NULL, &remaining);
+    remaining = ui->ncol - remaining;
+    size_t l = mbstowcs(NULL, ui->infoline, 0);
+    if (remaining >= l) {
+      ncplane_cursor_move_yx(n, 0, ui->ncol - l);
+      ncplane_set_fg_default(n);
+      ncplane_set_bg_default(n);
+      ncplane_set_styles(n, NCSTYLE_NONE);
+      ansi_addstr(n, ui->infoline);
+    }
+  }
+
   free(path_);
   free(name);
 }
@@ -1210,3 +1223,10 @@ void ui_drop_cache(Ui *ui)
 }
 
 /* }}} */
+
+void ui_set_infoline(Ui *ui, const char *line)
+{
+  free(ui->infoline);
+  ui->infoline = line ? strdup(line) : NULL;
+  ui_redraw(ui, REDRAW_INFO);
+}

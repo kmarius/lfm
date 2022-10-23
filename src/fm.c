@@ -117,7 +117,7 @@ void fm_recol(Fm *fm)
 }
 
 
-bool fm_chdir(Fm *fm, const char *path, bool save)
+bool fm_chdir(Fm *fm, const char *path, bool save, bool hook)
 {
   fm_selection_visual_stop(fm);
 
@@ -127,7 +127,7 @@ bool fm_chdir(Fm *fm, const char *path, bool save)
     path = fullpath;
   }
 
-  async_chdir(&fm->lfm->async, path);
+  async_chdir(&fm->lfm->async, path, hook);
 
   notify_remove_watchers(&fm->lfm->notify);
 
@@ -545,7 +545,7 @@ File *fm_open(Fm *fm)
     return file;
   }
 
-  fm_chdir(fm, file_path(file), false);
+  fm_chdir(fm, file_path(file), false, false);
   return NULL;
 }
 
@@ -559,7 +559,7 @@ bool fm_updir(Fm *fm)
   }
 
   const char *name = fm_current_dir(fm)->name;
-  fm_chdir(fm, dir_parent_path(fm_current_dir(fm)), false);
+  fm_chdir(fm, dir_parent_path(fm_current_dir(fm)), false, false);
   fm_move_cursor_to(fm, name);
   fm_update_preview(fm);
   return true;

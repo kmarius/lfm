@@ -10,6 +10,7 @@
 #include "file.h"
 #include "fm.h"
 #include "hashtab.h"
+#include "hooks.h"
 #include "lfm.h"
 #include "loader.h"
 #include "log.h"
@@ -593,6 +594,7 @@ static inline void *result_create(
 typedef struct chdir_result_s {
   Result super;
   char *path;
+  bool hook;
 } chdir_result;
 
 static void chdir_result_callback(void *p, Lfm *lfm)
@@ -603,6 +605,9 @@ static void chdir_result_callback(void *p, Lfm *lfm)
       log_error("chdir: %s: %s", strerror(errno), res->path);
     } else {
       setenv("PWD", res->path, true);
+      if (res->hook) {
+        lfm_run_hook(lfm, LFM_HOOK_CHDIRPOST);
+      }
     }
   }
   free(res->path);
@@ -619,6 +624,7 @@ static void chdir_result_destroy(void *p)
 struct chdir_work {
   char *path;
   Async *async;
+  bool hook;
 };
 
 static void async_chdir_worker(void *arg)
@@ -637,6 +643,7 @@ static void async_chdir_worker(void *arg)
       chdir_result_destroy,
       sizeof *res);
   res->path = work->path;
+  res->hook = work->hook;
 
   enqueue_and_signal(work->async, (Result *) res);
 
@@ -644,11 +651,12 @@ cleanup:
   free(work);
 }
 
-void async_chdir(Async *async, const char *path)
+void async_chdir(Async *async, const char *path, bool hook)
 {
   struct chdir_work *work = malloc(sizeof *work);
   work->path = strdup(path);
   work->async = async;
+  work->hook = hook;
   tpool_add_work(async->tpool, async_chdir_worker, work);
 }
 

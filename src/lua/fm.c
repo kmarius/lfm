@@ -281,9 +281,7 @@ static int l_fm_chdir(lua_State *L)
   char *path = path_qualify(luaL_optstring(L, 1, "~"), fm->pwd);
   search_nohighlight(lfm);
   lfm_run_hook(lfm, LFM_HOOK_CHDIRPRE);
-  if (fm_chdir(fm, path, true)) {
-    lfm_run_hook(lfm, LFM_HOOK_CHDIRPOST);
-  }
+  fm_chdir(fm, path, true, true);
   ui_redraw(ui, REDRAW_FM);
   free(path);
   return 0;

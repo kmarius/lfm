@@ -328,6 +328,12 @@ static int l_config_newindex(lua_State *L)
     luaL_argcheck(L, num >= 2, 3, "argument must be at least 2");
     tpool_resize(lfm->async.tpool, num);
     return 0;
+  } else if (streq(key, "infoline")) {
+    if (lua_isnil(L, 3)) {
+      ui_set_infoline(&lfm->ui, NULL);
+    } else {
+      ui_set_infoline(&lfm->ui, luaL_checkstring(L, 3));
+    }
   } else {
     luaL_error(L, "unexpected key %s", key);
   }
