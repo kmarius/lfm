@@ -16,6 +16,13 @@
   ((NCCHANNEL_INITIALIZER_PALINDEX(fg) << 32lu) \
    | NCCHANNEL_INITIALIZER_PALINDEX(bg))
 
-const char *ansi_consoom(struct ncplane *w, const char *s);
+// consumes the ansi escape sequence pointed to by s setting the attributes to n.
+// Returns a pointer to the char after the sequence.
+const char *ansi_consoom(struct ncplane *n, const char *s);
 
+// Adds a string to n, interpreting ansi escape sequences and setting the
+// attributes to n.
 void ansi_addstr(struct ncplane *n, const char *s);
+
+// Returns the size of the string in wide chars with ansi codes removed.
+size_t ansi_mblen(const char *s);

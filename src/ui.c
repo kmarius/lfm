@@ -603,7 +603,7 @@ static void draw_info(Ui *ui)
   if (ui->infoline) {
     ncplane_cursor_yx(n, NULL, &remaining);
     remaining = ui->ncol - remaining;
-    size_t l = mbstowcs(NULL, ui->infoline, 0);
+    size_t l = ansi_mblen(ui->infoline);
     if (remaining >= l) {
       ncplane_cursor_move_yx(n, 0, ui->ncol - l);
       ncplane_set_fg_default(n);

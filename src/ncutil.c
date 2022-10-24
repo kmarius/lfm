@@ -1,6 +1,7 @@
 #include <ctype.h>
 #include <curses.h>
 #include <assert.h>
+#include <limits.h>
 
 #include "log.h"
 #include "ncutil.h"
@@ -179,4 +180,24 @@ void ansi_addstr(struct ncplane *n, const char *s)
       }
     }
   }
+}
+
+size_t ansi_mblen(const char *s)
+{
+  size_t len = 0;
+  while (*s) {
+    if (*s == '\033') {
+      while (*s && *s != 'm') {
+        s++;
+      }
+      if (*s == 'm') {
+        s++;
+      }
+    } else {
+      int l = mbtowc(NULL, s, MB_LEN_MAX);
+      s += l;
+      len++;
+    }
+  }
+  return len;
 }
