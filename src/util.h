@@ -9,6 +9,8 @@
 #include <wchar.h>
 #include <wctype.h>
 
+#define ALLOC __attribute__((malloc)) __attribute__((warn_unused_result))
+
 #ifndef streq
 #define streq(X, Y) (*(char *)(X) == *(char *)(Y) && strcmp(X, Y) == 0)
 #endif
@@ -111,7 +113,7 @@ int vasprintf(char **dst, const char *format, va_list args);
 
 // converts mb string s to a newly allocated wchar string, optionally passes
 // the length to len
-wchar_t *ambstowcs(const char *s, int *len);
+ALLOC wchar_t *ambstowcs(const char *s, int *len);
 
 // these return pointer to statically allocated arrays
 char *realpath_s(const char *p);
@@ -120,28 +122,28 @@ char *basename_s(const char *p);
 
 char *dirname_s(const char *p);
 
-static inline char *realpath_a(const char *p)
+ALLOC static inline char *realpath_a(const char *p)
 {
   return strdup(realpath_s(p));
 }
 
-static inline char *basename_a(const char *p)
+ALLOC static inline char *basename_a(const char *p)
 {
   return strdup(basename_s(p));
 }
 
-static inline char *dirname_a(const char *p)
+ALLOC static inline char *dirname_a(const char *p)
 {
   return strdup(dirname_s(p));
 }
 
 // Allocates a new path with a beginning ~/ replaced, otherwise a copy of path.
-char *path_replace_tilde(const char* path);
+ALLOC char *path_replace_tilde(const char* path);
 
 // Allocates a new absolute path with all ~, ., .., // replaced
 // TODO: currently uses PWD, if needed add it as an additional parameter (on
 // 2022-10-16)
-char *path_qualify(const char* path, const char *pwd);
+ALLOC char *path_qualify(const char* path, const char *pwd);
 
 static inline bool path_is_relative(const char *path)
 {
