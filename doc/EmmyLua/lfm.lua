@@ -123,9 +123,6 @@ function lfm.get_cmaps(prune) end
 ---Clear all colors.
 function lfm.colors_clear() end
 
---Crash lfm.
-function lfm.crash() end
-
 --Quit lfm.
 function lfm.quit() end
 

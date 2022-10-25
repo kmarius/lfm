@@ -13,6 +13,8 @@ extern Fm *fm;
 #define luaL_optbool(L, i, d) \
   lua_isnoneornil(L, i) ? d : lua_toboolean(L, i)
 
+#define lua_quit(L, lfm) (lfm_quit(lfm), luaL_error(L, "quit"));
+
 // stores the function on top of the stack in the registry and returns the
 // reference index
 static inline int lua_set_callback(lua_State *L)

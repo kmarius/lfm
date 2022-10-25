@@ -16,6 +16,11 @@ static int l_cmd_line_get(lua_State *L)
 static int l_cmd_line_set(lua_State *L)
 {
   ui->message = false;
+
+  if (lua_gettop(L) > 3) {
+    luaL_error(L, "line_get takes up to three arguments");
+  }
+
   switch (lua_gettop(L)) {
     case 1:
       if (cmdline_set(&ui->cmdline, lua_tostring(L, 1))) {
@@ -36,8 +41,6 @@ static int l_cmd_line_set(lua_State *L)
         ui_redraw(ui, REDRAW_CMDLINE);
       }
       break;
-    default:
-      luaL_error(L, "line_get takes up to three arguments");
   }
   return 0;
 }

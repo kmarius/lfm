@@ -110,31 +110,29 @@ static int l_fm_updir(lua_State *L)
   (void) L;
   if (fm_updir(fm)) {
     lfm_run_hook(lfm, LFM_HOOK_CHDIRPOST);
+    search_nohighlight(lfm);
+    ui_redraw(ui, REDRAW_FM);
   }
-  search_nohighlight(lfm);
-  ui_redraw(ui, REDRAW_FM);
   return 0;
 }
 
 static int l_fm_open(lua_State *L)
 {
   File *file = fm_open(fm);
-  if (!file) {
-    lfm_run_hook(lfm, LFM_HOOK_CHDIRPOST);
-    /* changed directory */
-    ui_redraw(ui, REDRAW_FM);
-    search_nohighlight(lfm);
-    return 0;
-  } else {
+  if (file) {
     if (cfg.selfile) {
-      /* lastdir is written in main */
-      fm_selection_write(fm, cfg.selfile);
-      lfm_quit(lfm);
-      return 0;
+      fm_selection_write(&lfm->fm, cfg.selfile);
+      return lua_quit(L, lfm);
     }
 
     lua_pushstring(L, file_path(file));
     return 1;
+  } else {
+    /* changed directory */
+    lfm_run_hook(lfm, LFM_HOOK_CHDIRPOST);
+    ui_redraw(ui, REDRAW_FM);
+    search_nohighlight(lfm);
+    return 0;
   }
 }
 
@@ -194,10 +192,9 @@ static int l_fm_visual_toggle(lua_State *L)
 static int l_fm_sortby(lua_State *L)
 {
   const int l = lua_gettop(L);
-  const char *op;
   Dir *dir = fm_current_dir(fm);
   for (int i = 1; i <= l; i++) {
-    op = luaL_checkstring(L, i);
+    const char *op = luaL_checkstring(L, i);
     if (streq(op, "name")) {
       dir->settings.sorttype = SORT_NAME;
     } else if (streq(op, "natural")) {
@@ -217,8 +214,7 @@ static int l_fm_sortby(lua_State *L)
     } else if (streq(op, "noreverse")) {
       dir->settings.reverse = false;
     } else {
-      luaL_error(L, "sortby: unrecognized option: %s", op);
-      // not reached
+      return luaL_error(L, "sortby: unrecognized option: %s", op);
     }
   }
   dir->sorted = false;
@@ -247,8 +243,11 @@ static int l_fm_selection_add(lua_State *L)
 
 static int l_fm_selection_set(lua_State *L)
 {
+  if (!lua_isnil(L, 1) && !lua_istable(L, 1)) {
+    return luaL_argerror(L, 1, "table or nil required");
+  }
   fm_selection_clear(fm);
-  if (lua_istable(L, -1)) {
+  if (lua_istable(L, 1)) {
     for (lua_pushnil(L); lua_next(L, -2); lua_pop(L, 1)) {
       fm_selection_add(fm, luaL_checkstring(L, -1));
     }
@@ -260,7 +259,7 @@ static int l_fm_selection_set(lua_State *L)
 static int l_fm_selection_get(lua_State *L)
 {
   lua_createtable(L, fm->selection.paths->size, 0);
-  size_t i = 1;
+  int i = 1;
   lht_foreach(char *path, fm->selection.paths) {
     lua_pushstring(L, path);
     lua_rawseti(L, -2, i++);
@@ -301,7 +300,7 @@ static int l_fm_paste_mode_set(lua_State *L)
   } else if (streq(mode, "move")) {
     fm->paste.mode = PASTE_MODE_MOVE;
   } else {
-    luaL_error(L, "unrecognized paste mode: %s", mode);
+    return luaL_error(L, "unrecognized paste mode: %s", mode);
   }
   ui_redraw(ui, REDRAW_FM);
 
@@ -339,7 +338,7 @@ static int l_fm_paste_buffer_set(lua_State *L)
   } else if (streq(mode, "move")) {
     fm->paste.mode = PASTE_MODE_MOVE;
   } else {
-    luaL_error(L, "unrecognized paste mode: %s", mode);
+    return luaL_error(L, "unrecognized paste mode: %s", mode);
   }
 
   if (luaL_optbool(L, 3, true)) {
@@ -377,8 +376,7 @@ static int l_fm_filter_get(lua_State *L)
 
 static int l_fm_filter(lua_State *L)
 {
-  const char *filter = lua_tostring(L, 1);
-  fm_filter(fm, filter);
+  fm_filter(fm, luaL_checkstring(L, 1));
   ui_redraw(ui, REDRAW_FM);
   return 0;
 }
@@ -387,16 +385,13 @@ static int l_fm_jump_automark(lua_State *L)
 {
   (void) L;
   lfm_run_hook(lfm, LFM_HOOK_CHDIRPRE);
-  if (fm_jump_automark(fm)) {
-    lfm_run_hook(lfm, LFM_HOOK_CHDIRPOST);
-  }
+  fm_jump_automark(fm);
   ui_redraw(ui, REDRAW_FM);
   return 0;
 }
 
 static int l_fm_flatten_level(lua_State *L)
 {
-  log_debug("flatten_level %d", fm_current_dir(fm)->flatten_level);
   lua_pushinteger(L, fm_current_dir(fm)->flatten_level);
   return 1;
 }

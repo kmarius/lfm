@@ -145,7 +145,7 @@ void fm_check_dirs(const Fm *fm);
 static inline bool fm_jump_automark(Fm *fm)
 {
   if (fm->automark) {
-    return fm_chdir(fm, fm->automark, true, false);
+    return fm_chdir(fm, fm->automark, true, true);
   }
   return false;
 }

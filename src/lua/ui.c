@@ -59,7 +59,7 @@ static int l_ui_get_height(lua_State *L)
 
 static int l_ui_menu(lua_State *L)
 {
-  cvector_vector_type(char*) menubuf = NULL;
+  char **menubuf = NULL;
   if (lua_type(L, 1) == LUA_TTABLE) {
     const int n = lua_objlen(L, 1);
     for (int i = 1; i <= n; i++) {

@@ -55,10 +55,9 @@ static int l_handle_key(lua_State *L)
 
 static int l_timeout(lua_State *L)
 {
-  const int32_t dur = luaL_checkinteger(L, 1);
-  if (dur > 0) {
-    input_timeout_set(lfm, dur);
-  }
+  const int dur = luaL_checkinteger(L, 1);
+  luaL_argcheck(L, dur >= 0, 1, "timeout must be non-negative");
+  input_timeout_set(lfm, dur);
   return 0;
 }
 
@@ -128,10 +127,7 @@ static int l_crash(lua_State *L)
 
 static int l_quit(lua_State *L)
 {
-  lfm_quit(lfm);
-  // hand back control to the C caller
-  luaL_error(L, "quit");
-  return 0;
+  return lua_quit(L, lfm);
 }
 
 static int l_echo(lua_State *L)
@@ -142,7 +138,7 @@ static int l_echo(lua_State *L)
 
 static int l_error(lua_State *L)
 {
-  ui_error(ui, luaL_checkstring(L, 1));
+  ui_error(ui, "%s", luaL_optstring(L, 1, ""));
   return 0;
 }
 
@@ -163,12 +159,18 @@ static int l_spawn(lua_State *L)
   int err_cb_ref = -1;
   int cb_ref = -1;
 
+  if (lua_gettop(L) > 2) {
+    return luaL_error(L, "too many arguments");
+  }
+
   luaL_checktype(L, 1, LUA_TTABLE);
 
-  const int n = lua_objlen(L, 1);
-  if (n == 0) {
-    luaL_error(L, "no command given");
+  if (lua_gettop(L) == 2) {
+    luaL_checktype(L, 2, LUA_TTABLE);
   }
+
+  const int n = lua_objlen(L, 1);
+  luaL_argcheck(L, n > 0, 1, "no command given");
 
   char **args = NULL;
   for (int i = 1; i <= n; i++) {
@@ -177,9 +179,7 @@ static int l_spawn(lua_State *L)
     lua_pop(L, 1);
   }
   cvector_push_back(args, NULL);
-  if (lua_gettop(L) >= 2) {
-    luaL_checktype(L, 2, LUA_TTABLE);
-
+  if (lua_gettop(L) == 2) {
     lua_getfield(L, 2, "stdin");
     if (lua_isstring(L, -1)) {
       cvector_push_back(stdin, strdup(lua_tostring(L, -1)));
@@ -234,12 +234,14 @@ static int l_spawn(lua_State *L)
 
 static int l_execute(lua_State *L)
 {
+  if (lua_gettop(L) > 1) {
+    return luaL_error(L, "too many arguments");
+  }
+
   luaL_checktype(L, 1, LUA_TTABLE);
 
   const int n = lua_objlen(L, 1);
-  if (n == 0) {
-    luaL_error(L, "no command given");
-  }
+  luaL_argcheck(L, n > 0, 1, "no command given");
 
   char **args = NULL;
   for (int i = 1; i <= n; i++) {
@@ -265,8 +267,10 @@ static int l_execute(lua_State *L)
 
 static inline int map_key(lua_State *L, Trie *trie)
 {
+  const char *keys = luaL_checkstring(L, 1);
+
   if (!(lua_type(L, 2) == LUA_TFUNCTION || lua_isnil(L, 2))) {
-    luaL_argerror(L, 2, "expected function or nil");
+    return luaL_argerror(L, 2, "expected function or nil");
   }
 
   const char *desc = NULL;
@@ -277,7 +281,6 @@ static inline int map_key(lua_State *L, Trie *trie)
     }
     lua_pop(L, 1);
   }
-  const char *keys = luaL_checkstring(L, 1);
 
   int ref = 0;
   if (!lua_isnil(L, 2)) {

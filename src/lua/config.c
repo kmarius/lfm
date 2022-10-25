@@ -76,34 +76,34 @@ static int l_dir_settings_index(lua_State *L)
 {
   const char *key = luaL_checkstring(L, 2);
   struct dir_settings *s = ht_get(cfg.dir_settings_map, key);
-  if (s) {
-    lua_newtable(L);
-    lua_pushboolean(L, s->dirfirst);
-    lua_setfield(L, -2, "dirfirst");
-    lua_pushboolean(L, s->hidden);
-    lua_setfield(L, -2, "hidden");
-    lua_pushboolean(L, s->reverse);
-    lua_setfield(L, -2, "reverse");
-    /* TODO: refactor this if we need to convert enum <-> string more often (on 2022-10-09) */
-    switch (s->sorttype) {
-      case SORT_NATURAL:
-        lua_pushstring(L, "natural"); break;
-      case SORT_NAME:
-        lua_pushstring(L, "name"); break;
-      case SORT_SIZE:
-        lua_pushstring(L, "size"); break;
-      case SORT_CTIME:
-        lua_pushstring(L, "ctime"); break;
-      case SORT_RAND:
-        lua_pushstring(L, "random"); break;
-      default:
-        lua_pushstring(L, "unknown"); break;
-    }
-    lua_setfield(L, -2, "sorttype");
-    return 1;
-  } else {
+  if (!s) {
     return 0;
   }
+
+  lua_newtable(L);
+  lua_pushboolean(L, s->dirfirst);
+  lua_setfield(L, -2, "dirfirst");
+  lua_pushboolean(L, s->hidden);
+  lua_setfield(L, -2, "hidden");
+  lua_pushboolean(L, s->reverse);
+  lua_setfield(L, -2, "reverse");
+  /* TODO: refactor this if we need to convert enum <-> string more often (on 2022-10-09) */
+  switch (s->sorttype) {
+    case SORT_NATURAL:
+      lua_pushstring(L, "natural"); break;
+    case SORT_NAME:
+      lua_pushstring(L, "name"); break;
+    case SORT_SIZE:
+      lua_pushstring(L, "size"); break;
+    case SORT_CTIME:
+      lua_pushstring(L, "ctime"); break;
+    case SORT_RAND:
+      lua_pushstring(L, "random"); break;
+    default:
+      lua_pushstring(L, "unknown"); break;
+  }
+  lua_setfield(L, -2, "sorttype");
+  return 1;
 }
 
 static int l_dir_settings_newindex(lua_State *L)
@@ -243,9 +243,8 @@ static int l_config_newindex(lua_State *L)
       lua_rawgeti(L, 3, i);
       cvector_push_back(ratios, lua_tointeger(L, -1));
       if (ratios[i-1] <= 0) {
-        luaL_error(L, "ratio must be non-negative");
         cvector_free(ratios);
-        return 0;
+        return luaL_error(L, "ratio must be non-negative");
       }
       lua_pop(L, 1);
     }
@@ -347,14 +346,13 @@ static const struct luaL_Reg config_mt[] = {
 
 static inline uint32_t read_channel(lua_State *L, int idx)
 {
-  switch(lua_type(L, idx))
-  {
+  switch (lua_type(L, idx)) {
     case LUA_TSTRING:
       return NCCHANNEL_INITIALIZER_PALINDEX(lua_tointeger(L, idx));
     case LUA_TNUMBER:
       return NCCHANNEL_INITIALIZER_HEX(lua_tointeger(L, idx));
     default:
-      luaL_typerror(L, idx, "string or number");
+      luaL_typerror(L, idx, "string or number required");
       return 0;
   }
 }
