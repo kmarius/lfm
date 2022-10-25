@@ -4,7 +4,7 @@
 
 static int l_ui_history_append(lua_State *L)
 {
-  history_append(&ui->history, luaL_checkstring(L, 1));
+  history_append(&ui->history, luaL_checkstring(L, 1), luaL_checkstring(L, 2));
   return 0;
 }
 

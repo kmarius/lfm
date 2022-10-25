@@ -5,14 +5,17 @@
 #include "cvector.h"
 #include "history.h"
 #include "util.h"
+#include "log.h"
 
 /* TODO: add prefixes to history (on 2021-07-24) */
 /* TODO: write to history.new and move on success (on 2021-07-28) */
 /* TODO: signal errors on load/write (on 2021-10-23) */
 /* TODO: limit history size (on 2021-10-24) */
 
+// prefix contain5 an allocated 5tring, line point5 to right after it5 nul byte.
 struct history_entry {
-  char *line;
+  char *prefix;
+  const char *line;
   bool is_new;
 };
 
@@ -34,7 +37,17 @@ void history_load(History *h, const char *path)
     if (line[read-1] == '\n') {
       line[read-1] = 0;
     }
-    struct history_entry n = { .line = line, .is_new = 0, };
+    struct history_entry n = { .is_new = 0, };
+    char *tab = strchr(line, '\t');
+    if (tab) {
+      *tab = 0;
+      n.prefix = line;
+      n.line = tab + 1;
+    } else {
+      log_error("missing tab in history item: %s", line);
+      n.prefix = strdup(":"); // we are leaking here
+      n.line = line;
+    }
     cvector_push_back(h->vec, n);
     line = NULL;
   }
@@ -58,6 +71,8 @@ void history_write(History *h, const char *path)
 
   for (size_t i = 0; i < cvector_size(h->vec); i++) {
     if (h->vec[i].is_new) {
+      fputs(h->vec[i].prefix, fp);
+      fputc('\t', fp);
       fputs(h->vec[i].line, fp);
       fputc('\n', fp);
     }
@@ -69,19 +84,25 @@ void history_write(History *h, const char *path)
 void history_deinit(History *h)
 {
   for (size_t i = 0; i < cvector_size(h->vec); i++) {
-    free(h->vec[i].line);
+    free(h->vec[i].prefix);
   }
   cvector_free(h->vec);
 }
 
 
-void history_append(History *h, const char *line)
+void history_append(History *h, const char *prefix, const char *line)
 {
   struct history_entry *end = cvector_end(h->vec);
   if (end && streq((end - 1)->line, line)) {
     return; /* skip consecutive dupes */
   }
-  cvector_push_back(h->vec, ((struct history_entry) {strdup(line), true}));
+  int l = strlen(prefix);
+  struct history_entry e = {.is_new = true};
+  e.prefix = malloc(l + strlen(line) + 2);
+  e.line = e.prefix + l + 1;
+  strcpy(e.prefix, prefix);
+  strcpy(e.prefix + l + 1, line);
+  cvector_push_back(h->vec, e);
 }
 
 

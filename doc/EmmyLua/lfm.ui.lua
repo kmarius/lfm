@@ -15,8 +15,9 @@ function lfm.ui.clear() end
 function lfm.ui.draw() end
 
 ---Append a line to history.
+---@param prefix string
 ---@param line string
-function lfm.ui.history_append(line) end
+function lfm.ui.history_append(prefix, line) end
 
 ---Get the next line from history.
 ---@return string
