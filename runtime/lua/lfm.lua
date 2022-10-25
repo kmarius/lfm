@@ -265,7 +265,7 @@ local mode_filter = {
 
 local mode_cmd = {
 	prefix = ":",
-	on_enter = function(line) ui.history_lfmend(line) lfm.eval(line) end,
+	on_enter = function(line) ui.history_append(line) lfm.eval(line) end,
 	on_esc = nop,
 	on_change = compl.reset,
 }
