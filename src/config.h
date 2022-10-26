@@ -22,6 +22,7 @@ typedef struct config_s {
   char *fifopath;       // rundir/$PID.fifo
   char *logpath;        // /tmp/lfm.$PID.log
 
+  int histsize;         // 100
   wchar_t truncatechar; // '~'
   char *lastdir;
   char *selfile;

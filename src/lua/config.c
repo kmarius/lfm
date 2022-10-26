@@ -209,6 +209,9 @@ static int l_config_index(lua_State *L)
   } else if (streq(key, "threads")) {
     lua_pushnumber(L, tpool_size(lfm->async.tpool));
     return 1;
+  } else if (streq(key, "histsize")) {
+    lua_pushnumber(L, cfg.histsize);
+    return 1;
   } else {
     luaL_error(L, "unexpected key %s", key);
   }
@@ -333,6 +336,10 @@ static int l_config_newindex(lua_State *L)
     } else {
       ui_set_infoline(&lfm->ui, luaL_checkstring(L, 3));
     }
+  } else if (streq(key, "histsize")) {
+    int sz = luaL_checkinteger(L, 3);
+    luaL_argcheck(L, sz >= 0, 3, "argument must be non-negative");
+    cfg.histsize = sz;
   } else {
     luaL_error(L, "unexpected key %s", key);
   }

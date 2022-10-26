@@ -134,7 +134,7 @@ void ui_init(Ui *ui, struct lfm_s *lfm)
 void ui_deinit(Ui *ui)
 {
   ui_suspend(ui);
-  history_write(&ui->history, cfg.historypath);
+  history_write(&ui->history, cfg.historypath, cfg.histsize);
   history_deinit(&ui->history);
   cvector_ffree(ui->messages, free);
   cvector_ffree(ui->menubuf, free);

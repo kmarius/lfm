@@ -7,12 +7,10 @@
 #include "util.h"
 #include "log.h"
 
-/* TODO: add prefixes to history (on 2021-07-24) */
-/* TODO: write to history.new and move on success (on 2021-07-28) */
 /* TODO: signal errors on load/write (on 2021-10-23) */
-/* TODO: limit history size (on 2021-10-24) */
+/* TODO: only show history items with matching prefixes (on 2021-07-24) */
 
-// prefix contain5 an allocated 5tring, line point5 to right after it5 nul byte.
+// prefix contains an allocated string, line points to right after its nul byte.
 struct history_entry {
   char *prefix;
   const char *line;
@@ -50,51 +48,99 @@ void history_load(History *h, const char *path)
       .line = tab + 1,
       .is_new = 0,
     };
-    cvector_push_back(h->vec, n);
+    cvector_push_back(h->entries, n);
     line = NULL;
   }
   free(line);
 
+  h->old_entries = cvector_size(h->entries);
+
   fclose(fp);
 }
 
-
-void history_write(History *h, const char *path)
+void history_write(History *h, const char *path, int histsize)
 {
-  char *dir, *buf = strdup(path);
-  dir = dirname(buf);
+  char *dir = dirname_a(path);
   mkdir_p(dir, 755);
-  free(buf);
+  free(dir);
 
-  FILE *fp = fopen(path, "a");
-  if (!fp) {
-    return;
+  char *path_new;
+  asprintf(&path_new, "%s.new", path);
+
+  FILE *fp_new = fopen(path_new, "w");
+  if (!fp_new) {
+    goto cleanup;
   }
 
-  for (size_t i = 0; i < cvector_size(h->vec); i++) {
-    if (h->vec[i].is_new) {
-      fputs(h->vec[i].prefix, fp);
-      fputc('\t', fp);
-      fputs(h->vec[i].line, fp);
-      fputc('\n', fp);
+  // We we read the history again here because another instace might have saved
+  // its history since we loaded ours.
+
+  const int new_entries = cvector_size(h->entries) - h->old_entries;
+  const int diff = histsize - new_entries;
+
+  if (diff > 0) {
+    // read up to diff from the tail of path
+
+    char **lines = calloc(diff, sizeof *lines);
+    int i = 0;
+
+    FILE *fp_old = fopen(path, "r");
+    if (fp_old) {
+      size_t n;
+      char *line = NULL;
+
+      while (getline(&line, &n, fp_old) != -1) {
+        free(lines[i % diff]);
+        lines[i++ % diff] = line;
+        line = NULL;
+      }
+      free(line);
+      fclose(fp_old);
     }
-  }
-  fclose(fp);
-}
 
+    // write them to path_new
+    if (i < diff) {
+      for (int j = 0; j < i; j++) {
+        fputs(lines[j], fp_new);
+        free(lines[j]);
+      }
+    } else {
+      for (int j = i; j < i + diff; j++) {
+        fputs(lines[j % diff], fp_new);
+        free(lines[j % diff]);
+      }
+    }
+
+    free(lines);
+  }
+
+  // write our new entries to path_new
+  size_t i = diff > 0 ? h->old_entries : cvector_size(h->entries) - histsize;
+  for (; i < cvector_size(h->entries); i++) {
+    fputs(h->entries[i].prefix, fp_new);
+    fputc('\t', fp_new);
+    fputs(h->entries[i].line, fp_new);
+    fputc('\n', fp_new);
+  }
+  fclose(fp_new);
+
+  rename(path_new, path);
+
+cleanup:
+  free(path_new);
+}
 
 void history_deinit(History *h)
 {
-  for (size_t i = 0; i < cvector_size(h->vec); i++) {
-    free(h->vec[i].prefix);
+  for (size_t i = 0; i < cvector_size(h->entries); i++) {
+    free(h->entries[i].prefix);
   }
-  cvector_free(h->vec);
+  cvector_free(h->entries);
 }
-
 
 void history_append(History *h, const char *prefix, const char *line)
 {
-  struct history_entry *end = cvector_end(h->vec);
+  struct history_entry *end = cvector_end(h->entries);
   if (end && streq((end - 1)->line, line)) {
     return; /* skip consecutive dupes */
   }
@@ -104,49 +150,45 @@ void history_append(History *h, const char *prefix, const char *line)
   e.line = e.prefix + l + 1;
   strcpy(e.prefix, prefix);
   strcpy(e.prefix + l + 1, line);
-  cvector_push_back(h->vec, e);
+  cvector_push_back(h->entries, e);
 }
-
 
 void history_reset(History *h)
 {
-  h->ptr = NULL;
+  h->cur = NULL;
 }
 
-
-/* TODO: only show history items with matching prefixes (on 2021-07-24) */
 const char *history_prev(History *h)
 {
-  if (!h->vec) {
+  if (!h->entries) {
     return NULL;
   }
 
-  if (!h->ptr) {
-    h->ptr = cvector_end(h->vec);
+  if (!h->cur) {
+    h->cur = cvector_end(h->entries);
   }
 
-  if (h->ptr > cvector_begin(h->vec)) {
-    --h->ptr;
+  if (h->cur > cvector_begin(h->entries)) {
+    --h->cur;
   }
 
-  return h->ptr->line;
+  return h->cur->line;
 }
-
 
 const char *history_next(History *h)
 {
-  if (!h->vec || !h->ptr) {
+  if (!h->entries || !h->cur) {
     return NULL;
   }
 
-  if (h->ptr < cvector_end(h->vec)) {
-    ++h->ptr;
+  if (h->cur < cvector_end(h->entries)) {
+    ++h->cur;
   }
 
   /* TODO: could return the initial line here (on 2021-11-07) */
-  if (h->ptr == cvector_end(h->vec)) {
+  if (h->cur == cvector_end(h->entries)) {
     return "";
   }
 
-  return h->ptr->line;
+  return h->cur->line;
 }
