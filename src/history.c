@@ -37,17 +37,19 @@ void history_load(History *h, const char *path)
     if (line[read-1] == '\n') {
       line[read-1] = 0;
     }
-    struct history_entry n = { .is_new = 0, };
     char *tab = strchr(line, '\t');
-    if (tab) {
-      *tab = 0;
-      n.prefix = line;
-      n.line = tab + 1;
-    } else {
+    if (!tab) {
       log_error("missing tab in history item: %s", line);
-      n.prefix = strdup(":"); // we are leaking here
-      n.line = line;
+      free(line);
+      line = NULL;
+      continue;
     }
+    *tab = 0;
+    struct history_entry n = {
+      .prefix = line,
+      .line = tab + 1,
+      .is_new = 0,
+    };
     cvector_push_back(h->vec, n);
     line = NULL;
   }
