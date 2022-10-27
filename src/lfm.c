@@ -343,6 +343,16 @@ void lfm_quit(Lfm *lfm)
   // prevent lua error from flashing in the UI, we use it to immediately give
   // back control to the host program.
   lfm->ui.running = false;
+
+  if (cfg.lastdir) {
+    FILE *fp = fopen(cfg.lastdir, "w");
+    if (!fp) {
+      log_error("lastdir: %s", strerror(errno));
+    } else {
+      fputs(lfm->fm.pwd, fp);
+      fclose(fp);
+    }
+  }
 }
 
 
