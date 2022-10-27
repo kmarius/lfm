@@ -28,7 +28,7 @@
 
 static void draw_dirs(Ui *ui);
 static void plane_draw_dir(struct ncplane *n, Dir *dir, LinkedHashtab *sel,
-    LinkedHashtab *load, enum paste_mode_e mode, const char *highlight, bool print_sizes);
+    LinkedHashtab *load, paste_mode mode, const char *highlight, bool print_sizes);
 static void draw_cmdline(Ui *ui);
 static void draw_preview(Ui *ui);
 static void update_preview(Ui *ui);
@@ -957,7 +957,7 @@ static int print_highlighted_and_shortened(struct ncplane *n, const char *name, 
 
 
 static void print_file(struct ncplane *n, const File *file,
-    bool iscurrent, LinkedHashtab *sel, LinkedHashtab *load, enum paste_mode_e mode,
+    bool iscurrent, LinkedHashtab *sel, LinkedHashtab *load, paste_mode mode,
     const char *highlight, bool print_sizes)
 {
   unsigned int ncol, y0;
@@ -1117,7 +1117,7 @@ static void print_file(struct ncplane *n, const File *file,
 
 
 static void plane_draw_dir(struct ncplane *n, Dir *dir, LinkedHashtab *sel, LinkedHashtab*load,
-    enum paste_mode_e mode, const char *highlight, bool print_sizes)
+    paste_mode mode, const char *highlight, bool print_sizes)
 {
   unsigned int nrow;
 

@@ -455,7 +455,7 @@ void fm_selection_write(const Fm *fm, const char *path)
 /* load/copy/move {{{ */
 
 /* TODO: Make it possible to append to cut/copy buffer (on 2021-07-25) */
-void fm_paste_mode_set(Fm *fm, enum paste_mode_e mode)
+void fm_paste_mode_set(Fm *fm, paste_mode mode)
 {
   fm_selection_visual_stop(fm);
   fm->paste.mode = mode;

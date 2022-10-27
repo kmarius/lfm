@@ -8,45 +8,59 @@
 #include "file.h"
 #include "hashtab.h"
 
-enum paste_mode_e {
+typedef enum paste_mode_e {
   PASTE_MODE_MOVE,
   PASTE_MODE_COPY,
-};
+} paste_mode;
 
 typedef struct fm_s {
 
-  uint32_t height;  // height of the fm
+  // Height of the fm.
+  uint32_t height;
+
+  // Not guaranteed to coincide with PWD or this processe's working directory,
+  // which is only set once we know the destination is reachable.
   char *pwd;
 
   struct {
-    // Visible directories excluding preview
+    // Visible directories excluding preview.
     cvector_vector_type(Dir *) visible;
+
+    // Number of visible directories, excluding the preview.
     uint32_t length;
 
-    // preview directory, NULL if there is none, e.g. if the cursor is resting on a file
+    // preview directory, NULL if there is none, e.g. if the cursor is resting
+    // on a file.
     Dir *preview;
   } dirs;
 
   struct {
     // Current and previous selection (needed for visual mode)
-    /* TODO: consider checking at some point if selected files even still exist (on 2022-08-03) */
     LinkedHashtab *paths;
+
+    // Previous selection, needed for visual selection mode.
     Hashtab *previous;
   } selection;
 
   struct {
-    // Copy/move buffer, vector of paths
+    // Copy/move buffer, hash table of paths.
     LinkedHashtab *buffer;
-    enum paste_mode_e mode;
+
+    paste_mode mode;
   } paste;
 
   struct {
+    // Is visual selection mode active?
     bool active;
+
+    // Start index of the visual selection.
     uint32_t anchor;
   } visual;
 
+  // Prefix used in find.c
   char *find_prefix;
 
+  // Previous directory, not changed on updir/open.
   char *automark;
 
   struct lfm_s *lfm;
@@ -109,8 +123,9 @@ bool fm_scroll_up(Fm *fm);
 // Scroll down the directory while keeping the cursor position if possible.
 bool fm_scroll_down(Fm *fm);
 
-// Changes directory to the directory given by `path`. If `save` then the current
-// directory will be saved as the special "'" automark. Returns `true´ if the directory has been changed.
+// Changes directory to the directory given by `path`. If `save` then the
+// current directory will be saved as the special "'" automark. Returns `true´
+// if the directory has been changed.
 bool fm_chdir(Fm *fm, const char *path, bool save, bool hook);
 
 // Open the currently selected file: if it is a directory, chdir into it.
@@ -183,7 +198,7 @@ void fm_selection_visual_toggle(Fm *fm);
 void fm_selection_write(const Fm *fm, const char *path);
 
 // Set the current selection into the load buffer with mode `mode`.
-void fm_paste_mode_set(Fm *fm, enum paste_mode_e mode);
+void fm_paste_mode_set(Fm *fm, paste_mode mode);
 
 // Clear copy/move buffer.
 static inline void fm_paste_buffer_clear(Fm *fm)
@@ -191,12 +206,7 @@ static inline void fm_paste_buffer_clear(Fm *fm)
   lht_clear(fm->paste.buffer);
 }
 
-// Get the list of files in copy/move buffer. Returns a cvector of char*.
-static inline const LinkedHashtab *fm_paste_buffer_get(const Fm *fm)
-{
-  return fm->paste.buffer;
-}
-
+// Add a path to the paste buffer.
 static inline void fm_paste_buffer_add(Fm *fm, const char* file)
 {
   char *val = strdup(file);
@@ -204,7 +214,7 @@ static inline void fm_paste_buffer_add(Fm *fm, const char* file)
 }
 
 // Get the mode current load, one of `MODE_COPY`, `MODE_MOVE`.
-static inline enum paste_mode_e fm_paste_mode_get(const Fm *fm)
+static inline paste_mode fm_paste_mode_get(const Fm *fm)
 {
   return fm->paste.mode;
 }
@@ -218,7 +228,8 @@ void fm_reload(Fm *fm);
 // Update preview (e.g. after moving the cursor).
 void fm_update_preview(Fm *fm);
 
-// Flatten the current directory up to some level.
+// Flatten the current directory up to `level`.
 void fm_flatten(Fm *fm, uint32_t level);
 
+// Resize fm, should be called on SIGWINCH.
 void fm_resize(Fm *fm, uint32_t height);

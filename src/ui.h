@@ -21,10 +21,14 @@
 #define REDRAW_FULL    (REDRAW_INFO|REDRAW_FM|REDRAW_CMDLINE|REDRAW_MENU|REDRAW_PREVIEW)
 
 typedef struct ui_s {
+  // Current terminal dimensions.
   uint32_t nrow;
   uint32_t ncol;
-  uint32_t ndirs;  // number of columns including the preview
 
+  // Number of panes, including the preview.
+  uint32_t ndirs;
+
+  // Indicates whether the UI is running or suspended.
   bool running;
 
   struct notcurses *nc;
