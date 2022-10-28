@@ -285,16 +285,21 @@ local mode_find = {
 
 local mode_travel = {
 	prefix = "travel: ",
-	on_enter = nop,
-	on_esc = nop,
-	on_change = function()
-		if lfm.find(cmd.line_get()) then
-			lfm.timeout(250)
-			cmd.line_set("")
-			if lfm.commands.open.f() then
-				cmd.clear()
+	on_enter = function()
+		local file = fm.current_file()
+		if file then
+			fm.filter("")
+			if fm.open() then
+				lfm.eval("open")
+			else
+				cmd.prefix_set("travel: ")
 			end
 		end
+	end,
+	on_esc = function() fm.filter("") end,
+	on_change = function()
+		local line = cmd.line_get()
+		fm.filter(line)
 	end,
 }
 
@@ -456,7 +461,7 @@ map("<PageDown>", function() fm.down(fm.get_height()) end, {desc="move cursor ha
 map("<Home>", fm.top, {desc="go to top"})
 map("<End>", fm.bottom, {desc="go to bottom"})
 
--- map("F", a(cmd.prefix_set, "travel: "), {desc="travel"})
+map("F", a(cmd.prefix_set, "travel: "), {desc="travel"})
 map("zf", function() cmd.prefix_set(mode_filter.prefix) cmd.line_set(fm.getfilter()) end, {desc="filter:"})
 map("zF", a(lfm.feedkeys, "zf<esc>"), {desc="remove current filter"})
 map("zh", function() config.hidden = not config.hidden end, {desc="toggle hidden files"})
