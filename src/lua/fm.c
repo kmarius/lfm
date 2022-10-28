@@ -243,7 +243,7 @@ static int l_fm_selection_add(lua_State *L)
 
 static int l_fm_selection_set(lua_State *L)
 {
-  if (!lua_isnil(L, 1) && !lua_istable(L, 1)) {
+  if (lua_gettop(L) > 0 && !lua_isnil(L, 1) && !lua_istable(L, 1)) {
     return luaL_argerror(L, 1, "table or nil required");
   }
   fm_selection_clear(fm);
