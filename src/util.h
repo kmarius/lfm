@@ -20,24 +20,6 @@
 #define strcaseeq(X, Y) (strcasecmp(X, Y) == 0)
 #endif
 
-static inline const char *strend(const char* str)
-{
-  while (*str) {
-    str++;
-  }
-  return str;
-}
-
-
-static inline const wchar_t *wcsend(const wchar_t* str)
-{
-  while (*str)  {
-    str++;
-  }
-  return str;
-}
-
-
 static inline char *rtrim(char *s)
 {
   char *t = s;
