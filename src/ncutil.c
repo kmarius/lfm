@@ -118,6 +118,9 @@ const char *ansi_consoom(struct ncplane *n, const char *s)
             }
           }
           break;
+        case 39:
+          ncplane_set_fg_default(n);
+          break;
         case 48:
           {
             int op;
@@ -149,6 +152,10 @@ const char *ansi_consoom(struct ncplane *n, const char *s)
                 goto err;
             }
           }
+          break;
+        case 49:
+          ncplane_set_bg_default(n);
+          break;
       }
     }
   }
