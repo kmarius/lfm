@@ -568,7 +568,7 @@ static void draw_custom_info(
   if (file_ptr) {
     const File* f = fm_current_file(&ui->lfm->fm);
     file = ambstowcs(f ? file_name(f) : "", &file_len);
-    file_is_dir = file_isdir(f);
+    file_is_dir = f ? file_isdir(f) : false;
   }
 
   int path_len = 0;
