@@ -15,7 +15,7 @@ static int l_cmd_line_get(lua_State *L)
 // see ui_cmdline_prefix_set (on 2022-03-28)
 static int l_cmd_line_set(lua_State *L)
 {
-  ui->message = false;
+  ui->show_message = false;
 
   if (lua_gettop(L) > 3) {
     luaL_error(L, "line_get takes up to three arguments");

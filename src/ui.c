@@ -140,7 +140,9 @@ void ui_deinit(Ui *ui)
   ui_suspend(ui);
   history_write(&ui->history, cfg.historypath, cfg.histsize);
   history_deinit(&ui->history);
-  cvector_ffree(ui->messages, free);
+  cvector_foreach_ptr(struct message_s *m, ui->messages) {
+    free(m->text);
+  }
   cvector_ffree(ui->menubuf, free);
   cmdline_deinit(&ui->cmdline);
   free(ui->search_string);
@@ -263,6 +265,25 @@ static void draw_preview(Ui *ui)
   }
 }
 
+static inline void print_message(Ui *ui, const char *msg, bool error)
+{
+  struct ncplane *n = ui->planes.cmdline;
+    ncplane_erase(n);
+    ncplane_set_bg_default(n);
+    ncplane_set_styles(n, NCSTYLE_NONE);
+    if (error) {
+      ncplane_set_fg_palindex(ui->planes.cmdline, COLOR_RED);
+      ncplane_putstr_yx(ui->planes.cmdline, 0, 0, msg);
+    } else {
+      ncplane_set_fg_default(n);
+      ncplane_cursor_move_yx(n, 0, 0);
+      ansi_addstr(n, msg);
+    }
+    notcurses_render(ui->nc);
+    ncplane_set_fg_default(n);
+    ncplane_set_bg_default(n);
+    ncplane_set_styles(n, NCSTYLE_NONE);
+}
 
 void ui_echom(Ui *ui, const char *format, ...)
 {
@@ -284,50 +305,33 @@ void ui_error(Ui *ui, const char *format, ...)
 
 void ui_verror(Ui *ui, const char *format, va_list args)
 {
-  char *msg;
-  vasprintf(&msg, format, args);
+  struct message_s msg = {NULL, true};
+  vasprintf(&msg.text, format, args);
 
-  log_error(msg);
+  log_error(msg.text);
 
   cvector_push_back(ui->messages, msg);
 
-  if (!ui->running) {
+  ui->show_message = true;
+
+  if (!ui->running || cmdline_prefix_get(&ui->cmdline)) {
     return;
   }
-
-  ncplane_erase(ui->planes.cmdline);
-  ncplane_set_fg_palindex(ui->planes.cmdline, COLOR_RED);
-  ncplane_putstr_yx(ui->planes.cmdline, 0, 0, msg);
-  ncplane_set_fg_default(ui->planes.cmdline);
-  notcurses_render(ui->nc);
-  ui->message = true;
 }
 
 
 void ui_vechom(Ui *ui, const char *format, va_list args)
 {
-  char *msg;
-  vasprintf(&msg, format, args);
+  struct message_s msg = {NULL, false};
+  vasprintf(&msg.text, format, args);
 
   cvector_push_back(ui->messages, msg);
 
-  if (!ui->running) {
+  ui->show_message = true;
+
+  if (!ui->running || cmdline_prefix_get(&ui->cmdline)) {
     return;
   }
-
-  struct ncplane *n = ui->planes.cmdline;
-
-  ncplane_erase(n);
-  ncplane_set_fg_default(n);
-  ncplane_set_bg_default(n);
-  ncplane_set_styles(n, NCSTYLE_NONE);
-  ncplane_cursor_move_yx(n, 0, 0);
-  ansi_addstr(n, msg);
-  ncplane_set_fg_default(n);
-  ncplane_set_bg_default(n);
-  ncplane_set_styles(n, NCSTYLE_NONE);
-  notcurses_render(ui->nc);
-  ui->message = true;
 }
 
 
@@ -351,7 +355,7 @@ void ui_cmd_prefix_set(Ui *ui, const char *prefix)
     return;
   }
 
-  ui->message = false;
+  ui->show_message = false;
   notcurses_cursor_enable(ui->nc, 0, 0);
   cmdline_prefix_set(&ui->cmdline, prefix);
   ui_redraw(ui, REDRAW_CMDLINE);
@@ -385,12 +389,14 @@ static uint32_t int_sz(uint32_t n)
   return i;
 }
 
-
 void draw_cmdline(Ui *ui)
 {
-  if (ui->message) {
+  if (ui->show_message) {
+    struct message_s *msg = cvector_end(ui->messages) - 1;
+    print_message(ui, msg->text, msg->error);
     return;
   }
+
   Fm *fm = &ui->lfm->fm;
 
   char nums[16];
@@ -518,29 +524,29 @@ static void draw_custom_info(
           // malformed
           break;
         case 'u':
-            buf_ptr += snprintf(buf_ptr, sizeof(buf)-1-(buf_ptr - buf), "%s", user);
-            break;
+          buf_ptr += snprintf(buf_ptr, sizeof(buf)-1-(buf_ptr - buf), "%s", user);
+          break;
         case 'h':
-            buf_ptr += snprintf(buf_ptr, sizeof(buf)-1-(buf_ptr - buf), "%s", host);
-            break;
+          buf_ptr += snprintf(buf_ptr, sizeof(buf)-1-(buf_ptr - buf), "%s", host);
+          break;
         case 'p':
-            path_ptr = buf_ptr;
-            *buf_ptr++ = 0;
-            break;
+          path_ptr = buf_ptr;
+          *buf_ptr++ = 0;
+          break;
         case 'f':
-            file_ptr = buf_ptr;
-            *buf_ptr++ = 0;
-            break;
+          file_ptr = buf_ptr;
+          *buf_ptr++ = 0;
+          break;
         case 's':
-            spacer_ptr = buf_ptr;
-            *buf_ptr++ = 0;
-            break;
+          spacer_ptr = buf_ptr;
+          *buf_ptr++ = 0;
+          break;
         case '%':
-            *buf_ptr++ = '%';
-            break;
+          *buf_ptr++ = '%';
+          break;
         default:
-            *buf_ptr++ = '%';
-            *buf_ptr++ = *ptr;
+          *buf_ptr++ = '%';
+          *buf_ptr++ = *ptr;
       }
     }
   }

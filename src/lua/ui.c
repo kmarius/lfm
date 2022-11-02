@@ -32,7 +32,7 @@ static int l_ui_messages(lua_State *L)
 {
   lua_newtable(L);
   for (size_t i = 0; i < cvector_size(ui->messages); i++) {
-    lua_pushstring(L, ui->messages[i]);
+    lua_pushstring(L, ui->messages[i].text);
     lua_rawseti(L, -2, i+1);
   }
   return 1;

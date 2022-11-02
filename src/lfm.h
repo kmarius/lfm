@@ -32,7 +32,7 @@ typedef struct lfm_s {
     bool accept_count;
   } maps;
 
-  struct message *messages;
+  struct message_s *messages;
 
   ev_idle redraw_watcher;
   ev_prepare prepare_watcher;

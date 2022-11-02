@@ -20,6 +20,11 @@
 #define REDRAW_PREVIEW 16
 #define REDRAW_FULL    (REDRAW_INFO|REDRAW_FM|REDRAW_CMDLINE|REDRAW_MENU|REDRAW_PREVIEW)
 
+struct message_s {
+  char *text;
+  bool error;
+};
+
 typedef struct ui_s {
   // Current terminal dimensions.
   uint32_t nrow;
@@ -41,7 +46,7 @@ typedef struct ui_s {
   } planes;
 
   cvector_vector_type(char*) menubuf;
-  cvector_vector_type(char*) messages;
+  cvector_vector_type(struct message_s) messages;
 
   Cmdline cmdline;
   History history;
@@ -58,7 +63,7 @@ typedef struct ui_s {
 
   uint32_t redraw;
 
-  bool message;
+  bool show_message;
   input_t *keyseq;
 
   struct lfm_s *lfm;

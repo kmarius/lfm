@@ -160,7 +160,7 @@ void lfm_handle_key(Lfm *lfm, input_t in)
         fm_paste_buffer_clear(fm);
         lfm_run_hook(lfm, LFM_HOOK_PASTEBUF);
       }
-      ui->message = false;
+      ui->show_message = false;
       ui_redraw(ui, REDRAW_FM);
     } else if (!lfm->maps.cur) {
       // no keymapping, print an error

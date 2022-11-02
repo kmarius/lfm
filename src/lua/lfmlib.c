@@ -145,7 +145,7 @@ static int l_error(lua_State *L)
 static int l_message_clear(lua_State *L)
 {
   (void) L;
-  ui->message = false;
+  ui->show_message = false;
   ui_redraw(ui, REDRAW_CMDLINE);
   return 0;
 }
