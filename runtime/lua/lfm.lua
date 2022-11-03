@@ -84,7 +84,7 @@ local hooks = {
 	DirUpdated = {},
 }
 
----@alias hook_name
+---@alias Lfm.Hook
 ---| '"LfmEnter"'
 ---| '"ExitPre"'
 ---| '"ChdirPre"'
@@ -107,7 +107,7 @@ local hooks = {
 --- DirLoaded        a new directory was loaded from disk
 ---
 ---```
----@param name hook_name
+---@param name Lfm.Hook
 ---@param f function
 function lfm.register_hook(name, f)
 	if hooks[name] then
@@ -116,7 +116,7 @@ function lfm.register_hook(name, f)
 end
 
 ---Execute all functions registered to a hook.
----@param name hook_name
+---@param name Lfm.Hook
 function lfm.run_hook(name, ...)
 	log.debug("running hook: " .. name)
 	if hooks[name] then
@@ -129,7 +129,7 @@ end
 -- Commands
 lfm.commands = {}
 
----@class command_params
+---@class Lfm.CommandParams
 ---@field tokenize boolean tokenize arguments (default: true)
 ---@field compl function completion function
 
@@ -141,9 +141,9 @@ lfm.commands = {}
 ---```
 ---@param name string Command name, can not contain whitespace.
 ---@param f function The function to execute or `nil` to unregister
----@param t? command_params Additional options.
+---@param t? Lfm.CommandParams Additional options.
 function lfm.register_command(name, f, t)
-	if (f) then
+	if f then
 		t = t or {}
 		t.f = f
 		t.tokenize = t.tokenize == nil and true or t.tokenize
@@ -156,7 +156,7 @@ end
 lfm.modes = {}
 local modes = lfm.modes
 
----@class mode_definition
+---@class Lfm.ModeDef
 ---@field prefix string
 ---@field on_enter function
 ---@field on_esc function
@@ -169,7 +169,7 @@ local modes = lfm.modes
 --- t.on_esc     A function that is called when pressing esc while the mode is active.
 --- t.on_change  A function that is called when the command line changes, e.g. keys are typed/deleted.
 ---```
----@param t mode_definition
+---@param t Lfm.ModeDef
 function lfm.register_mode(t)
 	t = t or {}
 	assert(t.prefix ~= nil, "no prefix given")

@@ -1,15 +1,20 @@
 ---@meta
 
----@class infolib
----field info string version information string
----field branch string branch
----field commit string commit hash
----field revcount string revision count
----field build_type string build type
-
----@class lfmlib
----@field version infolib version information
+---@class Lfm
 lfm = {}
+
+---@alias Lfm.Version.BuildType
+---| '"Debug"'
+---| '"Release"'
+---| '"RelWithDebinfo"'
+
+---@class Lfm.Version
+---@field info string version information string
+---@field branch string branch
+---@field commit string commit hash
+---@field revcount number revision count
+---@field build_type Lfm.Version.BuildType build type
+lfm.version = {}
 
 ---Evaluate `expr` as if typed into the command line.
 ---@param expr string
@@ -105,19 +110,19 @@ function lfm.map(seq, f, opts) end
 ---@param opts? table Currently, only opts.desc is used for description
 function lfm.cmap(seq, f, opts) end
 
----@class keymap
+---@class Lfm.Keymap
 ---@field desc string
 ---@field keys string
 ---@field f function
 
 ---Get a table of all maps.
 ---@param prune? boolean list reachable maps only (default: true)
----@return keymap[]
+---@return Lfm.Keymap[]
 function lfm.get_maps(prune) end
 
 ---Get a table of all cmaps.
 ---@param prune? boolean list reachable maps only (default: true)
----@return keymap[]
+---@return Lfm.Keymap[]
 function lfm.get_cmaps(prune) end
 
 ---Clear all colors.

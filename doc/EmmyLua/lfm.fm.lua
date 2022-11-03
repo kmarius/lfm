@@ -2,10 +2,25 @@
 
 lfm.fm = {}
 
----@class dir
+---@class Lfm.Dir
 ---@field path string
 ---@field name string
 ---@field files table[string] table of filenames
+
+---@alias Lfm.SortOption
+---| '"name"'
+---| '"natural"'
+---| '"ctime"'
+---| '"size"'
+---| '"random"'
+---| '"dirfirst"'
+---| '"nodirfirst"'
+---| '"reverse"'
+---| '"noreverse"'
+
+---@alias Lfm.PasteMode
+---| '"copy"'
+---| '"move"'
 
 ---Set the filter string for the current directory.
 ---@param filter string The filter string.
@@ -24,7 +39,7 @@ function lfm.fm.jump_automark() end
 function lfm.fm.open() end
 
 ---Get the current directory.
----@return dir directory
+---@return Lfm.Dir directory
 function lfm.fm.current_dir() end
 
 ---Get the current file.
@@ -57,17 +72,6 @@ function lfm.fm.flatten_level() end
 ---@param level number
 function lfm.fm.flatten(level) end
 
----@alias sortoption
----| '"name"'
----| '"natural"'
----| '"ctime"'
----| '"size"'
----| '"random"'
----| '"dirfirst"'
----| '"nodirfirst"'
----| '"reverse"'
----| '"noreverse"'
-
 ---Set the sort method. Multiple options can be set at once. Later options may override previous ones.
 ---#Example:
 ---
@@ -75,8 +79,8 @@ function lfm.fm.flatten(level) end
 --- lfm.fm.sortby("ctime", "nodirfirst", "reverse")
 ---
 ---```
----@param opt1? sortoption
----@vararg sortoption
+---@param opt1? Lfm.SortOption
+---@vararg Lfm.SortOption
 function lfm.fm.sortby(opt1, ...) end
 
 ---Start visual selection mode.
@@ -90,27 +94,23 @@ function lfm.fm.visual_toggle() end
 ---Change directory to the parent of the current directory, unless in "/".
 function lfm.fm.updir() end
 
----@alias pastemode
----| '"copy"'
----| '"move"'
-
 ---Get the current paste buffer and mode.
 ---@return string[] files
----@return pastemode mode
+---@return Lfm.PasteMode mode
 function lfm.fm.paste_buffer_get() end
 
 ---Set the current paste buffer and mode. nil or {} clears the buffer.
 ---@param files string[]
----@param mode? pastemode (default: "copy")
+---@param mode? Lfm.PasteMode (default: "copy")
 ---@param run_hook? boolean should PasteBufChange hook be run (default: true)
 function lfm.fm.paste_buffer_set(files, mode, run_hook) end
 
 ---Get current paste mode.
----@return pastemode mode
+---@return Lfm.PasteMode mode
 function lfm.fm.paste_mode_get() end
 
 ---Set current paste mode.
----@param mode pastemode (default: "copy")
+---@param mode Lfm.PasteMode (default: "copy")
 function lfm.fm.paste_mode_set(mode) end
 
 ---Add the current selection to the load and change mode to MODE_MOVE.

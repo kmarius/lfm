@@ -1,37 +1,37 @@
 ---@meta
 
----@class DirSetting
----@field sorttype sortoption
+---@class Lfm.DirSetting
+---@field sorttype Lfm.SortOption
 ---@field dirfirst boolean
 ---@field reverse boolean
 ---@field hidden boolean
 
----@alias Color string|integer
+---@alias Lfm.Color string|integer
 
----@class ColorPair
----@field fg Color
----@field bg Color
+---@class Lfm.ColorPair
+---@field fg Lfm.Color
+---@field bg Lfm.Color
 
----@class ExtColor
+---@class Lfm.ExtColor
 ---@field ext string[]
----@field color ColorPair
+---@field color Lfm.ColorPair
 
----@class ColorLib
----@field patterns ExtColor[]
----@field copy ColorPair
----@field delete ColorPair
----@field dir ColorPair
----@field broken ColorPair
----@field exec ColorPair
----@field search ColorPair
----@field normal ColorPair
----@field current ColorPair
+---@class Lfm.Colors
+---@field patterns Lfm.ExtColor[]
+---@field copy Lfm.ColorPair
+---@field delete Lfm.ColorPair
+---@field dir Lfm.ColorPair
+---@field broken Lfm.ColorPair
+---@field exec Lfm.ColorPair
+---@field search Lfm.ColorPair
+---@field normal Lfm.ColorPair
+---@field current Lfm.ColorPair
 
----@class configlib
+---@class Lfm.Config
 ---@field histsize number history size, must be non-negative (default: 100)
 ---@field infoline string|nil infoline string
 ---@field threads number number of threads in the pool (at least 2, default: nprocs+1)
----@field dir_settings table<path, DirSetting>
+---@field dir_settings table<path, Lfm.DirSetting>
 ---@field ratios integer[] assignable
 ---@field truncatechar string assignable, only the first character is used
 ---@field scrolloff integer assignable
@@ -49,7 +49,7 @@
 ---@field runtime_dir string
 ---@field logpath string
 ---@field fifopath string
----@field colors ColorLib
+---@field colors Lfm.Colors
 ---@field inotify_blacklist string[] No inotify watchers will be installed if the path begins with any of these strings.
 ---@field inotify_timeout number Minimum time in milliseconds between reloads triggered by inotify. Must larger or equal to 100.
 ---@field inotify_delay number Small delay in milliseconds before relloads are triggered by inotify.

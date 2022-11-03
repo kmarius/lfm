@@ -28,7 +28,7 @@ function M.escape(args, sep)
 	return table.concat(ret, sep)
 end
 
----@class exec_opts
+---@class Lfm.Shell.ExecOpts
 ---@field quiet boolean show command in the log (default: true)
 ---@field fork boolean run the command in the background (default: false)
 ---@field out boolean redirect stdout in the ui (default: true)
@@ -37,7 +37,7 @@ end
 ---Execute a foreground command.
 ---If `command` is a single string, it is executed as `sh -c command`.
 ---@param command string|string[]
----@param t? exec_opts
+---@param t? Lfm.Shell.ExecOpts
 function M.execute(command, t)
 	t = t or {}
 	if type(command) == "string" then
@@ -70,7 +70,7 @@ function M.popen(command)
 	return res
 end
 
----@class bash_opts
+---@class Lfm.Shell.BashOpts
 ---@field files number
 ---@field quiet boolean show command in the log (default: true)
 ---@field fork boolean run the command in the background (default: false)
@@ -80,7 +80,7 @@ end
 ---Build a function from a bash command. Unless `t.files == shell.ARGV` the
 ---functions arguments are passed to the shell.
 ---@param command string
----@param t? bash_opts
+---@param t? Lfm.Shell.BashOpts
 ---@return function
 function M.bash(command, t)
 	t = t or {}
@@ -99,7 +99,7 @@ function M.bash(command, t)
 	end
 end
 
----@class tmux_opts
+---@class Lfm.Shell.TmuxOpts
 ---@field files number
 ---@field quiet boolean show command in the log (default: true)
 ---@field fork boolean run the command in the background (default: false)
@@ -109,7 +109,7 @@ end
 ---Build a function from a bash command to run in a `tmux new-window`. Unless
 ---`t.files == shell.ARGV` the functions arguments are passed to the shell.
 ---@param command string
----@param t? tmux_opts
+---@param t? Lfm.Shell.TmuxOpts
 ---@return function
 function M.tmux(command, t)
 	t = t or {}
@@ -128,7 +128,7 @@ function M.tmux(command, t)
 	end
 end
 
----@class fish_opts
+---@class Lfm.Shell.FishOpts
 ---@field files number
 ---@field tmux boolean open command in a new tmux window (default: false)
 ---@field quiet boolean show command in the log (default: true)
@@ -139,7 +139,7 @@ end
 ---Build a function from a shell command. Unless `t.files == shell.ARGV` the
 ---functions arguments are passed to the shell.
 ---@param command string
----@param t? fish_opts
+---@param t? Lfm.Shell.FishOpts
 ---@return function
 function M.fish(command, t)
 	t = t or {}
@@ -164,7 +164,7 @@ function M.fish(command, t)
 	end
 end
 
----@class sh_opts
+---@class Lfm.Shell.ShOpts
 ---@field files number
 ---@field quiet boolean show command in the log (default: true)
 ---@field fork boolean run the command in the background (default: false)
@@ -174,7 +174,7 @@ end
 ---Build a function from a shell command. Unless `t.files == shell.ARGV` the
 ---functions arguments are passed to the shell.
 ---@param command string
----@param t? sh_opts
+---@param t? Lfm.Shell.ShOpts
 ---@return function
 function M.sh(command, t)
 	t = t or {}

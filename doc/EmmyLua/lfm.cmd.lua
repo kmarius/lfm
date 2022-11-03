@@ -1,5 +1,7 @@
 ---@meta
 
+---@class Lfm.Cmd
+---Utilities for manipulating the built-in command line.
 lfm.cmd = {}
 
 ---Clear the command line.
