@@ -170,7 +170,7 @@ Preview *loader_preview_from_path(Loader *loader, const char *path)
 
   Preview *pv = ht_get(loader->preview_cache, path);
   if (pv) {
-    if (pv->nrow < loader->lfm->ui.nrow) {
+    if (pv->nrow < loader->lfm->ui.preview.rows) {
       /* TODO: don't need to reload if the actual file holds fewer lines (on 2022-09-14) */
       async_preview_load(&loader->lfm->async, pv);
     } else {
