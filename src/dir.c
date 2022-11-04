@@ -64,33 +64,6 @@ static inline void swap(File **a, File **b)
   *b = Dir;
 }
 
-// https://stackoverflow.com/questions/6127503/shuffle-array-in-c
-// arrange the N elements of ARRAY in random order.
-// Only effective if N is much smaller than RAND_MAX;
-// if this may not be the case, use a better random
-// number generator.
-static void shuffle(void *arr, size_t n, size_t size)
-{
-  if (n <= 1) {
-    return;
-  }
-
-  const size_t stride = size;
-  char *tmp = malloc(n * size);
-
-  size_t i;
-  for (i = 0; i < n - 1; ++i) {
-    const size_t rnd = (size_t) rand();
-    size_t j = i + rnd / (RAND_MAX / (n - i) + 1);
-
-    memcpy(tmp, arr + j * stride, size);
-    memcpy(arr + j * stride, arr + i * stride, size);
-    memcpy(arr + i * stride, tmp, size);
-  }
-
-  free(tmp);
-}
-
 
 /* sort allfiles and copy non-hidden ones to sortedfiles */
 void dir_sort(Dir *d)

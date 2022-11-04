@@ -6,8 +6,7 @@
 #include "cvector.h"
 #include "file.h"
 #include "filter.h"
-
-enum sorttype_e { SORT_NATURAL, SORT_NAME, SORT_SIZE, SORT_CTIME, SORT_RAND, };
+#include "sort.h"
 
 struct dir_settings {
   bool hidden;
