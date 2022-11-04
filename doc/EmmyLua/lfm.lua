@@ -6,7 +6,7 @@ lfm = {}
 ---@alias Lfm.Version.BuildType
 ---| '"Debug"'
 ---| '"Release"'
----| '"RelWithDebinfo"'
+---| '"RelWithDebInfo"'
 
 ---@class Lfm.Version
 ---@field info string version information string
