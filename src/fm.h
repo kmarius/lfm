@@ -165,6 +165,15 @@ static inline bool fm_jump_automark(Fm *fm)
   return false;
 }
 
+// Begin visual selection mode.
+void fm_selection_visual_start(Fm *fm);
+
+// End visual selection mode.
+void fm_selection_visual_stop(Fm *fm);
+
+// Toggle visual selection mode.
+void fm_selection_visual_toggle(Fm *fm);
+
 // Toggles the selection of the currently selected file.
 void fm_selection_toggle_current(Fm *fm);
 
@@ -178,20 +187,12 @@ static inline void fm_selection_add(Fm *fm, const char *path)
 // Clear the selection completely.
 static inline void fm_selection_clear(Fm *fm)
 {
+  fm_selection_visual_stop(fm);
   lht_clear(fm->selection.paths);
 }
 
 // Reverse the file selection.
 void fm_selection_reverse(Fm *fm);
-
-// Begin visual selection mode.
-void fm_selection_visual_start(Fm *fm);
-
-// End visual selection mode.
-void fm_selection_visual_stop(Fm *fm);
-
-// Toggle visual selection mode.
-void fm_selection_visual_toggle(Fm *fm);
 
 // Write the current celection to the file given as `path`.
 // Directories are created as needed.
