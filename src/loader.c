@@ -21,9 +21,9 @@ struct timer_data {
 
 #define DATA(w) ((struct timer_data *) w->data)
 
-void loader_init(Loader *loader, struct lfm_s *_lfm)
+void loader_init(Loader *loader, struct lfm_s *lfm)
 {
-  loader->lfm = _lfm;
+  loader->lfm = lfm;
   loader->dir_cache = ht_create((ht_free_fun) dir_destroy);
   loader->preview_cache = ht_create((ht_free_fun) preview_destroy);
 }
