@@ -183,7 +183,7 @@ void tpool_destroy(tpool_t *tm)
   xfree(tm);
 }
 
-bool tpool_add_work(tpool_t *tm, thread_func_t func, void *arg)
+bool tpool_add_work(tpool_t *tm, thread_func_t func, void *arg, bool priority)
 {
   tpool_work_t *work;
 
@@ -194,14 +194,16 @@ bool tpool_add_work(tpool_t *tm, thread_func_t func, void *arg)
   if (work == NULL)
     return false;
 
-  // adding work at the front of the queue (as of 2022-04-08)
   pthread_mutex_lock(&(tm->work_mutex));
   if (tm->work_first == NULL) {
     tm->work_first = work;
     tm->work_last = tm->work_first;
-  } else {
+  } else if (priority) {
     work->next = tm->work_first;
     tm->work_first = work;
+  } else {
+    tm->work_last->next = work;
+    tm->work_last = work;
   }
 
   pthread_cond_broadcast(&(tm->work_cond));

@@ -171,7 +171,7 @@ void async_dir_check(Async *async, Dir *dir)
   work->dir = dir;
   work->loadtime = dir->load_time;
   work->version = async->lfm->loader.dir_cache_version;
-  tpool_add_work(async->tpool, async_dir_check_worker, work);
+  tpool_add_work(async->tpool, async_dir_check_worker, work, true);
 }
 
 /* }}} */
@@ -352,7 +352,7 @@ void async_dir_load(Async *async, Dir *dir, bool dircounts)
   work->dircounts = dircounts;
   work->level = dir->flatten_level;
   work->version = async->lfm->loader.dir_cache_version;
-  tpool_add_work(async->tpool, async_dir_load_worker, work);
+  tpool_add_work(async->tpool, async_dir_load_worker, work, true);
 }
 
 /* }}} */
@@ -415,7 +415,7 @@ void async_preview_check(Async *async, Preview *pv)
   work->nrow = pv->nrow;
   work->mtime = pv->mtime;
   work->loadtime = pv->loadtime;
-  tpool_add_work(async->tpool, async_preview_check_worker, work);
+  tpool_add_work(async->tpool, async_preview_check_worker, work, true);
 }
 
 /* }}} */
@@ -474,7 +474,7 @@ void async_preview_load(Async *async, Preview *pv)
   work->width = async->lfm->ui.preview.cols;
   work->height = async->lfm->ui.preview.rows;
   work->version = async->lfm->loader.preview_cache_version;
-  tpool_add_work(async->tpool, async_preview_load_worker, work);
+  tpool_add_work(async->tpool, async_preview_load_worker, work, true);
 }
 
 /* }}} */
@@ -535,7 +535,7 @@ void async_chdir(Async *async, const char *path, bool hook)
     work->path = strdup(path);
   work->async = async;
   work->hook = hook;
-  tpool_add_work(async->tpool, async_chdir_worker, work);
+  tpool_add_work(async->tpool, async_chdir_worker, work, true);
 }
 
 /* }}} */
@@ -597,7 +597,7 @@ void async_notify_add(Async *async, Dir *dir)
   work->version_cmp = (void **) &async->lfm->notify.version;
   work->version2 = (void *) async->lfm->loader.dir_cache_version;
   work->version2_cmp = (void **) &async->lfm->loader.dir_cache_version;
-  tpool_add_work(async->tpool, async_notify_add_worker, work);
+  tpool_add_work(async->tpool, async_notify_add_worker, work, true);
 }
 
 void async_notify_preview_add(Async *async, Dir *dir)
@@ -613,7 +613,7 @@ void async_notify_preview_add(Async *async, Dir *dir)
   work->version_cmp = (void **) &async->lfm->notify.version;
   work->version2 = (void *) async->lfm->fm.dirs.preview;
   work->version2_cmp = (void **) &async->lfm->fm.dirs.preview;
-  tpool_add_work(async->tpool, async_notify_add_worker, work);
+  tpool_add_work(async->tpool, async_notify_add_worker, work, true);
 }
 
 /* }}}*/
