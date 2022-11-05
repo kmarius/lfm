@@ -192,6 +192,7 @@ static int l_fm_visual_toggle(lua_State *L)
 static int l_fm_sortby(lua_State *L)
 {
   const int l = lua_gettop(L);
+  fm_selection_visual_stop(fm);
   Dir *dir = fm_current_dir(fm);
   for (int i = 1; i <= l; i++) {
     const char *op = luaL_checkstring(L, i);
