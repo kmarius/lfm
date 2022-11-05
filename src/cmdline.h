@@ -1,5 +1,6 @@
 #pragma once
 
+#include "history.h"
 #include <notcurses/notcurses.h>
 #include <stdbool.h>
 #include <wchar.h>
@@ -22,6 +23,7 @@ typedef struct cmdline_s {
   struct vwstr right;
   struct vstr buf;
   bool overwrite;
+  History history;
 } Cmdline;
 
 // Initialize cmdline.

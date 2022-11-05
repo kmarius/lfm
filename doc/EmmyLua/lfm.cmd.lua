@@ -61,3 +61,16 @@ function lfm.cmd.prefix_set(prefix) end
 
 ---Toggle between insert and overwrite mode.
 function lfm.cmd.toggle_overwrite() end
+
+---Append a line to history.
+---@param prefix string
+---@param line string
+function lfm.cmd.history_append(prefix, line) end
+
+---Get the next line from history.
+---@return string
+function lfm.cmd.history_next() end
+
+---Get the previous line from history.
+---@return string
+function lfm.cmd.history_prev() end

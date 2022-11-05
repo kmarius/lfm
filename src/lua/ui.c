@@ -2,32 +2,6 @@
 
 #include "internal.h"
 
-static int l_ui_history_append(lua_State *L)
-{
-  history_append(&ui->history, luaL_checkstring(L, 1), luaL_checkstring(L, 2));
-  return 0;
-}
-
-static int l_ui_history_prev(lua_State *L)
-{
-  const char *line = history_prev(&ui->history);
-  if (!line) {
-    return 0;
-  }
-  lua_pushstring(L, line);
-  return 1;
-}
-
-static int l_ui_history_next(lua_State *L)
-{
-  const char *line = history_next(&ui->history);
-  if (!line) {
-    return 0;
-  }
-  lua_pushstring(L, line);
-  return 1;
-}
-
 static int l_ui_messages(lua_State *L)
 {
   lua_newtable(L);
@@ -132,9 +106,6 @@ static const struct luaL_Reg ui_lib[] = {
   {"get_height", l_ui_get_height},
   {"clear", l_ui_clear},
   {"draw", l_ui_draw},
-  {"history_append", l_ui_history_append},
-  {"history_next", l_ui_history_next},
-  {"history_prev", l_ui_history_prev},
   {"menu", l_ui_menu},
   {"messages", l_ui_messages},
   {NULL, NULL}};

@@ -14,19 +14,6 @@ function lfm.ui.clear() end
 ---Request redraw.
 function lfm.ui.draw() end
 
----Append a line to history.
----@param prefix string
----@param line string
-function lfm.ui.history_append(prefix, line) end
-
----Get the next line from history.
----@return string
-function lfm.ui.history_next() end
-
----Get the previous line from history.
----@return string
-function lfm.ui.history_prev() end
-
 ---Draws a menu on screen.
 ---```
 --

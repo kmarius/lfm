@@ -4,6 +4,7 @@
 #include <wctype.h>
 
 #include "cmdline.h"
+#include "config.h"
 #include "memory.h"
 
 #define VSTR_INIT(vec, c) \
@@ -61,6 +62,7 @@ void cmdline_init(Cmdline *c)
   VSTR_INIT(c->right, 8);
   VSTR_INIT(c->buf, 8);
   c->overwrite = false;
+  history_load(&c->history, cfg.historypath);
 }
 
 
@@ -68,6 +70,9 @@ void cmdline_deinit(Cmdline *c) {
   if (!c) {
     return;
   }
+
+  history_write(&c->history, cfg.historypath, cfg.histsize);
+  history_deinit(&c->history);
 
   fputs("\033[2 q", stdout);
 
@@ -283,6 +288,7 @@ bool cmdline_clear(Cmdline *c)
   c->right.str[0] = 0;
   c->right.len = 0;
   c->overwrite = false;
+  history_reset(&c->history);
   return true;
 }
 

@@ -119,7 +119,6 @@ void ui_suspend(Ui *ui)
 void ui_init(Ui *ui, struct lfm_s *lfm)
 {
   cmdline_init(&ui->cmdline);
-  history_load(&ui->history, cfg.historypath);
 
   ui->lfm = lfm;
 
@@ -138,8 +137,6 @@ void ui_init(Ui *ui, struct lfm_s *lfm)
 void ui_deinit(Ui *ui)
 {
   ui_suspend(ui);
-  history_write(&ui->history, cfg.historypath, cfg.histsize);
-  history_deinit(&ui->history);
   cvector_foreach_ptr(struct message_s *m, ui->messages) {
     xfree(m->text);
   }
@@ -365,7 +362,6 @@ void ui_cmd_prefix_set(Ui *ui, const char *prefix)
 void ui_cmd_clear(Ui *ui)
 {
   cmdline_clear(&ui->cmdline);
-  history_reset(&ui->history);
   notcurses_cursor_disable(ui->nc);
   ui_menu_show(ui, NULL);
   ui_redraw(ui, REDRAW_CMDLINE | REDRAW_MENU);

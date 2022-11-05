@@ -9,7 +9,6 @@
 #include "dir.h"
 #include "fm.h"
 #include "hashtab.h"
-#include "history.h"
 #include "keys.h"
 #include "preview.h"
 
@@ -49,7 +48,6 @@ typedef struct ui_s {
   cvector_vector_type(struct message_s) messages;
 
   Cmdline cmdline;
-  History history;
 
   struct {
     Preview *preview;

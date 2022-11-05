@@ -237,7 +237,7 @@ local function history_prev()
 	if cmd.prefix_get() ~= ":" then
 		return
 	end
-	local line = ui.history_prev()
+	local line = cmd.history_prev()
 	if line then
 		cmd.line_set(line)
 	end
@@ -248,7 +248,7 @@ local function history_next()
 	if cmd.prefix_get() ~= ":" then
 		return
 	end
-	local line = ui.history_next()
+	local line = cmd.history_next()
 	if line then
 		cmd.line_set(line)
 	end
@@ -265,7 +265,7 @@ local mode_filter = {
 
 local mode_cmd = {
 	prefix = ":",
-	on_enter = function(line) ui.history_append(":", line) lfm.eval(line) end,
+	on_enter = function(line) cmd.history_append(":", line) lfm.eval(line) end,
 	on_esc = nop,
 	on_change = compl.reset,
 }
