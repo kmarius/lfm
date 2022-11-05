@@ -27,6 +27,9 @@
 
 #define TICK 1  // in seconds
 
+// Size of the buffer for reading from the fifo. Switches to a dynamic buffer if full.
+#define FIFO_BUF_SZ 512
+
 // callbacks {{{
 
 // child watchers {{{
@@ -507,32 +510,32 @@ void lfm_error(Lfm *lfm, const char *format, ...)
 
 void lfm_read_fifo(Lfm *lfm)
 {
-  char buf[512];
+  char buf[FIFO_BUF_SZ];
 
-  ssize_t nbytes = read(lfm->fifo_fd, buf, sizeof buf);
+  ssize_t nread = read(lfm->fifo_fd, buf, sizeof buf);
 
-  if (nbytes <= 0) {
+  if (nread <= 0) {
     return;
   }
 
-  if ((size_t) nbytes < sizeof buf) {
-    buf[nbytes - 1] = 0;
+  if ((size_t) nread < sizeof buf) {
+    buf[nread - 1] = 0;
     lua_eval(lfm->L, buf);
   } else {
-    size_t cap = 2 * sizeof(buf) / sizeof(*buf);
-    char *dyn = malloc(cap * sizeof *dyn);
-    size_t len = nbytes;
-    memcpy(dyn, buf, nbytes);
-    while ((nbytes = read(lfm->fifo_fd, dyn + len, cap - len)) > 0) {
-      len += nbytes;
-      if (len == cap) {
-        cap *= 2;
-        dyn = realloc(dyn, cap * sizeof *dyn);
+    size_t capacity = 2 * sizeof buf;
+    char *dyn_buf = malloc(capacity);
+    size_t length = nread;
+    memcpy(dyn_buf, buf, nread);
+    while ((nread = read(lfm->fifo_fd, dyn_buf + length, capacity - length)) > 0) {
+      length += nread;
+      if (length == capacity) {
+        capacity *= 2;
+        dyn_buf = realloc(dyn_buf, capacity);
       }
     }
-    dyn[len] = 0;
-    lua_eval(lfm->L, dyn);
-    free(dyn);
+    dyn_buf[length] = 0;
+    lua_eval(lfm->L, dyn_buf);
+    free(dyn_buf);
   }
 
   ev_idle_start(lfm->loop, &lfm->redraw_watcher);
