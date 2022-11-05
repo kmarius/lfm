@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <sys/stat.h>
 #include <sys/time.h>
+#include <unistd.h>
 
 #include "auto/versiondef.h"
 #include "config.h"
@@ -47,6 +48,11 @@ int main(int argc, char **argv)
   int ret = EXIT_SUCCESS;
 
   const uint64_t t0 = current_micros();
+
+  if (!isatty(0) || ! isatty(1) || !isatty(2)) {
+    fprintf(stderr, "Error: %s must be run in a terminal\n", argv[0]);
+    exit(EXIT_FAILURE);
+  }
 
   config_init();
 
