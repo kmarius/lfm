@@ -19,6 +19,7 @@ struct timer_data {
   };
 };
 
+#define DATA(w) ((struct timer_data *) w->data)
 
 void loader_init(Loader *loader, struct lfm_s *_lfm)
 {
@@ -214,22 +215,24 @@ void loader_reschedule(Loader *loader)
   Dir **dirs = NULL;
   bool contained;
   cvector_foreach(ev_timer *timer, loader->dir_timers) {
-    cvector_contains(dirs, timer->data, contained);
+    cvector_contains(dirs, DATA(timer)->dir, contained);
     if (!contained) {
-      cvector_push_back(dirs, timer->data);
+      cvector_push_back(dirs, DATA(timer)->dir);
     }
     ev_timer_stop(loader->lfm->loop, timer);
+    free(timer->data);
     free(timer);
   }
   cvector_set_size(loader->dir_timers, 0);
 
   Preview **previews = NULL;
   cvector_foreach(ev_timer *timer, loader->preview_timers) {
-    cvector_contains(previews, timer->data, contained);
+    cvector_contains(previews, DATA(timer)->preview, contained);
     if (!contained) {
-      cvector_push_back(previews, timer->data);
+      cvector_push_back(previews, DATA(timer)->preview);
     }
     ev_timer_stop(loader->lfm->loop, timer);
+    free(timer->data);
     free(timer);
   }
   cvector_set_size(loader->preview_timers, 0);
