@@ -282,7 +282,7 @@ static int l_fm_chdir(lua_State *L)
   lfm_run_hook(lfm, LFM_HOOK_CHDIRPRE);
   fm_chdir(fm, path, true, true);
   ui_redraw(ui, REDRAW_FM);
-  free(path);
+  xfree(path);
   return 0;
 }
 

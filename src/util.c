@@ -12,6 +12,7 @@
 #include <time.h>
 
 #include "log.h"
+#include "memory.h"
 #include "util.h"
 
 const wchar_t *wstrcasestr(const wchar_t *str, const wchar_t *sub) {
@@ -182,7 +183,7 @@ int vasprintf(char **dst, const char *format, va_list args)
 {
   va_list args_copy;
   va_copy(args_copy, args);
-  *dst = malloc(vsnprintf(NULL, 0, format, args) + 1);
+  *dst = xmalloc(vsnprintf(NULL, 0, format, args) + 1);
   int ret = vsprintf(*dst, format, args_copy);
   va_end(args_copy);
   return ret;
@@ -202,7 +203,7 @@ int asprintf(char **dst, const char *format, ...)
 wchar_t *ambstowcs(const char *s, int *len)
 {
   const int l = mbstowcs(NULL, s, 0);
-  wchar_t *ws = malloc((l + 1) * sizeof *ws);
+  wchar_t *ws = xmalloc((l + 1) * sizeof *ws);
   mbstowcs(ws, s, l + 1);
   if (len) {
     *len = l;
@@ -244,7 +245,7 @@ char *path_replace_tilde(const char* path)
   const char *home = getenv("HOME");
   const int l1 = strlen(path);
   const int l2 = strlen(home);
-  char *ret = malloc(l1 - 1 + l2 + 1);
+  char *ret = xmalloc(l1 - 1 + l2 + 1);
   strcpy(ret, home);
   strcpy(ret + l2, path + 1);
   return ret;
@@ -259,7 +260,7 @@ char *path_qualify(const char* path, const char *pwd)
     const char *home = getenv("HOME");
     const int l2 = strlen(path);
     const int l1 = strlen(home);
-    p = malloc(l2 - 1 + l1 + 1);
+    p = xmalloc(l2 - 1 + l1 + 1);
     strcpy(p, home);
     strcpy(p + l1, path + 1);
   } else if (path[0] != '/') {
@@ -268,7 +269,7 @@ char *path_qualify(const char* path, const char *pwd)
     }
     const int l2 = strlen(path);
     const int l1 = strlen(pwd);
-    p = malloc(l1 + l2 + 1);
+    p = xmalloc(l1 + l2 + 1);
     strcpy(p, pwd);
     *(p + l1) = '/';
     strcpy(p + l1 + 1, path);

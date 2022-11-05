@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "filter.h"
+#include "memory.h"
 #include "util.h"
 
 #define FILTER_INITIAL_CAPACITY 2
@@ -36,7 +37,7 @@ static void subfilter_init(struct subfilter *s, char *filter)
 {
   s->length = 0;
   s->capacity = FILTER_INITIAL_CAPACITY;
-  s->atoms = malloc(s->capacity * sizeof *s->atoms);
+  s->atoms = xmalloc(s->capacity * sizeof *s->atoms);
 
   char *ptr;
   for (char *tok = strtok_r(filter, "|", &ptr);
@@ -44,7 +45,7 @@ static void subfilter_init(struct subfilter *s, char *filter)
       tok = strtok_r(NULL, "|", &ptr)) {
     if (s->capacity == s->length) {
       s->capacity *= 2;
-      s->atoms = realloc(s->atoms, s->capacity * sizeof *s->atoms);
+      s->atoms = xrealloc(s->atoms, s->capacity * sizeof *s->atoms);
     }
     s->atoms[s->length].negate = tok[0] == '!';
     if (s->atoms[s->length].negate) {
@@ -57,9 +58,9 @@ static void subfilter_init(struct subfilter *s, char *filter)
 
 Filter *filter_create(const char *filter)
 {
-  Filter *f = malloc(sizeof *f);
+  Filter *f = xmalloc(sizeof *f);
   f->capacity = FILTER_INITIAL_CAPACITY;
-  f->filters = malloc(f->capacity * sizeof *f->filters);
+  f->filters = xmalloc(f->capacity * sizeof *f->filters);
   f->length = 0;
   f->string = strdup(filter);
 
@@ -69,12 +70,12 @@ Filter *filter_create(const char *filter)
       tok = strtok(NULL, " ")) {
     if (f->length == f->capacity) {
       f->capacity *= 2;
-      f->filters = realloc(f->filters, f->capacity * sizeof *f->filters);
+      f->filters = xrealloc(f->filters, f->capacity * sizeof *f->filters);
     }
     subfilter_init(&f->filters[f->length++], tok);
   }
 
-  free(buf);
+  xfree(buf);
   return f;
 }
 
@@ -87,13 +88,13 @@ void filter_destroy(Filter *s)
 
   for (uint32_t i = 0; i < s->length; i++) {
     for (uint32_t j = 0; j < s->filters[i].length; j++) {
-      free(s->filters[i].atoms[j].string);
+      xfree(s->filters[i].atoms[j].string);
     }
-    free(s->filters[i].atoms);
+    xfree(s->filters[i].atoms);
   }
-  free(s->string);
-  free(s->filters);
-  free(s);
+  xfree(s->string);
+  xfree(s->filters);
+  xfree(s);
 }
 
 

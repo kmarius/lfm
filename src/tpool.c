@@ -1,6 +1,6 @@
 // Copyright John Schember <john@nachtimwald.com>
 //
-// Permission is hereby granted, free of charge, to any person obtaining a copy of
+// Permission is hereby granted, xfree of charge, to any person obtaining a copy of
 // this software and associated documentation files (the "Software"), to deal in
 // the Software without restriction, including without limitation the rights to
 // use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
@@ -24,6 +24,7 @@
 #include <stdlib.h>
 
 #include "tpool.h"
+#include "memory.h"
 
 struct tpool_work {
   thread_func_t func;
@@ -51,7 +52,7 @@ static tpool_work_t *tpool_work_create(thread_func_t func, void *arg)
   if (func == NULL)
     return NULL;
 
-  work = malloc(sizeof *work);
+  work = xmalloc(sizeof *work);
   work->func = func;
   work->arg = arg;
   work->next = NULL;
@@ -62,7 +63,7 @@ static void tpool_work_destroy(tpool_work_t *work)
 {
   if (work == NULL)
     return;
-  free(work);
+  xfree(work);
 }
 
 static tpool_work_t *tpool_work_get(tpool_t *tm)
@@ -136,7 +137,7 @@ tpool_t *tpool_create(size_t num)
   if (num == 0)
     num = 2;
 
-  tm = calloc(1, sizeof *tm);
+  tm = xcalloc(1, sizeof *tm);
   tm->thread_cnt = num;
 
   pthread_mutex_init(&(tm->work_mutex), NULL);
@@ -179,7 +180,7 @@ void tpool_destroy(tpool_t *tm)
   pthread_cond_destroy(&(tm->work_cond));
   pthread_cond_destroy(&(tm->working_cond));
 
-  free(tm);
+  xfree(tm);
 }
 
 bool tpool_add_work(tpool_t *tm, thread_func_t func, void *arg)

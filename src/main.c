@@ -78,7 +78,7 @@ int main(int argc, char **argv)
         cfg.selfile = optarg;
         break;
       case 'u':
-        free(cfg.configpath);
+        xfree(cfg.configpath);
         cfg.configpath = strdup(optarg);
         break;
       case 'v':
@@ -100,12 +100,12 @@ int main(int argc, char **argv)
     if (stat(path, &statbuf) == -1) {
       // can't print to Ui yet, maybe pass something to init?
       log_error("%s: %s", strerror(errno), cfg.startpath);
-      free(path);
+      xfree(path);
     } else {
       if (!S_ISDIR(statbuf.st_mode)) {
         cfg.startfile = basename_a(path);
         cfg.startpath = dirname_a(path);
-        free(path);
+        xfree(path);
       } else {
         cfg.startpath = path;
       }

@@ -41,14 +41,14 @@ Config cfg = {
 
 void config_init()
 {
-  cfg.colors.color_map = ht_create(free);
+  cfg.colors.color_map = ht_create(xfree);
   cvector_vector_type(uint32_t) r = NULL;
   cvector_push_back(r, 1);
   cvector_push_back(r, 2);
   cvector_push_back(r, 3);
   config_ratios_set(r);
 
-  cfg.icon_map  = ht_create(free);
+  cfg.icon_map  = ht_create(xfree);
   config_icon_map_add("ln", "l");
   config_icon_map_add("or", "l");
   config_icon_map_add("tw", "t");
@@ -64,7 +64,7 @@ void config_init()
   config_icon_map_add("ex", "x");
   config_icon_map_add("fi", "-");
 
-  cfg.dir_settings_map = ht_create(free);
+  cfg.dir_settings_map = ht_create(xfree);
   cfg.dir_settings.dirfirst = true;
   cfg.dir_settings.reverse = false;
   cfg.dir_settings.sorttype = SORT_NATURAL;
@@ -131,20 +131,20 @@ void config_deinit()
   ht_destroy(cfg.dir_settings_map);
   cvector_free(cfg.ratios);
   cvector_free(cfg.commands);
-  cvector_ffree(cfg.inotify_blacklist, free);
-  free(cfg.configdir);
-  free(cfg.configpath);
-  free(cfg.corepath);
-  free(cfg.statedir);
-  free(cfg.datadir);
-  free(cfg.cachedir);
-  free(cfg.fifopath);
-  free(cfg.historypath);
-  free(cfg.logpath);
-  free(cfg.previewer);
-  free(cfg.startfile);
-  free(cfg.startpath);
-  free(cfg.luadir);
+  cvector_ffree(cfg.inotify_blacklist, xfree);
+  xfree(cfg.configdir);
+  xfree(cfg.configpath);
+  xfree(cfg.corepath);
+  xfree(cfg.statedir);
+  xfree(cfg.datadir);
+  xfree(cfg.cachedir);
+  xfree(cfg.fifopath);
+  xfree(cfg.historypath);
+  xfree(cfg.logpath);
+  xfree(cfg.previewer);
+  xfree(cfg.startfile);
+  xfree(cfg.startpath);
+  xfree(cfg.luadir);
 }
 
 

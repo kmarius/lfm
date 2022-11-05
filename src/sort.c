@@ -35,7 +35,7 @@ void shuffle(void *arr, size_t n, size_t size)
   }
 
   const size_t stride = size;
-  char *tmp = malloc(n * size);
+  char *tmp = xmalloc(n * size);
 
   size_t i;
   for (i = 0; i < n - 1; ++i) {
@@ -47,5 +47,5 @@ void shuffle(void *arr, size_t n, size_t size)
     memcpy(arr + i * stride, tmp, size);
   }
 
-  free(tmp);
+  xfree(tmp);
 }

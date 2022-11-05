@@ -9,7 +9,7 @@
 static inline void search_highlight(Lfm *lfm, const char *string)
 {
   if (string) {
-    free(lfm->ui.search_string);
+    xfree(lfm->ui.search_string);
     lfm->ui.search_string = strdup(string);
   }
   lfm->ui.highlight = lfm->ui.search_string;
@@ -28,8 +28,7 @@ void search_nohighlight(Lfm *lfm)
 void search(Lfm *lfm, const char *string, bool forward)
 {
   if (!string || *string == 0) {
-    free(lfm->ui.search_string);
-    lfm->ui.search_string = NULL;
+    XFREE_CLEAR(lfm->ui.search_string);
     search_nohighlight(lfm);
   } else {
     lfm->ui.search_forward = forward;

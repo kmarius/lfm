@@ -25,7 +25,7 @@ static inline Hashtab *ht_init(Hashtab *ht, size_t capacity, ht_free_fun free)
   memset(ht, 0, sizeof *ht);
   ht->capacity = capacity;
   ht->min_capacity = capacity;
-  ht->buckets = calloc(ht->capacity, sizeof *ht->buckets);
+  ht->buckets = xcalloc(ht->capacity, sizeof *ht->buckets);
   ht->free = free;
   return ht;
 }
@@ -40,27 +40,27 @@ static inline Hashtab *ht_deinit(Hashtab *ht)
         if (ht->free) {
           ht->free(b->val);
         }
-        free(b);
+        xfree(b);
       }
       if (ht->free) {
         ht->free(ht->buckets[i].val);
       }
     }
   }
-  free(ht->buckets);
+  xfree(ht->buckets);
   return ht;
 }
 
 
 Hashtab *ht_with_capacity(size_t capacity, ht_free_fun free)
 {
-  return ht_init(malloc(sizeof(Hashtab)), capacity, free);
+  return ht_init(xmalloc(sizeof(Hashtab)), capacity, free);
 }
 
 
 void ht_destroy(Hashtab *ht)
 {
-  free(ht_deinit(ht));
+  xfree(ht_deinit(ht));
 }
 
 
@@ -75,7 +75,7 @@ static inline void ht_resize(Hashtab *ht, size_t capacity)
   ht->free = NULL;
   ht_deinit(ht);
   memcpy(ht, new, sizeof *ht);
-  free(new);
+  xfree(new);
 }
 
 
@@ -125,7 +125,7 @@ void ht_set(Hashtab *ht, const char *key, void *val)
 {
   struct ht_bucket *b;
   if (!ht_probe(ht, key, &b, NULL) && b->val) {
-    b->next = malloc(sizeof *b->next);
+    b->next = xmalloc(sizeof *b->next);
     b = b->next;
     b->next = NULL;
   } else if (b->val && ht->free) {
@@ -163,14 +163,14 @@ bool ht_delete(Hashtab *ht, const char *key)
     if (prev) {
       // overflow bucket
       prev->next = b->next;
-      free(b);
+      xfree(b);
     } else {
       // array bucket
       if (b->next) {
         // move overflow bucket into array
         struct ht_bucket *next = b->next;
         memcpy(b, next, sizeof *b);
-        free(next);
+        xfree(next);
       } else {
         b->val = NULL;
         b->key = NULL;
@@ -194,7 +194,7 @@ void ht_clear(Hashtab *ht)
         if (ht->free) {
           ht->free(b->val);
         }
-        free(b);
+        xfree(b);
       }
       if (ht->free) {
         ht->free(ht->buckets[i].val);
@@ -213,7 +213,7 @@ static inline LinkedHashtab *lht_init(LinkedHashtab *lht, size_t capacity, ht_fr
   memset(lht, 0, sizeof *lht);
   lht->capacity = capacity;
   lht->min_capacity = capacity;
-  lht->buckets = calloc(lht->capacity, sizeof *lht->buckets);
+  lht->buckets = xcalloc(lht->capacity, sizeof *lht->buckets);
   lht->free = free;
   return lht;
 }
@@ -235,20 +235,20 @@ static inline LinkedHashtab *lht_deinit(LinkedHashtab *lht)
       }
     }
   }
-  free(lht->buckets);
+  xfree(lht->buckets);
   return lht;
 }
 
 
 LinkedHashtab *lht_with_capacity(size_t capacity, ht_free_fun free)
 {
-  return lht_init(malloc(sizeof(LinkedHashtab)), capacity, free);
+  return lht_init(xmalloc(sizeof(LinkedHashtab)), capacity, free);
 }
 
 
 void lht_destroy(LinkedHashtab *lht)
 {
-  free(lht_deinit(lht));
+  xfree(lht_deinit(lht));
 }
 
 
@@ -296,7 +296,7 @@ static inline void lht_resize(LinkedHashtab *lht, size_t capacity)
   lht->free = NULL;
   lht_deinit(lht);
   memcpy(lht, new, sizeof *lht);
-  free(new);
+  xfree(new);
 }
 
 
@@ -321,7 +321,7 @@ bool lht_set(LinkedHashtab *lht, const char *key, void *val)
   struct lht_bucket *b;
   if (!lht_probe(lht, key, &b, NULL)) {
     if (b->val) {
-      b->next = calloc(1, sizeof *b->next);
+      b->next = xcalloc(1, sizeof *b->next);
       b = b->next;
     }
     b->next = NULL;
@@ -377,7 +377,7 @@ bool lht_delete(LinkedHashtab *lht, const char *key)
       if (prev) {
         prev->next = b->next;
       }
-      free(b);
+      xfree(b);
     } else {
       // array bucket
       if (b->next) {
@@ -396,7 +396,7 @@ bool lht_delete(LinkedHashtab *lht, const char *key)
           lht->last = b;
         }
         memcpy(b, next, sizeof *b);
-        free(next);
+        xfree(next);
       } else {
         b->val = NULL;
         b->key = NULL;
@@ -430,7 +430,7 @@ void lht_clear(LinkedHashtab *lht)
         if (lht->free) {
           lht->free(b->val);
         }
-        free(b);
+        xfree(b);
       }
       if (lht->free) {
         lht->free(lht->buckets[i].val);

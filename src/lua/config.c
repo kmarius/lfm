@@ -258,8 +258,7 @@ static int l_config_newindex(lua_State *L)
   } else if (streq(key, "inotify_blacklist")) {
     luaL_checktype(L, 3, LUA_TTABLE);
     const size_t l = lua_objlen(L, 3);
-    cvector_ffree(cfg.inotify_blacklist, free);
-    cfg.inotify_blacklist = NULL;
+    cvector_fclear(cfg.inotify_blacklist, xfree);
     for (size_t i = 1; i <= l; i++) {
       lua_rawgeti(L, 3, i);
       cvector_push_back(cfg.inotify_blacklist, strdup(lua_tostring(L, -1)));
@@ -316,11 +315,10 @@ static int l_config_newindex(lua_State *L)
     }
   } else if (streq(key, "previewer")) {
     if (lua_isnoneornil(L, 3)) {
-      free(cfg.previewer);
-      cfg.previewer = NULL;
+      XFREE_CLEAR(cfg.previewer);
     } else {
       const char *str = luaL_checkstring(L, 3);
-      free(cfg.previewer);
+      xfree(cfg.previewer);
       cfg.previewer = str[0] != 0 ? path_replace_tilde(str) : NULL;
     }
     ui_drop_cache(ui);

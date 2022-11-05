@@ -44,12 +44,12 @@ static int l_colors_clear(lua_State *L)
 static int l_handle_key(lua_State *L)
 {
   const char *keys = luaL_checkstring(L, 1);
-  input_t *buf = malloc((strlen(keys) + 1) * sizeof *buf);
+  input_t *buf = xmalloc((strlen(keys) + 1) * sizeof *buf);
   key_names_to_input(keys, buf);
   for (input_t *u = buf; *u; u++) {
     lfm_handle_key(lfm, *u);
   }
-  free(buf);
+  xfree(buf);
   return 0;
 }
 
@@ -121,7 +121,7 @@ static int l_find_prev(lua_State *L)
 
 static int l_crash(lua_State *L)
 {
-  free(L);
+  xfree(L);
   return 0;
 }
 
@@ -219,8 +219,8 @@ static int l_spawn(lua_State *L)
 
   int pid = lfm_spawn(lfm, args[0], args, stdin, out, err, out_cb_ref, err_cb_ref, cb_ref);
 
-  cvector_ffree(stdin, free);
-  cvector_ffree(args, free);
+  cvector_ffree(stdin, xfree);
+  cvector_ffree(args, xfree);
 
   if (pid != -1) {
     lua_pushnumber(L, pid);
@@ -253,7 +253,7 @@ static int l_execute(lua_State *L)
 
   bool ret = lfm_execute(lfm, args[0], args);
 
-  cvector_ffree(args, free);
+  cvector_ffree(args, xfree);
 
   if (ret) {
     lua_pushboolean(L, true);

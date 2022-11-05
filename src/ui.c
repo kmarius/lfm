@@ -22,6 +22,7 @@
 #include "lfm.h"
 #include "loader.h"
 #include "log.h"
+#include "memory.h"
 #include "ncutil.h"
 #include "ui.h"
 #include "util.h"
@@ -99,12 +100,11 @@ void ui_resume(Ui *ui)
 
 void ui_suspend(Ui *ui)
 {
-  cvector_ffree(ui->planes.dirs, ncplane_destroy);
+  cvector_ffree_clear(ui->planes.dirs, ncplane_destroy);
   ncplane_destroy(ui->planes.cmdline);
   ncplane_destroy(ui->planes.menu);
   ncplane_destroy(ui->planes.info);
   notcurses_stop(ui->nc);
-  ui->planes.dirs = NULL;
   ui->planes.cmdline = NULL;
   ui->planes.menu = NULL;
   ui->planes.info = NULL;
@@ -141,12 +141,12 @@ void ui_deinit(Ui *ui)
   history_write(&ui->history, cfg.historypath, cfg.histsize);
   history_deinit(&ui->history);
   cvector_foreach_ptr(struct message_s *m, ui->messages) {
-    free(m->text);
+    xfree(m->text);
   }
-  cvector_ffree(ui->menubuf, free);
+  cvector_ffree(ui->menubuf, xfree);
   cmdline_deinit(&ui->cmdline);
-  free(ui->search_string);
-  free(ui->infoline);
+  xfree(ui->search_string);
+  xfree(ui->infoline);
 }
 
 
@@ -578,7 +578,7 @@ static void draw_custom_info(
   }
 
   int path_len = 0;
-  wchar_t *path_buf = NULL;  // to free later
+  wchar_t *path_buf = NULL;  // to xfree later
   wchar_t *path = NULL;      // passed to drawing function, possibly points into path_buf
 
   if (path_ptr) {
@@ -587,7 +587,7 @@ static void draw_custom_info(
     const Dir *dir = fm_current_dir(&ui->lfm->fm);
 
     path_len = mbstowcs(NULL, dir->path, 0);
-    path_buf = malloc((path_len + 2) * sizeof *path_buf);  // extra space for trailing '/'
+    path_buf = xmalloc((path_len + 2) * sizeof *path_buf);  // extra space for trailing '/'
     path_len = mbstowcs(path_buf, dir->path, path_len+1);
     path = path_buf;
 
@@ -665,8 +665,8 @@ static void draw_custom_info(
     }
   }
 
-  free(path_buf);
-  free(file);
+  xfree(path_buf);
+  xfree(file);
 }
 
 
@@ -789,8 +789,8 @@ static void draw_info(Ui *ui)
     print_shortened_w(n, name, name_len, remaining, !file_isdir(file));
   }
 
-  free(path_);
-  free(name);
+  xfree(path_);
+  xfree(name);
 }
 
 /* }}} */
@@ -859,8 +859,7 @@ void ui_menu_show(Ui *ui, cvector_vector_type(char*) vec)
 {
   if (ui->menubuf) {
     menu_clear(ui);
-    cvector_ffree(ui->menubuf, free);
-    ui->menubuf = NULL;
+    cvector_ffree_clear(ui->menubuf, xfree);
   }
   if (cvector_size(vec) > 0) {
     ui->menubuf = vec;
@@ -1073,7 +1072,7 @@ static inline int print_shortened(struct ncplane *n, const char *name, int max_l
   int name_len;
   wchar_t *namew = ambstowcs(name, &name_len);
   int ret = print_shortened_w(n, namew, name_len, max_len, has_ext);
-  free(namew);
+  xfree(namew);
   return ret;
 }
 
@@ -1247,8 +1246,8 @@ static int print_highlighted_and_shortened(struct ncplane *n, const char *name, 
     }
   }
 
-  free(hlw);
-  free(namew_);
+  xfree(hlw);
+  xfree(namew_);
   return x;
 }
 
@@ -1524,7 +1523,7 @@ void ui_drop_cache(Ui *ui)
 
 void ui_set_infoline(Ui *ui, const char *line)
 {
-  free(ui->infoline);
+  xfree(ui->infoline);
   ui->infoline = line ? strdup(line) : NULL;
   ui_redraw(ui, REDRAW_INFO);
 }

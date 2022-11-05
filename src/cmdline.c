@@ -4,10 +4,11 @@
 #include <wctype.h>
 
 #include "cmdline.h"
+#include "memory.h"
 
 #define VSTR_INIT(vec, c) \
   do { \
-    (vec).str = malloc(((c) + 1) * sizeof *(vec).str); \
+    (vec).str = xmalloc(((c) + 1) * sizeof *(vec).str); \
     (vec).cap = c; \
     (vec).str[0] = 0; \
     (vec).len = 0; \
@@ -20,7 +21,7 @@
     if ((vec).cap < v_sz) { \
       while ((vec).cap < v_sz) \
         (vec).cap *= 2; \
-      (vec).str = realloc((vec).str, ((vec).cap * 2 + 1) * sizeof *vec.str); \
+      (vec).str = xrealloc((vec).str, ((vec).cap * 2 + 1) * sizeof *vec.str); \
     } \
   } while (0)
 
@@ -70,10 +71,10 @@ void cmdline_deinit(Cmdline *c) {
 
   fputs("\033[2 q", stdout);
 
-  free(c->prefix.str);
-  free(c->left.str);
-  free(c->right.str);
-  free(c->buf.str);
+  xfree(c->prefix.str);
+  xfree(c->left.str);
+  xfree(c->right.str);
+  xfree(c->buf.str);
 }
 
 

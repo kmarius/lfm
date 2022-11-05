@@ -65,7 +65,7 @@ typedef struct rifle_s {
 
 static inline Condition *condition_create(check_fun *f, const char *arg, bool negate)
 {
-  Condition *cd = calloc(1, sizeof *cd);
+  Condition *cd = xcalloc(1, sizeof *cd);
   cd->check = f;
   cd->arg = arg ? strdup(arg) : NULL;
   cd->negate = negate;
@@ -81,14 +81,14 @@ static inline void condition_destroy(Condition *cd)
     pcre_free(cd->pcre);
     pcre_free(cd->pcre_extra);
   } else {
-    free(cd->arg);
+    xfree(cd->arg);
   }
-  free(cd);
+  xfree(cd);
 }
 
 static inline Rule *rule_create(const char *command)
 {
-  Rule *rl = calloc(1, sizeof *rl);
+  Rule *rl = xcalloc(1, sizeof *rl);
   rl->command = command ? strdup(command) : NULL;
   rl->number = -1;
   return rl;
@@ -100,9 +100,9 @@ static inline void rule_destroy(Rule *rl)
     return;
   }
   cvector_ffree(rl->conditions, condition_destroy);
-  free(rl->label);
-  free(rl->command);
-  free(rl);
+  xfree(rl->label);
+  xfree(rl->command);
+  xfree(rl);
 }
 
 static inline void rule_set_flags(Rule *r, const char *flags)
@@ -176,13 +176,13 @@ static inline Condition *condition_create_re(check_fun *f, const char *re, bool 
   Condition *c = condition_create(f, NULL, negate);
   c->pcre = pcre_compile(re, 0, &pcre_error_str, &pcre_error_offset, NULL);
   if (!c->pcre) {
-    free(c);
+    xfree(c);
     return NULL;
   }
   c->pcre_extra = pcre_study(c->pcre, 0, &pcre_error_str);
   if (pcre_error_str) {
     pcre_free(c->pcre);
-    free(c);
+    xfree(c);
     return NULL;
   }
   return c;
@@ -224,11 +224,11 @@ static inline Condition *condition_create_re_name(const char *arg, bool negate)
 
 static inline Condition *condition_create_re_ext(const char *arg, bool negate)
 {
-  char *regex_str = malloc(strlen(arg) + 8);
+  char *regex_str = xmalloc(strlen(arg) + 8);
   sprintf(regex_str, "\\.(%s)$", arg);
   Condition *c = condition_create_re(check_fun_name, regex_str, negate);
   c->check = check_fun_name;
-  free(regex_str);
+  xfree(regex_str);
   return c;
 }
 
@@ -556,7 +556,7 @@ static int l_rifle_setup(lua_State *L)
   if (lua_istable(L, 1)) {
     lua_getfield(L, 1, "config");
     if (!lua_isnoneornil(L, -1)) {
-      free(rifle->config_file);
+      xfree(rifle->config_file);
       rifle->config_file = path_replace_tilde(lua_tostring(L, -1));
     }
     lua_pop(L, 1);
@@ -579,7 +579,7 @@ static int l_rifle_nrules(lua_State *L)
 static int l_rifle_gc(lua_State *L) {
   Rifle *r = luaL_checkudata(L, 1, RIFLE_META);
   cvector_ffree(r->rules, rule_destroy);
-  free(r->config_file);
+  xfree(r->config_file);
   return 0;
 }
 

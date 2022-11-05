@@ -50,12 +50,12 @@ void input_timeout_set(struct lfm_s *lfm, uint32_t duration)
 
 int input_map(Trie *trie, const char *keys, int ref, const char *desc)
 {
-  input_t *buf = malloc((strlen(keys) + 1) * sizeof *buf);
+  input_t *buf = xmalloc((strlen(keys) + 1) * sizeof *buf);
   key_names_to_input(keys, buf);
   int ret = ref ?
     trie_insert(trie, buf, ref, keys, desc)
     : trie_remove(trie, buf);
-  free(buf);
+  xfree(buf);
   return ret;
 }
 

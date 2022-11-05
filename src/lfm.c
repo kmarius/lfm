@@ -60,8 +60,8 @@ static inline void destroy_io_watcher(ev_io *w)
     lua_run_stdout_callback(data->lfm->L, data->ref, NULL);
   }
   fclose(data->stream);
-  free(data);
-  free(w);
+  xfree(data);
+  xfree(w);
 }
 
 static inline void destroy_child_watcher(ev_child *w)
@@ -73,8 +73,8 @@ static inline void destroy_child_watcher(ev_child *w)
   struct child_watcher_data *data = w->data;
   destroy_io_watcher(data->stdout_watcher);
   destroy_io_watcher(data->stderr_watcher);
-  free(data);
-  free(w);
+  xfree(data);
+  xfree(w);
 }
 
 
@@ -119,8 +119,8 @@ static inline void destroy_schedule_timer(ev_timer *w)
     return;
   }
 
-  free(w->data);
-  free(w);
+  xfree(w->data);
+  xfree(w);
 }
 
 
@@ -165,7 +165,7 @@ static void command_stdout_cb(EV_P_ ev_io *w, int revents)
       ui_echom(&data->lfm->ui, "%s", line);
     }
   }
-  free(line);
+  xfree(line);
 
   // this seems to prevent the callback being immediately called again by libev
   if (errno == EAGAIN) {
@@ -187,8 +187,7 @@ static void prepare_cb(EV_P_ ev_prepare *w, int revents)
     cvector_foreach(const char *cmd, cfg.commands) {
       lua_eval(lfm->L, cmd);
     }
-    cvector_free(cfg.commands);
-    cfg.commands = NULL;
+    cvector_free_clear(cfg.commands);
   }
 
   if (lfm->messages) {
@@ -198,10 +197,9 @@ static void prepare_cb(EV_P_ ev_prepare *w, int revents)
       } else {
         lfm_print(lfm, "%s", m->text);
       }
-      free(m->text);
+      xfree(m->text);
     }
-    cvector_free(lfm->messages);
-    lfm->messages = NULL;
+    cvector_free_clear(lfm->messages);
   }
 
   lfm_run_hook(lfm, LFM_HOOK_ENTER);
@@ -369,12 +367,12 @@ static ev_io *add_io_watcher(Lfm *lfm, FILE* f, int ref)
   const int flags = fcntl(fd, F_GETFL, 0);
   fcntl(fd, F_SETFL, flags | O_NONBLOCK);
 
-  struct stdout_watcher_data *data = malloc(sizeof *data);
+  struct stdout_watcher_data *data = xmalloc(sizeof *data);
   data->lfm = lfm;
   data->stream = f;
   data->ref = ref;
 
-  ev_io *w = malloc(sizeof *w);
+  ev_io *w = xmalloc(sizeof *w);
   ev_io_init(w, command_stdout_cb, fd, EV_READ);
   w->data = data;
   ev_io_start(lfm->loop, w);
@@ -385,13 +383,13 @@ static ev_io *add_io_watcher(Lfm *lfm, FILE* f, int ref)
 
 static void add_child_watcher(Lfm *lfm, int pid, int ref, ev_io *stdout_watcher, ev_io *stderr_watcher)
 {
-  struct child_watcher_data *data = malloc(sizeof *data);
+  struct child_watcher_data *data = xmalloc(sizeof *data);
   data->ref = ref;
   data->lfm = lfm;
   data->stdout_watcher = stdout_watcher;
   data->stderr_watcher = stderr_watcher;
 
-  ev_child *w = malloc(sizeof *w);
+  ev_child *w = xmalloc(sizeof *w);
   ev_child_init(w, child_cb, pid, 0);
   w->data = data;
   ev_child_start(lfm->loop, w);
@@ -523,19 +521,19 @@ void lfm_read_fifo(Lfm *lfm)
     lua_eval(lfm->L, buf);
   } else {
     size_t capacity = 2 * sizeof buf;
-    char *dyn_buf = malloc(capacity);
+    char *dyn_buf = xmalloc(capacity);
     size_t length = nread;
     memcpy(dyn_buf, buf, nread);
     while ((nread = read(lfm->fifo_fd, dyn_buf + length, capacity - length)) > 0) {
       length += nread;
       if (length == capacity) {
         capacity *= 2;
-        dyn_buf = realloc(dyn_buf, capacity);
+        dyn_buf = xrealloc(dyn_buf, capacity);
       }
     }
     dyn_buf[length] = 0;
     lua_eval(lfm->L, dyn_buf);
-    free(dyn_buf);
+    xfree(dyn_buf);
   }
 
   ev_idle_start(lfm->loop, &lfm->redraw_watcher);
@@ -544,10 +542,10 @@ void lfm_read_fifo(Lfm *lfm)
 
 void lfm_schedule(Lfm *lfm, int ref, uint32_t delay)
 {
-  struct schedule_timer_data *data = malloc(sizeof *data);
+  struct schedule_timer_data *data = xmalloc(sizeof *data);
   data->lfm = lfm;
   data->ref = ref;
-  ev_timer *w = malloc(sizeof *w);
+  ev_timer *w = xmalloc(sizeof *w);
   ev_timer_init(w, schedule_timer_cb, 1.0 * delay / 1000, 0);
   w->data = data;
   ev_timer_start(lfm->loop, w);

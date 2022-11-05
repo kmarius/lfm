@@ -12,6 +12,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "memory.h"
+
 #define HT_DEFAULT_CAPACITY 128
 
 typedef void (*ht_free_fun)(void *);
@@ -29,7 +31,7 @@ void ht_set(struct hashtab_s *t, const char *key, void *val);
 // create a copy of key/val and inserts it into the table
 static inline void ht_set_copy(struct hashtab_s *t, const char *key, const void *val, size_t sz)
 {
-  char *mem = malloc(sz + strlen(key) + 1);
+  char *mem = xmalloc(sz + strlen(key) + 1);
   memcpy(mem, val, sz);
   strcpy(mem + sz, key);
   ht_set(t, mem+sz, mem);

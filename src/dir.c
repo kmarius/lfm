@@ -12,6 +12,7 @@
 #include "cvector.h"
 #include "dir.h"
 #include "log.h"
+#include "memory.h"
 #include "sort.h"
 #include "util.h"
 
@@ -174,7 +175,7 @@ bool dir_check(const Dir *d)
 
 Dir *dir_create(const char *path)
 {
-  Dir *d = calloc(1, sizeof *d);
+  Dir *d = xcalloc(1, sizeof *d);
 
   if (path[0] != '/') {
     char buf[PATH_MAX + 1];
@@ -228,8 +229,8 @@ Dir *dir_load(const char *path, bool load_dircount)
   dir->length_sorted = dir->length_all;
   dir->length = dir->length_all;
 
-  dir->files_sorted = malloc(dir->length_all * sizeof *dir->files_all);
-  dir->files = malloc(dir->length_all * sizeof *dir->files_all);
+  dir->files_sorted = xmalloc(dir->length_all * sizeof *dir->files_all);
+  dir->files = xmalloc(dir->length_all * sizeof *dir->files_all);
 
   memcpy(dir->files_sorted, dir->files_all, dir->length_all * sizeof *dir->files_all);
   memcpy(dir->files, dir->files_all, dir->length_all * sizeof *dir->files_all);
@@ -260,7 +261,7 @@ Dir *dir_load_flat(const char *path, uint32_t level, bool load_dircount)
   dir->flatten_level = level;
 
   struct queue_dirs queue;
-  queue.head = malloc(sizeof *queue.head);
+  queue.head = xmalloc(sizeof *queue.head);
   queue.head->path = path;
   queue.head->level = 0;
   queue.head->next = NULL;
@@ -295,7 +296,7 @@ Dir *dir_load_flat(const char *path, uint32_t level, bool load_dircount)
           }
 
           if (head->level + 1 <= level) {
-            struct queue_dirs_node *n = malloc(sizeof *n);
+            struct queue_dirs_node *n = xmalloc(sizeof *n);
             n->path = file_path(file);
             n->level = head->level + 1;
             n->next = NULL;
@@ -321,15 +322,15 @@ Dir *dir_load_flat(const char *path, uint32_t level, bool load_dircount)
     }
     closedir(dirp);
 cont:
-    free(head);
+    xfree(head);
   }
 
   dir->length_all = cvector_size(dir->files_all);
   dir->length_sorted = dir->length_all;
   dir->length = dir->length_all;
 
-  dir->files_sorted = malloc(dir->length_all * sizeof *dir->files_sorted);
-  dir->files = malloc(dir->length_all * sizeof *dir->files);
+  dir->files_sorted = xmalloc(dir->length_all * sizeof *dir->files_sorted);
+  dir->files = xmalloc(dir->length_all * sizeof *dir->files);
 
   memcpy(dir->files_sorted, dir->files_all, dir->length_all * sizeof *dir->files_all);
   memcpy(dir->files, dir->files_all, dir->length_all * sizeof *dir->files_all);
@@ -366,8 +367,7 @@ static inline void dir_cursor_move_to_sel(Dir *d, uint32_t height, uint32_t scro
   d->ind = min(d->ind, d->length);
 
 cleanup:
-  free(d->sel);
-  d->sel = NULL;
+  XFREE_CLEAR(d->sel);
 }
 
 
@@ -378,7 +378,7 @@ void dir_cursor_move_to(Dir *d, const char *name, uint32_t height, uint32_t scro
   }
 
   if (!d->files) {
-    free(d->sel);
+    xfree(d->sel);
     d->sel = strdup(name);
     return;
   }
@@ -400,8 +400,8 @@ void dir_update_with(Dir *d, Dir *update, uint32_t height, uint32_t scrolloff)
   }
 
   cvector_ffree(d->files_all, file_destroy);
-  free(d->files_sorted);
-  free(d->files);
+  xfree(d->files_sorted);
+  xfree(d->files);
 
   d->files_all = update->files_all;
   d->files_sorted = update->files_sorted;
@@ -413,9 +413,9 @@ void dir_update_with(Dir *d, Dir *update, uint32_t height, uint32_t scrolloff)
 
   d->updates++;
 
-  free(update->sel);
-  free(update->path);
-  free(update);
+  xfree(update->sel);
+  xfree(update->path);
+  xfree(update);
 
   d->sorted = false;
   dir_sort(d);
@@ -434,9 +434,9 @@ void dir_destroy(Dir *d)
 
   cvector_ffree(d->files_all, file_destroy);
   filter_destroy(d->filter);
-  free(d->files_sorted);
-  free(d->files);
-  free(d->sel);
-  free(d->path);
-  free(d);
+  xfree(d->files_sorted);
+  xfree(d->files);
+  xfree(d->sel);
+  xfree(d->path);
+  xfree(d);
 }

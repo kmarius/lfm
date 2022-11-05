@@ -17,7 +17,7 @@ File *file_create(const char *dir, const char *name)
 {
   char buf[PATH_MAX] = {0};
 
-  File *f = calloc(1, sizeof *f);
+  File *f = xcalloc(1, sizeof *f);
   memset(f, 0, sizeof *f);
 
   f->dircount = -1;
@@ -34,8 +34,8 @@ File *file_create(const char *dir, const char *name)
 
   if (lstat(f->path, &f->lstat) == -1) {
     if (errno == ENOENT) {
-      free(f->path);
-      free(f);
+      xfree(f->path);
+      xfree(f);
       return NULL;
     } else {
       f->error = errno;
@@ -72,9 +72,9 @@ void file_destroy(File *f)
     return;
   }
 
-  free(f->path);
-  free(f->link_target);
-  free(f);
+  xfree(f->path);
+  xfree(f->link_target);
+  xfree(f);
 }
 
 

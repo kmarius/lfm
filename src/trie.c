@@ -2,11 +2,12 @@
 #include <stdlib.h>
 
 #include "cvector.h"
+#include "memory.h"
 #include "trie.h"
 
 static inline Trie *trie_node_create(input_t key, Trie *next)
 {
-  Trie *n = calloc(1, sizeof *n);
+  Trie *n = xcalloc(1, sizeof *n);
   n->key = key;
   n->next = next;
   return n;
@@ -46,8 +47,8 @@ int trie_insert(Trie* t, const input_t *trie_keys, int ref, const char *keys, co
     }
     t = n;
   }
-  free(t->desc);
-  free(t->keys);
+  xfree(t->desc);
+  xfree(t->keys);
   t->desc = desc ? strdup(desc) : NULL;
   t->keys = keys ? strdup(keys) : NULL;
   int ret = t->ref;
@@ -62,12 +63,10 @@ int trie_remove(Trie* t, const input_t *trie_keys)
     return 0;
   }
   if (*trie_keys == 0) {
-    free(t->keys);
-    free(t->desc);
+    XFREE_CLEAR(t->keys);
+    XFREE_CLEAR(t->desc);
     int ret = t->ref;
     t->ref = 0;
-    t->keys = NULL;
-    t->desc = NULL;
     return ret;
   }
   Trie **prev = &t->child;
@@ -76,7 +75,7 @@ int trie_remove(Trie* t, const input_t *trie_keys)
       int ret = trie_remove(n, trie_keys + 1);
       if (!n->child && !n->ref) {
         *prev = n->next;
-        free(n);
+        xfree(n);
       }
       return ret;
     }
@@ -112,7 +111,7 @@ void trie_destroy(Trie *t)
     next = n->next;
     trie_destroy(n);
   }
-  free(t->desc);
-  free(t->keys);
-  free(t);
+  xfree(t->desc);
+  xfree(t->keys);
+  xfree(t);
 }

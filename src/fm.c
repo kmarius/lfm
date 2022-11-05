@@ -49,9 +49,9 @@ void fm_init(Fm *fm, struct lfm_s *lfm)
   fm->dirs.length = cvector_size(cfg.ratios) - (cfg.preview ? 1 : 0);
   cvector_grow(fm->dirs.visible, fm->dirs.length);
 
-  fm->selection.paths = lht_create(free);
+  fm->selection.paths = lht_create(xfree);
   fm->selection.previous = ht_create(NULL);
-  fm->paste.buffer = lht_create(free);
+  fm->paste.buffer = lht_create(xfree);
 
   fm_populate(fm);
 
@@ -72,9 +72,9 @@ void fm_deinit(Fm *fm)
   lht_destroy(fm->selection.paths);
   ht_destroy(fm->selection.previous);
   lht_destroy(fm->paste.buffer);
-  free(fm->automark);
-  free(fm->find_prefix);
-  free(fm->pwd);
+  xfree(fm->automark);
+  xfree(fm->find_prefix);
+  xfree(fm->pwd);
 }
 
 
@@ -131,11 +131,11 @@ bool fm_chdir(Fm *fm, const char *path, bool save, bool hook)
 
   notify_remove_watchers(&fm->lfm->notify);
 
-  free(fm->pwd);
+  xfree(fm->pwd);
   fm->pwd = strdup(path);
 
   if (save) {
-    free(fm->automark);
+    xfree(fm->automark);
     fm->automark = fm_current_dir(fm)->error
       ? NULL
       : strdup(fm_current_dir(fm)->path);
@@ -427,7 +427,7 @@ void fm_selection_write(const Fm *fm, const char *path)
   char *dir, *buf = strdup(path);
   dir = dirname(buf);
   mkdir_p(dir, 755);
-  free(buf);
+  xfree(buf);
 
   FILE *fp = fopen(path, "w");
   if (!fp) {
@@ -464,7 +464,7 @@ void fm_paste_mode_set(Fm *fm, paste_mode mode)
   }
   lht_destroy(fm->paste.buffer);
   fm->paste.buffer = fm->selection.paths;
-  fm->selection.paths = lht_create(free);
+  fm->selection.paths = lht_create(xfree);
 }
 
 /* }}} */

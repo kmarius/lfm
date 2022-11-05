@@ -38,7 +38,7 @@ void history_load(History *h, const char *path)
     char *tab = strchr(line, '\t');
     if (!tab) {
       log_error("missing tab in history item: %s", line);
-      free(line);
+      xfree(line);
       line = NULL;
       continue;
     }
@@ -51,7 +51,7 @@ void history_load(History *h, const char *path)
     cvector_push_back(h->entries, n);
     line = NULL;
   }
-  free(line);
+  xfree(line);
 
   h->old_entries = cvector_size(h->entries);
 
@@ -62,7 +62,7 @@ void history_write(History *h, const char *path, int histsize)
 {
   char *dir = dirname_a(path);
   mkdir_p(dir, 755);
-  free(dir);
+  xfree(dir);
 
   char *path_new;
   asprintf(&path_new, "%s.new", path);
@@ -81,7 +81,7 @@ void history_write(History *h, const char *path, int histsize)
   if (diff > 0) {
     // read up to diff from the tail of path
 
-    char **lines = calloc(diff, sizeof *lines);
+    char **lines = xcalloc(diff, sizeof *lines);
     int i = 0;
 
     FILE *fp_old = fopen(path, "r");
@@ -90,11 +90,11 @@ void history_write(History *h, const char *path, int histsize)
       char *line = NULL;
 
       while (getline(&line, &n, fp_old) != -1) {
-        free(lines[i % diff]);
+        xfree(lines[i % diff]);
         lines[i++ % diff] = line;
         line = NULL;
       }
-      free(line);
+      xfree(line);
       fclose(fp_old);
     }
 
@@ -102,16 +102,16 @@ void history_write(History *h, const char *path, int histsize)
     if (i < diff) {
       for (int j = 0; j < i; j++) {
         fputs(lines[j], fp_new);
-        free(lines[j]);
+        xfree(lines[j]);
       }
     } else {
       for (int j = i; j < i + diff; j++) {
         fputs(lines[j % diff], fp_new);
-        free(lines[j % diff]);
+        xfree(lines[j % diff]);
       }
     }
 
-    free(lines);
+    xfree(lines);
   }
 
   // write our new entries to path_new
@@ -127,13 +127,13 @@ void history_write(History *h, const char *path, int histsize)
   rename(path_new, path);
 
 cleanup:
-  free(path_new);
+  xfree(path_new);
 }
 
 void history_deinit(History *h)
 {
   for (size_t i = 0; i < cvector_size(h->entries); i++) {
-    free(h->entries[i].prefix);
+    xfree(h->entries[i].prefix);
   }
   cvector_free(h->entries);
 }
@@ -146,7 +146,7 @@ void history_append(History *h, const char *prefix, const char *line)
   }
   int l = strlen(prefix);
   struct history_entry e = {.is_new = true};
-  e.prefix = malloc(l + strlen(line) + 2);
+  e.prefix = xmalloc(l + strlen(line) + 2);
   e.line = e.prefix + l + 1;
   strcpy(e.prefix, prefix);
   strcpy(e.prefix + l + 1, line);

@@ -8,7 +8,7 @@ static int l_fn_qualify(lua_State *L)
 {
   char *path = path_qualify(luaL_checkstring(L, 1), fm->pwd);
   lua_pushstring(L, path);
-  free(path);
+  xfree(path);
   return 1;
 }
 
@@ -26,7 +26,7 @@ static int l_fn_mime(lua_State *L)
 static int l_fn_tokenize(lua_State *L)
 {
   const char *string = luaL_optstring(L, 1, "");
-  char *buf = malloc(strlen(string) + 1);
+  char *buf = xmalloc(strlen(string) + 1);
   const char *pos1, *tok;
   char *pos2;
   if ((tok = tokenize(string, buf, &pos1, &pos2))) {
@@ -38,7 +38,7 @@ static int l_fn_tokenize(lua_State *L)
     lua_pushstring(L, tok);
     lua_rawseti(L, -2, i++);
   }
-  free(buf);
+  xfree(buf);
   return 2;
 }
 
@@ -65,7 +65,7 @@ static int l_fn_split_last(lua_State *L)
 static int l_fn_unquote_space(lua_State *L)
 {
   const char *string = luaL_checkstring(L, 1);
-  char *buf = malloc(strlen(string) + 1);
+  char *buf = xmalloc(strlen(string) + 1);
   char *t = buf;
   for (const char *s = string; *s != 0; s++) {
     if (*s != '\\' || *(s+1) != ' ') {
@@ -73,14 +73,14 @@ static int l_fn_unquote_space(lua_State *L)
     }
   }
   lua_pushlstring(L, buf, t-buf);
-  free(buf);
+  xfree(buf);
   return 1;
 }
 
 static int l_fn_quote_space(lua_State *L)
 {
   const char *string = luaL_checkstring(L, 1);
-  char *buf = malloc(strlen(string) * 2 + 1);
+  char *buf = xmalloc(strlen(string) * 2 + 1);
   char *t = buf;
   for (const char *s = string; *s; s++) {
     if (*s == ' ') {
@@ -89,7 +89,7 @@ static int l_fn_quote_space(lua_State *L)
     *t++ = *s;
   }
   lua_pushlstring(L, buf, t-buf);
-  free(buf);
+  xfree(buf);
   return 1;
 }
 

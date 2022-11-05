@@ -7,7 +7,7 @@
 
 bool find(Fm *fm, const char *prefix)
 {
-  free(fm->find_prefix);
+  xfree(fm->find_prefix);
   fm->find_prefix = strdup(prefix);
 
   Dir *dir = fm_current_dir(fm);
@@ -69,6 +69,6 @@ void find_prev(Fm *fm)
 
 void find_clear(Fm *fm)
 {
-  free(fm->find_prefix);
+  xfree(fm->find_prefix);
   fm->find_prefix = NULL;
 }

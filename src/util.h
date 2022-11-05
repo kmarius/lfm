@@ -10,7 +10,7 @@
 #include <wchar.h>
 #include <wctype.h>
 
-#define ALLOC __attribute__((malloc)) __attribute__((warn_unused_result))
+#include "memory.h"
 
 #ifndef streq
 #define streq(X, Y) (*(char *)(X) == *(char *)(Y) && strcmp(X, Y) == 0)

@@ -43,7 +43,7 @@ static inline Preview *preview_init(Preview *p, const char *path, uint32_t nrow)
 
 static inline Preview *preview_create(const char *path, uint32_t nrow)
 {
-  return preview_init(malloc(sizeof(Preview)), path, nrow);
+  return preview_init(xmalloc(sizeof(Preview)), path, nrow);
 }
 
 
@@ -52,9 +52,9 @@ static void destroy_text_preview(Preview *p)
   if (!p) {
     return;
   }
-  cvector_ffree(p->lines, free);
-  free(p->path);
-  free(p);
+  cvector_ffree(p->lines, xfree);
+  xfree(p->path);
+  xfree(p);
 }
 
 
@@ -69,7 +69,7 @@ Preview *preview_create_loading(const char *path, uint32_t nrow)
 static void update_text_preview(Preview *p, Preview *u)
 {
   log_debug("update_text_preview %s", p->path);
-  cvector_ffree(p->lines, free);
+  cvector_ffree(p->lines, xfree);
   p->lines = u->lines;
   p->mtime = u->mtime;
   p->nrow = u->nrow;
@@ -80,8 +80,8 @@ static void update_text_preview(Preview *p, Preview *u)
   p->update = u->update;
   p->destroy = u->destroy;
 
-  free(u->path);
-  free(u);
+  xfree(u->path);
+  xfree(u);
 }
 
 
@@ -96,8 +96,8 @@ static void update_image_preview(Preview *p, Preview *u)
   p->loadtime = u->loadtime;
   p->loading = false;
 
-  free(u->path);
-  free(u);
+  xfree(u->path);
+  xfree(u);
 }
 
 
@@ -204,7 +204,7 @@ Preview *preview_create_from_file(const char *path, uint32_t width, uint32_t hei
       // return code interpretation taken from ranger:
       switch (ret) {
         case 0: break; // display stdout
-        case 1: cvector_fclear(p->lines, free); break; // no preview
+        case 1: cvector_fclear(p->lines, xfree); break; // no preview
        // case 2: // show file content
        // case 3: // fix width
        // case 4: // fix height
@@ -212,13 +212,13 @@ Preview *preview_create_from_file(const char *path, uint32_t width, uint32_t hei
         case 6: if (cfg.preview_images) { // load from cache path passed to the previewer
                   struct ncvisual *ncv = ncvisual_from_file(cache_path);
                   if (ncv) {
-                    cvector_ffree(p->lines, free);
+                    cvector_ffree(p->lines, xfree);
                     p->ncv = ncv;
                     p->draw = draw_image_preview;
                     p->update = update_image_preview;
                     p->destroy = destroy_image_preview;
                   } else {
-                    cvector_fclear(p->lines, free);
+                    cvector_fclear(p->lines, xfree);
                     cvector_push_back(p->lines, strdup("error loading image preview"));
                     log_error("error loading image preview from %s", cache_path);
                   }
@@ -228,13 +228,13 @@ Preview *preview_create_from_file(const char *path, uint32_t width, uint32_t hei
                                           // try to load image preview
                   struct ncvisual *ncv = ncvisual_from_file(path);
                   if (ncv) {
-                    cvector_ffree(p->lines, free);
+                    cvector_ffree(p->lines, xfree);
                     p->ncv = ncv;
                     p->draw = draw_image_preview;
                     p->update = update_image_preview;
                     p->destroy = destroy_image_preview;
                   } else {
-                    cvector_fclear(p->lines, free);
+                    cvector_fclear(p->lines, xfree);
                     cvector_push_back(p->lines, strdup("error (ncvisual_from_file)"));
                     log_error("error loading image preview");
                   }
@@ -298,6 +298,6 @@ static void destroy_image_preview(Preview *p)
     ncvisual_destroy(p->ncv);
     p->ncv = NULL;
   }
-  free(p->path);
-  free(p);
+  xfree(p->path);
+  xfree(p);
 }
