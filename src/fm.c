@@ -257,11 +257,6 @@ static inline void fm_remove_preview(Fm *fm)
 }
 
 
-// TODO: (on 2022-03-06)
-// We should set the watcher for the preview directory with a delay, i.e. after
-// on the directory for a second or so. This should greatly increase
-// responsiveness when scrolling through directories on a slow device (setting
-// watchers can be slow)
 void fm_update_preview(Fm *fm)
 {
   if (!cfg.preview) {
@@ -454,7 +449,6 @@ void fm_selection_write(const Fm *fm, const char *path)
 
 /* load/copy/move {{{ */
 
-/* TODO: Make it possible to append to cut/copy buffer (on 2021-07-25) */
 void fm_paste_mode_set(Fm *fm, paste_mode mode)
 {
   fm_selection_visual_stop(fm);

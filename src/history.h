@@ -2,8 +2,6 @@
 
 #include <stddef.h>
 
-/* TODO: integrate this with cmdline instead of Ui (on 2022-01-25) */
-
 typedef struct history_s {
   struct history_entry *entries;
   struct history_entry *cur;

@@ -2,8 +2,6 @@
 
 #include <stdbool.h>
 
-/* TODO: add some prefix to these functions (on 2022-01-14) */
-
 struct lfm_s;
 
 // Start a search for `string`. `NULL` or an empty string disables
