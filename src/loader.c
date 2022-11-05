@@ -212,8 +212,10 @@ void loader_drop_dir_cache(Loader *loader)
 void loader_reschedule(Loader *loader)
 {
   Dir **dirs = NULL;
+  bool contained;
   cvector_foreach(ev_timer *timer, loader->dir_timers) {
-    if (!cvector_contains(dirs, timer->data)) {
+    cvector_contains(dirs, timer->data, contained);
+    if (!contained) {
       cvector_push_back(dirs, timer->data);
     }
     ev_timer_stop(loader->lfm->loop, timer);
@@ -223,7 +225,8 @@ void loader_reschedule(Loader *loader)
 
   Preview **previews = NULL;
   cvector_foreach(ev_timer *timer, loader->preview_timers) {
-    if (!cvector_contains(previews, timer->data)) {
+    cvector_contains(previews, timer->data, contained);
+    if (!contained) {
       cvector_push_back(previews, timer->data);
     }
     ev_timer_stop(loader->lfm->loop, timer);

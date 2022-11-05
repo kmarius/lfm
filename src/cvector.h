@@ -389,24 +389,6 @@
     cvector_set_size(vec, cv_j); \
   } while (0)
 
-/* statement exprs are a GNU extension */
-/**
- * @brief cvector_contains_str Check if a vector contains a string.
- * @param vec - the vector
- * @param str - the string
- * @return int
- */
-#define cvector_contains_str(vec, str) ({ \
-    int cv_ret = 0; \
-    const size_t cv_sz = cvector_size(vec); \
-    for (size_t cv_i = 0; cv_i < cv_sz; cv_i++) { \
-      if ((vec)[cv_i] && *(vec)[cv_i] == *(str) && streq((vec)[cv_i], (str))) { \
-        cv_ret = 1; \
-        break; \
-      } \
-    } \
-    cv_ret; })
-
 // TODO: use memcmp to make this also work with structs
 /**
  * @brief cvector_contains_str Check if a vector contains an element.
@@ -414,16 +396,17 @@
  * @param e - the element
  * @return int
  */
-#define cvector_contains(vec, e) ({ \
-    int cv_ret = 0; \
+#define cvector_contains(vec, e, res) \
+  do { \
+    (res) = 0; \
     const size_t cv_sz = cvector_size(vec); \
     for (size_t cv_i = 0; cv_i < cv_sz; cv_i++) { \
       if ((vec)[cv_i] == (e)) { \
-        cv_ret = 1; \
+        (res) = 1; \
         break; \
       } \
     } \
-    cv_ret; })
+  } while (0)
 
 /**
  * @brief cvector_upheap_min Perform upheap on a min heap.
@@ -460,11 +443,11 @@
       const size_t cv_ridx = CVECTOR_RCHILD(cv_i); \
       size_t cv_smallest = cv_i; \
       if (cv_lidx < cv_sz && (vec)[cv_lidx]key < (vec)[cv_smallest]key) \
-        cv_smallest = cv_lidx; \
+      cv_smallest = cv_lidx; \
       if (cv_ridx < cv_sz && (vec)[cv_ridx]key < (vec)[cv_smallest]key) \
-        cv_smallest = cv_ridx; \
+      cv_smallest = cv_ridx; \
       if (cv_smallest == cv_i) \
-        break; \
+      break; \
       CVECTOR_SWAP((vec)[cv_i], (vec)[cv_smallest]); \
       cv_i = cv_smallest; \
     } while (1); \
