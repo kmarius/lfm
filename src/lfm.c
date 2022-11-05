@@ -476,7 +476,7 @@ void lfm_print(Lfm *lfm ,const char *format, ...)
   va_list args;
   va_start(args, format);
 
-  if (!lfm->ui.lfm) {
+  if (!lfm->ui.running) {
     struct message_s msg = {NULL, false};
     vasprintf(&msg.text, format, args);
     cvector_push_back(lfm->messages, msg);
@@ -493,7 +493,7 @@ void lfm_error(Lfm *lfm, const char *format, ...)
   va_list args;
   va_start(args, format);
 
-  if (!lfm->ui.lfm) {
+  if (!lfm->ui.running) {
     struct message_s msg = {NULL, true};
     vasprintf(&msg.text, format, args);
     cvector_push_back(lfm->messages, msg);
