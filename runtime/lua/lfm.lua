@@ -57,7 +57,7 @@ function lfm.eval(line)
 		if command.tokenize then
 			command.f(unpack(args))
 		else
-			local arg = string.gsub(line, "^[^ ]*%s*", "")
+			local arg = string.gsub(line, "^%s*[^ ]*%s*", "")
 			command.f(arg ~= "" and arg or nil)
 		end
 	else
