@@ -53,7 +53,7 @@ void history_load(History *h, const char *path)
   }
   xfree(line);
 
-  h->old_entries = cvector_size(h->entries);
+  h->num_old_entries = cvector_size(h->entries);
 
   fclose(fp);
 }
@@ -75,48 +75,49 @@ void history_write(History *h, const char *path, int histsize)
   // We we read the history again here because another instace might have saved
   // its history since we loaded ours.
 
-  const int new_entries = cvector_size(h->entries) - h->old_entries;
-  const int diff = histsize - new_entries;
+  const int num_keep_old = histsize - h->num_new_entries;
 
-  if (diff > 0) {
-    // read up to diff from the tail of path
-
-    char **lines = xcalloc(diff, sizeof *lines);
-    int i = 0;
-
+  if (num_keep_old > 0) {
     FILE *fp_old = fopen(path, "r");
     if (fp_old) {
-      size_t n;
-      char *line = NULL;
-
-      while (getline(&line, &n, fp_old) != -1) {
-        xfree(lines[i % diff]);
-        lines[i++ % diff] = line;
-        line = NULL;
+      int num_old_lines = 0;
+      char c;
+      while ((c = fgetc(fp_old)) != EOF) {
+        if (c == '\n') {
+          num_old_lines++;
+        }
       }
-      xfree(line);
+      rewind(fp_old);
+      const int num_skip_old = num_old_lines - num_keep_old;
+      int i = 0;
+      while (i < num_skip_old && (c = fgetc(fp_old)) != EOF) {
+        if (c == '\n') {
+          i++;
+        }
+      }
+      while ((c = fgetc(fp_old)) != EOF) {
+        fputc(c, fp_new);
+      }
       fclose(fp_old);
     }
+  }
 
-    // write them to path_new
-    if (i < diff) {
-      for (int j = 0; j < i; j++) {
-        fputs(lines[j], fp_new);
-        xfree(lines[j]);
-      }
-    } else {
-      for (int j = i; j < i + diff; j++) {
-        fputs(lines[j % diff], fp_new);
-        xfree(lines[j % diff]);
+  // skip some of our new entries if we have more than histsize
+  size_t i = h->num_old_entries;
+  if (num_keep_old < 0) {
+    int num_skip_new = -num_keep_old;
+    for (; i < cvector_size(h->entries) && num_skip_new > 0; i++) {
+      if (h->entries[i].line[0] != ' ') {
+        num_skip_new--;
       }
     }
-
-    xfree(lines);
   }
 
   // write our new entries to path_new
-  size_t i = diff > 0 ? h->old_entries : cvector_size(h->entries) - histsize;
   for (; i < cvector_size(h->entries); i++) {
+    if (h->entries[i].line[0] == ' ') {
+      continue;
+    }
     fputs(h->entries[i].prefix, fp_new);
     fputc('\t', fp_new);
     fputs(h->entries[i].line, fp_new);
@@ -151,6 +152,9 @@ void history_append(History *h, const char *prefix, const char *line)
   strcpy(e.prefix, prefix);
   strcpy(e.prefix + l + 1, line);
   cvector_push_back(h->entries, e);
+  if (*line != ' ') {
+    h->num_new_entries++;
+  }
 }
 
 void history_reset(History *h)
