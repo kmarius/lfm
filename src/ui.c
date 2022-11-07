@@ -654,6 +654,7 @@ static void draw_custom_info(
     unsigned int r;
     ncplane_cursor_yx(n, NULL, &r);
     r = ui->ncol - r;
+    while (ncplane_putchar(n, ' ') > 0);
     size_t l = ansi_mblen(spacer_ptr+1);
     if (r >= l) {
       ncplane_cursor_move_yx(n, 0, ui->ncol - l);
