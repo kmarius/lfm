@@ -288,6 +288,7 @@ void ui_echom(Ui *ui, const char *format, ...)
   va_start(args, format);
   ui_vechom(ui, format, args);
   va_end(args);
+  ui_redraw(ui, REDRAW_CMDLINE);
 }
 
 
@@ -297,6 +298,7 @@ void ui_error(Ui *ui, const char *format, ...)
   va_start(args, format);
   ui_verror(ui, format, args);
   va_end(args);
+  ui_redraw(ui, REDRAW_CMDLINE);
 }
 
 
