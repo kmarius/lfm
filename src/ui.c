@@ -19,6 +19,7 @@
 #include "filter.h"
 #include "fm.h"
 #include "hashtab.h"
+#include "hooks.h"
 #include "lfm.h"
 #include "loader.h"
 #include "log.h"
@@ -51,6 +52,7 @@ static int resize_cb(struct ncplane *n)
   ncplane_resize(ui->planes.info, 0, 0, 0, 0, 0, 0, 1, ui->ncol);
   ncplane_resize(ui->planes.cmdline, 0, 0, 0, 0, 0, 0, 1, ui->ncol);
   ncplane_move_yx(ui->planes.cmdline, ui->nrow - 1, 0);
+  lfm_run_hook(ui->lfm, LFM_HOOK_RESIZED);
   ui_recol(ui);
   fm_resize(&ui->lfm->fm, ui->nrow - 2);
   menu_resize(ui);

@@ -213,7 +213,6 @@ static void sigwinch_cb(EV_P_ ev_signal *w, int revents)
   (void) revents;
   Lfm *lfm = w->data;
   log_debug("received SIGWINCH");
-  lfm_run_hook(lfm, LFM_HOOK_RESIZED);
   ui_clear(&lfm->ui);
   ev_idle_start(loop, &lfm->redraw_watcher);
 }
