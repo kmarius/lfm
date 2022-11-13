@@ -118,7 +118,7 @@ end
 ---Execute all functions registered to a hook.
 ---@param name Lfm.Hook
 function lfm.run_hook(name, ...)
-	log.debug("running hook: " .. name)
+	-- log.debug("running hook: " .. name)
 	if hooks[name] then
 		for _, f in pairs(hooks[name]) do
 			f(...)

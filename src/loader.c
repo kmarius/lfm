@@ -72,7 +72,6 @@ static void pv_timer_cb(EV_P_ ev_timer *w, int revents)
 
 static inline void schedule_dir_load(Loader *loader, Dir *dir, uint64_t time)
 {
-  log_debug("schedule_dir_load %s", dir->path);
   ev_timer *timer = xmalloc(sizeof *timer);
   ev_timer_init(timer, dir_timer_cb, 0, (time - current_millis()) / 1000.);
   struct timer_data *data = xmalloc(sizeof *data);
