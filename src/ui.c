@@ -839,7 +839,9 @@ static void menu_resize(Ui *ui)
   const uint32_t h = max(1, min(cvector_size(ui->menubuf), ui->nrow - 2));
   ncplane_resize(ui->planes.menu, 0, 0, 0, 0, 0, 0, h, ui->ncol);
   ncplane_move_yx(ui->planes.menu, ui->nrow - 1 - h, 0);
-  ncplane_move_top(ui->planes.menu);
+  if (ui->menubuf) {
+    ncplane_move_top(ui->planes.menu);
+  }
 }
 
 
