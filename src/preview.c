@@ -186,7 +186,7 @@ Preview *preview_create_from_file(const char *path, uint32_t width, uint32_t hei
     return p;
   }
 
-  while (height-- > 0 && fgets_seek(buf, sizeof buf, fp)) {
+  for (uint32_t i = 0; i < height && fgets_seek(buf, sizeof buf, fp); i++) {
     cvector_push_back(p->lines, strdup(buf));
   }
   while (getc(fp) != EOF) {}
@@ -205,10 +205,21 @@ Preview *preview_create_from_file(const char *path, uint32_t width, uint32_t hei
       switch (ret) {
         case 0: break; // display stdout
         case 1: cvector_fclear(p->lines, xfree); break; // no preview
-       // case 2: // show file content
-       // case 3: // fix width
-       // case 4: // fix height
-       // case 5: // fix both
+        case 2: cvector_fclear(p->lines, xfree);  // show file contents
+                FILE *fp_file = fopen(path, "r");
+                if (fp_file) {
+                  for (uint32_t i = 0; i < height && fgets_seek(buf, sizeof buf, fp_file); i++) {
+                    cvector_push_back(p->lines, strdup(buf));
+                  }
+                  fclose(fp_file);
+                } else {
+                  cvector_push_back(p->lines, strerror(errno));
+                  log_error("preview: %s", strerror(errno));
+                }
+                break;
+                // case 3: // fix width
+                // case 4: // fix height
+                // case 5: // fix both
         case 6: if (cfg.preview_images) { // load from cache path passed to the previewer
                   struct ncvisual *ncv = ncvisual_from_file(cache_path);
                   if (ncv) {
