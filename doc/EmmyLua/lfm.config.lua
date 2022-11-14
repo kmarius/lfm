@@ -31,7 +31,7 @@
 ---@field histsize number history size, must be non-negative (default: 100)
 ---@field infoline string|nil infoline string
 ---@field threads number number of threads in the pool (at least 2, default: nprocs+1)
----@field dir_settings table<path, Lfm.DirSetting>
+---@field dir_settings table<Lfm.Path, Lfm.DirSetting>
 ---@field ratios integer[] assignable
 ---@field truncatechar string assignable, only the first character is used
 ---@field scrolloff integer assignable

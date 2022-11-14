@@ -177,6 +177,14 @@ function lfm.register_mode(t)
 end
 
 -- Set up modules
+local util = require("util")
+lfm.util = util
+
+local quickmarks = require("quickmarks")
+quickmarks._setup()
+quickmarks._setup = nil
+lfm.quickmarks = quickmarks
+
 local compl = require("compl")
 lfm.compl = compl
 
@@ -407,8 +415,8 @@ cmap("<c-u>", wrap_mode_change(cmd.delete_line_left), {desc="delete line left"})
 cmap("<Tab>", compl.next, {desc="next completion item"})
 cmap("<s-Tab>", compl.prev, {desc="previous completion item"})
 
-local c = require("util").c
-local a = require("util").a
+local c = util.c
+local a = util.a
 
 local map = lfm.map
 
@@ -521,13 +529,6 @@ lfm.register_mode(require("glob").mode_glob_select)
 map("*", a(lfm.cmd.prefix_set, require("glob").mode_glob_select.prefix), {desc="glob-select"})
 lfm.register_command("glob-select", require("glob").glob_select, {tokenize=false})
 lfm.register_command("glob-select-rec", require("glob").glob_select_recursive, {tokenize=false})
-
-lfm.register_command("mark-save", require("quickmarks").mark_save)
-lfm.register_command("mark-delete", require("quickmarks").mark_delete)
-lfm.register_mode(require("quickmarks").mode_mark_save)
-lfm.register_mode(require("quickmarks").mode_mark_delete)
-lfm.map("m", a(lfm.cmd.prefix_set, require("quickmarks").mode_mark_save.prefix), {desc="save quickmark"})
-lfm.map("dm", a(lfm.cmd.prefix_set, require("quickmarks").mode_mark_delete.prefix), {desc="delete quickmark"})
 
 local function gmap(key, location)
 	map("g"..key, function() fm.chdir(location) end, {desc="cd "..location})
