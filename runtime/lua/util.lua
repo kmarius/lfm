@@ -50,7 +50,7 @@ end
 ---Create a function that calls all functions given as the argument.
 ---
 ---```
---- c(lfm.load_clear, lfm.ui.draw)()
+--- c(lfm.fm.load_clear, lfm.ui.redraw)()
 ---```
 ---
 ---@vararg function

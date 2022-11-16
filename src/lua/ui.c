@@ -1,6 +1,8 @@
+#include <ev.h>
 #include <lauxlib.h>
 
 #include "internal.h"
+#include "lua.h"
 
 static int l_ui_messages(lua_State *L)
 {
@@ -52,10 +54,12 @@ static int l_ui_menu(lua_State *L)
   return 0;
 }
 
-static int l_ui_draw(lua_State *L)
+static int l_ui_redraw(lua_State *L)
 {
-  (void) L;
-  ui_redraw(ui, REDRAW_FULL);
+  if (lua_gettop(L) > 0 && lua_toboolean(L, 1)) {
+    ui_redraw(ui, REDRAW_FULL);
+  }
+  ev_idle_start(lfm->loop, &lfm->redraw_watcher);
   return 0;
 }
 
@@ -105,7 +109,7 @@ static const struct luaL_Reg ui_lib[] = {
   {"get_width", l_ui_get_width},
   {"get_height", l_ui_get_height},
   {"clear", l_ui_clear},
-  {"draw", l_ui_draw},
+  {"redraw", l_ui_redraw},
   {"menu", l_ui_menu},
   {"messages", l_ui_messages},
   {NULL, NULL}};

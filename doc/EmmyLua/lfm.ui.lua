@@ -12,7 +12,8 @@ function lfm.ui.get_width() end
 function lfm.ui.clear() end
 
 ---Request redraw.
-function lfm.ui.draw() end
+---@param force? boolean Force a redraw.
+function lfm.ui.redraw(force) end
 
 ---Draws a menu on screen.
 ---```
