@@ -315,6 +315,7 @@ void lfm_init(Lfm *lfm)
   ev_signal_start(lfm->loop, &lfm->sighup_watcher);
 
   lfm->L = luaL_newstate();
+  ev_set_userdata(lfm->loop, lfm->L);
   lua_init(lfm->L, lfm);
   // can't run these hooks in the loader before initialization
   ht_foreach(Dir *dir, lfm->loader.dir_cache) {
