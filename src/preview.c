@@ -1,4 +1,5 @@
 #include <errno.h>
+#include <limits.h>
 #include <linux/limits.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -26,11 +27,12 @@ static void draw_image_preview(const Preview *p, struct ncplane *n);
 static void update_image_preview(Preview *p, Preview *u);
 static void destroy_image_preview(Preview *p);
 
-static inline Preview *preview_init(Preview *p, const char *path, uint32_t nrow)
-{
+static inline Preview *preview_init(Preview *p, const char *path,
+                                    int height, int width) {
   memset(p, 0, sizeof *p);
   p->path = strdup(path);
-  p->nrow = nrow;
+  p->reload_height = height;
+  p->reload_width = width;
   p->next = current_millis();
 
   p->draw = draw_text_preview;
@@ -40,10 +42,9 @@ static inline Preview *preview_init(Preview *p, const char *path, uint32_t nrow)
   return p;
 }
 
-
-static inline Preview *preview_create(const char *path, uint32_t nrow)
+static inline Preview *preview_create(const char *path, int height, int width)
 {
-  return preview_init(xmalloc(sizeof(Preview)), path, nrow);
+  return preview_init(xmalloc(sizeof(Preview)), path, height, width);
 }
 
 
@@ -58,9 +59,9 @@ static void destroy_text_preview(Preview *p)
 }
 
 
-Preview *preview_create_loading(const char *path, uint32_t nrow)
+Preview *preview_create_loading(const char *path, int height, int width)
 {
-  Preview *p = preview_create(path, nrow);
+  Preview *p = preview_create(path, height, width);
   p->loading = true;
   return p;
 }
@@ -68,11 +69,11 @@ Preview *preview_create_loading(const char *path, uint32_t nrow)
 
 static void update_text_preview(Preview *p, Preview *u)
 {
-  log_debug("update_text_preview %s", p->path);
   cvector_ffree(p->lines, xfree);
   p->lines = u->lines;
   p->mtime = u->mtime;
-  p->nrow = u->nrow;
+  p->reload_width = u->reload_width;
+  p->reload_height = u->reload_height;
   p->loadtime = u->loadtime;
   p->loading = false;
 
@@ -87,7 +88,6 @@ static void update_text_preview(Preview *p, Preview *u)
 
 static void update_image_preview(Preview *p, Preview *u)
 {
-  log_debug("update_image_preview %s", p->path);
   if (p->ncv) {
     ncvisual_destroy(p->ncv);
   }
@@ -95,6 +95,8 @@ static void update_image_preview(Preview *p, Preview *u)
   p->mtime = u->mtime;
   p->loadtime = u->loadtime;
   p->loading = false;
+  p->reload_width = u->reload_width;
+  p->reload_height = u->reload_height;
 
   xfree(u->path);
   xfree(u);
@@ -123,6 +125,7 @@ static inline char *fgets_seek(char* dest, int n, FILE *fp)
 }
 
 
+// caller must should probably just pass a buffer of size PATH_MAX
 static inline void gen_cache_path(char *cache_path, const char *path)
 {
   uint8_t buf[32];
@@ -145,7 +148,7 @@ Preview *preview_create_from_file(const char *path, uint32_t width, uint32_t hei
 {
   char buf[PREVIEW_MAX_LINE_LENGTH];
 
-  Preview *p = preview_create(path, height);
+  Preview *p = preview_create(path, height, width);
   p->loadtime = current_millis();
 
   struct stat statbuf;
@@ -160,7 +163,6 @@ Preview *preview_create_from_file(const char *path, uint32_t width, uint32_t hei
   char cache_path[PATH_MAX];
   if (cfg.preview_images) {
     gen_cache_path(cache_path, path);
-    log_debug("generated: %s", cache_path);
   } else {
     cache_path[0] = 0;
   }
@@ -217,9 +219,16 @@ Preview *preview_create_from_file(const char *path, uint32_t width, uint32_t hei
                   log_error("preview: %s", strerror(errno));
                 }
                 break;
-                // case 3: // fix width
-                // case 4: // fix height
-                // case 5: // fix both
+        case 3: // display stdout, but don't reload if width/height/both change
+                p->reload_width = INT_MAX;
+                break;
+        case 4:
+                p->reload_height = INT_MAX;
+                break;
+        case 5:
+                p->reload_width = INT_MAX;
+                p->reload_height = INT_MAX;
+                break;
         case 6: if (cfg.preview_images) { // load from cache path passed to the previewer
                   struct ncvisual *ncv = ncvisual_from_file(cache_path);
                   if (ncv) {

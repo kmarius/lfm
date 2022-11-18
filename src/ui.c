@@ -1475,7 +1475,8 @@ static void update_preview(Ui *ui)
     if (ui->preview.preview) {
       if (streq(ui->preview.preview->path, file_path(file))) {
         if (!ui->preview.preview->loading) {
-          if (ui->preview.preview->nrow < (uint32_t) nrow) {
+          if (ui->preview.preview->reload_height < (int) nrow
+              || ui->preview.preview->reload_width < (int) ncol) {
             async_preview_load(&ui->lfm->async, ui->preview.preview);
             ui->preview.preview->loading = true;
           } else {

@@ -402,7 +402,8 @@ struct preview_check_s {
   struct result_s super;
   Async *async;
   char *path;
-  int nrow;
+  int height;
+  int width;
   time_t mtime;
   uint64_t loadtime;
 };
@@ -451,7 +452,8 @@ void async_preview_check(Async *async, Preview *pv)
 
   work->async = async;
   work->path = strdup(pv->path);
-  work->nrow = pv->nrow;
+  work->height = pv->reload_height;
+  work->width = pv->reload_width;
   work->mtime = pv->mtime;
   work->loadtime = pv->loadtime;
   tpool_add_work(async->tpool, async_preview_check_worker, work, true);
