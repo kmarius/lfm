@@ -62,9 +62,15 @@ function lfm.eval(line)
 		end
 	else
 		log.debug("loadstring: " .. line)
+		if string.sub(line, 1, 1) == "=" then
+			line = "return " .. string.sub(line, 2, -1)
+		end
 		local bc, err = loadstring(line)
 		if bc then
-			bc()
+			local res = bc()
+			if res then
+				print(res)
+			end
 		else
 			lfm.error("loadstring: "..err)
 		end
