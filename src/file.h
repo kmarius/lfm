@@ -107,6 +107,12 @@ static inline long file_ctime(const File *file)
   return file->lstat.st_ctime;
 }
 
+// Returns the last access time.
+static inline long file_atime(const File *file)
+{
+  return file->lstat.st_atime;
+}
+
 // Returns `nlink` of `file`.
 static inline long file_nlink(const File *file)
 {

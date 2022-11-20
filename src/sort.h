@@ -7,6 +7,8 @@ typedef enum sorttype_e {
   SORT_NAME,
   SORT_SIZE,
   SORT_CTIME,
+  SORT_ATIME,
+  SORT_MTIME,
   SORT_RAND,
 } sorttype;
 
@@ -17,5 +19,9 @@ int compare_size(const void *a, const void *b);
 int compare_natural(const void *a, const void *b);
 
 int compare_ctime(const void *a, const void *b);
+
+int compare_atime(const void *a, const void *b);
+
+int compare_mtime(const void *a, const void *b);
 
 void shuffle(void *arr, size_t n, size_t size);

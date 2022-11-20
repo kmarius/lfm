@@ -11,6 +11,8 @@ lfm.fm = {}
 ---| '"name"'
 ---| '"natural"'
 ---| '"ctime"'
+---| '"mtime"'
+---| '"atime"'
 ---| '"size"'
 ---| '"random"'
 ---| '"dirfirst"'

@@ -202,6 +202,10 @@ static int l_fm_sortby(lua_State *L)
       dir->settings.sorttype = SORT_NATURAL;
     } else if (streq(op, "ctime")) {
       dir->settings.sorttype = SORT_CTIME;
+    } else if (streq(op, "atime")) {
+      dir->settings.sorttype = SORT_ATIME;
+    } else if (streq(op, "mtime")) {
+      dir->settings.sorttype = SORT_MTIME;
     } else if (streq(op, "size")) {
       dir->settings.sorttype = SORT_SIZE;
     } else if (streq(op, "random")) {

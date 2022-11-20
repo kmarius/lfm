@@ -23,6 +23,16 @@ int compare_ctime(const void *a, const void *b)
   return file_ctime(*(File **) b) - file_ctime(*(File **) a);
 }
 
+int compare_atime(const void *a, const void *b)
+{
+  return file_atime(*(File **) b) - file_atime(*(File **) a);
+}
+
+int compare_mtime(const void *a, const void *b)
+{
+  return file_mtime(*(File **) b) - file_mtime(*(File **) a);
+}
+
 // https://stackoverflow.com/questions/6127503/shuffle-array-in-c
 // arrange the N elements of ARRAY in random order.
 // Only effective if N is much smaller than RAND_MAX;
