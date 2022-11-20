@@ -51,10 +51,10 @@ if(NOT EXISTS ${DEPS_PREFIX})
         --config ${CMAKE_BUILD_TYPE})
     set(DEPS_PREFIX ${DEPS_BUILD_DIR}/usr)
 endif()
-
-file(GLOB LFM_SOURCES src/*.c /src/*.h src/lua/*.c /src/lua/*.h)
-
 option(DEV "dev" OFF)
+
+set(LUA_PRG luajit)
+set(LUAC_PRG "${LUA_PRG} -b -s %s -")
 
 # how to use ${CMAKE_INSTALL_FULL_DATAROOTDIR}
 set(LFM_DATA_DIR ${CMAKE_INSTALL_PREFIX}/share/lfm)
@@ -83,20 +83,40 @@ set(LFM_COMMIT "${GIT_SHA1}")
 set(LFM_REVCOUNT "${GIT_REVCOUNT}")
 set(LFM_BRANCH "${GIT_BRANCH}")
 
+file(GLOB LFM_SOURCES ${PROJECT_SOURCE_DIR}/src/*.c ${PROJECT_SOURCE_DIR}/src/lua/*.c)
+file(GLOB LFM_HEADERS ${PROJECT_SOURCE_DIR}/src/*.h ${PROJECT_SOURCE_DIR}/src/lua/*.h)
+
 add_subdirectory(config)
 list(APPEND LFM_GENERATED_SOURCES
   "${PROJECT_BINARY_DIR}/config/auto/pathdef.c"
 )
+include_directories(${PROJECT_BINARY_DIR}/config)
 
-add_executable(lfm ${LFM_SOURCES} ${LFM_GENERATED_SOURCES})
+# lua module pre-compilation
+set(CHAR_BLOB_GENERATOR ${PROJECT_SOURCE_DIR}/gen/gen_char_blob.lua)
+set(LFM_MODULE_FILE ${PROJECT_BINARY_DIR}/lua/lfm_module.generated.h)
+set(LUA_INSPECT_MODULE_SOURCE "${PROJECT_SOURCE_DIR}/runtime/lua/inspect.lua")
+add_custom_command(
+	OUTPUT ${LFM_MODULE_FILE}
+	COMMAND ${CMAKE_COMMAND} -E env
+	"LUAC_PRG=${LUAC_PRG}"
+	${LUA_PRG} ${CHAR_BLOB_GENERATOR} -c ${LFM_MODULE_FILE}
+	${LUA_INSPECT_MODULE_SOURCE} "lfm.inspect"
+	DEPENDS
+	${CHAR_BLOB_GENERATOR}
+	${LUA_INSPECT_MODULE_SOURCE}
+	VERBATIM
+	)
+include_directories(${PROJECT_BINARY_DIR})
+list(APPEND LFM_GENERATED_SOURCES "${LFM_MODULE_FILE}")
+
+add_executable(lfm ${LFM_SOURCES} ${LFM_HEADERS} ${LFM_GENERATED_SOURCES})
 
 find_package(Notcurses REQUIRED)
 include_directories(SYSTEM ${NOTCURSES_INCLUDE_DIRS})
 
 find_package(LuaJit)
 include_directories(${LUAJIT_INCLUDE_DIRS})
-
-include_directories(build/config)
 
 find_package(Magic REQUIRED)
 find_package(Pcre REQUIRED)

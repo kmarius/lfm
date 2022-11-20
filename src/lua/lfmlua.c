@@ -7,9 +7,56 @@
 #include "../config.h"
 #include "../log.h"
 
+typedef struct {
+  char *name;
+  const uint8_t *data;
+  size_t size;
+} ModuleDef;
+
+#include "lua/lfm_module.generated.h"
+
+#define ARRAY_SIZE(arr) (sizeof(arr)/ sizeof(arr[0]))
+
 Lfm *lfm = NULL;
 Ui *ui = NULL;
 Fm *fm = NULL;
+
+// package preloading borrowed from neovim
+
+static int lfm_lua_module_preloader(lua_State *lstate)
+{
+  size_t i = (size_t)lua_tointeger(lstate, lua_upvalueindex(1));
+  ModuleDef def = builtin_modules[i];
+  char name[256];
+  name[0] = '@';
+  size_t off = xstrlcpy(name + 1, def.name, (sizeof name) - 2);
+  strchrsub(name + 1, '.', '/');
+  xstrlcpy(name + 1 + off, ".lua", (sizeof name) - 2 - off);
+
+  if (luaL_loadbuffer(lstate, (const char *)def.data, def.size - 1, name)) {
+    return lua_error(lstate);
+  }
+
+  lua_call(lstate, 0, 1);  // propagates error to caller
+  return 1;
+}
+
+static inline bool lfm_lua_init_packages(lua_State *lstate)
+{
+  // put builtin packages in preload
+  lua_getglobal(lstate, "package");  // [package]
+  lua_getfield(lstate, -1, "preload");  // [package, preload]
+  for (size_t i = 0; i < ARRAY_SIZE(builtin_modules); i++) {
+    ModuleDef def = builtin_modules[i];
+    lua_pushinteger(lstate, (long)i);  // [package, preload, i]
+    lua_pushcclosure(lstate, lfm_lua_module_preloader, 1);  // [package, preload, cclosure]
+    lua_setfield(lstate, -2, def.name);  // [package, preload]
+  }
+
+  lua_pop(lstate, 2);  // []
+
+  return true;
+}
 
 void lua_run_callback(lua_State *L, int ref)
 {
@@ -119,6 +166,8 @@ void lua_init(lua_State *L, Lfm *_lfm)
   luaL_openlibs(L);
   luaopen_jit(L);
   luaopen_lfm(L);
+
+  lfm_lua_init_packages(L);
 
   lua_load_file(L, cfg.corepath);
 }

@@ -182,6 +182,18 @@ function lfm.register_mode(t)
 	modes[t.prefix] = t
 end
 
+-- lazily load submodules in the lfm namespace
+local submodules = { inspect = true, }
+
+setmetatable(lfm, {
+	__index = function(t, key)
+		if submodules[key] then
+			t[key] = require('lfm.' .. key)
+			return t[key]
+		end
+	end,
+})
+
 -- Set up modules
 local util = require("util")
 lfm.util = util
@@ -193,8 +205,6 @@ lfm.quickmarks = quickmarks
 
 local compl = require("compl")
 lfm.compl = compl
-
-lfm.inspect = require("inspect")
 
 local shell = require("shell")
 lfm.shell = shell

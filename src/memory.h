@@ -38,3 +38,7 @@ static inline void xfree(void *p)
     CLEAR(*ptr_); \
     (void)(*ptr_); \
   } while (0)
+
+size_t xstrlcpy(char *restrict dst, const char *restrict src, size_t dsize);
+
+void strchrsub(char *str, char c, char x);
