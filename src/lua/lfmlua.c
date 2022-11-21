@@ -131,10 +131,12 @@ void lua_eval(lua_State *L, const char *expr)
   }
 }
 
-bool lua_load_file(lua_State *L, const char *path)
+bool lua_load_file(lua_State *L, const char *path, bool quiet)
 {
   if (luaL_loadfile(L, path) || lua_pcall(L, 0, 0, 0)) {
-    ui_error(ui, "loadfile: %s", lua_tostring(L, -1));
+    if (!quiet) {
+      ui_error(ui, "loadfile: %s", lua_tostring(L, -1));
+    }
     return false;
   }
   return true;
@@ -169,7 +171,8 @@ void lua_init(lua_State *L, Lfm *_lfm)
 
   lfm_lua_init_packages(L);
 
-  lua_load_file(L, cfg.corepath);
+  lua_load_file(L, cfg.corepath, false);
+  lua_load_file(L, cfg.configpath, true);
 }
 
 void lua_deinit(lua_State *L)

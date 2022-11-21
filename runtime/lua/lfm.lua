@@ -564,8 +564,3 @@ gmap("p", "/tmp")
 gmap("r", "/")
 gmap("s", "/srv")
 gmap("u", "/usr")
-
-local cfg = loadfile(config.configpath)
-if cfg then
-	cfg()
-end
