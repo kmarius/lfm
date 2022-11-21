@@ -8,7 +8,7 @@ local file = nil
 local function mode_esc()
 	lfm.nohighlight()
 	if file then
-		lfm.fm.sel(require("util").basename(file))
+		lfm.fm.sel(require("lfm.util").basename(file))
 	end
 end
 

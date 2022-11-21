@@ -2,7 +2,7 @@ local lfm = lfm
 
 local fm = lfm.fm
 
-local util = require("util")
+local util = require("lfm.util")
 local stat = require("posix.sys.stat")
 
 local basename = util.basename
@@ -10,7 +10,6 @@ local dirname = util.dirname
 local file_split = util.file_split
 
 local M = {}
-
 
 local function file_exists(path)
 	return stat.stat(path) ~= nil

@@ -3,7 +3,6 @@
 local config = lfm.config
 
 package.path = string.gsub(package.path, "./%?.lua;", "")
-package.path = package.path .. ";" .. config.luadir .. "/?.lua"
 package.path = package.path .. ";".. config.configdir .. "/lua/?.lua"
 
 local fm = lfm.fm
@@ -182,8 +181,20 @@ function lfm.register_mode(t)
 	modes[t.prefix] = t
 end
 
+-- submodule setup
+
 -- lazily load submodules in the lfm namespace
-local submodules = { inspect = true, }
+local submodules = {
+	compl = true,
+	inspect = true,
+	functions = true,
+	jumplist = true,
+	quickmarks = true,
+	rifle = true,
+	search = true,
+	shell = true,
+	util = true,
+}
 
 setmetatable(lfm, {
 	__index = function(t, key)
@@ -194,29 +205,19 @@ setmetatable(lfm, {
 	end,
 })
 
--- Set up modules
-local util = require("util")
-lfm.util = util
-
-local quickmarks = require("quickmarks")
-quickmarks._setup()
-quickmarks._setup = nil
-lfm.quickmarks = quickmarks
-
-local compl = require("compl")
-lfm.compl = compl
-
-local shell = require("shell")
-lfm.shell = shell
+local util = require("lfm.util")
+local compl = require("lfm.compl")
+local shell = require("lfm.shell")
 
 lfm.register_command("shell", function(arg) shell.bash(arg, {files=shell.ARRAY})() end, {tokenize=false, compl=compl.files})
 lfm.register_command("shell-bg", function(arg) shell.bash(arg, {files=shell.ARRAY, fork=true})() end, {tokenize=false, compl=compl.files})
 
-require("jumplist").setup()
+require("lfm.jumplist")._setup()
+require("lfm.quickmarks")._setup()
 
 lfm.register_command("quit", lfm.quit)
 lfm.register_command("q", lfm.quit)
-lfm.register_command("rename", require("functions").rename, {tokenize=false, compl=compl.limit(1, compl.files)})
+lfm.register_command("rename", require("lfm.functions").rename, {tokenize=false, compl=compl.limit(1, compl.files)})
 
 ---Function for <enter> in command mode. Clears the command line and calls `mode.enter`.
 local function cmdenter()
@@ -341,8 +342,8 @@ local mode_delete = {
 	end,
 }
 
-lfm.register_mode(require("search").mode_search)
-lfm.register_mode(require("search").mode_search_back)
+lfm.register_mode(require("lfm.search").mode_search)
+lfm.register_mode(require("lfm.search").mode_search_back)
 lfm.register_mode(mode_delete)
 lfm.register_mode(mode_cmd)
 lfm.register_mode(mode_filter)
@@ -350,8 +351,8 @@ lfm.register_mode(mode_find)
 lfm.register_mode(mode_travel)
 
 -- Colors
-local palette = require("colors").palette
-require("colors").set({
+local palette = require("lfm.colors").palette
+require("lfm.colors").set({
 	broken = {fg = palette.red},
 	patterns = {
 		{
@@ -375,8 +376,6 @@ require("colors").set({
 		},
 	}
 })
-
-lfm.rifle = require("rifle")
 
 -- Opener: xdg-open. Registering a new "open" command overrides.
 
@@ -466,7 +465,7 @@ map("j", fm.down, {desc="move cursor down"})
 map("k", fm.up, {desc="move cursor up"})
 map("h", fm.updir, {desc="go to parent directory"})
 map("l", open, {desc="open file/directory"})
-map("L", require("functions").follow_link)
+map("L", require("lfm.functions").follow_link)
 map("H", a(lfm.feedkeys, "''")) -- complementary to "L"
 map("gg", fm.top, {desc="go to top"})
 map("G", fm.bottom, {desc="go to bottom"})
@@ -491,9 +490,9 @@ map("zF", a(lfm.feedkeys, "zf<esc>"), {desc="remove current filter"})
 map("zh", function() config.hidden = not config.hidden end, {desc="toggle hidden files"})
 
 -- Flatten
-lfm.register_command("flatten", require("flatten").flatten, {tokenize=true})
-map("<a-+>", require("flatten").flatten_inc, {desc="increase flatten level"})
-map("<a-->", require("flatten").flatten_dec, {desc="decrease flatten level"})
+lfm.register_command("flatten", require("lfm.flatten").flatten, {tokenize=true})
+map("<a-+>", require("lfm.flatten").flatten_inc, {desc="increase flatten level"})
+map("<a-->", require("lfm.flatten").flatten_dec, {desc="decrease flatten level"})
 
 -- Find/hinting
 map("f", a(cmd.prefix_set, mode_find.prefix), {desc="find:"})
@@ -503,22 +502,22 @@ cmap("<c-n>", lfm.find_next, {desc="go to next find match"})
 cmap("<c-p>", lfm.find_prev, {desc="go to previous find match"})
 
 -- Search
-map("/", require("search").enter_mode, {desc="search:"})
-map("?", require("search").enter_mode_back, {desc="search: (backwards)"})
+map("/", require("lfm.search").enter_mode, {desc="search:"})
+map("?", require("lfm.search").enter_mode_back, {desc="search: (backwards)"})
 map("n", lfm.search_next, {desc="go to next search result"})
 map("N", lfm.search_prev, {desc="go to previous search result"})
 
 -- Copy/pasting
-map("yn", require("functions").yank_name, {desc="yank name"})
-map("yp", require("functions").yank_path, {desc="yank path"})
+map("yn", require("lfm.functions").yank_name, {desc="yank name"})
+map("yp", require("lfm.functions").yank_path, {desc="yank path"})
 map("yy", fm.copy, {desc="copy"})
 map("dd", fm.cut, {desc="cut"})
 map("ud", fm.paste_buffer_clear, {desc="load-clear"})
-map("pp", require("functions").paste, {desc="paste-overwrite"})
-map("pt", require("functions").paste_toggle, {desc="toggle paste mode"})
-map("po", require("functions").paste_overwrite, {desc="paste-overwrite"})
-map("pl", require("functions").symlink, {desc="symlink"})
-map("pL", require("functions").symlink_relative, {desc="symlink-relative"})
+map("pp", require("lfm.functions").paste, {desc="paste-overwrite"})
+map("pt", require("lfm.functions").paste_toggle, {desc="toggle paste mode"})
+map("po", require("lfm.functions").paste_overwrite, {desc="paste-overwrite"})
+map("pl", require("lfm.functions").symlink, {desc="symlink"})
+map("pL", require("lfm.functions").symlink_relative, {desc="symlink-relative"})
 map("df", a(lfm.cmd.prefix_set, mode_delete.prefix), {desc="trash-put"})
 map("dD", a(lfm.cmd.prefix_set, mode_delete.prefix), {desc="delete"})
 
@@ -526,10 +525,10 @@ map("dD", a(lfm.cmd.prefix_set, mode_delete.prefix), {desc="delete"})
 -- Renaming
 map("cW", a(lfm.feedkeys, ":rename "), {desc="rename"})
 map("cc", a(lfm.feedkeys, ":rename "), {desc="rename"})
-map("cw", require("functions").rename_until_ext, {desc="rename-until-ext"})
-map("a", require("functions").rename_before_ext, {desc="rename-before-ext"})
-map("A", require("functions").rename_after, {desc="rename-after"})
-map("I", require("functions").rename_before, {desc="rename-before"})
+map("cw", require("lfm.functions").rename_until_ext, {desc="rename-until-ext"})
+map("a", require("lfm.functions").rename_before_ext, {desc="rename-before-ext"})
+map("A", require("lfm.functions").rename_after, {desc="rename-after"})
+map("I", require("lfm.functions").rename_before, {desc="rename-before"})
 
 map("on", a(fm.sortby, "natural", "noreverse"), {desc="sort: natural, noreverse"})
 map("oN", a(fm.sortby, "natural", "reverse"), {desc="sort: natural, reverse"})
@@ -545,10 +544,10 @@ map("od", a(fm.sortby, "dirfirst"), {desc="sort: dirfirst"})
 map("oD", a(fm.sortby, "nodirfirst"), {desc="sort: nodirfirst"})
 map("or", a(fm.sortby, "random"), {desc="sort: random"})
 
-lfm.register_mode(require("glob").mode_glob_select)
-map("*", a(lfm.cmd.prefix_set, require("glob").mode_glob_select.prefix), {desc="glob-select"})
-lfm.register_command("glob-select", require("glob").glob_select, {tokenize=false})
-lfm.register_command("glob-select-rec", require("glob").glob_select_recursive, {tokenize=false})
+lfm.register_mode(require("lfm.glob").mode_glob_select)
+map("*", a(lfm.cmd.prefix_set, require("lfm.glob").mode_glob_select.prefix), {desc="glob-select"})
+lfm.register_command("glob-select", require("lfm.glob").glob_select, {tokenize=false})
+lfm.register_command("glob-select-rec", require("lfm.glob").glob_select_recursive, {tokenize=false})
 
 local function gmap(key, location)
 	map("g"..key, function() fm.chdir(location) end, {desc="cd "..location})
@@ -564,3 +563,7 @@ gmap("p", "/tmp")
 gmap("r", "/")
 gmap("s", "/srv")
 gmap("u", "/usr")
+
+-- os.execute("notify-send core.lua loaded")
+
+return {}

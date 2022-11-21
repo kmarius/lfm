@@ -1,10 +1,9 @@
 local lfm = lfm
 
 local fm = lfm.fm
-local ui = lfm.ui
-local find = require("find").find
+local find = require("lfm.util").find
 local selection_set = fm.selection_set
-local basename = require("util").basename
+local basename = require("lfm.util").basename
 local M = {}
 
 -- TODO: should probably escape some special chars (on 2022-02-12)

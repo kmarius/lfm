@@ -111,7 +111,7 @@ void config_init()
 
   cfg.luadir = strdup(default_lua_dir);
 
-  asprintf(&cfg.corepath, "%s/lfm.lua", cfg.luadir);
+  asprintf(&cfg.corepath, "%s/lfm/core.lua", cfg.luadir);
 
 #ifdef DEBUG
   cfg.logpath = strdup("/tmp/lfm.debug.log");

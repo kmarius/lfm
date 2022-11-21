@@ -23,9 +23,9 @@ Fm *fm = NULL;
 
 // package preloading borrowed from neovim
 
-static int lfm_lua_module_preloader(lua_State *lstate)
+static int lfm_lua_module_preloader(lua_State *L)
 {
-  size_t i = (size_t)lua_tointeger(lstate, lua_upvalueindex(1));
+  size_t i = (size_t)lua_tointeger(L, lua_upvalueindex(1));
   ModuleDef def = builtin_modules[i];
   char name[256];
   name[0] = '@';
@@ -33,27 +33,34 @@ static int lfm_lua_module_preloader(lua_State *lstate)
   strchrsub(name + 1, '.', '/');
   xstrlcpy(name + 1 + off, ".lua", (sizeof name) - 2 - off);
 
-  if (luaL_loadbuffer(lstate, (const char *)def.data, def.size - 1, name)) {
-    return lua_error(lstate);
+  if (luaL_loadbuffer(L, (const char *)def.data, def.size - 1, name)) {
+    return lua_error(L);
   }
 
-  lua_call(lstate, 0, 1);  // propagates error to caller
+  lua_call(L, 0, 1);  // propagates error to caller
   return 1;
 }
 
-static inline bool lfm_lua_init_packages(lua_State *lstate)
+static inline bool lfm_lua_init_packages(lua_State *L)
 {
   // put builtin packages in preload
-  lua_getglobal(lstate, "package");  // [package]
-  lua_getfield(lstate, -1, "preload");  // [package, preload]
+  lua_getglobal(L, "package");  // [package]
+  lua_getfield(L, -1, "preload");  // [package, preload]
   for (size_t i = 0; i < ARRAY_SIZE(builtin_modules); i++) {
     ModuleDef def = builtin_modules[i];
-    lua_pushinteger(lstate, (long)i);  // [package, preload, i]
-    lua_pushcclosure(lstate, lfm_lua_module_preloader, 1);  // [package, preload, cclosure]
-    lua_setfield(lstate, -2, def.name);  // [package, preload]
+    lua_pushinteger(L, (long)i);  // [package, preload, i]
+    lua_pushcclosure(L, lfm_lua_module_preloader, 1);  // [package, preload, cclosure]
+    lua_setfield(L, -2, def.name);  // [package, preload]
   }
 
-  lua_pop(lstate, 2);  // []
+  lua_pop(L, 2);  // []
+
+  lua_getglobal(L, "require");
+  lua_pushstring(L, "lfm._core");
+  if (lua_pcall(L, 1, 0, 0)) {
+      ui_error(ui, "loadfile: %s", lua_tostring(L, -1));
+      false;
+  }
 
   return true;
 }
@@ -131,12 +138,16 @@ void lua_eval(lua_State *L, const char *expr)
   }
 }
 
-bool lua_load_file(lua_State *L, const char *path, bool quiet)
+bool lua_load_file(lua_State *L, const char *path, bool err_on_non_exist)
 {
-  if (luaL_loadfile(L, path) || lua_pcall(L, 0, 0, 0)) {
-    if (!quiet) {
+  if (luaL_loadfile(L, path)) {
+    if (!err_on_non_exist) {
       ui_error(ui, "loadfile: %s", lua_tostring(L, -1));
     }
+    return false;
+  }
+  if (lua_pcall(L, 0, 0, 0)) {
+    ui_error(ui, "loadfile: %s", lua_tostring(L, -1));
     return false;
   }
   return true;
@@ -159,11 +170,11 @@ void lua_call_on_change(lua_State *L, const char *prefix)
   }
 }
 
-void lua_init(lua_State *L, Lfm *_lfm)
+void lua_init(lua_State *L, Lfm *lfm_)
 {
-  lfm = _lfm;
-  ui = &_lfm->ui;
-  fm = &_lfm->fm;
+  lfm = lfm_;
+  ui = &lfm_->ui;
+  fm = &lfm_->fm;
 
   luaL_openlibs(L);
   luaopen_jit(L);
@@ -171,7 +182,6 @@ void lua_init(lua_State *L, Lfm *_lfm)
 
   lfm_lua_init_packages(L);
 
-  lua_load_file(L, cfg.corepath, false);
   lua_load_file(L, cfg.configpath, true);
 }
 

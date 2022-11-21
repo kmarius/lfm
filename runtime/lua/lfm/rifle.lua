@@ -2,7 +2,7 @@ local lfm = lfm
 
 local fm = lfm.fm
 local ui = lfm.ui
-local shell = require("shell")
+local shell = require("lfm.shell")
 
 local M = lfm.rifle
 

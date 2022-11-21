@@ -46,7 +46,7 @@ end
 
 ---Set up jumplist: sets the two keybinds and registers the necessary hook.
 ---@param t? jumplist_setup_opts
-function M.setup(t)
+function M._setup(t)
 	t = t or {}
 	if not registered_hook then
 		lfm.register_hook("ChdirPost", on_chdir)
