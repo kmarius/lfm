@@ -40,6 +40,7 @@ function M.open(...)
 			for _, e in pairs(files) do
 				table.insert(t, e)
 			end
+			lfm.log.debug(table.concat(t, " "))
 			shell.execute(t)
 		end
 	end
