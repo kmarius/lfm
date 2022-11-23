@@ -6,7 +6,7 @@ local shell = require("lfm.shell")
 
 local M = lfm.rifle
 
-local config = lfm.config.configdir .. "/opener.conf"
+local config
 
 ---Navigate into a directory or open files.
 ---@param ... any
@@ -27,7 +27,7 @@ function M.open(...)
 			elseif match.term then
 				local term = M.query_mime("rifle/x-terminal-emulator", {limit=1})[1]
 				if not term then
-					error("rifle: no terminal configured in "..config)
+					error("rifle: no terminal configured"..(config and " in "..config or ""))
 				end
 				shell.execute({"sh", "-c", term.command, "_", "sh", "-c", match.command, unpack(files)},
 				{fork=true, out=false, err=false})
@@ -36,11 +36,15 @@ function M.open(...)
 				{fork=match.fork, out=false, err=false})
 			end
 		else
-			-- assume arguments are a command
-			for _, e in pairs(files) do
-				table.insert(t, e)
+			if #t > 0 then
+				-- assume arguments are a command
+				for _, e in pairs(files) do
+					table.insert(t, e)
+				end
+				shell.execute(t)
+			else
+				print("no matching rules for ".. lfm.fn.mime(files[1]))
 			end
-			shell.execute(t)
 		end
 	end
 end
@@ -60,18 +64,18 @@ function M.ask()
 end
 
 -- overwrite the builtin setup
-local _setup = M.setup
+local setup_internal = M.setup
 
----@class rifle_setup_opts
----@field config string path to configuration file e.g. a rifle.conf (default: ~/.config/lfm/opener.conf)
+---@class Lfm.Rifle.SetupOpts
+---@field config string path to configuration file e.g. a rifle.conf
+---@field rules string[] a table of rules as defined in rifle.conf, will take precedence
 
 ---Set up opener.
----@param t rifle_setup_opts
+---@param t Lfm.Rifle.SetupOpts
 function M.setup(t)
 	t = t or {}
-	t.config = t.config or config
 	config = t.config
-	_setup(t)
+	setup_internal(t)
 	lfm.register_command("open", M.open, {tokenize = true})
 	lfm.map("r", M.ask, {desc="show opener options"})
 end

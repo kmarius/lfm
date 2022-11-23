@@ -205,6 +205,14 @@ setmetatable(lfm, {
 	end,
 })
 
+require("lfm.rifle").setup({
+	rules = {
+		'mime inode/x-empty, label editor, has $EDITOR = $EDITOR -- "$@"',
+		'mime ^text, label editor, has $EDITOR = $EDITOR -- "$@"',
+		'mime ^text, label pager, has $PAGER = $PAGER -- "$@"',
+	}
+})
+
 local util = require("lfm.util")
 local compl = require("lfm.compl")
 local shell = require("lfm.shell")
@@ -376,19 +384,6 @@ require("lfm.colors").set({
 		},
 	}
 })
-
--- Opener: xdg-open. Registering a new "open" command overrides.
-
-lfm.register_command("open", function()
-	local file = lfm.fm.open()
-	if file then
-		local files = lfm.fm.selection_get()
-		if #files == 0 then
-			files = {file}
-		end
-		lfm.execute({"xdg-open", unpack(files)})
-	end
-end)
 
 local function open()
 	lfm.eval("open")
