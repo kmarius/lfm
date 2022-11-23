@@ -21,6 +21,7 @@ function M.open(...)
 			files = {file}
 		end
 		local match = M.query(files[1], {pick=pick, limit=1})[1]
+		lfm.log.debug(match and "yes" or "no")
 		if match then
 			lfm.log.debug("match: "..match.command)
 			if match.command == "ask" then
