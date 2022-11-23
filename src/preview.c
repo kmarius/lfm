@@ -19,6 +19,16 @@
 
 #define PREVIEW_MAX_LINE_LENGTH 1024  // includes escapes and color codes
 
+// return code interpretation of the previewer script taken from ranger
+#define PREVIEW_DISPLAY_STDOUT       0
+#define PREVIEW_NONE                 1
+#define PREVIEW_FILE_CONTENTS        2
+#define PREVIEW_FIX_WIDTH            3
+#define PREVIEW_FIX_HEIGHT           4
+#define PREVIEW_FIX_WIDTH_AND_HEIGHT 5
+#define PREVIEW_CACHE_AS_IMAGE       6
+#define PREVIEW_AS_IMAGE             7
+
 static void draw_text_preview(const Preview *p, struct ncplane *n);
 static void update_text_preview(Preview *p, Preview *u);
 static void destroy_text_preview(Preview *p);
@@ -203,65 +213,70 @@ Preview *preview_create_from_file(const char *path, uint32_t width, uint32_t hei
     /* TODO: what other statuses are possible here? (on 2022-09-27) */
     if (WIFEXITED(status)) {
       const int ret = WEXITSTATUS(status);
-      // return code interpretation taken from ranger:
+
       switch (ret) {
-        case 0: break; // display stdout
-        case 1: cvector_fclear(p->lines, xfree); break; // no preview
-        case 2: cvector_fclear(p->lines, xfree);  // show file contents
-                FILE *fp_file = fopen(path, "r");
-                if (fp_file) {
-                  for (uint32_t i = 0; i < height && fgets_seek(buf, sizeof buf, fp_file); i++) {
-                    cvector_push_back(p->lines, strdup(buf));
-                  }
-                  fclose(fp_file);
-                } else {
-                  cvector_push_back(p->lines, strerror(errno));
-                  log_error("preview: %s", strerror(errno));
-                }
-                break;
-        case 3: // display stdout, but don't reload if width/height/both change
-                p->reload_width = INT_MAX;
-                break;
-        case 4:
-                p->reload_height = INT_MAX;
-                break;
-        case 5:
-                p->reload_width = INT_MAX;
-                p->reload_height = INT_MAX;
-                break;
-        case 6: if (cfg.preview_images) { // load from cache path passed to the previewer
-                  struct ncvisual *ncv = ncvisual_from_file(cache_path);
-                  if (ncv) {
-                    cvector_ffree(p->lines, xfree);
-                    p->ncv = ncv;
-                    p->draw = draw_image_preview;
-                    p->update = update_image_preview;
-                    p->destroy = destroy_image_preview;
-                  } else {
-                    cvector_fclear(p->lines, xfree);
-                    cvector_push_back(p->lines, strdup("error loading image preview"));
-                    log_error("error loading image preview from %s", cache_path);
-                  }
-                }
-                break;
-        case 7: if (cfg.preview_images) { // load file as image
-                                          // try to load image preview
-                  struct ncvisual *ncv = ncvisual_from_file(path);
-                  if (ncv) {
-                    cvector_ffree(p->lines, xfree);
-                    p->ncv = ncv;
-                    p->draw = draw_image_preview;
-                    p->update = update_image_preview;
-                    p->destroy = destroy_image_preview;
-                  } else {
-                    cvector_fclear(p->lines, xfree);
-                    cvector_push_back(p->lines, strdup("error (ncvisual_from_file)"));
-                    log_error("error loading image preview");
-                  }
-                }
-                break;
+        case PREVIEW_DISPLAY_STDOUT:
+          break;
+        case PREVIEW_NONE:
+          cvector_fclear(p->lines, xfree);
+          break; // no preview
+        case PREVIEW_FILE_CONTENTS:
+          cvector_fclear(p->lines, xfree);
+          FILE *fp_file = fopen(path, "r");
+          if (fp_file) {
+            for (uint32_t i = 0; i < height && fgets_seek(buf, sizeof buf, fp_file); i++) {
+              cvector_push_back(p->lines, strdup(buf));
+            }
+            fclose(fp_file);
+          } else {
+            cvector_push_back(p->lines, strerror(errno));
+            log_error("preview: %s", strerror(errno));
+          }
+          break;
+        case PREVIEW_FIX_WIDTH:
+          p->reload_width = INT_MAX;
+          break;
+        case PREVIEW_FIX_HEIGHT:
+          p->reload_height = INT_MAX;
+          break;
+        case PREVIEW_FIX_WIDTH_AND_HEIGHT:
+          p->reload_width = INT_MAX;
+          p->reload_height = INT_MAX;
+          break;
+        case PREVIEW_CACHE_AS_IMAGE:
+          if (cfg.preview_images) {
+            struct ncvisual *ncv = ncvisual_from_file(cache_path);
+            if (ncv) {
+              cvector_ffree(p->lines, xfree);
+              p->ncv = ncv;
+              p->draw = draw_image_preview;
+              p->update = update_image_preview;
+              p->destroy = destroy_image_preview;
+            } else {
+              cvector_fclear(p->lines, xfree);
+              cvector_push_back(p->lines, strdup("error loading image preview"));
+              log_error("error loading image preview from %s", cache_path);
+            }
+          }
+          break;
+        case PREVIEW_AS_IMAGE:
+          if (cfg.preview_images) {
+            struct ncvisual *ncv = ncvisual_from_file(path);
+            if (ncv) {
+              cvector_ffree(p->lines, xfree);
+              p->ncv = ncv;
+              p->draw = draw_image_preview;
+              p->update = update_image_preview;
+              p->destroy = destroy_image_preview;
+            } else {
+              cvector_fclear(p->lines, xfree);
+              cvector_push_back(p->lines, strdup("error (ncvisual_from_file)"));
+              log_error("error loading image preview");
+            }
+          }
+          break;
         default:
-                log_error("unexpected return code %d from previewer for file %s", ret, path);
+          log_error("unexpected return code %d from previewer for file %s", ret, path);
       }
     }
   }
