@@ -12,6 +12,7 @@
 
 #include "rifle.h"
 #include "../cvector.h"
+#include "../log.h"
 #include "../util.h"
 
 #define RIFLE_META "rifle_meta"
@@ -380,7 +381,7 @@ static int l_rifle_fileinfo(lua_State *L)
   return 1;
 }
 
-static inline int lua_push_rule(lua_State *L, const Rule *r, int num)
+static inline int llua_push_rule(lua_State *L, const Rule *r, int num)
 {
   lua_newtable(L);
 
@@ -445,7 +446,7 @@ static int l_rifle_query_mime(lua_State *L)
         }
       }
 
-      lua_push_rule(L, r, ct_match-1);
+      llua_push_rule(L, r, ct_match-1);
       lua_rawseti(L, -2, i++);
 
       if (limit > 0 && i > limit) {
@@ -506,7 +507,7 @@ static int l_rifle_query(lua_State *L)
         }
       }
 
-      lua_push_rule(L, r, ct_match-1);
+      llua_push_rule(L, r, ct_match-1);
       lua_rawseti(L, -2, i++);
 
       if (limit > 0 && i > limit) {
@@ -518,6 +519,7 @@ static int l_rifle_query(lua_State *L)
   return 1;
 }
 
+// loads rules from the configuration file
 static void load_rules(Rifle *rifle)
 {
   if (!rifle->config_file) {
@@ -549,11 +551,44 @@ static void load_rules(Rifle *rifle)
   fclose(fp);
 }
 
+// loads rules from the table at the stack position idx
+static inline int llua_parse_rules(lua_State *L, int idx, Rifle *rifle)
+{
+  char buf[BUFSIZE];
+  for (lua_pushnil(L); lua_next(L, idx-1); lua_pop(L, 1)) {
+    const char *str = lua_tostring(L, -1);
+    log_debug("parsing: %s", str);
+    strncpy(buf, str, sizeof buf - 1);
+    buf[sizeof buf - 1] = 0;
+
+    char *command = split_command(buf);
+    if (!command) {
+      log_error("malformed rule: %s", str);
+    }
+
+    Rule *r = parse_rule(buf, command);
+    if (!r) {
+      log_error("malformed rule: %s", str);
+      continue;
+    }
+    cvector_push_back(rifle->rules, r);
+  }
+  return 0;
+}
+
 static int l_rifle_setup(lua_State *L)
 {
   Rifle *rifle = lua_touserdata(L, lua_upvalueindex(1));
 
+  cvector_fclear(rifle->rules, rule_destroy);
+
   if (lua_istable(L, 1)) {
+    lua_getfield(L, 1, "rules");
+    if (!lua_isnoneornil(L, -1)) {
+      llua_parse_rules(L, -1, rifle);
+    }
+    lua_pop(L, 1);
+
     lua_getfield(L, 1, "config");
     if (!lua_isnoneornil(L, -1)) {
       xfree(rifle->config_file);
@@ -561,8 +596,6 @@ static int l_rifle_setup(lua_State *L)
     }
     lua_pop(L, 1);
   }
-
-  cvector_fclear(rifle->rules, rule_destroy);
 
   load_rules(rifle);
 

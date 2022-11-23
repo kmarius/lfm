@@ -205,6 +205,14 @@ setmetatable(lfm, {
 	end,
 })
 
+require("lfm.rifle").setup({
+	rules = {
+		'mime inode/x-empty, label editor, has $EDITOR = $EDITOR -- "$@"',
+		'mime ^text, label editor, has $EDITOR = $EDITOR -- "$@"',
+		'mime ^text, label pager, has $PAGER = $PAGER -- "$@"',
+	}
+})
+
 local util = require("lfm.util")
 local compl = require("lfm.compl")
 local shell = require("lfm.shell")
