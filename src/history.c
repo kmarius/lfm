@@ -81,7 +81,7 @@ void history_write(History *h, const char *path, int histsize)
     FILE *fp_old = fopen(path, "r");
     if (fp_old) {
       int num_old_lines = 0;
-      char c;
+      int c;
       while ((c = fgetc(fp_old)) != EOF) {
         if (c == '\n') {
           num_old_lines++;
