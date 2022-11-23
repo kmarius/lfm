@@ -394,6 +394,14 @@ local function open()
 	lfm.eval("open")
 end
 
+lfm.register_command("delete", function(a)
+	if a then
+		error("command takes no arguments")
+	end
+	lfm.spawn({"rm", "-rf", "--", unpack(lfm.sel_or_cur())})
+	fm.selection_set()
+end)
+
 -- Keymaps
 
 local function wrap_mode_change(f)
