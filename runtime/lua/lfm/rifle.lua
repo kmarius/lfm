@@ -22,6 +22,7 @@ function M.open(...)
 		end
 		local match = M.query(files[1], {pick=pick, limit=1})[1]
 		if match then
+			lfm.log.debug("match: "..match.command)
 			if match.command == "ask" then
 				lfm.cmd.line_set(":", "shell ", ' "${files[@]}"')
 			elseif match.term then
