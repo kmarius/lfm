@@ -57,7 +57,6 @@ static inline Preview *preview_create(const char *path, int height, int width)
   return preview_init(xmalloc(sizeof(Preview)), path, height, width);
 }
 
-
 static void destroy_text_preview(Preview *p)
 {
   if (!p) {
@@ -68,14 +67,12 @@ static void destroy_text_preview(Preview *p)
   xfree(p);
 }
 
-
 Preview *preview_create_loading(const char *path, int height, int width)
 {
   Preview *p = preview_create(path, height, width);
   p->loading = true;
   return p;
 }
-
 
 static void update_text_preview(Preview *p, Preview *u)
 {
@@ -95,7 +92,6 @@ static void update_text_preview(Preview *p, Preview *u)
   xfree(u);
 }
 
-
 static void update_image_preview(Preview *p, Preview *u)
 {
   if (p->ncv) {
@@ -111,7 +107,6 @@ static void update_image_preview(Preview *p, Preview *u)
   xfree(u->path);
   xfree(u);
 }
-
 
 // like fgets, but seeks to the next line if dest is full.
 static inline char *fgets_seek(char* dest, int n, FILE *fp)
@@ -134,7 +129,6 @@ static inline char *fgets_seek(char* dest, int n, FILE *fp)
   return (c == EOF && cs == dest) ? NULL : dest;
 }
 
-
 // caller must should probably just pass a buffer of size PATH_MAX
 static inline void gen_cache_path(char *cache_path, const char *path)
 {
@@ -152,7 +146,6 @@ static inline void gen_cache_path(char *cache_path, const char *path)
   }
   cache_path[2*32] = 0;
 }
-
 
 Preview *preview_create_from_file(const char *path, uint32_t width, uint32_t height)
 {
@@ -285,7 +278,6 @@ Preview *preview_create_from_file(const char *path, uint32_t width, uint32_t hei
   return p;
 }
 
-
 static void draw_text_preview(const Preview *p, struct ncplane *n)
 {
   ncplane_erase(n);
@@ -305,7 +297,6 @@ static void draw_text_preview(const Preview *p, struct ncplane *n)
   }
 }
 
-
 static void draw_image_preview(const Preview *p, struct ncplane *n)
 {
   ncplane_erase(n);
@@ -322,7 +313,6 @@ static void draw_image_preview(const Preview *p, struct ncplane *n)
     log_error("ncvisual_blit error");
   }
 }
-
 
 static void destroy_image_preview(Preview *p)
 {
