@@ -76,7 +76,7 @@ function M.setup(t)
 	t = t or {}
 	config = t.config
 	setup_internal(t)
-	lfm.register_command("open", M.open, {tokenize = true})
+	lfm.register_command("open", M.open, {tokenize = true, desc="Open file(s)."})
 	lfm.map("r", M.ask, {desc="show opener options"})
 end
 

@@ -137,11 +137,13 @@ lfm.commands = {}
 ---@class Lfm.CommandParams
 ---@field tokenize boolean tokenize arguments (default: true)
 ---@field compl function completion function
+---@field desc string Description
 
 ---Register a function as a lfm command or unregister a command. Supported options
 ---```
 --- tokenize: tokenize the argument by whitespace and pass them as a table (default: false)
 --- compl:    completion function
+--- desc:     Description
 ---
 ---```
 ---@param name string Command name, can not contain whitespace.
@@ -217,15 +219,15 @@ local util = require("lfm.util")
 local compl = require("lfm.compl")
 local shell = require("lfm.shell")
 
-lfm.register_command("shell", function(arg) shell.bash(arg, {files=shell.ARRAY})() end, {tokenize=false, compl=compl.files})
-lfm.register_command("shell-bg", function(arg) shell.bash(arg, {files=shell.ARRAY, fork=true})() end, {tokenize=false, compl=compl.files})
+lfm.register_command("shell", function(arg) shell.bash(arg, {files=shell.ARRAY})() end, {tokenize=false, compl=compl.files, desc="Run a shell command."})
+lfm.register_command("shell-bg", function(arg) shell.bash(arg, {files=shell.ARRAY, fork=true})() end, {tokenize=false, compl=compl.files, desc="Run a shell command in the background."})
 
 require("lfm.jumplist")._setup()
 require("lfm.quickmarks")._setup()
 
-lfm.register_command("quit", lfm.quit)
-lfm.register_command("q", lfm.quit)
-lfm.register_command("rename", require("lfm.functions").rename, {tokenize=false, compl=compl.limit(1, compl.files)})
+lfm.register_command("quit", lfm.quit, {desc="Quit Lfm."})
+lfm.register_command("q", lfm.quit, {desc="Quit Lfm."})
+lfm.register_command("rename", require("lfm.functions").rename, {tokenize=false, compl=compl.limit(1, compl.files), desc="Rename the current file."})
 
 ---Function for <enter> in command mode. Clears the command line and calls `mode.enter`.
 local function cmdenter()
@@ -395,7 +397,7 @@ lfm.register_command("delete", function(a)
 	end
 	lfm.spawn({"rm", "-rf", "--", unpack(lfm.sel_or_cur())})
 	fm.selection_set()
-end)
+end, {desc="Delete current selection without asking for confirmation."})
 
 -- Keymaps
 
@@ -493,7 +495,7 @@ map("zF", a(lfm.feedkeys, "zf<esc>"), {desc="remove current filter"})
 map("zh", function() config.hidden = not config.hidden end, {desc="toggle hidden files"})
 
 -- Flatten
-lfm.register_command("flatten", require("lfm.flatten").flatten, {tokenize=true})
+lfm.register_command("flatten", require("lfm.flatten").flatten, {tokenize=true, desc="(Un)flatten current directory."})
 map("<a-+>", require("lfm.flatten").flatten_inc, {desc="increase flatten level"})
 map("<a-->", require("lfm.flatten").flatten_dec, {desc="decrease flatten level"})
 
@@ -549,8 +551,8 @@ map("or", a(fm.sortby, "random"), {desc="sort: random"})
 
 lfm.register_mode(require("lfm.glob").mode_glob_select)
 map("*", a(lfm.cmd.prefix_set, require("lfm.glob").mode_glob_select.prefix), {desc="glob-select"})
-lfm.register_command("glob-select", require("lfm.glob").glob_select, {tokenize=false})
-lfm.register_command("glob-select-rec", require("lfm.glob").glob_select_recursive, {tokenize=false})
+lfm.register_command("glob-select", require("lfm.glob").glob_select, {tokenize=false, desc="Select files in the current directory matching a glob."})
+lfm.register_command("glob-select-rec", require("lfm.glob").glob_select_recursive, {tokenize=false, desc="Select matching a glob recursively."})
 
 local function gmap(key, location)
 	map("g"..key, function() fm.chdir(location) end, {desc="cd "..location})
