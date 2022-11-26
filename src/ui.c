@@ -276,7 +276,7 @@ static inline void print_message(Ui *ui, const char *msg, bool error)
     } else {
       ncplane_set_fg_default(n);
       ncplane_cursor_move_yx(n, 0, 0);
-      ansi_addstr(n, msg);
+      ncplane_addastr(n, msg);
     }
     notcurses_render(ui->nc);
     ncplane_set_fg_default(n);
@@ -623,27 +623,27 @@ static void draw_custom_info(
   ncplane_set_bg_default(n);
   ncplane_set_fg_default(n);
 
-  ansi_addstr(n, buf);
+  ncplane_addastr(n, buf);
   if (path_ptr && file_ptr) {
     if (path_ptr < file_ptr) {
       ncplane_putwstr(n, path);
-      ansi_addstr(n, path_ptr+1);
+      ncplane_addastr(n, path_ptr+1);
 
       ncplane_putwstr(n, file);
-      ansi_addstr(n, file_ptr+1);
+      ncplane_addastr(n, file_ptr+1);
     } else {
       ncplane_putwstr(n, file);
-      ansi_addstr(n, file_ptr+1);
+      ncplane_addastr(n, file_ptr+1);
 
       ncplane_putwstr(n, path);
-      ansi_addstr(n, path_ptr+1);
+      ncplane_addastr(n, path_ptr+1);
     }
   } else if (path_ptr) {
     ncplane_putwstr(n, path);
-    ansi_addstr(n, path_ptr+1);
+    ncplane_addastr(n, path_ptr+1);
   } else if (file_ptr) {
     ncplane_putwstr(n, file);
-    ansi_addstr(n, file_ptr+1);
+    ncplane_addastr(n, file_ptr+1);
   }
 
   if (spacer_ptr) {
@@ -654,7 +654,7 @@ static void draw_custom_info(
     size_t l = ansi_mblen(spacer_ptr+1);
     if (r >= l) {
       ncplane_cursor_move_yx(n, 0, ui->ncol - l);
-      ansi_addstr(n, spacer_ptr+1);
+      ncplane_addastr(n, spacer_ptr+1);
     }
   }
 
@@ -814,7 +814,7 @@ static void draw_menu(struct ncplane *n, cvector_vector_type(char *) menubuf)
       }
       xpos += ncplane_putnstr(n, str - start, start);
       if (*str == '\033') {
-        str = ansi_consoom(n, str);
+        str = ncplane_set_ansi_attrs(n, str);
       } else if (*str == '\t') {
         ncplane_putchar(n, ' ');
         xpos++;

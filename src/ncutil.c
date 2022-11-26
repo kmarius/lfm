@@ -29,9 +29,7 @@ static inline bool parse_number(const char **s, int *num)
   return true;
 }
 
-// Consooms ansi color escape sequences and sets ATTRS
-// should be called with a pointer at \033
-const char *ansi_consoom(struct ncplane *n, const char *s)
+const char *ncplane_set_ansi_attrs(struct ncplane *n, const char *s)
 {
   assert(*s == '\033');
   s++;
@@ -174,11 +172,12 @@ err:
   goto ret;
 }
 
-void ansi_addstr(struct ncplane *n, const char *s)
+void ncplane_addastr_yx(struct ncplane *n, int y, int x, const char *s)
 {
+  ncplane_cursor_move_yx(n, y, x);
   while (*s) {
     if (*s == '\033') {
-      s = ansi_consoom(n, s);
+      s = ncplane_set_ansi_attrs(n, s);
     } else {
       const char *c;
       for (c = s; *s != 0 && *s != '\033'; s++);

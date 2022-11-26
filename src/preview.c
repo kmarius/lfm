@@ -293,7 +293,7 @@ static void draw_text_preview(const Preview *p, struct ncplane *n)
     ncplane_set_fg_default(n);
     ncplane_set_bg_default(n);
     ncplane_set_styles(n, NCSTYLE_NONE);
-    ansi_addstr(n, p->lines[i]);
+    ncplane_addastr(n, p->lines[i]);
   }
 }
 
