@@ -12,7 +12,7 @@ bool find(Fm *fm, const char *prefix)
 
   Dir *dir = fm_current_dir(fm);
   uint32_t nmatches = 0;
-  uint32_t first_match;
+  uint32_t first_match = 0;
   for (uint32_t i = 0; i < dir->length; i++) {
     const uint32_t ind = (dir->ind + i) % dir->length;
     if (hascaseprefix(file_name(dir->files[ind]), prefix)) {
