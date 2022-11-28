@@ -111,9 +111,8 @@ static void update_image_preview(Preview *p, Preview *u)
 // like fgets, but seeks to the next line if dest is full.
 static inline char *fgets_seek(char* dest, int n, FILE *fp)
 {
-  int c;
-  char* cs;
-  cs = dest;
+  int c = 0;
+  char *cs = dest;
 
   while (--n > 0 && (c = getc(fp)) != EOF) {
     if ((*cs++ = c) == '\n') {
@@ -122,7 +121,7 @@ static inline char *fgets_seek(char* dest, int n, FILE *fp)
   }
 
   if (c != EOF && c != '\n') {
-    while ((c = getc(fp)) != EOF && c != '\n');
+    while ((c = getc(fp)) != EOF && c != '\n') {}
   }
 
   *cs = 0;
