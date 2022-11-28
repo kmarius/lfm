@@ -15,7 +15,7 @@ Use the `PKGBUILD` provided in `pkg`. Builds the latest `master`. Also works on 
 #### Debian/Ubuntu
 Install dependencies
 
-    sudo apt install lua-posix libpcre3-dev libmagic-dev luajit libluajit-5.1-dev libreadline-dev zlib1g-dev libunistring-dev libev-dev gcc g++ pkg-config libavformat-dev libswscale-dev libavcodec-dev libdeflate-dev
+    sudo apt install cmake lua-posix libpcre3-dev libmagic-dev luajit libluajit-5.1-dev libreadline-dev zlib1g-dev libunistring-dev libev-dev gcc g++ pkg-config libavformat-dev libswscale-dev libavcodec-dev libdeflate-dev
 
    
 In the root of this repository perform
