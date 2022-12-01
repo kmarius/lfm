@@ -7,7 +7,7 @@ list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 
 set(CMAKE_C_STANDARD 11)
 
-set(CMAKE_C_FLAGS "-Wall -Wextra -Wvla -Werror=implicit -pthread -rdynamic")
+set(CMAKE_C_FLAGS "-Wall -Wextra -pedantic -Wvla -Werror=implicit -pthread -rdynamic")
 set(CMAKE_C_FLAGS_DEBUG "-DDEBUG -Og -g")
 set(CMAKE_C_FLAGS_ASAN "${CMAKE_C_FLAGS_DEBUG}")
 set(CMAKE_C_FLAGS_RELEASE "-DNDEBUG -O2 -flto -g")
