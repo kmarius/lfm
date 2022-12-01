@@ -38,23 +38,22 @@ int compare_mtime(const void *a, const void *b)
 // Only effective if N is much smaller than RAND_MAX;
 // if this may not be the case, use a better random
 // number generator.
-void shuffle(void *arr, size_t n, size_t size)
+void shuffle(void *arr_, size_t n, size_t size)
 {
   if (n <= 1) {
     return;
   }
 
-  const size_t stride = size;
+  char *arr = arr_;
   char *tmp = xmalloc(n * size);
 
-  size_t i;
-  for (i = 0; i < n - 1; ++i) {
+  for (size_t i = 0; i < n - 1; ++i) {
     const size_t rnd = (size_t) rand();
     size_t j = i + rnd / (RAND_MAX / (n - i) + 1);
 
-    memcpy(tmp, arr + j * stride, size);
-    memcpy(arr + j * stride, arr + i * stride, size);
-    memcpy(arr + i * stride, tmp, size);
+    memcpy(tmp, arr + j * size, size);
+    memcpy(arr + j * size, arr + i * size, size);
+    memcpy(arr + i * size, tmp, size);
   }
 
   xfree(tmp);
