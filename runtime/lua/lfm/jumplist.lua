@@ -40,20 +40,20 @@ function M.jump_prev()
 	end
 end
 
----@class jumplist_setup_opts
----@field jump_next_key string default "]"
----@field jump_prev_key string default "["
+---@class Lfm.JumpList.SetupOpts
+---@field key_next string default "]"
+---@field key_prev string default "["
 
 ---Set up jumplist: sets the two keybinds and registers the necessary hook.
----@param t? jumplist_setup_opts
+---@param t? Lfm.JumpList.SetupOpts
 function M._setup(t)
 	t = t or {}
 	if not registered_hook then
 		lfm.register_hook("ChdirPost", on_chdir)
 		registered_hook = true
 	end
-	lfm.map(t.jump_next_key or "]", M.jump_next, {desc="jumplist-next"})
-	lfm.map(t.jump_prev_key or "[", M.jump_prev, {desc="jumplist-prev"})
+	lfm.map(t.key_next or "]", M.jump_next, {desc="jumplist-next"})
+	lfm.map(t.key_prev or "[", M.jump_prev, {desc="jumplist-prev"})
 end
 
 return M
