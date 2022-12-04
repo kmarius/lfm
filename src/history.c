@@ -1,6 +1,8 @@
+#include <errno.h>
 #include <libgen.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "cvector.h"
 #include "history.h"
@@ -65,10 +67,15 @@ void history_write(History *h, const char *path, int histsize)
   xfree(dir);
 
   char *path_new;
-  asprintf(&path_new, "%s.new", path);
-
-  FILE *fp_new = fopen(path_new, "w");
+  asprintf(&path_new, "%s.XXXXXX", path);
+  int fd = mkstemp(path_new);
+  if (fd < 0) {
+    log_error("mkstemp: %s", strerror(errno));
+    goto cleanup;
+  }
+  FILE *fp_new = fdopen(fd, "w");
   if (!fp_new) {
+    log_error("fdopen: %s", strerror(errno));
     goto cleanup;
   }
 
