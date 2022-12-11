@@ -85,7 +85,7 @@ static void stdin_cb(EV_P_ ev_io *w, int revents)
       continue;
     }
 
-    // log_debug("id: %d, shift: %d, ctrl: %d alt %d, type: %d, %s", in.id, in.shift, in.ctrl, in.alt, in.evtype, in.utf8);
+    log_trace("id: %d, shift: %d, ctrl: %d alt %d, type: %d, %s", in.id, in.shift, in.ctrl, in.alt, in.evtype, in.utf8);
     lfm_handle_key(lfm, ncinput_to_input(&in));
   }
 
@@ -172,7 +172,7 @@ void lfm_handle_key(Lfm *lfm, input_t in)
         }
       }
       cvector_push_back(str, 0);
-      log_debug("key: %d, id: %d, shift: %d, ctrl: %d alt %d, %s",
+      log_info("key: %d, id: %d, shift: %d, ctrl: %d alt %d, %s",
           in, ID(in), ISSHIFT(in), ISCTRL(in), ISALT(in), str);
       cvector_free(str);
       ui_menu_hide(ui);

@@ -254,8 +254,6 @@ struct queue_dirs {
 
 Dir *dir_load_flat(const char *path, uint32_t level, bool load_dircount)
 {
-  uint64_t t0 = current_millis();
-
   Dir *dir = dir_create(path);
   dir->dircounts = load_dircount;
   dir->flatten_level = level;
@@ -334,8 +332,6 @@ cont:
 
   memcpy(dir->files_sorted, dir->files_all, dir->length_all * sizeof *dir->files_all);
   memcpy(dir->files, dir->files_all, dir->length_all * sizeof *dir->files_all);
-
-  log_debug("flat dir %s loaded in %ums", path, current_millis() - t0);
 
   return dir;
 }

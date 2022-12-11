@@ -58,9 +58,12 @@ int main(int argc, char **argv)
 
   FILE *log_fp = fopen(cfg.logpath, "w");
 
-  log_add_fp(log_fp, LOG_TRACE);
+#ifdef DEBUG
+  log_add_fp(log_fp, LOG_DEBUG);
+#else
+  log_add_fp(log_fp, LOG_INFO);
+#endif
   log_set_quiet(true);
-  log_debug("startup");
 
   int opt;
   while ((opt = getopt(argc, argv, ":c:hl:s:u:v")) != -1) {
@@ -118,7 +121,7 @@ int main(int argc, char **argv)
 
   lfm_init(&lfm);
 
-  log_debug("starting main loop after %.2f ms", (current_micros() - t0)/1000.0);
+  log_info("starting main loop after %.2f ms", (current_micros() - t0)/1000.0);
   lfm_run(&lfm);
 
   lfm_deinit(&lfm);

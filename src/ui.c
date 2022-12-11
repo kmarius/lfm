@@ -1506,7 +1506,7 @@ static void update_preview(Ui *ui)
 
 void ui_drop_cache(Ui *ui)
 {
-  log_debug("dropping preview cache");
+  log_debug("ui_drop_cache");
   if (ui->preview.preview) {
     ui->preview.preview = NULL;
   }

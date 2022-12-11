@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/stat.h>
 #include <time.h>
 #include <sys/wait.h>
@@ -186,7 +187,7 @@ Preview *preview_create_from_file(const char *path, uint32_t width, uint32_t hei
   int pid = popen2_arr_p(NULL, &fp, NULL, args[0], args, NULL);
   if (!fp) {
     cvector_push_back(p->lines, strerror(errno));
-    log_error("preview: %s", strerror(errno));
+    log_error("popen2_arr_p: %s", strerror(errno));
     return p;
   }
 
@@ -200,7 +201,7 @@ Preview *preview_create_from_file(const char *path, uint32_t width, uint32_t hei
   // whole output of the previewer and let it exit on its own.
   int status;
   if (waitpid(pid, &status, 0) == -1) {
-    log_error("waitpid failed");
+    log_error("waitpid: %s", strerror(errno));
   } else {
     /* TODO: what other statuses are possible here? (on 2022-09-27) */
     if (WIFEXITED(status)) {
@@ -222,7 +223,7 @@ Preview *preview_create_from_file(const char *path, uint32_t width, uint32_t hei
             fclose(fp_file);
           } else {
             cvector_push_back(p->lines, strerror(errno));
-            log_error("preview: %s", strerror(errno));
+            log_error("fopen: %s", strerror(errno));
           }
           break;
         case PREVIEW_FIX_WIDTH:
@@ -247,7 +248,7 @@ Preview *preview_create_from_file(const char *path, uint32_t width, uint32_t hei
             } else {
               cvector_fclear(p->lines, xfree);
               cvector_push_back(p->lines, strdup("error loading image preview"));
-              log_error("error loading image preview from %s", cache_path);
+              log_error("ncvisual_from_file %s", cache_path);
             }
           }
           break;
@@ -263,7 +264,7 @@ Preview *preview_create_from_file(const char *path, uint32_t width, uint32_t hei
             } else {
               cvector_fclear(p->lines, xfree);
               cvector_push_back(p->lines, strdup("error (ncvisual_from_file)"));
-              log_error("error loading image preview");
+              log_error("ncvisual_from_file %s", path);
             }
           }
           break;
@@ -309,7 +310,7 @@ static void draw_image_preview(const Preview *p, struct ncplane *n)
     .blitter = NCBLIT_PIXEL,
   };
   if (ncvisual_blit(ncplane_notcurses(n), p->ncv, &vopts) == NULL){
-    log_error("ncvisual_blit error");
+    log_error("ncvisual_blit");
   }
 }
 

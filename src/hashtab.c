@@ -66,7 +66,6 @@ void ht_destroy(Hashtab *ht)
 
 static inline void ht_resize(Hashtab *ht, size_t capacity)
 {
-  // log_debug("resizing from %lu to %lu", ht->capacity, capacity);
   Hashtab *new = ht_with_capacity(capacity, ht->free);
   new->min_capacity = ht->min_capacity;
   ht_foreach_kv(const char *k, void *v, ht) {
@@ -287,7 +286,6 @@ static bool lht_probe(const LinkedHashtab *lht, const char *key, struct lht_buck
 // won'lht bother for now, because when does that even happen?
 static inline void lht_resize(LinkedHashtab *lht, size_t capacity)
 {
-  // log_debug("resizing from %lu to %lu", lht->capacity, capacity);
   LinkedHashtab *new = lht_with_capacity(capacity, lht->free);
   new->min_capacity = lht->min_capacity;
   lht_foreach_kv(const char *k, void *v, lht) {

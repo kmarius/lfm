@@ -129,7 +129,7 @@ void lua_call_from_ref(lua_State *L, int ref, int count)
 
 void lua_eval(lua_State *L, const char *expr)
 {
-  log_debug("eval %s", expr);
+  log_debug("lua_eval %s", expr);
   lua_getglobal(L, "lfm");
   lua_getfield(L, -1, "eval");
   lua_pushstring(L, expr);
