@@ -24,8 +24,8 @@ struct timer_data {
 void loader_init(Loader *loader, struct lfm_s *lfm)
 {
   loader->lfm = lfm;
-  loader->dir_cache = ht_create((ht_free_fun) dir_destroy);
-  loader->preview_cache = ht_create((ht_free_fun) preview_destroy);
+  loader->dir_cache = ht_create((ht_free_func) dir_destroy);
+  loader->preview_cache = ht_create((ht_free_func) preview_destroy);
 }
 
 
