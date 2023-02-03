@@ -269,7 +269,7 @@ char *path_qualify(const char* path, const char *pwd)
     }
     const int l2 = strlen(path);
     const int l1 = strlen(pwd);
-    p = xmalloc(l1 + l2 + 1);
+    p = xmalloc(l1 + l2 + 2);
     strcpy(p, pwd);
     *(p + l1) = '/';
     strcpy(p + l1 + 1, path);
