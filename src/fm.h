@@ -126,7 +126,9 @@ bool fm_scroll_down(Fm *fm);
 // Changes directory to the directory given by `path`. If `save` then the
 // current directory will be saved as the special "'" automark. Returns `true´
 // if the directory has been changed.
-bool fm_chdir(Fm *fm, const char *path, bool save, bool hook);
+bool fm_async_chdir(Fm *fm, const char *path, bool save, bool hook);
+
+bool fm_sync_chdir(Fm *fm, const char *path, bool save, bool hook);
 
 // Open the currently selected file: if it is a directory, chdir into it.
 // Otherwise return the file so that the caller can open it.
@@ -160,7 +162,7 @@ void fm_check_dirs(const Fm *fm);
 static inline bool fm_jump_automark(Fm *fm)
 {
   if (fm->automark) {
-    return fm_chdir(fm, fm->automark, true, true);
+    return fm_async_chdir(fm, fm->automark, true, true);
   }
   return false;
 }

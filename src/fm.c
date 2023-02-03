@@ -116,8 +116,7 @@ void fm_recol(Fm *fm)
   fm_update_preview(fm);
 }
 
-
-bool fm_chdir(Fm *fm, const char *path, bool save, bool hook)
+static inline bool fm_chdir_impl(Fm *fm, const char *path, bool save, bool hook, bool async)
 {
   fm_selection_visual_stop(fm);
 
@@ -127,7 +126,11 @@ bool fm_chdir(Fm *fm, const char *path, bool save, bool hook)
     path = fullpath;
   }
 
-  async_chdir(&fm->lfm->async, path, hook);
+  if (async) {
+    async_chdir(&fm->lfm->async, path, hook);
+  } else {
+    setenv("PWD", path, true);
+  }
 
   notify_remove_watchers(&fm->lfm->notify);
 
@@ -155,6 +158,15 @@ bool fm_chdir(Fm *fm, const char *path, bool save, bool hook)
   return true;
 }
 
+bool fm_sync_chdir(Fm *fm, const char *path, bool save, bool hook)
+{
+  return fm_chdir_impl(fm, path, save, hook, false);
+}
+
+bool fm_async_chdir(Fm *fm, const char *path, bool save, bool hook)
+{
+  return fm_chdir_impl(fm, path, save, hook, true);
+}
 
 static inline void fm_update_watchers(Fm *fm)
 {
@@ -539,7 +551,7 @@ File *fm_open(Fm *fm)
     return file;
   }
 
-  fm_chdir(fm, file_path(file), false, false);
+  fm_async_chdir(fm, file_path(file), false, false);
   return NULL;
 }
 
@@ -553,7 +565,7 @@ bool fm_updir(Fm *fm)
   }
 
   const char *name = fm_current_dir(fm)->name;
-  fm_chdir(fm, dir_parent_path(fm_current_dir(fm)), false, false);
+  fm_async_chdir(fm, dir_parent_path(fm_current_dir(fm)), false, false);
   fm_move_cursor_to(fm, name);
   fm_update_preview(fm);
   return true;

@@ -526,6 +526,8 @@ struct chdir_s {
   struct result_s super;
   Async *async;
   char *path;
+  char *origin;
+  int err;
   bool hook;
 };
 
@@ -533,8 +535,12 @@ static void chdir_callback(void *p, Lfm *lfm)
 {
   struct chdir_s *res = p;
   if (streq(res->path, lfm->fm.pwd)) {
-    if (chdir(res->path) != 0) {
-      log_error("chdir: %s: %s", strerror(errno), res->path);
+    if (res->err) {
+      lfm_error(lfm, "stat: %s", strerror(res->err));
+      fm_sync_chdir(&lfm->fm, res->origin, false, false);
+    } else if (chdir(res->path) != 0) {
+      lfm_error(lfm, "chdir: %s", strerror(errno));
+      fm_sync_chdir(&lfm->fm, res->origin, false, false);
     } else {
       setenv("PWD", res->path, true);
       if (res->hook) {
@@ -543,6 +549,7 @@ static void chdir_callback(void *p, Lfm *lfm)
     }
   }
   xfree(res->path);
+  xfree(res->origin);
   xfree(res);
 }
 
@@ -550,6 +557,7 @@ static void chdir_destroy(void *p)
 {
   struct chdir_s *res = p;
   xfree(res->path);
+  xfree(res->origin);
   xfree(res);
 }
 
@@ -559,9 +567,9 @@ static void async_chdir_worker(void *arg)
 
   struct stat statbuf;
   if (stat(work->path, &statbuf) == -1) {
-    xfree(work->path);
-    xfree(work);
-    return;
+    work->err = errno;
+  } else {
+    work->err = 0;
   }
 
   enqueue_and_signal(work->async, (struct result_s *) work);
@@ -574,6 +582,7 @@ void async_chdir(Async *async, const char *path, bool hook)
   work->super.destroy = &chdir_destroy;
 
   work->path = strdup(path);
+  work->origin = strdup(async->lfm->fm.pwd);
   work->async = async;
   work->hook = hook;
   tpool_add_work(async->tpool, async_chdir_worker, work, true);
