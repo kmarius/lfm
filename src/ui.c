@@ -142,6 +142,7 @@ void ui_deinit(Ui *ui)
   cvector_foreach_ptr(struct message_s *m, ui->messages) {
     xfree(m->text);
   }
+  cvector_free(ui->messages);
   cvector_ffree(ui->menubuf, xfree);
   cmdline_deinit(&ui->cmdline);
   xfree(ui->search_string);
