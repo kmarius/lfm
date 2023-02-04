@@ -10,7 +10,7 @@
 #define CONFIG_META "config_mt"
 #define COLORS_META "colors_mt"
 
-static inline int lua_dir_settings_set(lua_State *L, const char *path, int ind)
+static inline int llua_dir_settings_set(lua_State *L, const char *path, int ind)
 {
   if (lua_isnil(L, ind)) {
     ht_delete(cfg.dir_settings_map, path);
@@ -108,7 +108,7 @@ static int l_dir_settings_index(lua_State *L)
 
 static int l_dir_settings_newindex(lua_State *L)
 {
-  lua_dir_settings_set(L, luaL_checkstring(L, 2), 3);
+  llua_dir_settings_set(L, luaL_checkstring(L, 2), 3);
   return 0;
 }
 
@@ -311,7 +311,7 @@ static int l_config_newindex(lua_State *L)
     luaL_checktype(L, 3, LUA_TTABLE);
     ht_clear(cfg.dir_settings_map);
     for (lua_pushnil(L); lua_next(L, -2) != 0; lua_pop(L, 1)) {
-      lua_dir_settings_set(L, luaL_checkstring(L, -2), -1);
+      llua_dir_settings_set(L, luaL_checkstring(L, -2), -1);
     }
   } else if (streq(key, "previewer")) {
     if (lua_isnoneornil(L, 3)) {

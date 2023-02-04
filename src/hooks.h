@@ -16,10 +16,10 @@
 
 static inline void lfm_run_hook(Lfm *lfm, const char *hook)
 {
-  lua_run_hook(lfm->L, hook);
+  llua_run_hook(lfm->L, hook);
 }
 
 static inline void lfm_run_hook1(struct lfm_s *lfm, const char *hook, const char* arg1)
 {
-  lua_run_hook1(lfm->L, hook, arg1);
+  llua_run_hook1(lfm->L, hook, arg1);
 }

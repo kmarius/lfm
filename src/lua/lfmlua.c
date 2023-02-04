@@ -23,7 +23,7 @@ Fm *fm = NULL;
 
 // package preloading borrowed from neovim
 
-static int lfm_lua_module_preloader(lua_State *L)
+static int l_module_preloader(lua_State *L)
 {
   size_t i = (size_t)lua_tointeger(L, lua_upvalueindex(1));
   ModuleDef def = builtin_modules[i];
@@ -41,7 +41,7 @@ static int lfm_lua_module_preloader(lua_State *L)
   return 1;
 }
 
-static inline bool lfm_lua_init_packages(lua_State *L)
+static inline bool llua_init_packages(lua_State *L)
 {
   // put builtin packages in preload
   lua_getglobal(L, "package");  // [package]
@@ -49,7 +49,7 @@ static inline bool lfm_lua_init_packages(lua_State *L)
   for (size_t i = 0; i < ARRAY_SIZE(builtin_modules); i++) {
     ModuleDef def = builtin_modules[i];
     lua_pushinteger(L, (long)i);  // [package, preload, i]
-    lua_pushcclosure(L, lfm_lua_module_preloader, 1);  // [package, preload, cclosure]
+    lua_pushcclosure(L, l_module_preloader, 1);  // [package, preload, cclosure]
     lua_setfield(L, -2, def.name);  // [package, preload]
   }
 
@@ -65,7 +65,7 @@ static inline bool lfm_lua_init_packages(lua_State *L)
   return true;
 }
 
-void lua_run_callback(lua_State *L, int ref)
+void llua_run_callback(lua_State *L, int ref)
 {
   if (lua_get_callback(L, ref, true)) {
     if (lua_pcall(L, 0, 0, 0)) {
@@ -74,7 +74,7 @@ void lua_run_callback(lua_State *L, int ref)
   }
 }
 
-void lua_run_child_callback(lua_State *L, int ref, int rstatus)
+void llua_run_child_callback(lua_State *L, int ref, int rstatus)
 {
   if (lua_get_callback(L, ref, true)) {
     lua_pushnumber(L, rstatus);
@@ -84,7 +84,7 @@ void lua_run_child_callback(lua_State *L, int ref, int rstatus)
   }
 }
 
-void lua_run_stdout_callback(lua_State *L, int ref, const char *line)
+void llua_run_stdout_callback(lua_State *L, int ref, const char *line)
 {
   if (lua_get_callback(L, ref, line == NULL) && line) {
     lua_pushstring(L, line);
@@ -95,7 +95,7 @@ void lua_run_stdout_callback(lua_State *L, int ref, const char *line)
   }
 }
 
-void lua_run_hook(lua_State *L, const char *hook)
+void llua_run_hook(lua_State *L, const char *hook)
 {
   lua_getglobal(L, "lfm");
   lua_getfield(L, -1, "run_hook");
@@ -105,7 +105,7 @@ void lua_run_hook(lua_State *L, const char *hook)
   }
 }
 
-void lua_run_hook1(lua_State *L, const char *hook, const char* arg1)
+void llua_run_hook1(lua_State *L, const char *hook, const char* arg1)
 {
   lua_getglobal(L, "lfm");
   lua_getfield(L, -1, "run_hook");
@@ -116,7 +116,7 @@ void lua_run_hook1(lua_State *L, const char *hook, const char* arg1)
   }
 }
 
-void lua_call_from_ref(lua_State *L, int ref, int count)
+void llua_call_from_ref(lua_State *L, int ref, int count)
 {
   lua_rawgeti(L, LUA_REGISTRYINDEX, ref);
   if (count > 0) {
@@ -127,7 +127,7 @@ void lua_call_from_ref(lua_State *L, int ref, int count)
   }
 }
 
-void lua_eval(lua_State *L, const char *expr)
+void llua_eval(lua_State *L, const char *expr)
 {
   log_debug("lua_eval %s", expr);
   lua_getglobal(L, "lfm");
@@ -138,7 +138,7 @@ void lua_eval(lua_State *L, const char *expr)
   }
 }
 
-bool lua_load_file(lua_State *L, const char *path, bool err_on_non_exist)
+bool llua_load_file(lua_State *L, const char *path, bool err_on_non_exist)
 {
   if (luaL_loadfile(L, path)) {
     if (!err_on_non_exist) {
@@ -153,7 +153,7 @@ bool lua_load_file(lua_State *L, const char *path, bool err_on_non_exist)
   return true;
 }
 
-void lua_call_on_change(lua_State *L, const char *prefix)
+void llua_call_on_change(lua_State *L, const char *prefix)
 {
   lua_getglobal(L, "lfm");
   if (lua_type(L, -1) == LUA_TTABLE) {
@@ -170,7 +170,7 @@ void lua_call_on_change(lua_State *L, const char *prefix)
   }
 }
 
-void lua_init(lua_State *L, Lfm *lfm_)
+void llua_init(lua_State *L, Lfm *lfm_)
 {
   lfm = lfm_;
   ui = &lfm_->ui;
@@ -180,12 +180,12 @@ void lua_init(lua_State *L, Lfm *lfm_)
   luaopen_jit(L);
   luaopen_lfm(L);
 
-  lfm_lua_init_packages(L);
+  llua_init_packages(L);
 
-  lua_load_file(L, cfg.configpath, true);
+  llua_load_file(L, cfg.configpath, true);
 }
 
-void lua_deinit(lua_State *L)
+void llua_deinit(lua_State *L)
 {
   lua_close(L);
 }

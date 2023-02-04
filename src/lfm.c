@@ -57,7 +57,7 @@ static inline void destroy_io_watcher(ev_io *w)
 
   struct stdout_watcher_data *data = w->data;
   if (data->ref) {
-    lua_run_stdout_callback(data->lfm->L, data->ref, NULL);
+    llua_run_stdout_callback(data->lfm->L, data->ref, NULL);
   }
   fclose(data->stream);
   xfree(data);
@@ -86,7 +86,7 @@ static void child_cb(EV_P_ ev_child *w, int revents)
   ev_child_stop(EV_A_ w);
 
   if (data->ref >= 0) {
-    lua_run_child_callback(data->lfm->L, data->ref, w->rstatus);
+    llua_run_child_callback(data->lfm->L, data->ref, w->rstatus);
   }
 
   if (data->stdout_watcher) {
@@ -129,7 +129,7 @@ static void schedule_timer_cb(EV_P_ ev_timer *w, int revents)
   (void) revents;
   struct schedule_timer_data *data = w->data;
   ev_timer_stop(EV_A_ w);
-  lua_run_callback(data->lfm->L, data->ref);
+  llua_run_callback(data->lfm->L, data->ref);
   cvector_swap_remove(data->lfm->schedule_timers, w);
   ev_idle_start(loop, &data->lfm->redraw_watcher);
   destroy_schedule_timer(w);
@@ -160,7 +160,7 @@ static void command_stdout_cb(EV_P_ ev_io *w, int revents)
     }
 
     if (data->ref >= 0) {
-      lua_run_stdout_callback(data->lfm->L, data->ref, line);
+      llua_run_stdout_callback(data->lfm->L, data->ref, line);
     } else {
       ui_echom(&data->lfm->ui, "%s", line);
     }
@@ -185,7 +185,7 @@ static void prepare_cb(EV_P_ ev_prepare *w, int revents)
 
   if (cfg.commands) {
     cvector_foreach(const char *cmd, cfg.commands) {
-      lua_eval(lfm->L, cmd);
+      llua_eval(lfm->L, cmd);
     }
     cvector_free_clear(cfg.commands);
   }
@@ -316,7 +316,7 @@ void lfm_init(Lfm *lfm)
 
   lfm->L = luaL_newstate();
   ev_set_userdata(lfm->loop, lfm->L);
-  lua_init(lfm->L, lfm);
+  llua_init(lfm->L, lfm);
   // can't run these hooks in the loader before initialization
   ht_foreach(Dir *dir, lfm->loader.dir_cache) {
     lfm_run_hook1(lfm, LFM_HOOK_DIRLOADED, dir->path);
@@ -518,7 +518,7 @@ void lfm_read_fifo(Lfm *lfm)
 
   if ((size_t) nread < sizeof buf) {
     buf[nread - 1] = 0;
-    lua_eval(lfm->L, buf);
+    llua_eval(lfm->L, buf);
   } else {
     size_t capacity = 2 * sizeof buf;
     char *dyn_buf = xmalloc(capacity);
@@ -532,7 +532,7 @@ void lfm_read_fifo(Lfm *lfm)
       }
     }
     dyn_buf[length] = 0;
-    lua_eval(lfm->L, dyn_buf);
+    llua_eval(lfm->L, dyn_buf);
     xfree(dyn_buf);
   }
 
@@ -559,7 +559,7 @@ void lfm_deinit(Lfm *lfm)
   cvector_ffree(lfm->schedule_timers, destroy_schedule_timer);
   notify_deinit(&lfm->notify);
   input_deinit(lfm);
-  lua_deinit(lfm->L);
+  llua_deinit(lfm->L);
   ui_deinit(&lfm->ui);
   fm_deinit(&lfm->fm);
   loader_deinit(&lfm->loader);

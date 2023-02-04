@@ -135,12 +135,12 @@ void lfm_handle_key(Lfm *lfm, input_t in)
           ui_redraw(ui, REDRAW_CMDLINE);
         }
       }
-      lua_call_on_change(lfm->L, prefix);
+      llua_call_on_change(lfm->L, prefix);
     } else {
       if (lfm->maps.cur->ref) {
         int ref = lfm->maps.cur->ref;
         lfm->maps.cur = NULL;
-        lua_call_from_ref(lfm->L, ref, -1);
+        llua_call_from_ref(lfm->L, ref, -1);
       }
     }
   } else {
@@ -183,7 +183,7 @@ void lfm_handle_key(Lfm *lfm, input_t in)
       int ref = lfm->maps.cur->ref;
       lfm->maps.cur = NULL;
       ui_keyseq_hide(ui);
-      lua_call_from_ref(lfm->L, ref, lfm->maps.count);
+      llua_call_from_ref(lfm->L, ref, lfm->maps.count);
     } else {
       cvector_push_back(lfm->maps.seq, in);
       ui_keyseq_show(ui, lfm->maps.seq);
