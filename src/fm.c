@@ -65,7 +65,6 @@ void fm_init(Fm *fm, struct lfm_s *lfm)
 
 }
 
-
 void fm_deinit(Fm *fm)
 {
   cvector_free(fm->dirs.visible);
@@ -76,7 +75,6 @@ void fm_deinit(Fm *fm)
   xfree(fm->find_prefix);
   xfree(fm->pwd);
 }
-
 
 static void fm_populate(Fm *fm)
 {
@@ -95,7 +93,6 @@ static void fm_populate(Fm *fm)
     }
   }
 }
-
 
 void fm_recol(Fm *fm)
 {
@@ -179,7 +176,6 @@ static inline void fm_update_watchers(Fm *fm)
   }
 }
 
-
 /* TODO: maybe we can select the closest non-hidden file in case the
  * current one will be hidden (on 2021-10-17) */
 static inline void fm_sort_and_reselect(Fm *fm, Dir *dir)
@@ -197,7 +193,6 @@ static inline void fm_sort_and_reselect(Fm *fm, Dir *dir)
   }
 }
 
-
 void fm_sort(Fm *fm)
 {
   for (uint32_t i = 0; i < fm->dirs.length; i++) {
@@ -206,14 +201,12 @@ void fm_sort(Fm *fm)
   fm_sort_and_reselect(fm, fm->dirs.preview);
 }
 
-
 void fm_hidden_set(Fm *fm, bool hidden)
 {
   cfg.dir_settings.hidden = hidden;
   fm_sort(fm);
   fm_update_preview(fm);
 }
-
 
 void fm_check_dirs(const Fm *fm)
 {
@@ -227,7 +220,6 @@ void fm_check_dirs(const Fm *fm)
     loader_dir_reload(&fm->lfm->loader, fm->dirs.preview);
   }
 }
-
 
 void fm_drop_cache(Fm *fm)
 {
@@ -243,7 +235,6 @@ void fm_drop_cache(Fm *fm)
   fm_update_watchers(fm);
 }
 
-
 void fm_reload(Fm *fm)
 {
   for (uint32_t i = 0; i < fm->dirs.length; i++) {
@@ -256,7 +247,6 @@ void fm_reload(Fm *fm)
   }
 }
 
-
 static inline void fm_remove_preview(Fm *fm)
 {
   if (!fm->dirs.preview) {
@@ -267,7 +257,6 @@ static inline void fm_remove_preview(Fm *fm)
   fm->dirs.preview->visible = false;
   fm->dirs.preview = NULL;
 }
-
 
 void fm_update_preview(Fm *fm)
 {
@@ -320,14 +309,12 @@ void fm_update_preview(Fm *fm)
 
 /* selection {{{ */
 
-
 static inline void fm_selection_toggle(Fm *fm, const char *path)
 {
   if (!lht_delete(fm->selection.paths, path)) {
     fm_selection_add(fm, path);
   }
 }
-
 
 void fm_selection_toggle_current(Fm *fm)
 {
@@ -340,7 +327,6 @@ void fm_selection_toggle_current(Fm *fm)
   }
 }
 
-
 void fm_selection_reverse(Fm *fm)
 {
   const Dir *dir = fm_current_dir(fm);
@@ -348,7 +334,6 @@ void fm_selection_reverse(Fm *fm)
     fm_selection_toggle(fm, file_path(dir->files[i]));
   }
 }
-
 
 void fm_selection_visual_start(Fm *fm)
 {
@@ -372,7 +357,6 @@ void fm_selection_visual_start(Fm *fm)
   }
 }
 
-
 void fm_selection_visual_stop(Fm *fm)
 {
   if (!fm->visual.active) {
@@ -384,7 +368,6 @@ void fm_selection_visual_stop(Fm *fm)
   ht_clear(fm->selection.previous);
 }
 
-
 void fm_selection_visual_toggle(Fm *fm)
 {
   if (fm->visual.active) {
@@ -393,7 +376,6 @@ void fm_selection_visual_toggle(Fm *fm)
     fm_selection_visual_start(fm);
   }
 }
-
 
 static void selection_visual_update(Fm *fm, uint32_t origin, uint32_t from, uint32_t to)
 {
@@ -429,7 +411,6 @@ static void selection_visual_update(Fm *fm, uint32_t origin, uint32_t from, uint
     }
   }
 }
-
 
 void fm_selection_write(const Fm *fm, const char *path)
 {
@@ -493,13 +474,11 @@ bool fm_cursor_move(Fm *fm, int32_t ct)
   return dir->ind != cur;
 }
 
-
 void fm_move_cursor_to(Fm *fm, const char *name)
 {
   dir_cursor_move_to(fm_current_dir(fm), name, fm->height, cfg.scrolloff);
   fm_update_preview(fm);
 }
-
 
 bool fm_scroll_up(Fm *fm)
 {
@@ -520,7 +499,6 @@ bool fm_scroll_up(Fm *fm)
   return true;
 }
 
-
 bool fm_scroll_down(Fm *fm)
 {
   Dir *dir = fm_current_dir(fm);
@@ -540,7 +518,6 @@ bool fm_scroll_down(Fm *fm)
   return true;
 }
 
-
 File *fm_open(Fm *fm)
 {
   File *file = fm_current_file(fm);
@@ -556,7 +533,6 @@ File *fm_open(Fm *fm)
   fm_async_chdir(fm, file_path(file), false, false);
   return NULL;
 }
-
 
 /* TODO: allow updir into directories that don't exist so we can move out of
  * deleted directories (on 2021-11-18) */
@@ -594,7 +570,6 @@ void fm_flatten(Fm *fm, uint32_t level)
   fm_current_dir(fm)->flatten_level = level;
   async_dir_load(&fm->lfm->async, fm_current_dir(fm), true);
 }
-
 
 void fm_resize(Fm *fm, uint32_t height)
 {
