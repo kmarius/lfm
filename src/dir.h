@@ -43,6 +43,8 @@ typedef struct dir_s {
   bool dircounts;
   bool sorted;
 
+  struct stat stat;
+
   struct dir_settings settings;
 } Dir;
 

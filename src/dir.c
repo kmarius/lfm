@@ -200,6 +200,14 @@ Dir *dir_load(const char *path, bool load_dircount)
   Dir *dir = dir_create(path);
   dir->dircounts = load_dircount;
 
+  if (lstat(path, &dir->stat) == -1) {
+    // TODO: figure out if/how we should handle errors here, we currently
+    // only use the inode to check if we should reload
+    //
+    // also: do we need fstat?
+    log_debug("lstat: %s", strerror(errno));
+  }
+
   DIR *dirp = opendir(path);
   if (!dirp) {
     log_error("opendir: %s", strerror(errno));
@@ -257,6 +265,10 @@ Dir *dir_load_flat(const char *path, uint32_t level, bool load_dircount)
   Dir *dir = dir_create(path);
   dir->dircounts = load_dircount;
   dir->flatten_level = level;
+
+  if (lstat(path, &dir->stat) == -1) {
+    log_debug("lstat: %s", strerror(errno));
+  }
 
   struct queue_dirs queue;
   queue.head = xmalloc(sizeof *queue.head);
@@ -406,6 +418,7 @@ void dir_update_with(Dir *d, Dir *update, uint32_t height, uint32_t scrolloff)
   d->load_time = update->load_time;
   d->error = update->error;
   d->flatten_level = update->flatten_level;
+  d->stat = update->stat;
 
   d->updates++;
 

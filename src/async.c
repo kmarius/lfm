@@ -158,6 +158,7 @@ struct dir_check_s {
   char *path;
   Dir *dir;         // dir might not exist anymore, don't touch
   time_t loadtime;
+  __ino_t ino;
   struct validity_check64_s check;  // lfm.loader.dir_cache_version
 };
 
@@ -181,8 +182,9 @@ static void async_dir_check_worker(void *arg)
   struct dir_check_s *work = arg;
   struct stat statbuf;
 
-  if (stat(work->dir->path, &statbuf) == -1
-      || statbuf.st_mtime <= work->loadtime) {
+  if (stat(work->path, &statbuf) == -1
+      || (statbuf.st_ino == work->ino
+      && statbuf.st_mtime <= work->loadtime)) {
     xfree(work->path);
     xfree(work);
     return;
@@ -203,6 +205,7 @@ void async_dir_check(Async *async, Dir *dir)
   work->path = strdup(dir->path);
   work->dir = dir;
   work->loadtime = dir->load_time;
+  work->ino = dir->stat.st_ino;
   CHECK_INIT(work->check, async->lfm->loader.dir_cache_version);
   tpool_add_work(async->tpool, async_dir_check_worker, work, true);
 }
