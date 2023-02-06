@@ -280,10 +280,12 @@ void fm_update_preview(Fm *fm)
   if (file && file_isdir(file)) {
     if (fm->dirs.preview) {
       if (streq(fm->dirs.preview->path, file_path(file))) {
+        // this forces the loader to recheck the current preview
+        loader_dir_from_path(&fm->lfm->loader, file_path(file));
         return;
       }
 
-      /* don'fm remove watcher if it is a currently visible (non-preview) dir */
+      /* don't remove watcher if it is a currently visible (non-preview) dir */
       uint32_t i;
       for (i = 0; i < fm->dirs.length; i++) {
         if (fm->dirs.visible[i] && streq(fm->dirs.preview->path, fm->dirs.visible[i]->path)) {
@@ -556,7 +558,7 @@ File *fm_open(Fm *fm)
 }
 
 
-/* TODO: allow updir into directories that don'fm exist so we can move out of
+/* TODO: allow updir into directories that don't exist so we can move out of
  * deleted directories (on 2021-11-18) */
 bool fm_updir(Fm *fm)
 {
