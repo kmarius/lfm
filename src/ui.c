@@ -1,4 +1,5 @@
 #include <errno.h>
+#include <ev.h>
 #include <fcntl.h>
 #include <libgen.h>
 #include <ncurses.h>
@@ -30,13 +31,14 @@
 
 #define EXT_MAX_LEN 128  // to convert the extension to lowercase
 
+static void menu_delay_timer_cb(EV_P_ ev_timer *w, int revents);
 static void draw_dirs(Ui *ui);
 static void plane_draw_dir(struct ncplane *n, Dir *dir, LinkedHashtab *sel,
     LinkedHashtab *load, paste_mode mode, const char *highlight, bool print_sizes);
 static void draw_cmdline(Ui *ui);
 static void draw_preview(Ui *ui);
 static void update_preview(Ui *ui);
-static void draw_menu(struct ncplane *n, cvector_vector_type(char *) menu);
+static void draw_menu(Ui *ui, cvector_vector_type(char *) menu);
 static void draw_info(Ui *ui);
 static void menu_resize(Ui *ui);
 static int print_shortened_w(struct ncplane *n, const wchar_t *name, int name_len, int max_len, bool has_ext);
@@ -58,7 +60,6 @@ static int resize_cb(struct ncplane *n)
   menu_resize(ui);
   return 0;
 }
-
 
 void ui_resume(Ui *ui)
 {
@@ -96,9 +97,12 @@ void ui_resume(Ui *ui)
   opts.rows = opts.cols = 1;
   ui->planes.menu = ncplane_create(ncstd, &opts);
   ncplane_move_bottom(ui->planes.menu);
+
+  ev_timer_init(&ui->menu_delay_timer, menu_delay_timer_cb, 0, 0);
+  ui->menu_delay_timer.data = ui->lfm;
+
   ui->running = true;
 }
-
 
 void ui_suspend(Ui *ui)
 {
@@ -117,7 +121,6 @@ void ui_suspend(Ui *ui)
   ui->running = false;
 }
 
-
 void ui_init(Ui *ui, struct lfm_s *lfm)
 {
   cmdline_init(&ui->cmdline);
@@ -135,7 +138,6 @@ void ui_init(Ui *ui, struct lfm_s *lfm)
   log_info("initialized ui");
 }
 
-
 void ui_deinit(Ui *ui)
 {
   ui_suspend(ui);
@@ -149,7 +151,6 @@ void ui_deinit(Ui *ui)
   xfree(ui->infoline);
 }
 
-
 void kbblocking(bool blocking)
 {
   int val = fcntl(STDIN_FILENO, F_GETFL, 0);
@@ -157,7 +158,6 @@ void kbblocking(bool blocking)
     fcntl(STDIN_FILENO, F_SETFL, blocking ? val & ~O_NONBLOCK : val | O_NONBLOCK);
   }
 }
-
 
 void ui_recol(Ui *ui)
 {
@@ -192,7 +192,6 @@ void ui_recol(Ui *ui)
   ui->preview.rows = ui->nrow - 2;
 }
 
-
 /* }}} */
 
 /* main drawing/echo/err {{{ */
@@ -203,7 +202,7 @@ void ui_draw(Ui *ui)
     draw_dirs(ui);
   }
   if (ui->redraw & (REDRAW_MENU | REDRAW_MENU)) {
-    draw_menu(ui->planes.menu, ui->menubuf);
+    draw_menu(ui, ui->menubuf);
   }
   if (ui->redraw & (REDRAW_FM | REDRAW_CMDLINE)) {
     draw_cmdline(ui);
@@ -220,7 +219,6 @@ void ui_draw(Ui *ui)
   ui->redraw = 0;
 }
 
-
 void ui_clear(Ui *ui)
 {
   notcurses_refresh(ui->nc, NULL, NULL);
@@ -230,7 +228,6 @@ void ui_clear(Ui *ui)
 
   ui_redraw(ui, REDRAW_FULL);
 }
-
 
 static void draw_dirs(Ui *ui)
 {
@@ -245,7 +242,6 @@ static void draw_dirs(Ui *ui)
         i == 0 ? ui->highlight : NULL, i == 0);
   }
 }
-
 
 static void draw_preview(Ui *ui)
 {
@@ -268,21 +264,21 @@ static void draw_preview(Ui *ui)
 static inline void print_message(Ui *ui, const char *msg, bool error)
 {
   struct ncplane *n = ui->planes.cmdline;
-    ncplane_erase(n);
-    ncplane_set_bg_default(n);
-    ncplane_set_styles(n, NCSTYLE_NONE);
-    if (error) {
-      ncplane_set_fg_palindex(ui->planes.cmdline, COLOR_RED);
-      ncplane_putstr_yx(ui->planes.cmdline, 0, 0, msg);
-    } else {
-      ncplane_set_fg_default(n);
-      ncplane_cursor_move_yx(n, 0, 0);
-      ncplane_addastr(n, msg);
-    }
-    notcurses_render(ui->nc);
+  ncplane_erase(n);
+  ncplane_set_bg_default(n);
+  ncplane_set_styles(n, NCSTYLE_NONE);
+  if (error) {
+    ncplane_set_fg_palindex(ui->planes.cmdline, COLOR_RED);
+    ncplane_putstr_yx(ui->planes.cmdline, 0, 0, msg);
+  } else {
     ncplane_set_fg_default(n);
-    ncplane_set_bg_default(n);
-    ncplane_set_styles(n, NCSTYLE_NONE);
+    ncplane_cursor_move_yx(n, 0, 0);
+    ncplane_addastr(n, msg);
+  }
+  notcurses_render(ui->nc);
+  ncplane_set_fg_default(n);
+  ncplane_set_bg_default(n);
+  ncplane_set_styles(n, NCSTYLE_NONE);
 }
 
 void ui_echom(Ui *ui, const char *format, ...)
@@ -294,7 +290,6 @@ void ui_echom(Ui *ui, const char *format, ...)
   ui_redraw(ui, REDRAW_CMDLINE);
 }
 
-
 void ui_error(Ui *ui, const char *format, ...)
 {
   va_list args;
@@ -303,7 +298,6 @@ void ui_error(Ui *ui, const char *format, ...)
   va_end(args);
   ui_redraw(ui, REDRAW_CMDLINE);
 }
-
 
 void ui_verror(Ui *ui, const char *format, va_list args)
 {
@@ -317,7 +311,6 @@ void ui_verror(Ui *ui, const char *format, va_list args)
   ui->show_message = true;
 }
 
-
 void ui_vechom(Ui *ui, const char *format, va_list args)
 {
   struct message_s msg = {NULL, false};
@@ -328,11 +321,9 @@ void ui_vechom(Ui *ui, const char *format, va_list args)
   ui->show_message = true;
 }
 
-
 /* }}} */
 
 /* cmd line {{{ */
-
 
 void ui_cmd_delete(Ui *ui) {
   if (ui->cmdline.left.len == 0 && ui->cmdline.right.len == 0) {
@@ -355,22 +346,19 @@ void ui_cmd_prefix_set(Ui *ui, const char *prefix)
   ui_redraw(ui, REDRAW_CMDLINE);
 }
 
-
 void ui_cmd_clear(Ui *ui)
 {
   cmdline_clear(&ui->cmdline);
   notcurses_cursor_disable(ui->nc);
-  ui_menu_show(ui, NULL);
+  ui_menu_show(ui, NULL, 0);
   ui_redraw(ui, REDRAW_CMDLINE | REDRAW_MENU);
 }
-
 
 static char *print_time(time_t time, char *buffer, size_t bufsz)
 {
   strftime(buffer, bufsz, "%Y-%m-%d %H:%M:%S", localtime(&time));
   return buffer;
 }
-
 
 static uint32_t int_sz(uint32_t n)
 {
@@ -663,7 +651,6 @@ static void draw_custom_info(
   xfree(file);
 }
 
-
 static void draw_info(Ui *ui)
 {
   // arbitrary
@@ -792,11 +779,13 @@ static void draw_info(Ui *ui)
 /* menu {{{ */
 
 /* most notably, replaces tabs with (up to) 8 spaces */
-static void draw_menu(struct ncplane *n, cvector_vector_type(char *) menubuf)
+static void draw_menu(Ui *ui, cvector_vector_type(char *) menubuf)
 {
-  if (!menubuf) {
+  if (!menubuf || !ui->menu_visible) {
     return;
   }
+
+  struct ncplane *n = ui->planes.menu;
 
   ncplane_erase(n);
 
@@ -828,7 +817,6 @@ static void draw_menu(struct ncplane *n, cvector_vector_type(char *) menubuf)
   }
 }
 
-
 static void menu_resize(Ui *ui)
 {
   const uint32_t h = max(1, min(cvector_size(ui->menubuf), ui->nrow - 2));
@@ -838,7 +826,6 @@ static void menu_resize(Ui *ui)
     ncplane_move_top(ui->planes.menu);
   }
 }
-
 
 static void menu_clear(Ui *ui)
 {
@@ -850,19 +837,41 @@ static void menu_clear(Ui *ui)
   ncplane_move_bottom(ui->planes.menu);
 }
 
-
-void ui_menu_show(Ui *ui, cvector_vector_type(char*) vec)
+void ui_menu_show(Ui *ui, cvector_vector_type(char*) vec, uint32_t delay)
 {
+  struct ev_loop *loop = ui->lfm->loop;
+  ev_timer_stop(loop, &ui->menu_delay_timer);
   if (ui->menubuf) {
     menu_clear(ui);
     cvector_ffree_clear(ui->menubuf, xfree);
+    ui->menu_visible = false;
   }
   if (cvector_size(vec) > 0) {
     ui->menubuf = vec;
-    menu_resize(ui);
-    ncplane_move_top(ui->planes.menu);
+
+    if (delay > 0) {
+      ui->menu_delay_timer.repeat = (float) delay / 1000.0;
+      ev_timer_again(loop, &ui->menu_delay_timer);
+    } else {
+      menu_delay_timer_cb(loop, &ui->menu_delay_timer, 0);
+    }
   }
   ui_redraw(ui, REDRAW_MENU);
+}
+
+static void menu_delay_timer_cb(EV_P_ ev_timer *w, int revents)
+{
+  (void) revents;
+  Lfm *lfm = w->data;
+  Ui *ui = &lfm->ui;
+  if (ui->menubuf) {
+    menu_resize(ui);
+    ncplane_move_top(ui->planes.menu);
+    ui->menu_visible = true;
+  }
+  ui_redraw(ui, REDRAW_MENU);
+  ev_timer_stop(loop, w);
+  ev_idle_start(loop, &lfm->redraw_watcher);
 }
 
 /* }}} */
@@ -887,7 +896,6 @@ static uint64_t ext_channel_get(const char *ext)
   }
   return 0;
 }
-
 
 /* TODO: make the following two functions return the length of the output
  * (and make the callers use it) (on 2022-10-29) */
@@ -1058,7 +1066,6 @@ static int print_shortened_w(struct ncplane *n, const wchar_t *name, int name_le
   return x;
 }
 
-
 static inline int print_shortened(struct ncplane *n, const char *name, int max_len, bool has_ext)
 {
   if (max_len <= 0) {
@@ -1071,7 +1078,6 @@ static inline int print_shortened(struct ncplane *n, const char *name, int max_l
   xfree(namew);
   return ret;
 }
-
 
 static int print_highlighted_and_shortened(struct ncplane *n, const char *name, const char *hl, int max_len, bool has_ext)
 {
@@ -1247,7 +1253,6 @@ static int print_highlighted_and_shortened(struct ncplane *n, const char *name, 
   return x;
 }
 
-
 static void print_file(struct ncplane *n, const File *file,
     bool iscurrent, LinkedHashtab *sel, LinkedHashtab *load, paste_mode mode,
     const char *highlight, bool print_sizes)
@@ -1407,7 +1412,6 @@ static void print_file(struct ncplane *n, const File *file,
   ncplane_set_styles(n, NCSTYLE_NONE);
 }
 
-
 static void plane_draw_dir(struct ncplane *n, Dir *dir, LinkedHashtab *sel, LinkedHashtab*load,
     paste_mode mode, const char *highlight, bool print_sizes)
 {
@@ -1457,14 +1461,12 @@ static inline Preview *load_preview(Ui *ui, File *file)
   return loader_preview_from_path(&ui->lfm->loader, file_path(file));
 }
 
-
 static inline void reset_preview_plane_size(Ui *ui)
 {
   // ncvisual_blit shrinks the ncplane to approximately fit the image, we
   // need to fix it
   ncplane_resize(ui->planes.preview, 0, 0, 0, 0, 0, 0, ui->preview.rows, ui->preview.cols);
 }
-
 
 static void update_preview(Ui *ui)
 {
@@ -1503,7 +1505,6 @@ static void update_preview(Ui *ui)
     }
   }
 }
-
 
 void ui_drop_cache(Ui *ui)
 {

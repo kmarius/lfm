@@ -1,5 +1,6 @@
 #pragma once
 
+#include <ev.h>
 #include <notcurses/notcurses.h>
 #include <stdarg.h>
 #include <stdint.h>
@@ -44,7 +45,10 @@ typedef struct ui_s {
     cvector_vector_type(struct ncplane*) dirs;
   } planes;
 
-  cvector_vector_type(char*) menubuf;
+  cvector_vector_type(char *) menubuf;
+  bool menu_visible;
+  struct ev_timer menu_delay_timer;
+
   cvector_vector_type(struct message_s) messages;
 
   Cmdline cmdline;
@@ -94,11 +98,11 @@ void ui_verror(Ui *ui, const char *format, va_list args);
 
 void ui_vechom(Ui *ui, const char *format, va_list args);
 
-void ui_menu_show(Ui *ui, cvector_vector_type(char*) vec);
+void ui_menu_show(Ui *ui, cvector_vector_type(char*) vec, uint32_t delay);
 
 static inline void ui_menu_hide(Ui *ui)
 {
-  ui_menu_show(ui, NULL);
+  ui_menu_show(ui, NULL, 0);
 }
 
 static inline void ui_keyseq_show(Ui *ui, input_t *keyseq)

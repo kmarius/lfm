@@ -1,5 +1,6 @@
 #include <notcurses/notcurses.h>
 
+#include "config.h"
 #include "fm.h"
 #include "hooks.h"
 #include "input.h"
@@ -201,7 +202,7 @@ void lfm_handle_key(Lfm *lfm, input_t in)
         cvector_push_back(menu, s);
       }
       cvector_free(leaves);
-      ui_menu_show(ui, menu);
+      ui_menu_show(ui, menu, cfg.map_suggestion_delay);
     }
   }
 }

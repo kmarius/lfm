@@ -25,6 +25,7 @@ Config cfg = {
   .scrolloff = 4,
   .inotify_timeout = NOTIFY_TIMEOUT,
   .inotify_delay = NOTIFY_DELAY,
+  .map_suggestion_delay = MAP_SUGGESTION_DELAY,
   .colors = {
     .normal = NCCHANNELS_INITIALIZER_PALINDEX(-1, -1),
     .copy = NCCHANNELS_INITIALIZER_PALINDEX(COLOR_BLACK, COLOR_YELLOW),

@@ -212,6 +212,9 @@ static int l_config_index(lua_State *L)
   } else if (streq(key, "histsize")) {
     lua_pushnumber(L, cfg.histsize);
     return 1;
+  } else if (streq(key, "map_suggestion_delay")) {
+    lua_pushnumber(L, cfg.map_suggestion_delay);
+    return 1;
   } else {
     luaL_error(L, "unexpected key %s", key);
   }
@@ -338,6 +341,10 @@ static int l_config_newindex(lua_State *L)
     int sz = luaL_checkinteger(L, 3);
     luaL_argcheck(L, sz >= 0, 3, "argument must be non-negative");
     cfg.histsize = sz;
+  } else if (streq(key, "map_suggestion_delay")) {
+    int delay = luaL_checkinteger(L, 3);
+    luaL_argcheck(L, delay >= 0, 3, "argument must be non-negative");
+    cfg.map_suggestion_delay = delay;
   } else {
     luaL_error(L, "unexpected key %s", key);
   }

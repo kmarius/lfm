@@ -1,5 +1,6 @@
 #include <ev.h>
 #include <lauxlib.h>
+#include <stdint.h>
 
 #include "internal.h"
 #include "lua.h"
@@ -36,12 +37,19 @@ static int l_ui_get_height(lua_State *L)
 static int l_ui_menu(lua_State *L)
 {
   char **menubuf = NULL;
+  uint32_t delay = 0;
   if (lua_type(L, 1) == LUA_TTABLE) {
     const int n = lua_objlen(L, 1);
     for (int i = 1; i <= n; i++) {
       lua_rawgeti(L, 1, i);
       cvector_push_back(menubuf, strdup(lua_tostring(L, -1)));
       lua_pop(L, 1);
+    }
+    if (lua_gettop(L) == 2) {
+      luaL_checktype(L, 2, LUA_TNUMBER);
+      int d = lua_tonumber(L, 2);
+      luaL_argcheck(L, d >= 0, 2, "delay must be non-negative");
+      delay = d;
     }
   } else if (lua_type(L, -1) == LUA_TSTRING) {
     const char *str = lua_tostring(L, 1);
@@ -50,7 +58,7 @@ static int l_ui_menu(lua_State *L)
     }
     cvector_push_back(menubuf, strdup(str));
   }
-  ui_menu_show(ui, menubuf);
+  ui_menu_show(ui, menubuf, delay);
   return 0;
 }
 

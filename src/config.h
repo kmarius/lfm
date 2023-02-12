@@ -9,6 +9,8 @@
 #include "dir.h"
 #include "hashtab.h"
 
+#define MAP_SUGGESTION_DELAY 1000
+
 typedef struct config_s {
   char *configdir;      // ~/.config/lfm
   char *configpath;     // ~/.config/lfm/init.lua
@@ -40,6 +42,8 @@ typedef struct config_s {
   cvector_vector_type(char *) inotify_blacklist;
   uint32_t inotify_timeout;
   uint32_t inotify_delay;
+
+  uint32_t map_suggestion_delay;
 
   struct dir_settings dir_settings;  // default dir_settings
   Hashtab *dir_settings_map;         // path -> dir_settings
