@@ -200,11 +200,11 @@ Dir *dir_load(const char *path, bool load_dircount)
   Dir *dir = dir_create(path);
   dir->dircounts = load_dircount;
 
-  if (lstat(path, &dir->stat) == -1) {
+  if (stat(path, &dir->stat) == -1) {
     // TODO: figure out if/how we should handle errors here, we currently
     // only use the inode to check if we should reload
     //
-    // also: do we need fstat?
+    // also: do we need lstat?
     log_debug("lstat: %s", strerror(errno));
   }
 
