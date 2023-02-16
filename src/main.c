@@ -119,7 +119,7 @@ int main(int argc, char **argv)
 
   srand(time(NULL));
 
-  lfm_init(&lfm);
+  lfm_init(&lfm, log_fp);
 
   log_info("starting main loop after %.2f ms", (current_micros() - t0)/1000.0);
   lfm_run(&lfm);

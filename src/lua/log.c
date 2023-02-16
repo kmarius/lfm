@@ -2,6 +2,10 @@
 
 #include "internal.h"
 #include "../log.h"
+#include "lua.h"
+
+#define LFM_LOG_META "log_mt"
+#define STR(x) #x
 
 static int l_log_trace(lua_State *L)
 {
@@ -48,9 +52,63 @@ static const struct luaL_Reg log_lib[] = {
   {"fatal", l_log_fatal},
   {NULL, NULL}};
 
+static int l_log_index(lua_State *L)
+{
+  const char *key = luaL_checkstring(L, 2);
+  if (streq(key, "level")) {
+    int level = log_get_level_fp(lfm->log_fp);
+    lua_pushnumber(L, level);
+  // } else {
+  //   luaL_error(L, "unexpected key %s", key);
+  }
+  return 0;
+}
+
+static int l_log_newindex(lua_State *L)
+{
+  const char *key = luaL_checkstring(L, 2);
+  if (streq(key, "level")) {
+    int level = lua_tonumber(L, 1);
+    luaL_argcheck(L, level >= LOG_TRACE && level <= LOG_FATAL, 1,
+        "level must be between " STR(LOG_TRACE) " and " STR(LOG_FATAL));
+    log_set_level_fp(lfm->log_fp, lua_tonumber(L, 1));
+  // } else {
+  //   luaL_error(L, "unexpected key %s", key);
+  }
+  return 0;
+}
+
+static const struct luaL_Reg log_mt[] = {
+  {"__index", l_log_index},
+  {"__newindex", l_log_newindex},
+  {NULL, NULL}};
+
 int luaopen_log(lua_State *L)
 {
   lua_newtable(L);
   luaL_register(L, NULL, log_lib);
+
+  lua_pushnumber(L, LOG_TRACE);
+  lua_setfield(L, -2, STR(LOG_TRACE));
+
+  lua_pushnumber(L, LOG_DEBUG);
+  lua_setfield(L, -2, STR(LOG_DEBUG));
+
+  lua_pushnumber(L, LOG_INFO);
+  lua_setfield(L, -2, STR(LOG_INFO));
+
+  lua_pushnumber(L, LOG_WARN);
+  lua_setfield(L, -2, STR(LOG_WARN));
+
+  lua_pushnumber(L, LOG_ERROR);
+  lua_setfield(L, -2, STR(LOG_ERROR));
+
+  lua_pushnumber(L, LOG_FATAL);
+  lua_setfield(L, -2, STR(LOG_FATAL));
+
+  luaL_newmetatable(L, LFM_LOG_META);
+  luaL_register(L, NULL, log_mt);
+  lua_setmetatable(L, -2);
+
   return 1;
 }

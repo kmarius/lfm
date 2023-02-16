@@ -20,6 +20,7 @@ typedef struct lfm_s {
   Async async;
 
   int fifo_fd;
+  FILE *log_fp;
 
   ev_io input_watcher;
   uint64_t input_timeout;
@@ -46,7 +47,7 @@ typedef struct lfm_s {
 } Lfm;
 
 // Initialize ui, fm and the lua_State.
-void lfm_init(Lfm *lfm);
+void lfm_init(Lfm *lfm, FILE *log_fp);
 
 // Start the main event loop.
 void lfm_run(Lfm *lfm);

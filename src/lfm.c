@@ -246,9 +246,11 @@ static void redraw_cb(EV_P_ ev_idle *w, int revents)
 
 /* callbacks }}} */
 
-void lfm_init(Lfm *lfm)
+void lfm_init(Lfm *lfm, FILE *log_fp)
 {
   memset(lfm, 0, sizeof *lfm);
+
+  lfm->log_fp = log_fp;
 
   lfm->loop = ev_default_loop(EVFLAG_NOENV);
 
