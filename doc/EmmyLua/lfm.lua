@@ -86,8 +86,8 @@ function lfm.nohighlight() end
 function lfm.error(msg) end
 
 ---Show a message in the UI.
----@param msg string
-function lfm.echo(msg) end
+---@param ... any[]
+function lfm.print(...) end
 
 ---If a message is shown in the statusline, clear it.
 function lfm.message_clear() end

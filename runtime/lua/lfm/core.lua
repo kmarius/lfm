@@ -22,14 +22,6 @@ for k, f in pairs(log) do
 	end
 end
 
-function print(...)
-	local t = {...}
-	for i, e in pairs(t) do
-		t[i] = tostring(e)
-	end
-	lfm.echo(table.concat(t, " "))
-end
-
 ---@return table selection The currently selected files or the file at the current cursor position
 function lfm.sel_or_cur()
 	local sel = fm.selection_get()

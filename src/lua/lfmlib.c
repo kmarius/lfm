@@ -1,5 +1,6 @@
 #include <errno.h>
 #include <lauxlib.h>
+#include <stdlib.h>
 
 #include "auto/versiondef.h"
 #include "cmd.h"
@@ -9,6 +10,7 @@
 #include "internal.h"
 #include "lfmlua.h"
 #include "log.h"
+#include "lua.h"
 #include "rifle.h"
 #include "ui.h"
 
@@ -130,9 +132,37 @@ static int l_quit(lua_State *L)
   return lua_quit(L, lfm);
 }
 
-static int l_echo(lua_State *L)
+static int l_print(lua_State *L)
 {
-  ui_echom(ui, "%s", luaL_optstring(L, 1, ""));
+  int n = lua_gettop(L);
+  lua_getglobal(L, "tostring");
+  char *buf = calloc(128, 1);
+  size_t buflen = 8;
+  size_t ind = 0;
+  for (int i = 1; i <= n; i++) {
+    lua_pushvalue(L, -1);
+    lua_pushvalue(L, i);
+    lua_call(L, 1, 1);
+    const char *s = lua_tostring(L, -1);
+    if (s == NULL) {
+      return luaL_error(L, LUA_QL("tostring") " must return a string to "
+          LUA_QL("print"));
+    }
+    if (i > 1) {
+      buf[ind++] = '\t';
+    }
+    int l = strlen(s);
+    if (ind + l >= buflen) {
+      buflen *= 2;
+      buf = realloc(buf, buflen);
+    }
+    strcpy(&buf[ind], s);
+    ind += l;
+    lua_pop(L, 1);  /* pop result */
+  }
+  buf[ind++] = 0;
+  ui_echom(ui, "%s", buf);
+  free(buf);
   return 0;
 }
 
@@ -356,7 +386,7 @@ static const struct luaL_Reg lfm_lib[] = {
   {"search_next", l_search_next},
   {"search_prev", l_search_prev},
   {"crash", l_crash},
-  {"echo", l_echo},
+  {"print", l_print},
   {"error", l_error},
   {"message_clear", l_message_clear},
   {"quit", l_quit},
@@ -365,6 +395,9 @@ static const struct luaL_Reg lfm_lib[] = {
 int luaopen_lfm(lua_State *L)
 {
   log_debug("opening lualfm libs");
+
+  lua_pushcfunction(L, l_print);
+  lua_setglobal(L, "print");
 
   luaL_openlib(L, "lfm", lfm_lib, 0);
 
