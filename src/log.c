@@ -116,6 +116,24 @@ int log_add_fp(FILE *fp, int level)
   return log_add_callback(file_callback, fp, level);
 }
 
+void log_set_level_fp(FILE *fp, int level) {
+  for (int i = 0; i < MAX_CALLBACKS && L.callbacks[i].fn; i++) {
+    if (L.callbacks[i].udata == fp) {
+      L.callbacks[i].level = level;
+      return;
+    }
+  }
+}
+
+int log_get_level_fp(FILE *fp) {
+  for (int i = 0; i < MAX_CALLBACKS && L.callbacks[i].fn; i++) {
+    if (L.callbacks[i].udata == fp) {
+      return L.callbacks[i].level;
+    }
+  }
+  return -1;
+}
+
 static void init_event(log_Event *ev, void *udata)
 {
   if (!ev->time) {
