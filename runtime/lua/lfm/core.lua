@@ -330,6 +330,8 @@ local mode_travel = {
 	end,
 }
 
+local has_trash = os.execute("command -v trash-put >/dev/null") == 0
+
 local mode_delete = {
 	prefix = "delete [y/N]: ",
 	on_enter = lfm.cmd.clear,
@@ -515,8 +517,10 @@ map("pt", require("lfm.functions").paste_toggle, {desc="toggle paste mode"})
 map("po", require("lfm.functions").paste_overwrite, {desc="paste-overwrite"})
 map("pl", require("lfm.functions").symlink, {desc="symlink"})
 map("pL", require("lfm.functions").symlink_relative, {desc="symlink-relative"})
-map("df", a(lfm.cmd.prefix_set, mode_delete.prefix), {desc="trash-put"})
-map("dD", a(lfm.cmd.prefix_set, mode_delete.prefix), {desc="delete"})
+if has_trash then
+	map("df", a(lfm.cmd.prefix_set, mode_delete.prefix), {desc="trash-put"})
+	map("dD", a(lfm.cmd.prefix_set, mode_delete.prefix), {desc="delete"})
+end
 
 
 -- Renaming
