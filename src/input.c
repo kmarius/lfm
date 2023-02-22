@@ -13,6 +13,7 @@
 #include "ui.h"
 #include "util.h"
 
+static void map_clear_timer_cb(EV_P_ ev_timer *w, int revents);
 static void stdin_cb(EV_P_ ev_io *w, int revents);
 void input_resume(Lfm *lfm);
 
@@ -22,6 +23,9 @@ void input_init(Lfm *lfm)
   lfm->maps.cmd = trie_create();
   lfm->maps.seq = NULL;
 
+  ev_timer_init(&lfm->map_clear_timer, map_clear_timer_cb, 0, 0);
+  lfm->map_clear_timer.data = lfm;
+
   input_resume(lfm);
 }
 
@@ -30,6 +34,7 @@ void input_deinit(Lfm *lfm)
   trie_destroy(lfm->maps.normal);
   trie_destroy(lfm->maps.cmd);
   cvector_free(lfm->maps.seq);
+  ev_timer_stop(lfm->loop, &lfm->map_clear_timer);
 }
 
 void input_resume(Lfm *lfm)
@@ -93,6 +98,15 @@ static void stdin_cb(EV_P_ ev_io *w, int revents)
   ev_idle_start(loop, &lfm->redraw_watcher);
 }
 
+// clear keys in the input buffer
+static inline void input_clear(Lfm *lfm)
+{
+  Ui *ui = &lfm->ui;
+  lfm->maps.cur = NULL;
+  ui_menu_hide(ui);
+  ui_keyseq_hide(ui);
+}
+
 void lfm_handle_key(Lfm *lfm, input_t in)
 {
   Ui *ui = &lfm->ui;
@@ -102,6 +116,8 @@ void lfm_handle_key(Lfm *lfm, input_t in)
     lfm_quit(lfm);
     return;
   }
+
+  ev_timer_stop(lfm->loop, &lfm->map_clear_timer);
 
   const char *prefix = cmdline_prefix_get(&ui->cmdline);
   if (!lfm->maps.cur) {
@@ -148,10 +164,7 @@ void lfm_handle_key(Lfm *lfm, input_t in)
     // prefix == NULL, i.e. normal mode
     if (in == NCKEY_ESC) {
       if (cvector_size(lfm->maps.seq) > 0) {
-        // clear keys in the buffer
-        lfm->maps.cur = NULL;
-        ui_menu_hide(ui);
-        ui_keyseq_hide(ui);
+        input_clear(lfm);
       } else {
         // clear selection etc
         // TODO: this should be done properly with modes (on 2022-02-13)
@@ -176,14 +189,11 @@ void lfm_handle_key(Lfm *lfm, input_t in)
       log_info("key: %d, id: %d, shift: %d, ctrl: %d alt %d, %s",
           in, ID(in), ISSHIFT(in), ISCTRL(in), ISALT(in), str);
       cvector_free(str);
-      ui_menu_hide(ui);
-      ui_keyseq_hide(ui);
+      input_clear(lfm);
     } else if (lfm->maps.cur->keys) {
       // A command is mapped to the current keysequence. Execute it and reset.
-      ui_menu_hide(ui);
       int ref = lfm->maps.cur->ref;
-      lfm->maps.cur = NULL;
-      ui_keyseq_hide(ui);
+      input_clear(lfm);
       llua_call_from_ref(lfm->L, ref, lfm->maps.count);
     } else {
       cvector_push_back(lfm->maps.seq, in);
@@ -203,6 +213,18 @@ void lfm_handle_key(Lfm *lfm, input_t in)
       }
       cvector_free(leaves);
       ui_menu_show(ui, menu, cfg.map_suggestion_delay);
+      lfm->map_clear_timer.repeat = (float) cfg.map_clear_delay / 1000.0;
+      ev_timer_again(lfm->loop, &lfm->map_clear_timer);
     }
   }
+}
+
+static void map_clear_timer_cb(EV_P_ ev_timer *w, int revents)
+{
+  (void) revents;
+  Lfm *lfm = w->data;
+  input_clear(lfm);
+  ui_redraw(&lfm->ui, REDRAW_MENU);
+  ev_timer_stop(loop, w);
+  ev_idle_start(loop, &lfm->redraw_watcher);
 }

@@ -41,6 +41,7 @@ typedef struct lfm_s {
   ev_signal sigterm_watcher;
   ev_signal sighup_watcher;
   ev_timer timer_watcher;
+  ev_timer map_clear_timer;
 
   cvector_vector_type(ev_timer *) schedule_timers;
   cvector_vector_type(ev_child *) child_watchers; /* to run callbacks when processes finish */
