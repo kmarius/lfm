@@ -13,12 +13,14 @@ local nop = function() end
 
 -- enhance logging functions
 for k, f in pairs(log) do
-	log[k] = function(...)
-		local t = {...}
-		for i, e in pairs(t) do
-			t[i] = tostring(e)
+	if type(f) == "function" then
+		log[k] = function(...)
+			local t = {...}
+			for i, e in pairs(t) do
+				t[i] = tostring(e)
+			end
+			f(table.concat(t, " "))
 		end
-		f(table.concat(t, " "))
 	end
 end
 

@@ -25,6 +25,9 @@ void loader_reschedule(Loader *loader);
 
 Dir *loader_dir_from_path(Loader *loader, const char *path);
 void loader_dir_reload(Loader *loader, Dir *dir);
+// Schould be called when the load completes, i.e. the update is applied to
+// the directory.
+void loader_dir_load_callback(Loader *loader, Dir *dir);
 void loader_drop_dir_cache(Loader *loader);
 
 Preview *loader_preview_from_path(Loader *loader, const char *path);

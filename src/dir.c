@@ -188,7 +188,10 @@ Dir *dir_create(const char *path)
 
   d->load_time = time(NULL);
   d->name = basename(d->path);
-  d->next = current_millis();
+  d->next_scheduled_load = current_millis();
+  d->next_requested_load = 0;
+  d->loading = true;
+  d->scheduled = false;
 
   return d;
 }
@@ -243,6 +246,7 @@ Dir *dir_load(const char *path, bool load_dircount)
   memcpy(dir->files_sorted, dir->files_all, dir->length_all * sizeof *dir->files_all);
   memcpy(dir->files, dir->files_all, dir->length_all * sizeof *dir->files_all);
   dir->updates = 1;
+  dir->loading = false;
 
   return dir;
 }
@@ -432,6 +436,7 @@ void dir_update_with(Dir *d, Dir *update, uint32_t height, uint32_t scrolloff)
   if (d->sel) {
     dir_cursor_move_to_sel(d, height, scrolloff);
   }
+  d->loading = false;
 }
 
 

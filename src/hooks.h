@@ -17,12 +17,12 @@
 
 static inline void lfm_run_hook(Lfm *lfm, const char *hook)
 {
-  log_trace("lfm_run_hook1 %s", hook);
+  log_debug("lfm_run_hook1 %s", hook);
   llua_run_hook(lfm->L, hook);
 }
 
 static inline void lfm_run_hook1(struct lfm_s *lfm, const char *hook, const char* arg1)
 {
-  log_trace("lfm_run_hook1 %s %s", hook, arg1);
+  log_debug("lfm_run_hook1 %s %s", hook, arg1);
   llua_run_hook1(lfm->L, hook, arg1);
 }

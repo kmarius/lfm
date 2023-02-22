@@ -329,11 +329,10 @@ static void dir_update_callback(void *p, Lfm *lfm)
   struct dir_update_s *res = p;
   if (CHECK_PASSES(res->check)
       && res->dir->flatten_level == res->update->flatten_level) {
-
     if (res->update->length_all != res->dir->length_all) {
       update_parent_dircount(lfm, res->dir, res->update->length_all);
     }
-
+    loader_dir_load_callback(&lfm->loader, res->dir);
     dir_update_with(res->dir, res->update, lfm->fm.height, cfg.scrolloff);
     fm_update_preview(&lfm->fm);
     lfm_run_hook1(lfm, LFM_HOOK_DIRUPDATED, res->dir->path);
