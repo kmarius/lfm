@@ -11,6 +11,11 @@ function lfm.fn.getpid() end
 ---@return string, string[]
 function lfm.fn.tokenize(str) end
 
+---Fully qualify `path`. Replaces '~', '..', '.', returns an absolute path.
+---@param path string
+---@return string
+function lfm.fn.qualify(path) end
+
 ---Split a string into prefix, rest, where rest is the last space delimited token.
 ---Respects escaped spaces.
 ---@param str string
