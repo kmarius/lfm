@@ -3,44 +3,44 @@
 set -e
 
 oldpwd=$PWD
-cd "${0%/*}"
-cd ..
+cd "${0%/*}"/..
 base=$PWD
 
 pkgver=0.0.$(git rev-list --count HEAD)
 pkgrel=1
 pkgname=lfm-${pkgver}-${pkgrel}.deb
 pkgdir=${base}/build/${pkgname%.deb}
+arch=$(dpkg --print-architecture)
+generator=
+
+if command -v ninja >/dev/null; then
+	generator=-GNinja
+fi
 
 ### compile
-mkdir -p build
-(
-cd build
-
-# needed when using make instead of ninja, investigate
-mkdir -p lua
-
-cmake .. -DCMAKE_INSTALL_PREFIX="/usr" -DCMAKE_BUILD_TYPE=RelWithDebInfo
-make
-)
+cmake -B build $generator -DCMAKE_INSTALL_PREFIX="/usr" -DCMAKE_BUILD_TYPE=RelWithDebInfo
+cmake --build build
 
 ### install
-(
-cd build
-DESTDIR=${pkgdir} make install
+DESTDIR=${pkgdir} cmake --install build
 
+# TODO: split build dependencies from runtime dependencies
 mkdir -p "${pkgdir}"/DEBIAN
-sed -e 's/%(ARCH)/amd64/' \
-	-e 's/%(VERSION)/'"${pkgver}-${pkgrel}"'/g' \
-	"${base}"/pkg/debian/control > "${pkgdir}"/DEBIAN/control
-)
+cat >"${pkgdir}"/DEBIAN/control <<EOF
+Package: lfm
+Version: ${pkgver}-${pkgrel}
+Section: base
+Priority: optional
+Architecture: $arch
+Depends: lua-posix, libpcre3-dev, libmagic-dev, luajit, libluajit-5.1-dev, libreadline-dev, zlib1g-dev, libunistring-dev, libev-dev, gcc, g++, pkg-config, libavformat-dev, libswscale-dev, libavcodec-dev, libdeflate-dev
+Maintainer: kmarius
+Homepage: https://github.com/kmarius/lfm
+Description: terminal file manager
+EOF
 
 ### build package
-(
-cd build
-dpkg-deb --build "${pkgdir##*/}"
-)
+dpkg-deb --build "${pkgdir}"
 
 ### cleanup
+rm -rf "${pkgdir}"
 mv "${pkgdir}".deb "$oldpwd"
-rm -rf "$pkgdir"

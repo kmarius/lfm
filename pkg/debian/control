@@ -1,8 +1,0 @@
-Package: lfm
-Version: %(VERSION)
-Section: base
-Priority: optional
-Architecture: %(ARCH)
-Depends: lua-posix, libpcre3-dev, libmagic-dev, luajit, libluajit-5.1-dev, libreadline-dev, zlib1g-dev, libunistring-dev, libev-dev, gcc, g++, pkg-config, libavformat-dev, libswscale-dev, libavcodec-dev, libdeflate-dev
-Maintainer: kmarius
-Description: terminal file manager
