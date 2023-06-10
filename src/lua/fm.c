@@ -282,10 +282,13 @@ static int l_fm_selection_reverse(lua_State *L)
 
 static int l_fm_chdir(lua_State *L)
 {
-  char *path = path_qualify(luaL_optstring(L, 1, "~"), fm->pwd);
+  const char *arg = luaL_optstring(L, 1, "~");
+  const char *last_slash = strchr(arg, '/');
+  bool should_save = (arg[0] == '/' || arg[0] == '~' || (last_slash != NULL && last_slash[1] != 0));
+  char *path = path_qualify(arg, fm->pwd);
   search_nohighlight(lfm);
   lfm_run_hook(lfm, LFM_HOOK_CHDIRPRE);
-  fm_async_chdir(fm, path, true, true);
+  fm_async_chdir(fm, path, should_save, true);
   ui_redraw(ui, REDRAW_FM);
   xfree(path);
   return 0;
