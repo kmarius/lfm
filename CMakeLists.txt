@@ -109,6 +109,7 @@ set(LUA_SHELL_MODULE_SOURCE ${PROJECT_SOURCE_DIR}/runtime/lua/lfm/shell.lua)
 set(LUA_UTIL_MODULE_SOURCE ${PROJECT_SOURCE_DIR}/runtime/lua/lfm/util.lua)
 set(LUA_CORE_MODULE_SOURCE ${PROJECT_SOURCE_DIR}/runtime/lua/lfm/core.lua)
 
+file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/lua)
 add_custom_command(
 	OUTPUT ${LFM_MODULE_FILE}
 	COMMAND ${CMAKE_COMMAND} -E env
