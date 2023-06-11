@@ -8,8 +8,9 @@ base=$PWD
 
 pkgver=0.0.$(git rev-list --count HEAD)
 pkgrel=1
-pkgname=lfm-${pkgver}-${pkgrel}.deb
-pkgdir=${base}/build/${pkgname%.deb}
+pkgname=lfm-git
+debname=${pkgname}-${pkgver}-${pkgrel}.deb
+pkgdir=${base}/build/${debname%.deb}
 arch=$(dpkg --print-architecture)
 generator=
 
@@ -27,7 +28,7 @@ DESTDIR=${pkgdir} cmake --install build
 # TODO: split build dependencies from runtime dependencies
 mkdir -p "${pkgdir}"/DEBIAN
 cat >"${pkgdir}"/DEBIAN/control <<EOF
-Package: lfm
+Package: ${pkgname}
 Version: ${pkgver}-${pkgrel}
 Section: base
 Priority: optional
