@@ -101,7 +101,7 @@ void llua_run_hook(lua_State *L, const char *hook)
   lua_getfield(L, -1, "run_hook");
   lua_pushstring(L, hook);
   if (lua_pcall(L, 1, 0, 0)) {
-    ui_error(ui, "run_hook: %s", lua_tostring(L, -1));
+    ui_error(ui, "run_hook(%s): %s", hook, lua_tostring(L, -1));
   }
 }
 
@@ -112,7 +112,7 @@ void llua_run_hook1(lua_State *L, const char *hook, const char* arg1)
   lua_pushstring(L, hook);
   lua_pushstring(L, arg1);
   if (lua_pcall(L, 2, 0, 0)) {
-    ui_error(ui, "run_hook: %s", lua_tostring(L, -1));
+    ui_error(ui, "run_hook(%s, %s): %s", hook, arg1, lua_tostring(L, -1));
   }
 }
 
