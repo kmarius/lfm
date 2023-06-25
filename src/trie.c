@@ -14,7 +14,7 @@ static inline Trie *trie_node_create(input_t key, Trie *next)
 }
 
 
-Trie *trie_create()
+Trie *trie_create(void)
 {
   return trie_node_create(0, NULL);
 }

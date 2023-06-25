@@ -41,7 +41,7 @@ Config cfg = {
   }
 };
 
-void config_init()
+void config_init(void)
 {
   cfg.colors.color_map = ht_create(xfree);
   cvector_vector_type(uint32_t) r = NULL;
@@ -124,7 +124,7 @@ void config_init()
 #endif
 }
 
-void config_deinit()
+void config_deinit(void)
 {
   config_colors_clear();
   ht_destroy(cfg.colors.color_map);
@@ -148,7 +148,7 @@ void config_deinit()
   xfree(cfg.luadir);
 }
 
-void config_colors_clear()
+void config_colors_clear(void)
 {
   cfg.colors.normal = NCCHANNELS_INITIALIZER_PALINDEX(-1, -1);
   cfg.colors.copy = NCCHANNELS_INITIALIZER_PALINDEX(-1, -1);

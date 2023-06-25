@@ -18,7 +18,7 @@ typedef struct trie_s {
 } Trie;
 
 // Allocate a new trie root.
-Trie *trie_create();
+Trie *trie_create(void);
 
 // Free all resources belonging to the trie.
 void trie_destroy(Trie *trie);

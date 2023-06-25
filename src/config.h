@@ -69,9 +69,9 @@ typedef struct config_s {
 
 extern Config cfg;
 
-void config_init();
+void config_init(void);
 
-void config_deinit();
+void config_deinit(void);
 
 static inline void config_ratios_set(cvector_vector_type(uint32_t) ratios)
 {
@@ -97,4 +97,4 @@ static inline void config_icon_map_add(const char *ext, const char *icon)
   ht_set_copy(cfg.icon_map, ext, icon, strlen(icon) + 1);
 }
 
-void config_colors_clear();
+void config_colors_clear(void);
