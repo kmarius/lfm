@@ -11,6 +11,7 @@
 
 #define MAP_SUGGESTION_DELAY 1000
 #define MAP_CLEAR_DELAY 10000
+#define LOADING_INDICATOR_DELAY 250
 
 typedef struct config_s {
   char *configdir;      // ~/.config/lfm
@@ -46,6 +47,7 @@ typedef struct config_s {
 
   uint32_t map_suggestion_delay;
   uint32_t map_clear_delay;
+  uint32_t loading_indicator_delay;
 
   struct dir_settings dir_settings;  // default dir_settings
   Hashtab *dir_settings_map;         // path -> dir_settings

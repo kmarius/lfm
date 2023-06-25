@@ -27,6 +27,7 @@ Config cfg = {
   .inotify_delay = NOTIFY_DELAY,
   .map_suggestion_delay = MAP_SUGGESTION_DELAY,
   .map_clear_delay = MAP_CLEAR_DELAY,
+  .loading_indicator_delay = LOADING_INDICATOR_DELAY,
   .colors = {
     .normal = NCCHANNELS_INITIALIZER_PALINDEX(-1, -1),
     .copy = NCCHANNELS_INITIALIZER_PALINDEX(COLOR_BLACK, COLOR_YELLOW),
@@ -39,7 +40,6 @@ Config cfg = {
     .selection = NCCHANNELS_INITIALIZER_PALINDEX(COLOR_BLACK, COLOR_MAGENTA),
   }
 };
-
 
 void config_init()
 {
@@ -124,7 +124,6 @@ void config_init()
 #endif
 }
 
-
 void config_deinit()
 {
   config_colors_clear();
@@ -148,7 +147,6 @@ void config_deinit()
   xfree(cfg.startpath);
   xfree(cfg.luadir);
 }
-
 
 void config_colors_clear()
 {

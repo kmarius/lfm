@@ -159,6 +159,7 @@ struct dir_check_s {
   Dir *dir;         // dir might not exist anymore, don't touch
   time_t loadtime;
   __ino_t ino;
+  bool reload;
   struct validity_check64_s check;  // lfm.loader.dir_cache_version
 };
 
@@ -166,7 +167,11 @@ static void dir_check_callback(void *p, Lfm *lfm)
 {
   struct dir_check_s *res = p;
   if (CHECK_PASSES(res->check)) {
-    loader_dir_reload(&lfm->loader, res->dir);
+    if (res->reload) {
+      loader_dir_reload(&lfm->loader, res->dir);
+    } else {
+      res->dir->last_loading_action = 0;
+    }
   }
   xfree(res);
 }
@@ -185,9 +190,9 @@ static void async_dir_check_worker(void *arg)
   if (stat(work->path, &statbuf) == -1
       || (statbuf.st_ino == work->ino
       && statbuf.st_mtime <= work->loadtime)) {
-    xfree(work->path);
-    xfree(work);
-    return;
+    work->reload = false;
+  } else {
+    work->reload = true;
   }
 
   XFREE_CLEAR(work->path);
@@ -200,6 +205,10 @@ void async_dir_check(Async *async, Dir *dir)
   struct dir_check_s *work = xcalloc(1, sizeof *work);
   work->super.callback = &dir_check_callback;
   work->super.destroy = &dir_check_destroy;
+
+  if (dir->last_loading_action == 0) {
+    dir->last_loading_action = current_millis();
+  }
 
   work->async = async;
   work->path = strdup(dir->path);
@@ -339,6 +348,7 @@ static void dir_update_callback(void *p, Lfm *lfm)
       fm_update_preview(&lfm->fm);
       ui_redraw(&lfm->ui, REDRAW_FM);
     }
+    res->dir->last_loading_action = 0;
   } else {
     dir_destroy(res->update);
   }
@@ -386,6 +396,10 @@ void async_dir_load(Async *async, Dir *dir, bool dircounts)
   struct dir_update_s *work = xcalloc(1, sizeof *work);
   work->super.callback = &dir_update_callback;
   work->super.destroy = &dir_update_destroy;
+
+  if (dir->last_loading_action == 0) {
+    dir->last_loading_action = current_millis();
+  }
 
   work->async = async;
   work->dir = dir;

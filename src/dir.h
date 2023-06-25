@@ -34,6 +34,7 @@ typedef struct dir_s {
 
   time_t load_time; // used to check for changes
   uint32_t updates; // number of applied updates
+  uint64_t last_loading_action;  // Time (in milliseconds) at which the last action started after which a "loading" indicator should be shown for this directory. 0 if there is no loading/checking.
 
   uint64_t next_scheduled_load;  // time of the next (or latest) scheduled reload
   uint64_t next_requested_load;  // will be set if a reload is requested when

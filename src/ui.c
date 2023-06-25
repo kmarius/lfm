@@ -451,6 +451,15 @@ void draw_cmdline(Ui *ui)
         ncplane_set_fg_default(n);
         ncplane_putchar(n, ' ');
       }
+      if (dir->last_loading_action > 0 && current_millis() - dir->last_loading_action >= cfg.loading_indicator_delay) {
+        rhs_sz += 10;
+        ncplane_set_bg_palindex(n, 237);
+        ncplane_set_fg_palindex(n, 255);
+        ncplane_putstr_yx(n, 0, ui->ncol - rhs_sz, " loading ");
+        ncplane_set_bg_default(n);
+        ncplane_set_fg_default(n);
+        ncplane_putchar(n, ' ');
+      }
       if (ui->keyseq) {
         char *str = NULL;
         for (size_t i = 0; i < cvector_size(ui->keyseq); i++) {
