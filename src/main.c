@@ -51,7 +51,9 @@ int main(int argc, char **argv)
 
   if (!isatty(0) || ! isatty(1) || !isatty(2)) {
     fprintf(stderr, "Error: %s must be run in a terminal\n", argv[0]);
-    exit(EXIT_FAILURE);
+    if (!valgrind_active()) {
+      exit(EXIT_FAILURE);
+    }
   }
 
   config_init();

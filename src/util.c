@@ -328,3 +328,12 @@ bool get_mimetype(const char *path, char *dest, size_t sz)
   magic_close(magic);
   return ret;
 }
+
+bool valgrind_active(void)
+{
+  char *preload = getenv("LD_PRELOAD");
+  if (!preload) {
+    return false;
+  }
+  return (strstr(preload, "/valgrind/") || strstr(preload, "/vgpreload"));
+}
