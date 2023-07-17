@@ -41,7 +41,10 @@ void fm_init(Fm *fm, struct lfm_s *lfm)
       fm->pwd = strdup(s);
     } else {
       char pwd[PATH_MAX];
-      getcwd(pwd, sizeof pwd);
+      if (getcwd(pwd, sizeof pwd) == NULL) {
+        fprintf(stderr, "getcwd: %s\n", strerror(errno));
+        _exit(1);
+      }
       fm->pwd = strdup(pwd);
     }
   }

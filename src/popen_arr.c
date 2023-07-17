@@ -25,6 +25,7 @@
 
 #include <errno.h>
 #include <signal.h>
+#include <string.h>
 #include <unistd.h>
 
 #include "popen_arr.h"
@@ -116,7 +117,10 @@ static int popen2_impl(FILE** in, FILE** out, FILE** err, const char* program,
       close(2);
     }
     if (pwd) {
-      chdir(pwd);
+      if (chdir(pwd) != 0) {
+        fprintf(stderr, "chdir: %s", strerror(errno));
+        _exit(1);
+      }
     }
     if (lookup_path) {
       execvp(program, (char**) argv);

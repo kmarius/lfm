@@ -179,10 +179,12 @@ Dir *dir_create(const char *path)
 
   if (path[0] != '/') {
     char buf[PATH_MAX + 1];
-    realpath(path, buf);
-    d->path = strdup(buf);
+    if (realpath(path, buf) == NULL) {
+      asprintf(&d->path, "error: %s\n", strerror(errno));
+    } else {
+      d->path = strdup(buf);
+    }
   } else {
-    /* to preserve symlinks we don't use realpath */
     d->path = strdup(path);
   }
 
@@ -220,8 +222,8 @@ Dir *dir_load(const char *path, bool load_dircount)
 
   while ((dp = readdir(dirp))) {
     if (dp->d_name[0] == '.' &&
-        (dp->d_name[1] == 0 ||
-         (dp->d_name[1] == '.' && dp->d_name[2] == 0))) {
+      (dp->d_name[1] == 0 ||
+      (dp->d_name[1] == '.' && dp->d_name[2] == 0))) {
       continue;
     }
 
@@ -296,8 +298,8 @@ Dir *dir_load_flat(const char *path, uint32_t level, bool load_dircount)
     struct dirent *dp;
     while ((dp = readdir(dirp))) {
       if (dp->d_name[0] == '.' &&
-          (dp->d_name[1] == 0 ||
-           (dp->d_name[1] == '.' && dp->d_name[2] == 0))) {
+        (dp->d_name[1] == 0 ||
+        (dp->d_name[1] == '.' && dp->d_name[2] == 0))) {
         continue;
       }
 
@@ -335,7 +337,7 @@ Dir *dir_load_flat(const char *path, uint32_t level, bool load_dircount)
       }
     }
     closedir(dirp);
-cont:
+  cont:
     xfree(head);
   }
 

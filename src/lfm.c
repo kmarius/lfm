@@ -453,7 +453,10 @@ bool lfm_execute(Lfm *lfm, const char *prog, char *const *args)
   } else if (pid == 0) {
     // child
     signal(SIGINT, SIG_DFL);
-    chdir(lfm->fm.pwd);
+    if (chdir(lfm->fm.pwd) != 0) {
+      fprintf(stderr, "chdir: %s\n", strerror(errno));
+      _exit(1);
+    }
     execvp(prog, (char* const *) args);
     _exit(127); // execl error
   } else {

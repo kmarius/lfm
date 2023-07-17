@@ -215,8 +215,7 @@ wchar_t *ambstowcs(const char *s, int *len)
 char *realpath_s(const char *p)
 {
   static char fullpath[PATH_MAX+1];
-  realpath(p, fullpath);
-  return fullpath;
+  return realpath(p, fullpath);
 }
 
 

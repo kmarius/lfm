@@ -362,7 +362,9 @@ static int l_rifle_fileinfo(lua_State *L)
   const char *file = luaL_checkstring(L, 1);
 
   char path[PATH_MAX + 1];
-  realpath(file, path);
+  if (realpath(file, path) == NULL) {
+    path[0] = 0;
+  }
 
   char mime[256];
   get_mimetype(path, mime, sizeof mime);
@@ -479,7 +481,9 @@ static int l_rifle_query(lua_State *L)
   }
 
   char path[PATH_MAX + 1];
-  realpath(file, path);
+  if (realpath(file, path) == NULL) {
+    path[0] = 0;
+  }
 
   char mime[256];
   get_mimetype(path, mime, sizeof mime);
