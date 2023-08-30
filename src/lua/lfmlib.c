@@ -193,7 +193,7 @@ static int l_spawn(lua_State *L)
     return luaL_error(L, "too many arguments");
   }
 
-  luaL_checktype(L, 1, LUA_TTABLE);
+  luaL_checktype(L, 1, LUA_TTABLE);  // [cmd, opts?]
 
   if (lua_gettop(L) == 2) {
     luaL_checktype(L, 2, LUA_TTABLE);
@@ -204,46 +204,46 @@ static int l_spawn(lua_State *L)
 
   char **args = NULL;
   for (int i = 1; i <= n; i++) {
-    lua_rawgeti(L, 1, i);
+    lua_rawgeti(L, 1, i);  // [cmd, opts?, arg]
     cvector_push_back(args, strdup(lua_tostring(L, -1)));
-    lua_pop(L, 1);
+    lua_pop(L, 1);  // [cmd, opts?]
   }
   cvector_push_back(args, NULL);
   if (lua_gettop(L) == 2) {
-    lua_getfield(L, 2, "stdin");
+    lua_getfield(L, 2, "stdin");  // [cmd, opts, opts.stdin]
     if (lua_isstring(L, -1)) {
       cvector_push_back(stdin, strdup(lua_tostring(L, -1)));
     } else if (lua_istable(L, -1)) {
       const size_t m = lua_objlen(L, -1);
       for (uint32_t i = 1; i <= m; i++) {
-        lua_rawgeti(L, -1, i);
+        lua_rawgeti(L, -1, i);  // [cmd, opts, opts.stdin, str]
         cvector_push_back(stdin, strdup(lua_tostring(L, -1)));
-        lua_pop(L, 1);
+        lua_pop(L, 1);  // [cmd, otps, opts.stdin]
       }
     }
-    lua_pop(L, 1);
+    lua_pop(L, 1);  // [cmd, opts]
 
-    lua_getfield(L, 2, "out");
+    lua_getfield(L, 2, "out");  // [cmd, opts, opts.out]
     if (lua_isfunction(L, -1)) {
-      out_cb_ref = lua_set_callback(L);
+      out_cb_ref = lua_set_callback(L);  // [cmd, opts]
     } else {
       out = lua_toboolean(L, -1);
-      lua_pop(L, 1);
+      lua_pop(L, 1);  // [cmd, opts]
     }
 
-    lua_getfield(L, 2, "err");
+    lua_getfield(L, 2, "err");  // [cmd, opts, opts.err]
     if (lua_isfunction(L, -1)) {
-      err_cb_ref = lua_set_callback(L);
+      err_cb_ref = lua_set_callback(L);  // [cmd, opts]
     } else {
       err = lua_toboolean(L, -1);
-      lua_pop(L, 1);
+      lua_pop(L, 1);  // [cmd, opts]
     }
 
-    lua_getfield(L, 2, "callback");
+    lua_getfield(L, 2, "callback");  // [cmd, opts, opts.callback]
     if (lua_isfunction(L, -1)) {
-      cb_ref = lua_set_callback(L);
+      cb_ref = lua_set_callback(L);  // [cmd, opts]
     } else {
-      lua_pop(L, 1);
+      lua_pop(L, 1);  // [cmd, opts]
     }
   }
 
