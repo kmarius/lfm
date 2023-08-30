@@ -67,8 +67,8 @@ static inline bool llua_init_packages(lua_State *L)
 
 void llua_run_callback(lua_State *L, int ref)
 {
-  if (lua_get_callback(L, ref, true)) {
-    if (lua_pcall(L, 0, 0, 0)) {
+  if (lua_get_callback(L, ref, true)) {  // [elem]
+    if (lua_pcall(L, 0, 0, 0)) {  // []
       ui_error(ui, "cb: %s", lua_tostring(L, -1));
     }
   }
@@ -76,9 +76,9 @@ void llua_run_callback(lua_State *L, int ref)
 
 void llua_run_child_callback(lua_State *L, int ref, int rstatus)
 {
-  if (lua_get_callback(L, ref, true)) {
-    lua_pushnumber(L, rstatus);
-    if (lua_pcall(L, 1, 0, 0)) {
+  if (lua_get_callback(L, ref, true)) {  // [elem]
+    lua_pushnumber(L, rstatus);  // [elem, rstatus]
+    if (lua_pcall(L, 1, 0, 0)) {  // []
       ui_error(ui, "cb: %s", lua_tostring(L, -1));
     }
   }
@@ -86,10 +86,9 @@ void llua_run_child_callback(lua_State *L, int ref, int rstatus)
 
 void llua_run_stdout_callback(lua_State *L, int ref, const char *line)
 {
-  if (lua_get_callback(L, ref, line == NULL) && line) {
-    lua_pushstring(L, line);
-    lua_insert(L, -1);
-    if (lua_pcall(L, 1, 0, 0)) {
+  if (lua_get_callback(L, ref, line == NULL) && line) {  // [elem]
+    lua_pushstring(L, line);  // [elem, line]
+    if (lua_pcall(L, 1, 0, 0)) {  // []
       ui_error(ui, "cb: %s", lua_tostring(L, -1));
     }
   }
@@ -97,32 +96,34 @@ void llua_run_stdout_callback(lua_State *L, int ref, const char *line)
 
 void llua_run_hook(lua_State *L, const char *hook)
 {
-  lua_getglobal(L, "lfm");
-  lua_getfield(L, -1, "run_hook");
-  lua_pushstring(L, hook);
-  if (lua_pcall(L, 1, 0, 0)) {
+  lua_getglobal(L, "lfm");  // [lfm]
+  lua_getfield(L, -1, "run_hook");  // [lfm, lfm.run_hook]
+  lua_pushstring(L, hook);  // [lfm, lfm.run_hook, hook]
+  if (lua_pcall(L, 1, 0, 0)) {  // [lfm]
     ui_error(ui, "run_hook(%s): %s", hook, lua_tostring(L, -1));
   }
+  lua_pop(L, 1);  // []
 }
 
 void llua_run_hook1(lua_State *L, const char *hook, const char* arg1)
 {
-  lua_getglobal(L, "lfm");
-  lua_getfield(L, -1, "run_hook");
-  lua_pushstring(L, hook);
-  lua_pushstring(L, arg1);
-  if (lua_pcall(L, 2, 0, 0)) {
+  lua_getglobal(L, "lfm");  // [lfm]
+  lua_getfield(L, -1, "run_hook");  // [lfm, lfm.run_hook]
+  lua_pushstring(L, hook);  // [lfm, lfm.run_hook, hook]
+  lua_pushstring(L, arg1);  // [lfm, lfm.run_hook, hook, arg1]
+  if (lua_pcall(L, 2, 0, 0)) {  // [lfm]
     ui_error(ui, "run_hook(%s, %s): %s", hook, arg1, lua_tostring(L, -1));
   }
+  lua_pop(L, 1);  // []
 }
 
 void llua_call_from_ref(lua_State *L, int ref, int count)
 {
-  lua_rawgeti(L, LUA_REGISTRYINDEX, ref);
+  lua_rawgeti(L, LUA_REGISTRYINDEX, ref);  // [elem]
   if (count > 0) {
-    lua_pushnumber(L, count);
+    lua_pushnumber(L, count);  // [elem, count]
   }
-  if (lua_pcall(L, count > 0 ? 1 : 0, 0, 0)) {
+  if (lua_pcall(L, count > 0 ? 1 : 0, 0, 0)) {  // []
     ui_error(ui, "handle_key: %s", lua_tostring(L, -1));
   }
 }
