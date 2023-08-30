@@ -95,7 +95,7 @@ static void child_cb(EV_P_ ev_child *w, int revents)
   }
 
   if (data->stderr_watcher) {
-    data->stdout_watcher->cb(loop, data->stdout_watcher, 0);
+    data->stderr_watcher->cb(loop, data->stderr_watcher, 0);
     ev_io_stop(loop, data->stderr_watcher);
   }
 
