@@ -27,6 +27,7 @@
 #include <signal.h>
 #include <string.h>
 #include <unistd.h>
+#include <fcntl.h>
 
 #include "popen_arr.h"
 
@@ -96,25 +97,30 @@ static int popen2_impl(FILE** in, FILE** out, FILE** err, const char* program,
 
   int childpid = fork();
 
-  if (!childpid) {
+  if (childpid == 0) {
     if (child_stdin != -1) {
       close(to_be_written);
       dup2(child_stdin, 0);
       close(child_stdin);
     } else {
-      close(0);
     }
     if (child_stdout != -1) {
       close(to_be_read);
       dup2(child_stdout, 1);
       close(child_stdout);
+    } else {
+      int null_fd = open("/dev/null", O_WRONLY|O_CREAT, 0666);
+      dup2(null_fd, 1);
+      close(null_fd);
     }
     if (child_stderr != -1) {
       close(to_be_read2);
       dup2(child_stderr, 2);
       close(child_stderr);
     } else {
-      close(2);
+      int null_fd = open("/dev/null", O_WRONLY|O_CREAT, 0666);
+      dup2(null_fd, 2);
+      close(null_fd);
     }
     if (pwd) {
       if (chdir(pwd) != 0) {
@@ -144,14 +150,14 @@ static int popen2_impl(FILE** in, FILE** out, FILE** err, const char* program,
 }
 
 int popen2_arr(FILE **in, FILE **out, FILE **err, const char *program,
-    char *const argv[], const char *pwd)
+               char *const argv[], const char *pwd)
 {
   signal(SIGPIPE, SIG_IGN);
   return popen2_impl(in, out, err, program, argv, pwd, 0);
 }
 
 int popen2_arr_p(FILE **in, FILE **out, FILE **err, const char *program,
-    char *const argv[], char const *pwd)
+                 char *const argv[], char const *pwd)
 {
   signal(SIGPIPE, SIG_IGN);
   return popen2_impl(in, out, err, program, argv, pwd, 1);

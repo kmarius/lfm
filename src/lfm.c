@@ -404,28 +404,30 @@ static void add_child_watcher(Lfm *lfm, int pid, int ref, ev_io *stdout_watcher,
 int lfm_spawn(Lfm *lfm, const char *prog, char *const *args,
     char **in, bool out, bool err, int out_cb_ref, int err_cb_ref, int cb_ref)
 {
-  FILE *fout, *ferr, *fin;
+  FILE *fin, *fout, *ferr;
   ev_io *stderr_watcher = NULL;
   ev_io *stdout_watcher = NULL;
 
+  bool capture_stdout = out || out_cb_ref >= 0;
+  bool capture_stderr = err || err_cb_ref >= 0;
+
   // always pass out and err because popen2_arr_p doesnt close the fds
-  int pid = popen2_arr_p(in ? &fin : NULL, &fout, &ferr, prog, args, lfm->fm.pwd);
+  int pid = popen2_arr_p(in ? &fin : NULL,
+                         capture_stdout ? &fout : NULL,
+                         capture_stderr ? &ferr : NULL,
+                         prog, args, lfm->fm.pwd);
 
   if (pid == -1) {
     lfm_error(lfm, "popen2_arr_p: %s", strerror(errno));  // not sure if set
     return -1;
   }
 
-  if (out || out_cb_ref >= 0) {
+  if (capture_stdout) {
     stdout_watcher = add_io_watcher(lfm, fout, out_cb_ref);
-  } else {
-    fclose(fout);
   }
 
-  if (err || err_cb_ref >= 0) {
+  if (capture_stderr) {
     stderr_watcher = add_io_watcher(lfm, ferr, err_cb_ref);
-  } else {
-    fclose(ferr);
   }
 
   if (in) {
