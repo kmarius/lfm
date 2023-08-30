@@ -54,10 +54,10 @@ bool haswcaseprefix(const wchar_t *restrict string, const wchar_t *restrict pref
 }
 
 
-const char *strcasestr(const char *str, const char *sub) {
+char *strcasestr(const char *str, const char *sub) {
 
   if (*sub == 0) {
-    return str;
+    return (char *) str;
   }
 
   for (; *str != 0; str++) {
@@ -65,7 +65,7 @@ const char *strcasestr(const char *str, const char *sub) {
       continue;
     }
     if (hascaseprefix(str, sub)) {
-      return str;
+      return (char *) str;
     }
   }
 

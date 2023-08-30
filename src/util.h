@@ -67,7 +67,7 @@ bool haswcaseprefix(const wchar_t *restrict string, const wchar_t *restrict pref
 
 const wchar_t *wstrcasestr(const wchar_t *str, const wchar_t *sub);
 
-const char *strcasestr(const char *str, const char *sub);
+char *strcasestr(const char *str, const char *sub);
 
 const char *strcaserchr(const char *str, char c);
 
