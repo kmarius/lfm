@@ -1,0 +1,12 @@
+{
+  "$schema": "https://raw.githubusercontent.com/sumneko/vscode-lua/master/setting/schema.json",
+  "Lua.runtime.version": "LuaJIT",
+  "Lua.globals": [
+    "lfm"
+  ],
+  "Lua.workspace.checkThirdParty": false,
+  "Lua.workspace.library": [
+    "runtime/lua/",
+    "doc/EmmyLua/"
+  ]
+}
