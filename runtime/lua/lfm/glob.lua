@@ -15,7 +15,7 @@ function M.glob_to_pattern(glob)
 	local res = string.gsub(glob, "%.", "%%.")
 	res = string.gsub(res, "%*", ".*")
 	res = string.gsub(res, "%?", ".?")
-	return "^"..res.."$"
+	return "^" .. res .. "$"
 end
 
 --Select all files in the current directory matching a glob.
@@ -44,7 +44,9 @@ function M.glob_select_recursive(glob)
 	local sel = {}
 	local match = string.match
 	local insert = table.insert
-	local function filter(f) return match(f, pat) end
+	local function filter(f)
+		return match(f, pat)
+	end
 	for f in find(lfm.fn.getpwd(), filter) do
 		insert(sel, f)
 	end
@@ -54,8 +56,13 @@ end
 M.mode_glob_select = {
 	prefix = "glob-select: ",
 	on_enter = lfm.cmd.clear,
-	on_esc = function() lfm.cmd.clear() fm.selection_set({}) end,
-	on_change = function() M.glob_select(lfm.cmd.line_get()) end,
+	on_esc = function()
+		lfm.cmd.clear()
+		fm.selection_set({})
+	end,
+	on_change = function()
+		M.glob_select(lfm.cmd.line_get())
+	end,
 }
 
 return M

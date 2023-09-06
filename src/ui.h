@@ -13,12 +13,13 @@
 #include "keys.h"
 #include "preview.h"
 
-#define REDRAW_INFO    1
-#define REDRAW_FM      2
+#define REDRAW_INFO 1
+#define REDRAW_FM 2
 #define REDRAW_CMDLINE 4
-#define REDRAW_MENU    8
+#define REDRAW_MENU 8
 #define REDRAW_PREVIEW 16
-#define REDRAW_FULL    (REDRAW_INFO|REDRAW_FM|REDRAW_CMDLINE|REDRAW_MENU|REDRAW_PREVIEW)
+#define REDRAW_FULL                                                            \
+  (REDRAW_INFO | REDRAW_FM | REDRAW_CMDLINE | REDRAW_MENU | REDRAW_PREVIEW)
 
 struct message_s {
   char *text;
@@ -42,7 +43,7 @@ typedef struct ui_s {
     struct ncplane *info;
     struct ncplane *menu;
     struct ncplane *preview;
-    cvector_vector_type(struct ncplane*) dirs;
+    cvector_vector_type(struct ncplane *) dirs;
   } planes;
 
   cvector_vector_type(char *) menubuf;
@@ -85,8 +86,7 @@ void ui_clear(Ui *ui);
 
 void ui_draw(Ui *ui);
 
-static inline void ui_redraw(Ui *ui, uint32_t mode)
-{
+static inline void ui_redraw(Ui *ui, uint32_t mode) {
   ui->redraw |= mode;
 }
 
@@ -98,21 +98,18 @@ void ui_verror(Ui *ui, const char *format, va_list args);
 
 void ui_vechom(Ui *ui, const char *format, va_list args);
 
-void ui_menu_show(Ui *ui, cvector_vector_type(char*) vec, uint32_t delay);
+void ui_menu_show(Ui *ui, cvector_vector_type(char *) vec, uint32_t delay);
 
-static inline void ui_menu_hide(Ui *ui)
-{
+static inline void ui_menu_hide(Ui *ui) {
   ui_menu_show(ui, NULL, 0);
 }
 
-static inline void ui_keyseq_show(Ui *ui, input_t *keyseq)
-{
+static inline void ui_keyseq_show(Ui *ui, input_t *keyseq) {
   ui->keyseq = keyseq;
   ui_redraw(ui, REDRAW_CMDLINE);
 }
 
-static inline void ui_keyseq_hide(Ui *ui)
-{
+static inline void ui_keyseq_hide(Ui *ui) {
   ui_keyseq_show(ui, NULL);
 }
 

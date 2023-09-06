@@ -17,13 +17,13 @@ struct dir_settings {
 
 typedef struct dir_s {
   char *path;
-  char *name;  // substring of path
+  char *name; // substring of path
 
   struct stat stat;
 
-  File **files_all;     // every file in the directory
-  File **files_sorted;  // every file, but sorted
-  File **files;         // every visible file
+  File **files_all;    // every file in the directory
+  File **files_sorted; // every file, but sorted
+  File **files;        // every visible file
   uint32_t length_all;
   uint32_t length_sorted;
   uint32_t length;
@@ -32,15 +32,18 @@ typedef struct dir_s {
 
   int32_t error; // shows errno if an error occured during loading, 0 otherwise
 
-  time_t load_time; // used to check for changes
-  uint32_t updates; // number of applied updates
-  uint64_t last_loading_action;  // Time (in milliseconds) at which the last action started after which a "loading" indicator should be shown for this directory. 0 if there is no loading/checking.
+  time_t load_time;             // used to check for changes
+  uint32_t updates;             // number of applied updates
+  uint64_t last_loading_action; // Time (in milliseconds) at which the last
+                                // action started after which a "loading"
+                                // indicator should be shown for this directory.
+                                // 0 if there is no loading/checking.
 
-  uint64_t next_scheduled_load;  // time of the next (or latest) scheduled reload
-  uint64_t next_requested_load;  // will be set if a reload is requested when
-                                 // one is already scheduled, otherwise 0
-  bool loading;                  // is a reload in the process
-  bool scheduled;                // is a reload scheduled
+  uint64_t next_scheduled_load; // time of the next (or latest) scheduled reload
+  uint64_t next_requested_load; // will be set if a reload is requested when
+                                // one is already scheduled, otherwise 0
+  bool loading;                 // is a reload in the process
+  bool scheduled;               // is a reload scheduled
 
   uint32_t ind; // cursor position in files[]
   uint32_t pos; // cursor position in the ui, offset from the top row
@@ -65,8 +68,7 @@ Dir *dir_load(const char *path, bool load_dircount);
 void dir_destroy(Dir *dir);
 
 // Is the directory in the process of being loaded?
-static inline bool dir_loading(const Dir *dir)
-{
+static inline bool dir_loading(const Dir *dir) {
   return dir->loading;
 }
 
@@ -81,7 +83,8 @@ void dir_sort(Dir *dir);
 // Returns the path of the parent of `dir` and `NULL` for the root directory.
 const char *dir_parent_path(const Dir *dir);
 
-// Lfmlies the filter string `filter` to `dir`. `NULL` or `""` clears the filter.
+// Lfmlies the filter string `filter` to `dir`. `NULL` or `""` clears the
+// filter.
 void dir_filter(Dir *dir, const char *filter);
 
 // Check `dir` for changes on disk by comparing mtime. Returns `true` if there
@@ -94,14 +97,15 @@ void dir_cursor_move(Dir *dir, int32_t ct, uint32_t height, uint32_t scrolloff);
 
 // Move the cursor in the current dir to the file `name`, respecting the
 // `scrolloff` setting by passing it and the current `height` of the viewport.
-void dir_cursor_move_to(Dir *dir, const char *name, uint32_t height, uint32_t scrolloff);
+void dir_cursor_move_to(Dir *dir, const char *name, uint32_t height,
+                        uint32_t scrolloff);
 
 // Replace files and metadata of `dir` with those of `update`. Frees `update`.
-void dir_update_with(Dir *dir, Dir *update, uint32_t height, uint32_t scrolloff);
+void dir_update_with(Dir *dir, Dir *update, uint32_t height,
+                     uint32_t scrolloff);
 
 // Returns true `d` is the root directory.
-inline bool dir_isroot(const Dir *dir)
-{
+inline bool dir_isroot(const Dir *dir) {
   return (dir->path[0] == '/' && dir->path[1] == 0);
 }
 

@@ -5,8 +5,7 @@
 #include "lfm.h"
 #include "ui.h"
 
-bool find(Fm *fm, const char *prefix)
-{
+bool find(Fm *fm, const char *prefix) {
   xfree(fm->find_prefix);
   fm->find_prefix = strdup(prefix);
 
@@ -30,9 +29,7 @@ bool find(Fm *fm, const char *prefix)
   return nmatches == 1;
 }
 
-
-void find_next(Fm *fm)
-{
+void find_next(Fm *fm) {
   if (!fm->find_prefix) {
     return;
   }
@@ -48,9 +45,7 @@ void find_next(Fm *fm)
   }
 }
 
-
-void find_prev(Fm *fm)
-{
+void find_prev(Fm *fm) {
   if (!fm->find_prefix) {
     return;
   }
@@ -66,9 +61,7 @@ void find_prev(Fm *fm)
   }
 }
 
-
-void find_clear(Fm *fm)
-{
+void find_clear(Fm *fm) {
   xfree(fm->find_prefix);
   fm->find_prefix = NULL;
 }

@@ -22,8 +22,10 @@ local marks = {}
 ---@param loc Lfm.Path
 local function mark_set(m, loc)
 	loc = loc or getpwd()
-	local cmd = "cd "..loc
-	map("'"..m, function() eval(cmd) end, {desc=cmd})
+	local cmd = "cd " .. loc
+	map("'" .. m, function()
+		eval(cmd)
+	end, { desc = cmd })
 	marks[m] = loc
 end
 
@@ -39,7 +41,7 @@ end
 
 local escape = {
 	['"'] = '\\"',
-	['\\'] = '\\\\',
+	["\\"] = "\\\\",
 }
 
 ---Writes currently set quickmarks to disk.
@@ -81,7 +83,7 @@ end
 function quickmarks.delete(m)
 	if marks[m] then
 		load_from_file()
-		map("'"..m, nil)
+		map("'" .. m, nil)
 		marks[m] = nil
 		write_to_file()
 	end
@@ -114,13 +116,13 @@ function quickmarks._setup()
 	lfm.register_mode(mode_mark_save)
 	lfm.register_mode(mode_mark_delete)
 
-	lfm.map("m",
-	function() prefix_set(mode_mark_save.prefix) end,
-	{desc="save quickmark"})
+	lfm.map("m", function()
+		prefix_set(mode_mark_save.prefix)
+	end, { desc = "save quickmark" })
 
-	lfm.map("dm",
-	function() prefix_set(mode_mark_delete.prefix) end,
-	{desc="delete quickmark"})
+	lfm.map("dm", function()
+		prefix_set(mode_mark_delete.prefix)
+	end, { desc = "delete quickmark" })
 end
 
 return quickmarks

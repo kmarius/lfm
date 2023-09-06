@@ -16,8 +16,7 @@
 #include "sort.h"
 #include "util.h"
 
-File *dir_current_file(const Dir *d)
-{
+File *dir_current_file(const Dir *d) {
   if (!d || d->ind >= d->length) {
     return NULL;
   }
@@ -25,9 +24,7 @@ File *dir_current_file(const Dir *d)
   return d->files[d->ind];
 }
 
-
-const char *dir_parent_path(const Dir *d)
-{
+const char *dir_parent_path(const Dir *d) {
   if (dir_isroot(d)) {
     return NULL;
   }
@@ -37,9 +34,7 @@ const char *dir_parent_path(const Dir *d)
   return dirname(tmp);
 }
 
-
-static void apply_filter(Dir *d)
-{
+static void apply_filter(Dir *d) {
   if (d->filter) {
     uint32_t j = 0;
     for (uint32_t i = 0; i < d->length_sorted; i++) {
@@ -57,36 +52,32 @@ static void apply_filter(Dir *d)
   d->ind = max(min(d->ind, d->length - 1), 0);
 }
 
-
-static inline void swap(File **a, File **b)
-{
+static inline void swap(File **a, File **b) {
   File *Dir = *a;
   *a = *b;
   *b = Dir;
 }
 
-
 /* sort allfiles and copy non-hidden ones to sortedfiles */
-void dir_sort(Dir *d)
-{
+void dir_sort(Dir *d) {
   if (!d->sorted) {
     switch (d->settings.sorttype) {
-      case SORT_NATURAL:
-        qsort(d->files_all, d->length_all, sizeof *d->files_all, compare_natural);
-        break;
-      case SORT_NAME:
-        qsort(d->files_all, d->length_all, sizeof *d->files_all, compare_name);
-        break;
-      case SORT_SIZE:
-        qsort(d->files_all, d->length_all, sizeof *d->files_all, compare_size);
-        break;
-      case SORT_CTIME:
-        qsort(d->files_all, d->length_all, sizeof *d->files_all, compare_ctime);
-        break;
-      case SORT_RAND:
-        shuffle(d->files_all, d->length_all, sizeof *d->files_all);
-      default:
-        break;
+    case SORT_NATURAL:
+      qsort(d->files_all, d->length_all, sizeof *d->files_all, compare_natural);
+      break;
+    case SORT_NAME:
+      qsort(d->files_all, d->length_all, sizeof *d->files_all, compare_name);
+      break;
+    case SORT_SIZE:
+      qsort(d->files_all, d->length_all, sizeof *d->files_all, compare_size);
+      break;
+    case SORT_CTIME:
+      qsort(d->files_all, d->length_all, sizeof *d->files_all, compare_ctime);
+      break;
+    case SORT_RAND:
+      shuffle(d->files_all, d->length_all, sizeof *d->files_all);
+    default:
+      break;
     }
     d->sorted = 1;
   }
@@ -136,19 +127,18 @@ void dir_sort(Dir *d)
   d->length = j;
   if (d->settings.reverse) {
     for (uint32_t i = 0; i < ndirs / 2; i++) {
-      swap(d->files_sorted+i, d->files_sorted + ndirs - i - 1);
+      swap(d->files_sorted + i, d->files_sorted + ndirs - i - 1);
     }
     for (uint32_t i = 0; i < (d->length_sorted - ndirs) / 2; i++) {
-      swap(d->files_sorted + ndirs + i, d->files_sorted + d->length_sorted - i - 1);
+      swap(d->files_sorted + ndirs + i,
+           d->files_sorted + d->length_sorted - i - 1);
     }
   }
 
   apply_filter(d);
 }
 
-
-void dir_filter(Dir *d, const char *filter)
-{
+void dir_filter(Dir *d, const char *filter) {
   if (d->filter) {
     filter_destroy(d->filter);
     d->filter = NULL;
@@ -161,9 +151,7 @@ void dir_filter(Dir *d, const char *filter)
   apply_filter(d);
 }
 
-
-bool dir_check(const Dir *d)
-{
+bool dir_check(const Dir *d) {
   struct stat statbuf;
   if (stat(d->path, &statbuf) == -1) {
     log_error("stat: %s", strerror(errno));
@@ -172,9 +160,7 @@ bool dir_check(const Dir *d)
   return statbuf.st_mtime <= d->load_time;
 }
 
-
-Dir *dir_create(const char *path)
-{
+Dir *dir_create(const char *path) {
   Dir *d = xcalloc(1, sizeof *d);
 
   if (path[0] != '/') {
@@ -198,9 +184,7 @@ Dir *dir_create(const char *path)
   return d;
 }
 
-
-Dir *dir_load(const char *path, bool load_dircount)
-{
+Dir *dir_load(const char *path, bool load_dircount) {
   struct dirent *dp;
   Dir *dir = dir_create(path);
   dir->dircounts = load_dircount;
@@ -222,8 +206,7 @@ Dir *dir_load(const char *path, bool load_dircount)
 
   while ((dp = readdir(dirp))) {
     if (dp->d_name[0] == '.' &&
-      (dp->d_name[1] == 0 ||
-      (dp->d_name[1] == '.' && dp->d_name[2] == 0))) {
+        (dp->d_name[1] == 0 || (dp->d_name[1] == '.' && dp->d_name[2] == 0))) {
       continue;
     }
 
@@ -245,7 +228,8 @@ Dir *dir_load(const char *path, bool load_dircount)
   dir->files_sorted = xmalloc(dir->length_all * sizeof *dir->files_all);
   dir->files = xmalloc(dir->length_all * sizeof *dir->files_all);
 
-  memcpy(dir->files_sorted, dir->files_all, dir->length_all * sizeof *dir->files_all);
+  memcpy(dir->files_sorted, dir->files_all,
+         dir->length_all * sizeof *dir->files_all);
   memcpy(dir->files, dir->files_all, dir->length_all * sizeof *dir->files_all);
   dir->updates = 1;
   dir->loading = false;
@@ -265,9 +249,7 @@ struct queue_dirs {
   struct queue_dirs_node *tail;
 };
 
-
-Dir *dir_load_flat(const char *path, uint32_t level, bool load_dircount)
-{
+Dir *dir_load_flat(const char *path, uint32_t level, bool load_dircount) {
   Dir *dir = dir_create(path);
   dir->dircounts = load_dircount;
   dir->flatten_level = level;
@@ -298,8 +280,8 @@ Dir *dir_load_flat(const char *path, uint32_t level, bool load_dircount)
     struct dirent *dp;
     while ((dp = readdir(dirp))) {
       if (dp->d_name[0] == '.' &&
-        (dp->d_name[1] == 0 ||
-        (dp->d_name[1] == '.' && dp->d_name[2] == 0))) {
+          (dp->d_name[1] == 0 ||
+           (dp->d_name[1] == '.' && dp->d_name[2] == 0))) {
         continue;
       }
 
@@ -328,7 +310,7 @@ Dir *dir_load_flat(const char *path, uint32_t level, bool load_dircount)
         }
         for (uint32_t i = 0; i < head->level; i++) {
           file->name -= 2;
-          while (*(file->name-1) != '/') {
+          while (*(file->name - 1) != '/') {
             file->name--;
           }
         }
@@ -348,26 +330,25 @@ Dir *dir_load_flat(const char *path, uint32_t level, bool load_dircount)
   dir->files_sorted = xmalloc(dir->length_all * sizeof *dir->files_sorted);
   dir->files = xmalloc(dir->length_all * sizeof *dir->files);
 
-  memcpy(dir->files_sorted, dir->files_all, dir->length_all * sizeof *dir->files_all);
+  memcpy(dir->files_sorted, dir->files_all,
+         dir->length_all * sizeof *dir->files_all);
   memcpy(dir->files, dir->files_all, dir->length_all * sizeof *dir->files_all);
 
   return dir;
 }
 
-
-void dir_cursor_move(Dir *d, int32_t ct, uint32_t height, uint32_t scrolloff)
-{
+void dir_cursor_move(Dir *d, int32_t ct, uint32_t height, uint32_t scrolloff) {
   d->ind = max(min(d->ind + ct, d->length - 1), 0);
   if (ct < 0) {
     d->pos = min(max(scrolloff, d->pos + ct), d->ind);
   } else {
-    d->pos = max(min(height - 1 - scrolloff, d->pos + ct), height - d->length + d->ind);
+    d->pos = max(min(height - 1 - scrolloff, d->pos + ct),
+                 height - d->length + d->ind);
   }
 }
 
-
-static inline void dir_cursor_move_to_sel(Dir *d, uint32_t height, uint32_t scrolloff)
-{
+static inline void dir_cursor_move_to_sel(Dir *d, uint32_t height,
+                                          uint32_t scrolloff) {
   if (!d->sel || !d->files) {
     return;
   }
@@ -384,9 +365,8 @@ cleanup:
   XFREE_CLEAR(d->sel);
 }
 
-
-void dir_cursor_move_to(Dir *d, const char *name, uint32_t height, uint32_t scrolloff)
-{
+void dir_cursor_move_to(Dir *d, const char *name, uint32_t height,
+                        uint32_t scrolloff) {
   if (!name) {
     return;
   }
@@ -406,9 +386,7 @@ void dir_cursor_move_to(Dir *d, const char *name, uint32_t height, uint32_t scro
   d->ind = min(d->ind, d->length);
 }
 
-
-void dir_update_with(Dir *d, Dir *update, uint32_t height, uint32_t scrolloff)
-{
+void dir_update_with(Dir *d, Dir *update, uint32_t height, uint32_t scrolloff) {
   if (!d->sel && d->ind < d->length) {
     d->sel = strdup(file_name(d->files[d->ind]));
   }
@@ -441,9 +419,7 @@ void dir_update_with(Dir *d, Dir *update, uint32_t height, uint32_t scrolloff)
   d->loading = false;
 }
 
-
-void dir_destroy(Dir *d)
-{
+void dir_destroy(Dir *d) {
   if (!d) {
     return;
   }

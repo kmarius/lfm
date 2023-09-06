@@ -12,9 +12,11 @@ local M = {}
 ---@param path string
 ---@return string
 function M.dirname(path)
-	if not path then return nil end
+	if not path then
+		return nil
+	end
 	if not string.match(path, "^/") then
-		path = "./"..path
+		path = "./" .. path
 	end
 	return (string.gsub(path, "/[^/]*$", ""))
 end
@@ -23,7 +25,9 @@ end
 ---@param path string
 ---@return string
 function M.basename(path)
-	if not path then return nil end
+	if not path then
+		return nil
+	end
 	return (string.gsub(path, "^.*/", ""))
 end
 
@@ -32,12 +36,14 @@ end
 ---@return string name
 ---@return string? extension
 function M.file_split(file)
-	if not file then return nil end
+	if not file then
+		return nil
+	end
 	local i, j = string.find(file, "%.[^.]*$")
 	if not i or i == 1 then
 		return file
 	else
-		return string.sub(file, 1, i-1), string.sub(file, i+1, j)
+		return string.sub(file, 1, i - 1), string.sub(file, i + 1, j)
 	end
 end
 
@@ -59,7 +65,7 @@ end
 ---@vararg function
 ---@return function
 function M.c(...)
-	local t = {...}
+	local t = { ... }
 	if #t == 0 then
 		return function() end
 	elseif #t == 1 then
@@ -91,7 +97,7 @@ end
 ---@vararg any
 ---@return function
 function M.a(f, ...)
-	local t = {...}
+	local t = { ... }
 	if not f then
 		return function() end
 	elseif #t == 0 then
@@ -116,7 +122,7 @@ end
 ---
 ---@vararg string
 function M.feed(...)
-	local keys = {...}
+	local keys = { ... }
 	return function()
 		feedkeys(unpack(keys))
 	end

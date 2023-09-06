@@ -20,9 +20,9 @@ end
 ---@param primary boolean
 local function wl_copy(text, primary)
 	if primary then
-		lfm.spawn({"wl-copy", "-n", "--primary"}, {stdin=text})
+		lfm.spawn({ "wl-copy", "-n", "--primary" }, { stdin = text })
 	else
-		lfm.spawn({"wl-copy", "-n"}, {stdin=text})
+		lfm.spawn({ "wl-copy", "-n" }, { stdin = text })
 	end
 end
 
@@ -51,7 +51,7 @@ function M.rename(name)
 	local file = fm.current_file()
 	if file then
 		if not file_exists(name) then
-			lfm.spawn({"mv", "--", file, name})
+			lfm.spawn({ "mv", "--", file, name })
 		else
 			lfm.error("file exists")
 		end
@@ -66,7 +66,7 @@ function M.rename_until_ext()
 		if not ext then
 			lfm.cmd.line_set(":", "rename ", "")
 		else
-			lfm.cmd.line_set(":", "rename ", "."..ext)
+			lfm.cmd.line_set(":", "rename ", "." .. ext)
 		end
 	end
 end
@@ -79,7 +79,7 @@ function M.rename_before_ext()
 		if not ext then
 			lfm.cmd.line_set(":", "rename " .. file, "")
 		else
-			lfm.cmd.line_set(":", "rename "..name, "."..ext)
+			lfm.cmd.line_set(":", "rename " .. name, "." .. ext)
 		end
 	end
 end
@@ -100,7 +100,7 @@ function M.symlink()
 	local files, mode = fm.paste_buffer_get()
 	if mode == "copy" then
 		for _, f in pairs(files) do
-			lfm.spawn({"ln", "-s", "--", f})
+			lfm.spawn({ "ln", "-s", "--", f })
 		end
 	end
 	fm.paste_buffer_set({})
@@ -112,7 +112,7 @@ function M.symlink_relative()
 	local files, mode = fm.paste_buffer_get()
 	if mode == "copy" then
 		for _, f in pairs(files) do
-			lfm.spawn({"ln", "-s", "--relative", "--", f})
+			lfm.spawn({ "ln", "-s", "--relative", "--", f })
 		end
 	end
 	fm.paste_buffer_set({})
@@ -121,10 +121,10 @@ end
 ---Go to the location pointed at by the symlink at the cursor position.
 function M.follow_link()
 	local file = fm.current_file()
-	local target = lfm.shell.popen({"readlink", "--", file})[1]
+	local target = lfm.shell.popen({ "readlink", "--", file })[1]
 	if target then
 		-- TODO: do these things even work with spaces in filenames? (on 2022-02-12)
-		lfm.eval("cd "..dirname(target))
+		lfm.eval("cd " .. dirname(target))
 		fm.sel(basename(target))
 	end
 end
@@ -135,7 +135,9 @@ local function chain(f, args, opts)
 	opts = opts or {}
 	local co
 	local callback = opts.callback
-	opts.callback = function(r) coroutine.resume(co, r) end
+	opts.callback = function(r)
+		coroutine.resume(co, r)
+	end
 	co = coroutine.create(function()
 		local ret = 0
 		for _, arg in ipairs(args) do
@@ -172,7 +174,7 @@ function M.paste()
 	--- spawning all these shells is fine with a sane amount of files
 	local stat_stat = stat.stat
 	local format = string.format
-	local reload_dirs = {[pwd] = true}
+	local reload_dirs = { [pwd] = true }
 	if mode == "move" then
 		for _, file in ipairs(files) do
 			reload_dirs[dirname(file)] = true
@@ -191,19 +193,18 @@ function M.paste()
 	end
 	chain(function(file)
 		local base = basename(file)
-		local target = pwd.."/"..base
+		local target = pwd .. "/" .. base
 		local num = 1
 		while stat_stat(target) do
 			target = format("%s/%s.~%d~", pwd, base, num)
 			num = num + 1
 		end
 		if mode == "move" then
-			return {"mv", "--", file, target}
+			return { "mv", "--", file, target }
 		else
-			return {"cp", "-r", "--", file, target}
+			return { "cp", "-r", "--", file, target }
 		end
-	end,
-	files, {errexit=true, out=false, callback=cb})
+	end, files, { errexit = true, out = false, callback = cb })
 	fm.paste_buffer_set({})
 end
 
@@ -219,7 +220,7 @@ function M.paste_overwrite()
 	if #files == 0 then
 		return
 	end
-	local reload_dirs = {[lfm.fn.getpwd()] = true}
+	local reload_dirs = { [lfm.fn.getpwd()] = true }
 	if mode == "move" then
 		for _, file in ipairs(files) do
 			reload_dirs[dirname(file)] = true
@@ -239,14 +240,14 @@ function M.paste_overwrite()
 	-- this doesn't "move" on the same filesystem, it copies and deletes
 	local cmd
 	if mode == "move" then
-		cmd = {"rsync", "-r", "--remove-source-files", "--", unpack(files)}
+		cmd = { "rsync", "-r", "--remove-source-files", "--", unpack(files) }
 	elseif mode == "copy" then
-		cmd = {"rsync", "-r", "--", unpack(files)}
+		cmd = { "rsync", "-r", "--", unpack(files) }
 	else
 		-- not reached
 	end
 	table.insert(cmd, "./")
-	lfm.spawn(cmd, {callback=cb})
+	lfm.spawn(cmd, { callback = cb })
 	fm.paste_buffer_set({})
 end
 

@@ -3,18 +3,17 @@
 #include <errno.h>
 #include <grp.h>
 #include <limits.h>
-#include <linux/limits.h>  // PATH_MAX
+#include <linux/limits.h> // PATH_MAX
 #include <pwd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>  // readlink
+#include <unistd.h> // readlink
 
 #include "file.h"
-#include "util.h"  // asprintf
+#include "util.h" // asprintf
 
-File *file_create(const char *dir, const char *name)
-{
+File *file_create(const char *dir, const char *name) {
   char buf[PATH_MAX] = {0};
 
   File *f = xcalloc(1, sizeof *f);
@@ -65,9 +64,7 @@ File *file_create(const char *dir, const char *name)
   return f;
 }
 
-
-void file_destroy(File *f)
-{
+void file_destroy(File *f) {
   if (!f) {
     return;
   }
@@ -77,9 +74,7 @@ void file_destroy(File *f)
   xfree(f);
 }
 
-
-uint32_t path_dircount(const char *path)
-{
+uint32_t path_dircount(const char *path) {
   struct dirent *dp;
 
   DIR *dirp = opendir(path);
@@ -88,14 +83,13 @@ uint32_t path_dircount(const char *path)
   }
 
   uint32_t ct;
-  for (ct = 0; (dp = readdir(dirp)); ct++) {}
+  for (ct = 0; (dp = readdir(dirp)); ct++) {
+  }
   closedir(dirp);
   return ct - 2;
 }
 
-
-static char filetypeletter(int mode)
-{
+static char filetypeletter(int mode) {
   char c;
 
   if (S_ISREG(mode)) {
@@ -135,12 +129,9 @@ static char filetypeletter(int mode)
   return c;
 }
 
-
-const char *file_perms(const File *f)
-{
-  static const char *rwx[] = {
-    "---", "--x", "-w-", "-wx",
-    "r--", "r-x", "rw-", "rwx"};
+const char *file_perms(const File *f) {
+  static const char *rwx[] = {"---", "--x", "-w-", "-wx",
+                              "r--", "r-x", "rw-", "rwx"};
   static char bits[11];
 
   const int mode = f->stat.st_mode;
@@ -161,9 +152,7 @@ const char *file_perms(const File *f)
   return bits;
 }
 
-
-const char* file_owner(const File *f)
-{
+const char *file_owner(const File *f) {
   static char owner[32];
   static uid_t cached_uid = UINT_MAX;
   struct passwd *pwd;
@@ -181,10 +170,8 @@ const char* file_owner(const File *f)
   return owner;
 }
 
-
 // getgrgid() is somewhat slow, so we cache one call
-const char *file_group(const File *f)
-{
+const char *file_group(const File *f) {
   static char group[32];
   static gid_t cached_gid = UINT_MAX;
   struct group *grp;

@@ -29,77 +29,67 @@ struct linked_hashtab_s;
 // Create a new hash table with base `capacity` and a `free` function.
 struct hashtab_s *ht_with_capacity(size_t capacity, ht_free_func free);
 
-// Create a new hash table using a default base capacity of `HT_DEFAULT_CAPCCITY`
-// and a `free` function..
-static inline struct hashtab_s *ht_create(ht_free_func free)
-{
+// Create a new hash table using a default base capacity of
+// `HT_DEFAULT_CAPCCITY` and a `free` function..
+static inline struct hashtab_s *ht_create(ht_free_func free) {
   return ht_with_capacity(HT_DEFAULT_CAPACITY, free);
 }
 
 // Destroy a hash table, freeing all elements.
-void ht_destroy(struct hashtab_s *t)
-  __attribute__((nonnull));
+void ht_destroy(struct hashtab_s *t) __attribute__((nonnull));
 
 // Insert or update key-value pair. Returns `true` on insert, `false` on update.
 bool ht_set(struct hashtab_s *t, const char *key, void *val)
-  __attribute__((nonnull));
+    __attribute__((nonnull));
 
 // Create a copy of key/val and inserts it into the table. The hash table should
 // have `xfree` as its free function.
-__attribute__((nonnull))
-static inline void ht_set_copy(struct hashtab_s *t, const char *key, const void *val, size_t sz)
-{
+__attribute__((nonnull)) static inline void
+ht_set_copy(struct hashtab_s *t, const char *key, const void *val, size_t sz) {
   char *mem = xmalloc(sz + strlen(key) + 1);
   memcpy(mem, val, sz);
   strcpy(mem + sz, key);
-  ht_set(t, mem+sz, mem);
+  ht_set(t, mem + sz, mem);
 }
 
-// Delete `key` from the hash table. Returns `true` on deletion, `false` if the key wasn't found.
-bool ht_delete(struct hashtab_s *t, const char *key)
-  __attribute__((nonnull));
+// Delete `key` from the hash table. Returns `true` on deletion, `false` if the
+// key wasn't found.
+bool ht_delete(struct hashtab_s *t, const char *key) __attribute__((nonnull));
 
 // Probe the has table for `key`. Returns the corresponding value on success,
 // `NULL` otherwise.
-void *ht_get(struct hashtab_s *t, const char *key)
-  __attribute__((nonnull));
+void *ht_get(struct hashtab_s *t, const char *key) __attribute__((nonnull));
 
 // Clear all values from the hash table.
-void ht_clear(struct hashtab_s *t)
-  __attribute__((nonnull));
-
-
+void ht_clear(struct hashtab_s *t) __attribute__((nonnull));
 
 // Create a new hash table with base `capacity` and a `free` function.
 struct linked_hashtab_s *lht_with_capacity(size_t capacity, ht_free_func free);
 
-// Create a new hash table using a default base capacity of `HT_DEFAULT_CAPCCITY`
-// and a `free` function..
-static inline struct linked_hashtab_s *lht_create(ht_free_func free)
-{
+// Create a new hash table using a default base capacity of
+// `HT_DEFAULT_CAPCCITY` and a `free` function..
+static inline struct linked_hashtab_s *lht_create(ht_free_func free) {
   return lht_with_capacity(HT_DEFAULT_CAPACITY, free);
 }
 
 // Destroy a hash table, freeing all elements.
-void lht_destroy(struct linked_hashtab_s *t)
-  __attribute__((nonnull));
+void lht_destroy(struct linked_hashtab_s *t) __attribute__((nonnull));
 
 // Insert or update key-value pair. Returns `true` on insert, `false` on update.
 bool lht_set(struct linked_hashtab_s *t, const char *key, void *val)
-  __attribute__((nonnull));
+    __attribute__((nonnull));
 
 // returns true on delete
 bool lht_delete(struct linked_hashtab_s *t, const char *key)
-  __attribute__((nonnull));
+    __attribute__((nonnull));
 
 // Probe the has table for `key`. Returns the corresponding value on success,
 // `NULL` otherwise.
 void *lht_get(const struct linked_hashtab_s *t, const char *key)
-  __attribute__((nonnull));
+    __attribute__((nonnull));
 
 // Clear all values from the hash table.
-void lht_clear(struct linked_hashtab_s *t)
-  __attribute__((nonnull));
+void lht_clear(struct linked_hashtab_s *t) __attribute__((nonnull));
 
 struct ht_bucket {
   const char *key;
@@ -109,11 +99,12 @@ struct ht_bucket {
 
 typedef struct hashtab_s {
   struct ht_bucket *buckets;
-  size_t capacity;  // All buckets currently in use (the actual array might be larger)
-  size_t n;         // base capacity
-  size_t size;      // number of elements held
-  size_t xptr;      // index of the next bucket to be rehashed
-  uint8_t xlvl;     // number of full expansions completed
+  size_t capacity; // All buckets currently in use (the actual array might be
+                   // larger)
+  size_t n;        // base capacity
+  size_t size;     // number of elements held
+  size_t xptr;     // index of the next bucket to be rehashed
+  uint8_t xlvl;    // number of full expansions completed
   ht_free_func free;
 } Hashtab;
 
@@ -142,29 +133,29 @@ typedef struct linked_hashtab_s {
 //
 
 // Iterate over the values of the hash table in unspecified order.
-#define ht_foreach(item, h) \
-  for (size_t ht_i = 0; ht_i < (h)->capacity; ht_i++) \
-  for (struct ht_bucket *ht_cont, *ht_b = &(h)->buckets[ht_i]; \
-      (ht_cont = ht_b) && ht_b->val; ht_b = ht_b->next) \
+#define ht_foreach(item, h)                                                    \
+  for (size_t ht_i = 0; ht_i < (h)->capacity; ht_i++)                          \
+    for (struct ht_bucket * ht_cont, *ht_b = &(h)->buckets[ht_i];              \
+         (ht_cont = ht_b) && ht_b->val; ht_b = ht_b->next)                     \
       for (item = ht_b->val; ht_cont; ht_cont = NULL)
 
 // Iterate over key-values of the hash table in unspecified order.
-#define ht_foreach_kv(k, v, h) \
-  for (size_t ht_i = 0; ht_i < (h)->capacity; ht_i++) \
-  for (struct ht_bucket *ht_cont, *ht_b = &(h)->buckets[ht_i]; \
-      (ht_cont = ht_b) && ht_b->val; ht_b = ht_b->next) \
-      for (k = ht_b->key; ht_cont; ) \
-      for (v = ht_b->val; ht_cont; ht_cont = NULL)
+#define ht_foreach_kv(k, v, h)                                                 \
+  for (size_t ht_i = 0; ht_i < (h)->capacity; ht_i++)                          \
+    for (struct ht_bucket * ht_cont, *ht_b = &(h)->buckets[ht_i];              \
+         (ht_cont = ht_b) && ht_b->val; ht_b = ht_b->next)                     \
+      for (k = ht_b->key; ht_cont;)                                            \
+        for (v = ht_b->val; ht_cont; ht_cont = NULL)
 
 // Iterate over values of the linked hash table in inssertion order.
-#define lht_foreach(item, t) \
-  for (struct lht_bucket *lht_cont, *lht_b = (t)->first; \
-      (lht_cont = lht_b) && lht_b->val; lht_b = lht_b->order_next) \
-      for (item = lht_b->val; lht_cont; lht_cont = NULL)
+#define lht_foreach(item, t)                                                   \
+  for (struct lht_bucket * lht_cont, *lht_b = (t)->first;                      \
+       (lht_cont = lht_b) && lht_b->val; lht_b = lht_b->order_next)            \
+    for (item = lht_b->val; lht_cont; lht_cont = NULL)
 
 // Iterate over key-values of the linked hash table in inssertion order.
-#define lht_foreach_kv(k, v, t) \
-  for (struct lht_bucket *lht_cont, *lht_b = (t)->first; \
-      (lht_cont = lht_b) && lht_b->val; lht_b = lht_b->order_next) \
-      for (k = lht_b->key; lht_cont; ) \
+#define lht_foreach_kv(k, v, t)                                                \
+  for (struct lht_bucket * lht_cont, *lht_b = (t)->first;                      \
+       (lht_cont = lht_b) && lht_b->val; lht_b = lht_b->order_next)            \
+    for (k = lht_b->key; lht_cont;)                                            \
       for (v = lht_b->val; lht_cont; lht_cont = NULL)

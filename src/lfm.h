@@ -25,10 +25,10 @@ typedef struct lfm_s {
   ev_io input_watcher;
   uint64_t input_timeout;
   struct {
-    struct trie_s *normal;  // normal mode mappings
-    struct trie_s *cmd;     // command mode mappings
-    struct trie_s *cur;     // pointer to the current leaf in either of the tries
-    input_t *seq;           // current key sequence
+    struct trie_s *normal; // normal mode mappings
+    struct trie_s *cmd;    // command mode mappings
+    struct trie_s *cur;    // pointer to the current leaf in either of the tries
+    input_t *seq;          // current key sequence
     int count;
     bool accept_count;
   } maps;
@@ -44,7 +44,8 @@ typedef struct lfm_s {
   ev_timer map_clear_timer;
 
   cvector_vector_type(ev_timer *) schedule_timers;
-  cvector_vector_type(ev_child *) child_watchers; /* to run callbacks when processes finish */
+  cvector_vector_type(ev_child *)
+      child_watchers; /* to run callbacks when processes finish */
 } Lfm;
 
 // Initialize ui, fm and the lua_State.
@@ -68,8 +69,8 @@ void lfm_read_fifo(Lfm *lfm);
 // the ui. If `out_cb_ref` or `err_cb_ref` are set, the respective callbacks
 // are called with each line of output/error. `cb_ref` will be called with the
 // return code once the command finishes.
-int lfm_spawn(Lfm *lfm, const char *prog, char *const *args,
-    char **in, bool out, bool err, int out_cb_ref, int err_cb_ref, int cb_ref);
+int lfm_spawn(Lfm *lfm, const char *prog, char *const *args, char **in,
+              bool out, bool err, int out_cb_ref, int err_cb_ref, int cb_ref);
 
 // Execute a foreground program. Uses execvp semantics.
 bool lfm_execute(Lfm *lfm, const char *prog, char *const *args);

@@ -17,16 +17,16 @@
 // This is plenty of space, most file names are shorter and as long as
 // *one* event fits we should not get overwhelmed
 #define EVENT_MAX 8
-#define EVENT_MAX_LEN 128  // max filename length, arbitrary
+#define EVENT_MAX_LEN 128 // max filename length, arbitrary
 #define EVENT_SIZE (sizeof(struct inotify_event))
 #define EVENT_BUFLEN (EVENT_MAX * (EVENT_SIZE + EVENT_MAX_LEN))
 
-#define NOTIFY_EVENTS (IN_MODIFY | IN_CREATE | IN_DELETE | IN_MOVED_FROM | IN_MOVED_TO | IN_ATTRIB)
+#define NOTIFY_EVENTS                                                          \
+  (IN_MODIFY | IN_CREATE | IN_DELETE | IN_MOVED_FROM | IN_MOVED_TO | IN_ATTRIB)
 
 static void inotify_cb(EV_P_ ev_io *w, int revents);
 
-bool notify_init(Notify *notify, Lfm *lfm)
-{
+bool notify_init(Notify *notify, Lfm *lfm) {
   notify->inotify_fd = inotify_init1(IN_NONBLOCK);
   if (notify->inotify_fd == -1) {
     return false;
@@ -34,7 +34,9 @@ bool notify_init(Notify *notify, Lfm *lfm)
 
   // We use notify to detect changes to our fifo because with ev file watchers
   // the callback sometimes gets called every loop, evin with clearerr etc.
-  if ((notify->fifo_wd = inotify_add_watch(notify->inotify_fd, cfg.rundir, NOTIFY_EVENTS | IN_CLOSE_WRITE)) == -1) {
+  if ((notify->fifo_wd = inotify_add_watch(notify->inotify_fd, cfg.rundir,
+                                           NOTIFY_EVENTS | IN_CLOSE_WRITE)) ==
+      -1) {
     log_error("inotify: %s", strerror(errno));
     return false;
   }
@@ -46,14 +48,12 @@ bool notify_init(Notify *notify, Lfm *lfm)
   return true;
 }
 
-
-void notify_deinit(Notify *notify)
-{
+void notify_deinit(Notify *notify) {
   if (notify->inotify_fd == -1) {
     return;
   }
 
-  cvector_foreach_ptr(struct notify_watcher_data *d, notify->watchers) {
+  cvector_foreach_ptr(struct notify_watcher_data * d, notify->watchers) {
     inotify_rm_watch(notify->inotify_fd, d->wd);
   }
   cvector_free(notify->watchers);
@@ -62,10 +62,8 @@ void notify_deinit(Notify *notify)
   notify->inotify_fd = -1;
 }
 
-
-static inline Dir *get_watched_dir(Notify *notify, int wd)
-{
-  cvector_foreach_ptr(struct notify_watcher_data *d, notify->watchers) {
+static inline Dir *get_watched_dir(Notify *notify, int wd) {
+  cvector_foreach_ptr(struct notify_watcher_data * d, notify->watchers) {
     if (d->wd == wd) {
       return d->dir;
     }
@@ -73,13 +71,11 @@ static inline Dir *get_watched_dir(Notify *notify, int wd)
   return NULL;
 }
 
-
 /* TODO: we currently don't notice if the current directory is deleted while
  * empty (on 2021-11-18) */
-static void inotify_cb(EV_P_ ev_io *w, int revents)
-{
-  (void) loop;
-  (void) revents;
+static void inotify_cb(EV_P_ ev_io *w, int revents) {
+  (void)loop;
+  (void)revents;
 
   Lfm *lfm = w->data;
   Notify *notify = &lfm->notify;
@@ -90,7 +86,7 @@ static void inotify_cb(EV_P_ ev_io *w, int revents)
 
   while ((nread = read(notify->inotify_fd, buf, EVENT_BUFLEN)) > 0) {
     for (p = buf; p < buf + nread; p += EVENT_SIZE + event->len) {
-      event = (struct inotify_event *) p;
+      event = (struct inotify_event *)p;
 
       if (event->len == 0) {
         continue;
@@ -110,9 +106,7 @@ static void inotify_cb(EV_P_ ev_io *w, int revents)
   }
 }
 
-
-void notify_add_watcher(Notify *notify, Dir *dir)
-{
+void notify_add_watcher(Notify *notify, Dir *dir) {
   if (notify->inotify_fd == -1) {
     return;
   }
@@ -123,7 +117,7 @@ void notify_add_watcher(Notify *notify, Dir *dir)
     }
   }
 
-  cvector_foreach_ptr(struct notify_watcher_data *d, notify->watchers) {
+  cvector_foreach_ptr(struct notify_watcher_data * d, notify->watchers) {
     if (d->dir == dir) {
       return;
     }
@@ -141,40 +135,38 @@ void notify_add_watcher(Notify *notify, Dir *dir)
   const uint64_t t1 = current_millis();
 
   /* TODO: inotify_add_watch can take over 200ms for example on samba shares.
-   * the only way to work around it is to add notify watches asnc. (on 2021-11-15) */
+   * the only way to work around it is to add notify watches asnc. (on
+   * 2021-11-15) */
   if (t1 - t0 > 10) {
-    log_warn("inotify_add_watch(fd, \"%s\", ...) took %ums", dir->path, t1 - t0);
+    log_warn("inotify_add_watch(fd, \"%s\", ...) took %ums", dir->path,
+             t1 - t0);
   }
 
-  cvector_push_back(notify->watchers, ((struct notify_watcher_data) {wd, dir}));
+  cvector_push_back(notify->watchers, ((struct notify_watcher_data){wd, dir}));
 }
 
-
-void notify_remove_watcher(Notify *notify, Dir *dir)
-{
+void notify_remove_watcher(Notify *notify, Dir *dir) {
   if (notify->inotify_fd == -1) {
     return;
   }
 
-  cvector_foreach_ptr(struct notify_watcher_data *data, notify->watchers) {
+  cvector_foreach_ptr(struct notify_watcher_data * data, notify->watchers) {
     if (data->dir == dir) {
       if (data->wd != notify->fifo_wd) {
         inotify_rm_watch(notify->inotify_fd, data->wd);
       }
-      cvector_swap_erase(notify->watchers, (size_t) (data - notify->watchers));
+      cvector_swap_erase(notify->watchers, (size_t)(data - notify->watchers));
       return;
     }
   }
 }
 
-
-void notify_set_watchers(Notify *notify, Dir **dirs, uint32_t n)
-{
+void notify_set_watchers(Notify *notify, Dir **dirs, uint32_t n) {
   if (notify->inotify_fd == -1) {
     return;
   }
 
-  cvector_foreach_ptr(struct notify_watcher_data *d, notify->watchers) {
+  cvector_foreach_ptr(struct notify_watcher_data * d, notify->watchers) {
     if (d->wd != notify->fifo_wd) {
       inotify_rm_watch(notify->inotify_fd, d->wd);
     }

@@ -29,26 +29,28 @@
 #include "ui.h"
 #include "util.h"
 
-#define EXT_MAX_LEN 128  // to convert the extension to lowercase
+#define EXT_MAX_LEN 128 // to convert the extension to lowercase
 
 static void menu_delay_timer_cb(EV_P_ ev_timer *w, int revents);
 static void draw_dirs(Ui *ui);
 static void plane_draw_dir(struct ncplane *n, Dir *dir, LinkedHashtab *sel,
-    LinkedHashtab *load, paste_mode mode, const char *highlight, bool print_sizes);
+                           LinkedHashtab *load, paste_mode mode,
+                           const char *highlight, bool print_sizes);
 static void draw_cmdline(Ui *ui);
 static void draw_preview(Ui *ui);
 static void update_preview(Ui *ui);
 static void draw_menu(Ui *ui, cvector_vector_type(char *) menu);
 static void draw_info(Ui *ui);
 static void menu_resize(Ui *ui);
-static int print_shortened_w(struct ncplane *n, const wchar_t *name, int name_len, int max_len, bool has_ext);
-static inline int shorten_file_name(wchar_t *name, int name_len, int max_len, bool has_ext);
+static int print_shortened_w(struct ncplane *n, const wchar_t *name,
+                             int name_len, int max_len, bool has_ext);
+static inline int shorten_file_name(wchar_t *name, int name_len, int max_len,
+                                    bool has_ext);
 static inline int shorten_path(wchar_t *path, int path_len, int max_len);
 
 /* init/resize {{{ */
 
-static int resize_cb(struct ncplane *n)
-{
+static int resize_cb(struct ncplane *n) {
   Ui *ui = ncplane_userptr(n);
   notcurses_stddim_yx(ui->nc, &ui->nrow, &ui->ncol);
   ncplane_resize(ui->planes.info, 0, 0, 0, 0, 0, 0, 1, ui->ncol);
@@ -61,10 +63,10 @@ static int resize_cb(struct ncplane *n)
   return 0;
 }
 
-void ui_resume(Ui *ui)
-{
+void ui_resume(Ui *ui) {
   struct notcurses_options ncopts = {
-    .flags = NCOPTION_NO_WINCH_SIGHANDLER | NCOPTION_SUPPRESS_BANNERS | NCOPTION_PRESERVE_CURSOR,
+      .flags = NCOPTION_NO_WINCH_SIGHANDLER | NCOPTION_SUPPRESS_BANNERS |
+               NCOPTION_PRESERVE_CURSOR,
   };
   // ui->nc = notcurses_core_init(&ncopts, NULL);
   ui->nc = notcurses_init(&ncopts, NULL);
@@ -78,18 +80,18 @@ void ui_resume(Ui *ui)
   ui->lfm->fm.height = ui->nrow - 2;
 
   struct ncplane_options opts = {
-    .y = 0,
-    .x = 0,
-    .rows = 1,
-    .cols = ui->ncol,
-    .userptr = ui,
+      .y = 0,
+      .x = 0,
+      .rows = 1,
+      .cols = ui->ncol,
+      .userptr = ui,
   };
 
   opts.resizecb = resize_cb;
   ui->planes.info = ncplane_create(ncstd, &opts);
   opts.resizecb = NULL;
 
-  opts.y = ui->nrow-1;
+  opts.y = ui->nrow - 1;
   ui->planes.cmdline = ncplane_create(ncstd, &opts);
 
   ui_recol(ui);
@@ -104,8 +106,7 @@ void ui_resume(Ui *ui)
   ui->running = true;
 }
 
-void ui_suspend(Ui *ui)
-{
+void ui_suspend(Ui *ui) {
   cvector_ffree_clear(ui->planes.dirs, ncplane_destroy);
   ncplane_destroy(ui->planes.cmdline);
   ncplane_destroy(ui->planes.menu);
@@ -121,8 +122,7 @@ void ui_suspend(Ui *ui)
   ui->running = false;
 }
 
-void ui_init(Ui *ui, struct lfm_s *lfm)
-{
+void ui_init(Ui *ui, struct lfm_s *lfm) {
   cmdline_init(&ui->cmdline);
 
   ui->lfm = lfm;
@@ -138,10 +138,9 @@ void ui_init(Ui *ui, struct lfm_s *lfm)
   log_info("initialized ui");
 }
 
-void ui_deinit(Ui *ui)
-{
+void ui_deinit(Ui *ui) {
   ui_suspend(ui);
-  cvector_foreach_ptr(struct message_s *m, ui->messages) {
+  cvector_foreach_ptr(struct message_s * m, ui->messages) {
     xfree(m->text);
   }
   cvector_free(ui->messages);
@@ -151,16 +150,15 @@ void ui_deinit(Ui *ui)
   xfree(ui->infoline);
 }
 
-void kbblocking(bool blocking)
-{
+void kbblocking(bool blocking) {
   int val = fcntl(STDIN_FILENO, F_GETFL, 0);
   if (val != -1) {
-    fcntl(STDIN_FILENO, F_SETFL, blocking ? val & ~O_NONBLOCK : val | O_NONBLOCK);
+    fcntl(STDIN_FILENO, F_SETFL,
+          blocking ? val & ~O_NONBLOCK : val | O_NONBLOCK);
   }
 }
 
-void ui_recol(Ui *ui)
-{
+void ui_recol(Ui *ui) {
   struct ncplane *ncstd = notcurses_stdplane(ui->nc);
 
   cvector_fclear(ui->planes.dirs, ncplane_destroy);
@@ -173,8 +171,8 @@ void ui_recol(Ui *ui)
   }
 
   struct ncplane_options opts = {
-    .y = 1,
-    .rows = ui->nrow - 2,
+      .y = 1,
+      .rows = ui->nrow - 2,
   };
 
   uint32_t xpos = 0;
@@ -187,7 +185,7 @@ void ui_recol(Ui *ui)
   opts.x = xpos;
   opts.cols = ui->ncol - xpos - 1;
   cvector_push_back(ui->planes.dirs, ncplane_create(ncstd, &opts));
-  ui->planes.preview = ui->planes.dirs[ui->ndirs-1];
+  ui->planes.preview = ui->planes.dirs[ui->ndirs - 1];
   ui->preview.cols = opts.cols;
   ui->preview.rows = ui->nrow - 2;
 }
@@ -196,8 +194,7 @@ void ui_recol(Ui *ui)
 
 /* main drawing/echo/err {{{ */
 
-void ui_draw(Ui *ui)
-{
+void ui_draw(Ui *ui) {
   if (ui->redraw & REDRAW_FM) {
     draw_dirs(ui);
   }
@@ -219,8 +216,7 @@ void ui_draw(Ui *ui)
   ui->redraw = 0;
 }
 
-void ui_clear(Ui *ui)
-{
+void ui_clear(Ui *ui) {
   notcurses_refresh(ui->nc, NULL, NULL);
 
   notcurses_cursor_enable(ui->nc, 0, 0);
@@ -229,27 +225,22 @@ void ui_clear(Ui *ui)
   ui_redraw(ui, REDRAW_FULL);
 }
 
-static void draw_dirs(Ui *ui)
-{
+static void draw_dirs(Ui *ui) {
   Fm *fm = &ui->lfm->fm;
   const uint32_t l = fm->dirs.length;
   for (uint32_t i = 0; i < l; i++) {
-    plane_draw_dir(ui->planes.dirs[l-i-1],
-        fm->dirs.visible[i],
-        fm->selection.paths,
-        fm->paste.buffer,
-        fm->paste.mode,
-        i == 0 ? ui->highlight : NULL, i == 0);
+    plane_draw_dir(ui->planes.dirs[l - i - 1], fm->dirs.visible[i],
+                   fm->selection.paths, fm->paste.buffer, fm->paste.mode,
+                   i == 0 ? ui->highlight : NULL, i == 0);
   }
 }
 
-static void draw_preview(Ui *ui)
-{
+static void draw_preview(Ui *ui) {
   Fm *fm = &ui->lfm->fm;
   if (cfg.preview && ui->ndirs > 1) {
     if (fm->dirs.preview) {
       plane_draw_dir(ui->planes.preview, fm->dirs.preview, fm->selection.paths,
-          fm->paste.buffer, fm->paste.mode, NULL, false);
+                     fm->paste.buffer, fm->paste.mode, NULL, false);
     } else {
       update_preview(ui);
       if (ui->preview.preview) {
@@ -261,8 +252,7 @@ static void draw_preview(Ui *ui)
   }
 }
 
-static inline void print_message(Ui *ui, const char *msg, bool error)
-{
+static inline void print_message(Ui *ui, const char *msg, bool error) {
   struct ncplane *n = ui->planes.cmdline;
   ncplane_erase(n);
   ncplane_set_bg_default(n);
@@ -281,8 +271,7 @@ static inline void print_message(Ui *ui, const char *msg, bool error)
   ncplane_set_styles(n, NCSTYLE_NONE);
 }
 
-void ui_echom(Ui *ui, const char *format, ...)
-{
+void ui_echom(Ui *ui, const char *format, ...) {
   va_list args;
   va_start(args, format);
   ui_vechom(ui, format, args);
@@ -290,8 +279,7 @@ void ui_echom(Ui *ui, const char *format, ...)
   ui_redraw(ui, REDRAW_CMDLINE);
 }
 
-void ui_error(Ui *ui, const char *format, ...)
-{
+void ui_error(Ui *ui, const char *format, ...) {
   va_list args;
   va_start(args, format);
   ui_verror(ui, format, args);
@@ -299,8 +287,7 @@ void ui_error(Ui *ui, const char *format, ...)
   ui_redraw(ui, REDRAW_CMDLINE);
 }
 
-void ui_verror(Ui *ui, const char *format, va_list args)
-{
+void ui_verror(Ui *ui, const char *format, va_list args) {
   struct message_s msg = {NULL, true};
   vasprintf(&msg.text, format, args);
 
@@ -311,8 +298,7 @@ void ui_verror(Ui *ui, const char *format, va_list args)
   ui->show_message = true;
 }
 
-void ui_vechom(Ui *ui, const char *format, va_list args)
-{
+void ui_vechom(Ui *ui, const char *format, va_list args) {
   struct message_s msg = {NULL, false};
   vasprintf(&msg.text, format, args);
 
@@ -334,8 +320,7 @@ void ui_cmd_delete(Ui *ui) {
   ui_redraw(ui, REDRAW_CMDLINE);
 }
 
-void ui_cmd_prefix_set(Ui *ui, const char *prefix)
-{
+void ui_cmd_prefix_set(Ui *ui, const char *prefix) {
   if (!prefix) {
     return;
   }
@@ -346,22 +331,19 @@ void ui_cmd_prefix_set(Ui *ui, const char *prefix)
   ui_redraw(ui, REDRAW_CMDLINE);
 }
 
-void ui_cmd_clear(Ui *ui)
-{
+void ui_cmd_clear(Ui *ui) {
   cmdline_clear(&ui->cmdline);
   notcurses_cursor_disable(ui->nc);
   ui_menu_show(ui, NULL, 0);
   ui_redraw(ui, REDRAW_CMDLINE | REDRAW_MENU);
 }
 
-static char *print_time(time_t time, char *buffer, size_t bufsz)
-{
+static char *print_time(time_t time, char *buffer, size_t bufsz) {
   strftime(buffer, bufsz, "%Y-%m-%d %H:%M:%S", localtime(&time));
   return buffer;
 }
 
-static uint32_t int_sz(uint32_t n)
-{
+static uint32_t int_sz(uint32_t n) {
   uint32_t i = 1;
   while (n >= 10) {
     i++;
@@ -370,8 +352,7 @@ static uint32_t int_sz(uint32_t n)
   return i;
 }
 
-void draw_cmdline(Ui *ui)
-{
+void draw_cmdline(Ui *ui) {
   if (ui->running && ui->show_message && !cmdline_prefix_get(&ui->cmdline)) {
     struct message_s *msg = cvector_end(ui->messages) - 1;
     print_message(ui, msg->text, msg->error);
@@ -400,14 +381,12 @@ void draw_cmdline(Ui *ui)
       const File *file = dir_current_file(dir);
       if (file) {
         if (file_error(file)) {
-          lhs_sz = ncplane_printf_yx(n, 0, 0,
-              "error: %s",
-              strerror(file_error(file)));
+          lhs_sz = ncplane_printf_yx(n, 0, 0, "error: %s",
+                                     strerror(file_error(file)));
         } else {
-          lhs_sz = ncplane_printf_yx(n, 0, 0,
-              "%s %2.ld %s %s %4s %s%s%s",
-              file_perms(file), file_nlink(file),
-              file_owner(file), file_group(file),
+          lhs_sz = ncplane_printf_yx(
+              n, 0, 0, "%s %2.ld %s %s %4s %s%s%s", file_perms(file),
+              file_nlink(file), file_owner(file), file_group(file),
               file_size_readable(file, size),
               print_time(file_mtime(file), mtime, sizeof mtime),
               file_islink(file) ? " -> " : "",
@@ -415,7 +394,8 @@ void draw_cmdline(Ui *ui)
         }
       }
 
-      rhs_sz = snprintf(nums, sizeof nums, "%u/%u", dir->length > 0 ? dir->ind + 1 : 0, dir->length);
+      rhs_sz = snprintf(nums, sizeof nums, "%u/%u",
+                        dir->length > 0 ? dir->ind + 1 : 0, dir->length);
       ncplane_putstr_yx(n, 0, ui->ncol - rhs_sz, nums);
 
       // these are drawn right to left
@@ -438,7 +418,8 @@ void draw_cmdline(Ui *ui)
         }
 
         rhs_sz += int_sz(fm->paste.buffer->size) + 2 + 1;
-        ncplane_printf_yx(n, 0, ui->ncol-rhs_sz, " %zu ", fm->paste.buffer->size);
+        ncplane_printf_yx(n, 0, ui->ncol - rhs_sz, " %zu ",
+                          fm->paste.buffer->size);
         ncplane_set_bg_default(n);
         ncplane_set_fg_default(n);
         ncplane_putchar(n, ' ');
@@ -446,12 +427,15 @@ void draw_cmdline(Ui *ui)
       if (fm->selection.paths->size > 0) {
         ncplane_set_channels(n, cfg.colors.selection);
         rhs_sz += int_sz(fm->selection.paths->size) + 2 + 1;
-        ncplane_printf_yx(n, 0, ui->ncol - rhs_sz, " %zu ", fm->selection.paths->size);
+        ncplane_printf_yx(n, 0, ui->ncol - rhs_sz, " %zu ",
+                          fm->selection.paths->size);
         ncplane_set_bg_default(n);
         ncplane_set_fg_default(n);
         ncplane_putchar(n, ' ');
       }
-      if (dir->last_loading_action > 0 && current_millis() - dir->last_loading_action >= cfg.loading_indicator_delay) {
+      if (dir->last_loading_action > 0 &&
+          current_millis() - dir->last_loading_action >=
+              cfg.loading_indicator_delay) {
         rhs_sz += 10;
         ncplane_set_bg_palindex(n, 237);
         ncplane_set_fg_palindex(n, 255);
@@ -489,12 +473,8 @@ void draw_cmdline(Ui *ui)
 /* info line {{{ */
 
 // default: %u@%h:%p/%f
-static void draw_custom_info(
-    Ui *ui,
-    const char *user,
-    const char *host,
-    const char *home)
-{
+static void draw_custom_info(Ui *ui, const char *user, const char *host,
+                             const char *home) {
   char buf[1024];
   char *buf_ptr = buf;
   char const *buf_end = buf + sizeof buf - 1;
@@ -510,33 +490,35 @@ static void draw_custom_info(
     } else {
       ptr++;
       switch (*ptr) {
-        case 0:
-          // malformed
-          break;
-        case 'u':
-          buf_ptr += snprintf(buf_ptr, sizeof(buf)-1-(buf_ptr - buf), "%s", user);
-          break;
-        case 'h':
-          buf_ptr += snprintf(buf_ptr, sizeof(buf)-1-(buf_ptr - buf), "%s", host);
-          break;
-        case 'p':
-          path_ptr = buf_ptr;
-          *buf_ptr++ = 0;
-          break;
-        case 'f':
-          file_ptr = buf_ptr;
-          *buf_ptr++ = 0;
-          break;
-        case 's':
-          spacer_ptr = buf_ptr;
-          *buf_ptr++ = 0;
-          break;
-        case '%':
-          *buf_ptr++ = '%';
-          break;
-        default:
-          *buf_ptr++ = '%';
-          *buf_ptr++ = *ptr;
+      case 0:
+        // malformed
+        break;
+      case 'u':
+        buf_ptr +=
+            snprintf(buf_ptr, sizeof(buf) - 1 - (buf_ptr - buf), "%s", user);
+        break;
+      case 'h':
+        buf_ptr +=
+            snprintf(buf_ptr, sizeof(buf) - 1 - (buf_ptr - buf), "%s", host);
+        break;
+      case 'p':
+        path_ptr = buf_ptr;
+        *buf_ptr++ = 0;
+        break;
+      case 'f':
+        file_ptr = buf_ptr;
+        *buf_ptr++ = 0;
+        break;
+      case 's':
+        spacer_ptr = buf_ptr;
+        *buf_ptr++ = 0;
+        break;
+      case '%':
+        *buf_ptr++ = '%';
+        break;
+      default:
+        *buf_ptr++ = '%';
+        *buf_ptr++ = *ptr;
       }
     }
   }
@@ -547,13 +529,13 @@ static void draw_custom_info(
   int static_len = ansi_mblen(buf);
 
   if (path_ptr) {
-    static_len += ansi_mblen(path_ptr+1);
+    static_len += ansi_mblen(path_ptr + 1);
   }
   if (file_ptr) {
-    static_len += ansi_mblen(file_ptr+1);
+    static_len += ansi_mblen(file_ptr + 1);
   }
   if (spacer_ptr) {
-    static_len += ansi_mblen(spacer_ptr+1);
+    static_len += ansi_mblen(spacer_ptr + 1);
   }
 
   int remaining = ui->ncol - static_len;
@@ -562,14 +544,15 @@ static void draw_custom_info(
   int file_len = 0;
   bool file_is_dir = false;
   if (file_ptr) {
-    const File* f = fm_current_file(&ui->lfm->fm);
+    const File *f = fm_current_file(&ui->lfm->fm);
     file = ambstowcs(f ? file_name(f) : "", &file_len);
     file_is_dir = f ? file_isdir(f) : false;
   }
 
   int path_len = 0;
-  wchar_t *path_buf = NULL;  // to xfree later
-  wchar_t *path = NULL;      // passed to drawing function, possibly points into path_buf
+  wchar_t *path_buf = NULL; // to xfree later
+  wchar_t *path =
+      NULL; // passed to drawing function, possibly points into path_buf
 
   if (path_ptr) {
     // prepare path string: replace HOME with ~ and shorten if necessary
@@ -577,8 +560,9 @@ static void draw_custom_info(
     const Dir *dir = fm_current_dir(&ui->lfm->fm);
 
     path_len = mbstowcs(NULL, dir->path, 0);
-    path_buf = xmalloc((path_len + 2) * sizeof *path_buf);  // extra space for trailing '/'
-    path_len = mbstowcs(path_buf, dir->path, path_len+1);
+    path_buf = xmalloc((path_len + 2) *
+                       sizeof *path_buf); // extra space for trailing '/'
+    path_len = mbstowcs(path_buf, dir->path, path_len + 1);
     path = path_buf;
 
     wchar_t *path_buf_ptr = path;
@@ -593,7 +577,7 @@ static void draw_custom_info(
     }
 
     if (!dir_isroot(dir)) {
-      path_remaining--;  // extra trailing '/'
+      path_remaining--; // extra trailing '/'
     }
 
     const int l = wcslen(path_buf_ptr);
@@ -625,34 +609,35 @@ static void draw_custom_info(
   if (path_ptr && file_ptr) {
     if (path_ptr < file_ptr) {
       ncplane_putwstr(n, path);
-      ncplane_addastr(n, path_ptr+1);
+      ncplane_addastr(n, path_ptr + 1);
 
       ncplane_putwstr(n, file);
-      ncplane_addastr(n, file_ptr+1);
+      ncplane_addastr(n, file_ptr + 1);
     } else {
       ncplane_putwstr(n, file);
-      ncplane_addastr(n, file_ptr+1);
+      ncplane_addastr(n, file_ptr + 1);
 
       ncplane_putwstr(n, path);
-      ncplane_addastr(n, path_ptr+1);
+      ncplane_addastr(n, path_ptr + 1);
     }
   } else if (path_ptr) {
     ncplane_putwstr(n, path);
-    ncplane_addastr(n, path_ptr+1);
+    ncplane_addastr(n, path_ptr + 1);
   } else if (file_ptr) {
     ncplane_putwstr(n, file);
-    ncplane_addastr(n, file_ptr+1);
+    ncplane_addastr(n, file_ptr + 1);
   }
 
   if (spacer_ptr) {
     unsigned int r;
     ncplane_cursor_yx(n, NULL, &r);
     r = ui->ncol - r;
-    while (ncplane_putchar(n, ' ') > 0);
-    size_t l = ansi_mblen(spacer_ptr+1);
+    while (ncplane_putchar(n, ' ') > 0)
+      ;
+    size_t l = ansi_mblen(spacer_ptr + 1);
     if (r >= l) {
       ncplane_cursor_move_yx(n, 0, ui->ncol - l);
-      ncplane_addastr(n, spacer_ptr+1);
+      ncplane_addastr(n, spacer_ptr + 1);
     }
   }
 
@@ -660,8 +645,7 @@ static void draw_custom_info(
   xfree(file);
 }
 
-static void draw_info(Ui *ui)
-{
+static void draw_info(Ui *ui) {
   // arbitrary
   static int uid = -1;
   static char user[32] = {0};
@@ -788,8 +772,7 @@ static void draw_info(Ui *ui)
 /* menu {{{ */
 
 /* most notably, replaces tabs with (up to) 8 spaces */
-static void draw_menu(Ui *ui, cvector_vector_type(char *) menubuf)
-{
+static void draw_menu(Ui *ui, cvector_vector_type(char *) menubuf) {
   if (!menubuf || !ui->menu_visible) {
     return;
   }
@@ -817,7 +800,7 @@ static void draw_menu(Ui *ui, cvector_vector_type(char *) menubuf)
       } else if (*str == '\t') {
         ncplane_putchar(n, ' ');
         xpos++;
-        for (const uint32_t l = ((xpos/8)+1)*8; xpos < l; xpos++) {
+        for (const uint32_t l = ((xpos / 8) + 1) * 8; xpos < l; xpos++) {
           ncplane_putchar(n, ' ');
         }
         str++;
@@ -826,8 +809,7 @@ static void draw_menu(Ui *ui, cvector_vector_type(char *) menubuf)
   }
 }
 
-static void menu_resize(Ui *ui)
-{
+static void menu_resize(Ui *ui) {
   const uint32_t h = max(1, min(cvector_size(ui->menubuf), ui->nrow - 2));
   ncplane_resize(ui->planes.menu, 0, 0, 0, 0, 0, 0, h, ui->ncol);
   ncplane_move_yx(ui->planes.menu, ui->nrow - 1 - h, 0);
@@ -836,8 +818,7 @@ static void menu_resize(Ui *ui)
   }
 }
 
-static void menu_clear(Ui *ui)
-{
+static void menu_clear(Ui *ui) {
   if (!ui->menubuf) {
     return;
   }
@@ -846,8 +827,7 @@ static void menu_clear(Ui *ui)
   ncplane_move_bottom(ui->planes.menu);
 }
 
-void ui_menu_show(Ui *ui, cvector_vector_type(char*) vec, uint32_t delay)
-{
+void ui_menu_show(Ui *ui, cvector_vector_type(char *) vec, uint32_t delay) {
   struct ev_loop *loop = ui->lfm->loop;
   ev_timer_stop(loop, &ui->menu_delay_timer);
   if (ui->menubuf) {
@@ -859,7 +839,7 @@ void ui_menu_show(Ui *ui, cvector_vector_type(char*) vec, uint32_t delay)
     ui->menubuf = vec;
 
     if (delay > 0) {
-      ui->menu_delay_timer.repeat = (float) delay / 1000.0;
+      ui->menu_delay_timer.repeat = (float)delay / 1000.0;
       ev_timer_again(loop, &ui->menu_delay_timer);
     } else {
       menu_delay_timer_cb(loop, &ui->menu_delay_timer, 0);
@@ -868,9 +848,8 @@ void ui_menu_show(Ui *ui, cvector_vector_type(char*) vec, uint32_t delay)
   ui_redraw(ui, REDRAW_MENU);
 }
 
-static void menu_delay_timer_cb(EV_P_ ev_timer *w, int revents)
-{
-  (void) revents;
+static void menu_delay_timer_cb(EV_P_ ev_timer *w, int revents) {
+  (void)revents;
   Lfm *lfm = w->data;
   Ui *ui = &lfm->ui;
   if (ui->menubuf) {
@@ -887,14 +866,13 @@ static void menu_delay_timer_cb(EV_P_ ev_timer *w, int revents)
 
 /* draw_dir {{{ */
 
-static uint64_t ext_channel_get(const char *ext)
-{
+static uint64_t ext_channel_get(const char *ext) {
   char buf[EXT_MAX_LEN];
 
   if (ext) {
     // lowercase for ascii - good enough for now
     size_t i;
-    for (i = 0; ext[i] && i < EXT_MAX_LEN-1; i++) {
+    for (i = 0; ext[i] && i < EXT_MAX_LEN - 1; i++) {
       buf[i] = tolower(ext[i]);
     }
     buf[i] = 0;
@@ -910,13 +888,12 @@ static uint64_t ext_channel_get(const char *ext)
  * (and make the callers use it) (on 2022-10-29) */
 /* TODO: use these in the default infoline drawer (on 2022-10-29) */
 
-// max_len is not a strict upper bound, but we try to make path as short as possible
-// path probably shouldn't end with /
-static inline int shorten_path(wchar_t *path, int path_len, int max_len)
-{
+// max_len is not a strict upper bound, but we try to make path as short as
+// possible path probably shouldn't end with /
+static inline int shorten_path(wchar_t *path, int path_len, int max_len) {
   wchar_t *ptr = path;
   wchar_t *end = path + path_len;
-  if (path_len <= max_len)  {
+  if (path_len <= max_len) {
     return path_len;
   } else if (max_len <= 0) {
     // as short as possible
@@ -940,7 +917,8 @@ static inline int shorten_path(wchar_t *path, int path_len, int max_len)
       }
 
       if (end - next <= max_len) {
-        // Everything after the next component fits, we can print some of this one
+        // Everything after the next component fits, we can print some of this
+        // one
         const int m = max_len - (end - next) - 1;
         if (m >= 2) {
           const wchar_t *keep = path + m;
@@ -977,8 +955,8 @@ static inline int shorten_path(wchar_t *path, int path_len, int max_len)
   return 0;
 }
 
-static inline int shorten_file_name(wchar_t *name, int name_len, int max_len, bool has_ext)
-{
+static inline int shorten_file_name(wchar_t *name, int name_len, int max_len,
+                                    bool has_ext) {
   if (max_len <= 0) {
     *name = 0;
     return 0;
@@ -1027,8 +1005,8 @@ static inline int shorten_file_name(wchar_t *name, int name_len, int max_len, bo
   return x;
 }
 
-static int print_shortened_w(struct ncplane *n, const wchar_t *name, int name_len, int max_len, bool has_ext)
-{
+static int print_shortened_w(struct ncplane *n, const wchar_t *name,
+                             int name_len, int max_len, bool has_ext) {
   if (max_len <= 0) {
     return 0;
   }
@@ -1075,8 +1053,8 @@ static int print_shortened_w(struct ncplane *n, const wchar_t *name, int name_le
   return x;
 }
 
-static inline int print_shortened(struct ncplane *n, const char *name, int max_len, bool has_ext)
-{
+static inline int print_shortened(struct ncplane *n, const char *name,
+                                  int max_len, bool has_ext) {
   if (max_len <= 0) {
     return 0;
   }
@@ -1088,8 +1066,9 @@ static inline int print_shortened(struct ncplane *n, const char *name, int max_l
   return ret;
 }
 
-static int print_highlighted_and_shortened(struct ncplane *n, const char *name, const char *hl, int max_len, bool has_ext)
-{
+static int print_highlighted_and_shortened(struct ncplane *n, const char *name,
+                                           const char *hl, int max_len,
+                                           bool has_ext) {
   if (max_len <= 0) {
     return 0;
   }
@@ -1109,7 +1088,8 @@ static int print_highlighted_and_shortened(struct ncplane *n, const char *name, 
   int x = max_len;
   wchar_t *namew = namew_;
 
-  /* TODO: some of these branches can probably be optimized/combined (on 2022-02-18) */
+  /* TODO: some of these branches can probably be optimized/combined (on
+   * 2022-02-18) */
   if (name_len <= max_len) {
     // everything fits
     while (namew < hl_begin) {
@@ -1262,10 +1242,9 @@ static int print_highlighted_and_shortened(struct ncplane *n, const char *name, 
   return x;
 }
 
-static void print_file(struct ncplane *n, const File *file,
-    bool iscurrent, LinkedHashtab *sel, LinkedHashtab *load, paste_mode mode,
-    const char *highlight, bool print_sizes)
-{
+static void print_file(struct ncplane *n, const File *file, bool iscurrent,
+                       LinkedHashtab *sel, LinkedHashtab *load, paste_mode mode,
+                       const char *highlight, bool print_sizes) {
   unsigned int ncol, y0;
   unsigned int x = 0;
   char size[16];
@@ -1394,11 +1373,13 @@ static void print_file(struct ncplane *n, const File *file,
     }
   }
 
-  const char *hlsubstr = highlight && highlight[0] ? strcasestr(file_name(file), highlight) : NULL;
+  const char *hlsubstr =
+      highlight && highlight[0] ? strcasestr(file_name(file), highlight) : NULL;
   const int left_space = ncol - 3 - rightmargin - (cfg.icons ? 2 : 0);
   if (left_space > 0) {
     if (hlsubstr) {
-      x += print_highlighted_and_shortened(n, file_name(file), highlight, left_space, !file_isdir(file));
+      x += print_highlighted_and_shortened(n, file_name(file), highlight,
+                                           left_space, !file_isdir(file));
     } else {
       x += print_shortened(n, file_name(file), left_space, !file_isdir(file));
     }
@@ -1421,9 +1402,9 @@ static void print_file(struct ncplane *n, const File *file,
   ncplane_set_styles(n, NCSTYLE_NONE);
 }
 
-static void plane_draw_dir(struct ncplane *n, Dir *dir, LinkedHashtab *sel, LinkedHashtab*load,
-    paste_mode mode, const char *highlight, bool print_sizes)
-{
+static void plane_draw_dir(struct ncplane *n, Dir *dir, LinkedHashtab *sel,
+                           LinkedHashtab *load, paste_mode mode,
+                           const char *highlight, bool print_sizes) {
   unsigned int nrow;
 
   ncplane_erase(n);
@@ -1449,15 +1430,15 @@ static void plane_draw_dir(struct ncplane *n, Dir *dir, LinkedHashtab *sel, Link
 
     uint32_t offset = max(dir->ind - dir->pos, 0);
 
-    if (dir->length <= (uint32_t) nrow) {
+    if (dir->length <= (uint32_t)nrow) {
       offset = 0;
     }
 
     const uint32_t l = min(dir->length - offset, nrow);
     for (uint32_t i = 0; i < l; i++) {
       ncplane_cursor_move_yx(n, i, 0);
-      print_file(n, dir->files[i + offset],
-          i == dir->pos, sel, load, mode, highlight, print_sizes);
+      print_file(n, dir->files[i + offset], i == dir->pos, sel, load, mode,
+                 highlight, print_sizes);
     }
   }
 }
@@ -1465,20 +1446,18 @@ static void plane_draw_dir(struct ncplane *n, Dir *dir, LinkedHashtab *sel, Link
 
 /* preview {{{ */
 
-static inline Preview *load_preview(Ui *ui, File *file)
-{
+static inline Preview *load_preview(Ui *ui, File *file) {
   return loader_preview_from_path(&ui->lfm->loader, file_path(file));
 }
 
-static inline void reset_preview_plane_size(Ui *ui)
-{
+static inline void reset_preview_plane_size(Ui *ui) {
   // ncvisual_blit shrinks the ncplane to approximately fit the image, we
   // need to fix it
-  ncplane_resize(ui->planes.preview, 0, 0, 0, 0, 0, 0, ui->preview.rows, ui->preview.cols);
+  ncplane_resize(ui->planes.preview, 0, 0, 0, 0, 0, 0, ui->preview.rows,
+                 ui->preview.cols);
 }
 
-static void update_preview(Ui *ui)
-{
+static void update_preview(Ui *ui) {
   unsigned int ncol, nrow;
   ncplane_dim_yx(ui->planes.preview, &nrow, &ncol);
 
@@ -1487,8 +1466,8 @@ static void update_preview(Ui *ui)
     if (ui->preview.preview) {
       if (streq(ui->preview.preview->path, file_path(file))) {
         if (!ui->preview.preview->loading) {
-          if (ui->preview.preview->reload_height < (int) nrow
-              || ui->preview.preview->reload_width < (int) ncol) {
+          if (ui->preview.preview->reload_height < (int)nrow ||
+              ui->preview.preview->reload_width < (int)ncol) {
             async_preview_load(&ui->lfm->async, ui->preview.preview);
             ui->preview.preview->loading = true;
           } else {
@@ -1515,8 +1494,7 @@ static void update_preview(Ui *ui)
   }
 }
 
-void ui_drop_cache(Ui *ui)
-{
+void ui_drop_cache(Ui *ui) {
   log_debug("ui_drop_cache");
   if (ui->preview.preview) {
     ui->preview.preview = NULL;
@@ -1528,8 +1506,7 @@ void ui_drop_cache(Ui *ui)
 
 /* }}} */
 
-void ui_set_infoline(Ui *ui, const char *line)
-{
+void ui_set_infoline(Ui *ui, const char *line) {
   xfree(ui->infoline);
   ui->infoline = line ? strdup(line) : NULL;
   ui_redraw(ui, REDRAW_INFO);

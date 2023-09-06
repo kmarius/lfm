@@ -17,39 +17,34 @@
 #include "ui.h"
 #include "util.h"
 
-#define USAGE_FMT                                                  \
-  "Usage:\n  %s [options] <directory>\n\n"                         \
-  "Options:\n"                                                     \
-  "  -c <cmd>     Execute <cmd> after loading the config\n"        \
-  "  -h           Print this help message\n"                       \
-  "  -l <file>    Write last visited directory to file on exit\n"  \
-  "  -s <file>    Write selection to file and quit\n"              \
-  "  -u <config>  Use this config file\n"                          \
+#define USAGE_FMT                                                              \
+  "Usage:\n  %s [options] <directory>\n\n"                                     \
+  "Options:\n"                                                                 \
+  "  -c <cmd>     Execute <cmd> after loading the config\n"                    \
+  "  -h           Print this help message\n"                                   \
+  "  -l <file>    Write last visited directory to file on exit\n"              \
+  "  -s <file>    Write selection to file and quit\n"                          \
+  "  -u <config>  Use this config file\n"                                      \
   "  -v           Print version information\n"
 
 #define VERSION_FMT "%s " LFM_VERSION "\n"
 
-
-static void usage(const char *progname)
-{
+static void usage(const char *progname) {
   fprintf(stderr, USAGE_FMT, progname);
 }
 
-
-static void version(const char *progname)
-{
+static void version(const char *progname) {
   fprintf(stderr, VERSION_FMT, progname);
 }
 
 static Lfm lfm;
 
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
   int ret = EXIT_SUCCESS;
 
   const uint64_t t0 = current_micros();
 
-  if (!isatty(0) || ! isatty(1) || !isatty(2)) {
+  if (!isatty(0) || !isatty(1) || !isatty(2)) {
     fprintf(stderr, "Error: %s must be run in a terminal\n", argv[0]);
     if (!valgrind_active()) {
       exit(EXIT_FAILURE);
@@ -70,30 +65,30 @@ int main(int argc, char **argv)
   int opt;
   while ((opt = getopt(argc, argv, ":c:hl:s:u:v")) != -1) {
     switch (opt) {
-      case 'c':
-        cvector_push_back(cfg.commands, optarg);
-        break;
-      case 'h':
-        usage(argv[0]);
-        goto cleanup;
-      case 'l':
-        cfg.lastdir = optarg;
-        break;
-      case 's':
-        cfg.selfile = optarg;
-        break;
-      case 'u':
-        xfree(cfg.configpath);
-        cfg.configpath = strdup(optarg);
-        break;
-      case 'v':
-        version(argv[0]);
-        goto cleanup;
-      case '?':
-        fprintf(stderr, "Unknown option: %c\n", optopt);
-        usage(argv[0]);
-        ret = EXIT_FAILURE;
-        goto cleanup;
+    case 'c':
+      cvector_push_back(cfg.commands, optarg);
+      break;
+    case 'h':
+      usage(argv[0]);
+      goto cleanup;
+    case 'l':
+      cfg.lastdir = optarg;
+      break;
+    case 's':
+      cfg.selfile = optarg;
+      break;
+    case 'u':
+      xfree(cfg.configpath);
+      cfg.configpath = strdup(optarg);
+      break;
+    case 'v':
+      version(argv[0]);
+      goto cleanup;
+    case '?':
+      fprintf(stderr, "Unknown option: %c\n", optopt);
+      usage(argv[0]);
+      ret = EXIT_FAILURE;
+      goto cleanup;
     }
   }
 
@@ -123,7 +118,8 @@ int main(int argc, char **argv)
 
   lfm_init(&lfm, log_fp);
 
-  log_info("starting main loop after %.2f ms", (current_micros() - t0)/1000.0);
+  log_info("starting main loop after %.2f ms",
+           (current_micros() - t0) / 1000.0);
   lfm_run(&lfm);
 
   lfm_deinit(&lfm);

@@ -26,28 +26,28 @@ typedef struct preview_s {
   preview_draw_fun draw;
   preview_update_fun update;
   preview_destroy_fun destroy;
-  int reload_width;   // geometry of the preview window when this preview was loaded
-  int reload_height;  // checked to see if a reload is necessary, INT_MAX when disabled.
+  int reload_width;  // geometry of the preview window when this preview was
+                     // loaded
+  int reload_height; // checked to see if a reload is necessary, INT_MAX when
+                     // disabled.
 } Preview;
 
 Preview *preview_create_loading(const char *path, int height, int width);
 
-Preview *preview_create_from_file(const char *path, uint32_t width, uint32_t height);
+Preview *preview_create_from_file(const char *path, uint32_t width,
+                                  uint32_t height);
 
-static inline void preview_update(Preview *pv, Preview *u)
-{
+static inline void preview_update(Preview *pv, Preview *u) {
   pv->update(pv, u);
 }
 
-static inline void preview_draw(const Preview *pv, struct ncplane *n)
-{
+static inline void preview_draw(const Preview *pv, struct ncplane *n) {
   if (!pv) {
     return;
   }
   pv->draw(pv, n);
 }
 
-static inline void preview_destroy(Preview *pv)
-{
+static inline void preview_destroy(Preview *pv) {
   pv->destroy(pv);
 }

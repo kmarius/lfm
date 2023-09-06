@@ -17,8 +17,7 @@ static void map_clear_timer_cb(EV_P_ ev_timer *w, int revents);
 static void stdin_cb(EV_P_ ev_io *w, int revents);
 void input_resume(Lfm *lfm);
 
-void input_init(Lfm *lfm)
-{
+void input_init(Lfm *lfm) {
   lfm->maps.normal = trie_create();
   lfm->maps.cmd = trie_create();
   lfm->maps.seq = NULL;
@@ -29,49 +28,43 @@ void input_init(Lfm *lfm)
   input_resume(lfm);
 }
 
-void input_deinit(Lfm *lfm)
-{
+void input_deinit(Lfm *lfm) {
   trie_destroy(lfm->maps.normal);
   trie_destroy(lfm->maps.cmd);
   cvector_free(lfm->maps.seq);
   ev_timer_stop(lfm->loop, &lfm->map_clear_timer);
 }
 
-void input_resume(Lfm *lfm)
-{
-  ev_io_init(&lfm->input_watcher, stdin_cb, notcurses_inputready_fd(lfm->ui.nc), EV_READ);
+void input_resume(Lfm *lfm) {
+  ev_io_init(&lfm->input_watcher, stdin_cb, notcurses_inputready_fd(lfm->ui.nc),
+             EV_READ);
   lfm->input_watcher.data = lfm;
   ev_io_start(lfm->loop, &lfm->input_watcher);
 }
 
-void input_suspend(Lfm *lfm)
-{
+void input_suspend(Lfm *lfm) {
   ev_io_stop(lfm->loop, &lfm->input_watcher);
 }
 
-void input_timeout_set(struct lfm_s *lfm, uint32_t duration)
-{
+void input_timeout_set(struct lfm_s *lfm, uint32_t duration) {
   lfm->input_timeout = current_millis() + duration;
 }
 
-int input_map(Trie *trie, const char *keys, int ref, const char *desc)
-{
+int input_map(Trie *trie, const char *keys, int ref, const char *desc) {
   input_t *buf = xmalloc((strlen(keys) + 1) * sizeof *buf);
   key_names_to_input(keys, buf);
-  int ret = ref ?
-    trie_insert(trie, buf, ref, keys, desc)
-    : trie_remove(trie, buf);
+  int ret =
+      ref ? trie_insert(trie, buf, ref, keys, desc) : trie_remove(trie, buf);
   xfree(buf);
   return ret;
 }
 
-static void stdin_cb(EV_P_ ev_io *w, int revents)
-{
-  (void) revents;
+static void stdin_cb(EV_P_ ev_io *w, int revents) {
+  (void)revents;
   Lfm *lfm = w->data;
   ncinput in;
 
-  while (notcurses_get_nblock(lfm->ui.nc, &in) != (uint32_t) -1) {
+  while (notcurses_get_nblock(lfm->ui.nc, &in) != (uint32_t)-1) {
     if (in.id == 0) {
       break;
     }
@@ -91,7 +84,8 @@ static void stdin_cb(EV_P_ ev_io *w, int revents)
       continue;
     }
 
-    log_trace("id: %d, shift: %d, ctrl: %d alt %d, type: %d, %s", in.id, in.shift, in.ctrl, in.alt, in.evtype, in.utf8);
+    log_trace("id: %d, shift: %d, ctrl: %d alt %d, type: %d, %s", in.id,
+              in.shift, in.ctrl, in.alt, in.evtype, in.utf8);
     lfm_handle_key(lfm, ncinput_to_input(&in));
   }
 
@@ -99,16 +93,14 @@ static void stdin_cb(EV_P_ ev_io *w, int revents)
 }
 
 // clear keys in the input buffer
-static inline void input_clear(Lfm *lfm)
-{
+static inline void input_clear(Lfm *lfm) {
   Ui *ui = &lfm->ui;
   lfm->maps.cur = NULL;
   ui_menu_hide(ui);
   ui_keyseq_hide(ui);
 }
 
-void lfm_handle_key(Lfm *lfm, input_t in)
-{
+void lfm_handle_key(Lfm *lfm, input_t in) {
   Ui *ui = &lfm->ui;
   Fm *fm = &lfm->fm;
 
@@ -142,7 +134,7 @@ void lfm_handle_key(Lfm *lfm, input_t in)
   if (prefix) {
     if (!lfm->maps.cur) {
       if (iswprint(in)) {
-        char buf[MB_LEN_MAX+1];
+        char buf[MB_LEN_MAX + 1];
         int n = wctomb(buf, in);
         if (n < 0) {
           n = 0; // invalid character or borked shift/ctrl/alt
@@ -186,8 +178,8 @@ void lfm_handle_key(Lfm *lfm, input_t in)
         }
       }
       cvector_push_back(str, 0);
-      log_info("key: %d, id: %d, shift: %d, ctrl: %d alt %d, %s",
-          in, ID(in), ISSHIFT(in), ISCTRL(in), ISALT(in), str);
+      log_info("key: %d, id: %d, shift: %d, ctrl: %d alt %d, %s", in, ID(in),
+               ISSHIFT(in), ISCTRL(in), ISALT(in), str);
       cvector_free(str);
       input_clear(lfm);
     } else if (lfm->maps.cur->keys) {
@@ -208,20 +200,20 @@ void lfm_handle_key(Lfm *lfm, input_t in)
       cvector_push_back(menu, strdup("\033[1mkeys\tcommand\033[0m"));
       char *s;
       for (size_t i = 0; i < cvector_size(leaves); i++) {
-        asprintf(&s, "%s\t%s", leaves[i]->keys, leaves[i]->desc ? leaves[i]->desc : "");
+        asprintf(&s, "%s\t%s", leaves[i]->keys,
+                 leaves[i]->desc ? leaves[i]->desc : "");
         cvector_push_back(menu, s);
       }
       cvector_free(leaves);
       ui_menu_show(ui, menu, cfg.map_suggestion_delay);
-      lfm->map_clear_timer.repeat = (float) cfg.map_clear_delay / 1000.0;
+      lfm->map_clear_timer.repeat = (float)cfg.map_clear_delay / 1000.0;
       ev_timer_again(lfm->loop, &lfm->map_clear_timer);
     }
   }
 }
 
-static void map_clear_timer_cb(EV_P_ ev_timer *w, int revents)
-{
-  (void) revents;
+static void map_clear_timer_cb(EV_P_ ev_timer *w, int revents) {
+  (void)revents;
   Lfm *lfm = w->data;
   input_clear(lfm);
   ui_redraw(&lfm->ui, REDRAW_MENU);

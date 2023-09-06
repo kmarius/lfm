@@ -38,7 +38,7 @@ function M.table(tok, line)
 	end
 	for e, _ in pairs(tab) do
 		if string.sub(e, 1, #suffix) == suffix then
-			table.insert(t, prefix..e)
+			table.insert(t, prefix .. e)
 		end
 	end
 	return t, "."
@@ -63,10 +63,10 @@ end
 ---Complete directories.
 function M.dirs(path)
 	if path == "~" then
-		return {"~"}, "/"
+		return { "~" }, "/"
 	end
 	if path == ".." then
-		return {".."}, "/"
+		return { ".." }, "/"
 	end
 	local t = {}
 	local dir, prefix = string.match(path, "^(.*/)(.*)")
@@ -83,8 +83,8 @@ function M.dirs(path)
 			if f ~= "." and f ~= ".." then
 				if hidden == (string.sub(f, 1, 1) == ".") then
 					if string.sub(f, 1, #prefix) == prefix then
-						if is_dir(dir..f) then
-							table.insert(t, base..f)
+						if is_dir(dir .. f) then
+							table.insert(t, base .. f)
 						end
 					end
 				end
@@ -100,7 +100,7 @@ end
 ---Complete files.
 function M.files(path)
 	if path == "~" then
-		return {"~"}, "/"
+		return { "~" }, "/"
 	end
 	local t = {}
 	local dir, prefix = string.match(path, "^(.*/)(.*)")
@@ -117,7 +117,7 @@ function M.files(path)
 			if f ~= "." and f ~= ".." then
 				if hidden == (string.sub(f, 1, 1) == ".") then
 					if string.sub(f, 1, #prefix) == prefix then
-						if is_dir(dir..f) then
+						if is_dir(dir .. f) then
 							table.insert(t, base .. f .. "/")
 						else
 							table.insert(t, base .. f)
@@ -187,12 +187,12 @@ local function shownext(increment)
 		end
 	end
 	if #candidates == 1 then
-		line_set(prefix..lfm.fn.quote_space(candidates[1])..sep)
+		line_set(prefix .. lfm.fn.quote_space(candidates[1]) .. sep)
 		candidates = {}
 	else
 		ind = (ind - 1 + increment + #candidates) % #candidates + 1
 		if candidates[ind] then
-			line_set(prefix..lfm.fn.quote_space(candidates[ind]))
+			line_set(prefix .. lfm.fn.quote_space(candidates[ind]))
 		end
 	end
 end

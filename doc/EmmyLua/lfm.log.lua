@@ -1,6 +1,5 @@
 ---@meta
 
-
 ---@class Lfm.Log
 ---@field level number (assignable)
 ---@field LOG_TRACE number

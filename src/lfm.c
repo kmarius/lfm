@@ -25,9 +25,10 @@
 #include "ui.h"
 #include "util.h"
 
-#define TICK 1  // in seconds
+#define TICK 1 // in seconds
 
-// Size of the buffer for reading from the fifo. Switches to a dynamic buffer if full.
+// Size of the buffer for reading from the fifo. Switches to a dynamic buffer if
+// full.
 #define FIFO_BUF_SZ 512
 
 // callbacks {{{
@@ -49,8 +50,7 @@ struct child_watcher_data {
 
 // watcher and corresponding stdout/-err watchers need to be stopped before
 // calling this function
-static inline void destroy_io_watcher(ev_io *w)
-{
+static inline void destroy_io_watcher(ev_io *w) {
   if (!w) {
     return;
   }
@@ -64,9 +64,8 @@ static inline void destroy_io_watcher(ev_io *w)
   xfree(w);
 }
 
-static inline void destroy_child_watcher(ev_child *w)
-{
-  if(!w) {
+static inline void destroy_child_watcher(ev_child *w) {
+  if (!w) {
     return;
   }
 
@@ -77,10 +76,8 @@ static inline void destroy_child_watcher(ev_child *w)
   xfree(w);
 }
 
-
-static void child_cb(EV_P_ ev_child *w, int revents)
-{
-  (void) revents;
+static void child_cb(EV_P_ ev_child *w, int revents) {
+  (void)revents;
   struct child_watcher_data *data = w->data;
 
   ev_child_stop(EV_A_ w);
@@ -113,8 +110,7 @@ struct schedule_timer_data {
   int ref;
 };
 
-static inline void destroy_schedule_timer(ev_timer *w)
-{
+static inline void destroy_schedule_timer(ev_timer *w) {
   if (!w) {
     return;
   }
@@ -123,10 +119,8 @@ static inline void destroy_schedule_timer(ev_timer *w)
   xfree(w);
 }
 
-
-static void schedule_timer_cb(EV_P_ ev_timer *w, int revents)
-{
-  (void) revents;
+static void schedule_timer_cb(EV_P_ ev_timer *w, int revents) {
+  (void)revents;
   struct schedule_timer_data *data = w->data;
   ev_timer_stop(EV_A_ w);
   llua_run_callback(data->lfm->L, data->ref);
@@ -137,17 +131,14 @@ static void schedule_timer_cb(EV_P_ ev_timer *w, int revents)
 
 // }}}
 
-static void timer_cb(EV_P_ ev_timer *w, int revents)
-{
-  (void) revents;
+static void timer_cb(EV_P_ ev_timer *w, int revents) {
+  (void)revents;
   /* Lfm *lfm = w->data; */
   ev_timer_stop(loop, w);
 }
 
-
-static void command_stdout_cb(EV_P_ ev_io *w, int revents)
-{
-  (void) revents;
+static void command_stdout_cb(EV_P_ ev_io *w, int revents) {
+  (void)revents;
   struct stdout_watcher_data *data = w->data;
 
   char *line = NULL;
@@ -155,8 +146,8 @@ static void command_stdout_cb(EV_P_ ev_io *w, int revents)
   size_t n;
 
   while ((read = getline(&line, &n, data->stream)) != -1) {
-    if (line[read-1] == '\n') {
-      line[read-1] = 0;
+    if (line[read - 1] == '\n') {
+      line[read - 1] = 0;
     }
 
     if (data->ref >= 0) {
@@ -175,12 +166,10 @@ static void command_stdout_cb(EV_P_ ev_io *w, int revents)
   ev_idle_start(loop, &data->lfm->redraw_watcher);
 }
 
-
 // To run command line cmds after loop starts. I think it is called back before
 // every other cb.
-static void prepare_cb(EV_P_ ev_prepare *w, int revents)
-{
-  (void) revents;
+static void prepare_cb(EV_P_ ev_prepare *w, int revents) {
+  (void)revents;
   Lfm *lfm = w->data;
 
   if (cfg.commands) {
@@ -191,7 +180,7 @@ static void prepare_cb(EV_P_ ev_prepare *w, int revents)
   }
 
   if (lfm->messages) {
-    cvector_foreach_ptr(struct message_s *m, lfm->messages) {
+    cvector_foreach_ptr(struct message_s * m, lfm->messages) {
       if (m->error) {
         lfm_error(lfm, "%s", m->text);
       } else {
@@ -206,39 +195,31 @@ static void prepare_cb(EV_P_ ev_prepare *w, int revents)
   ev_prepare_stop(loop, w);
 }
 
-
 // unclear if this happens before/after resizecb is called by notcurses
-static void sigwinch_cb(EV_P_ ev_signal *w, int revents)
-{
-  (void) revents;
+static void sigwinch_cb(EV_P_ ev_signal *w, int revents) {
+  (void)revents;
   Lfm *lfm = w->data;
   log_debug("received SIGWINCH");
   ui_clear(&lfm->ui);
   ev_idle_start(loop, &lfm->redraw_watcher);
 }
 
-
-static void sigterm_cb(EV_P_ ev_signal *w, int revents)
-{
-  (void) revents;
-  (void) loop;
+static void sigterm_cb(EV_P_ ev_signal *w, int revents) {
+  (void)revents;
+  (void)loop;
   log_debug("received SIGTERM");
   lfm_quit(w->data);
 }
 
-
-static void sighup_cb(EV_P_ ev_signal *w, int revents)
-{
-  (void) revents;
-  (void) loop;
+static void sighup_cb(EV_P_ ev_signal *w, int revents) {
+  (void)revents;
+  (void)loop;
   log_debug("received SIGHUP");
   lfm_quit(w->data);
 }
 
-
-static void redraw_cb(EV_P_ ev_idle *w, int revents)
-{
-  (void) revents;
+static void redraw_cb(EV_P_ ev_idle *w, int revents) {
+  (void)revents;
   Lfm *lfm = w->data;
   ui_draw(&lfm->ui);
   ev_idle_stop(loop, w);
@@ -246,8 +227,7 @@ static void redraw_cb(EV_P_ ev_idle *w, int revents)
 
 /* callbacks }}} */
 
-void lfm_init(Lfm *lfm, FILE *log_fp)
-{
+void lfm_init(Lfm *lfm, FILE *log_fp) {
   memset(lfm, 0, sizeof *lfm);
 
   lfm->log_fp = log_fp;
@@ -265,7 +245,7 @@ void lfm_init(Lfm *lfm, FILE *log_fp)
   }
 
   if ((mkfifo(cfg.fifopath, 0600) == -1 && errno != EEXIST) ||
-      (lfm->fifo_fd = open(cfg.fifopath, O_RDONLY|O_NONBLOCK, 0)) == -1) {
+      (lfm->fifo_fd = open(cfg.fifopath, O_RDONLY | O_NONBLOCK, 0)) == -1) {
     log_error("fifo: %s", strerror(errno));
     exit(EXIT_FAILURE);
   }
@@ -320,22 +300,18 @@ void lfm_init(Lfm *lfm, FILE *log_fp)
   ev_set_userdata(lfm->loop, lfm->L);
   llua_init(lfm->L, lfm);
   // can't run these hooks in the loader before initialization
-  ht_foreach(Dir *dir, lfm->loader.dir_cache) {
+  ht_foreach(Dir * dir, lfm->loader.dir_cache) {
     lfm_run_hook1(lfm, LFM_HOOK_DIRLOADED, dir->path);
   }
 
   log_info("initialized lfm");
 }
 
-
-void lfm_run(Lfm *lfm)
-{
+void lfm_run(Lfm *lfm) {
   ev_run(lfm->loop, 0);
 }
 
-
-void lfm_quit(Lfm *lfm)
-{
+void lfm_quit(Lfm *lfm) {
   lfm_run_hook(lfm, LFM_HOOK_EXITPRE);
   ev_break(lfm->loop, EVBREAK_ALL);
   // prevent lua error from flashing in the UI, we use it to immediately give
@@ -353,9 +329,7 @@ void lfm_quit(Lfm *lfm)
   }
 }
 
-
-static ev_io *add_io_watcher(Lfm *lfm, FILE* f, int ref)
-{
+static ev_io *add_io_watcher(Lfm *lfm, FILE *f, int ref) {
   if (!f) {
     return NULL;
   }
@@ -382,9 +356,8 @@ static ev_io *add_io_watcher(Lfm *lfm, FILE* f, int ref)
   return w;
 }
 
-
-static void add_child_watcher(Lfm *lfm, int pid, int ref, ev_io *stdout_watcher, ev_io *stderr_watcher)
-{
+static void add_child_watcher(Lfm *lfm, int pid, int ref, ev_io *stdout_watcher,
+                              ev_io *stderr_watcher) {
   struct child_watcher_data *data = xmalloc(sizeof *data);
   data->ref = ref;
   data->lfm = lfm;
@@ -399,11 +372,9 @@ static void add_child_watcher(Lfm *lfm, int pid, int ref, ev_io *stdout_watcher,
   cvector_push_back(lfm->child_watchers, w);
 }
 
-
 // spawn a background program
-int lfm_spawn(Lfm *lfm, const char *prog, char *const *args,
-    char **in, bool out, bool err, int out_cb_ref, int err_cb_ref, int cb_ref)
-{
+int lfm_spawn(Lfm *lfm, const char *prog, char *const *args, char **in,
+              bool out, bool err, int out_cb_ref, int err_cb_ref, int cb_ref) {
   FILE *fin, *fout, *ferr;
   ev_io *stderr_watcher = NULL;
   ev_io *stdout_watcher = NULL;
@@ -412,13 +383,12 @@ int lfm_spawn(Lfm *lfm, const char *prog, char *const *args,
   bool capture_stderr = err || err_cb_ref >= 0;
 
   // always pass out and err because popen2_arr_p doesnt close the fds
-  int pid = popen2_arr_p(in ? &fin : NULL,
-                         capture_stdout ? &fout : NULL,
-                         capture_stderr ? &ferr : NULL,
-                         prog, args, lfm->fm.pwd);
+  int pid =
+      popen2_arr_p(in ? &fin : NULL, capture_stdout ? &fout : NULL,
+                   capture_stderr ? &ferr : NULL, prog, args, lfm->fm.pwd);
 
   if (pid == -1) {
-    lfm_error(lfm, "popen2_arr_p: %s", strerror(errno));  // not sure if set
+    lfm_error(lfm, "popen2_arr_p: %s", strerror(errno)); // not sure if set
     return -1;
   }
 
@@ -442,10 +412,8 @@ int lfm_spawn(Lfm *lfm, const char *prog, char *const *args,
   return pid;
 }
 
-
 // execute a foreground program
-bool lfm_execute(Lfm *lfm, const char *prog, char *const *args)
-{
+bool lfm_execute(Lfm *lfm, const char *prog, char *const *args) {
   int pid, status, rc;
   input_suspend(lfm);
   ui_suspend(&lfm->ui);
@@ -459,7 +427,7 @@ bool lfm_execute(Lfm *lfm, const char *prog, char *const *args)
       fprintf(stderr, "chdir: %s\n", strerror(errno));
       _exit(1);
     }
-    execvp(prog, (char* const *) args);
+    execvp(prog, (char *const *)args);
     _exit(127); // execl error
   } else {
     // parent
@@ -478,9 +446,7 @@ bool lfm_execute(Lfm *lfm, const char *prog, char *const *args)
   return status == 0;
 }
 
-
-void lfm_print(Lfm *lfm ,const char *format, ...)
-{
+void lfm_print(Lfm *lfm, const char *format, ...) {
   va_list args;
   va_start(args, format);
 
@@ -495,9 +461,7 @@ void lfm_print(Lfm *lfm ,const char *format, ...)
   va_end(args);
 }
 
-
-void lfm_error(Lfm *lfm, const char *format, ...)
-{
+void lfm_error(Lfm *lfm, const char *format, ...) {
   va_list args;
   va_start(args, format);
 
@@ -512,9 +476,7 @@ void lfm_error(Lfm *lfm, const char *format, ...)
   va_end(args);
 }
 
-
-void lfm_read_fifo(Lfm *lfm)
-{
+void lfm_read_fifo(Lfm *lfm) {
   char buf[FIFO_BUF_SZ];
 
   ssize_t nread = read(lfm->fifo_fd, buf, sizeof buf);
@@ -523,7 +485,7 @@ void lfm_read_fifo(Lfm *lfm)
     return;
   }
 
-  if ((size_t) nread < sizeof buf) {
+  if ((size_t)nread < sizeof buf) {
     buf[nread - 1] = 0;
     llua_eval(lfm->L, buf);
   } else {
@@ -531,7 +493,8 @@ void lfm_read_fifo(Lfm *lfm)
     char *dyn_buf = xmalloc(capacity);
     size_t length = nread;
     memcpy(dyn_buf, buf, nread);
-    while ((nread = read(lfm->fifo_fd, dyn_buf + length, capacity - length)) > 0) {
+    while ((nread = read(lfm->fifo_fd, dyn_buf + length, capacity - length)) >
+           0) {
       length += nread;
       if (length == capacity) {
         capacity *= 2;
@@ -546,9 +509,7 @@ void lfm_read_fifo(Lfm *lfm)
   ev_idle_start(lfm->loop, &lfm->redraw_watcher);
 }
 
-
-void lfm_schedule(Lfm *lfm, int ref, uint32_t delay)
-{
+void lfm_schedule(Lfm *lfm, int ref, uint32_t delay) {
   struct schedule_timer_data *data = xmalloc(sizeof *data);
   data->lfm = lfm;
   data->ref = ref;
@@ -559,9 +520,7 @@ void lfm_schedule(Lfm *lfm, int ref, uint32_t delay)
   cvector_push_back(lfm->schedule_timers, w);
 }
 
-
-void lfm_deinit(Lfm *lfm)
-{
+void lfm_deinit(Lfm *lfm) {
   cvector_ffree(lfm->child_watchers, destroy_child_watcher);
   cvector_ffree(lfm->schedule_timers, destroy_schedule_timer);
   notify_deinit(&lfm->notify);

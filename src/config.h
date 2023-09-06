@@ -14,17 +14,17 @@
 #define LOADING_INDICATOR_DELAY 250
 
 typedef struct config_s {
-  char *configdir;      // ~/.config/lfm
-  char *configpath;     // ~/.config/lfm/init.lua
-  char *statedir;       // ~/.local/state/lfm
-  char *historypath;    // ~/.local/state/lfm/history
-  char *datadir;        // /usr/share/lfm
-  char *luadir;         // /usr/share/lfm/lua
-  char *corepath;       // /usr/share/lfm/lua/core.lua
-  char *rundir;         // $XDG_RUNTIME_DIR or /tmp/runtime-$USER
-  char *cachedir;       // $XDG_CACHE_HOME/lfm or ~/.cache/lfm
-  char *fifopath;       // rundir/$PID.fifo
-  char *logpath;        // /tmp/lfm.$PID.log
+  char *configdir;   // ~/.config/lfm
+  char *configpath;  // ~/.config/lfm/init.lua
+  char *statedir;    // ~/.local/state/lfm
+  char *historypath; // ~/.local/state/lfm/history
+  char *datadir;     // /usr/share/lfm
+  char *luadir;      // /usr/share/lfm/lua
+  char *corepath;    // /usr/share/lfm/lua/core.lua
+  char *rundir;      // $XDG_RUNTIME_DIR or /tmp/runtime-$USER
+  char *cachedir;    // $XDG_CACHE_HOME/lfm or ~/.cache/lfm
+  char *fifopath;    // rundir/$PID.fifo
+  char *logpath;     // /tmp/lfm.$PID.log
 
   int histsize;         // 100
   wchar_t truncatechar; // '~'
@@ -49,11 +49,11 @@ typedef struct config_s {
   uint32_t map_clear_delay;
   uint32_t loading_indicator_delay;
 
-  struct dir_settings dir_settings;  // default dir_settings
-  Hashtab *dir_settings_map;         // path -> dir_settings
+  struct dir_settings dir_settings; // default dir_settings
+  Hashtab *dir_settings_map;        // path -> dir_settings
 
   struct colors {
-    Hashtab *color_map;  // char* -> uint64
+    Hashtab *color_map; // char* -> uint64
 
     uint64_t normal;
     uint64_t selection;
@@ -73,8 +73,7 @@ void config_init(void);
 
 void config_deinit(void);
 
-static inline void config_ratios_set(cvector_vector_type(uint32_t) ratios)
-{
+static inline void config_ratios_set(cvector_vector_type(uint32_t) ratios) {
   if (cvector_size(ratios) == 0) {
     return;
   }
@@ -82,18 +81,16 @@ static inline void config_ratios_set(cvector_vector_type(uint32_t) ratios)
   cfg.ratios = ratios;
 }
 
-static inline void config_color_map_add(const char *ext, uint64_t channel)
-{
+static inline void config_color_map_add(const char *ext, uint64_t channel) {
   ht_set_copy(cfg.colors.color_map, ext, &channel, sizeof channel);
 }
 
-static inline void config_dir_setting_add(const char *path, const struct dir_settings *s)
-{
+static inline void config_dir_setting_add(const char *path,
+                                          const struct dir_settings *s) {
   ht_set_copy(cfg.dir_settings_map, path, s, sizeof *s);
 }
 
-static inline void config_icon_map_add(const char *ext, const char *icon)
-{
+static inline void config_icon_map_add(const char *ext, const char *icon) {
   ht_set_copy(cfg.icon_map, ext, icon, strlen(icon) + 1);
 }
 

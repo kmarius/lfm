@@ -5,7 +5,7 @@ local chdir = lfm.fm.chdir
 
 local M = {}
 
-local list = {getpwd()}
+local list = { getpwd() }
 local ind = 1
 local registered_hook = false
 
@@ -15,7 +15,7 @@ local function on_chdir()
 		ind = ind + 1
 		if ind <= #list then
 			if list[ind] ~= dir then
-				for i = ind+1,#list do
+				for i = ind + 1, #list do
 					list[i] = nil
 				end
 			end
@@ -52,8 +52,8 @@ function M._setup(t)
 		lfm.register_hook("ChdirPost", on_chdir)
 		registered_hook = true
 	end
-	lfm.map(t.key_next or "]", M.jump_next, {desc="jumplist-next"})
-	lfm.map(t.key_prev or "[", M.jump_prev, {desc="jumplist-prev"})
+	lfm.map(t.key_next or "]", M.jump_next, { desc = "jumplist-next" })
+	lfm.map(t.key_prev or "[", M.jump_prev, { desc = "jumplist-prev" })
 end
 
 return M

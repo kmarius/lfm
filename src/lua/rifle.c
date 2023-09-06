@@ -10,10 +10,10 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#include "rifle.h"
 #include "../cvector.h"
 #include "../log.h"
 #include "../util.h"
+#include "rifle.h"
 
 #define RIFLE_META "rifle_meta"
 
@@ -64,8 +64,8 @@ typedef struct rifle_s {
   Rule **rules;
 } Rifle;
 
-static inline Condition *condition_create(check_fun *f, const char *arg, bool negate)
-{
+static inline Condition *condition_create(check_fun *f, const char *arg,
+                                          bool negate) {
   Condition *cd = xcalloc(1, sizeof *cd);
   cd->check = f;
   cd->arg = arg ? strdup(arg) : NULL;
@@ -73,8 +73,7 @@ static inline Condition *condition_create(check_fun *f, const char *arg, bool ne
   return cd;
 }
 
-static inline void condition_destroy(Condition *cd)
-{
+static inline void condition_destroy(Condition *cd) {
   if (!cd) {
     return;
   }
@@ -87,16 +86,14 @@ static inline void condition_destroy(Condition *cd)
   xfree(cd);
 }
 
-static inline Rule *rule_create(const char *command)
-{
+static inline Rule *rule_create(const char *command) {
   Rule *rl = xcalloc(1, sizeof *rl);
   rl->command = command ? strdup(command) : NULL;
   rl->number = -1;
   return rl;
 }
 
-static inline void rule_destroy(Rule *rl)
-{
+static inline void rule_destroy(Rule *rl) {
   if (!rl) {
     return;
   }
@@ -106,33 +103,43 @@ static inline void rule_destroy(Rule *rl)
   xfree(rl);
 }
 
-static inline void rule_set_flags(Rule *r, const char *flags)
-{
+static inline void rule_set_flags(Rule *r, const char *flags) {
   for (const char *f = flags; *f; f++) {
     switch (*f) {
-      case 'f': r->flag_fork = true; break;
-      case 't': r->flag_term = true; break;
-      case 'e': r->flag_esc = true;  break;
+    case 'f':
+      r->flag_fork = true;
+      break;
+    case 't':
+      r->flag_term = true;
+      break;
+    case 'e':
+      r->flag_esc = true;
+      break;
     }
   }
   for (const char *f = flags; *f; f++) {
     switch (*f) {
-      case 'F': r->flag_fork = false; break;
-      case 'T': r->flag_term = false; break;
-      case 'E': r->flag_esc = false;  break;
+    case 'F':
+      r->flag_fork = false;
+      break;
+    case 'T':
+      r->flag_term = false;
+      break;
+    case 'E':
+      r->flag_esc = false;
+      break;
     }
   }
 }
 
-static inline bool re_match(pcre *re, pcre_extra* re_extra, const char *string)
-{
+static inline bool re_match(pcre *re, pcre_extra *re_extra,
+                            const char *string) {
   int substr_vec[32];
-  return pcre_exec(re, re_extra, string,
-      strlen(string), 0, 0, substr_vec, 30) >= 0;
+  return pcre_exec(re, re_extra, string, strlen(string), 0, 0, substr_vec,
+                   30) >= 0;
 }
 
-static bool check_fun_file(Condition *cd, const FileInfo *info)
-{
+static bool check_fun_file(Condition *cd, const FileInfo *info) {
   struct stat path_stat;
   if (stat(info->file, &path_stat) == -1) {
     return cd->negate;
@@ -140,8 +147,7 @@ static bool check_fun_file(Condition *cd, const FileInfo *info)
   return S_ISREG(path_stat.st_mode) != cd->negate;
 }
 
-static bool check_fun_dir(Condition *cd, const FileInfo *info)
-{
+static bool check_fun_dir(Condition *cd, const FileInfo *info) {
   struct stat statbuf;
   if (stat(info->file, &statbuf) != 0) {
     return cd->negate;
@@ -150,28 +156,25 @@ static bool check_fun_dir(Condition *cd, const FileInfo *info)
 }
 
 // not sure if this even works from within lfm
-static bool check_fun_term(Condition *cd, const FileInfo *info)
-{
-  (void) info;
+static bool check_fun_term(Condition *cd, const FileInfo *info) {
+  (void)info;
   return (isatty(0) && isatty(1) && isatty(2)) != cd->negate;
 }
 
-static bool check_fun_env(Condition *cd, const FileInfo *info)
-{
-  (void) info;
+static bool check_fun_env(Condition *cd, const FileInfo *info) {
+  (void)info;
   const char *val = getenv(cd->arg);
   return (val && *val) != cd->negate;
 }
 
-static bool check_fun_else(Condition *cd, const FileInfo *info)
-{
-  (void) info;
+static bool check_fun_else(Condition *cd, const FileInfo *info) {
+  (void)info;
   return !cd->negate;
 }
 
 /* TODO: log errors (on 2022-10-15) */
-static inline Condition *condition_create_re(check_fun *f, const char *re, bool negate)
-{
+static inline Condition *condition_create_re(check_fun *f, const char *re,
+                                             bool negate) {
   const char *pcre_error_str;
   int pcre_error_offset;
   Condition *c = condition_create(f, NULL, negate);
@@ -189,42 +192,37 @@ static inline Condition *condition_create_re(check_fun *f, const char *re, bool 
   return c;
 }
 
-static bool check_fun_path(Condition *cd, const FileInfo *info)
-{
+static bool check_fun_path(Condition *cd, const FileInfo *info) {
   return re_match(cd->pcre, cd->pcre_extra, info->path) != cd->negate;
 }
 
-static bool check_fun_mime(Condition *cd, const FileInfo *info)
-{
+static bool check_fun_mime(Condition *cd, const FileInfo *info) {
   return re_match(cd->pcre, cd->pcre_extra, info->mime) != cd->negate;
 }
 
-static bool check_fun_name(Condition *cd, const FileInfo *info)
-{
+static bool check_fun_name(Condition *cd, const FileInfo *info) {
   const char *ptr = strrchr(info->file, '/');
-  return re_match(cd->pcre, cd->pcre_extra, ptr ? ptr : info->file) != cd->negate;
+  return re_match(cd->pcre, cd->pcre_extra, ptr ? ptr : info->file) !=
+         cd->negate;
 }
 
-static bool check_fun_match(Condition *cd, const FileInfo *info)
-{
+static bool check_fun_match(Condition *cd, const FileInfo *info) {
   return re_match(cd->pcre, cd->pcre_extra, info->file) != cd->negate;
 }
 
-static bool check_fun_has(Condition *cd, const FileInfo *info)
-{
-  (void) info;
+static bool check_fun_has(Condition *cd, const FileInfo *info) {
+  (void)info;
   char cmd[EXECUTABLE_MAX];
   snprintf(cmd, sizeof cmd, "command -v \"%s\" >/dev/null 2>&1", cd->arg);
   return !system(cmd) != cd->negate;
 }
 
-static inline Condition *condition_create_re_name(const char *arg, bool negate)
-{
+static inline Condition *condition_create_re_name(const char *arg,
+                                                  bool negate) {
   return condition_create_re(check_fun_name, arg, negate);
 }
 
-static inline Condition *condition_create_re_ext(const char *arg, bool negate)
-{
+static inline Condition *condition_create_re_ext(const char *arg, bool negate) {
   char *regex_str = xmalloc(strlen(arg) + 8);
   sprintf(regex_str, "\\.(%s)$", arg);
   Condition *c = condition_create_re(check_fun_name, regex_str, negate);
@@ -233,18 +231,17 @@ static inline Condition *condition_create_re_ext(const char *arg, bool negate)
   return c;
 }
 
-static inline Condition *condition_create_re_mime(const char *arg, bool negate)
-{
+static inline Condition *condition_create_re_mime(const char *arg,
+                                                  bool negate) {
   return condition_create_re(check_fun_mime, arg, negate);
 }
 
-static inline Condition *condition_create_re_match(const char *arg, bool negate)
-{
+static inline Condition *condition_create_re_match(const char *arg,
+                                                   bool negate) {
   return condition_create_re(check_fun_match, arg, negate);
 }
 
-static inline char *split_command(char *s)
-{
+static inline char *split_command(char *s) {
   if ((s = strstr(s, DELIM_COMMAND)) == NULL) {
     return NULL;
   }
@@ -252,15 +249,14 @@ static inline char *split_command(char *s)
   return trim(s + 3);
 }
 
-static inline bool is_comment_or_whitespace(char* s)
-{
+static inline bool is_comment_or_whitespace(char *s) {
   s--;
-  while (isspace(*++s)) {}
+  while (isspace(*++s)) {
+  }
   return *s == '#' || *s == '\0';
 }
 
-static inline bool rule_add_condition(Rule *r, char *cond_str)
-{
+static inline bool rule_add_condition(Rule *r, char *cond_str) {
   if (*cond_str == 0) {
     return true;
   }
@@ -285,8 +281,7 @@ static inline bool rule_add_condition(Rule *r, char *cond_str)
   } else if (streq(func, "X")) {
     c = condition_create(check_fun_env, "DISPLAY", negate);
   } else if (streq(func, "W")) {
-    c = condition_create(
-        check_fun_env, "WAYLAND_DISPLAY", negate);
+    c = condition_create(check_fun_env, "WAYLAND_DISPLAY", negate);
   } else if (streq(func, "else")) {
     c = condition_create(check_fun_else, NULL, negate);
   } else {
@@ -332,8 +327,7 @@ static inline bool rule_add_condition(Rule *r, char *cond_str)
   return true;
 }
 
-static inline Rule *parse_rule(char *rule, const char *command)
-{
+static inline Rule *parse_rule(char *rule, const char *command) {
   Rule *r = rule_create(command);
 
   char *cond;
@@ -347,9 +341,8 @@ static inline Rule *parse_rule(char *rule, const char *command)
   return r;
 }
 
-static inline bool rule_check(Rule *r, const FileInfo *info)
-{
-  cvector_foreach(Condition *c, r->conditions) {
+static inline bool rule_check(Rule *r, const FileInfo *info) {
+  cvector_foreach(Condition * c, r->conditions) {
     if (!c->check(c, info)) {
       return false;
     }
@@ -357,8 +350,7 @@ static inline bool rule_check(Rule *r, const FileInfo *info)
   return true;
 }
 
-static int l_rifle_fileinfo(lua_State *L)
-{
+static int l_rifle_fileinfo(lua_State *L) {
   const char *file = luaL_checkstring(L, 1);
 
   char path[PATH_MAX + 1];
@@ -383,8 +375,7 @@ static int l_rifle_fileinfo(lua_State *L)
   return 1;
 }
 
-static inline int llua_push_rule(lua_State *L, const Rule *r, int num)
-{
+static inline int llua_push_rule(lua_State *L, const Rule *r, int num) {
   lua_newtable(L);
 
   lua_pushstring(L, r->command);
@@ -405,8 +396,7 @@ static inline int llua_push_rule(lua_State *L, const Rule *r, int num)
   return 1;
 }
 
-static int l_rifle_query_mime(lua_State *L)
-{
+static int l_rifle_query_mime(lua_State *L) {
   Rifle *rifle = lua_touserdata(L, lua_upvalueindex(1));
   const char *mime = luaL_checkstring(L, 1);
 
@@ -432,7 +422,7 @@ static int l_rifle_query_mime(lua_State *L)
   int i = 1;
   int ct_match = 0;
 
-  cvector_foreach(Rule *r, rifle->rules) {
+  cvector_foreach(Rule * r, rifle->rules) {
     if (r->has_mime && rule_check(r, &info)) {
       if (r->number > 0) {
         ct_match = r->number;
@@ -442,13 +432,13 @@ static int l_rifle_query_mime(lua_State *L)
       if (pick && *pick) {
         const int ind = atoi(pick);
         const bool ok = (ind != 0 || pick[0] == '0');
-        if ((ok && ind != ct_match-1) ||
+        if ((ok && ind != ct_match - 1) ||
             (!ok && ((r)->label == NULL || strcmp(pick, r->label) != 0))) {
           continue;
         }
       }
 
-      llua_push_rule(L, r, ct_match-1);
+      llua_push_rule(L, r, ct_match - 1);
       lua_rawseti(L, -2, i++);
 
       if (limit > 0 && i > limit) {
@@ -460,8 +450,7 @@ static int l_rifle_query_mime(lua_State *L)
   return 1;
 }
 
-static int l_rifle_query(lua_State *L)
-{
+static int l_rifle_query(lua_State *L) {
   Rifle *rifle = lua_touserdata(L, lua_upvalueindex(1));
   const char *file = luaL_checkstring(L, 1);
 
@@ -495,7 +484,7 @@ static int l_rifle_query(lua_State *L)
   int i = 1;
   int ct_match = 0;
 
-  cvector_foreach(Rule *r, rifle->rules) {
+  cvector_foreach(Rule * r, rifle->rules) {
     if (rule_check(r, &info)) {
       if (r->number > 0) {
         ct_match = r->number;
@@ -505,13 +494,13 @@ static int l_rifle_query(lua_State *L)
       if (pick != NULL && pick[0] != '\0') {
         const int ind = atoi(pick);
         const bool ok = (ind != 0 || pick[0] == '0');
-        if ((ok && ind != ct_match-1) ||
+        if ((ok && ind != ct_match - 1) ||
             (!ok && (r->label == NULL || strcmp(pick, r->label) != 0))) {
           continue;
         }
       }
 
-      llua_push_rule(L, r, ct_match-1);
+      llua_push_rule(L, r, ct_match - 1);
       lua_rawseti(L, -2, i++);
 
       if (limit > 0 && i > limit) {
@@ -524,8 +513,7 @@ static int l_rifle_query(lua_State *L)
 }
 
 // loads rules from the configuration file
-static void load_rules(Rifle *rifle)
-{
+static void load_rules(Rifle *rifle) {
   if (!rifle->config_file) {
     return;
   }
@@ -556,10 +544,9 @@ static void load_rules(Rifle *rifle)
 }
 
 // loads rules from the table at the stack position idx
-static inline int llua_parse_rules(lua_State *L, int idx, Rifle *rifle)
-{
+static inline int llua_parse_rules(lua_State *L, int idx, Rifle *rifle) {
   char buf[BUFSIZE];
-  for (lua_pushnil(L); lua_next(L, idx-1); lua_pop(L, 1)) {
+  for (lua_pushnil(L); lua_next(L, idx - 1); lua_pop(L, 1)) {
     const char *str = lua_tostring(L, -1);
     log_debug("parsing: %s", str);
     strncpy(buf, str, sizeof buf - 1);
@@ -580,8 +567,7 @@ static inline int llua_parse_rules(lua_State *L, int idx, Rifle *rifle)
   return 0;
 }
 
-static int l_rifle_setup(lua_State *L)
-{
+static int l_rifle_setup(lua_State *L) {
   Rifle *rifle = lua_touserdata(L, lua_upvalueindex(1));
 
   cvector_fclear(rifle->rules, rule_destroy);
@@ -606,8 +592,7 @@ static int l_rifle_setup(lua_State *L)
   return 0;
 }
 
-static int l_rifle_nrules(lua_State *L)
-{
+static int l_rifle_nrules(lua_State *L) {
   Rifle *rifle = lua_touserdata(L, lua_upvalueindex(1));
   lua_pushinteger(L, cvector_size(rifle->rules));
   return 1;
@@ -621,15 +606,11 @@ static int l_rifle_gc(lua_State *L) {
 }
 
 static const luaL_Reg rifle_lib[] = {
-  {"fileinfo", l_rifle_fileinfo},
-  {"nrules", l_rifle_nrules},
-  {"query", l_rifle_query},
-  {"query_mime", l_rifle_query_mime},
-  {"setup", l_rifle_setup},
-  {NULL, NULL}};
+    {"fileinfo", l_rifle_fileinfo}, {"nrules", l_rifle_nrules},
+    {"query", l_rifle_query},       {"query_mime", l_rifle_query_mime},
+    {"setup", l_rifle_setup},       {NULL, NULL}};
 
-int luaopen_rifle(lua_State *L)
-{
+int luaopen_rifle(lua_State *L) {
   lua_newtable(L);
 
   Rifle *r = lua_newuserdata(L, sizeof *r);

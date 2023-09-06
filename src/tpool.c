@@ -1,14 +1,14 @@
 // Copyright John Schember <john@nachtimwald.com>
 //
-// Permission is hereby granted, xfree of charge, to any person obtaining a copy of
-// this software and associated documentation files (the "Software"), to deal in
-// the Software without restriction, including without limitation the rights to
-// use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
-// of the Software, and to permit persons to whom the Software is furnished to do
-// so, subject to the following conditions:
+// Permission is hereby granted, xfree of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
 //
-// The above copyright notice and this permission notice shall be included in all
-// copies or substantial portions of the Software.
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
 //
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -23,8 +23,8 @@
 #include <pthread.h>
 #include <stdlib.h>
 
-#include "tpool.h"
 #include "memory.h"
+#include "tpool.h"
 
 struct tpool_work {
   thread_func_t func;
@@ -45,8 +45,7 @@ struct tpool {
   bool stop;
 };
 
-static tpool_work_t *tpool_work_create(thread_func_t func, void *arg)
-{
+static tpool_work_t *tpool_work_create(thread_func_t func, void *arg) {
   tpool_work_t *work;
 
   if (func == NULL)
@@ -59,15 +58,13 @@ static tpool_work_t *tpool_work_create(thread_func_t func, void *arg)
   return work;
 }
 
-static void tpool_work_destroy(tpool_work_t *work)
-{
+static void tpool_work_destroy(tpool_work_t *work) {
   if (work == NULL)
     return;
   xfree(work);
 }
 
-static tpool_work_t *tpool_work_get(tpool_t *tm)
-{
+static tpool_work_t *tpool_work_get(tpool_t *tm) {
   tpool_work_t *work;
 
   if (tm == NULL)
@@ -87,8 +84,7 @@ static tpool_work_t *tpool_work_get(tpool_t *tm)
   return work;
 }
 
-static void *tpool_worker(void *arg)
-{
+static void *tpool_worker(void *arg) {
   tpool_t *tm = arg;
   tpool_work_t *work;
 
@@ -128,8 +124,7 @@ static void *tpool_worker(void *arg)
   return NULL;
 }
 
-tpool_t *tpool_create(size_t num)
-{
+tpool_t *tpool_create(size_t num) {
   tpool_t *tm;
   pthread_t thread;
   size_t i;
@@ -155,8 +150,7 @@ tpool_t *tpool_create(size_t num)
   return tm;
 }
 
-void tpool_destroy(tpool_t *tm)
-{
+void tpool_destroy(tpool_t *tm) {
   tpool_work_t *work;
   tpool_work_t *work2;
 
@@ -183,8 +177,7 @@ void tpool_destroy(tpool_t *tm)
   xfree(tm);
 }
 
-bool tpool_add_work(tpool_t *tm, thread_func_t func, void *arg, bool priority)
-{
+bool tpool_add_work(tpool_t *tm, thread_func_t func, void *arg, bool priority) {
   tpool_work_t *work;
 
   if (tm == NULL)
@@ -212,8 +205,7 @@ bool tpool_add_work(tpool_t *tm, thread_func_t func, void *arg, bool priority)
   return true;
 }
 
-void tpool_wait(tpool_t *tm)
-{
+void tpool_wait(tpool_t *tm) {
   if (tm == NULL)
     return;
 
@@ -221,8 +213,7 @@ void tpool_wait(tpool_t *tm)
   while (1) {
     if ((!tm->stop && tm->working_cnt != 0) ||
         (tm->stop && tm->thread_cnt != 0)) {
-      pthread_cond_wait(&(tm->working_cond),
-          &(tm->work_mutex));
+      pthread_cond_wait(&(tm->working_cond), &(tm->work_mutex));
     } else {
       break;
     }
@@ -230,16 +221,14 @@ void tpool_wait(tpool_t *tm)
   pthread_mutex_unlock(&(tm->work_mutex));
 }
 
-size_t tpool_size(const tpool_t *tm)
-{
+size_t tpool_size(const tpool_t *tm) {
   if (tm == NULL)
     return 0;
 
   return tm->thread_cnt;
 }
 
-void tpool_resize(tpool_t *tm, size_t num)
-{
+void tpool_resize(tpool_t *tm, size_t num) {
   if (tm == NULL)
     return;
 

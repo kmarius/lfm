@@ -5,25 +5,24 @@
 typedef uint32_t input_t;
 
 // if these bits are used we need to go higher
-#define SHIFT_MASK ((input_t) 1 << 31)
-#define CTRL_MASK ((input_t) 1 << 30)
-#define ALT_MASK ((input_t) 1 << 29)
-#define ID(u) ((input_t) (u & 0x1fffffff))
-#define ISSHIFT(u) ((u&SHIFT_MASK) >> 31)
-#define ISCTRL(u) ((u&CTRL_MASK) >> 30)
-#define ISALT(u) ((u&ALT_MASK) >> 29)
-#define SHIFT(u) (u|SHIFT_MASK)
-#define CTRL(u) (u|CTRL_MASK)
-#define ALT(u) (u|ALT_MASK)
+#define SHIFT_MASK ((input_t)1 << 31)
+#define CTRL_MASK ((input_t)1 << 30)
+#define ALT_MASK ((input_t)1 << 29)
+#define ID(u) ((input_t)(u & 0x1fffffff))
+#define ISSHIFT(u) ((u & SHIFT_MASK) >> 31)
+#define ISCTRL(u) ((u & CTRL_MASK) >> 30)
+#define ISALT(u) ((u & ALT_MASK) >> 29)
+#define SHIFT(u) (u | SHIFT_MASK)
+#define CTRL(u) (u | CTRL_MASK)
+#define ALT(u) (u | ALT_MASK)
 
 // Convert an ncinput to ncinput_t. We use the three most significant bits to
 // store modifier keys.
 // ncinput_alt_p doesn't seem to work yet
-#define ncinput_to_input(in) \
-  (input_t) ((in)->id \
-      | ((in)->alt ? ALT_MASK : 0) \
-      | (ncinput_ctrl_p(in) ? CTRL_MASK : 0) \
-      | (ncinput_shift_p(in) ? SHIFT_MASK : 0))
+#define ncinput_to_input(in)                                                   \
+  (input_t)((in)->id | ((in)->alt ? ALT_MASK : 0) |                            \
+            (ncinput_ctrl_p(in) ? CTRL_MASK : 0) |                             \
+            (ncinput_shift_p(in) ? SHIFT_MASK : 0))
 
 // Map an `input_t` to a statically allocated string containing its readable
 // representation. Not thread safe.

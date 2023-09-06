@@ -5,9 +5,9 @@
 typedef struct history_s {
   struct history_entry *entries;
   struct history_entry *cur;
-  size_t num_old_entries;  // entries that were read from the history file
-  size_t num_new_entries;    // new entries to be written to the file (excluding ones
-                             // with leading space)
+  size_t num_old_entries; // entries that were read from the history file
+  size_t num_new_entries; // new entries to be written to the file (excluding
+                          // ones with leading space)
 } History;
 
 void history_load(History *h, const char *path);

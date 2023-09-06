@@ -5,23 +5,23 @@ local config = lfm.config
 local M = {}
 
 M.palette = {
-	black   = "0",
-	red     = "1",
-	green   = "2",
-	yellow  = "3",
-	blue    = "4",
+	black = "0",
+	red = "1",
+	green = "2",
+	yellow = "3",
+	blue = "4",
 	magenta = "5",
-	cyan    = "6",
-	white   = "7",
+	cyan = "6",
+	white = "7",
 
-	bright_black   = "8",
-	bright_red     = "9",
-	bright_green   = "10",
-	bright_yellow  = "11",
-	bright_blue    = "12",
+	bright_black = "8",
+	bright_red = "9",
+	bright_green = "10",
+	bright_yellow = "11",
+	bright_blue = "12",
 	bright_magenta = "13",
-	bright_cyan    = "14",
-	bright_white   = "15",
+	bright_cyan = "14",
+	bright_white = "15",
 }
 
 ---Read colors from the `LS\_COLORS` environment variable.
@@ -43,17 +43,17 @@ function M.load_lscolors()
 					-- 07	Reversed
 					-- 08	Concealed
 				elseif i < 38 then
-					t.fg = tostring(i-30)
+					t.fg = tostring(i - 30)
 				elseif i < 48 then
-					t.bg = tostring(i-30)
+					t.bg = tostring(i - 30)
 				elseif i < 98 then
-					t.fg = tostring(i-90+8)
+					t.fg = tostring(i - 90 + 8)
 				elseif i < 108 then
-					t.bg = tostring(i-100+8)
+					t.bg = tostring(i - 100 + 8)
 				end
 			end
 			if ext and next(t) then
-				table.insert(patterns, {color=t, ext={ext}})
+				table.insert(patterns, { color = t, ext = { ext } })
 			end
 		else
 			local type, colors = string.match(str, "^(%.[^=]*)=(.*)")

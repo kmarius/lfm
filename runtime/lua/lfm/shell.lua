@@ -17,8 +17,12 @@ local ARRAY = M.ARRAY
 ---@param sep? string separator (default: " ").
 ---@return string
 function M.escape(args, sep)
-	if not args then return "" end
-	if type(args) ~= "table" then args = {args} end
+	if not args then
+		return ""
+	end
+	if type(args) ~= "table" then
+		args = { args }
+	end
 	sep = sep or " "
 	local ret = {}
 	for _, a in pairs(args) do
@@ -41,7 +45,7 @@ end
 function M.execute(command, t)
 	t = t or {}
 	if type(command) == "string" then
-		command = {"sh", "-c", command}
+		command = { "sh", "-c", command }
 	end
 	if not t.quiet then
 		log.debug(table.concat(command, " "))
@@ -86,15 +90,15 @@ function M.bash(command, t)
 	t = t or {}
 	if t.files == ARGV then
 		return function()
-			M.execute({"bash", "-c", command, "_", unpack(sel_or_cur())}, t)
+			M.execute({ "bash", "-c", command, "_", unpack(sel_or_cur()) }, t)
 		end
 	elseif t.files == ARRAY then
 		return function(...)
-			M.execute({"bash", "-c", "files=("..M.escape(sel_or_cur()).."); "..command, "_", ...}, t)
+			M.execute({ "bash", "-c", "files=(" .. M.escape(sel_or_cur()) .. "); " .. command, "_", ... }, t)
 		end
 	else
 		return function(...)
-			M.execute({"bash", "-c", command, "_", ...}, t)
+			M.execute({ "bash", "-c", command, "_", ... }, t)
 		end
 	end
 end
@@ -115,15 +119,18 @@ function M.tmux(command, t)
 	t = t or {}
 	if t.files == ARGV then
 		return function()
-			M.execute({"tmux", "new-window", command, unpack(sel_or_cur())}, t)
+			M.execute({ "tmux", "new-window", command, unpack(sel_or_cur()) }, t)
 		end
 	elseif t.files == ARRAY then
 		return function(...)
-			M.execute({"tmux", "new-window", "bash", "-c", "files=("..M.escape(sel_or_cur()).."); "..command, "_", ...}, t)
+			M.execute(
+				{ "tmux", "new-window", "bash", "-c", "files=(" .. M.escape(sel_or_cur()) .. "); " .. command, "_", ... },
+				t
+			)
 		end
 	else
 		return function(...)
-			M.execute({"tmux", "new-window", "bash", "-c", command, "_", ...}, t)
+			M.execute({ "tmux", "new-window", "bash", "-c", command, "_", ... }, t)
 		end
 	end
 end
@@ -145,21 +152,34 @@ function M.fish(command, t)
 	t = t or {}
 	if t.files == ARGV then
 		return function()
-			M.execute({"fish", "-c", command, unpack(sel_or_cur())}, t)
+			M.execute({ "fish", "-c", command, unpack(sel_or_cur()) }, t)
 		end
 	elseif t.files == ARRAY then
 		if t.tmux then
 			return function(...)
-				M.execute({"tmux", "new-window", "fish", "-c", "set -U files "..M.escape(sel_or_cur()), "-c", command, "--", ...}, t)
+				M.execute(
+					{
+						"tmux",
+						"new-window",
+						"fish",
+						"-c",
+						"set -U files " .. M.escape(sel_or_cur()),
+						"-c",
+						command,
+						"--",
+						...,
+					},
+					t
+				)
 			end
 		else
 			return function(...)
-				M.execute({"fish", "-c", "set -U files "..M.escape(sel_or_cur()), "-c", command, "--", ...}, t)
+				M.execute({ "fish", "-c", "set -U files " .. M.escape(sel_or_cur()), "-c", command, "--", ... }, t)
 			end
 		end
 	else
 		return function(...)
-			M.execute({"fish", "-c", command, "--", ...}, t)
+			M.execute({ "fish", "-c", command, "--", ... }, t)
 		end
 	end
 end
@@ -180,14 +200,14 @@ function M.sh(command, t)
 	t = t or {}
 	if t.files == ARGV then
 		return function()
-			M.execute({"sh", "-c", command, "_", sel_or_cur()}, t)
+			M.execute({ "sh", "-c", command, "_", sel_or_cur() }, t)
 		end
 	elseif t.files == ARRAY then
 		lfm.error("sh does not support arrays")
 		return function() end
 	else
 		return function(...)
-			M.execute({"sh", "-c", command, ...}, t)
+			M.execute({ "sh", "-c", command, ... }, t)
 		end
 	end
 end

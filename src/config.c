@@ -1,5 +1,5 @@
 #include <linux/limits.h>
-#include <ncurses.h>  // COLOR_ constants
+#include <ncurses.h> // COLOR_ constants
 #include <notcurses/notcurses.h>
 #include <stdarg.h>
 #include <stdint.h>
@@ -21,28 +21,27 @@ extern char *default_data_dir;
 extern char *default_lua_dir;
 
 Config cfg = {
-  .truncatechar = L'~',
-  .scrolloff = 4,
-  .inotify_timeout = NOTIFY_TIMEOUT,
-  .inotify_delay = NOTIFY_DELAY,
-  .map_suggestion_delay = MAP_SUGGESTION_DELAY,
-  .map_clear_delay = MAP_CLEAR_DELAY,
-  .loading_indicator_delay = LOADING_INDICATOR_DELAY,
-  .colors = {
-    .normal = NCCHANNELS_INITIALIZER_PALINDEX(-1, -1),
-    .copy = NCCHANNELS_INITIALIZER_PALINDEX(COLOR_BLACK, COLOR_YELLOW),
-    .current = NCCHANNEL_INITIALIZER_PALINDEX(237),
-    .delete = NCCHANNELS_INITIALIZER_PALINDEX(COLOR_BLACK, COLOR_RED),
-    .dir = NCCHANNELS_INITIALIZER_PALINDEX(COLOR_BLUE, -1),
-    .broken = NCCHANNELS_INITIALIZER_PALINDEX(COLOR_RED, -1),
-    .exec = NCCHANNELS_INITIALIZER_PALINDEX(COLOR_GREEN, -1),
-    .search = NCCHANNELS_INITIALIZER_PALINDEX(COLOR_BLACK, COLOR_YELLOW),
-    .selection = NCCHANNELS_INITIALIZER_PALINDEX(COLOR_BLACK, COLOR_MAGENTA),
-  }
-};
+    .truncatechar = L'~',
+    .scrolloff = 4,
+    .inotify_timeout = NOTIFY_TIMEOUT,
+    .inotify_delay = NOTIFY_DELAY,
+    .map_suggestion_delay = MAP_SUGGESTION_DELAY,
+    .map_clear_delay = MAP_CLEAR_DELAY,
+    .loading_indicator_delay = LOADING_INDICATOR_DELAY,
+    .colors = {
+        .normal = NCCHANNELS_INITIALIZER_PALINDEX(-1, -1),
+        .copy = NCCHANNELS_INITIALIZER_PALINDEX(COLOR_BLACK, COLOR_YELLOW),
+        .current = NCCHANNEL_INITIALIZER_PALINDEX(237),
+        .delete = NCCHANNELS_INITIALIZER_PALINDEX(COLOR_BLACK, COLOR_RED),
+        .dir = NCCHANNELS_INITIALIZER_PALINDEX(COLOR_BLUE, -1),
+        .broken = NCCHANNELS_INITIALIZER_PALINDEX(COLOR_RED, -1),
+        .exec = NCCHANNELS_INITIALIZER_PALINDEX(COLOR_GREEN, -1),
+        .search = NCCHANNELS_INITIALIZER_PALINDEX(COLOR_BLACK, COLOR_YELLOW),
+        .selection =
+            NCCHANNELS_INITIALIZER_PALINDEX(COLOR_BLACK, COLOR_MAGENTA),
+    }};
 
-void config_init(void)
-{
+void config_init(void) {
   cfg.colors.color_map = ht_create(xfree);
   cvector_vector_type(uint32_t) r = NULL;
   cvector_push_back(r, 1);
@@ -50,7 +49,7 @@ void config_init(void)
   cvector_push_back(r, 3);
   config_ratios_set(r);
 
-  cfg.icon_map  = ht_create(xfree);
+  cfg.icon_map = ht_create(xfree);
   config_icon_map_add("ln", "l");
   config_icon_map_add("or", "l");
   config_icon_map_add("tw", "t");
@@ -124,8 +123,7 @@ void config_init(void)
 #endif
 }
 
-void config_deinit(void)
-{
+void config_deinit(void) {
   config_colors_clear();
   ht_destroy(cfg.colors.color_map);
   ht_destroy(cfg.icon_map);
@@ -148,8 +146,7 @@ void config_deinit(void)
   xfree(cfg.luadir);
 }
 
-void config_colors_clear(void)
-{
+void config_colors_clear(void) {
   cfg.colors.normal = NCCHANNELS_INITIALIZER_PALINDEX(-1, -1);
   cfg.colors.copy = NCCHANNELS_INITIALIZER_PALINDEX(-1, -1);
   cfg.colors.current = NCCHANNEL_INITIALIZER_PALINDEX(237);

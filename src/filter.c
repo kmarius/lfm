@@ -9,9 +9,9 @@
 
 #define FILTER_INITIAL_CAPACITY 2
 
-// Performance is surprisingly good even on very large directories (100k-1m files).
-// Unless something changes don't bother with incrementally extending and existing
-// filter and just rebuild it every time.
+// Performance is surprisingly good even on very large directories (100k-1m
+// files). Unless something changes don't bother with incrementally extending
+// and existing filter and just rebuild it every time.
 
 struct subfilter;
 
@@ -33,16 +33,14 @@ struct subfilter {
   struct filter_atom *atoms;
 };
 
-static void subfilter_init(struct subfilter *s, char *filter)
-{
+static void subfilter_init(struct subfilter *s, char *filter) {
   s->length = 0;
   s->capacity = FILTER_INITIAL_CAPACITY;
   s->atoms = xmalloc(s->capacity * sizeof *s->atoms);
 
   char *ptr;
-  for (char *tok = strtok_r(filter, "|", &ptr);
-      tok != NULL;
-      tok = strtok_r(NULL, "|", &ptr)) {
+  for (char *tok = strtok_r(filter, "|", &ptr); tok != NULL;
+       tok = strtok_r(NULL, "|", &ptr)) {
     if (s->capacity == s->length) {
       s->capacity *= 2;
       s->atoms = xrealloc(s->atoms, s->capacity * sizeof *s->atoms);
@@ -55,9 +53,7 @@ static void subfilter_init(struct subfilter *s, char *filter)
   }
 }
 
-
-Filter *filter_create(const char *filter)
-{
+Filter *filter_create(const char *filter) {
   Filter *f = xmalloc(sizeof *f);
   f->capacity = FILTER_INITIAL_CAPACITY;
   f->filters = xmalloc(f->capacity * sizeof *f->filters);
@@ -65,9 +61,7 @@ Filter *filter_create(const char *filter)
   f->string = strdup(filter);
 
   char *buf = strdup(filter);
-  for (char *tok = strtok(buf, " ");
-      tok != NULL;
-      tok = strtok(NULL, " ")) {
+  for (char *tok = strtok(buf, " "); tok != NULL; tok = strtok(NULL, " ")) {
     if (f->length == f->capacity) {
       f->capacity *= 2;
       f->filters = xrealloc(f->filters, f->capacity * sizeof *f->filters);
@@ -79,9 +73,7 @@ Filter *filter_create(const char *filter)
   return f;
 }
 
-
-void filter_destroy(Filter *s)
-{
+void filter_destroy(Filter *s) {
   if (!s) {
     return;
   }
@@ -97,21 +89,15 @@ void filter_destroy(Filter *s)
   xfree(s);
 }
 
-
-const char *filter_string(const Filter *f)
-{
+const char *filter_string(const Filter *f) {
   return f ? f->string : "";
 }
 
-
-static inline bool atom_match(const struct filter_atom *a, const char *str)
-{
+static inline bool atom_match(const struct filter_atom *a, const char *str) {
   return (strcasestr(str, a->string) != NULL) != a->negate;
 }
 
-
-static inline bool subfilter_match(const struct subfilter *s, const char *str)
-{
+static inline bool subfilter_match(const struct subfilter *s, const char *str) {
   for (uint32_t i = 0; i < s->length; i++) {
     if (atom_match(&s->atoms[i], str)) {
       return true;
@@ -120,9 +106,7 @@ static inline bool subfilter_match(const struct subfilter *s, const char *str)
   return false;
 }
 
-
-bool filter_match(const Filter *f, const char *str)
-{
+bool filter_match(const Filter *f, const char *str) {
   for (uint32_t i = 0; i < f->length; i++) {
     if (!subfilter_match(&f->filters[i], str)) {
       return false;

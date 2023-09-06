@@ -6,8 +6,8 @@
 
 #include "cvector.h"
 #include "history.h"
-#include "util.h"
 #include "log.h"
+#include "util.h"
 
 /* TODO: signal errors on load/write (on 2021-10-23) */
 /* TODO: only show history items with matching prefixes (on 2021-07-24) */
@@ -20,8 +20,7 @@ struct history_entry {
 };
 
 // don't call this on loaded history.
-void history_load(History *h, const char *path)
-{
+void history_load(History *h, const char *path) {
   memset(h, 0, sizeof *h);
 
   FILE *fp = fopen(path, "r");
@@ -34,8 +33,8 @@ void history_load(History *h, const char *path)
   char *line = NULL;
 
   while ((read = getline(&line, &n, fp)) != -1) {
-    if (line[read-1] == '\n') {
-      line[read-1] = 0;
+    if (line[read - 1] == '\n') {
+      line[read - 1] = 0;
     }
     char *tab = strchr(line, '\t');
     if (!tab) {
@@ -46,9 +45,9 @@ void history_load(History *h, const char *path)
     }
     *tab = 0;
     struct history_entry n = {
-      .prefix = line,
-      .line = tab + 1,
-      .is_new = 0,
+        .prefix = line,
+        .line = tab + 1,
+        .is_new = 0,
     };
     cvector_push_back(h->entries, n);
     line = NULL;
@@ -60,8 +59,7 @@ void history_load(History *h, const char *path)
   fclose(fp);
 }
 
-void history_write(History *h, const char *path, int histsize)
-{
+void history_write(History *h, const char *path, int histsize) {
   char *dir = dirname_a(path);
   mkdir_p(dir, 755);
   xfree(dir);
@@ -138,16 +136,14 @@ cleanup:
   xfree(path_new);
 }
 
-void history_deinit(History *h)
-{
+void history_deinit(History *h) {
   for (size_t i = 0; i < cvector_size(h->entries); i++) {
     xfree(h->entries[i].prefix);
   }
   cvector_free(h->entries);
 }
 
-void history_append(History *h, const char *prefix, const char *line)
-{
+void history_append(History *h, const char *prefix, const char *line) {
   struct history_entry *end = cvector_end(h->entries);
   if (end && streq((end - 1)->line, line)) {
     return; /* skip consecutive dupes */
@@ -164,13 +160,11 @@ void history_append(History *h, const char *prefix, const char *line)
   }
 }
 
-void history_reset(History *h)
-{
+void history_reset(History *h) {
   h->cur = NULL;
 }
 
-const char *history_prev(History *h)
-{
+const char *history_prev(History *h) {
   if (!h->entries) {
     return NULL;
   }
@@ -186,8 +180,7 @@ const char *history_prev(History *h)
   return h->cur->line;
 }
 
-const char *history_next(History *h)
-{
+const char *history_next(History *h) {
   if (!h->entries || !h->cur) {
     return NULL;
   }

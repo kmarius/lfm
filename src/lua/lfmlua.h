@@ -16,7 +16,7 @@ void llua_eval(lua_State *L, const char *expr);
 // Run hooks. Hook need to be registered in core.lua.
 void llua_run_hook(lua_State *L, const char *hook);
 
-void llua_run_hook1(lua_State *L, const char *hook, const char* arg1);
+void llua_run_hook1(lua_State *L, const char *hook, const char *arg1);
 
 //  Run callback for finished child.
 void llua_run_child_callback(lua_State *L, int ref, int rstatus);

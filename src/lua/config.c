@@ -1,17 +1,17 @@
 #include <lauxlib.h>
 
-#include "internal.h"
 #include "../config.h"
 #include "../log.h"
 #include "../ncutil.h"
 #include "../tpool.h"
+#include "internal.h"
 
 #define DIR_SETTINGS_META "dir_settings_mt"
 #define CONFIG_META "config_mt"
 #define COLORS_META "colors_mt"
 
-static inline int llua_dir_settings_set(lua_State *L, const char *path, int ind)
-{
+static inline int llua_dir_settings_set(lua_State *L, const char *path,
+                                        int ind) {
   if (lua_isnil(L, ind)) {
     ht_delete(cfg.dir_settings_map, path);
     Dir *d = ht_get(lfm->loader.dir_cache, path);
@@ -72,8 +72,7 @@ static inline int llua_dir_settings_set(lua_State *L, const char *path, int ind)
   return 0;
 }
 
-static int l_dir_settings_index(lua_State *L)
-{
+static int l_dir_settings_index(lua_State *L) {
   const char *key = luaL_checkstring(L, 2);
   struct dir_settings *s = ht_get(cfg.dir_settings_map, key);
   if (!s) {
@@ -87,38 +86,43 @@ static int l_dir_settings_index(lua_State *L)
   lua_setfield(L, -2, "hidden");
   lua_pushboolean(L, s->reverse);
   lua_setfield(L, -2, "reverse");
-  /* TODO: refactor this if we need to convert enum <-> string more often (on 2022-10-09) */
+  /* TODO: refactor this if we need to convert enum <-> string more often (on
+   * 2022-10-09) */
   switch (s->sorttype) {
-    case SORT_NATURAL:
-      lua_pushstring(L, "natural"); break;
-    case SORT_NAME:
-      lua_pushstring(L, "name"); break;
-    case SORT_SIZE:
-      lua_pushstring(L, "size"); break;
-    case SORT_CTIME:
-      lua_pushstring(L, "ctime"); break;
-    case SORT_RAND:
-      lua_pushstring(L, "random"); break;
-    default:
-      lua_pushstring(L, "unknown"); break;
+  case SORT_NATURAL:
+    lua_pushstring(L, "natural");
+    break;
+  case SORT_NAME:
+    lua_pushstring(L, "name");
+    break;
+  case SORT_SIZE:
+    lua_pushstring(L, "size");
+    break;
+  case SORT_CTIME:
+    lua_pushstring(L, "ctime");
+    break;
+  case SORT_RAND:
+    lua_pushstring(L, "random");
+    break;
+  default:
+    lua_pushstring(L, "unknown");
+    break;
   }
   lua_setfield(L, -2, "sorttype");
   return 1;
 }
 
-static int l_dir_settings_newindex(lua_State *L)
-{
+static int l_dir_settings_newindex(lua_State *L) {
   llua_dir_settings_set(L, luaL_checkstring(L, 2), 3);
   return 0;
 }
 
 static const struct luaL_Reg dir_settings_mt[] = {
-  {"__index", l_dir_settings_index},
-  {"__newindex", l_dir_settings_newindex},
-  {NULL, NULL}};
+    {"__index", l_dir_settings_index},
+    {"__newindex", l_dir_settings_newindex},
+    {NULL, NULL}};
 
-static int l_config_index(lua_State *L)
-{
+static int l_config_index(lua_State *L) {
   const char *key = luaL_checkstring(L, 2);
   if (streq(key, "truncatechar")) {
     char buf[MB_LEN_MAX + 1];
@@ -227,8 +231,7 @@ static int l_config_index(lua_State *L)
   return 0;
 }
 
-static int l_config_newindex(lua_State *L)
-{
+static int l_config_newindex(lua_State *L) {
   const char *key = luaL_checkstring(L, 2);
   if (streq(key, "truncatechar")) {
     wchar_t w;
@@ -254,7 +257,7 @@ static int l_config_newindex(lua_State *L)
     for (uint32_t i = 1; i <= l; i++) {
       lua_rawgeti(L, 3, i);
       cvector_push_back(ratios, lua_tointeger(L, -1));
-      if (ratios[i-1] <= 0) {
+      if (ratios[i - 1] <= 0) {
         cvector_free(ratios);
         return luaL_error(L, "ratio must be non-negative");
       }
@@ -365,26 +368,23 @@ static int l_config_newindex(lua_State *L)
   return 0;
 }
 
-static const struct luaL_Reg config_mt[] = {
-  {"__index", l_config_index},
-  {"__newindex", l_config_newindex},
-  {NULL, NULL}};
+static const struct luaL_Reg config_mt[] = {{"__index", l_config_index},
+                                            {"__newindex", l_config_newindex},
+                                            {NULL, NULL}};
 
-static inline uint32_t read_channel(lua_State *L, int idx)
-{
+static inline uint32_t read_channel(lua_State *L, int idx) {
   switch (lua_type(L, idx)) {
-    case LUA_TSTRING:
-      return NCCHANNEL_INITIALIZER_PALINDEX(lua_tointeger(L, idx));
-    case LUA_TNUMBER:
-      return NCCHANNEL_INITIALIZER_HEX(lua_tointeger(L, idx));
-    default:
-      luaL_typerror(L, idx, "string or number required");
-      return 0;
+  case LUA_TSTRING:
+    return NCCHANNEL_INITIALIZER_PALINDEX(lua_tointeger(L, idx));
+  case LUA_TNUMBER:
+    return NCCHANNEL_INITIALIZER_HEX(lua_tointeger(L, idx));
+  default:
+    luaL_typerror(L, idx, "string or number required");
+    return 0;
   }
 }
 
-static inline uint64_t read_color_pair(lua_State *L, int ind)
-{
+static inline uint64_t read_color_pair(lua_State *L, int ind) {
   uint32_t fg, bg = fg = 0;
   ncchannel_set_default(&fg);
   ncchannel_set_default(&bg);
@@ -404,8 +404,7 @@ static inline uint64_t read_color_pair(lua_State *L, int ind)
   return ncchannels_combine(fg, bg);
 }
 
-static int l_colors_newindex(lua_State *L)
-{
+static int l_colors_newindex(lua_State *L) {
   const char *key = luaL_checkstring(L, 2);
   if (streq(key, "copy")) {
     if (lua_istable(L, 3)) {
@@ -458,12 +457,10 @@ static int l_colors_newindex(lua_State *L)
   return 0;
 }
 
-static const struct luaL_Reg colors_mt[] = {
-  {"__newindex", l_colors_newindex},
-  {NULL, NULL}};
+static const struct luaL_Reg colors_mt[] = {{"__newindex", l_colors_newindex},
+                                            {NULL, NULL}};
 
-int luaopen_config(lua_State *L)
-{
+int luaopen_config(lua_State *L) {
   luaL_newmetatable(L, DIR_SETTINGS_META);
   luaL_register(L, NULL, dir_settings_mt);
   lua_pop(L, 1);

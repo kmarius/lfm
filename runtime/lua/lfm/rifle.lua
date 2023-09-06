@@ -11,29 +11,33 @@ local config
 ---Navigate into a directory or open files.
 ---@param ... any
 function M.open(...)
-	local t = {...}
+	local t = { ... }
 	local pick = t[1]
 	local file = fm.open()
 	if file then
 		-- selection takes priority
 		local files = fm.selection_get()
 		if #files == 0 then
-			files = {file}
+			files = { file }
 		end
-		local match = M.query(files[1], {pick=pick, limit=1})[1]
+		local match = M.query(files[1], { pick = pick, limit = 1 })[1]
 		if match then
 			if match.command == "ask" then
 				lfm.cmd.line_set(":", "shell ", ' "${files[@]}"')
 			elseif match.term then
-				local term = M.query_mime("rifle/x-terminal-emulator", {limit=1})[1]
+				local term = M.query_mime("rifle/x-terminal-emulator", { limit = 1 })[1]
 				if not term then
-					error("rifle: no terminal configured"..(config and " in "..config or ""))
+					error("rifle: no terminal configured" .. (config and " in " .. config or ""))
 				end
-				shell.execute({"sh", "-c", term.command, "_", "sh", "-c", match.command, unpack(files)},
-				{fork=true, out=false, err=false})
+				shell.execute(
+					{ "sh", "-c", term.command, "_", "sh", "-c", match.command, unpack(files) },
+					{ fork = true, out = false, err = false }
+				)
 			else
-				shell.execute({"sh", "-c", match.command, "_", unpack(files)},
-				{fork=match.fork, out=false, err=false})
+				shell.execute(
+					{ "sh", "-c", match.command, "_", unpack(files) },
+					{ fork = match.fork, out = false, err = false }
+				)
 			end
 		else
 			if #t > 0 then
@@ -43,7 +47,7 @@ function M.open(...)
 				end
 				shell.execute(t)
 			else
-				print("no matching rules for ".. lfm.fn.mime(files[1]))
+				print("no matching rules for " .. lfm.fn.mime(files[1]))
 			end
 		end
 	end
@@ -76,8 +80,8 @@ function M.setup(t)
 	t = t or {}
 	config = t.config
 	setup_internal(t)
-	lfm.register_command("open", M.open, {tokenize = true, desc="Open file(s)."})
-	lfm.map("r", M.ask, {desc="show opener options"})
+	lfm.register_command("open", M.open, { tokenize = true, desc = "Open file(s)." })
+	lfm.map("r", M.ask, { desc = "show opener options" })
 end
 
 return M

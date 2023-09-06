@@ -1,14 +1,14 @@
 // Implemented by Vitaly _Vi Shukela in 2013, License=MIT
 //
-// Permission is hereby granted, xfree of charge, to any person obtaining a copy of
-// this software and associated documentation files (the "Software"), to deal in
-// the Software without restriction, including without limitation the rights to
-// use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
-// of the Software, and to permit persons to whom the Software is furnished to do
-// so, subject to the following conditions:
+// Permission is hereby granted, xfree of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
 //
-// The above copyright notice and this permission notice shall be included in all
-// copies or substantial portions of the Software.
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
 //
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -24,16 +24,15 @@
  */
 
 #include <errno.h>
+#include <fcntl.h>
 #include <signal.h>
 #include <string.h>
 #include <unistd.h>
-#include <fcntl.h>
 
 #include "popen_arr.h"
 
-static int popen2_impl(FILE** in, FILE** out, FILE** err, const char* program,
-    char* const argv[], const char *pwd, int lookup_path)
-{
+static int popen2_impl(FILE **in, FILE **out, FILE **err, const char *program,
+                       char *const argv[], const char *pwd, int lookup_path) {
   int child_stdout = -1;
   int child_stdin = -1;
   int child_stderr = -1;
@@ -57,7 +56,6 @@ static int popen2_impl(FILE** in, FILE** out, FILE** err, const char* program,
       return -1;
     }
   } else {
-
   }
   if (out != NULL) {
     int p[2] = {-1, -1};
@@ -109,7 +107,7 @@ static int popen2_impl(FILE** in, FILE** out, FILE** err, const char* program,
       dup2(child_stdout, 1);
       close(child_stdout);
     } else {
-      int null_fd = open("/dev/null", O_WRONLY|O_CREAT, 0666);
+      int null_fd = open("/dev/null", O_WRONLY | O_CREAT, 0666);
       dup2(null_fd, 1);
       close(null_fd);
     }
@@ -118,7 +116,7 @@ static int popen2_impl(FILE** in, FILE** out, FILE** err, const char* program,
       dup2(child_stderr, 2);
       close(child_stderr);
     } else {
-      int null_fd = open("/dev/null", O_WRONLY|O_CREAT, 0666);
+      int null_fd = open("/dev/null", O_WRONLY | O_CREAT, 0666);
       dup2(null_fd, 2);
       close(null_fd);
     }
@@ -129,9 +127,9 @@ static int popen2_impl(FILE** in, FILE** out, FILE** err, const char* program,
       }
     }
     if (lookup_path) {
-      execvp(program, (char**) argv);
+      execvp(program, (char **)argv);
     } else {
-      execv(program, (char**) argv);
+      execv(program, (char **)argv);
     }
     _exit(ENOSYS);
   }
@@ -150,22 +148,20 @@ static int popen2_impl(FILE** in, FILE** out, FILE** err, const char* program,
 }
 
 int popen2_arr(FILE **in, FILE **out, FILE **err, const char *program,
-               char *const argv[], const char *pwd)
-{
+               char *const argv[], const char *pwd) {
   signal(SIGPIPE, SIG_IGN);
   return popen2_impl(in, out, err, program, argv, pwd, 0);
 }
 
 int popen2_arr_p(FILE **in, FILE **out, FILE **err, const char *program,
-                 char *const argv[], char const *pwd)
-{
+                 char *const argv[], char const *pwd) {
   signal(SIGPIPE, SIG_IGN);
   return popen2_impl(in, out, err, program, argv, pwd, 1);
 }
 
-FILE* popen_arr(const char* program, char *const argv[], int pipe_into_program)
-{
-  FILE* f = NULL;
+FILE *popen_arr(const char *program, char *const argv[],
+                int pipe_into_program) {
+  FILE *f = NULL;
   if (pipe_into_program) {
     popen2_arr_p(&f, NULL, NULL, program, argv, NULL);
   } else {

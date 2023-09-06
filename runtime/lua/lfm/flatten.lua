@@ -2,7 +2,7 @@ local lfm = lfm
 
 local fm = lfm.fm
 
-local M =  {}
+local M = {}
 
 ---Set the flatten level of the current directory.
 ---@param level number | string the level or "+" or "-"

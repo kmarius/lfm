@@ -8,4 +8,5 @@
 //             pos_str, pos_buf: will be initialized on the first call.
 // Returns:    char* to the token inside buf
 //             NULL if there are no more tokens
-char *tokenize(const char *str, char *buf, const char **pos_str, char **pos_buf);
+char *tokenize(const char *str, char *buf, const char **pos_str,
+               char **pos_buf);

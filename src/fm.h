@@ -88,32 +88,27 @@ void fm_recol(Fm *fm);
 // Move the cursor relative to the current position.
 bool fm_cursor_move(Fm *fm, int32_t ct);
 
-static inline void fm_cursor_move_to_ind(Fm *fm, uint32_t ind)
-{
+static inline void fm_cursor_move_to_ind(Fm *fm, uint32_t ind) {
   fm_cursor_move(fm, ind - fm_current_dir(fm)->ind);
 }
 
 // Move cursor `ct` up in the current directory.
-static inline bool fm_up(Fm *fm, int32_t ct)
-{
+static inline bool fm_up(Fm *fm, int32_t ct) {
   return fm_cursor_move(fm, -ct);
 }
 
 // Move cursor `ct` down in the current directory.
-static inline bool fm_down(Fm *fm, int32_t ct)
-{
+static inline bool fm_down(Fm *fm, int32_t ct) {
   return fm_cursor_move(fm, ct);
 }
 
 // Move cursor to the top of the current directory.
-static inline bool fm_top(Fm *fm)
-{
+static inline bool fm_top(Fm *fm) {
   return fm_up(fm, fm_current_dir(fm)->ind);
 }
 
 // Move cursor to the bottom of the current directory.
-static inline bool fm_bot(Fm *fm)
-{
+static inline bool fm_bot(Fm *fm) {
   return fm_down(fm, fm_current_dir(fm)->length - fm_current_dir(fm)->ind);
 }
 
@@ -146,8 +141,7 @@ void fm_move_cursor_to(Fm *fm, const char *name);
 void fm_filter(Fm *fm, const char *filter);
 
 // Return the filter string of the currently selected directory.
-static inline const char *fm_filter_get(const Fm *fm)
-{
+static inline const char *fm_filter_get(const Fm *fm) {
   return filter_string(fm_current_dir(fm)->filter);
 }
 
@@ -159,8 +153,7 @@ void fm_hidden_set(Fm *fm, bool hidden);
 void fm_check_dirs(const Fm *fm);
 
 // jump to previous directory
-static inline bool fm_jump_automark(Fm *fm)
-{
+static inline bool fm_jump_automark(Fm *fm) {
   if (fm->automark) {
     return fm_async_chdir(fm, fm->automark, true, true);
   }
@@ -180,15 +173,13 @@ void fm_selection_visual_toggle(Fm *fm);
 void fm_selection_toggle_current(Fm *fm);
 
 // Add `path` to the current selection if not already contained.
-static inline void fm_selection_add(Fm *fm, const char *path)
-{
+static inline void fm_selection_add(Fm *fm, const char *path) {
   char *val = strdup(path);
   lht_set(fm->selection.paths, val, val);
 }
 
 // Clear the selection completely.
-static inline void fm_selection_clear(Fm *fm)
-{
+static inline void fm_selection_clear(Fm *fm) {
   fm_selection_visual_stop(fm);
   lht_clear(fm->selection.paths);
 }
@@ -204,21 +195,18 @@ void fm_selection_write(const Fm *fm, const char *path);
 void fm_paste_mode_set(Fm *fm, paste_mode mode);
 
 // Clear copy/move buffer.
-static inline void fm_paste_buffer_clear(Fm *fm)
-{
+static inline void fm_paste_buffer_clear(Fm *fm) {
   lht_clear(fm->paste.buffer);
 }
 
 // Add a path to the paste buffer.
-static inline void fm_paste_buffer_add(Fm *fm, const char* file)
-{
+static inline void fm_paste_buffer_add(Fm *fm, const char *file) {
   char *val = strdup(file);
   lht_set(fm->paste.buffer, val, val);
 }
 
 // Get the mode current load, one of `MODE_COPY`, `MODE_MOVE`.
-static inline paste_mode fm_paste_mode_get(const Fm *fm)
-{
+static inline paste_mode fm_paste_mode_get(const Fm *fm) {
   return fm->paste.mode;
 }
 

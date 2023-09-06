@@ -20,8 +20,7 @@
 #define strcaseeq(X, Y) (strcasecmp(X, Y) == 0)
 #endif
 
-static inline char *rtrim(char *s)
-{
+static inline char *rtrim(char *s) {
   char *t = s;
   char *end = s - 1;
   while (*t) {
@@ -34,36 +33,29 @@ static inline char *rtrim(char *s)
   return s;
 }
 
-
-static inline char *ltrim(char *s)
-{
+static inline char *ltrim(char *s) {
   s--;
-  while (isspace(*++s)) {}
+  while (isspace(*++s)) {
+  }
   return s;
 }
 
-
-static inline char *trim(char *s)
-{
+static inline char *trim(char *s) {
   return ltrim(rtrim(s));
 }
 
-
-static inline int min(int i, int j)
-{
+static inline int min(int i, int j) {
   return i < j ? i : j;
 }
 
-
-static inline int max(int i, int j)
-{
+static inline int max(int i, int j) {
   return i > j ? i : j;
 }
 
-
 bool haswprefix(const wchar_t *restrict string, const wchar_t *restrict prefix);
 
-bool haswcaseprefix(const wchar_t *restrict string, const wchar_t *restrict prefix);
+bool haswcaseprefix(const wchar_t *restrict string,
+                    const wchar_t *restrict prefix);
 
 const wchar_t *wstrcasestr(const wchar_t *str, const wchar_t *sub);
 
@@ -98,8 +90,7 @@ int vasprintf(char **dst, const char *format, va_list args);
 // the length to len
 ALLOC wchar_t *ambstowcs(const char *s, int *len);
 
-static inline size_t mbslen(const char *s)
-{
+static inline size_t mbslen(const char *s) {
   return mbstowcs(NULL, s, 0);
 }
 
@@ -110,34 +101,29 @@ char *basename_s(const char *p);
 
 char *dirname_s(const char *p);
 
-ALLOC static inline char *realpath_a(const char *p)
-{
+ALLOC static inline char *realpath_a(const char *p) {
   return strdup(realpath_s(p));
 }
 
-ALLOC static inline char *basename_a(const char *p)
-{
+ALLOC static inline char *basename_a(const char *p) {
   return strdup(basename_s(p));
 }
 
-ALLOC static inline char *dirname_a(const char *p)
-{
+ALLOC static inline char *dirname_a(const char *p) {
   return strdup(dirname_s(p));
 }
 
 // Allocates a new path with a beginning ~/ replaced, otherwise a copy of path.
-ALLOC char *path_replace_tilde(const char* path);
+ALLOC char *path_replace_tilde(const char *path);
 
 // Allocates a new absolute path with all ~, ., .., // replaced
-ALLOC char *path_qualify(const char* path, const char *pwd);
+ALLOC char *path_qualify(const char *path, const char *pwd);
 
-static inline bool path_is_relative(const char *path)
-{
+static inline bool path_is_relative(const char *path) {
   return *path != '/';
 }
 
-static inline bool path_is_absolute(const char *path)
-{
+static inline bool path_is_absolute(const char *path) {
   return *path == '/';
 }
 

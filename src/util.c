@@ -33,8 +33,8 @@ const wchar_t *wstrcasestr(const wchar_t *str, const wchar_t *sub) {
   return NULL;
 }
 
-bool haswprefix(const wchar_t *restrict string, const wchar_t *restrict prefix)
-{
+bool haswprefix(const wchar_t *restrict string,
+                const wchar_t *restrict prefix) {
   while (*prefix != 0) {
     if (*prefix++ != *string++) {
       return false;
@@ -43,8 +43,8 @@ bool haswprefix(const wchar_t *restrict string, const wchar_t *restrict prefix)
   return true;
 }
 
-bool haswcaseprefix(const wchar_t *restrict string, const wchar_t *restrict prefix)
-{
+bool haswcaseprefix(const wchar_t *restrict string,
+                    const wchar_t *restrict prefix) {
   while (*prefix != 0) {
     if (towlower(*prefix++) != towlower(*string++)) {
       return false;
@@ -53,11 +53,10 @@ bool haswcaseprefix(const wchar_t *restrict string, const wchar_t *restrict pref
   return true;
 }
 
-
 char *strcasestr(const char *str, const char *sub) {
 
   if (*sub == 0) {
-    return (char *) str;
+    return (char *)str;
   }
 
   for (; *str != 0; str++) {
@@ -65,16 +64,14 @@ char *strcasestr(const char *str, const char *sub) {
       continue;
     }
     if (hascaseprefix(str, sub)) {
-      return (char *) str;
+      return (char *)str;
     }
   }
 
   return NULL;
 }
 
-
-bool hascaseprefix(const char *restrict string, const char *restrict prefix)
-{
+bool hascaseprefix(const char *restrict string, const char *restrict prefix) {
   while (*prefix != 0) {
     if (tolower(*prefix++) != tolower(*string++)) {
       return false;
@@ -83,9 +80,7 @@ bool hascaseprefix(const char *restrict string, const char *restrict prefix)
   return true;
 }
 
-
-bool hasprefix(const char *restrict string, const char *restrict prefix)
-{
+bool hasprefix(const char *restrict string, const char *restrict prefix) {
   while (*prefix != 0) {
     if (*prefix++ != *string++) {
       return false;
@@ -94,16 +89,12 @@ bool hasprefix(const char *restrict string, const char *restrict prefix)
   return true;
 }
 
-
-bool hassuffix(const char *suf, const char *str)
-{
+bool hassuffix(const char *suf, const char *str) {
   const char *s = strrchr(str, suf[0]);
   return s && strcasecmp(s, suf) == 0;
 }
 
-
-const char *strcaserchr(const char *str, char c)
-{
+const char *strcaserchr(const char *str, char c) {
   const char *last = NULL;
   for (; *str != 0; str++) {
     if (*str == c) {
@@ -113,16 +104,12 @@ const char *strcaserchr(const char *str, char c)
   return last;
 }
 
-
-bool hascasesuffix(const char *suf, const char *str)
-{
+bool hascasesuffix(const char *suf, const char *str) {
   const char *s = strcaserchr(str, suf[0]);
   return s && strcasecmp(s, suf) == 0;
 }
 
-
-char *readable_filesize(double size, char *buf)
-{
+char *readable_filesize(double size, char *buf) {
   int32_t i = 0;
   const char *units[] = {"", "K", "M", "G", "T", "P", "E", "Z", "Y"};
   while (size > 1024) {
@@ -133,10 +120,8 @@ char *readable_filesize(double size, char *buf)
   return buf;
 }
 
-
 // https://stackoverflow.com/questions/1157209/is-there-an-alternative-sleep-function-in-c-to-milliseconds
-int msleep(uint32_t msec)
-{
+int msleep(uint32_t msec) {
   struct timespec ts;
   int res;
 
@@ -150,25 +135,19 @@ int msleep(uint32_t msec)
   return res;
 }
 
-
-uint64_t current_micros(void)
-{
+uint64_t current_micros(void) {
   struct timeval tv;
   gettimeofday(&tv, NULL);
-  return ((uint64_t) tv.tv_sec) * 1000 * 1000 + tv.tv_usec;
+  return ((uint64_t)tv.tv_sec) * 1000 * 1000 + tv.tv_usec;
 }
 
-
-uint64_t current_millis(void)
-{
+uint64_t current_millis(void) {
   struct timeval tv;
   gettimeofday(&tv, NULL);
-  return ((uint64_t) tv.tv_sec) * 1000 + tv.tv_usec / 1000;
+  return ((uint64_t)tv.tv_sec) * 1000 + tv.tv_usec / 1000;
 }
 
-
-int mkdir_p(char *path, __mode_t mode)
-{
+int mkdir_p(char *path, __mode_t mode) {
   char *sep = strrchr(path, '/');
   if (sep && sep != path) {
     *sep = 0;
@@ -178,9 +157,7 @@ int mkdir_p(char *path, __mode_t mode)
   return mkdir(path, mode);
 }
 
-
-int vasprintf(char **dst, const char *format, va_list args)
-{
+int vasprintf(char **dst, const char *format, va_list args) {
   va_list args_copy;
   va_copy(args_copy, args);
   *dst = xmalloc(vsnprintf(NULL, 0, format, args) + 1);
@@ -189,9 +166,7 @@ int vasprintf(char **dst, const char *format, va_list args)
   return ret;
 }
 
-
-int asprintf(char **dst, const char *format, ...)
-{
+int asprintf(char **dst, const char *format, ...) {
   va_list args;
   va_start(args, format);
   const int ret = vasprintf(dst, format, args);
@@ -199,9 +174,7 @@ int asprintf(char **dst, const char *format, ...)
   return ret;
 }
 
-
-wchar_t *ambstowcs(const char *s, int *len)
-{
+wchar_t *ambstowcs(const char *s, int *len) {
   const int l = mbstowcs(NULL, s, 0);
   wchar_t *ws = xmalloc((l + 1) * sizeof *ws);
   mbstowcs(ws, s, l + 1);
@@ -211,32 +184,24 @@ wchar_t *ambstowcs(const char *s, int *len)
   return ws;
 }
 
-
-char *realpath_s(const char *p)
-{
-  static char fullpath[PATH_MAX+1];
+char *realpath_s(const char *p) {
+  static char fullpath[PATH_MAX + 1];
   return realpath(p, fullpath);
 }
 
-
-char *basename_s(const char *p)
-{
-  static char buf[PATH_MAX+1];
-  strncpy(buf, p, sizeof(buf)-1);
+char *basename_s(const char *p) {
+  static char buf[PATH_MAX + 1];
+  strncpy(buf, p, sizeof(buf) - 1);
   return basename(buf);
 }
 
-
-char *dirname_s(const char *p)
-{
-  static char buf[PATH_MAX+1];
-  strncpy(buf, p, sizeof(buf)-1);
+char *dirname_s(const char *p) {
+  static char buf[PATH_MAX + 1];
+  strncpy(buf, p, sizeof(buf) - 1);
   return dirname(buf);
 }
 
-
-char *path_replace_tilde(const char* path)
-{
+char *path_replace_tilde(const char *path) {
   if (path[0] != '~' || path[1] != '/') {
     return strdup(path);
   }
@@ -251,8 +216,7 @@ char *path_replace_tilde(const char* path)
 }
 
 // could be done without strncopying first
-char *path_qualify(const char* path, const char *pwd)
-{
+char *path_qualify(const char *path, const char *pwd) {
   char *p;
   // replace ~ or prepend PWD
   if (path[0] == '~') {
@@ -283,11 +247,12 @@ char *path_qualify(const char* path, const char *pwd)
   char *ret = p;
   char *q = p;
   while (*p) {
-    if (*(p+1) == '/') {
+    if (*(p + 1) == '/') {
       p++;
-    } else if (*(p+1) == '.' && (*(p+2) == '/' || *(p+2) == 0)) {
+    } else if (*(p + 1) == '.' && (*(p + 2) == '/' || *(p + 2) == 0)) {
       p += 2;
-    } else if (*(p+1) == '.' && *(p+2) == '.' && (*(p+3) == '/' || *(p+3) == 0)) {
+    } else if (*(p + 1) == '.' && *(p + 2) == '.' &&
+               (*(p + 3) == '/' || *(p + 3) == 0)) {
       p += 3;
       if (q > ret) {
         q--;
@@ -310,10 +275,8 @@ char *path_qualify(const char* path, const char *pwd)
   return ret;
 }
 
-
 // https://stackoverflow.com/questions/9152978/include-unix-utility-file-in-c-program
-bool get_mimetype(const char *path, char *dest, size_t sz)
-{
+bool get_mimetype(const char *path, char *dest, size_t sz) {
   bool ret = true;
   magic_t magic = magic_open(MAGIC_MIME_TYPE);
   magic_load(magic, NULL);
@@ -328,8 +291,7 @@ bool get_mimetype(const char *path, char *dest, size_t sz)
   return ret;
 }
 
-bool valgrind_active(void)
-{
+bool valgrind_active(void) {
   char *preload = getenv("LD_PRELOAD");
   if (!preload) {
     return false;

@@ -37,17 +37,19 @@
 
 /* These are defined as macros to make it easier to adapt this code to
  * different characters types or comparison functions. */
-static inline int nat_isdigit(nat_char a) { return isdigit((unsigned char)a); }
+static inline int nat_isdigit(nat_char a) {
+  return isdigit((unsigned char)a);
+}
 
-static inline int nat_isspace(nat_char a) { return isspace((unsigned char)a); }
+static inline int nat_isspace(nat_char a) {
+  return isspace((unsigned char)a);
+}
 
-static inline nat_char nat_toupper(nat_char a)
-{
+static inline nat_char nat_toupper(nat_char a) {
   return toupper((unsigned char)a);
 }
 
-static int compare_right(nat_char const *a, nat_char const *b)
-{
+static int compare_right(nat_char const *a, nat_char const *b) {
   int bias = 0;
 
   /* The longest run of digits wins.  That aside, the greatest
@@ -74,8 +76,7 @@ static int compare_right(nat_char const *a, nat_char const *b)
   return 0;
 }
 
-static int compare_left(nat_char const *a, nat_char const *b)
-{
+static int compare_left(nat_char const *a, nat_char const *b) {
   /* Compare two left-aligned numbers: the first to have a
      different value wins. */
   for (;; a++, b++) {
@@ -94,8 +95,7 @@ static int compare_left(nat_char const *a, nat_char const *b)
   return 0;
 }
 
-static int strnatcmp0(nat_char const *a, nat_char const *b, int fold_case)
-{
+static int strnatcmp0(nat_char const *a, nat_char const *b, int fold_case) {
   int ai, bi;
   nat_char ca, cb;
   int fractional, result;
@@ -117,12 +117,10 @@ static int strnatcmp0(nat_char const *a, nat_char const *b, int fold_case)
       fractional = (ca == '0' || cb == '0');
 
       if (fractional) {
-        if ((result = compare_left(a + ai, b + bi)) !=
-            0)
+        if ((result = compare_left(a + ai, b + bi)) != 0)
           return result;
       } else {
-        if ((result = compare_right(a + ai, b + bi)) !=
-            0)
+        if ((result = compare_right(a + ai, b + bi)) != 0)
           return result;
       }
     }
@@ -149,13 +147,11 @@ static int strnatcmp0(nat_char const *a, nat_char const *b, int fold_case)
   }
 }
 
-int strnatcmp(nat_char const *a, nat_char const *b)
-{
+int strnatcmp(nat_char const *a, nat_char const *b) {
   return strnatcmp0(a, b, 0);
 }
 
 /* Compare, recognizing numeric string and ignoring case. */
-int strnatcasecmp(nat_char const *a, nat_char const *b)
-{
+int strnatcasecmp(nat_char const *a, nat_char const *b) {
   return strnatcmp0(a, b, 1);
 }
