@@ -6,8 +6,11 @@
 
 #include "async.h"
 #include "fm.h"
+#include "hashtab.h"
 #include "loader.h"
+#include "mode.h"
 #include "notify.h"
+#include "trie.h"
 #include "ui.h"
 
 typedef struct lfm_s {
@@ -25,13 +28,18 @@ typedef struct lfm_s {
   ev_io input_watcher;
   uint64_t input_timeout;
   struct {
-    struct trie_s *normal; // normal mode mappings
-    struct trie_s *cmd;    // command mode mappings
-    struct trie_s *cur;    // pointer to the current leaf in either of the tries
-    input_t *seq;          // current key sequence
+    struct trie_s *cur;       // current leaf in the trie of the active mode
+    struct trie_s *cur_input; // current leaf in the trie of the active mode
+    input_t *seq;             // current key sequence
     int count;
     bool accept_count;
+    Trie *input;
+    Trie *normal;
   } maps;
+
+  Hashtab modes;
+  struct mode *current_mode;
+  struct mode *input_mode;
 
   struct message_s *messages;
 

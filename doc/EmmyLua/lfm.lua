@@ -95,19 +95,26 @@ function lfm.message_clear() end
 ---@param keys string
 function lfm.handle_key(keys) end
 
+---@class Lfm.MapOpts
+---@field desc? string Description of the mapping
+---@field mode? string Name of the mode for a mode-only mapping
+
+---@class Lfm.CMapOpts
+---@field desc? string Description of the mapping
+
 ---Map a key sequence to a function in normal mode. The function is called with
 ---the command repetition count if it greater than 0 or nil if not.
 ---Unmap by passing nil instead of a function.
 ---@param seq string
 ---@param f? function
----@param opts? table Currently, only opts.desc is used for description
+---@param opts? Lfm.MapOpts
 function lfm.map(seq, f, opts) end
 
 ---Map a key sequence to a function in command mode. Unmap by passing nil instead
 ---of a function.
 ---@param seq string
 ---@param f? function
----@param opts? table Currently, only opts.desc is used for description
+---@param opts? Lfm.CMapOpts
 function lfm.cmap(seq, f, opts) end
 
 ---@class Lfm.Keymap
@@ -127,6 +134,30 @@ function lfm.get_cmaps(prune) end
 
 ---Clear all colors.
 function lfm.colors_clear() end
+
+---@class Lfm.ModeDef
+---@field name string The name of the mode.
+---@field input boolean true, if the mode takes input via the command line
+---@field prefix string The prefix, a string, shown in the command line.
+---@field on_enter function A function that is called when the mode is entered.
+---@field on_return function A function that is called when pressing enter while the mode is active.
+---@field on_change function A function that is called when the command line changes, e.g. keys are typed/deleted.
+---@field on_esc function A function that is called when pressing esc while the mode is active.
+---@field on_exit function A function that is called when the mode is exited.
+
+---Register a mode to lfm. A mode is given by a table t containing the following fields:
+---```
+--- t.name       -- The name of the mode.
+--- t.input      -- true, if the mode takes input via the command line
+--- t.prefix     -- The prefix, a string, shown in the command line.
+--- t.on_enter   -- A function that is called when the mode is entered.
+--- t.on_return  -- A function that is called when pressing enter while the mode is active.
+--- t.on_change  -- A function that is called when the command line changes, e.g. keys are typed/deleted.
+--- t.on_esc     -- A function that is called when pressing esc while the mode is active.
+--- t.on_exit    -- A function that is called when the mode is exited.
+---```
+---@param t Lfm.ModeDef
+function lfm.register_mode(t) end
 
 --Quit lfm.
 function lfm.quit() end

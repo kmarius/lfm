@@ -20,6 +20,7 @@
 #include "loader.h"
 #include "log.h"
 #include "lua/lfmlua.h"
+#include "mode.h"
 #include "notify.h"
 #include "popen_arr.h"
 #include "ui.h"
@@ -269,6 +270,7 @@ void lfm_init(Lfm *lfm, FILE *log_fp) {
   ui_init(&lfm->ui, lfm);
 
   input_init(lfm);
+  lfm_modes_init(lfm);
 
   ev_idle_init(&lfm->redraw_watcher, redraw_cb);
   lfm->redraw_watcher.data = lfm;
@@ -521,6 +523,7 @@ void lfm_schedule(Lfm *lfm, int ref, uint32_t delay) {
 }
 
 void lfm_deinit(Lfm *lfm) {
+  lfm_modes_deinit(lfm);
   cvector_ffree(lfm->child_watchers, destroy_child_watcher);
   cvector_ffree(lfm->schedule_timers, destroy_schedule_timer);
   notify_deinit(&lfm->notify);

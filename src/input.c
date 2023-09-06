@@ -1,13 +1,18 @@
+#include <notcurses/nckeys.h>
 #include <notcurses/notcurses.h>
+#include <wctype.h>
 
+#include "cmdline.h"
 #include "config.h"
 #include "fm.h"
+#include "hashtab.h"
 #include "hooks.h"
 #include "input.h"
 #include "keys.h"
 #include "lfm.h"
 #include "log.h"
 #include "lua.h"
+#include "mode.h"
 #include "search.h"
 #include "trie.h"
 #include "ui.h"
@@ -18,8 +23,6 @@ static void stdin_cb(EV_P_ ev_io *w, int revents);
 void input_resume(Lfm *lfm);
 
 void input_init(Lfm *lfm) {
-  lfm->maps.normal = trie_create();
-  lfm->maps.cmd = trie_create();
   lfm->maps.seq = NULL;
 
   ev_timer_init(&lfm->map_clear_timer, map_clear_timer_cb, 0, 0);
@@ -29,8 +32,6 @@ void input_init(Lfm *lfm) {
 }
 
 void input_deinit(Lfm *lfm) {
-  trie_destroy(lfm->maps.normal);
-  trie_destroy(lfm->maps.cmd);
   cvector_free(lfm->maps.seq);
   ev_timer_stop(lfm->loop, &lfm->map_clear_timer);
 }
@@ -111,13 +112,7 @@ void lfm_handle_key(Lfm *lfm, input_t in) {
 
   ev_timer_stop(lfm->loop, &lfm->map_clear_timer);
 
-  const char *prefix = cmdline_prefix_get(&ui->cmdline);
-  if (!lfm->maps.cur) {
-    lfm->maps.cur = prefix ? lfm->maps.cmd : lfm->maps.normal;
-    cvector_set_size(lfm->maps.seq, 0);
-    lfm->maps.count = -1;
-    lfm->maps.accept_count = true;
-  }
+  const char *prefix = lfm->current_mode->prefix;
   if (!prefix && lfm->maps.accept_count && '0' <= in && in <= '9') {
     if (lfm->maps.count < 0) {
       lfm->maps.count = in - '0';
@@ -130,36 +125,83 @@ void lfm_handle_key(Lfm *lfm, input_t in) {
     }
     return;
   }
-  lfm->maps.cur = trie_find_child(lfm->maps.cur, in);
-  if (prefix) {
-    if (!lfm->maps.cur) {
-      if (iswprint(in)) {
-        char buf[MB_LEN_MAX + 1];
-        int n = wctomb(buf, in);
-        if (n < 0) {
-          n = 0; // invalid character or borked shift/ctrl/alt
-        }
-        buf[n] = '\0';
-        if (cmdline_insert(&ui->cmdline, buf)) {
-          ui_redraw(ui, REDRAW_CMDLINE);
-        }
-      }
-      llua_call_on_change(lfm->L, prefix);
-    } else {
+  if (lfm->current_mode->input) {
+    if (!lfm->maps.cur && !lfm->maps.cur_input) {
+      // reset the buffer/trie only if no mode map and no input map are possible
+      lfm->maps.cur = lfm->current_mode->maps;
+      cvector_set_size(lfm->maps.seq, 0);
+      lfm->maps.count = -1;
+      lfm->maps.accept_count = true;
+    }
+    lfm->maps.cur = trie_find_child(lfm->maps.cur, in);
+    // TODO: currently, if all but the last keys match the mapping of in a mode,
+    // and the last one is printable, it will be added to the input field
+    if (in == NCKEY_ESC) {
+      // escape key pressed, switch to normal
+      mode_on_esc(lfm->current_mode, lfm);
+      input_clear(lfm);
+      lfm_mode_enter(lfm, "normal");
+    } else if (in == NCKEY_ENTER) {
+      // return key pressed, call the callback in the mode
+      const char *line = cmdline_get(&ui->cmdline);
+      mode_on_return(lfm->current_mode, lfm, line);
+      input_clear(lfm);
+    } else if (lfm->maps.cur) {
+      // current key sequence is a prefix/full match of a mode mapping, always
+      // taking precedence
       if (lfm->maps.cur->ref) {
         int ref = lfm->maps.cur->ref;
         lfm->maps.cur = NULL;
         llua_call_from_ref(lfm->L, ref, -1);
       }
+    } else {
+      // definitely no mode map. if the character is not printable, check for
+      // input maps
+      if (!iswprint(in) && lfm->maps.cur_input == NULL) {
+        lfm->maps.cur_input = lfm->input_mode->maps;
+      }
+      // if input map trie is active, check for a map even if the key is
+      // printable
+      if (lfm->maps.cur_input != NULL) {
+        lfm->maps.cur_input = trie_find_child(lfm->maps.cur_input, in);
+        if (lfm->maps.cur_input) {
+          // current key sequence is a prefix/full match of a mode mapping,
+          // always taking precedence
+          if (lfm->maps.cur_input->ref) {
+            int ref = lfm->maps.cur_input->ref;
+            lfm->maps.cur_input = NULL;
+            llua_call_from_ref(lfm->L, ref, -1);
+          } else {
+            // map still possible, we might even show the mappings on screen
+          }
+        }
+      } else if (iswprint(in)) {
+        char buf[MB_LEN_MAX + 1];
+        int n = wctomb(buf, in);
+        if (n < 0) {
+          log_error("invalid character wchar=%lu", in);
+          n = 0;
+        }
+        buf[n] = '\0';
+        if (cmdline_insert(&ui->cmdline, buf)) {
+          ui_redraw(ui, REDRAW_CMDLINE);
+        }
+        mode_on_change(lfm->current_mode, lfm);
+      }
     }
   } else {
-    // prefix == NULL, i.e. normal mode
+    // non-input mode, printable keys are mappings
+    if (!lfm->maps.cur) {
+      lfm->maps.cur = lfm->current_mode->maps;
+      cvector_set_size(lfm->maps.seq, 0);
+      lfm->maps.count = -1;
+      lfm->maps.accept_count = true;
+    }
+    lfm->maps.cur = trie_find_child(lfm->maps.cur, in);
     if (in == NCKEY_ESC) {
       if (cvector_size(lfm->maps.seq) > 0) {
         input_clear(lfm);
       } else {
-        // clear selection etc
-        // TODO: this should be done properly with modes (on 2022-02-13)
         search_nohighlight(lfm);
         fm_selection_visual_stop(fm);
         fm_selection_clear(fm);

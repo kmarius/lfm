@@ -9,7 +9,6 @@ local fm = lfm.fm
 local log = lfm.log
 local ui = lfm.ui
 local cmd = lfm.cmd
-local nop = function() end
 
 -- enhance logging functions
 for k, f in pairs(log) do
@@ -109,6 +108,7 @@ local hooks = {
 ---@param name Lfm.Hook
 ---@param f function
 function lfm.register_hook(name, f)
+	log.debug("registering hook: " .. name)
 	if hooks[name] then
 		table.insert(hooks[name], f)
 	end
@@ -117,7 +117,7 @@ end
 ---Execute all functions registered to a hook.
 ---@param name Lfm.Hook
 function lfm.run_hook(name, ...)
-	-- log.debug("running hook: " .. name)
+	log.debug("running hook: " .. name)
 	if hooks[name] then
 		for _, f in pairs(hooks[name]) do
 			f(...)
@@ -129,9 +129,9 @@ end
 lfm.commands = {}
 
 ---@class Lfm.CommandParams
----@field tokenize boolean tokenize arguments (default: true)
----@field compl function completion function
----@field desc string Description
+---@field tokenize? boolean tokenize arguments (default: true)
+---@field compl? function completion function
+---@field desc? string Description
 
 ---Register a function as a lfm command or unregister a command. Supported options
 ---```
@@ -152,29 +152,6 @@ function lfm.register_command(name, f, t)
 	else
 		lfm.commands[name] = nil
 	end
-end
-
-lfm.modes = {}
-local modes = lfm.modes
-
----@class Lfm.ModeDef
----@field prefix string
----@field on_enter function
----@field on_esc function
----@field on_change function
-
----Register a mode to lfm. A mode is given by a table t containing the following fields:
----```
---- t.prefix     The prefix, a string, shown in the command line and used to distinguish modes.
---- t.on_enter   A function that is called when pressing enter while the mode is active.
---- t.on_esc     A function that is called when pressing esc while the mode is active.
---- t.on_change  A function that is called when the command line changes, e.g. keys are typed/deleted.
----```
----@param t Lfm.ModeDef
-function lfm.register_mode(t)
-	t = t or {}
-	assert(t.prefix ~= nil, "no prefix given")
-	modes[t.prefix] = t
 end
 
 -- submodule setup
@@ -231,33 +208,6 @@ lfm.register_command(
 	{ tokenize = false, compl = compl.limit(1, compl.files), desc = "Rename the current file." }
 )
 
----Function for <enter> in command mode. Clears the command line and calls `mode.enter`.
-local function cmdenter()
-	local line = cmd.line_get()
-	local prefix = cmd.prefix_get()
-	cmd.clear()
-	local mode = modes[prefix]
-	-- TODO: allow line to be "" ? (on 2021-07-23)
-	if line ~= "" and mode then
-		local mode_enter = mode.on_enter
-		if mode_enter then
-			mode_enter(line)
-		end
-	end
-end
-
----Function for <esc> in command mode. Clears the command line and calls `mode.esc`.
-local function cmdesc()
-	local mode = modes[cmd.prefix_get()]
-	if mode then
-		local on_esc = mode.on_esc
-		if on_esc then
-			on_esc()
-		end
-	end
-	cmd.clear()
-end
-
 lfm.register_command("cd", fm.chdir, { tokenize = true, compl = compl.dirs })
 
 local handle_key = lfm.handle_key
@@ -269,77 +219,78 @@ function lfm.feedkeys(...)
 	end
 end
 
----Fill command line with the previous history item.
-local function history_prev()
-	if cmd.prefix_get() ~= ":" then
-		return
-	end
+local map = lfm.map
+local cmap = lfm.cmap
+
+local c = util.c
+local a = util.a
+
+-- COMMAND mode
+
+local mode_command = {
+	name = "command",
+	input = true,
+	prefix = ":",
+	on_return = function(line)
+		lfm.mode("normal")
+		cmd.history_append(":", line)
+		lfm.eval(line)
+	end,
+	on_change = compl.reset,
+}
+lfm.register_mode(mode_command)
+map(":", a(lfm.mode, "command"), { desc = "enter COMMAND mode" })
+map("<Up>", function()
 	local line = cmd.history_prev()
 	if line then
 		cmd.line_set(line)
 	end
-end
-
----Fill command line with the next history item.
-local function history_next()
-	if cmd.prefix_get() ~= ":" then
-		return
-	end
+end, { mode = "command", desc = "Previous history item" })
+map("<Down>", function()
 	local line = cmd.history_next()
 	if line then
 		cmd.line_set(line)
 	end
-end
+end, { mode = "command", desc = "Next history item" })
 
--- Modes
--- TODO: make functions to easily enter a mode (on 2021-07-23)
+-- FILTER mode
 local mode_filter = {
+	name = "filter",
+	input = true,
 	prefix = "filter: ",
-	on_enter = fm.filter,
-	on_esc = function()
-		fm.filter("")
+	on_enter = function()
+		cmd.line_set(fm.getfilter())
 	end,
 	on_change = function()
 		fm.filter(cmd.line_get())
 	end,
-}
-
-local mode_cmd = {
-	prefix = ":",
-	on_enter = function(line)
-		cmd.history_append(":", line)
-		lfm.eval(line)
+	on_return = function()
+		fm.filter(cmd.line_get())
+		lfm.mode("normal")
 	end,
-	on_esc = nop,
-	on_change = compl.reset,
-}
-
-local mode_find = {
-	prefix = "find: ",
-	on_enter = function()
-		lfm.find_clear()
-		lfm.eval("open")
-	end,
-	on_esc = lfm.find_clear,
-	on_change = function()
-		if lfm.find(cmd.line_get()) then
-			cmd.clear()
-			lfm.timeout(250)
-			lfm.commands.open.f()
-		end
+	on_esc = function()
+		fm.filter("")
 	end,
 }
+lfm.register_mode(mode_filter)
+map("zf", a(lfm.mode, "filter"), { desc = "Enter FILTER mode" })
+map("zF", a(lfm.feedkeys, "zf<esc>"), { desc = "Remove current filter" })
 
+-- TRAVEL mode
 local mode_travel = {
+	name = "travel",
+	input = true,
 	prefix = "travel: ",
-	on_enter = function()
+	on_return = function()
 		local file = fm.current_file()
 		if file then
 			fm.filter("")
 			if fm.open() then
+				lfm.mode("normal")
 				lfm.eval("open")
 			else
-				cmd.prefix_set("travel: ")
+				cmd.clear()
+				--lfm.mode("travel")
 			end
 		end
 	end,
@@ -351,30 +302,45 @@ local mode_travel = {
 		fm.filter(line)
 	end,
 }
+lfm.register_mode(mode_travel)
+map("f", a(lfm.mode, "travel"), { desc = "Enter TRAVEL mode" })
+map("<c-n>", fm.down, { mode = "travel" })
+map("<c-p>", fm.up, { mode = "travel" })
+map("<a-h>", fm.updir, { mode = "travel" })
 
+-- DELETE mode
 local has_trash = os.execute("command -v trash-put >/dev/null") == 0
 
 local mode_delete = {
+	name = "delete",
+	input = true,
 	prefix = "delete [y/N]: ",
-	on_enter = lfm.cmd.clear,
-	on_esc = lfm.cmd.clear,
+	on_return = function()
+		lfm.mode("normal")
+	end,
+	on_esc = cmd.clear,
 	on_change = function()
-		local line = lfm.cmd.line_get()
-		lfm.cmd.clear()
+		local line = cmd.line_get()
+		lfm.mode("normal")
 		if line == "y" then
 			lfm.spawn({ "trash-put", "--", unpack(lfm.sel_or_cur()) })
 			fm.selection_set()
 		end
 	end,
 }
+lfm.register_mode(mode_delete)
+if has_trash then
+	map("df", a(lfm.mode, "delete"), { desc = "Trash file/selection" })
+end
 
+-- SEARCH mode
 lfm.register_mode(require("lfm.search").mode_search)
 lfm.register_mode(require("lfm.search").mode_search_back)
-lfm.register_mode(mode_delete)
-lfm.register_mode(mode_cmd)
-lfm.register_mode(mode_filter)
-lfm.register_mode(mode_find)
-lfm.register_mode(mode_travel)
+
+map("/", a(lfm.mode, "search"), { desc = "search" })
+map("?", a(lfm.mode, "search-back"), { desc = "search (backwards)" })
+map("n", lfm.search_next, { desc = "go to next search result" })
+map("N", lfm.search_prev, { desc = "go to previous search result" })
 
 -- Colors
 local palette = require("lfm.colors").palette
@@ -443,44 +409,21 @@ end, { desc = "Delete current selection without asking for confirmation." })
 
 -- Keymaps
 
-local function wrap_mode_change(f)
-	return function()
-		f()
-		local mode = modes[cmd.prefix_get()]
-		if mode then
-			local on_change = mode.on_change()
-			if on_change then
-				on_change()
-			end
-		end
-	end
-end
-
-local cmap = lfm.cmap
-cmap("<Enter>", cmdenter, { desc = "Enter" })
 cmap("<Insert>", cmd.toggle_overwrite, { desc = "Toggle insert/overwrite" })
-cmap("<Esc>", cmdesc, { desc = "Esc" })
 cmap("<Left>", cmd.left, { desc = "Left" })
 cmap("<Right>", cmd.right, { desc = "Right" })
-cmap("<Up>", history_prev, { desc = "previous history item" })
-cmap("<Down>", history_next, { desc = "next history item" })
 cmap("<Home>", cmd.home, { desc = "Home" })
 cmap("<End>", cmd._end, { desc = "End" })
 cmap("<c-Left>", cmd.word_left, { desc = "jump word left" })
 cmap("<c-Right>", cmd.word_right, { desc = "jump word right" })
-cmap("<Delete>", wrap_mode_change(cmd.delete_right), { desc = "delete right" })
-cmap("<Backspace>", wrap_mode_change(cmd.delete), { desc = "delete left" })
-cmap("<c-h>", wrap_mode_change(cmd.delete), { desc = "delete left" })
-cmap("<c-w>", wrap_mode_change(cmd.delete_word), { desc = "delete word left" })
-cmap("<c-Backspace>", wrap_mode_change(cmd.delete_word), { desc = "delete word left" })
-cmap("<c-u>", wrap_mode_change(cmd.delete_line_left), { desc = "delete line left" })
+cmap("<Delete>", cmd.delete_right, { desc = "delete right" })
+cmap("<Backspace>", cmd.delete, { desc = "delete left" })
+cmap("<c-h>", cmd.delete, { desc = "delete left" })
+cmap("<c-w>", cmd.delete_word, { desc = "delete word left" })
+cmap("<c-Backspace>", cmd.delete_word, { desc = "delete word left" })
+cmap("<c-u>", cmd.delete_line_left, { desc = "delete line left" })
 cmap("<Tab>", compl.next, { desc = "next completion item" })
 cmap("<s-Tab>", compl.prev, { desc = "previous completion item" })
-
-local c = util.c
-local a = util.a
-
-local map = lfm.map
 
 map("q", lfm.quit, { desc = "quit" })
 map("ZZ", lfm.quit, { desc = "quit" })
@@ -495,7 +438,6 @@ map("<a-r>", fm.drop_cache, { desc = "drop direcory/preview caches" })
 map("cd", a(lfm.feedkeys, ":cd "), { desc = ":cd " })
 map("<a-c>", fm.check, { desc = "check directories and reload" })
 
-map(":", a(cmd.prefix_set, ":"), { desc = ":" })
 map("&", a(lfm.feedkeys, ":shell-bg "), { desc = ":shell-bg " })
 map("s", a(lfm.feedkeys, ":shell "), { desc = ":shell " })
 map("S", a(lfm.execute, { "sh", "-c", "LFM_LEVEL=1 " .. os.getenv("SHELL") }), { desc = "open shell" })
@@ -545,12 +487,6 @@ end, { desc = "move cursor half a page down" })
 map("<Home>", fm.top, { desc = "go to top" })
 map("<End>", fm.bottom, { desc = "go to bottom" })
 
-map("F", a(cmd.prefix_set, "travel: "), { desc = "travel" })
-map("zf", function()
-	cmd.prefix_set(mode_filter.prefix)
-	cmd.line_set(fm.getfilter())
-end, { desc = "filter:" })
-map("zF", a(lfm.feedkeys, "zf<esc>"), { desc = "remove current filter" })
 map("zh", function()
 	config.hidden = not config.hidden
 end, { desc = "toggle hidden files" })
@@ -565,17 +501,11 @@ map("<a-+>", require("lfm.flatten").flatten_inc, { desc = "increase flatten leve
 map("<a-->", require("lfm.flatten").flatten_dec, { desc = "decrease flatten level" })
 
 -- Find/hinting
-map("f", a(cmd.prefix_set, mode_find.prefix), { desc = "find:" })
+-- map("f", a(lfm.mode, "find"), { desc = "find:" })
 -- These two only make sense in find: mode. Maybe think about actually providing
 -- a way to set keybinds for modes.
-cmap("<c-n>", lfm.find_next, { desc = "go to next find match" })
-cmap("<c-p>", lfm.find_prev, { desc = "go to previous find match" })
-
--- Search
-map("/", require("lfm.search").enter_mode, { desc = "search:" })
-map("?", require("lfm.search").enter_mode_back, { desc = "search: (backwards)" })
-map("n", lfm.search_next, { desc = "go to next search result" })
-map("N", lfm.search_prev, { desc = "go to previous search result" })
+-- cmap("<c-n>", lfm.find_next, { mode = "find", desc = "go to next find match" })
+-- cmap("<c-p>", lfm.find_prev, { mode = "find", desc = "go to previous find match" })
 
 -- Copy/pasting
 map("yn", require("lfm.functions").yank_name, { desc = "yank name" })
@@ -588,10 +518,6 @@ map("pt", require("lfm.functions").paste_toggle, { desc = "toggle paste mode" })
 map("po", require("lfm.functions").paste_overwrite, { desc = "paste-overwrite" })
 map("pl", require("lfm.functions").symlink, { desc = "symlink" })
 map("pL", require("lfm.functions").symlink_relative, { desc = "symlink-relative" })
-if has_trash then
-	map("df", a(lfm.cmd.prefix_set, mode_delete.prefix), { desc = "trash-put" })
-	map("dD", a(lfm.cmd.prefix_set, mode_delete.prefix), { desc = "delete" })
-end
 
 -- Renaming
 map("cW", a(lfm.feedkeys, ":rename "), { desc = "rename" })
@@ -616,7 +542,7 @@ map("oD", a(fm.sortby, "nodirfirst"), { desc = "sort: nodirfirst" })
 map("or", a(fm.sortby, "random"), { desc = "sort: random" })
 
 lfm.register_mode(require("lfm.glob").mode_glob_select)
-map("*", a(lfm.cmd.prefix_set, require("lfm.glob").mode_glob_select.prefix), { desc = "glob-select" })
+map("*", a(lfm.mode, require("lfm.glob").mode_glob_select.name), { desc = "glob-select" })
 lfm.register_command(
 	"glob-select",
 	require("lfm.glob").glob_select,
@@ -644,7 +570,5 @@ gmap("p", "/tmp")
 gmap("r", "/")
 gmap("s", "/srv")
 gmap("u", "/usr")
-
--- os.execute("notify-send core.lua loaded")
 
 return {}

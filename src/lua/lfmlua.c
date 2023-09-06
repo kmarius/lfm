@@ -71,6 +71,23 @@ void llua_run_callback(lua_State *L, int ref) {
   }
 }
 
+void llua_call_ref(lua_State *L, int ref) {
+  if (lua_get_callback(L, ref, false)) { // [elem]
+    if (lua_pcall(L, 0, 0, 0)) {         // []
+      ui_error(ui, "cb: %s", lua_tostring(L, -1));
+    }
+  }
+}
+
+void llua_call_ref1(lua_State *L, int ref, const char *line) {
+  if (lua_get_callback(L, ref, false)) { // [elem]
+    lua_pushstring(L, line);
+    if (lua_pcall(L, 1, 0, 0)) { // []
+      ui_error(ui, "cb: %s", lua_tostring(L, -1));
+    }
+  }
+}
+
 void llua_run_child_callback(lua_State *L, int ref, int rstatus) {
   if (lua_get_callback(L, ref, true)) { // [elem]
     lua_pushnumber(L, rstatus);         // [elem, rstatus]
@@ -96,8 +113,11 @@ void llua_run_stdout_callback(lua_State *L, int ref, const char *line) {
 void llua_run_hook(lua_State *L, const char *hook) {
   lua_getglobal(L, "lfm");         // [lfm]
   lua_getfield(L, -1, "run_hook"); // [lfm, lfm.run_hook]
-  lua_pushstring(L, hook);         // [lfm, lfm.run_hook, hook]
-  if (lua_pcall(L, 1, 0, 0)) {     // [lfm]
+  if (lua_isnoneornil(L, -1)) {
+    log_error("lfm.run_hook is nil");
+  }
+  lua_pushstring(L, hook);     // [lfm, lfm.run_hook, hook]
+  if (lua_pcall(L, 1, 0, 0)) { // [lfm]
     ui_error(ui, "run_hook(%s): %s", hook, lua_tostring(L, -1));
   }
   lua_pop(L, 1); // []
@@ -147,26 +167,6 @@ bool llua_load_file(lua_State *L, const char *path, bool err_on_non_exist) {
     return false;
   }
   return true;
-}
-
-void llua_call_on_change(lua_State *L, const char *prefix) {
-  lua_getglobal(L, "lfm"); // [lfm]
-  if (lua_type(L, -1) == LUA_TTABLE) {
-    lua_getfield(L, -1, "modes"); // [lfm, lfm.modes]
-    if (lua_type(L, -1) == LUA_TTABLE) {
-      lua_getfield(L, -1, prefix); // [lfm, lfm.modes, lfm.modes.prefix]
-      if (lua_type(L, -1) == LUA_TTABLE) {
-        lua_getfield(L, -1, "on_change"); // [lfm, lfm.modes, lfm.modes.prefix,
-                                          // lfm.modes.prefix.on_change]
-        if (lua_type(L, -1) == LUA_TFUNCTION) {
-          lua_pcall(L, 0, 0, 0); // [lfm, lfm.modes, lfm.modes.prefix]
-        }
-      }
-      lua_pop(L, 1); // [lfm, lfm.modes]
-    }
-    lua_pop(L, 1); // [lfm]
-  }
-  lua_pop(L, 1); // []
 }
 
 void llua_init(lua_State *L, Lfm *lfm_) {

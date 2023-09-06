@@ -251,8 +251,6 @@ bool cmdline_end(Cmdline *c) {
 }
 
 bool cmdline_clear(Cmdline *c) {
-  c->prefix.str[0] = 0;
-  c->prefix.len = 0;
   c->left.str[0] = 0;
   c->left.len = 0;
   c->right.str[0] = 0;
@@ -262,11 +260,9 @@ bool cmdline_clear(Cmdline *c) {
   return true;
 }
 
-bool cmdline_set_whole(Cmdline *c, const char *prefix, const char *left,
-                       const char *right) {
+bool cmdline_set_whole(Cmdline *c, const char *left, const char *right) {
   ENSURE_SPACE(c->left, strlen(left));
   ENSURE_SPACE(c->right, strlen(right));
-  cmdline_prefix_set(c, prefix);
   size_t n = mbstowcs(c->left.str, left, c->left.cap + 1);
   if (n == (size_t)-1) {
     c->left.len = 0;

@@ -10,35 +10,22 @@ static int l_cmd_line_get(lua_State *L) {
   return 1;
 }
 
-// TODO: when setting the prefix we also need to enable the cursor
-// see ui_cmdline_prefix_set (on 2022-03-28)
 static int l_cmd_line_set(lua_State *L) {
   ui->show_message = false;
 
-  if (lua_gettop(L) > 3) {
-    luaL_error(L, "line_get takes up to three arguments");
+  if (lua_gettop(L) > 2) {
+    luaL_error(L, "line_set takes up to two arguments");
   }
 
-  switch (lua_gettop(L)) {
-  case 1:
+  if (lua_gettop(L) == 1) {
     if (cmdline_set(&ui->cmdline, lua_tostring(L, 1))) {
       ui_redraw(ui, REDRAW_CMDLINE);
     }
-    break;
-  case 2:
-    // TODO: should this just set left/right and keep the prefix?
-    // also: document it.
-    if (cmdline_set_whole(&ui->cmdline, lua_tostring(L, 1), lua_tostring(L, 2),
-                          "")) {
+  } else if (lua_gettop(L) == 2) {
+    if (cmdline_set_whole(&ui->cmdline, lua_tostring(L, 1),
+                          lua_tostring(L, 2))) {
       ui_redraw(ui, REDRAW_CMDLINE);
     }
-    break;
-  case 3:
-    if (cmdline_set_whole(&ui->cmdline, lua_tostring(L, 1), lua_tostring(L, 2),
-                          lua_tostring(L, 3))) {
-      ui_redraw(ui, REDRAW_CMDLINE);
-    }
-    break;
   }
   return 0;
 }
@@ -59,7 +46,13 @@ static int l_cmd_clear(lua_State *L) {
 
 static int l_cmd_delete(lua_State *L) {
   (void)L;
-  ui_cmd_delete(ui);
+  if (ui->cmdline.left.len == 0 && ui->cmdline.right.len == 0) {
+    lfm_mode_enter(lfm, "normal");
+  } else {
+    cmdline_delete(&ui->cmdline);
+    mode_on_change(lfm->current_mode, lfm);
+  }
+  ui_redraw(ui, REDRAW_CMDLINE);
   return 0;
 }
 
@@ -67,6 +60,7 @@ static int l_cmd_delete_right(lua_State *L) {
   (void)L;
   if (cmdline_delete_right(&ui->cmdline)) {
     ui_redraw(ui, REDRAW_CMDLINE);
+    mode_on_change(lfm->current_mode, lfm);
   }
   return 0;
 }
@@ -75,6 +69,7 @@ static int l_cmd_delete_word(lua_State *L) {
   (void)L;
   if (cmdline_delete_word(&ui->cmdline)) {
     ui_redraw(ui, REDRAW_CMDLINE);
+    mode_on_change(lfm->current_mode, lfm);
   }
   return 0;
 }
@@ -82,6 +77,7 @@ static int l_cmd_delete_word(lua_State *L) {
 static int l_cmd_insert(lua_State *L) {
   if (cmdline_insert(&ui->cmdline, lua_tostring(L, 1))) {
     ui_redraw(ui, REDRAW_CMDLINE);
+    mode_on_change(lfm->current_mode, lfm);
   }
   return 0;
 }
@@ -122,6 +118,7 @@ static int l_cmd_delete_line_left(lua_State *L) {
   (void)L;
   if (cmdline_delete_line_left(&ui->cmdline)) {
     ui_redraw(ui, REDRAW_CMDLINE);
+    mode_on_change(lfm->current_mode, lfm);
   }
   return 0;
 }
@@ -140,17 +137,6 @@ static int l_cmd_end(lua_State *L) {
     ui_redraw(ui, REDRAW_CMDLINE);
   }
   return 0;
-}
-
-static int l_cmd_prefix_set(lua_State *L) {
-  ui_cmd_prefix_set(ui, luaL_optstring(L, 1, ""));
-  return 0;
-}
-
-static int l_cmd_prefix_get(lua_State *L) {
-  const char *prefix = cmdline_prefix_get(&ui->cmdline);
-  lua_pushstring(L, prefix ? prefix : "");
-  return 1;
 }
 
 static int l_cmd_history_append(lua_State *L) {
@@ -185,8 +171,6 @@ static const struct luaL_Reg lfm_cmd_lib[] = {
     {"_end", l_cmd_end},
     {"line_get", l_cmd_line_get},
     {"line_set", l_cmd_line_set},
-    {"prefix_get", l_cmd_prefix_get},
-    {"prefix_set", l_cmd_prefix_set},
     {"home", l_cmd_home},
     {"insert", l_cmd_insert},
     {"toggle_overwrite", l_cmd_toggle_overwrite},

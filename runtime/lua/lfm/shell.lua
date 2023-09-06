@@ -33,10 +33,10 @@ function M.escape(args, sep)
 end
 
 ---@class Lfm.Shell.ExecOpts
----@field quiet boolean show command in the log (default: true)
----@field fork boolean run the command in the background (default: false)
----@field out boolean redirect stdout in the ui (default: true)
----@field err boolean redirect stderr in the ui (default: true)
+---@field quiet? boolean show command in the log (default: true)
+---@field fork? boolean run the command in the background (default: false)
+---@field out? boolean redirect stdout in the ui (default: true)
+---@field err? boolean redirect stderr in the ui (default: true)
 
 ---Execute a foreground command.
 ---If `command` is a single string, it is executed as `sh -c command`.
@@ -75,11 +75,11 @@ function M.popen(command)
 end
 
 ---@class Lfm.Shell.BashOpts
----@field files number
----@field quiet boolean show command in the log (default: true)
----@field fork boolean run the command in the background (default: false)
----@field out boolean redirect stdout in the ui (default: true)
----@field err boolean redirect stderr in the ui (default: true)
+---@field files? number
+---@field quiet? boolean show command in the log (default: true)
+---@field fork? boolean run the command in the background (default: false)
+---@field out? boolean redirect stdout in the ui (default: true)
+---@field err? boolean redirect stderr in the ui (default: true)
 
 ---Build a function from a bash command. Unless `t.files == shell.ARGV` the
 ---functions arguments are passed to the shell.
@@ -104,11 +104,11 @@ function M.bash(command, t)
 end
 
 ---@class Lfm.Shell.TmuxOpts
----@field files number
----@field quiet boolean show command in the log (default: true)
----@field fork boolean run the command in the background (default: false)
----@field out boolean redirect stdout in the ui (default: true)
----@field err boolean redirect stderr in the ui (default: true)
+---@field files? number
+---@field quiet? boolean show command in the log (default: true)
+---@field fork? boolean run the command in the background (default: false)
+---@field out? boolean redirect stdout in the ui (default: true)
+---@field err? boolean redirect stderr in the ui (default: true)
 
 ---Build a function from a bash command to run in a `tmux new-window`. Unless
 ---`t.files == shell.ARGV` the functions arguments are passed to the shell.
@@ -123,10 +123,15 @@ function M.tmux(command, t)
 		end
 	elseif t.files == ARRAY then
 		return function(...)
-			M.execute(
-				{ "tmux", "new-window", "bash", "-c", "files=(" .. M.escape(sel_or_cur()) .. "); " .. command, "_", ... },
-				t
-			)
+			M.execute({
+				"tmux",
+				"new-window",
+				"bash",
+				"-c",
+				"files=(" .. M.escape(sel_or_cur()) .. "); " .. command,
+				"_",
+				...,
+			}, t)
 		end
 	else
 		return function(...)
@@ -136,12 +141,12 @@ function M.tmux(command, t)
 end
 
 ---@class Lfm.Shell.FishOpts
----@field files number
----@field tmux boolean open command in a new tmux window (default: false)
----@field quiet boolean show command in the log (default: true)
----@field fork boolean run the command in the background (default: false)
----@field out boolean redirect stdout in the ui (default: true)
----@field err boolean redirect stderr in the ui (default: true)
+---@field files? number
+---@field tmux? boolean open command in a new tmux window (default: false)
+---@field quiet? boolean show command in the log (default: true)
+---@field fork? boolean run the command in the background (default: false)
+---@field out? boolean redirect stdout in the ui (default: true)
+---@field err? boolean redirect stderr in the ui (default: true)
 
 ---Build a function from a shell command. Unless `t.files == shell.ARGV` the
 ---functions arguments are passed to the shell.
@@ -157,20 +162,17 @@ function M.fish(command, t)
 	elseif t.files == ARRAY then
 		if t.tmux then
 			return function(...)
-				M.execute(
-					{
-						"tmux",
-						"new-window",
-						"fish",
-						"-c",
-						"set -U files " .. M.escape(sel_or_cur()),
-						"-c",
-						command,
-						"--",
-						...,
-					},
-					t
-				)
+				M.execute({
+					"tmux",
+					"new-window",
+					"fish",
+					"-c",
+					"set -U files " .. M.escape(sel_or_cur()),
+					"-c",
+					command,
+					"--",
+					...,
+				}, t)
 			end
 		else
 			return function(...)
@@ -185,11 +187,11 @@ function M.fish(command, t)
 end
 
 ---@class Lfm.Shell.ShOpts
----@field files number
----@field quiet boolean show command in the log (default: true)
----@field fork boolean run the command in the background (default: false)
----@field out boolean redirect stdout in the ui (default: true)
----@field err boolean redirect stderr in the ui (default: true)
+---@field files? number
+---@field quiet? boolean show command in the log (default: true)
+---@field fork? boolean run the command in the background (default: false)
+---@field out? boolean redirect stdout in the ui (default: true)
+---@field err? boolean redirect stderr in the ui (default: true)
 
 ---Build a function from a shell command. Unless `t.files == shell.ARGV` the
 ---functions arguments are passed to the shell.

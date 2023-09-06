@@ -8,7 +8,6 @@ local eval = lfm.eval
 local map = lfm.map
 local getpwd = lfm.fn.getpwd
 local cmd_clear = lfm.cmd.clear
-local prefix_set = lfm.cmd.prefix_set
 local line_get = lfm.cmd.line_get
 
 local open = io.open
@@ -90,22 +89,34 @@ function quickmarks.delete(m)
 end
 
 local mode_mark_save = {
+	name = "mark-save",
+	input = true,
 	prefix = "mark-save: ",
-	on_enter = cmd_clear,
+	on_return = function()
+		cmd_clear()
+		lfm.mode("normal")
+	end,
 	on_esc = cmd_clear,
 	on_change = function()
 		quickmarks.save(line_get())
 		cmd_clear()
+		lfm.mode("normal")
 	end,
 }
 
 local mode_mark_delete = {
+	name = "mark-delete",
+	input = true,
 	prefix = "mark-delete: ",
-	on_enter = cmd_clear,
+	on_return = function()
+		cmd_clear()
+		lfm.mode("normal")
+	end,
 	on_esc = cmd_clear,
 	on_change = function()
-		quickmarks.save(line_get())
+		quickmarks.delete(line_get())
 		cmd_clear()
+		lfm.mode("normal")
 	end,
 }
 
@@ -117,11 +128,11 @@ function quickmarks._setup()
 	lfm.register_mode(mode_mark_delete)
 
 	lfm.map("m", function()
-		prefix_set(mode_mark_save.prefix)
+		lfm.mode(mode_mark_save.name)
 	end, { desc = "save quickmark" })
 
 	lfm.map("dm", function()
-		prefix_set(mode_mark_delete.prefix)
+		lfm.mode(mode_mark_delete.name)
 	end, { desc = "delete quickmark" })
 end
 

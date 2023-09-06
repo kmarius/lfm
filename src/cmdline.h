@@ -86,10 +86,9 @@ bool cmdline_clear(Cmdline *t);
 // `true` if a redraw is necessary.
 bool cmdline_set(Cmdline *t, const char *line);
 
-// Set the `prefix` and the command line, placing the cursor between `left` and
+// Set the command line, placing the cursor between `left` and
 // `right`. Returns `true` if a redraw is necessary.
-bool cmdline_set_whole(Cmdline *t, const char *prefix, const char *left,
-                       const char *right);
+bool cmdline_set_whole(Cmdline *t, const char *left, const char *right);
 
 // Returns the currend command line without `prefix`.
 const char *cmdline_get(Cmdline *t);

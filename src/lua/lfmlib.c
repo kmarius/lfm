@@ -1,5 +1,6 @@
 #include <errno.h>
 #include <lauxlib.h>
+#include <stdbool.h>
 #include <stdlib.h>
 
 #include "auto/versiondef.h"
@@ -276,7 +277,7 @@ static int l_execute(lua_State *L) {
   }
 }
 
-static inline int map_key(lua_State *L, Trie *trie) {
+static inline int map_key(lua_State *L, Trie *trie, bool allow_mode) {
   const char *keys = luaL_checkstring(L, 1);
 
   if (!(lua_type(L, 2) == LUA_TFUNCTION || lua_isnil(L, 2))) {
@@ -288,6 +289,20 @@ static inline int map_key(lua_State *L, Trie *trie) {
     lua_getfield(L, 3, "desc");
     if (!lua_isnoneornil(L, -1)) {
       desc = lua_tostring(L, -1);
+    }
+    lua_pop(L, 1);
+
+    lua_getfield(L, 3, "mode");
+    if (!lua_isnoneornil(L, -1)) {
+      if (!allow_mode) {
+        return luaL_error(L, "mode not allowed here");
+      }
+      struct mode *mode = ht_get(&lfm->modes, lua_tostring(L, -1));
+      if (!mode) {
+        return luaL_error(L, "no such mode: %s", lua_tostring(L, -1));
+      }
+      log_debug("mapping %s for mode %s", keys, mode->name);
+      trie = mode->maps;
     }
     lua_pop(L, 1);
   }
@@ -307,11 +322,11 @@ static inline int map_key(lua_State *L, Trie *trie) {
 }
 
 static int l_map_key(lua_State *L) {
-  return map_key(L, lfm->maps.normal);
+  return map_key(L, lfm->maps.normal, true);
 }
 
 static int l_cmap_key(lua_State *L) {
-  return map_key(L, lfm->maps.cmd);
+  return map_key(L, lfm->maps.input, false);
 }
 
 static inline void lua_push_maps(lua_State *L, Trie *trie, bool prune) {
@@ -331,16 +346,97 @@ static inline void lua_push_maps(lua_State *L, Trie *trie, bool prune) {
 }
 
 static int l_get_maps(lua_State *L) {
-  lua_push_maps(L, lfm->maps.normal, luaL_optbool(L, 1, true));
+  struct mode *normal = ht_get(&lfm->modes, "normal");
+  lua_push_maps(L, normal->maps, luaL_optbool(L, 1, true));
   return 1;
 }
 
 static int l_get_cmaps(lua_State *L) {
-  lua_push_maps(L, lfm->maps.cmd, luaL_optbool(L, 1, true));
+  struct mode *input = ht_get(&lfm->modes, "input");
+  lua_push_maps(L, input->maps, luaL_optbool(L, 1, true));
   return 1;
 }
 
-static const struct luaL_Reg lfm_lib[] = {{"schedule", l_schedule},
+static int l_current_mode(lua_State *L) {
+  lua_pushstring(L, lfm->current_mode->name);
+  return 1;
+}
+
+static int l_mode(lua_State *L) {
+  if (lfm_mode_enter(lfm, luaL_checkstring(L, -1)) != 0) {
+    return luaL_error(L, "no such mode: %s", lua_tostring(L, -1));
+  }
+  struct mode *mode = lfm->current_mode;
+  if (mode->input && mode->prefix) {
+    cmdline_prefix_set(&ui->cmdline, mode->prefix);
+  }
+  return 0;
+}
+
+static int l_register_mode(lua_State *L) {
+  luaL_checktype(L, 1, LUA_TTABLE);
+
+  struct mode mode = {0};
+
+  lua_getfield(L, 1, "name");
+  if (lua_isnoneornil(L, -1)) {
+    return luaL_error(L, "register_mode: missing field 'name'");
+  }
+  mode.name = (char *)lua_tostring(L, -1);
+  lua_pop(L, 1);
+
+  lua_getfield(L, 1, "input");
+  mode.input = lua_toboolean(L, -1);
+  lua_pop(L, 1);
+
+  lua_getfield(L, 1, "prefix");
+  mode.prefix = lua_isnoneornil(L, -1) ? NULL : (char *)lua_tostring(L, -1);
+  lua_pop(L, 1);
+
+  lua_getfield(L, 1, "on_enter");
+  if (!lua_isnoneornil(L, -1)) {
+    mode.on_enter_ref = lua_set_callback(L);
+  } else {
+    lua_pop(L, 1);
+  }
+
+  lua_getfield(L, 1, "on_change");
+  if (!lua_isnoneornil(L, -1)) {
+    mode.on_change_ref = lua_set_callback(L);
+  } else {
+    lua_pop(L, 1);
+  }
+
+  lua_getfield(L, 1, "on_return");
+  if (!lua_isnoneornil(L, -1)) {
+    mode.on_return_ref = lua_set_callback(L);
+  } else {
+    lua_pop(L, 1);
+  }
+
+  lua_getfield(L, 1, "on_esc");
+  if (!lua_isnoneornil(L, -1)) {
+    mode.on_esc_ref = lua_set_callback(L);
+  } else {
+    lua_pop(L, 1);
+  }
+
+  lua_getfield(L, 1, "on_exit");
+  if (!lua_isnoneornil(L, -1)) {
+    mode.on_exit_ref = lua_set_callback(L);
+  } else {
+    lua_pop(L, 1);
+  }
+
+  lfm_mode_register(lfm, &mode);
+
+  return 0;
+}
+
+static const struct luaL_Reg lfm_lib[] = {{"mode", l_mode},
+                                          {"current_mode", l_current_mode},
+                                          {"register_mode", l_register_mode},
+                                          {"schedule", l_schedule},
                                           {"colors_clear", l_colors_clear},
                                           {"execute", l_execute},
                                           {"spawn", l_spawn},
@@ -378,22 +474,22 @@ int luaopen_lfm(lua_State *L) {
   lua_setfield(L, -2, "fm");
 
   luaopen_config(L);
-  lua_setfield(L, -2, "config"); // lfm.config
+  lua_setfield(L, -2, "config");
 
   luaopen_log(L);
-  lua_setfield(L, -2, "log"); // lfm.log
+  lua_setfield(L, -2, "log");
 
   luaopen_ui(L);
-  lua_setfield(L, -2, "ui"); // lfm.ui
+  lua_setfield(L, -2, "ui");
 
   luaopen_cmd(L);
-  lua_setfield(L, -2, "cmd"); // lfm.cmd
+  lua_setfield(L, -2, "cmd");
 
   luaopen_fn(L);
-  lua_setfield(L, -2, "fn"); // lfm.fn
+  lua_setfield(L, -2, "fn");
 
   luaopen_rifle(L);
-  lua_setfield(L, -2, "rifle"); // lfm.rifle
+  lua_setfield(L, -2, "rifle");
 
   lua_newtable(L);
   lua_pushstring(L, LFM_VERSION);
@@ -410,7 +506,7 @@ int luaopen_lfm(lua_State *L) {
 
   lua_pushstring(L, LFM_BRANCH);
   lua_setfield(L, -2, "branch");
-  lua_setfield(L, -2, "version"); // lfm.version
+  lua_setfield(L, -2, "version");
 
   return 1;
 }

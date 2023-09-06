@@ -20,8 +20,7 @@ static inline uint64_t hash(const char *s) {
 // reuse it, since for k < l, HASH(h, n, k) = HASH(HASH(h, n, l), n, k).
 #define HASH(h, n, l) (h) % ((n) * (1 << (l)))
 
-static inline Hashtab *ht_init(Hashtab *ht, size_t capacity,
-                               ht_free_func free) {
+Hashtab *ht_init(Hashtab *ht, size_t capacity, ht_free_func free) {
   memset(ht, 0, sizeof *ht);
   ht->capacity = capacity;
   ht->n = capacity;
@@ -30,7 +29,7 @@ static inline Hashtab *ht_init(Hashtab *ht, size_t capacity,
   return ht;
 }
 
-static inline Hashtab *ht_deinit(Hashtab *ht) {
+Hashtab *ht_deinit(Hashtab *ht) {
   for (size_t i = 0; i < ht->capacity; i++) {
     if (ht->buckets[i].key) {
       for (struct ht_bucket *next, *b = ht->buckets[i].next; b; b = next) {

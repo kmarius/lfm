@@ -5,51 +5,54 @@ local M = {}
 
 local file = nil
 
-local function mode_esc()
-	lfm.nohighlight()
-	if file then
-		lfm.fm.sel(require("lfm.util").basename(file))
-	end
-end
-
-local function mode_enter()
-	lfm.search_next(true)
-end
-
-local function mode_change()
-	lfm.search(cmd.line_get())
-	lfm.search_next(true)
-end
-
-local function mode_back_change()
-	lfm.search_back(cmd.line_get())
-	lfm.search_next(true)
-end
-
 M.mode_search = {
+	name = "search",
+	input = true,
 	prefix = "/",
-	on_enter = mode_enter,
-	on_esc = mode_esc,
-	on_change = mode_change,
+	on_enter = function()
+		lfm.nohighlight()
+		file = lfm.fm.current_file()
+	end,
+	on_change = function()
+		lfm.search(cmd.line_get())
+		lfm.search_next(true)
+	end,
+	on_return = function()
+		lfm.search_next(true)
+		cmd.clear()
+		lfm.mode("normal")
+	end,
+	on_esc = function()
+		lfm.nohighlight()
+		if file then
+			lfm.fm.sel(require("lfm.util").basename(file))
+		end
+	end,
 }
 
 M.mode_search_back = {
+	name = "search-back",
+	input = true,
 	prefix = "?",
-	on_enter = mode_enter,
-	on_esc = mode_esc,
-	on_change = mode_back_change,
+	on_enter = function()
+		lfm.nohighlight()
+		file = lfm.fm.current_file()
+	end,
+	on_change = function()
+		lfm.search_back(cmd.line_get())
+		lfm.search_next(true)
+	end,
+	on_return = function()
+		lfm.search_next(true)
+		cmd.clear()
+		lfm.mode("normal")
+	end,
+	on_esc = function()
+		lfm.nohighlight()
+		if file then
+			lfm.fm.sel(require("lfm.util").basename(file))
+		end
+	end,
 }
-
-function M.enter_mode()
-	cmd.prefix_set(M.mode_search.prefix)
-	lfm.nohighlight()
-	file = lfm.fm.current_file()
-end
-
-function M.enter_mode_back()
-	cmd.prefix_set(M.mode_search_back.prefix)
-	lfm.nohighlight()
-	file = lfm.fm.current_file()
-end
 
 return M

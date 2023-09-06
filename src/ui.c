@@ -25,6 +25,7 @@
 #include "loader.h"
 #include "log.h"
 #include "memory.h"
+#include "mode.h"
 #include "ncutil.h"
 #include "ui.h"
 #include "util.h"
@@ -311,15 +312,6 @@ void ui_vechom(Ui *ui, const char *format, va_list args) {
 
 /* cmd line {{{ */
 
-void ui_cmd_delete(Ui *ui) {
-  if (ui->cmdline.left.len == 0 && ui->cmdline.right.len == 0) {
-    ui_cmd_clear(ui);
-  } else {
-    cmdline_delete(&ui->cmdline);
-  }
-  ui_redraw(ui, REDRAW_CMDLINE);
-}
-
 void ui_cmd_prefix_set(Ui *ui, const char *prefix) {
   if (!prefix) {
     return;
@@ -374,23 +366,23 @@ void draw_cmdline(Ui *ui) {
 
   uint32_t rhs_sz = 0;
   uint32_t lhs_sz = 0;
+  ncplane_cursor_yx(n, 0, 0);
 
-  if (!cmdline_prefix_get(&ui->cmdline)) {
+  if (!ui->lfm->current_mode->input) {
     const Dir *dir = fm->dirs.visible[0];
     if (dir) {
       const File *file = dir_current_file(dir);
       if (file) {
         if (file_error(file)) {
-          lhs_sz = ncplane_printf_yx(n, 0, 0, "error: %s",
-                                     strerror(file_error(file)));
+          lhs_sz = ncplane_printf(n, "error: %s", strerror(file_error(file)));
         } else {
-          lhs_sz = ncplane_printf_yx(
-              n, 0, 0, "%s %2.ld %s %s %4s %s%s%s", file_perms(file),
-              file_nlink(file), file_owner(file), file_group(file),
-              file_size_readable(file, size),
-              print_time(file_mtime(file), mtime, sizeof mtime),
-              file_islink(file) ? " -> " : "",
-              file_islink(file) ? file_link_target(file) : "");
+          lhs_sz =
+              ncplane_printf(n, "%s %2.ld %s %s %4s %s%s%s", file_perms(file),
+                             file_nlink(file), file_owner(file),
+                             file_group(file), file_size_readable(file, size),
+                             print_time(file_mtime(file), mtime, sizeof mtime),
+                             file_islink(file) ? " -> " : "",
+                             file_islink(file) ? file_link_target(file) : "");
         }
       }
 
@@ -483,6 +475,7 @@ static void draw_custom_info(Ui *ui, const char *user, const char *host,
   char *path_ptr = NULL;
   char *file_ptr = NULL;
   char *spacer_ptr = NULL;
+  char *mode_ptr = NULL;
 
   for (const char *ptr = ui->infoline; *ptr && buf_ptr < buf_end; ptr++) {
     if (*ptr != '%') {
@@ -513,6 +506,10 @@ static void draw_custom_info(Ui *ui, const char *user, const char *host,
         spacer_ptr = buf_ptr;
         *buf_ptr++ = 0;
         break;
+      case 'M':
+        mode_ptr = buf_ptr;
+        *buf_ptr++ = 0;
+        break;
       case '%':
         *buf_ptr++ = '%';
         break;
@@ -537,6 +534,9 @@ static void draw_custom_info(Ui *ui, const char *user, const char *host,
   if (spacer_ptr) {
     static_len += ansi_mblen(spacer_ptr + 1);
   }
+  if (mode_ptr) {
+    static_len += ansi_mblen(mode_ptr + 1);
+  }
 
   int remaining = ui->ncol - static_len;
 
@@ -547,6 +547,12 @@ static void draw_custom_info(Ui *ui, const char *user, const char *host,
     const File *f = fm_current_file(&ui->lfm->fm);
     file = ambstowcs(f ? file_name(f) : "", &file_len);
     file_is_dir = f ? file_isdir(f) : false;
+  }
+
+  wchar_t *mode = NULL;
+  int mode_len = 0;
+  if (mode_ptr) {
+    mode = ambstowcs(ui->lfm->current_mode->name, &mode_len);
   }
 
   int path_len = 0;
@@ -628,6 +634,11 @@ static void draw_custom_info(Ui *ui, const char *user, const char *host,
     ncplane_addastr(n, file_ptr + 1);
   }
 
+  if (mode_ptr) {
+    ncplane_putwstr(n, mode);
+    ncplane_addastr(n, mode_ptr + 1);
+  }
+
   if (spacer_ptr) {
     unsigned int r;
     ncplane_cursor_yx(n, NULL, &r);
@@ -643,6 +654,7 @@ static void draw_custom_info(Ui *ui, const char *user, const char *host,
 
   xfree(path_buf);
   xfree(file);
+  xfree(mode);
 }
 
 static void draw_info(Ui *ui) {

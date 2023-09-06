@@ -23,11 +23,12 @@ void llua_run_child_callback(lua_State *L, int ref, int rstatus);
 
 void llua_run_callback(lua_State *L, int ref);
 
+void llua_call_ref(lua_State *L, int ref);
+
+void llua_call_ref1(lua_State *L, int ref, const char *line);
+
 // `line==NULL` removes callback from the registry.
 void llua_run_stdout_callback(lua_State *L, int ref, const char *line);
-
-// call `on_change` function of the current mode.
-void llua_call_on_change(lua_State *L, const char *prefix);
 
 // Call a function from reference, passing an optional count if it is positive
 void llua_call_from_ref(lua_State *L, int ref, int count);

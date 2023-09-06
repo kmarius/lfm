@@ -26,6 +26,11 @@ typedef void (*ht_free_func)(void *);
 struct hashtab_s;
 struct linked_hashtab_s;
 
+struct hashtab_s *ht_init(struct hashtab_s *ht, size_t capacity,
+                          ht_free_func free);
+
+struct hashtab_s *ht_deinit(struct hashtab_s *ht);
+
 // Create a new hash table with base `capacity` and a `free` function.
 struct hashtab_s *ht_with_capacity(size_t capacity, ht_free_func free);
 

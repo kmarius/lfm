@@ -54,10 +54,13 @@ function M.glob_select_recursive(glob)
 end
 
 M.mode_glob_select = {
+	name = "glob-select",
+	input = true,
 	prefix = "glob-select: ",
-	on_enter = lfm.cmd.clear,
+	on_return = function()
+		lfm.mode("normal")
+	end,
 	on_esc = function()
-		lfm.cmd.clear()
 		fm.selection_set({})
 	end,
 	on_change = function()

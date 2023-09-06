@@ -1,5 +1,6 @@
 #pragma once
 
+#include <lauxlib.h>
 #include <lua.h>
 
 #include "../fm.h"
@@ -17,6 +18,7 @@ extern Fm *fm;
 // Stores the element at the top of the stack in the registry and returns the
 // reference index.
 static inline int lua_set_callback(lua_State *L) {
+  luaL_checktype(L, -1, LUA_TFUNCTION);
   return luaL_ref(L, LUA_REGISTRYINDEX);
 }
 

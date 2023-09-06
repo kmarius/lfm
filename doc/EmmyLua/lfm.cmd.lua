@@ -49,15 +49,11 @@ function lfm.cmd.left() end
 ---Move the cursor to the right.
 function lfm.cmd.right() end
 
----Set the command line. If three arguments are provided, the first argument
----sets the prefix. The cursor will be positioned between `left` and `right`.
----@param line string
----@overload fun(prefix: string, left: string, right: string)
-function lfm.cmd.line_set(line) end
-
----Set the command line prefix.
----@param prefix string
-function lfm.cmd.prefix_set(prefix) end
+---Set the command line. If two arguments are provided.
+---The cursor will be positioned between `left` and `right`.
+---@param left string
+---@param right? string
+function lfm.cmd.line_set(left, right) end
 
 ---Toggle between insert and overwrite mode.
 function lfm.cmd.toggle_overwrite() end

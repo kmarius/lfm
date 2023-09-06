@@ -23,7 +23,8 @@ function M.open(...)
 		local match = M.query(files[1], { pick = pick, limit = 1 })[1]
 		if match then
 			if match.command == "ask" then
-				lfm.cmd.line_set(":", "shell ", ' "${files[@]}"')
+				lfm.mode("command")
+				lfm.cmd.line_set("shell ", ' "${files[@]}"')
 			elseif match.term then
 				local term = M.query_mime("rifle/x-terminal-emulator", { limit = 1 })[1]
 				if not term then
@@ -62,7 +63,8 @@ function M.ask()
 		for _, rule in pairs(M.query(file)) do
 			table.insert(menu, rule.number .. " " .. rule.command)
 		end
-		lfm.cmd.line_set(":", "open ", "")
+		lfm.mode("command")
+		lfm.cmd.line_set("open ")
 		ui.menu(menu)
 	end
 end
@@ -71,8 +73,8 @@ end
 local setup_internal = M.setup
 
 ---@class Lfm.Rifle.SetupOpts
----@field config string path to configuration file e.g. a rifle.conf
----@field rules string[] a table of rules as defined in rifle.conf, will take precedence
+---@field config? string path to configuration file e.g. a rifle.conf
+---@field rules? string[] a table of rules as defined in rifle.conf, will take precedence
 
 ---Set up opener.
 ---@param t Lfm.Rifle.SetupOpts
