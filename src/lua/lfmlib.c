@@ -21,6 +21,9 @@
 #include "../log.h"
 #include "../search.h"
 
+#define LFM_MODES_META "lfm_modes_mt"
+#define LFM_MODE_META "lfm_mode_mt"
+
 static int l_schedule(lua_State *L) {
   luaL_checktype(L, 1, LUA_TFUNCTION);
   int delay = 0;
@@ -462,6 +465,62 @@ static const struct luaL_Reg lfm_lib[] = {{"mode", l_mode},
                                           {"quit", l_quit},
                                           {NULL, NULL}};
 
+static int l_modes_index(lua_State *L) {
+  const char *key = luaL_checkstring(L, 2);
+  struct mode *mode = ht_get(&lfm->modes, key);
+  if (!mode) {
+    return 0;
+  }
+
+  lua_newtable(L);
+  struct mode **ud = lua_newuserdata(L, sizeof mode);
+  *ud = mode;
+  luaL_newmetatable(L, LFM_MODE_META);
+  lua_setmetatable(L, -2);
+
+  return 1;
+}
+
+static int l_mode_index(lua_State *L) {
+  struct mode *mode = *(struct mode **)luaL_checkudata(L, 1, LFM_MODE_META);
+  const char *key = luaL_checkstring(L, 2);
+  if (streq(key, "name")) {
+    lua_pushstring(L, mode->name);
+    return 1;
+  } else if (streq(key, "prefix")) {
+    lua_pushstring(L, mode->prefix);
+    return 1;
+  } else if (streq(key, "input")) {
+    lua_pushboolean(L, mode->input);
+    return 1;
+  } else {
+    return luaL_error(L, "no such field: %s", key);
+  }
+  return 0;
+}
+
+static int l_mode_newindex(lua_State *L) {
+  struct mode *mode = *(struct mode **)luaL_checkudata(L, 1, LFM_MODE_META);
+  const char *key = luaL_checkstring(L, 2);
+  if (streq(key, "prefix")) {
+    if (!mode->input) {
+      return luaL_error(L, "can only set prefix for input modes");
+    }
+    const char *prefix = lua_isnoneornil(L, 3) ? "" : lua_tostring(L, 3);
+    free(mode->prefix);
+    mode->prefix = strdup(prefix);
+  } else {
+    return luaL_error(L, "no such field: %s", key);
+  }
+  return 0;
+}
+
+static const struct luaL_Reg lfm_modes_mt[] = {{"__index", l_modes_index},
+                                               {NULL, NULL}};
+
+static const struct luaL_Reg lfm_mode_mt[] = {
+    {"__index", l_mode_index}, {"__newindex", l_mode_newindex}, {NULL, NULL}};
+
 int luaopen_lfm(lua_State *L) {
   log_debug("opening lualfm libs");
 
@@ -490,6 +549,16 @@ int luaopen_lfm(lua_State *L) {
 
   luaopen_rifle(L);
   lua_setfield(L, -2, "rifle");
+
+  luaL_newmetatable(L, LFM_MODE_META);
+  luaL_register(L, NULL, lfm_mode_mt);
+  lua_pop(L, 1);
+
+  lua_newtable(L);
+  luaL_newmetatable(L, LFM_MODES_META);
+  luaL_register(L, NULL, lfm_modes_mt);
+  lua_setmetatable(L, -2);
+  lua_setfield(L, -2, "modes");
 
   lua_newtable(L);
   lua_pushstring(L, LFM_VERSION);
