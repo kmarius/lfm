@@ -104,7 +104,7 @@ set(LUA_INSPECT_MODULE_SOURCE ${PROJECT_SOURCE_DIR}/runtime/lua/lfm/inspect.lua)
 set(LUA_JUMPLIST_MODULE_SOURCE ${PROJECT_SOURCE_DIR}/runtime/lua/lfm/jumplist.lua)
 set(LUA_QUICKMARKS_MODULE_SOURCE ${PROJECT_SOURCE_DIR}/runtime/lua/lfm/quickmarks.lua)
 set(LUA_RIFLE_MODULE_SOURCE ${PROJECT_SOURCE_DIR}/runtime/lua/lfm/rifle.lua)
-set(LUA_SEARCH_MODULE_SOURCE ${PROJECT_SOURCE_DIR}/runtime/lua/lfm/search.lua)
+set(LUA_MODES_MODULE_SOURCE ${PROJECT_SOURCE_DIR}/runtime/lua/lfm/modes.lua)
 set(LUA_SHELL_MODULE_SOURCE ${PROJECT_SOURCE_DIR}/runtime/lua/lfm/shell.lua)
 set(LUA_UTIL_MODULE_SOURCE ${PROJECT_SOURCE_DIR}/runtime/lua/lfm/util.lua)
 set(LUA_CORE_MODULE_SOURCE ${PROJECT_SOURCE_DIR}/runtime/lua/lfm/core.lua)
@@ -124,7 +124,7 @@ add_custom_command(
 	${LUA_JUMPLIST_MODULE_SOURCE} "lfm.jumplist"
 	${LUA_QUICKMARKS_MODULE_SOURCE} "lfm.quickmarks"
 	${LUA_RIFLE_MODULE_SOURCE} "lfm.rifle"
-	${LUA_SEARCH_MODULE_SOURCE} "lfm.search"
+  ${LUA_MODES_MODULE_SOURCE} "lfm.modes"
 	${LUA_SHELL_MODULE_SOURCE} "lfm.shell"
 	${LUA_UTIL_MODULE_SOURCE} "lfm.util"
 	${LUA_CORE_MODULE_SOURCE} "lfm._core"
@@ -139,7 +139,7 @@ add_custom_command(
 	${LUA_JUMPLIST_MODULE_SOURCE}
 	${LUA_QUICKMARKS_MODULE_SOURCE}
 	${LUA_RIFLE_MODULE_SOURCE}
-	${LUA_SEARCH_MODULE_SOURCE}
+  ${LUA_MODES_MODULE_SOURCE}
 	${LUA_SHELL_MODULE_SOURCE}
 	${LUA_UTIL_MODULE_SOURCE}
 	${LUA_CORE_MODULE_SOURCE}

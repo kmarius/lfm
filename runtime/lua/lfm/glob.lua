@@ -20,7 +20,6 @@ end
 
 --Select all files in the current directory matching a glob.
 ---@param glob string
----@return string[] files
 function M.glob_select(glob)
 	local pat = M.glob_to_pattern(glob)
 	local sel = {}
@@ -35,10 +34,9 @@ function M.glob_select(glob)
 	selection_set(sel)
 end
 
---Recursiv select all files matching a glob in the current directory and subdirectories.
----(probably breaks on loops)
+---Recursiv select all files matching a glob in the current directory and subdirectories.
+---(probably breaks on symlink loops)
 ---@param glob string
----@return string[] files
 function M.glob_select_recursive(glob)
 	local pat = M.glob_to_pattern(glob)
 	local sel = {}
@@ -53,19 +51,41 @@ function M.glob_select_recursive(glob)
 	selection_set(sel)
 end
 
-M.mode_glob_select = {
-	name = "glob-select",
-	input = true,
-	prefix = "glob-select: ",
-	on_return = function()
-		lfm.mode("normal")
-	end,
-	on_esc = function()
-		fm.selection_set({})
-	end,
-	on_change = function()
-		M.glob_select(lfm.cmd.line_get())
-	end,
-}
+function M._setup()
+	-- GLOBSELECT mode
+	local map = lfm.map
+	local cmd = lfm.cmd
+	local a = require("lfm.util").a
+
+	local mode = {
+		name = "glob-select",
+		input = true,
+		prefix = "glob-select: ",
+		on_return = function()
+			lfm.mode("normal")
+		end,
+		on_esc = function()
+			fm.selection_set({})
+		end,
+		on_change = function()
+			require("lfm.glob").glob_select(cmd.line_get())
+		end,
+	}
+
+	lfm.register_mode(mode)
+	map("*", a(lfm.mode, mode.name), { desc = "glob-select" })
+
+	lfm.register_command(
+		"glob-select",
+		require("lfm.glob").glob_select,
+		{ tokenize = false, desc = "Select files in the current directory matching a glob." }
+	)
+
+	lfm.register_command(
+		"glob-select-rec",
+		require("lfm.glob").glob_select_recursive,
+		{ tokenize = false, desc = "Select matching a glob recursively." }
+	)
+end
 
 return M

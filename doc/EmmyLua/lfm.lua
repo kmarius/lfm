@@ -22,10 +22,6 @@ lfm = {}
 ---@field build_type Lfm.Version.BuildType build type
 lfm.version = {}
 
----Evaluate `expr` as if typed into the command line.
----@param expr string
-function lfm.eval(expr) end
-
 ---Execute a foreground command.
 ---@param command string[]
 function lfm.execute(command) end
