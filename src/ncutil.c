@@ -155,7 +155,8 @@ err:
   goto ret;
 }
 
-void ncplane_addastr_yx(struct ncplane *n, int y, int x, const char *s) {
+int ncplane_addastr_yx(struct ncplane *n, int y, int x, const char *s) {
+  int ret = 0;
   ncplane_cursor_move_yx(n, y, x);
   while (*s) {
     if (*s == '\033') {
@@ -164,11 +165,16 @@ void ncplane_addastr_yx(struct ncplane *n, int y, int x, const char *s) {
       const char *c;
       for (c = s; *s != 0 && *s != '\033'; s++)
         ;
-      if (ncplane_putnstr(n, s - c, c) == -1) {
-        return; // EOL
+      int m = ncplane_putnstr(n, s - c, c);
+      if (m < 0) {
+        // EOL/error
+        ret -= m;
+        break;
       }
+      ret += m;
     }
   }
+  return ret;
 }
 
 size_t ansi_mblen(const char *s) {
