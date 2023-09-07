@@ -51,7 +51,6 @@ function M._setup()
 				fm.filter(cmd.line_get())
 			end,
 			on_return = function()
-				fm.filter(cmd.line_get())
 				lfm.mode("normal")
 			end,
 			on_esc = function()
@@ -78,7 +77,6 @@ function M._setup()
 						lfm.eval("open")
 					else
 						cmd.clear()
-						--lfm.mode("travel")
 					end
 				end
 			end,
@@ -86,8 +84,7 @@ function M._setup()
 				fm.filter("")
 			end,
 			on_change = function()
-				local line = cmd.line_get()
-				fm.filter(line)
+				fm.filter(cmd.line_get())
 			end,
 		}
 		lfm.register_mode(mode)
@@ -108,7 +105,6 @@ function M._setup()
 			on_return = function()
 				lfm.mode("normal")
 			end,
-			on_esc = cmd.clear,
 			on_change = function()
 				local line = cmd.line_get()
 				lfm.mode("normal")
@@ -142,7 +138,6 @@ function M._setup()
 			end,
 			on_return = function()
 				lfm.search_next(true)
-				cmd.clear()
 				lfm.mode("normal")
 			end,
 			on_esc = function()
@@ -167,7 +162,6 @@ function M._setup()
 			end,
 			on_return = function()
 				lfm.search_next(true)
-				cmd.clear()
 				lfm.mode("normal")
 			end,
 			on_esc = function()
