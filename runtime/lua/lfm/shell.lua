@@ -75,24 +75,24 @@ function M.popen(command)
 end
 
 ---@class Lfm.Shell.BashOpts
----@field files? number
+---@field files_via? number
 ---@field quiet? boolean show command in the log (default: true)
 ---@field fork? boolean run the command in the background (default: false)
 ---@field out? boolean redirect stdout in the ui (default: true)
 ---@field err? boolean redirect stderr in the ui (default: true)
 
----Build a function from a bash command. Unless `t.files == shell.ARGV` the
+---Build a function from a bash command. Unless `t.files_via == shell.ARGV` the
 ---functions arguments are passed to the shell.
 ---@param command string
 ---@param t? Lfm.Shell.BashOpts
 ---@return function
 function M.bash(command, t)
 	t = t or {}
-	if t.files == ARGV then
+	if t.files_via == ARGV then
 		return function()
 			M.execute({ "bash", "-c", command, "_", unpack(sel_or_cur()) }, t)
 		end
-	elseif t.files == ARRAY then
+	elseif t.files_via == ARRAY then
 		return function(...)
 			M.execute({ "bash", "-c", "files=(" .. M.escape(sel_or_cur()) .. "); " .. command, "_", ... }, t)
 		end
@@ -104,24 +104,24 @@ function M.bash(command, t)
 end
 
 ---@class Lfm.Shell.TmuxOpts
----@field files? number
+---@field files_via? number
 ---@field quiet? boolean show command in the log (default: true)
 ---@field fork? boolean run the command in the background (default: false)
 ---@field out? boolean redirect stdout in the ui (default: true)
 ---@field err? boolean redirect stderr in the ui (default: true)
 
 ---Build a function from a bash command to run in a `tmux new-window`. Unless
----`t.files == shell.ARGV` the functions arguments are passed to the shell.
+---`t.files_via == shell.ARGV` the functions arguments are passed to the shell.
 ---@param command string
 ---@param t? Lfm.Shell.TmuxOpts
 ---@return function
 function M.tmux(command, t)
 	t = t or {}
-	if t.files == ARGV then
+	if t.files_via == ARGV then
 		return function()
 			M.execute({ "tmux", "new-window", command, unpack(sel_or_cur()) }, t)
 		end
-	elseif t.files == ARRAY then
+	elseif t.files_via == ARRAY then
 		return function(...)
 			M.execute({
 				"tmux",
@@ -141,25 +141,25 @@ function M.tmux(command, t)
 end
 
 ---@class Lfm.Shell.FishOpts
----@field files? number
+---@field files_via? number
 ---@field tmux? boolean open command in a new tmux window (default: false)
 ---@field quiet? boolean show command in the log (default: true)
 ---@field fork? boolean run the command in the background (default: false)
 ---@field out? boolean redirect stdout in the ui (default: true)
 ---@field err? boolean redirect stderr in the ui (default: true)
 
----Build a function from a shell command. Unless `t.files == shell.ARGV` the
+---Build a function from a shell command. Unless `t.files_via == shell.ARGV` the
 ---functions arguments are passed to the shell.
 ---@param command string
 ---@param t? Lfm.Shell.FishOpts
 ---@return function
 function M.fish(command, t)
 	t = t or {}
-	if t.files == ARGV then
+	if t.files_via == ARGV then
 		return function()
 			M.execute({ "fish", "-c", command, unpack(sel_or_cur()) }, t)
 		end
-	elseif t.files == ARRAY then
+	elseif t.files_via == ARRAY then
 		if t.tmux then
 			return function(...)
 				M.execute({
@@ -187,24 +187,24 @@ function M.fish(command, t)
 end
 
 ---@class Lfm.Shell.ShOpts
----@field files? number
+---@field files_via? number
 ---@field quiet? boolean show command in the log (default: true)
 ---@field fork? boolean run the command in the background (default: false)
 ---@field out? boolean redirect stdout in the ui (default: true)
 ---@field err? boolean redirect stderr in the ui (default: true)
 
----Build a function from a shell command. Unless `t.files == shell.ARGV` the
+---Build a function from a shell command. Unless `t.files_via == shell.ARGV` the
 ---functions arguments are passed to the shell.
 ---@param command string
 ---@param t? Lfm.Shell.ShOpts
 ---@return function
 function M.sh(command, t)
 	t = t or {}
-	if t.files == ARGV then
+	if t.files_via == ARGV then
 		return function()
 			M.execute({ "sh", "-c", command, "_", sel_or_cur() }, t)
 		end
-	elseif t.files == ARRAY then
+	elseif t.files_via == ARRAY then
 		lfm.error("sh does not support arrays")
 		return function() end
 	else
