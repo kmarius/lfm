@@ -137,13 +137,13 @@ function lfm.colors_clear() end
 
 ---@class Lfm.ModeDef
 ---@field name string The name of the mode.
----@field input boolean true, if the mode takes input via the command line
----@field prefix string The prefix, a string, shown in the command line.
----@field on_enter function A function that is called when the mode is entered.
----@field on_return function A function that is called when pressing enter while the mode is active.
----@field on_change function A function that is called when the command line changes, e.g. keys are typed/deleted.
----@field on_esc function A function that is called when pressing esc while the mode is active.
----@field on_exit function A function that is called when the mode is exited.
+---@field input? boolean true, if the mode takes input via the command line
+---@field prefix? string The prefix, a string, shown in the command line.
+---@field on_enter? function A function that is called when the mode is entered.
+---@field on_return? function A function that is called when pressing enter while the mode is active.
+---@field on_change? function A function that is called when the command line changes, e.g. keys are typed/deleted.
+---@field on_esc? function A function that is called when pressing esc while the mode is active.
+---@field on_exit? function A function that is called when the mode is exited.
 
 ---Register a mode to lfm. A mode is given by a table t containing the following fields:
 ---```
@@ -158,6 +158,14 @@ function lfm.colors_clear() end
 ---```
 ---@param t Lfm.ModeDef
 function lfm.register_mode(t) end
+
+---Enter a mode
+---@param name string The name of the mode.
+function lfm.mode(name) end
+
+---Get the current mode.
+---@return string The name of the current mode.
+function lfm.current_mode() end
 
 --Quit lfm.
 function lfm.quit() end
