@@ -5,6 +5,7 @@
 #include "log.h"
 #include "lua/lfmlua.h"
 #include "trie.h"
+#include "ui.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -70,6 +71,7 @@ static inline void lfm_mode_transition_to(Lfm *lfm, struct mode *mode) {
   mode_on_exit(current, lfm);
   lfm->current_mode = mode;
   mode_on_enter(mode, lfm);
+  ui_redraw(&lfm->ui, REDRAW_INFO);
 }
 
 int lfm_mode_enter(Lfm *lfm, const char *name) {
