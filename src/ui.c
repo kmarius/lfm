@@ -475,7 +475,6 @@ static void draw_custom_info(Ui *ui, const char *user, const char *host,
   char *path_ptr = NULL;
   char *file_ptr = NULL;
   char *spacer_ptr = NULL;
-  char *mode_ptr = NULL;
 
   for (const char *ptr = ui->infoline; *ptr && buf_ptr < buf_end; ptr++) {
     if (*ptr != '%') {
@@ -507,8 +506,8 @@ static void draw_custom_info(Ui *ui, const char *user, const char *host,
         *buf_ptr++ = 0;
         break;
       case 'M':
-        mode_ptr = buf_ptr;
-        *buf_ptr++ = 0;
+        buf_ptr += snprintf(buf_ptr, sizeof(buf) - 1 - (buf_ptr - buf), "%s",
+                            ui->lfm->current_mode->name);
         break;
       case '%':
         *buf_ptr++ = '%';
@@ -534,9 +533,6 @@ static void draw_custom_info(Ui *ui, const char *user, const char *host,
   if (spacer_ptr) {
     static_len += ansi_mblen(spacer_ptr + 1);
   }
-  if (mode_ptr) {
-    static_len += ansi_mblen(mode_ptr + 1);
-  }
 
   int remaining = ui->ncol - static_len;
 
@@ -547,12 +543,6 @@ static void draw_custom_info(Ui *ui, const char *user, const char *host,
     const File *f = fm_current_file(&ui->lfm->fm);
     file = ambstowcs(f ? file_name(f) : "", &file_len);
     file_is_dir = f ? file_isdir(f) : false;
-  }
-
-  wchar_t *mode = NULL;
-  int mode_len = 0;
-  if (mode_ptr) {
-    mode = ambstowcs(ui->lfm->current_mode->name, &mode_len);
   }
 
   int path_len = 0;
@@ -634,11 +624,6 @@ static void draw_custom_info(Ui *ui, const char *user, const char *host,
     ncplane_addastr(n, file_ptr + 1);
   }
 
-  if (mode_ptr) {
-    ncplane_putwstr(n, mode);
-    ncplane_addastr(n, mode_ptr + 1);
-  }
-
   if (spacer_ptr) {
     unsigned int r;
     ncplane_cursor_yx(n, NULL, &r);
@@ -654,7 +639,6 @@ static void draw_custom_info(Ui *ui, const char *user, const char *host,
 
   xfree(path_buf);
   xfree(file);
-  xfree(mode);
 }
 
 static void draw_info(Ui *ui) {
