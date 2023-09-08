@@ -14,6 +14,7 @@
 #define LFM_HOOK_PASTEBUF "PasteBufChange"
 #define LFM_HOOK_DIRLOADED "DirLoaded"
 #define LFM_HOOK_DIRUPDATED "DirUpdated"
+#define LFM_HOOK_MODECHANGED "ModeChanged"
 
 static inline void lfm_run_hook(Lfm *lfm, const char *hook) {
   log_debug("lfm_run_hook1 %s", hook);

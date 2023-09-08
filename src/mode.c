@@ -1,6 +1,7 @@
 #include "mode.h"
 #include "cmdline.h"
 #include "hashtab.h"
+#include "hooks.h"
 #include "lfm.h"
 #include "log.h"
 #include "lua/lfmlua.h"
@@ -71,6 +72,7 @@ static inline void lfm_mode_transition_to(Lfm *lfm, struct mode *mode) {
   mode_on_exit(current, lfm);
   lfm->current_mode = mode;
   mode_on_enter(mode, lfm);
+  llua_run_hook1(lfm->L, LFM_HOOK_MODECHANGED, mode->name);
   ui_redraw(&lfm->ui, REDRAW_INFO);
 }
 

@@ -80,6 +80,7 @@ local hooks = {
 	PasteBufChange = {},
 	DirLoaded = {},
 	DirUpdated = {},
+	ModeChanged = {},
 }
 
 ---@alias Lfm.Hook
@@ -92,17 +93,20 @@ local hooks = {
 ---| '"PasteBufChange"'
 ---| '"DirLoaded"'
 ---| '"DirUpdated"'
+---| '"ModeChanged"'
 
 ---Register a function to hook into events. Curruntly supported hooks are
 ---```
---- LfmEnter         lfm has started and read all configuration
---- ExitPre          lfm is about to exit
---- ChdirPre         emitted before changing directories
---- ChdirPost        emitted after changin directories
---- SelectionChanged the selection changed
---- Resized          the window was resized
---- PasteBufChange   the paste buffer changed
---- DirLoaded        a new directory was loaded from disk
+--- LfmEnter         Lfm has started and read all configuration
+--- ExitPre          Lfm is about to exit
+--- ChdirPre         Emitted before changing directories
+--- ChdirPost        Emitted after changin directories
+--- SelectionChanged The selection changed
+--- Resized          The window was resized
+--- PasteBufChange   The paste buffer changed
+--- DirLoaded        A new directory was loaded from disk
+--- DirUpdated       A new directory was loaded from disk
+--- ModeChanged      Mode transition
 ---
 ---```
 ---@param name Lfm.Hook
