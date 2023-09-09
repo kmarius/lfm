@@ -23,6 +23,8 @@ extern char *default_lua_dir;
 Config cfg = {
     .truncatechar = L'~',
     .scrolloff = 4,
+    .linkchars = "->",
+    .linkchars_len = 2,
     .inotify_timeout = NOTIFY_TIMEOUT,
     .inotify_delay = NOTIFY_DELAY,
     .map_suggestion_delay = MAP_SUGGESTION_DELAY,

@@ -28,6 +28,8 @@ typedef struct config_s {
 
   int histsize;         // 100
   wchar_t truncatechar; // '~'
+  char linkchars[16];   // "->"
+  int linkchars_len;
   char *lastdir;
   char *selfile;
   char *startpath;

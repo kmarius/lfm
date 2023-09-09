@@ -1261,8 +1261,9 @@ static void print_file(struct ncplane *n, const File *file, bool iscurrent,
     }
     rightmargin = strlen(size) + 1;
 
-    if (file_islink(file)) {
-      rightmargin += 3; /* " ->" */
+    if (file_islink(file) && cfg.linkchars_len > 0) {
+      rightmargin += cfg.linkchars_len;
+      rightmargin++;
     }
     if (file_ext(file)) {
       if (ncol - 3 - rightmargin - (cfg.icons ? 2 : 0) < 4) {
@@ -1387,8 +1388,9 @@ static void print_file(struct ncplane *n, const File *file, bool iscurrent,
 
   if (rightmargin > 0) {
     ncplane_cursor_move_yx(n, y0, ncol - rightmargin);
-    if (file_islink(file)) {
-      ncplane_putstr(n, "-> ");
+    if (file_islink(file) && cfg.linkchars_len > 0) {
+      ncplane_putstr(n, cfg.linkchars);
+      ncplane_putchar(n, ' ');
     }
     ncplane_putstr(n, size);
     ncplane_putchar(n, ' ');

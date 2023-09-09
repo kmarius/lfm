@@ -1,4 +1,5 @@
 #include <lauxlib.h>
+#include <stdlib.h>
 
 #include "../config.h"
 #include "../log.h"
@@ -225,6 +226,9 @@ static int l_config_index(lua_State *L) {
   } else if (streq(key, "loading_indicator_delay")) {
     lua_pushnumber(L, cfg.loading_indicator_delay);
     return 1;
+  } else if (streq(key, "linkchars")) {
+    lua_pushstring(L, cfg.linkchars);
+    return 1;
   } else {
     luaL_error(L, "unexpected key %s", key);
   }
@@ -362,6 +366,14 @@ static int l_config_newindex(lua_State *L) {
     int delay = luaL_checkinteger(L, 3);
     luaL_argcheck(L, delay >= 0, 3, "argument must be non-negative");
     cfg.loading_indicator_delay = delay;
+  } else if (streq(key, "linkchars")) {
+    const char *val = luaL_checkstring(L, 3);
+    if (strlen(val) > sizeof cfg.linkchars - 1) {
+      return luaL_error(L, "linkchars too long");
+    }
+    strncpy(cfg.linkchars, val, sizeof(cfg.linkchars) - 1);
+    cfg.linkchars_len = ansi_mblen(val);
+    ui_redraw(ui, REDRAW_FM);
   } else {
     luaL_error(L, "unexpected key %s", key);
   }

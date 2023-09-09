@@ -37,6 +37,7 @@
 ---@field dir_settings table<Lfm.Path, Lfm.DirSetting>
 ---@field ratios integer[] assignable
 ---@field truncatechar string assignable, only the first character is used
+---@field linkchars string assignable, must fit into 16 bytes
 ---@field scrolloff integer assignable
 ---@field hidden boolean assignable
 ---@field preview boolean assignable
