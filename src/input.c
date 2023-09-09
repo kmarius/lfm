@@ -207,6 +207,7 @@ void lfm_handle_key(Lfm *lfm, input_t in) {
         fm_selection_clear(fm);
         fm_paste_buffer_clear(fm);
         lfm_run_hook(lfm, LFM_HOOK_PASTEBUF);
+        lfm_mode_enter(lfm, "normal");
       }
       ui->show_message = false;
       ui_redraw(ui, REDRAW_FM);

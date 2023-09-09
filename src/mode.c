@@ -78,7 +78,7 @@ static inline void lfm_mode_transition_to(Lfm *lfm, struct mode *mode) {
 
 int lfm_mode_enter(Lfm *lfm, const char *name) {
   struct mode *mode = ht_get(&lfm->modes, name);
-  if (!mode) {
+  if (!mode || mode == lfm->current_mode) {
     return 1;
   }
   lfm_mode_transition_to(lfm, mode);
