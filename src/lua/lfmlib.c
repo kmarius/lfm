@@ -431,7 +431,9 @@ static int l_register_mode(lua_State *L) {
     lua_pop(L, 1);
   }
 
-  lfm_mode_register(lfm, &mode);
+  if (lfm_mode_register(lfm, &mode) != 0) {
+    return luaL_error(L, "mode \"%s\" already exists", mode.name);
+  }
 
   return 0;
 }

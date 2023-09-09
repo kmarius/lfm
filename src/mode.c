@@ -52,7 +52,6 @@ void normal_on_enter(Lfm *lfm) {
 
 int lfm_mode_register(Lfm *lfm, const struct mode *mode) {
   if (ht_get(&lfm->modes, mode->name) != NULL) {
-    lfm_error(lfm, "mode %s already exists", mode->name);
     return 1;
   }
   struct mode *newmode = calloc(1, sizeof *newmode);
