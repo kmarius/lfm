@@ -91,3 +91,5 @@ void lfm_print(Lfm *lfm, const char *format, ...);
 
 // Print an error in the UI. `printf` formatting applies.
 void lfm_error(Lfm *lfm, const char *format, ...);
+
+void lfm_start_loading_indicator_timer(Lfm *lfm);

@@ -198,6 +198,7 @@ void async_dir_check(Async *async, Dir *dir) {
 
   if (dir->last_loading_action == 0) {
     dir->last_loading_action = current_millis();
+    lfm_start_loading_indicator_timer(async->lfm);
   }
 
   work->async = async;
@@ -386,6 +387,7 @@ void async_dir_load(Async *async, Dir *dir, bool dircounts) {
 
   if (dir->last_loading_action == 0) {
     dir->last_loading_action = current_millis();
+    lfm_start_loading_indicator_timer(async->lfm);
   }
 
   work->async = async;

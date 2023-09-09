@@ -5,11 +5,14 @@
 #include "config.h"
 #include "cvector.h"
 #include "dir.h"
+#include "fm.h"
 #include "hashtab.h"
 #include "hooks.h"
 #include "lfm.h"
 #include "loader.h"
 #include "log.h"
+#include "memory.h"
+#include "ui.h"
 #include "util.h"
 
 struct timer_data {
@@ -172,6 +175,7 @@ Dir *loader_dir_from_path(Loader *loader, const char *path) {
     ht_set(loader->dir_cache, dir->path, dir);
     async_dir_load(&loader->lfm->async, dir, false);
     dir->last_loading_action = current_millis();
+    lfm_start_loading_indicator_timer(loader->lfm);
     dir->loading = true;
     if (loader->lfm->L) {
       lfm_run_hook1(loader->lfm, LFM_HOOK_DIRLOADED, path);
