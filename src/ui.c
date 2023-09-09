@@ -376,13 +376,21 @@ void draw_cmdline(Ui *ui) {
         if (file_error(file)) {
           lhs_sz = ncplane_printf(n, "error: %s", strerror(file_error(file)));
         } else {
-          lhs_sz =
-              ncplane_printf(n, "%s %2.ld %s %s %4s %s%s%s", file_perms(file),
-                             file_nlink(file), file_owner(file),
-                             file_group(file), file_size_readable(file, size),
-                             print_time(file_mtime(file), mtime, sizeof mtime),
-                             file_islink(file) ? " -> " : "",
-                             file_islink(file) ? file_link_target(file) : "");
+          char buf[512];
+          buf[0] = 0;
+          if (file_islink(file)) {
+            if (cfg.linkchars_len > 0) {
+              snprintf(buf, sizeof buf - 1, " %s %s", cfg.linkchars,
+                       file_link_target(file));
+            } else {
+              snprintf(buf, sizeof buf - 1, " %s", file_link_target(file));
+            }
+          }
+          lhs_sz = ncplane_printf(
+              n, "%s %2.ld %s %s %4s %s%s", file_perms(file), file_nlink(file),
+              file_owner(file), file_group(file),
+              file_size_readable(file, size),
+              print_time(file_mtime(file), mtime, sizeof mtime), buf);
         }
       }
 
