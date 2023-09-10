@@ -2,12 +2,12 @@
 
 ---@class Lfm.Log
 ---@field level number (assignable)
----@field LOG_TRACE number
----@field LOG_DEBUG number
----@field LOG_INFO number
----@field LOG_WARN number
----@field LOG_ERROR number
----@field LOG_FATAL number
+---@field TRACE number
+---@field DEBUG number
+---@field INFO number
+---@field WARN number
+---@field ERROR number
+---@field FATAL number
 lfm.log = {}
 
 ---@vararg any

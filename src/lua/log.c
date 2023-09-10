@@ -79,22 +79,22 @@ int luaopen_log(lua_State *L) {
   lua_newtable(L);
 
   lua_pushnumber(L, LOG_TRACE);
-  lua_setfield(L, -2, STR(LOG_TRACE));
+  lua_setfield(L, -2, STR(TRACE));
 
   lua_pushnumber(L, LOG_DEBUG);
-  lua_setfield(L, -2, STR(LOG_DEBUG));
+  lua_setfield(L, -2, STR(DEBUG));
 
   lua_pushnumber(L, LOG_INFO);
-  lua_setfield(L, -2, STR(LOG_INFO));
+  lua_setfield(L, -2, STR(INFO));
 
   lua_pushnumber(L, LOG_WARN);
-  lua_setfield(L, -2, STR(LOG_WARN));
+  lua_setfield(L, -2, STR(WARN));
 
   lua_pushnumber(L, LOG_ERROR);
-  lua_setfield(L, -2, STR(LOG_ERROR));
+  lua_setfield(L, -2, STR(ERROR));
 
   lua_pushinteger(L, LOG_FATAL);
-  lua_setfield(L, -2, STR(LOG_FATAL));
+  lua_setfield(L, -2, STR(FATAL));
 
   luaL_register(L, NULL, log_lib);
 
