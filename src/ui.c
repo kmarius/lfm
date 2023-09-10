@@ -129,14 +129,6 @@ void ui_init(Ui *ui, struct lfm_s *lfm) {
   ui->lfm = lfm;
 
   ui_resume(ui);
-
-  if (!notcurses_canopen_images(ui->nc)) {
-    log_info("can not open images");
-  } else {
-    log_info("can open images");
-  }
-
-  log_info("initialized ui");
 }
 
 void ui_deinit(Ui *ui) {

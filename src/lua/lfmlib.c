@@ -304,7 +304,6 @@ static inline int map_key(lua_State *L, Trie *trie, bool allow_mode) {
       if (!mode) {
         return luaL_error(L, "no such mode: %s", lua_tostring(L, -1));
       }
-      log_debug("mapping %s for mode %s", keys, mode->name);
       trie = mode->maps;
     }
     lua_pop(L, 1);
@@ -524,8 +523,6 @@ static const struct luaL_Reg lfm_mode_mt[] = {
     {"__index", l_mode_index}, {"__newindex", l_mode_newindex}, {NULL, NULL}};
 
 int luaopen_lfm(lua_State *L) {
-  log_debug("opening lualfm libs");
-
   lua_pushcfunction(L, l_print);
   lua_setglobal(L, "print");
 

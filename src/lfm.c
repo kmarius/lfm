@@ -305,8 +305,6 @@ void lfm_init(Lfm *lfm, FILE *log_fp) {
   ht_foreach(Dir * dir, lfm->loader.dir_cache) {
     lfm_run_hook1(lfm, LFM_HOOK_DIRLOADED, dir->path);
   }
-
-  log_info("initialized lfm");
 }
 
 void lfm_run(Lfm *lfm) {
