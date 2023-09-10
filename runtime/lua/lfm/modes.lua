@@ -109,7 +109,9 @@ function M._setup()
 				local line = cmd.line_get()
 				lfm.mode("normal")
 				if line == "y" then
-					lfm.spawn({ "trash-put", "--", unpack(lfm.sel_or_cur()) })
+					-- TODO: use -- again when an updated version of trash-cli lands
+					-- lfm.spawn({ "trash-put", "--", unpack(lfm.sel_or_cur()) })
+					lfm.spawn({ "trash-put", unpack(lfm.sel_or_cur()) })
 					fm.selection_set()
 				end
 			end,
