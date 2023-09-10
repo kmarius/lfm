@@ -1,6 +1,7 @@
 #include <lauxlib.h>
 #include <lua.h>
 #include <lualib.h>
+#include <stdint.h>
 
 #include "../config.h"
 #include "../log.h"
@@ -180,7 +181,10 @@ void llua_init(lua_State *L, Lfm *lfm_) {
 
   llua_init_packages(L);
 
+  uint64_t t0 = current_micros();
   llua_load_file(L, cfg.configpath, true);
+  log_info("user configuration loaded in %.2fms",
+           (current_micros() - t0) / 1000.0);
 }
 
 void llua_deinit(lua_State *L) {
