@@ -53,7 +53,6 @@ function lfm.eval(line)
 			command.f(arg ~= "" and arg or nil)
 		end
 	else
-		log.debug("loadstring: " .. line)
 		if string.sub(line, 1, 1) == "=" then
 			line = "return " .. string.sub(line, 2, -1)
 		end
@@ -64,7 +63,7 @@ function lfm.eval(line)
 				print(res)
 			end
 		else
-			lfm.error("loadstring: " .. err)
+			error(err)
 		end
 	end
 end
