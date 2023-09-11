@@ -523,10 +523,11 @@ static const struct luaL_Reg lfm_mode_mt[] = {
     {"__index", l_mode_index}, {"__newindex", l_mode_newindex}, {NULL, NULL}};
 
 int luaopen_lfm(lua_State *L) {
+  log_debug("%d", lua_gettop(L));
   lua_pushcfunction(L, l_print);
   lua_setglobal(L, "print");
 
-  luaL_openlib(L, "lfm", lfm_lib, 0);
+  luaL_openlib(L, "lfm", lfm_lib, 0); // [lfm]
 
   luaopen_fm(L);
   lua_setfield(L, -2, "fm");
@@ -575,6 +576,8 @@ int luaopen_lfm(lua_State *L) {
   lua_pushstring(L, LFM_BRANCH);
   lua_setfield(L, -2, "branch");
   lua_setfield(L, -2, "version");
+
+  lua_pop(L, 1); // []
 
   return 1;
 }

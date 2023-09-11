@@ -57,7 +57,7 @@ static inline void destroy_io_watcher(ev_io *w) {
   }
 
   struct stdout_watcher_data *data = w->data;
-  if (data->ref) {
+  if (data->ref >= 0) {
     llua_run_stdout_callback(data->lfm->L, data->ref, NULL);
   }
   fclose(data->stream);
