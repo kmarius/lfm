@@ -547,16 +547,23 @@ static void loading_indicator_timer_cb(EV_P_ ev_timer *w, int revents) {
     ui_redraw(&lfm->ui, REDRAW_CMDLINE);
     ev_idle_start(loop, &lfm->redraw_watcher);
   }
-  ev_timer_stop(loop, w);
-  xfree(w);
+  if (--lfm->loading_indicator_timer_recheck_count == 0) {
+    ev_timer_stop(loop, w);
+  }
 }
 
 void lfm_start_loading_indicator_timer(Lfm *lfm) {
   if (cfg.loading_indicator_delay > 0) {
-    ev_timer *timer = xmalloc(sizeof *timer);
-    double delay = (cfg.loading_indicator_delay + 1) / 1000.;
-    ev_timer_init(timer, loading_indicator_timer_cb, 0, delay);
-    timer->data = lfm;
-    ev_timer_again(lfm->loop, timer);
+    if (lfm->loading_indicator_timer_recheck_count >= 3) {
+      return;
+    }
+    if (lfm->loading_indicator_timer_recheck_count++ == 0) {
+      lfm->loading_indicator_timer_recheck_count++;
+      double delay = ((cfg.loading_indicator_delay + 10) / 2) / 1000.;
+      lfm->loading_indicator_timer.data = lfm;
+      ev_timer_init(&lfm->loading_indicator_timer, loading_indicator_timer_cb,
+                    0, delay);
+      ev_timer_again(lfm->loop, &lfm->loading_indicator_timer);
+    }
   }
 }
