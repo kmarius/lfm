@@ -20,6 +20,12 @@
 #define strcaseeq(X, Y) (strcasecmp(X, Y) == 0)
 #endif
 
+#define container_of(ptr, type, member)                                        \
+  ({                                                                           \
+    const typeof(((type *)0)->member) *__mptr = (ptr);                         \
+    (type *)((char *)__mptr - offsetof(type, member));                         \
+  })
+
 static inline char *rtrim(char *s) {
   char *t = s;
   char *end = s - 1;

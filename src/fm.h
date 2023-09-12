@@ -63,12 +63,11 @@ typedef struct fm_s {
   // Previous directory, not changed on updir/open.
   char *automark;
 
-  struct lfm_s *lfm;
 } Fm;
 
 // Moves to the correct starting directory, loads initial dirs and sets up
 // previews and inotify watchers.
-void fm_init(Fm *fm, struct lfm_s *lfm);
+void fm_init(Fm *fm);
 
 // Unloads directories and frees all resources.
 void fm_deinit(Fm *fm);
@@ -82,8 +81,6 @@ void fm_recol(Fm *fm);
 
 // Current file of the current directory. Can be `NULL`.
 #define fm_current_file(fm) dir_current_file(fm_current_dir(fm))
-
-#define fm_preview_dir(fm) (fm)->preview
 
 // Move the cursor relative to the current position.
 bool fm_cursor_move(Fm *fm, int32_t ct);
@@ -137,7 +134,7 @@ bool fm_updir(Fm *fm);
 // decreases)
 void fm_move_cursor_to(Fm *fm, const char *name);
 
-// Lfmly the filter string given by `filter` to the current directory.
+// Apply the filter string given by `filter` to the current directory.
 void fm_filter(Fm *fm, const char *filter);
 
 // Return the filter string of the currently selected directory.

@@ -22,10 +22,8 @@ typedef struct notify_s {
   size_t version;
 } Notify;
 
-struct lfm_s;
-
 // Returns false on failure
-bool notify_init(Notify *notify, struct lfm_s *lfm);
+bool notify_init(Notify *notify);
 
 void notify_add_watcher(Notify *notify, Dir *dir);
 

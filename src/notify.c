@@ -26,7 +26,7 @@
 
 static void inotify_cb(EV_P_ ev_io *w, int revents);
 
-bool notify_init(Notify *notify, Lfm *lfm) {
+bool notify_init(Notify *notify) {
   notify->inotify_fd = inotify_init1(IN_NONBLOCK);
   if (notify->inotify_fd == -1) {
     return false;
@@ -42,6 +42,7 @@ bool notify_init(Notify *notify, Lfm *lfm) {
   }
 
   ev_io_init(&notify->watcher, inotify_cb, notify->inotify_fd, EV_READ);
+  Lfm *lfm = container_of(notify, struct lfm_s, notify);
   notify->watcher.data = lfm;
   ev_io_start(lfm->loop, &notify->watcher);
 

@@ -69,14 +69,12 @@ typedef struct ui_s {
   bool show_message;
   input_t *keyseq;
 
-  struct lfm_s *lfm;
-
   char *infoline;
 } Ui;
 
 void kbblocking(bool blocking);
 
-void ui_init(Ui *ui, struct lfm_s *lfm);
+void ui_init(Ui *ui);
 
 void ui_recol(Ui *ui);
 

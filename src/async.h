@@ -15,13 +15,12 @@ struct result_queue {
 };
 
 typedef struct async_s {
-  struct lfm_s *lfm;
   struct tpool *tpool;
   struct result_queue queue;
   ev_async result_watcher;
 } Async;
 
-void async_init(Async *async, struct lfm_s *lfm);
+void async_init(Async *async);
 
 void async_deinit(Async *async);
 

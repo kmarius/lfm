@@ -20,17 +20,18 @@
 #include "notify.h"
 #include "util.h"
 
+#define get_lfm(fm_) container_of(fm_, struct lfm_s, fm)
+
 static void fm_update_watchers(Fm *fm);
 static void fm_remove_preview(Fm *fm);
 static void fm_populate(Fm *fm);
 
-void fm_init(Fm *fm, struct lfm_s *lfm) {
+void fm_init(Fm *fm) {
   fm->paste.mode = PASTE_MODE_COPY;
-  fm->lfm = lfm;
 
   if (cfg.startpath) {
     if (chdir(cfg.startpath) != 0) {
-      lfm_error(fm->lfm, "chdir: %s", strerror(errno));
+      lfm_error(get_lfm(fm), "chdir: %s", strerror(errno));
     } else {
       fm->pwd = strdup(cfg.startpath);
     }
@@ -78,13 +79,13 @@ void fm_deinit(Fm *fm) {
 
 static void fm_populate(Fm *fm) {
   fm->dirs.visible[0] =
-      loader_dir_from_path(&fm->lfm->loader, fm->pwd); /* current dir */
+      loader_dir_from_path(&get_lfm(fm)->loader, fm->pwd); /* current dir */
   fm->dirs.visible[0]->visible = true;
   Dir *d = fm_current_dir(fm);
   for (uint32_t i = 1; i < fm->dirs.length; i++) {
     const char *s = dir_parent_path(d);
     if (s) {
-      d = loader_dir_from_path(&fm->lfm->loader, s);
+      d = loader_dir_from_path(&get_lfm(fm)->loader, s);
       d->visible = true;
       fm->dirs.visible[i] = d;
       dir_cursor_move_to(d, fm->dirs.visible[i - 1]->name, fm->height,
@@ -124,12 +125,12 @@ static inline bool fm_chdir_impl(Fm *fm, const char *path, bool save, bool hook,
   }
 
   if (async) {
-    async_chdir(&fm->lfm->async, path, hook);
+    async_chdir(&get_lfm(fm)->async, path, hook);
   } else {
     setenv("PWD", path, true);
   }
 
-  notify_remove_watchers(&fm->lfm->notify);
+  notify_remove_watchers(&get_lfm(fm)->notify);
 
   xfree(fm->pwd);
   fm->pwd = strdup(path);
@@ -164,10 +165,10 @@ bool fm_async_chdir(Fm *fm, const char *path, bool save, bool hook) {
 
 static inline void fm_update_watchers(Fm *fm) {
   // watcher for preview is updated in update_preview
-  notify_remove_watchers(&fm->lfm->notify);
+  notify_remove_watchers(&get_lfm(fm)->notify);
   for (size_t i = 0; i < fm->dirs.length; i++) {
     if (fm->dirs.visible[i]) {
-      async_notify_add(&fm->lfm->async, fm->dirs.visible[i]);
+      async_notify_add(&get_lfm(fm)->async, fm->dirs.visible[i]);
     }
   }
 }
@@ -204,22 +205,22 @@ void fm_hidden_set(Fm *fm, bool hidden) {
 void fm_check_dirs(const Fm *fm) {
   for (uint32_t i = 0; i < fm->dirs.length; i++) {
     if (fm->dirs.visible[i] && !dir_check(fm->dirs.visible[i])) {
-      loader_dir_reload(&fm->lfm->loader, fm->dirs.visible[i]);
+      loader_dir_reload(&get_lfm(fm)->loader, fm->dirs.visible[i]);
     }
   }
 
   if (fm->dirs.preview && !dir_check(fm->dirs.preview)) {
-    loader_dir_reload(&fm->lfm->loader, fm->dirs.preview);
+    loader_dir_reload(&get_lfm(fm)->loader, fm->dirs.preview);
   }
 }
 
 void fm_drop_cache(Fm *fm) {
   log_trace("fm_drop_cache");
 
-  notify_remove_watchers(&fm->lfm->notify);
+  notify_remove_watchers(&get_lfm(fm)->notify);
   fm_remove_preview(fm);
 
-  loader_drop_dir_cache(&fm->lfm->loader);
+  loader_drop_dir_cache(&get_lfm(fm)->loader);
 
   fm_populate(fm);
   fm_update_preview(fm);
@@ -229,11 +230,11 @@ void fm_drop_cache(Fm *fm) {
 void fm_reload(Fm *fm) {
   for (uint32_t i = 0; i < fm->dirs.length; i++) {
     if (fm->dirs.visible[i]) {
-      async_dir_load(&fm->lfm->async, fm->dirs.visible[i], true);
+      async_dir_load(&get_lfm(fm)->async, fm->dirs.visible[i], true);
     }
   }
   if (fm->dirs.preview) {
-    async_dir_load(&fm->lfm->async, fm->dirs.preview, true);
+    async_dir_load(&get_lfm(fm)->async, fm->dirs.preview, true);
   }
 }
 
@@ -242,7 +243,7 @@ static inline void fm_remove_preview(Fm *fm) {
     return;
   }
 
-  notify_remove_watcher(&fm->lfm->notify, fm->dirs.preview);
+  notify_remove_watcher(&get_lfm(fm)->notify, fm->dirs.preview);
   fm->dirs.preview->visible = false;
   fm->dirs.preview = NULL;
 }
@@ -258,7 +259,7 @@ void fm_update_preview(Fm *fm) {
     if (fm->dirs.preview) {
       if (streq(fm->dirs.preview->path, file_path(file))) {
         // this forces the loader to recheck the current preview
-        loader_dir_from_path(&fm->lfm->loader, file_path(file));
+        loader_dir_from_path(&get_lfm(fm)->loader, file_path(file));
         return;
       }
 
@@ -271,13 +272,14 @@ void fm_update_preview(Fm *fm) {
         }
       }
       if (i >= fm->dirs.length) {
-        notify_remove_watcher(&fm->lfm->notify, fm->dirs.preview);
+        notify_remove_watcher(&get_lfm(fm)->notify, fm->dirs.preview);
         fm->dirs.preview->visible = false;
       }
     }
-    fm->dirs.preview = loader_dir_from_path(&fm->lfm->loader, file_path(file));
+    fm->dirs.preview =
+        loader_dir_from_path(&get_lfm(fm)->loader, file_path(file));
     fm->dirs.preview->visible = true;
-    async_notify_preview_add(&fm->lfm->async, fm->dirs.preview);
+    async_notify_preview_add(&get_lfm(fm)->async, fm->dirs.preview);
   } else {
     // file preview or empty
     if (fm->dirs.preview) {
@@ -289,7 +291,7 @@ void fm_update_preview(Fm *fm) {
         }
       }
       if (i == fm->dirs.length) {
-        notify_remove_watcher(&fm->lfm->notify, fm->dirs.preview);
+        notify_remove_watcher(&get_lfm(fm)->notify, fm->dirs.preview);
         fm->dirs.preview->visible = false;
       }
       fm->dirs.preview = NULL;
@@ -404,7 +406,7 @@ void fm_selection_write(const Fm *fm, const char *path) {
 
   FILE *fp = fopen(path, "w");
   if (!fp) {
-    lfm_error(fm->lfm, "selfile: %s", strerror(errno));
+    lfm_error(get_lfm(fm), "selfile: %s", strerror(errno));
     return;
   }
 
@@ -544,7 +546,7 @@ void fm_filter(Fm *fm, const char *filter) {
  * 2022-02-06) */
 void fm_flatten(Fm *fm, uint32_t level) {
   fm_current_dir(fm)->flatten_level = level;
-  async_dir_load(&fm->lfm->async, fm_current_dir(fm), true);
+  async_dir_load(&get_lfm(fm)->async, fm_current_dir(fm), true);
 }
 
 void fm_resize(Fm *fm, uint32_t height) {
@@ -554,7 +556,7 @@ void fm_resize(Fm *fm, uint32_t height) {
   }
 
   // is there a way to restore the position when just undoing a previous resize?
-  ht_foreach(Dir * dir, fm->lfm->loader.dir_cache) {
+  ht_foreach(Dir * dir, get_lfm(fm)->loader.dir_cache) {
     if (height > fm->height) {
       uint32_t scrolloff_top = dir->ind;
       if (scrolloff_top > scrolloff) {

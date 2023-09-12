@@ -7,8 +7,6 @@
 #include "preview.h"
 
 typedef struct loader_s {
-  struct lfm_s *lfm;
-
   Hashtab *dir_cache;
   Hashtab *preview_cache;
   size_t dir_cache_version; // number of times the cache has been dropped
@@ -18,7 +16,7 @@ typedef struct loader_s {
   ev_timer **preview_timers;
 } Loader;
 
-void loader_init(Loader *loader, struct lfm_s *lfm);
+void loader_init(Loader *loader);
 void loader_deinit(Loader *loader);
 // Reschedule reloads, e.g. when timeout/delay is changed.
 void loader_reschedule(Loader *loader);

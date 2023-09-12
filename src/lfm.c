@@ -257,17 +257,17 @@ void lfm_init(Lfm *lfm, FILE *log_fp) {
   }
 
   /* notify should be available on fm startup */
-  if (!notify_init(&lfm->notify, lfm)) {
+  if (!notify_init(&lfm->notify)) {
     log_error("inotify: %s", strerror(errno));
     exit(EXIT_FAILURE);
   }
 
-  loader_init(&lfm->loader, lfm);
+  loader_init(&lfm->loader);
 
-  async_init(&lfm->async, lfm);
+  async_init(&lfm->async);
 
-  fm_init(&lfm->fm, lfm);
-  ui_init(&lfm->ui, lfm);
+  fm_init(&lfm->fm);
+  ui_init(&lfm->ui);
 
   input_init(lfm);
   lfm_modes_init(lfm);
