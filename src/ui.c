@@ -281,6 +281,9 @@ void ui_error(Ui *ui, const char *format, ...) {
 }
 
 void ui_verror(Ui *ui, const char *format, va_list args) {
+  if (!ui->lfm->running) {
+    return;
+  }
   struct message_s msg = {NULL, true};
   vasprintf(&msg.text, format, args);
 

@@ -308,10 +308,12 @@ void lfm_init(Lfm *lfm, FILE *log_fp) {
 }
 
 void lfm_run(Lfm *lfm) {
+  lfm->running = true;
   ev_run(lfm->loop, 0);
 }
 
 void lfm_quit(Lfm *lfm) {
+  lfm->running = false;
   lfm_run_hook(lfm, LFM_HOOK_EXITPRE);
   ev_break(lfm->loop, EVBREAK_ALL);
   // prevent lua error from flashing in the UI, we use it to immediately give
