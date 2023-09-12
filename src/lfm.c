@@ -545,6 +545,7 @@ static void loading_indicator_timer_cb(EV_P_ ev_timer *w, int revents) {
       current_millis() - dir->last_loading_action >=
           cfg.loading_indicator_delay) {
     ui_redraw(&lfm->ui, REDRAW_CMDLINE);
+    ev_idle_start(loop, &lfm->redraw_watcher);
   }
   ev_timer_stop(loop, w);
   xfree(w);
@@ -553,7 +554,7 @@ static void loading_indicator_timer_cb(EV_P_ ev_timer *w, int revents) {
 void lfm_start_loading_indicator_timer(Lfm *lfm) {
   if (cfg.loading_indicator_delay > 0) {
     ev_timer *timer = xmalloc(sizeof *timer);
-    double delay = cfg.loading_indicator_delay / 1000.;
+    double delay = (cfg.loading_indicator_delay + 1) / 1000.;
     ev_timer_init(timer, loading_indicator_timer_cb, 0, delay);
     timer->data = lfm;
     ev_timer_again(lfm->loop, timer);
