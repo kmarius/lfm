@@ -282,10 +282,6 @@ bool cmdline_set_whole(Cmdline *c, const char *left, const char *right) {
 }
 
 bool cmdline_set(Cmdline *c, const char *line) {
-  if (c->prefix.len == 0) {
-    return false;
-  }
-
   c->right.str[0] = 0;
   c->right.len = 0;
   ENSURE_SPACE(c->left, strlen(line));
