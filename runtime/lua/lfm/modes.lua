@@ -91,7 +91,13 @@ function M._setup()
 		map("f", a(lfm.mode, "travel"), { desc = "Enter TRAVEL mode" })
 		map("<c-n>", fm.down, { mode = "travel" })
 		map("<c-p>", fm.up, { mode = "travel" })
-		map("<a-h>", fm.updir, { mode = "travel" })
+		map("<Up>", fm.up, { mode = "travel" })
+		map("<Down>", fm.down, { mode = "travel" })
+		map("<a-h>", function()
+			fm.filter("")
+			fm.updir()
+			cmd.clear()
+		end, { mode = "travel", desc = "Move to parent directory" })
 	end
 
 	-- DELETE mode
