@@ -80,11 +80,11 @@ function M._setup()
 					end
 				end
 			end,
-			on_esc = function()
-				fm.filter("")
-			end,
 			on_change = function()
 				fm.filter(cmd.line_get())
+			end,
+			on_exit = function()
+				fm.filter("")
 			end,
 		}
 		lfm.register_mode(mode)
