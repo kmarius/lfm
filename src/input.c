@@ -71,6 +71,7 @@ static void stdin_cb(EV_P_ ev_io *w, int revents) {
     }
 
     if (in.id == NCKEY_EOF) {
+      log_debug("received EOF, quitting");
       lfm_quit(lfm);
       return;
     }
@@ -106,6 +107,7 @@ void lfm_handle_key(Lfm *lfm, input_t in) {
   Fm *fm = &lfm->fm;
 
   if (in == CTRL('Q')) {
+    log_debug("received ctrl-q, quitting");
     lfm_quit(lfm);
     return;
   }
