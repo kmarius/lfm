@@ -2,12 +2,12 @@
 
 #include <stdbool.h>
 
-#include "lfm.h"
+struct lfm_s;
 
-bool find(Lfm *lfm, const char *prefix);
+bool find(struct lfm_s *lfm, const char *prefix);
 
-void find_clear(Lfm *lfm);
+void find_clear(struct lfm_s *lfm);
 
-void find_next(Lfm *lfm);
+void find_next(struct lfm_s *lfm);
 
-void find_prev(Lfm *lfm);
+void find_prev(struct lfm_s *lfm);
