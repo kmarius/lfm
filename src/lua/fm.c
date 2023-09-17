@@ -356,6 +356,26 @@ static int l_fm_filter(lua_State *L) {
   return 0;
 }
 
+static int l_fm_fuzzy_get(lua_State *L) {
+  const char *fuzzy = fm_current_dir(fm)->fuzzy;
+  if (fuzzy) {
+    lua_pushstring(L, fuzzy);
+  } else {
+    lua_pushnil(L);
+  }
+  return 1;
+}
+
+static int l_fm_fuzzy(lua_State *L) {
+  if (lua_isnil(L, 1)) {
+    fm_fuzzy(fm, NULL);
+  } else {
+    fm_fuzzy(fm, lua_tostring(L, 1));
+  }
+  ui_redraw(ui, REDRAW_FM);
+  return 0;
+}
+
 static int l_fm_jump_automark(lua_State *L) {
   (void)L;
   lfm_run_hook(lfm, LFM_HOOK_CHDIRPRE);
@@ -386,7 +406,9 @@ static const struct luaL_Reg fm_lib[] = {
     {"chdir", l_fm_chdir},
     {"down", l_fm_down},
     {"filter", l_fm_filter},
+    {"fuzzy", l_fm_fuzzy},
     {"getfilter", l_fm_filter_get},
+    {"getfuzzy", l_fm_fuzzy_get},
     {"jump_automark", l_fm_jump_automark},
     {"open", l_fm_open},
     {"current_dir", l_fm_current_dir},

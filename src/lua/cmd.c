@@ -18,7 +18,8 @@ static int l_cmd_line_set(lua_State *L) {
   }
 
   if (lua_gettop(L) == 1) {
-    if (cmdline_set(&ui->cmdline, lua_tostring(L, 1))) {
+    const char *line = lua_tostring(L, 1);
+    if (cmdline_set(&ui->cmdline, line ? line : "")) {
       ui_redraw(ui, REDRAW_CMDLINE);
     }
   } else if (lua_gettop(L) == 2) {

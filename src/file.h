@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <sys/stat.h>
 
+#include "fuzzy.h"
 #include "util.h"
 
 typedef struct file_s {
@@ -17,6 +18,7 @@ typedef struct file_s {
   bool hidden;
   int32_t dircount; // in case of a directory, < 0 if not loaded yet
   int error;
+  score_t score;
 } File;
 
 File *file_create(const char *dir, const char *name);

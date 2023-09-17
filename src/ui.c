@@ -406,6 +406,17 @@ void draw_cmdline(Ui *ui) {
         ncplane_set_fg_default(n);
         ncplane_putchar(n, ' ');
       }
+      if (dir->fuzzy) {
+        rhs_sz += mbstowcs(NULL, dir->fuzzy, 0) + 2 + 2 + 1;
+        ncplane_set_bg_palindex(n, COLOR_GREEN);
+        ncplane_set_fg_palindex(n, COLOR_BLACK);
+        ncplane_putstr_yx(n, 0, ui->ncol - rhs_sz, " * ");
+        ncplane_putstr(n, dir->fuzzy);
+        ncplane_putchar(n, ' ');
+        ncplane_set_bg_default(n);
+        ncplane_set_fg_default(n);
+        ncplane_putchar(n, ' ');
+      }
       if (fm->paste.buffer->size > 0) {
         if (fm->paste.mode == PASTE_MODE_COPY) {
           ncplane_set_channels(n, cfg.colors.copy);

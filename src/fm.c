@@ -531,6 +531,15 @@ bool fm_updir(Fm *fm) {
 
 /* filter {{{ */
 
+void fm_fuzzy(Fm *fm, const char *fuzzy) {
+  Dir *dir = fm_current_dir(fm);
+  File *file = dir_current_file(dir);
+  dir_fuzzy(dir, fuzzy);
+  dir_cursor_move_to(dir, file ? file_name(file) : NULL, fm->height,
+                     cfg.scrolloff);
+  fm_update_preview(fm);
+}
+
 void fm_filter(Fm *fm, const char *filter) {
   Dir *dir = fm_current_dir(fm);
   File *file = dir_current_file(dir);

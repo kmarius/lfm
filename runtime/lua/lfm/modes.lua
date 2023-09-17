@@ -62,6 +62,32 @@ function M._setup()
 		map("zF", a(lfm.feedkeys, "zf<esc>"), { desc = "Remove current filter" })
 	end
 
+	-- FUZZY mode
+	do
+		local mode = {
+			name = "fuzzy",
+			input = true,
+			prefix = "fuzzy: ",
+			on_enter = function()
+				cmd.line_set(fm.getfuzzy())
+			end,
+			on_change = function()
+				fm.fuzzy(cmd.line_get())
+				fm.top()
+			end,
+			on_return = function()
+				lfm.mode("normal")
+			end,
+			on_esc = function()
+				fm.fuzzy("")
+			end,
+		}
+		lfm.register_mode(mode)
+		map("zF", a(lfm.mode, "fuzzy"), { desc = "Enter FUZZY mode" })
+		map("<c-n>", fm.down, { mode = "fuzzy", desc = "down" })
+		map("<c-p>", fm.up, { mode = "fuzzy", desc = "up" })
+	end
+
 	-- TRAVEL mode
 	do
 		local mode = {
@@ -98,6 +124,45 @@ function M._setup()
 			fm.updir()
 			cmd.clear()
 		end, { mode = "travel", desc = "Move to parent directory" })
+	end
+
+	-- TRAVEL-FUZZY mode
+	do
+		local mode = {
+			name = "travel-fuzzy",
+			input = true,
+			prefix = "travel-fuzzy: ",
+			on_return = function()
+				local file = fm.current_file()
+				if file then
+					fm.fuzzy("")
+					if fm.open() then
+						lfm.mode("normal")
+						lfm.eval("open")
+					else
+						cmd.clear()
+					end
+				end
+			end,
+			on_change = function()
+				fm.fuzzy(cmd.line_get())
+				fm.top()
+			end,
+			on_exit = function()
+				fm.fuzzy("")
+			end,
+		}
+		lfm.register_mode(mode)
+		map("F", a(lfm.mode, "travel-fuzzy"), { desc = "Enter travel-fuzzy mode" })
+		map("<c-n>", fm.down, { mode = "travel-fuzzy" })
+		map("<c-p>", fm.up, { mode = "travel-fuzzy" })
+		map("<Up>", fm.up, { mode = "travel-fuzzy" })
+		map("<Down>", fm.down, { mode = "travel-fuzzy" })
+		map("<a-h>", function()
+			fm.filter("")
+			fm.updir()
+			cmd.clear()
+		end, { mode = "travel-fuzzy", desc = "Move to parent directory" })
 	end
 
 	-- DELETE mode

@@ -32,6 +32,14 @@ function lfm.fm.filter(filter) end
 ---@return string filter The filter string.
 function lfm.fm.getfilter() end
 
+---Set the fuzzy filter string for the current directory.
+---@param filter string The filter string.
+function lfm.fm.fuzzy(filter) end
+
+---Get the fuzzy filter string for the current directory.
+---@return string filter The filter string.
+function lfm.fm.getfuzzy() end
+
 ---Jump to the directory saved by the automatic mark (e.g. with '')
 function lfm.fm.jump_automark() end
 
