@@ -17,6 +17,7 @@
 
 #include "../config.h"
 #include "../find.h"
+#include "../hooks.h"
 #include "../input.h"
 #include "../log.h"
 #include "../search.h"
@@ -437,9 +438,43 @@ static int l_register_mode(lua_State *L) {
   return 0;
 }
 
+int l_register_hook(lua_State *L) {
+  const char *name = luaL_checkstring(L, 1);
+  luaL_checktype(L, 2, LUA_TFUNCTION);
+  if (lua_gettop(L) != 2) {
+    return luaL_error(L, "function takes two only arguments");
+  }
+
+  int ref = lua_set_callback(L);
+  if (streq(name, LFM_HOOK_NAME_RESIZED)) {
+    lfm_add_hook(lfm, LFM_HOOK_RESIZED, ref);
+  } else if (streq(name, LFM_HOOK_NAME_ENTER)) {
+    lfm_add_hook(lfm, LFM_HOOK_ENTER, ref);
+  } else if (streq(name, LFM_HOOK_NAME_EXITPRE)) {
+    lfm_add_hook(lfm, LFM_HOOK_EXITPRE, ref);
+  } else if (streq(name, LFM_HOOK_NAME_CHDIRPRE)) {
+    lfm_add_hook(lfm, LFM_HOOK_CHDIRPRE, ref);
+  } else if (streq(name, LFM_HOOK_NAME_CHDIRPOST)) {
+    lfm_add_hook(lfm, LFM_HOOK_CHDIRPOST, ref);
+  } else if (streq(name, LFM_HOOK_NAME_PASTEBUF)) {
+    lfm_add_hook(lfm, LFM_HOOK_PASTEBUF, ref);
+  } else if (streq(name, LFM_HOOK_NAME_DIRLOADED)) {
+    lfm_add_hook(lfm, LFM_HOOK_DIRLOADED, ref);
+  } else if (streq(name, LFM_HOOK_NAME_DIRUPDATED)) {
+    lfm_add_hook(lfm, LFM_HOOK_DIRUPDATED, ref);
+  } else if (streq(name, LFM_HOOK_NAME_MODECHANGED)) {
+    lfm_add_hook(lfm, LFM_HOOK_MODECHANGED, ref);
+  } else {
+    return luaL_error(L, "no such hook: %s", name);
+  }
+
+  return 0;
+}
+
 static const struct luaL_Reg lfm_lib[] = {{"mode", l_mode},
                                           {"current_mode", l_current_mode},
                                           {"register_mode", l_register_mode},
+                                          {"register_hook", l_register_hook},
                                           {"schedule", l_schedule},
                                           {"colors_clear", l_colors_clear},
                                           {"execute", l_execute},

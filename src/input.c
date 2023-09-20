@@ -12,6 +12,7 @@
 #include "lfm.h"
 #include "log.h"
 #include "lua.h"
+#include "lua/lfmlua.h"
 #include "mode.h"
 #include "search.h"
 #include "trie.h"

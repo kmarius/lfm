@@ -1,26 +1,36 @@
 #pragma once
 
-/* TODO: move hook data structures from lua (on 2022-10-09) */
+struct lfm_s;
 
-#include "lfm.h"
-#include "log.h"
-#include "lua/lfmlua.h"
+typedef enum {
+  LFM_HOOK_RESIZED = 0,
+  LFM_HOOK_ENTER,
+  LFM_HOOK_EXITPRE,
+  LFM_HOOK_CHDIRPRE,
+  LFM_HOOK_CHDIRPOST,
+  LFM_HOOK_PASTEBUF,
+  LFM_HOOK_DIRLOADED,
+  LFM_HOOK_DIRUPDATED,
+  LFM_HOOK_MODECHANGED,
+  LFM_NUM_HOOKS
+} lfm_hook_id;
 
-#define LFM_HOOK_RESIZED "Resized"
-#define LFM_HOOK_ENTER "LfmEnter"
-#define LFM_HOOK_EXITPRE "ExitPre"
-#define LFM_HOOK_CHDIRPRE "ChdirPre"
-#define LFM_HOOK_CHDIRPOST "ChdirPost"
-#define LFM_HOOK_PASTEBUF "PasteBufChange"
-#define LFM_HOOK_DIRLOADED "DirLoaded"
-#define LFM_HOOK_DIRUPDATED "DirUpdated"
-#define LFM_HOOK_MODECHANGED "ModeChanged"
+#define LFM_HOOK_NAME_RESIZED "Resized"
+#define LFM_HOOK_NAME_ENTER "LfmEnter"
+#define LFM_HOOK_NAME_EXITPRE "ExitPre"
+#define LFM_HOOK_NAME_CHDIRPRE "ChdirPre"
+#define LFM_HOOK_NAME_CHDIRPOST "ChdirPost"
+#define LFM_HOOK_NAME_PASTEBUF "PasteBufChange"
+#define LFM_HOOK_NAME_DIRLOADED "DirLoaded"
+#define LFM_HOOK_NAME_DIRUPDATED "DirUpdated"
+#define LFM_HOOK_NAME_MODECHANGED "ModeChanged"
 
-static inline void lfm_run_hook(Lfm *lfm, const char *hook) {
-  llua_run_hook(lfm->L, hook);
-}
+void lfm_hooks_init(struct lfm_s *lfm);
 
-static inline void lfm_run_hook1(struct lfm_s *lfm, const char *hook,
-                                 const char *arg1) {
-  llua_run_hook1(lfm->L, hook, arg1);
-}
+void lfm_hooks_deinit(struct lfm_s *lfm);
+
+void lfm_add_hook(struct lfm_s *lfm, lfm_hook_id hook, int ref);
+
+void lfm_run_hook(struct lfm_s *lfm, lfm_hook_id hook);
+
+void lfm_run_hook1(struct lfm_s *lfm, lfm_hook_id hook, const char *arg1);

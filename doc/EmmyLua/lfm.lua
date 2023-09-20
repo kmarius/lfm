@@ -39,6 +39,36 @@ function lfm.execute(command) end
 ---@return number? pid
 function lfm.spawn(command, opts) end
 
+---@alias Lfm.Hook
+---| '"LfmEnter"'
+---| '"ExitPre"'
+---| '"ChdirPre"'
+---| '"ChdirPost"'
+---| '"SelectionChanged"'
+---| '"Resized"'
+---| '"PasteBufChange"'
+---| '"DirLoaded"'
+---| '"DirUpdated"'
+---| '"ModeChanged"'
+
+---Register a function to hook into events. Curruntly supported hooks are
+---```
+--- LfmEnter         Lfm has started and read all configuration
+--- ExitPre          Lfm is about to exit
+--- ChdirPre         Emitted before changing directories
+--- ChdirPost        Emitted after changin directories
+--- SelectionChanged The selection changed
+--- Resized          The window was resized
+--- PasteBufChange   The paste buffer changed
+--- DirLoaded        A new directory was loaded from disk
+--- DirUpdated       A new directory was loaded from disk
+--- ModeChanged      Mode transition
+---
+---```
+---@param name Lfm.Hook
+---@param f function
+function lfm.register_hook(name, f) end
+
 ---Set the timeout in milliseconds from now in which lfm will ignore keyboard input.
 ---@param duration integer in milliseconds.
 function lfm.timeout(duration) end

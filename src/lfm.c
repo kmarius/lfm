@@ -268,6 +268,7 @@ void lfm_init(Lfm *lfm, FILE *log_fp) {
 
   fm_init(&lfm->fm);
   ui_init(&lfm->ui);
+  lfm_hooks_init(lfm);
 
   input_init(lfm);
   lfm_modes_init(lfm);
@@ -531,6 +532,7 @@ void lfm_deinit(Lfm *lfm) {
   llua_deinit(lfm->L);
   ui_deinit(&lfm->ui);
   fm_deinit(&lfm->fm);
+  lfm_hooks_deinit(lfm);
   loader_deinit(&lfm->loader);
   async_deinit(&lfm->async);
   if (lfm->fifo_fd > 0) {

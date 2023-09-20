@@ -7,6 +7,7 @@
 #include "async.h"
 #include "fm.h"
 #include "hashtab.h"
+#include "hooks.h"
 #include "loader.h"
 #include "mode.h"
 #include "notify.h"
@@ -57,6 +58,8 @@ typedef struct lfm_s {
   cvector_vector_type(ev_timer *) schedule_timers;
   cvector_vector_type(ev_child *)
       child_watchers; /* to run callbacks when processes finish */
+
+  int *hook_refs[LFM_NUM_HOOKS];
 } Lfm;
 
 // Initialize ui, fm and the lua_State.

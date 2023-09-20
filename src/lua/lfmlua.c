@@ -128,29 +128,6 @@ void llua_run_stdout_callback(lua_State *L, int ref, const char *line) {
   }
 }
 
-void llua_run_hook(lua_State *L, const char *hook) {
-  lua_getglobal(L, "lfm");         // [lfm]
-  lua_getfield(L, -1, "run_hook"); // [lfm, lfm.run_hook]
-  lua_pushstring(L, hook);         // [lfm, lfm.run_hook, hook]
-  if (llua_pcall(L, 1, 0)) {       // [lfm]
-    ui_error(ui, "%s: %s", hook, lua_tostring(L, -1));
-    lua_pop(L, 1);
-  }
-  lua_pop(L, 1); // []
-}
-
-void llua_run_hook1(lua_State *L, const char *hook, const char *arg1) {
-  lua_getglobal(L, "lfm");         // [lfm]
-  lua_getfield(L, -1, "run_hook"); // [lfm, lfm.run_hook]
-  lua_pushstring(L, hook);         // [lfm, lfm.run_hook, hook]
-  lua_pushstring(L, arg1);         // [lfm, lfm.run_hook, hook, arg1]
-  if (llua_pcall(L, 2, 0)) {       // [lfm]
-    ui_error(ui, "%s, %s: %s", hook, arg1, lua_tostring(L, -1));
-    lua_pop(L, 1);
-  }
-  lua_pop(L, 1); // []
-}
-
 void llua_call_from_ref(lua_State *L, int ref, int count) {
   lua_rawgeti(L, LUA_REGISTRYINDEX, ref); // [f]
   if (count > 0) {

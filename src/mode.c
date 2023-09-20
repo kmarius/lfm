@@ -71,7 +71,7 @@ static inline void lfm_mode_transition_to(Lfm *lfm, struct mode *mode) {
   mode_on_exit(current, lfm);
   lfm->current_mode = mode;
   mode_on_enter(mode, lfm);
-  llua_run_hook1(lfm->L, LFM_HOOK_MODECHANGED, mode->name);
+  lfm_run_hook1(lfm, LFM_HOOK_MODECHANGED, mode->name);
   ui_redraw(&lfm->ui, REDRAW_INFO);
 }
 

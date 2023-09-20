@@ -368,7 +368,7 @@
  *
  */
 #define cvector_foreach(item, vec)                                             \
-  for (typeof(*vec) *cv_cont, *(cv_ptr) = cvector_begin(vec);                  \
+  for (typeof(*(vec)) *cv_cont, *(cv_ptr) = cvector_begin(vec);                \
        (cv_ptr) < cvector_end(vec) && (cv_cont = cv_ptr); (cv_ptr)++)          \
     for (item = *cv_ptr; cv_cont; cv_cont = NULL)
 
