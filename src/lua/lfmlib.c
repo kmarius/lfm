@@ -118,7 +118,7 @@ static int l_quit(lua_State *L) {
 static int l_print(lua_State *L) {
   int n = lua_gettop(L);
   lua_getglobal(L, "tostring");
-  char *buf = calloc(128, 1);
+  char *buf = xcalloc(128, 1);
   size_t buflen = 128;
   size_t ind = 0;
   for (int i = 1; i <= n; i++) {
@@ -136,7 +136,7 @@ static int l_print(lua_State *L) {
     int l = strlen(s);
     if (ind + l >= buflen) {
       buflen *= 2;
-      buf = realloc(buf, buflen);
+      buf = xrealloc(buf, buflen);
     }
     strcpy(&buf[ind], s);
     ind += l;

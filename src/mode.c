@@ -54,7 +54,7 @@ int lfm_mode_register(Lfm *lfm, const struct mode *mode) {
   if (ht_get(&lfm->modes, mode->name) != NULL) {
     return 1;
   }
-  struct mode *newmode = calloc(1, sizeof *newmode);
+  struct mode *newmode = xcalloc(1, sizeof *newmode);
   memcpy(newmode, mode, sizeof *newmode);
   newmode->name = strdup(mode->name);
   if (newmode->prefix) {
