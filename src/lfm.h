@@ -28,7 +28,6 @@ typedef struct lfm_s {
   FILE *log_fp;
 
   ev_io input_watcher;
-  uint64_t input_timeout;
   struct {
     struct trie_s *cur;       // current leaf in the trie of the active mode
     struct trie_s *cur_input; // current leaf in the trie of the active mode

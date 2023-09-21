@@ -69,10 +69,6 @@ function lfm.spawn(command, opts) end
 ---@param f function
 function lfm.register_hook(name, f) end
 
----Set the timeout in milliseconds from now in which lfm will ignore keyboard input.
----@param duration integer in milliseconds.
-function lfm.timeout(duration) end
-
 ---Schedule a lua function to run after `delay` milliseconds. Runs `f` immediately
 ---if `delay` non-positive.
 ---@param f function

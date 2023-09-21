@@ -48,10 +48,6 @@ void input_suspend(Lfm *lfm) {
   ev_io_stop(lfm->loop, &lfm->input_watcher);
 }
 
-void input_timeout_set(struct lfm_s *lfm, uint32_t duration) {
-  lfm->input_timeout = current_millis() + duration;
-}
-
 int input_map(Trie *trie, const char *keys, int ref, const char *desc) {
   input_t *buf = xmalloc((strlen(keys) + 1) * sizeof *buf);
   key_names_to_input(keys, buf);
@@ -83,9 +79,6 @@ static void stdin_cb(EV_P_ ev_io *w, int revents) {
     // if (in.id >= NCKEY_LSHIFT && in.id <= NCKEY_L5SHIFT) {
     //   continue;
     // }
-    if (current_millis() <= lfm->input_timeout) {
-      continue;
-    }
 
     log_trace("id: %d, shift: %d, ctrl: %d alt %d, type: %d, %s", in.id,
               in.shift, in.ctrl, in.alt, in.evtype, in.utf8);

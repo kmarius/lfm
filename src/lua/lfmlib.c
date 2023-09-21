@@ -57,13 +57,6 @@ static int l_handle_key(lua_State *L) {
   return 0;
 }
 
-static int l_timeout(lua_State *L) {
-  const int dur = luaL_checkinteger(L, 1);
-  luaL_argcheck(L, dur >= 0, 1, "timeout must be non-negative");
-  input_timeout_set(lfm, dur);
-  return 0;
-}
-
 static int l_search(lua_State *L) {
   search(lfm, luaL_optstring(L, 1, NULL), true);
   return 0;
@@ -484,7 +477,6 @@ static const struct luaL_Reg lfm_lib[] = {{"mode", l_mode},
                                           {"get_maps", l_get_maps},
                                           {"get_cmaps", l_get_cmaps},
                                           {"handle_key", l_handle_key},
-                                          {"timeout", l_timeout},
                                           {"find", l_find},
                                           {"find_clear", l_find_clear},
                                           {"find_next", l_find_next},
