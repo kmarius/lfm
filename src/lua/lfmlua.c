@@ -2,6 +2,7 @@
 #include <lua.h>
 #include <lualib.h>
 #include <stdint.h>
+#include <string.h>
 
 #include "../config.h"
 #include "../log.h"
@@ -153,7 +154,8 @@ void llua_eval(lua_State *L, const char *expr) {
 
 bool llua_load_file(lua_State *L, const char *path, bool err_on_non_exist) {
   if (luaL_loadfile(L, path)) {
-    if (!err_on_non_exist) {
+    if (err_on_non_exist ||
+        !strstr(lua_tostring(L, -1), "No such file or directory")) {
       ui_error(ui, "%s", lua_tostring(L, -1));
     }
     return false;
@@ -178,7 +180,7 @@ void llua_init(lua_State *L, Lfm *lfm_) {
   llua_init_packages(L);
 
   uint64_t t0 = current_micros();
-  llua_load_file(L, cfg.configpath, true);
+  llua_load_file(L, cfg.configpath, false);
   log_info("user configuration loaded in %.2fms",
            (current_micros() - t0) / 1000.0);
 }

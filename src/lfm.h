@@ -15,7 +15,6 @@
 #include "ui.h"
 
 typedef struct lfm_s {
-  bool running;
   Ui ui;
   Fm fm;
   lua_State *L;
