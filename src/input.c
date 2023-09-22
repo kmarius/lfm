@@ -26,15 +26,15 @@ void input_resume(Lfm *lfm);
 void input_init(Lfm *lfm) {
   lfm->maps.seq = NULL;
 
-  ev_timer_init(&lfm->map_clear_timer, map_clear_timer_cb, 0, 0);
-  lfm->map_clear_timer.data = lfm;
+  ev_timer_init(&lfm->ui.map_clear_timer, map_clear_timer_cb, 0, 0);
+  lfm->ui.map_clear_timer.data = lfm;
 
   input_resume(lfm);
 }
 
 void input_deinit(Lfm *lfm) {
   cvector_free(lfm->maps.seq);
-  ev_timer_stop(lfm->loop, &lfm->map_clear_timer);
+  ev_timer_stop(lfm->loop, &lfm->ui.map_clear_timer);
 }
 
 void input_resume(Lfm *lfm) {
@@ -106,7 +106,7 @@ void lfm_handle_key(Lfm *lfm, input_t in) {
     return;
   }
 
-  ev_timer_stop(lfm->loop, &lfm->map_clear_timer);
+  ev_timer_stop(lfm->loop, &lfm->ui.map_clear_timer);
 
   const char *prefix = lfm->current_mode->prefix;
   if (!prefix && lfm->maps.accept_count && '0' <= in && in <= '9') {
@@ -245,8 +245,8 @@ void lfm_handle_key(Lfm *lfm, input_t in) {
       }
       cvector_free(leaves);
       ui_menu_show(ui, menu, cfg.map_suggestion_delay);
-      lfm->map_clear_timer.repeat = (float)cfg.map_clear_delay / 1000.0;
-      ev_timer_again(lfm->loop, &lfm->map_clear_timer);
+      lfm->ui.map_clear_timer.repeat = (float)cfg.map_clear_delay / 1000.0;
+      ev_timer_again(lfm->loop, &lfm->ui.map_clear_timer);
     }
   }
 }

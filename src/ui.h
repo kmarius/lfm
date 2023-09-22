@@ -48,7 +48,8 @@ typedef struct ui_s {
 
   cvector_vector_type(char *) menubuf;
   bool menu_visible;
-  struct ev_timer menu_delay_timer;
+  ev_timer menu_delay_timer;
+  ev_timer map_clear_timer;
 
   cvector_vector_type(struct message_s) messages;
 
