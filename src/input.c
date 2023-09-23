@@ -82,7 +82,7 @@ static void stdin_cb(EV_P_ ev_io *w, int revents) {
 
     log_trace("id: %d, shift: %d, ctrl: %d alt %d, type: %d, %s", in.id,
               in.shift, in.ctrl, in.alt, in.evtype, in.utf8);
-    lfm_handle_key(lfm, ncinput_to_input(&in));
+    input_handle_key(lfm, ncinput_to_input(&in));
   }
 
   ev_idle_start(loop, &lfm->redraw_watcher);
@@ -96,7 +96,7 @@ static inline void input_clear(Lfm *lfm) {
   ui_keyseq_hide(ui);
 }
 
-void lfm_handle_key(Lfm *lfm, input_t in) {
+void input_handle_key(Lfm *lfm, input_t in) {
   Ui *ui = &lfm->ui;
   Fm *fm = &lfm->fm;
 

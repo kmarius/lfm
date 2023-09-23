@@ -14,7 +14,7 @@ void input_resume(struct lfm_s *lfm);
 // Stop listening to input:
 void input_suspend(struct lfm_s *lfm);
 
-void lfm_handle_key(struct lfm_s *lfm, input_t in);
+void input_handle_key(struct lfm_s *lfm, input_t in);
 
 // Set input timout. Key input will be ignored for the next `duration` ms.
 void input_timeout_set(struct lfm_s *lfm, uint32_t duration);

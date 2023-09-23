@@ -50,7 +50,7 @@ static int l_handle_key(lua_State *L) {
   input_t *buf = xmalloc((strlen(keys) + 1) * sizeof *buf);
   key_names_to_input(keys, buf);
   for (input_t *u = buf; *u; u++) {
-    lfm_handle_key(lfm, *u);
+    input_handle_key(lfm, *u);
   }
   xfree(buf);
   return 0;
