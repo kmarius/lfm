@@ -75,21 +75,6 @@ function lfm.register_hook(name, f) end
 ---@param delay number
 function lfm.schedule(f, delay) end
 
----Find files the current directory. Moves the curser to to next file with the given prefix
----Returns true if only a single file in the current directory matches.
----@param prefix string
----@return boolean
-function lfm.find(prefix) end
-
----Jumps to the next `lfm.find` match.
-function lfm.find_next() end
-
----Jumps to the previous `lfm.find` match.
-function lfm.find_prev() end
-
----Clear `lfm.find` matches.
-function lfm.find_clear() end
-
 ---Search files in the current directory.
 ---@param string? string Omitting will remove highlighting.
 function lfm.search(string) end

@@ -16,7 +16,6 @@
 #include "ui.h"
 
 #include "../config.h"
-#include "../find.h"
 #include "../hooks.h"
 #include "../input.h"
 #include "../log.h"
@@ -80,29 +79,6 @@ static int l_search_next(lua_State *L) {
 
 static int l_search_prev(lua_State *L) {
   search_prev(lfm, luaL_optbool(L, 1, false));
-  return 0;
-}
-
-static int l_find(lua_State *L) {
-  lua_pushboolean(L, find(lfm, luaL_checkstring(L, 1)));
-  return 1;
-}
-
-static int l_find_clear(lua_State *L) {
-  (void)L;
-  find_clear(lfm);
-  return 0;
-}
-
-static int l_find_next(lua_State *L) {
-  (void)L;
-  find_next(lfm);
-  return 0;
-}
-
-static int l_find_prev(lua_State *L) {
-  (void)L;
-  find_prev(lfm);
   return 0;
 }
 
@@ -477,10 +453,6 @@ static const struct luaL_Reg lfm_lib[] = {{"mode", l_mode},
                                           {"get_maps", l_get_maps},
                                           {"get_cmaps", l_get_cmaps},
                                           {"handle_key", l_handle_key},
-                                          {"find", l_find},
-                                          {"find_clear", l_find_clear},
-                                          {"find_next", l_find_next},
-                                          {"find_prev", l_find_prev},
                                           {"nohighlight", l_nohighlight},
                                           {"search", l_search},
                                           {"search_back", l_search_backwards},
