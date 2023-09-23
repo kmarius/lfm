@@ -58,9 +58,6 @@ static inline Preview *preview_create(const char *path, int height, int width) {
 }
 
 static void destroy_text_preview(Preview *p) {
-  if (!p) {
-    return;
-  }
   cvector_ffree(p->lines, xfree);
   xfree(p->path);
   xfree(p);
@@ -310,9 +307,6 @@ static void draw_image_preview(const Preview *p, struct ncplane *n) {
 }
 
 static void destroy_image_preview(Preview *p) {
-  if (!p) {
-    return;
-  }
   if (p->ncv) {
     ncvisual_destroy(p->ncv);
     p->ncv = NULL;

@@ -49,5 +49,7 @@ static inline void preview_draw(const Preview *pv, struct ncplane *n) {
 }
 
 static inline void preview_destroy(Preview *pv) {
-  pv->destroy(pv);
+  if (pv) {
+    pv->destroy(pv);
+  }
 }
