@@ -46,7 +46,7 @@ static void mode_free(void *p) {
 }
 
 void normal_on_enter(Lfm *lfm) {
-  ui_cmd_clear(&lfm->ui);
+  cmdline_clear(&lfm->ui.cmdline);
   cmdline_prefix_set(&lfm->ui.cmdline, "");
 }
 

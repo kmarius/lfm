@@ -41,7 +41,7 @@ static int l_cmd_toggle_overwrite(lua_State *L) {
 
 static int l_cmd_clear(lua_State *L) {
   (void)L;
-  ui_cmd_clear(ui);
+  cmdline_clear(&ui->cmdline);
   return 0;
 }
 

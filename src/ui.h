@@ -112,10 +112,6 @@ static inline void ui_keyseq_hide(Ui *ui) {
   ui_keyseq_show(ui, NULL);
 }
 
-void ui_cmd_clear(Ui *ui);
-
-void ui_cmd_prefix_set(Ui *ui, const char *prefix);
-
 void ui_drop_cache(Ui *ui);
 
 void ui_resume(Ui *ui);

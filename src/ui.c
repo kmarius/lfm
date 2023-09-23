@@ -305,24 +305,6 @@ void ui_vechom(Ui *ui, const char *format, va_list args) {
 
 /* cmd line {{{ */
 
-void ui_cmd_prefix_set(Ui *ui, const char *prefix) {
-  if (!prefix) {
-    return;
-  }
-
-  ui->show_message = false;
-  notcurses_cursor_enable(ui->nc, 0, 0);
-  cmdline_prefix_set(&ui->cmdline, prefix);
-  ui_redraw(ui, REDRAW_CMDLINE);
-}
-
-void ui_cmd_clear(Ui *ui) {
-  cmdline_clear(&ui->cmdline);
-  notcurses_cursor_disable(ui->nc);
-  ui_menu_show(ui, NULL, 0);
-  ui_redraw(ui, REDRAW_CMDLINE | REDRAW_MENU);
-}
-
 static char *print_time(time_t time, char *buffer, size_t bufsz) {
   strftime(buffer, bufsz, "%Y-%m-%d %H:%M:%S", localtime(&time));
   return buffer;

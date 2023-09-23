@@ -7,6 +7,9 @@
 #include "config.h"
 #include "memory.h"
 #include "ncutil.h"
+#include "ui.h"
+
+#define get_ui(cmdline_) container_of(cmdline_, struct ui_s, cmdline)
 
 #define VSTR_INIT(vec, c)                                                      \
   do {                                                                         \
@@ -258,6 +261,9 @@ bool cmdline_clear(Cmdline *c) {
   c->right.len = 0;
   c->overwrite = false;
   history_reset(&c->history);
+  notcurses_cursor_disable(get_ui(c)->nc);
+  ui_menu_show(get_ui(c), NULL, 0);
+  ui_redraw(get_ui(c), REDRAW_CMDLINE | REDRAW_MENU);
   return true;
 }
 
