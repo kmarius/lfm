@@ -16,6 +16,7 @@ if(NOT CMAKE_BUILD_TYPE)
 	set(CMAKE_BUILD_TYPE Release)
 endif()
 
+# if asan errors on program exit, run with: ASAN_OPTIONS=use_sigaltstack=0 ./lfm
 if (CMAKE_BUILD_TYPE STREQUAL "Asan")
 	add_compile_options(-fsanitize=address)
 	add_link_options(-fsanitize=address)
