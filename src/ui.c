@@ -1478,10 +1478,11 @@ static void update_preview(Ui *ui) {
         if (!ui->preview.preview->loading) {
           if (ui->preview.preview->reload_height < (int)nrow ||
               ui->preview.preview->reload_width < (int)ncol) {
-            async_preview_load(&get_lfm(ui)->async, ui->preview.preview);
+            loader_preview_reload(&get_lfm(ui)->loader, ui->preview.preview);
             ui->preview.preview->loading = true;
           } else {
-            if (ui->preview.preview->loadtime + 500 <= current_millis()) {
+            if (ui->preview.preview->loadtime + cfg.inotify_delay <=
+                current_millis()) {
               async_preview_check(&get_lfm(ui)->async, ui->preview.preview);
             }
           }
