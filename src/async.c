@@ -242,7 +242,7 @@ static void dir_count_destroy(void *p) {
 static void dir_count_callback(void *p, Lfm *lfm) {
   struct dir_count_s *res = p;
   // discard if any other update has been applied in the meantime
-  if (CHECK_PASSES(res->check) && res->dir->updates <= 1) {
+  if (CHECK_PASSES(res->check) && !res->dir->dircounts) {
     for (size_t i = 0; i < cvector_size(res->counts); i++) {
       file_dircount_set(res->counts[i].file, res->counts[i].count);
     }
@@ -393,6 +393,7 @@ void async_dir_load(Async *async, Dir *dir, bool dircounts) {
   work->super.callback = &dir_update_callback;
   work->super.destroy = &dir_update_destroy;
 
+  dir->dircounts = dircounts;
   if (dir->last_loading_action == 0) {
     dir->last_loading_action = current_millis();
     lfm_start_loading_indicator_timer(get_lfm(async));

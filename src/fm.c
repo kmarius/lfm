@@ -555,7 +555,7 @@ void fm_filter(Fm *fm, const char *filter) {
  * 2022-02-06) */
 void fm_flatten(Fm *fm, uint32_t level) {
   fm_current_dir(fm)->flatten_level = level;
-  async_dir_load(&get_lfm(fm)->async, fm_current_dir(fm), true);
+  async_dir_load(&get_lfm(fm)->async, fm_current_dir(fm), false);
 }
 
 void fm_resize(Fm *fm, uint32_t height) {
