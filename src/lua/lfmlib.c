@@ -301,9 +301,15 @@ static int l_cmap_key(lua_State *L) {
   return map_key(L, lfm->maps.input, false);
 }
 
-static inline void lua_push_maps(lua_State *L, Trie *trie, bool prune) {
+static int l_get_maps(lua_State *L) {
+  const char *name = luaL_checkstring(L, 1);
+  luaL_checktype(L, 2, LUA_TBOOLEAN);
+  struct mode *mode = ht_get(&lfm->modes, name);
+  if (!mode) {
+    return luaL_error(L, "no such mode: %s", name);
+  }
   cvector_vector_type(Trie *) keymaps = NULL;
-  trie_collect_leaves(trie, &keymaps, prune);
+  trie_collect_leaves(mode->maps, &keymaps, lua_toboolean(L, 2));
   lua_newtable(L);
   for (size_t i = 0; i < cvector_size(keymaps); i++) {
     lua_newtable(L);
@@ -315,17 +321,6 @@ static inline void lua_push_maps(lua_State *L, Trie *trie, bool prune) {
     lua_setfield(L, -2, "f");
     lua_rawseti(L, -2, i + 1);
   }
-}
-
-static int l_get_maps(lua_State *L) {
-  struct mode *normal = ht_get(&lfm->modes, "normal");
-  lua_push_maps(L, normal->maps, luaL_optbool(L, 1, true));
-  return 1;
-}
-
-static int l_get_cmaps(lua_State *L) {
-  struct mode *input = ht_get(&lfm->modes, "input");
-  lua_push_maps(L, input->maps, luaL_optbool(L, 1, true));
   return 1;
 }
 
@@ -447,7 +442,6 @@ static const struct luaL_Reg lfm_lib[] = {{"mode", l_mode},
                                           {"map", l_map_key},
                                           {"cmap", l_cmap_key},
                                           {"get_maps", l_get_maps},
-                                          {"get_cmaps", l_get_cmaps},
                                           {"handle_key", l_handle_key},
                                           {"nohighlight", l_nohighlight},
                                           {"search", l_search},

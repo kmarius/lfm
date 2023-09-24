@@ -135,15 +135,12 @@ function lfm.cmap(seq, f, opts) end
 ---@field keys string
 ---@field f function
 
----Get a table of all maps.
----@param prune? boolean list reachable maps only (default: true)
+---Get a table of all maps for a mode. Pass the special mode "input" to get keys
+---mapped via lfm.cmap.
+---@param mode string mode
+---@param prune boolean list reachable maps only
 ---@return Lfm.Keymap[]
-function lfm.get_maps(prune) end
-
----Get a table of all cmaps.
----@param prune? boolean list reachable maps only (default: true)
----@return Lfm.Keymap[]
-function lfm.get_cmaps(prune) end
+function lfm.get_maps(mode, prune) end
 
 ---Clear all colors.
 function lfm.colors_clear() end
