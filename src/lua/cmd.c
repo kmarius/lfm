@@ -17,17 +17,9 @@ static int l_cmd_line_set(lua_State *L) {
     luaL_error(L, "line_set takes up to two arguments");
   }
 
-  if (lua_gettop(L) == 1) {
-    const char *line = lua_tostring(L, 1);
-    if (cmdline_set(&ui->cmdline, line ? line : "")) {
-      ui_redraw(ui, REDRAW_CMDLINE);
-    }
-  } else if (lua_gettop(L) == 2) {
-    if (cmdline_set_whole(&ui->cmdline, lua_tostring(L, 1),
-                          lua_tostring(L, 2))) {
-      ui_redraw(ui, REDRAW_CMDLINE);
-    }
-  }
+  cmdline_set(&ui->cmdline, lua_tostring(L, 1), lua_tostring(L, 2));
+  ui_redraw(ui, REDRAW_CMDLINE);
+
   return 0;
 }
 

@@ -320,7 +320,7 @@ static uint32_t int_sz(uint32_t n) {
 }
 
 void draw_cmdline(Ui *ui) {
-  if (ui->running && ui->show_message && !cmdline_prefix_get(&ui->cmdline)) {
+  if (ui->running && ui->show_message && !get_lfm(ui)->current_mode->input) {
     struct message_s *msg = cvector_end(ui->messages) - 1;
     print_message(ui, msg->text, msg->error);
     return;

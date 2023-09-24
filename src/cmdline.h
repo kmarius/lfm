@@ -35,11 +35,8 @@ void cmdline_deinit(Cmdline *t);
 // Set the `prefix` of the cmdline.
 bool cmdline_prefix_set(Cmdline *t, const char *prefix);
 
-// Get the `prefix` of the cmdline. Returns `NULL` if the prefix is empty.
-const char *cmdline_prefix_get(Cmdline *t);
-
-// Insert the first mb char encountered in key. Returns `true` if a redraw is
-// necessary.
+// Insert the first multibyte char encountered in `key`. Returns `true` if a
+// redraw is necessary.
 bool cmdline_insert(Cmdline *t, const char *key);
 
 // Toggle insert/overwrite.
@@ -82,15 +79,11 @@ bool cmdline_end(Cmdline *t);
 // necessary.
 bool cmdline_clear(Cmdline *t);
 
-// If the `prefix` is nonempty, set the text to the left of the cursor. Returns
-// `true` if a redraw is necessary.
-bool cmdline_set(Cmdline *t, const char *line);
+// Set the command line. `left` and `right` are the strings left and right of
+// the cursor, respectively. NULL is accepted.
+bool cmdline_set(Cmdline *t, const char *left, const char *right);
 
-// Set the command line, placing the cursor between `left` and
-// `right`. Returns `true` if a redraw is necessary.
-bool cmdline_set_whole(Cmdline *t, const char *left, const char *right);
-
-// Returns the currend command line without `prefix`.
+// Returns the currend command line.
 const char *cmdline_get(Cmdline *t);
 
 // Draw the command line into an ncplane. Returns the number of printed

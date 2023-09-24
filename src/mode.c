@@ -65,23 +65,23 @@ int lfm_mode_register(Lfm *lfm, const struct mode *mode) {
   return 0;
 }
 
-static inline void lfm_mode_transition_to(Lfm *lfm, struct mode *mode) {
-  struct mode *current = lfm->current_mode;
-  log_debug("mode transition from %s to %s", current->name, mode->name);
-  mode_on_exit(current, lfm);
-  lfm->current_mode = mode;
-  mode_on_enter(mode, lfm);
-  lfm_run_hook1(lfm, LFM_HOOK_MODECHANGED, mode->name);
-  ui_redraw(&lfm->ui, REDRAW_INFO);
-}
-
 int lfm_mode_enter(Lfm *lfm, const char *name) {
   struct mode *mode = ht_get(&lfm->modes, name);
   if (!mode || mode == lfm->current_mode) {
     return 1;
   }
-  lfm_mode_transition_to(lfm, mode);
+
+  mode_on_exit(lfm->current_mode, lfm);
+  lfm->current_mode = mode;
+  mode_on_enter(mode, lfm);
+
+  if (mode->input && mode->prefix) {
+    cmdline_prefix_set(&lfm->ui.cmdline, mode->prefix);
+  }
   lfm->maps.cur_input = NULL;
+  lfm_run_hook1(lfm, LFM_HOOK_MODECHANGED, mode->name);
+
+  ui_redraw(&lfm->ui, REDRAW_INFO);
   return 0;
 }
 

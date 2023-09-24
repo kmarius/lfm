@@ -338,10 +338,6 @@ static int l_mode(lua_State *L) {
   if (lfm_mode_enter(lfm, luaL_checkstring(L, -1)) != 0) {
     return luaL_error(L, "no such mode: %s", lua_tostring(L, -1));
   }
-  struct mode *mode = lfm->current_mode;
-  if (mode->input && mode->prefix) {
-    cmdline_prefix_set(&ui->cmdline, mode->prefix);
-  }
   return 0;
 }
 

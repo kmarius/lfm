@@ -267,36 +267,29 @@ bool cmdline_clear(Cmdline *c) {
   return true;
 }
 
-bool cmdline_set_whole(Cmdline *c, const char *left, const char *right) {
-  ENSURE_SPACE(c->left, strlen(left));
-  ENSURE_SPACE(c->right, strlen(right));
-  size_t n = mbstowcs(c->left.str, left, c->left.cap + 1);
-  if (n == (size_t)-1) {
-    c->left.len = 0;
-    c->left.str[0] = 0;
-  } else {
-    c->left.len = n;
+bool cmdline_set(Cmdline *c, const char *left, const char *right) {
+  if (left && left[0]) {
+    ENSURE_SPACE(c->left, strlen(left));
+    size_t n = mbstowcs(c->left.str, left, c->left.cap + 1);
+    if (n == (size_t)-1) {
+      c->left.len = 0;
+      c->left.str[0] = 0;
+    } else {
+      c->left.len = n;
+    }
   }
-  n = mbstowcs(c->right.str, right, c->right.cap + 1);
-  if (n == (size_t)-1) {
+  if (right && right[0]) {
+    ENSURE_SPACE(c->right, strlen(right));
+    size_t n = mbstowcs(c->right.str, right, c->right.cap + 1);
+    if (n == (size_t)-1) {
+      c->right.len = 0;
+      c->right.str[0] = 0;
+    } else {
+      c->right.len = n;
+    }
+  } else {
     c->right.len = 0;
     c->right.str[0] = 0;
-  } else {
-    c->right.len = n;
-  }
-  return true;
-}
-
-bool cmdline_set(Cmdline *c, const char *line) {
-  c->right.str[0] = 0;
-  c->right.len = 0;
-  ENSURE_SPACE(c->left, strlen(line));
-  const size_t n = mbstowcs(c->left.str, line, c->left.cap + 1);
-  if (n == (size_t)-1) {
-    c->left.len = 0;
-    c->left.str[0] = 0;
-  } else {
-    c->left.len = n;
   }
   return true;
 }
