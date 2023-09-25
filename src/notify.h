@@ -10,9 +10,9 @@
 #define NOTIFY_DELAY 50 // delay before reloading after an event is triggered
 
 typedef struct notify_s {
+  ev_io watcher;
   int inotify_fd;
   int fifo_wd;
-  ev_io watcher;
 
   struct notify_watcher_data {
     int wd;

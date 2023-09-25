@@ -37,12 +37,14 @@
 // child watchers {{{
 
 struct stdout_watcher_data {
+  ev_io watcher;
   Lfm *lfm;
   FILE *stream;
   int ref;
 };
 
 struct child_watcher_data {
+  ev_child watcher;
   Lfm *lfm;
   int ref;
   ev_io *stdout_watcher;
@@ -55,31 +57,27 @@ static inline void destroy_io_watcher(ev_io *w) {
   if (!w) {
     return;
   }
-
-  struct stdout_watcher_data *data = w->data;
+  struct stdout_watcher_data *data = (struct stdout_watcher_data *)w;
   if (data->ref >= 0) {
     llua_run_stdout_callback(data->lfm->L, data->ref, NULL);
   }
   fclose(data->stream);
   xfree(data);
-  xfree(w);
 }
 
 static inline void destroy_child_watcher(ev_child *w) {
   if (!w) {
     return;
   }
-
-  struct child_watcher_data *data = w->data;
+  struct child_watcher_data *data = (struct child_watcher_data *)w;
   destroy_io_watcher(data->stdout_watcher);
   destroy_io_watcher(data->stderr_watcher);
   xfree(data);
-  xfree(w);
 }
 
 static void child_cb(EV_P_ ev_child *w, int revents) {
   (void)revents;
-  struct child_watcher_data *data = w->data;
+  struct child_watcher_data *data = (struct child_watcher_data *)w;
 
   ev_child_stop(EV_A_ w);
 
@@ -107,27 +105,19 @@ static void child_cb(EV_P_ ev_child *w, int revents) {
 // scheduling timers {{{
 
 struct schedule_timer_data {
+  ev_timer watcher;
   Lfm *lfm;
   int ref;
 };
 
-static inline void destroy_schedule_timer(ev_timer *w) {
-  if (!w) {
-    return;
-  }
-
-  xfree(w->data);
-  xfree(w);
-}
-
 static void schedule_timer_cb(EV_P_ ev_timer *w, int revents) {
   (void)revents;
-  struct schedule_timer_data *data = w->data;
+  struct schedule_timer_data *data = (struct schedule_timer_data *)w;
   ev_timer_stop(EV_A_ w);
   llua_run_callback(data->lfm->L, data->ref);
   cvector_swap_remove(data->lfm->schedule_timers, w);
   ev_idle_start(loop, &data->lfm->redraw_watcher);
-  destroy_schedule_timer(w);
+  free(w);
 }
 
 // }}}
@@ -140,7 +130,7 @@ static void timer_cb(EV_P_ ev_timer *w, int revents) {
 
 static void command_stdout_cb(EV_P_ ev_io *w, int revents) {
   (void)revents;
-  struct stdout_watcher_data *data = w->data;
+  struct stdout_watcher_data *data = (struct stdout_watcher_data *)w;
 
   char *line = NULL;
   int read;
@@ -337,7 +327,7 @@ static ev_io *add_io_watcher(Lfm *lfm, FILE *f, int ref) {
 
   const int fd = fileno(f);
   if (fd < 0) {
-    log_error("add_io_watcher: fileno was %d", fd);
+    log_error("fileno: %s", strerror(errno));
     fclose(f);
     return NULL;
   }
@@ -349,12 +339,10 @@ static ev_io *add_io_watcher(Lfm *lfm, FILE *f, int ref) {
   data->stream = f;
   data->ref = ref;
 
-  ev_io *w = xmalloc(sizeof *w);
-  ev_io_init(w, command_stdout_cb, fd, EV_READ);
-  w->data = data;
-  ev_io_start(lfm->loop, w);
+  ev_io_init(&data->watcher, command_stdout_cb, fd, EV_READ);
+  ev_io_start(lfm->loop, &data->watcher);
 
-  return w;
+  return &data->watcher;
 }
 
 static void add_child_watcher(Lfm *lfm, int pid, int ref, ev_io *stdout_watcher,
@@ -365,12 +353,10 @@ static void add_child_watcher(Lfm *lfm, int pid, int ref, ev_io *stdout_watcher,
   data->stdout_watcher = stdout_watcher;
   data->stderr_watcher = stderr_watcher;
 
-  ev_child *w = xmalloc(sizeof *w);
-  ev_child_init(w, child_cb, pid, 0);
-  w->data = data;
-  ev_child_start(lfm->loop, w);
+  ev_child_init(&data->watcher, child_cb, pid, 0);
+  ev_child_start(lfm->loop, &data->watcher);
 
-  cvector_push_back(lfm->child_watchers, w);
+  cvector_push_back(lfm->child_watchers, &data->watcher);
 }
 
 // spawn a background program
@@ -514,17 +500,15 @@ void lfm_schedule(Lfm *lfm, int ref, uint32_t delay) {
   struct schedule_timer_data *data = xmalloc(sizeof *data);
   data->lfm = lfm;
   data->ref = ref;
-  ev_timer *w = xmalloc(sizeof *w);
-  ev_timer_init(w, schedule_timer_cb, 1.0 * delay / 1000, 0);
-  w->data = data;
-  ev_timer_start(lfm->loop, w);
-  cvector_push_back(lfm->schedule_timers, w);
+  ev_timer_init(&data->watcher, schedule_timer_cb, 1.0 * delay / 1000, 0);
+  ev_timer_start(lfm->loop, &data->watcher);
+  cvector_push_back(lfm->schedule_timers, &data->watcher);
 }
 
 void lfm_deinit(Lfm *lfm) {
   lfm_modes_deinit(lfm);
   cvector_ffree(lfm->child_watchers, destroy_child_watcher);
-  cvector_ffree(lfm->schedule_timers, destroy_schedule_timer);
+  cvector_ffree(lfm->schedule_timers, free);
   notify_deinit(&lfm->notify);
   input_deinit(lfm);
   llua_deinit(lfm->L);
