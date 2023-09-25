@@ -2,7 +2,7 @@
 
 local config = lfm.config
 
-package.path = string.gsub(package.path, "./%?.lua;", "")
+package.path = string.gsub(package.path, "%./%?.lua;", "")
 package.path = package.path .. ";" .. config.configdir .. "/lua/?.lua"
 
 local fm = lfm.fm
