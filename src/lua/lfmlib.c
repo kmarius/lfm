@@ -294,11 +294,11 @@ static inline int map_key(lua_State *L, Trie *trie, bool allow_mode) {
 }
 
 static int l_map_key(lua_State *L) {
-  return map_key(L, lfm->maps.normal, true);
+  return map_key(L, lfm->ui.maps.normal, true);
 }
 
 static int l_cmap_key(lua_State *L) {
-  return map_key(L, lfm->maps.input, false);
+  return map_key(L, lfm->ui.maps.input, false);
 }
 
 static int l_get_maps(lua_State *L) {

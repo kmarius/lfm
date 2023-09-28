@@ -12,6 +12,7 @@
 #include "hashtab.h"
 #include "keys.h"
 #include "preview.h"
+#include "trie.h"
 
 #define REDRAW_INFO 1
 #define REDRAW_FM 2
@@ -36,6 +37,21 @@ typedef struct ui_s {
 
   // Indicates whether the UI is running or suspended.
   bool running;
+
+  ev_idle redraw_watcher;
+  ev_timer loading_indicator_timer;
+  int loading_indicator_timer_recheck_count;
+
+  ev_io input_watcher;
+  struct {
+    struct trie_s *cur;       // current leaf in the trie of the active mode
+    struct trie_s *cur_input; // current leaf in the trie of input maps
+    input_t *seq;             // current key sequence
+    int count;
+    bool accept_count;
+    Trie *input;
+    Trie *normal;
+  } maps;
 
   struct notcurses *nc;
   struct {
@@ -119,3 +135,5 @@ void ui_resume(Ui *ui);
 void ui_suspend(Ui *ui);
 
 void ui_set_infoline(Ui *ui, const char *line);
+
+void ui_start_loading_indicator_timer(Ui *ui);

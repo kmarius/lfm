@@ -94,7 +94,7 @@ static void child_cb(EV_P_ ev_child *w, int revents) {
     ev_io_stop(EV_A_ data->stderr_watcher);
   }
 
-  ev_idle_start(EV_A_ & data->lfm->redraw_watcher);
+  ev_idle_start(EV_A_ & data->lfm->ui.redraw_watcher);
   cvector_swap_remove(data->lfm->child_watchers, w);
   destroy_child_watcher(w);
 }
@@ -115,7 +115,7 @@ static void schedule_timer_cb(EV_P_ ev_timer *w, int revents) {
   ev_timer_stop(EV_A_ w);
   llua_run_callback(data->lfm->L, data->ref);
   cvector_swap_remove(data->lfm->schedule_timers, w);
-  ev_idle_start(EV_A_ & data->lfm->redraw_watcher);
+  ev_idle_start(EV_A_ & data->lfm->ui.redraw_watcher);
   free(w);
 }
 
@@ -130,6 +130,7 @@ static void timer_cb(EV_P_ ev_timer *w, int revents) {
 static void command_stdout_cb(EV_P_ ev_io *w, int revents) {
   (void)revents;
   struct stdout_watcher_data *data = (struct stdout_watcher_data *)w;
+  Lfm *lfm = data->lfm;
 
   char *line = NULL;
   int read;
@@ -141,9 +142,9 @@ static void command_stdout_cb(EV_P_ ev_io *w, int revents) {
     }
 
     if (data->ref >= 0) {
-      llua_run_stdout_callback(data->lfm->L, data->ref, line);
+      llua_run_stdout_callback(lfm->L, data->ref, line);
     } else {
-      ui_echom(&data->lfm->ui, "%s", line);
+      ui_echom(&lfm->ui, "%s", line);
     }
   }
   xfree(line);
@@ -153,7 +154,7 @@ static void command_stdout_cb(EV_P_ ev_io *w, int revents) {
     clearerr(data->stream);
   }
 
-  ev_idle_start(EV_A_ & data->lfm->redraw_watcher);
+  ev_idle_start(EV_A_ & lfm->ui.redraw_watcher);
 }
 
 // To run command line cmds after loop starts. I think it is called back before
@@ -191,7 +192,7 @@ static void sigwinch_cb(EV_P_ ev_signal *w, int revents) {
   Lfm *lfm = w->data;
   log_debug("received SIGWINCH");
   ui_clear(&lfm->ui);
-  ev_idle_start(EV_A_ & lfm->redraw_watcher);
+  ev_idle_start(EV_A_ & lfm->ui.redraw_watcher);
 }
 
 static void sigterm_cb(EV_P_ ev_signal *w, int revents) {
@@ -207,14 +208,6 @@ static void sighup_cb(EV_P_ ev_signal *w, int revents) {
   log_debug("received SIGHUP");
   lfm_quit(w->data);
 }
-
-static void redraw_cb(EV_P_ ev_idle *w, int revents) {
-  (void)revents;
-  Lfm *lfm = w->data;
-  ui_draw(&lfm->ui);
-  ev_idle_stop(EV_A_ w);
-}
-
 /* callbacks }}} */
 
 void lfm_init(Lfm *lfm, FILE *log_fp) {
@@ -252,18 +245,11 @@ void lfm_init(Lfm *lfm, FILE *log_fp) {
   }
 
   loader_init(&lfm->loader);
-
   async_init(&lfm->async);
-
   fm_init(&lfm->fm);
   ui_init(&lfm->ui);
   lfm_hooks_init(lfm);
-
   lfm_modes_init(lfm);
-
-  ev_idle_init(&lfm->redraw_watcher, redraw_cb);
-  lfm->redraw_watcher.data = lfm;
-  ev_idle_start(lfm->loop, &lfm->redraw_watcher);
 
   ev_prepare_init(&lfm->prepare_watcher, prepare_cb);
   lfm->prepare_watcher.data = lfm;
@@ -483,7 +469,7 @@ void lfm_read_fifo(Lfm *lfm) {
     xfree(dyn_buf);
   }
 
-  ev_idle_start(lfm->loop, &lfm->redraw_watcher);
+  ev_idle_start(lfm->loop, &lfm->ui.redraw_watcher);
 }
 
 void lfm_schedule(Lfm *lfm, int ref, uint32_t delay) {
@@ -510,35 +496,4 @@ void lfm_deinit(Lfm *lfm) {
     close(lfm->fifo_fd);
   }
   remove(cfg.fifopath);
-}
-
-static void loading_indicator_timer_cb(EV_P_ ev_timer *w, int revents) {
-  (void)revents;
-  Lfm *lfm = w->data;
-  Dir *dir = fm_current_dir(&lfm->fm);
-  if (dir->last_loading_action > 0 &&
-      current_millis() - dir->last_loading_action >=
-          cfg.loading_indicator_delay) {
-    ui_redraw(&lfm->ui, REDRAW_CMDLINE);
-    ev_idle_start(EV_A_ & lfm->redraw_watcher);
-  }
-  if (--lfm->loading_indicator_timer_recheck_count == 0) {
-    ev_timer_stop(EV_A_ w);
-  }
-}
-
-void lfm_start_loading_indicator_timer(Lfm *lfm) {
-  if (cfg.loading_indicator_delay > 0) {
-    if (lfm->loading_indicator_timer_recheck_count >= 3) {
-      return;
-    }
-    if (lfm->loading_indicator_timer_recheck_count++ == 0) {
-      lfm->loading_indicator_timer_recheck_count++;
-      double delay = ((cfg.loading_indicator_delay + 10) / 2) / 1000.;
-      lfm->loading_indicator_timer.data = lfm;
-      ev_timer_init(&lfm->loading_indicator_timer, loading_indicator_timer_cb,
-                    0, delay);
-      ev_timer_again(lfm->loop, &lfm->loading_indicator_timer);
-    }
-  }
 }

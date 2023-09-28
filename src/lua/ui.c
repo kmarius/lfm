@@ -61,7 +61,7 @@ static int l_ui_redraw(lua_State *L) {
   if (lua_gettop(L) > 0 && lua_toboolean(L, 1)) {
     ui_redraw(ui, REDRAW_FULL);
   }
-  ev_idle_start(lfm->loop, &lfm->redraw_watcher);
+  ev_idle_start(lfm->loop, &ui->redraw_watcher);
   return 0;
 }
 

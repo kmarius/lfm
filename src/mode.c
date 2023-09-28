@@ -25,10 +25,10 @@ void lfm_modes_init(Lfm *lfm) {
                              .name = "input",
                              .input = true,
                          });
+  struct mode *input = ht_get(&lfm->modes, "input");
+  lfm->ui.maps.input = input->maps;
   lfm->current_mode = ht_get(&lfm->modes, "normal");
-  lfm->input_mode = ht_get(&lfm->modes, "input");
-  lfm->maps.normal = lfm->current_mode->maps;
-  lfm->maps.input = lfm->input_mode->maps;
+  lfm->ui.maps.normal = lfm->current_mode->maps;
 }
 
 void lfm_modes_deinit(Lfm *lfm) {
@@ -78,7 +78,7 @@ int lfm_mode_enter(Lfm *lfm, const char *name) {
   if (mode->input && mode->prefix) {
     cmdline_prefix_set(&lfm->ui.cmdline, mode->prefix);
   }
-  lfm->maps.cur_input = NULL;
+  lfm->ui.maps.cur_input = NULL;
   lfm_run_hook1(lfm, LFM_HOOK_MODECHANGED, mode->name);
 
   ui_redraw(&lfm->ui, REDRAW_INFO);

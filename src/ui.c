@@ -52,7 +52,33 @@ static inline int shorten_file_name(wchar_t *name, int name_len, int max_len,
                                     bool has_ext);
 static inline int shorten_path(wchar_t *path, int path_len, int max_len);
 
+static void redraw_cb(EV_P_ ev_idle *w, int revents);
+static int resize_cb(struct ncplane *n);
+void ui_resume(Ui *ui);
+
 /* init/resize {{{ */
+
+void ui_init(Ui *ui) {
+  ev_idle_init(&ui->redraw_watcher, redraw_cb);
+  ui->redraw_watcher.data = ui;
+  ev_idle_start(get_lfm(ui)->loop, &ui->redraw_watcher);
+
+  cmdline_init(&ui->cmdline);
+  input_init(get_lfm(ui));
+  ui_resume(ui);
+}
+
+void ui_deinit(Ui *ui) {
+  ui_suspend(ui);
+  cvector_foreach_ptr(struct message_s * m, ui->messages) {
+    xfree(m->text);
+  }
+  cvector_free(ui->messages);
+  cvector_ffree(ui->menubuf, xfree);
+  cmdline_deinit(&ui->cmdline);
+  xfree(ui->search_string);
+  xfree(ui->infoline);
+}
 
 static int resize_cb(struct ncplane *n) {
   Ui *ui = ncplane_userptr(n);
@@ -132,24 +158,6 @@ void ui_suspend(Ui *ui) {
   kbblocking(true);
 }
 
-void ui_init(Ui *ui) {
-  cmdline_init(&ui->cmdline);
-  input_init(get_lfm(ui));
-  ui_resume(ui);
-}
-
-void ui_deinit(Ui *ui) {
-  ui_suspend(ui);
-  cvector_foreach_ptr(struct message_s * m, ui->messages) {
-    xfree(m->text);
-  }
-  cvector_free(ui->messages);
-  cvector_ffree(ui->menubuf, xfree);
-  cmdline_deinit(&ui->cmdline);
-  xfree(ui->search_string);
-  xfree(ui->infoline);
-}
-
 void kbblocking(bool blocking) {
   int val = fcntl(STDIN_FILENO, F_GETFL, 0);
   if (val != -1) {
@@ -193,6 +201,12 @@ void ui_recol(Ui *ui) {
 /* }}} */
 
 /* main drawing/echo/err {{{ */
+
+static void redraw_cb(EV_P_ ev_idle *w, int revents) {
+  (void)revents;
+  ui_draw(w->data);
+  ev_idle_stop(EV_A_ w);
+}
 
 void ui_draw(Ui *ui) {
   if (ui->redraw & REDRAW_FM) {
@@ -855,7 +869,7 @@ static void menu_delay_timer_cb(EV_P_ ev_timer *w, int revents) {
   }
   ui_redraw(ui, REDRAW_MENU);
   ev_timer_stop(EV_A_ w);
-  ev_idle_start(EV_A_ & lfm->redraw_watcher);
+  ev_idle_start(EV_A_ & ui->redraw_watcher);
 }
 
 /* }}} */
@@ -1509,4 +1523,35 @@ void ui_set_infoline(Ui *ui, const char *line) {
   xfree(ui->infoline);
   ui->infoline = line ? strdup(line) : NULL;
   ui_redraw(ui, REDRAW_INFO);
+}
+
+static void loading_indicator_timer_cb(EV_P_ ev_timer *w, int revents) {
+  (void)revents;
+  Ui *ui = w->data;
+  Dir *dir = fm_current_dir(&get_lfm(ui)->fm);
+  if (dir->last_loading_action > 0 &&
+      current_millis() - dir->last_loading_action >=
+          cfg.loading_indicator_delay) {
+    ui_redraw(ui, REDRAW_CMDLINE);
+    ev_idle_start(EV_A_ & ui->redraw_watcher);
+  }
+  if (--ui->loading_indicator_timer_recheck_count == 0) {
+    ev_timer_stop(EV_A_ w);
+  }
+}
+
+void ui_start_loading_indicator_timer(Ui *ui) {
+  if (cfg.loading_indicator_delay > 0) {
+    if (ui->loading_indicator_timer_recheck_count >= 3) {
+      return;
+    }
+    if (ui->loading_indicator_timer_recheck_count++ == 0) {
+      ui->loading_indicator_timer_recheck_count++;
+      double delay = ((cfg.loading_indicator_delay + 10) / 2) / 1000.;
+      ui->loading_indicator_timer.data = ui;
+      ev_timer_init(&ui->loading_indicator_timer, loading_indicator_timer_cb, 0,
+                    delay);
+      ev_timer_again(get_lfm(ui)->loop, &ui->loading_indicator_timer);
+    }
+  }
 }

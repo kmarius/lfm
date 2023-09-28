@@ -44,7 +44,7 @@ static void async_result_cb(EV_P_ ev_async *w, int revents) {
   }
   pthread_mutex_unlock(&async->queue.mutex);
 
-  ev_idle_start(EV_A_ & get_lfm(async)->redraw_watcher);
+  ev_idle_start(EV_A_ & get_lfm(async)->ui.redraw_watcher);
 }
 
 void async_init(Async *async) {
@@ -198,7 +198,7 @@ void async_dir_check(Async *async, Dir *dir) {
 
   if (dir->last_loading_action == 0) {
     dir->last_loading_action = current_millis();
-    lfm_start_loading_indicator_timer(get_lfm(async));
+    ui_start_loading_indicator_timer(&get_lfm(async)->ui);
   }
 
   work->async = async;
@@ -396,7 +396,7 @@ void async_dir_load(Async *async, Dir *dir, bool dircounts) {
   dir->dircounts = dircounts;
   if (dir->last_loading_action == 0) {
     dir->last_loading_action = current_millis();
-    lfm_start_loading_indicator_timer(get_lfm(async));
+    ui_start_loading_indicator_timer(&get_lfm(async)->ui);
   }
 
   work->async = async;

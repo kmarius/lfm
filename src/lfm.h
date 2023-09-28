@@ -11,53 +11,35 @@
 #include "loader.h"
 #include "mode.h"
 #include "notify.h"
-#include "trie.h"
 #include "ui.h"
 
 typedef struct lfm_s {
   Ui ui;
   Fm fm;
-  lua_State *L;
-  struct ev_loop *loop;
   Notify notify;
   Loader loader;
   Async async;
-
-  int fifo_fd;
-  FILE *log_fp;
-
-  ev_io input_watcher;
-  struct {
-    struct trie_s *cur;       // current leaf in the trie of the active mode
-    struct trie_s *cur_input; // current leaf in the trie of the active mode
-    input_t *seq;             // current key sequence
-    int count;
-    bool accept_count;
-    Trie *input;
-    Trie *normal;
-  } maps;
+  struct ev_loop *loop;
+  lua_State *L;
 
   Hashtab modes;
   struct mode *current_mode;
-  struct mode *input_mode;
 
-  struct message_s *messages;
-
-  ev_idle redraw_watcher;
   ev_prepare prepare_watcher;
+  ev_timer timer_watcher;
   ev_signal sigwinch_watcher;
   ev_signal sigterm_watcher;
   ev_signal sighup_watcher;
-  ev_timer timer_watcher;
-  ev_timer loading_indicator_timer;
-  int loading_indicator_timer_recheck_count;
-  ev_timer map_clear_timer;
 
   cvector_vector_type(ev_timer *) schedule_timers;
-  cvector_vector_type(ev_child *)
-      child_watchers; /* to run callbacks when processes finish */
+  cvector_vector_type(ev_child *) child_watchers;
 
   int *hook_refs[LFM_NUM_HOOKS];
+
+  struct message_s *messages;
+
+  int fifo_fd;
+  FILE *log_fp;
 } Lfm;
 
 // Initialize ui, fm and the lua_State.
@@ -78,9 +60,10 @@ void lfm_read_fifo(Lfm *lfm);
 // Spawn a background command. execvp semantics hold for `prog`, `args`.
 // A cvector of strings can be passed by `stdin_lines` and will be send to the
 // commands standard input. If `out` or `err` are true, output/errors will be
-// shown in the ui. If `stdout_ref` or `stderr_ref` are set, the respective
-// callbacks are called with each line of output/error. `exit_ref` will be
-// called with the return code once the command finishes.
+// shown in the ui. If `stdout_ref` or `stderr_ref` are set (>= 0), the
+// respective callbacks are called with each line of output/error and nothing
+// will be printed on the ui. `exit_ref` will be called with the return code
+// once the command finishes.
 int lfm_spawn(Lfm *lfm, const char *prog, char *const *args, char **stdin_lines,
               bool out, bool err, int stdout_ref, int stderr_ref, int exit_ref);
 
@@ -95,5 +78,3 @@ void lfm_print(Lfm *lfm, const char *format, ...);
 
 // Print an error in the UI. `printf` formatting applies.
 void lfm_error(Lfm *lfm, const char *format, ...);
-
-void lfm_start_loading_indicator_timer(Lfm *lfm);

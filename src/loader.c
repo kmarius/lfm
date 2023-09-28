@@ -176,7 +176,7 @@ Dir *loader_dir_from_path(Loader *loader, const char *path) {
     ht_set(loader->dir_cache, dir->path, dir);
     async_dir_load(&get_lfm(loader)->async, dir, false);
     dir->last_loading_action = current_millis();
-    lfm_start_loading_indicator_timer(get_lfm(loader));
+    ui_start_loading_indicator_timer(&get_lfm(loader)->ui);
     dir->loading = true;
     if (get_lfm(loader)->L) {
       lfm_run_hook1(get_lfm(loader), LFM_HOOK_DIRLOADED, path);
