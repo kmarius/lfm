@@ -86,16 +86,16 @@ static void child_cb(EV_P_ ev_child *w, int revents) {
   }
 
   if (data->stdout_watcher) {
-    data->stdout_watcher->cb(loop, data->stdout_watcher, 0);
-    ev_io_stop(loop, data->stdout_watcher);
+    data->stdout_watcher->cb(EV_A_ data->stdout_watcher, 0);
+    ev_io_stop(EV_A_ data->stdout_watcher);
   }
 
   if (data->stderr_watcher) {
-    data->stderr_watcher->cb(loop, data->stderr_watcher, 0);
-    ev_io_stop(loop, data->stderr_watcher);
+    data->stderr_watcher->cb(EV_A_ data->stderr_watcher, 0);
+    ev_io_stop(EV_A_ data->stderr_watcher);
   }
 
-  ev_idle_start(loop, &data->lfm->redraw_watcher);
+  ev_idle_start(EV_A_ & data->lfm->redraw_watcher);
   cvector_swap_remove(data->lfm->child_watchers, w);
   destroy_child_watcher(w);
 }
@@ -116,7 +116,7 @@ static void schedule_timer_cb(EV_P_ ev_timer *w, int revents) {
   ev_timer_stop(EV_A_ w);
   llua_run_callback(data->lfm->L, data->ref);
   cvector_swap_remove(data->lfm->schedule_timers, w);
-  ev_idle_start(loop, &data->lfm->redraw_watcher);
+  ev_idle_start(EV_A_ & data->lfm->redraw_watcher);
   free(w);
 }
 
@@ -125,7 +125,7 @@ static void schedule_timer_cb(EV_P_ ev_timer *w, int revents) {
 static void timer_cb(EV_P_ ev_timer *w, int revents) {
   (void)revents;
   /* Lfm *lfm = w->data; */
-  ev_timer_stop(loop, w);
+  ev_timer_stop(EV_A_ w);
 }
 
 static void command_stdout_cb(EV_P_ ev_io *w, int revents) {
@@ -154,7 +154,7 @@ static void command_stdout_cb(EV_P_ ev_io *w, int revents) {
     clearerr(data->stream);
   }
 
-  ev_idle_start(loop, &data->lfm->redraw_watcher);
+  ev_idle_start(EV_A_ & data->lfm->redraw_watcher);
 }
 
 // To run command line cmds after loop starts. I think it is called back before
@@ -183,7 +183,7 @@ static void prepare_cb(EV_P_ ev_prepare *w, int revents) {
   }
 
   lfm_run_hook(lfm, LFM_HOOK_ENTER);
-  ev_prepare_stop(loop, w);
+  ev_prepare_stop(EV_A_ w);
 }
 
 // unclear if this happens before/after resizecb is called by notcurses
@@ -192,7 +192,7 @@ static void sigwinch_cb(EV_P_ ev_signal *w, int revents) {
   Lfm *lfm = w->data;
   log_debug("received SIGWINCH");
   ui_clear(&lfm->ui);
-  ev_idle_start(loop, &lfm->redraw_watcher);
+  ev_idle_start(EV_A_ & lfm->redraw_watcher);
 }
 
 static void sigterm_cb(EV_P_ ev_signal *w, int revents) {
@@ -213,7 +213,7 @@ static void redraw_cb(EV_P_ ev_idle *w, int revents) {
   (void)revents;
   Lfm *lfm = w->data;
   ui_draw(&lfm->ui);
-  ev_idle_stop(loop, w);
+  ev_idle_stop(EV_A_ w);
 }
 
 /* callbacks }}} */
@@ -531,10 +531,10 @@ static void loading_indicator_timer_cb(EV_P_ ev_timer *w, int revents) {
       current_millis() - dir->last_loading_action >=
           cfg.loading_indicator_delay) {
     ui_redraw(&lfm->ui, REDRAW_CMDLINE);
-    ev_idle_start(loop, &lfm->redraw_watcher);
+    ev_idle_start(EV_A_ & lfm->redraw_watcher);
   }
   if (--lfm->loading_indicator_timer_recheck_count == 0) {
-    ev_timer_stop(loop, w);
+    ev_timer_stop(EV_A_ w);
   }
 }
 

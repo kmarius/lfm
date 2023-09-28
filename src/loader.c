@@ -52,7 +52,7 @@ static void dir_timer_cb(EV_P_ ev_timer *w, int revents) {
   struct timer_data *data = w->data;
   async_dir_load(&data->lfm->async, data->dir, true);
   data->dir->loading = true;
-  ev_timer_stop(loop, w);
+  ev_timer_stop(EV_A_ w);
   cvector_swap_remove(data->lfm->loader.dir_timers, w);
   xfree(data);
   xfree(w);
@@ -62,7 +62,7 @@ static void pv_timer_cb(EV_P_ ev_timer *w, int revents) {
   (void)revents;
   struct timer_data *data = w->data;
   async_preview_load(&data->lfm->async, data->preview);
-  ev_timer_stop(loop, w);
+  ev_timer_stop(EV_A_ w);
   cvector_swap_remove(data->lfm->loader.preview_timers, w);
   xfree(data);
   xfree(w);

@@ -819,7 +819,7 @@ static void menu_clear(Ui *ui) {
 
 void ui_menu_show(Ui *ui, cvector_vector_type(char *) vec, uint32_t delay) {
   struct ev_loop *loop = get_lfm(ui)->loop;
-  ev_timer_stop(loop, &ui->menu_delay_timer);
+  ev_timer_stop(EV_A_ & ui->menu_delay_timer);
   if (ui->menubuf) {
     menu_clear(ui);
     cvector_ffree_clear(ui->menubuf, xfree);
@@ -830,9 +830,9 @@ void ui_menu_show(Ui *ui, cvector_vector_type(char *) vec, uint32_t delay) {
 
     if (delay > 0) {
       ui->menu_delay_timer.repeat = (float)delay / 1000.0;
-      ev_timer_again(loop, &ui->menu_delay_timer);
+      ev_timer_again(EV_A_ & ui->menu_delay_timer);
     } else {
-      menu_delay_timer_cb(loop, &ui->menu_delay_timer, 0);
+      menu_delay_timer_cb(EV_A_ & ui->menu_delay_timer, 0);
     }
   }
   ui_redraw(ui, REDRAW_MENU);
@@ -848,8 +848,8 @@ static void menu_delay_timer_cb(EV_P_ ev_timer *w, int revents) {
     ui->menu_visible = true;
   }
   ui_redraw(ui, REDRAW_MENU);
-  ev_timer_stop(loop, w);
-  ev_idle_start(loop, &lfm->redraw_watcher);
+  ev_timer_stop(EV_A_ w);
+  ev_idle_start(EV_A_ & lfm->redraw_watcher);
 }
 
 /* }}} */

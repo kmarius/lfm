@@ -85,7 +85,7 @@ static void stdin_cb(EV_P_ ev_io *w, int revents) {
     input_handle_key(lfm, ncinput_to_input(&in));
   }
 
-  ev_idle_start(loop, &lfm->redraw_watcher);
+  ev_idle_start(EV_A_ & lfm->redraw_watcher);
 }
 
 // clear keys in the input buffer
@@ -256,6 +256,6 @@ static void map_clear_timer_cb(EV_P_ ev_timer *w, int revents) {
   Lfm *lfm = w->data;
   input_clear(lfm);
   ui_redraw(&lfm->ui, REDRAW_MENU);
-  ev_timer_stop(loop, w);
-  ev_idle_start(loop, &lfm->redraw_watcher);
+  ev_timer_stop(EV_A_ w);
+  ev_idle_start(EV_A_ & lfm->redraw_watcher);
 }

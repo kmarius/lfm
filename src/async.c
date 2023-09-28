@@ -44,7 +44,7 @@ static void async_result_cb(EV_P_ ev_async *w, int revents) {
   }
   pthread_mutex_unlock(&async->queue.mutex);
 
-  ev_idle_start(loop, &get_lfm(async)->redraw_watcher);
+  ev_idle_start(EV_A_ & get_lfm(async)->redraw_watcher);
 }
 
 void async_init(Async *async) {
