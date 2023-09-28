@@ -21,6 +21,7 @@
 #include "fm.h"
 #include "hashtab.h"
 #include "hooks.h"
+#include "input.h"
 #include "lfm.h"
 #include "loader.h"
 #include "log.h"
@@ -68,6 +69,7 @@ static int resize_cb(struct ncplane *n) {
 }
 
 void ui_resume(Ui *ui) {
+  kbblocking(false);
   struct notcurses_options ncopts = {
       .flags = NCOPTION_NO_WINCH_SIGHANDLER | NCOPTION_SUPPRESS_BANNERS |
                NCOPTION_PRESERVE_CURSOR,
@@ -107,10 +109,14 @@ void ui_resume(Ui *ui) {
   ev_timer_init(&ui->menu_delay_timer, menu_delay_timer_cb, 0, 0);
   ui->menu_delay_timer.data = get_lfm(ui);
 
+  input_resume(get_lfm(ui));
+  ui_redraw(ui, REDRAW_FM);
   ui->running = true;
 }
 
 void ui_suspend(Ui *ui) {
+  ui->running = false;
+  input_suspend(get_lfm(ui));
   cvector_ffree_clear(ui->planes.dirs, ncplane_destroy);
   ncplane_destroy(ui->planes.cmdline);
   ncplane_destroy(ui->planes.menu);
@@ -123,12 +129,12 @@ void ui_suspend(Ui *ui) {
   if (ui->preview.preview) {
     ui->preview.preview = NULL;
   }
-  ui->running = false;
+  kbblocking(true);
 }
 
 void ui_init(Ui *ui) {
   cmdline_init(&ui->cmdline);
-
+  input_init(get_lfm(ui));
   ui_resume(ui);
 }
 

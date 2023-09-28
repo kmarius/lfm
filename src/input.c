@@ -28,8 +28,7 @@ void input_init(Lfm *lfm) {
 
   ev_timer_init(&lfm->ui.map_clear_timer, map_clear_timer_cb, 0, 0);
   lfm->ui.map_clear_timer.data = lfm;
-
-  input_resume(lfm);
+  lfm->input_watcher.data = lfm;
 }
 
 void input_deinit(Lfm *lfm) {
@@ -40,7 +39,6 @@ void input_deinit(Lfm *lfm) {
 void input_resume(Lfm *lfm) {
   ev_io_init(&lfm->input_watcher, stdin_cb, notcurses_inputready_fd(lfm->ui.nc),
              EV_READ);
-  lfm->input_watcher.data = lfm;
   ev_io_start(lfm->loop, &lfm->input_watcher);
 }
 

@@ -15,7 +15,6 @@
 #include "cvector.h"
 #include "hashtab.h"
 #include "hooks.h"
-#include "input.h"
 #include "lfm.h"
 #include "loader.h"
 #include "log.h"
@@ -260,7 +259,6 @@ void lfm_init(Lfm *lfm, FILE *log_fp) {
   ui_init(&lfm->ui);
   lfm_hooks_init(lfm);
 
-  input_init(lfm);
   lfm_modes_init(lfm);
 
   ev_idle_init(&lfm->redraw_watcher, redraw_cb);
@@ -400,9 +398,7 @@ int lfm_spawn(Lfm *lfm, const char *prog, char *const *args, char **stdin_lines,
 // execute a foreground program
 bool lfm_execute(Lfm *lfm, const char *prog, char *const *args) {
   int pid, status, rc;
-  input_suspend(lfm);
   ui_suspend(&lfm->ui);
-  kbblocking(true);
   if ((pid = fork()) < 0) {
     status = -1;
   } else if (pid == 0) {
@@ -421,13 +417,9 @@ bool lfm_execute(Lfm *lfm, const char *prog, char *const *args) {
       rc = waitpid(pid, &status, 0);
     } while ((rc == -1) && (errno == EINTR));
   }
-  kbblocking(false);
 
   ui_resume(&lfm->ui);
-  input_resume(lfm);
   signal(SIGINT, SIG_IGN);
-
-  ui_redraw(&lfm->ui, REDRAW_FM);
   return status == 0;
 }
 
@@ -508,7 +500,6 @@ void lfm_deinit(Lfm *lfm) {
   cvector_ffree(lfm->child_watchers, destroy_child_watcher);
   cvector_ffree(lfm->schedule_timers, free);
   notify_deinit(&lfm->notify);
-  input_deinit(lfm);
   llua_deinit(lfm->L);
   ui_deinit(&lfm->ui);
   fm_deinit(&lfm->fm);
