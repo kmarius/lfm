@@ -76,13 +76,13 @@ void lfm_deinit(Lfm *lfm);
 void lfm_read_fifo(Lfm *lfm);
 
 // Spawn a background command. execvp semantics hold for `prog`, `args`.
-// A cvector of strings can be passed by `in` and will be send to the commands
-// standard input. If `out` or `err` are true, output/errors will be shown in
-// the ui. If `out_cb_ref` or `err_cb_ref` are set, the respective callbacks
-// are called with each line of output/error. `cb_ref` will be called with the
-// return code once the command finishes.
-int lfm_spawn(Lfm *lfm, const char *prog, char *const *args, char **in,
-              bool out, bool err, int out_cb_ref, int err_cb_ref, int cb_ref);
+// A cvector of strings can be passed by `stdin_lines` and will be send to the
+// commands standard input. If `out` or `err` are true, output/errors will be
+// shown in the ui. If `stdout_ref` or `stderr_ref` are set, the respective
+// callbacks are called with each line of output/error. `exit_ref` will be
+// called with the return code once the command finishes.
+int lfm_spawn(Lfm *lfm, const char *prog, char *const *args, char **stdin_lines,
+              bool out, bool err, int stdout_ref, int stderr_ref, int exit_ref);
 
 // Execute a foreground program. Uses execvp semantics.
 bool lfm_execute(Lfm *lfm, const char *prog, char *const *args);

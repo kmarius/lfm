@@ -360,42 +360,40 @@ static void add_child_watcher(Lfm *lfm, int pid, int ref, ev_io *stdout_watcher,
 }
 
 // spawn a background program
-int lfm_spawn(Lfm *lfm, const char *prog, char *const *args, char **in,
-              bool out, bool err, int out_cb_ref, int err_cb_ref, int cb_ref) {
-  FILE *fin, *fout, *ferr;
-  ev_io *stderr_watcher = NULL;
-  ev_io *stdout_watcher = NULL;
+int lfm_spawn(Lfm *lfm, const char *prog, char *const *args, char **stdin_lines,
+              bool out, bool err, int stdout_ref, int stderr_ref,
+              int exit_ref) {
+  FILE *stdin_stream, *stdout_stream, *stderr_stream;
 
-  bool capture_stdout = out || out_cb_ref >= 0;
-  bool capture_stderr = err || err_cb_ref >= 0;
+  bool capture_stdout = out || stdout_ref >= 0;
+  bool capture_stderr = err || stderr_ref >= 0;
 
   // always pass out and err because popen2_arr_p doesnt close the fds
-  int pid =
-      popen2_arr_p(in ? &fin : NULL, capture_stdout ? &fout : NULL,
-                   capture_stderr ? &ferr : NULL, prog, args, lfm->fm.pwd);
+  int pid = popen2_arr_p(stdin_lines ? &stdin_stream : NULL,
+                         capture_stdout ? &stdout_stream : NULL,
+                         capture_stderr ? &stderr_stream : NULL, prog, args,
+                         lfm->fm.pwd);
 
   if (pid == -1) {
     lfm_error(lfm, "popen2_arr_p: %s", strerror(errno)); // not sure if set
     return -1;
   }
 
-  if (capture_stdout) {
-    stdout_watcher = add_io_watcher(lfm, fout, out_cb_ref);
-  }
+  ev_io *stdout_watcher =
+      capture_stdout ? add_io_watcher(lfm, stdout_stream, stdout_ref) : NULL;
 
-  if (capture_stderr) {
-    stderr_watcher = add_io_watcher(lfm, ferr, err_cb_ref);
-  }
+  ev_io *stderr_watcher =
+      capture_stderr ? add_io_watcher(lfm, stderr_stream, stderr_ref) : NULL;
 
-  if (in) {
-    cvector_foreach(char *line, in) {
-      fputs(line, fin);
-      fputc('\n', fin);
+  if (stdin_lines) {
+    cvector_foreach(char *line, stdin_lines) {
+      fputs(line, stdin_stream);
+      fputc('\n', stdin_stream);
     }
-    fclose(fin);
+    fclose(stdin_stream);
   }
 
-  add_child_watcher(lfm, pid, cb_ref, stdout_watcher, stderr_watcher);
+  add_child_watcher(lfm, pid, exit_ref, stdout_watcher, stderr_watcher);
   return pid;
 }
 
