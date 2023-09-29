@@ -2,7 +2,7 @@
 #include <unistd.h>
 
 #include "../tokenize.h"
-#include "internal.h"
+#include "private.h"
 
 static int l_fn_qualify(lua_State *L) {
   char *path = path_qualify(luaL_checkstring(L, 1), fm->pwd);

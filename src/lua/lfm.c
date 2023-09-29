@@ -1,19 +1,13 @@
 #include <errno.h>
 #include <lauxlib.h>
+#include <lua.h>
 #include <stdbool.h>
 #include <stdlib.h>
 
 #include "auto/versiondef.h"
-#include "cmd.h"
-#include "config.h"
-#include "fm.h"
-#include "fn.h"
-#include "internal.h"
+#include "lfm.h"
 #include "lfmlua.h"
-#include "log.h"
-#include "lua.h"
-#include "rifle.h"
-#include "ui.h"
+#include "private.h"
 
 #include "../config.h"
 #include "../hooks.h"
@@ -21,8 +15,8 @@
 #include "../log.h"
 #include "../search.h"
 
-#define LFM_MODES_META "lfm_modes_mt"
-#define LFM_MODE_META "lfm_mode_mt"
+#define MODES_META "Lfm.Modes.Meta"
+#define MODE_META "Lfm.Mode.Meta"
 
 static int l_schedule(lua_State *L) {
   luaL_checktype(L, 1, LUA_TFUNCTION);
@@ -465,14 +459,14 @@ static int l_modes_index(lua_State *L) {
   lua_newtable(L);
   struct mode **ud = lua_newuserdata(L, sizeof mode);
   *ud = mode;
-  luaL_newmetatable(L, LFM_MODE_META);
+  luaL_newmetatable(L, MODE_META);
   lua_setmetatable(L, -2);
 
   return 1;
 }
 
 static int l_mode_index(lua_State *L) {
-  struct mode *mode = *(struct mode **)luaL_checkudata(L, 1, LFM_MODE_META);
+  struct mode *mode = *(struct mode **)luaL_checkudata(L, 1, MODE_META);
   const char *key = luaL_checkstring(L, 2);
   if (streq(key, "name")) {
     lua_pushstring(L, mode->name);
@@ -490,7 +484,7 @@ static int l_mode_index(lua_State *L) {
 }
 
 static int l_mode_newindex(lua_State *L) {
-  struct mode *mode = *(struct mode **)luaL_checkudata(L, 1, LFM_MODE_META);
+  struct mode *mode = *(struct mode **)luaL_checkudata(L, 1, MODE_META);
   const char *key = luaL_checkstring(L, 2);
   if (streq(key, "prefix")) {
     if (!mode->input) {
@@ -538,12 +532,12 @@ int luaopen_lfm(lua_State *L) {
   luaopen_rifle(L);
   lua_setfield(L, -2, "rifle");
 
-  luaL_newmetatable(L, LFM_MODE_META);
+  luaL_newmetatable(L, MODE_META);
   luaL_register(L, NULL, lfm_mode_mt);
   lua_pop(L, 1);
 
   lua_newtable(L);
-  luaL_newmetatable(L, LFM_MODES_META);
+  luaL_newmetatable(L, MODES_META);
   luaL_register(L, NULL, lfm_modes_mt);
   lua_setmetatable(L, -2);
   lua_setfield(L, -2, "modes");

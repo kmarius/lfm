@@ -1,12 +1,12 @@
-#include "hooks.h"
+#include <lauxlib.h>
+#include <lua.h>
+#include <string.h>
+
 #include "cvector.h"
-#include "lauxlib.h"
-#include "lua.h"
-#include "lua/internal.h"
+#include "hooks.h"
+#include "lfm.h"
 #include "lua/lfmlua.h"
 #include "util.h"
-
-#include <string.h>
 
 void lfm_hooks_init(Lfm *lfm) {
   memset(lfm->hook_refs, 0, sizeof lfm->hook_refs);

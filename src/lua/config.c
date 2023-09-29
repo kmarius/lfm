@@ -5,11 +5,11 @@
 #include "../log.h"
 #include "../ncutil.h"
 #include "../tpool.h"
-#include "internal.h"
+#include "private.h"
 
-#define DIR_SETTINGS_META "dir_settings_mt"
-#define CONFIG_META "config_mt"
-#define COLORS_META "colors_mt"
+#define DIRSETTINGS_META "Lfm.Dirsettings.Meta"
+#define CONFIG_META "Lfm.Config.Meta"
+#define COLORS_META "Lfm.Colors.Meta"
 
 static inline int llua_dir_settings_set(lua_State *L, const char *path,
                                         int ind) {
@@ -208,7 +208,7 @@ static int l_config_index(lua_State *L) {
     return 1;
   } else if (streq(key, "dir_settings")) {
     lua_newtable(L);
-    luaL_newmetatable(L, DIR_SETTINGS_META);
+    luaL_newmetatable(L, DIRSETTINGS_META);
     lua_setmetatable(L, -2);
     return 1;
   } else if (streq(key, "threads")) {
@@ -473,7 +473,7 @@ static const struct luaL_Reg colors_mt[] = {{"__newindex", l_colors_newindex},
                                             {NULL, NULL}};
 
 int luaopen_config(lua_State *L) {
-  luaL_newmetatable(L, DIR_SETTINGS_META);
+  luaL_newmetatable(L, DIRSETTINGS_META);
   luaL_register(L, NULL, dir_settings_mt);
   lua_pop(L, 1);
 

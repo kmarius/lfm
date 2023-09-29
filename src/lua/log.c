@@ -1,10 +1,10 @@
 #include <lauxlib.h>
+#include <lua.h>
 
 #include "../log.h"
-#include "internal.h"
-#include "lua.h"
+#include "private.h"
 
-#define LFM_LOG_META "log_mt"
+#define LFM_LOG_META "Lfm.Log.Meta"
 #define STR(x) #x
 
 static int l_log_trace(lua_State *L) {

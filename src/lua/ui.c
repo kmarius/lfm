@@ -1,9 +1,9 @@
 #include <ev.h>
 #include <lauxlib.h>
+#include <lua.h>
 #include <stdint.h>
 
-#include "internal.h"
-#include "lua.h"
+#include "private.h"
 
 static int l_ui_messages(lua_State *L) {
   lua_newtable(L);

@@ -7,7 +7,7 @@
 #include "../log.h"
 #include "../search.h"
 #include "../ui.h"
-#include "internal.h"
+#include "private.h"
 
 static int l_fm_get_height(lua_State *L) {
   lua_pushnumber(L, fm->height);

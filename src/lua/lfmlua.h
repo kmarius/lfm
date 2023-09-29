@@ -1,5 +1,10 @@
 #pragma once
 
+/*
+ * Functions to interface with lua from the C side such as running hooks,
+ * callbacks etc.
+ */
+
 #include <lua.h>
 
 struct lfm_s;

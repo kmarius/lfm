@@ -6,8 +6,8 @@
 
 #include "../config.h"
 #include "../log.h"
-#include "internal.h"
-#include "lfmlib.h"
+#include "lfm.h"
+#include "private.h"
 
 typedef struct {
   char *name;

@@ -13,9 +13,8 @@
 #include "../cvector.h"
 #include "../log.h"
 #include "../util.h"
-#include "rifle.h"
 
-#define RIFLE_META "rifle_meta"
+#define RIFLE_META "Lfm.Rifle.Meta"
 
 // arbitrary, max binary name length for `has`
 #define EXECUTABLE_MAX 256

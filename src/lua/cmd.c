@@ -3,7 +3,7 @@
 
 #include "../cmdline.h"
 #include "../ui.h"
-#include "internal.h"
+#include "private.h"
 
 static int l_cmd_line_get(lua_State *L) {
   lua_pushstring(L, cmdline_get(&ui->cmdline));
