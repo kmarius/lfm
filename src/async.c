@@ -14,6 +14,7 @@
 #include "lfm.h"
 #include "loader.h"
 #include "log.h"
+#include "macros.h"
 #include "memory.h"
 #include "notify.h"
 #include "preview.h"
@@ -22,8 +23,6 @@
 #include "util.h"
 
 #define DIRCOUNT_THRESHOLD 200 // send batches of dircounts around every 200ms
-
-#define get_lfm(async_) container_of(async_, struct lfm_s, async)
 
 struct result_s {
   void (*callback)(void *, Lfm *);
@@ -40,11 +39,11 @@ static void async_result_cb(EV_P_ ev_async *w, int revents) {
 
   pthread_mutex_lock(&async->queue.mutex);
   while ((res = result_queue_get(&async->queue))) {
-    res->callback(res, get_lfm(async));
+    res->callback(res, to_lfm(async));
   }
   pthread_mutex_unlock(&async->queue.mutex);
 
-  ev_idle_start(EV_A_ & get_lfm(async)->ui.redraw_watcher);
+  ev_idle_start(EV_A_ & to_lfm(async)->ui.redraw_watcher);
 }
 
 void async_init(Async *async) {
@@ -53,7 +52,7 @@ void async_init(Async *async) {
   pthread_mutex_init(&async->queue.mutex, NULL);
 
   ev_async_init(&async->result_watcher, async_result_cb);
-  ev_async_start(get_lfm(async)->loop, &async->result_watcher);
+  ev_async_start(to_lfm(async)->loop, &async->result_watcher);
 
   if (pthread_mutex_init(&async->queue.mutex, NULL) != 0) {
     log_error("pthread_mutex_init: %s", strerror(errno));
@@ -198,7 +197,7 @@ void async_dir_check(Async *async, Dir *dir) {
 
   if (dir->last_loading_action == 0) {
     dir->last_loading_action = current_millis();
-    ui_start_loading_indicator_timer(&get_lfm(async)->ui);
+    ui_start_loading_indicator_timer(&to_lfm(async)->ui);
   }
 
   work->async = async;
@@ -206,7 +205,7 @@ void async_dir_check(Async *async, Dir *dir) {
   work->dir = dir;
   work->loadtime = dir->load_time;
   work->ino = dir->stat.st_ino;
-  CHECK_INIT(work->check, get_lfm(async)->loader.dir_cache_version);
+  CHECK_INIT(work->check, to_lfm(async)->loader.dir_cache_version);
 
   tpool_add_work(async->tpool, async_dir_check_worker, work, true);
 }
@@ -396,7 +395,7 @@ void async_dir_load(Async *async, Dir *dir, bool dircounts) {
   dir->dircounts = dircounts;
   if (dir->last_loading_action == 0) {
     dir->last_loading_action = current_millis();
-    ui_start_loading_indicator_timer(&get_lfm(async)->ui);
+    ui_start_loading_indicator_timer(&to_lfm(async)->ui);
   }
 
   work->async = async;
@@ -404,7 +403,7 @@ void async_dir_load(Async *async, Dir *dir, bool dircounts) {
   work->path = strdup(dir->path);
   work->load_dircounts = dircounts;
   work->level = dir->flatten_level;
-  CHECK_INIT(work->check, get_lfm(async)->loader.dir_cache_version);
+  CHECK_INIT(work->check, to_lfm(async)->loader.dir_cache_version);
 
   tpool_add_work(async->tpool, async_dir_load_worker, work, true);
 }
@@ -517,9 +516,9 @@ void async_preview_load(Async *async, Preview *pv) {
   work->async = async;
   work->preview = pv;
   work->path = strdup(pv->path);
-  work->width = get_lfm(async)->ui.preview.cols;
-  work->height = get_lfm(async)->ui.preview.rows;
-  CHECK_INIT(work->check, get_lfm(async)->loader.preview_cache_version);
+  work->width = to_lfm(async)->ui.preview.cols;
+  work->height = to_lfm(async)->ui.preview.rows;
+  CHECK_INIT(work->check, to_lfm(async)->loader.preview_cache_version);
 
   tpool_add_work(async->tpool, async_preview_load_worker, work, true);
 }
@@ -582,7 +581,7 @@ void async_chdir(Async *async, const char *path, bool hook) {
   work->super.destroy = &chdir_destroy;
 
   work->path = strdup(path);
-  work->origin = strdup(get_lfm(async)->fm.pwd);
+  work->origin = strdup(to_lfm(async)->fm.pwd);
   work->async = async;
   work->run_hook = hook;
 
@@ -635,8 +634,8 @@ void async_notify_add(Async *async, Dir *dir) {
   work->async = async;
   work->path = strdup(dir->path);
   work->dir = dir;
-  CHECK_INIT(work->check0, get_lfm(async)->notify.version);
-  CHECK_INIT(work->check1, get_lfm(async)->loader.dir_cache_version);
+  CHECK_INIT(work->check0, to_lfm(async)->notify.version);
+  CHECK_INIT(work->check1, to_lfm(async)->loader.dir_cache_version);
 
   tpool_add_work(async->tpool, async_notify_add_worker, work, true);
 }
@@ -649,8 +648,8 @@ void async_notify_preview_add(Async *async, Dir *dir) {
   work->async = async;
   work->path = strdup(dir->path);
   work->dir = dir;
-  CHECK_INIT(work->check0, get_lfm(async)->notify.version);
-  CHECK_INIT(work->check1, get_lfm(async)->fm.dirs.preview);
+  CHECK_INIT(work->check0, to_lfm(async)->notify.version);
+  CHECK_INIT(work->check1, to_lfm(async)->fm.dirs.preview);
 
   tpool_add_work(async->tpool, async_notify_add_worker, work, true);
 }

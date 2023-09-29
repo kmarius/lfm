@@ -11,6 +11,7 @@
 #include "lfm.h"
 #include "loader.h"
 #include "log.h"
+#include "macros.h"
 #include "memory.h"
 #include "ui.h"
 #include "util.h"
@@ -24,8 +25,6 @@ struct timer_data {
 };
 
 #define DATA(w) ((struct timer_data *)w->data)
-
-#define get_lfm(loader_) container_of(loader_, struct lfm_s, loader)
 
 void loader_init(Loader *loader) {
   loader->dir_cache = ht_create((ht_free_func)dir_destroy);
@@ -74,9 +73,9 @@ static inline void schedule_dir_load(Loader *loader, Dir *dir, uint64_t time) {
   ev_timer_init(timer, dir_timer_cb, 0, delay);
   struct timer_data *data = xmalloc(sizeof *data);
   data->dir = dir;
-  data->lfm = get_lfm(loader);
+  data->lfm = to_lfm(loader);
   timer->data = data;
-  ev_timer_again(get_lfm(loader)->loop, timer);
+  ev_timer_again(to_lfm(loader)->loop, timer);
   cvector_push_back(loader->dir_timers, timer);
   dir->next_scheduled_load = time;
   dir->next_requested_load = 0;
@@ -90,9 +89,9 @@ static inline void schedule_preview_load(Loader *loader, Preview *pv,
   ev_timer_init(timer, pv_timer_cb, 0, (time - current_millis()) / 1000.);
   struct timer_data *data = xmalloc(sizeof *data);
   data->preview = pv;
-  data->lfm = get_lfm(loader);
+  data->lfm = to_lfm(loader);
   timer->data = data;
-  ev_timer_again(get_lfm(loader)->loop, timer);
+  ev_timer_again(to_lfm(loader)->loop, timer);
   cvector_push_back(loader->preview_timers, timer);
 }
 
@@ -126,7 +125,7 @@ void loader_dir_load_callback(Loader *loader, Dir *dir) {
   if (dir->next_requested_load > 0) {
     uint64_t now = current_millis();
     if (dir->next_requested_load <= now) {
-      async_dir_load(&get_lfm(loader)->async, dir, true);
+      async_dir_load(&to_lfm(loader)->async, dir, true);
       dir->next_scheduled_load = now;
       dir->next_requested_load = 0;
       dir->loading = true;
@@ -164,7 +163,7 @@ Dir *loader_dir_from_path(Loader *loader, const char *path) {
     if (dir->updates > 0) {
       // don't check before we have actually loaded the directory
       // (in particular stat data which we compare)
-      async_dir_check(&get_lfm(loader)->async, dir);
+      async_dir_check(&to_lfm(loader)->async, dir);
     }
     /* TODO: no (on 2022-10-09) */
     dir->settings.hidden = cfg.dir_settings.hidden;
@@ -174,12 +173,12 @@ Dir *loader_dir_from_path(Loader *loader, const char *path) {
     struct dir_settings *s = ht_get(cfg.dir_settings_map, path);
     memcpy(&dir->settings, s ? s : &cfg.dir_settings, sizeof *s);
     ht_set(loader->dir_cache, dir->path, dir);
-    async_dir_load(&get_lfm(loader)->async, dir, false);
+    async_dir_load(&to_lfm(loader)->async, dir, false);
     dir->last_loading_action = current_millis();
-    ui_start_loading_indicator_timer(&get_lfm(loader)->ui);
+    ui_start_loading_indicator_timer(&to_lfm(loader)->ui);
     dir->loading = true;
-    if (get_lfm(loader)->L) {
-      lfm_run_hook1(get_lfm(loader), LFM_HOOK_DIRLOADED, path);
+    if (to_lfm(loader)->L) {
+      lfm_run_hook1(to_lfm(loader), LFM_HOOK_DIRLOADED, path);
     }
   }
   return dir;
@@ -194,19 +193,19 @@ Preview *loader_preview_from_path(Loader *loader, const char *path) {
 
   Preview *pv = ht_get(loader->preview_cache, path);
   if (pv) {
-    if (pv->reload_height < (int)get_lfm(loader)->ui.preview.rows ||
-        pv->reload_width < (int)get_lfm(loader)->ui.preview.cols) {
+    if (pv->reload_height < (int)to_lfm(loader)->ui.preview.rows ||
+        pv->reload_width < (int)to_lfm(loader)->ui.preview.cols) {
       /* TODO: don't need to reload text previews if the actual file holds fewer
        * lines (on 2022-09-14) */
-      async_preview_load(&get_lfm(loader)->async, pv);
+      async_preview_load(&to_lfm(loader)->async, pv);
     } else {
-      async_preview_check(&get_lfm(loader)->async, pv);
+      async_preview_check(&to_lfm(loader)->async, pv);
     }
   } else {
-    pv = preview_create_loading(path, get_lfm(loader)->ui.nrow,
-                                get_lfm(loader)->ui.ncol);
+    pv = preview_create_loading(path, to_lfm(loader)->ui.nrow,
+                                to_lfm(loader)->ui.ncol);
     ht_set(loader->preview_cache, pv->path, pv);
-    async_preview_load(&get_lfm(loader)->async, pv);
+    async_preview_load(&to_lfm(loader)->async, pv);
   }
   return pv;
 }
@@ -215,7 +214,7 @@ void loader_drop_preview_cache(Loader *loader) {
   loader->preview_cache_version++;
   ht_clear(loader->preview_cache);
   cvector_foreach(ev_timer * timer, loader->preview_timers) {
-    ev_timer_stop(get_lfm(loader)->loop, timer);
+    ev_timer_stop(to_lfm(loader)->loop, timer);
     xfree(timer);
   }
   cvector_set_size(loader->preview_timers, 0);
@@ -225,7 +224,7 @@ void loader_drop_dir_cache(Loader *loader) {
   loader->dir_cache_version++;
   ht_clear(loader->dir_cache);
   cvector_foreach(ev_timer * timer, loader->dir_timers) {
-    ev_timer_stop(get_lfm(loader)->loop, timer);
+    ev_timer_stop(to_lfm(loader)->loop, timer);
     xfree(timer);
   }
   cvector_set_size(loader->dir_timers, 0);
@@ -239,7 +238,7 @@ void loader_reschedule(Loader *loader) {
     if (!contained) {
       cvector_push_back(dirs, DATA(timer)->dir);
     }
-    ev_timer_stop(get_lfm(loader)->loop, timer);
+    ev_timer_stop(to_lfm(loader)->loop, timer);
     xfree(timer->data);
     xfree(timer);
   }
@@ -251,7 +250,7 @@ void loader_reschedule(Loader *loader) {
     if (!contained) {
       cvector_push_back(previews, DATA(timer)->preview);
     }
-    ev_timer_stop(get_lfm(loader)->loop, timer);
+    ev_timer_stop(to_lfm(loader)->loop, timer);
     xfree(timer->data);
     xfree(timer);
   }

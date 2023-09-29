@@ -11,6 +11,7 @@
 #include "lfm.h"
 #include "loader.h"
 #include "log.h"
+#include "macros.h"
 #include "notify.h"
 #include "util.h"
 
@@ -42,7 +43,7 @@ bool notify_init(Notify *notify) {
   }
 
   ev_io_init(&notify->watcher, inotify_cb, notify->inotify_fd, EV_READ);
-  Lfm *lfm = container_of(notify, struct lfm_s, notify);
+  Lfm *lfm = to_lfm(notify);
   notify->watcher.data = lfm;
   ev_io_start(lfm->loop, &notify->watcher);
 

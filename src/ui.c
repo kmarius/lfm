@@ -25,6 +25,7 @@
 #include "lfm.h"
 #include "loader.h"
 #include "log.h"
+#include "macros.h"
 #include "memory.h"
 #include "mode.h"
 #include "ncutil.h"
@@ -32,8 +33,6 @@
 #include "util.h"
 
 #define EXT_MAX_LEN 128 // to convert the extension to lowercase
-
-#define get_lfm(ui_) container_of(ui_, struct lfm_s, ui)
 
 static void menu_delay_timer_cb(EV_P_ ev_timer *w, int revents);
 static void draw_dirs(Ui *ui);
@@ -61,10 +60,10 @@ void ui_resume(Ui *ui);
 void ui_init(Ui *ui) {
   ev_idle_init(&ui->redraw_watcher, redraw_cb);
   ui->redraw_watcher.data = ui;
-  ev_idle_start(get_lfm(ui)->loop, &ui->redraw_watcher);
+  ev_idle_start(to_lfm(ui)->loop, &ui->redraw_watcher);
 
   cmdline_init(&ui->cmdline);
-  input_init(get_lfm(ui));
+  input_init(to_lfm(ui));
   ui_resume(ui);
 }
 
@@ -86,9 +85,9 @@ static int resize_cb(struct ncplane *n) {
   ncplane_resize(ui->planes.info, 0, 0, 0, 0, 0, 0, 1, ui->ncol);
   ncplane_resize(ui->planes.cmdline, 0, 0, 0, 0, 0, 0, 1, ui->ncol);
   ncplane_move_yx(ui->planes.cmdline, ui->nrow - 1, 0);
-  lfm_run_hook(get_lfm(ui), LFM_HOOK_RESIZED);
+  lfm_run_hook(to_lfm(ui), LFM_HOOK_RESIZED);
   ui_recol(ui);
-  Fm *fm = &get_lfm(ui)->fm;
+  Fm *fm = &to_lfm(ui)->fm;
   fm_resize(fm, ui->nrow - 2);
   menu_resize(ui);
   return 0;
@@ -109,7 +108,7 @@ void ui_resume(Ui *ui) {
   struct ncplane *ncstd = notcurses_stdplane(ui->nc);
 
   ncplane_dim_yx(ncstd, &ui->nrow, &ui->ncol);
-  get_lfm(ui)->fm.height = ui->nrow - 2;
+  to_lfm(ui)->fm.height = ui->nrow - 2;
 
   struct ncplane_options opts = {
       .y = 0,
@@ -133,16 +132,16 @@ void ui_resume(Ui *ui) {
   ncplane_move_bottom(ui->planes.menu);
 
   ev_timer_init(&ui->menu_delay_timer, menu_delay_timer_cb, 0, 0);
-  ui->menu_delay_timer.data = get_lfm(ui);
+  ui->menu_delay_timer.data = to_lfm(ui);
 
-  input_resume(get_lfm(ui));
+  input_resume(to_lfm(ui));
   ui_redraw(ui, REDRAW_FM);
   ui->running = true;
 }
 
 void ui_suspend(Ui *ui) {
   ui->running = false;
-  input_suspend(get_lfm(ui));
+  input_suspend(to_lfm(ui));
   cvector_ffree_clear(ui->planes.dirs, ncplane_destroy);
   ncplane_destroy(ui->planes.cmdline);
   ncplane_destroy(ui->planes.menu);
@@ -240,7 +239,7 @@ void ui_clear(Ui *ui) {
 }
 
 static void draw_dirs(Ui *ui) {
-  Fm *fm = &get_lfm(ui)->fm;
+  Fm *fm = &to_lfm(ui)->fm;
   const uint32_t l = fm->dirs.length;
   for (uint32_t i = 0; i < l; i++) {
     plane_draw_dir(ui->planes.dirs[l - i - 1], fm->dirs.visible[i],
@@ -250,7 +249,7 @@ static void draw_dirs(Ui *ui) {
 }
 
 static void draw_preview(Ui *ui) {
-  Fm *fm = &get_lfm(ui)->fm;
+  Fm *fm = &to_lfm(ui)->fm;
   if (cfg.preview && ui->ndirs > 1) {
     if (fm->dirs.preview) {
       plane_draw_dir(ui->planes.preview, fm->dirs.preview, fm->selection.paths,
@@ -340,13 +339,13 @@ static uint32_t int_sz(uint32_t n) {
 }
 
 void draw_cmdline(Ui *ui) {
-  if (ui->running && ui->show_message && !get_lfm(ui)->current_mode->input) {
+  if (ui->running && ui->show_message && !to_lfm(ui)->current_mode->input) {
     struct message_s *msg = cvector_end(ui->messages) - 1;
     print_message(ui, msg->text, msg->error);
     return;
   }
 
-  Fm *fm = &get_lfm(ui)->fm;
+  Fm *fm = &to_lfm(ui)->fm;
 
   char nums[16];
   char size[32];
@@ -363,7 +362,7 @@ void draw_cmdline(Ui *ui) {
   uint32_t lhs_sz = 0;
   ncplane_cursor_yx(n, 0, 0);
 
-  if (!get_lfm(ui)->current_mode->input) {
+  if (!to_lfm(ui)->current_mode->input) {
     const Dir *dir = fm->dirs.visible[0];
     if (dir) {
       const File *file = dir_current_file(dir);
@@ -521,7 +520,7 @@ static void draw_custom_info(Ui *ui, const char *user, const char *host,
         break;
       case 'M':
         buf_ptr += snprintf(buf_ptr, sizeof(buf) - 1 - (buf_ptr - buf), "%s",
-                            get_lfm(ui)->current_mode->name);
+                            to_lfm(ui)->current_mode->name);
         break;
       case '%':
         *buf_ptr++ = '%';
@@ -554,7 +553,7 @@ static void draw_custom_info(Ui *ui, const char *user, const char *host,
   int file_len = 0;
   bool file_is_dir = false;
   if (file_ptr) {
-    const File *f = fm_current_file(&get_lfm(ui)->fm);
+    const File *f = fm_current_file(&to_lfm(ui)->fm);
     file = ambstowcs(f ? file_name(f) : "", &file_len);
     file_is_dir = f ? file_isdir(f) : false;
   }
@@ -567,7 +566,7 @@ static void draw_custom_info(Ui *ui, const char *user, const char *host,
   if (path_ptr) {
     // prepare path string: replace HOME with ~ and shorten if necessary
 
-    const Dir *dir = fm_current_dir(&get_lfm(ui)->fm);
+    const Dir *dir = fm_current_dir(&to_lfm(ui)->fm);
 
     path_len = mbstowcs(NULL, dir->path, 0);
     path_buf = xmalloc((path_len + 2) *
@@ -695,7 +694,7 @@ static void draw_info(Ui *ui) {
   ncplane_putchar(n, ':');
   ncplane_set_styles(n, NCSTYLE_BOLD);
 
-  const Dir *dir = fm_current_dir(&get_lfm(ui)->fm);
+  const Dir *dir = fm_current_dir(&to_lfm(ui)->fm);
   const File *file = dir_current_file(dir);
   int path_len, name_len;
   wchar_t *path_ = ambstowcs(dir->path, &path_len);
@@ -838,7 +837,7 @@ static void menu_clear(Ui *ui) {
 }
 
 void ui_menu_show(Ui *ui, cvector_vector_type(char *) vec, uint32_t delay) {
-  struct ev_loop *loop = get_lfm(ui)->loop;
+  struct ev_loop *loop = to_lfm(ui)->loop;
   ev_timer_stop(EV_A_ & ui->menu_delay_timer);
   if (ui->menubuf) {
     menu_clear(ui);
@@ -1459,7 +1458,7 @@ static void plane_draw_dir(struct ncplane *n, Dir *dir, LinkedHashtab *sel,
 /* preview {{{ */
 
 static inline Preview *load_preview(Ui *ui, File *file) {
-  return loader_preview_from_path(&get_lfm(ui)->loader, file_path(file));
+  return loader_preview_from_path(&to_lfm(ui)->loader, file_path(file));
 }
 
 static inline void reset_preview_plane_size(Ui *ui) {
@@ -1473,19 +1472,19 @@ static void update_preview(Ui *ui) {
   unsigned int ncol, nrow;
   ncplane_dim_yx(ui->planes.preview, &nrow, &ncol);
 
-  File *file = fm_current_file(&get_lfm(ui)->fm);
+  File *file = fm_current_file(&to_lfm(ui)->fm);
   if (file && !file_isdir(file)) {
     if (ui->preview.preview) {
       if (streq(ui->preview.preview->path, file_path(file))) {
         if (!ui->preview.preview->loading) {
           if (ui->preview.preview->reload_height < (int)nrow ||
               ui->preview.preview->reload_width < (int)ncol) {
-            loader_preview_reload(&get_lfm(ui)->loader, ui->preview.preview);
+            loader_preview_reload(&to_lfm(ui)->loader, ui->preview.preview);
             ui->preview.preview->loading = true;
           } else {
             if (ui->preview.preview->loadtime + cfg.inotify_delay <=
                 current_millis()) {
-              async_preview_check(&get_lfm(ui)->async, ui->preview.preview);
+              async_preview_check(&to_lfm(ui)->async, ui->preview.preview);
             }
           }
         }
@@ -1512,7 +1511,7 @@ void ui_drop_cache(Ui *ui) {
   if (ui->preview.preview) {
     ui->preview.preview = NULL;
   }
-  loader_drop_preview_cache(&get_lfm(ui)->loader);
+  loader_drop_preview_cache(&to_lfm(ui)->loader);
   update_preview(ui);
   ui_redraw(ui, REDRAW_CMDLINE | REDRAW_PREVIEW);
 }
@@ -1528,7 +1527,7 @@ void ui_set_infoline(Ui *ui, const char *line) {
 static void loading_indicator_timer_cb(EV_P_ ev_timer *w, int revents) {
   (void)revents;
   Ui *ui = w->data;
-  Dir *dir = fm_current_dir(&get_lfm(ui)->fm);
+  Dir *dir = fm_current_dir(&to_lfm(ui)->fm);
   if (dir->last_loading_action > 0 &&
       current_millis() - dir->last_loading_action >=
           cfg.loading_indicator_delay) {
@@ -1551,7 +1550,7 @@ void ui_start_loading_indicator_timer(Ui *ui) {
       ui->loading_indicator_timer.data = ui;
       ev_timer_init(&ui->loading_indicator_timer, loading_indicator_timer_cb, 0,
                     delay);
-      ev_timer_again(get_lfm(ui)->loop, &ui->loading_indicator_timer);
+      ev_timer_again(to_lfm(ui)->loop, &ui->loading_indicator_timer);
     }
   }
 }
