@@ -106,19 +106,6 @@ void input_handle_key(Lfm *lfm, input_t in) {
 
   ev_timer_stop(lfm->loop, &lfm->ui.map_clear_timer);
 
-  const char *prefix = lfm->current_mode->prefix;
-  if (!prefix && lfm->ui.maps.accept_count && '0' <= in && in <= '9') {
-    if (lfm->ui.maps.count < 0) {
-      lfm->ui.maps.count = in - '0';
-    } else {
-      lfm->ui.maps.count = lfm->ui.maps.count * 10 + in - '0';
-    }
-    if (lfm->ui.maps.count > 0) {
-      cvector_push_back(lfm->ui.maps.seq, in);
-      ui_keyseq_show(ui, lfm->ui.maps.seq);
-    }
-    return;
-  }
   if (lfm->current_mode->input) {
     if (!lfm->ui.maps.cur && !lfm->ui.maps.cur_input) {
       // reset the buffer/trie only if no mode map and no input map are possible
@@ -190,6 +177,18 @@ void input_handle_key(Lfm *lfm, input_t in) {
       cvector_set_size(lfm->ui.maps.seq, 0);
       lfm->ui.maps.count = -1;
       lfm->ui.maps.accept_count = true;
+    }
+    if (lfm->ui.maps.accept_count && '0' <= in && in <= '9') {
+      if (lfm->ui.maps.count < 0) {
+        lfm->ui.maps.count = in - '0';
+      } else {
+        lfm->ui.maps.count = lfm->ui.maps.count * 10 + in - '0';
+      }
+      if (lfm->ui.maps.count > 0) {
+        cvector_push_back(lfm->ui.maps.seq, in);
+        ui_keyseq_show(ui, lfm->ui.maps.seq);
+      }
+      return;
     }
     lfm->ui.maps.cur = trie_find_child(lfm->ui.maps.cur, in);
     if (in == NCKEY_ESC) {
