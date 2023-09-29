@@ -88,4 +88,4 @@ const char *cmdline_get(Cmdline *t);
 
 // Draw the command line into an ncplane. Returns the number of printed
 // characters of prefix, left so that the cursor can be positioned.
-uint32_t cmdline_print(Cmdline *t, struct ncplane *n);
+uint32_t cmdline_draw(Cmdline *t, struct ncplane *n);

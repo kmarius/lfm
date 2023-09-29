@@ -30,6 +30,7 @@
 #include "memory.h"
 #include "mode.h"
 #include "ncutil.h"
+#include "statusline.h"
 #include "ui.h"
 #include "util.h"
 
@@ -40,11 +41,12 @@ static void draw_dirs(Ui *ui);
 static void plane_draw_dir(struct ncplane *n, Dir *dir, LinkedHashtab *sel,
                            LinkedHashtab *load, paste_mode mode,
                            const char *highlight, bool print_sizes);
-static void draw_cmdline(Ui *ui);
 static void draw_preview(Ui *ui);
 static void update_preview(Ui *ui);
 static void draw_menu(Ui *ui, cvector_vector_type(char *) menu);
 static void menu_resize(Ui *ui);
+static inline void print_message(Ui *ui, const char *msg, bool error);
+static inline void draw_cmdline(Ui *ui);
 static void redraw_cb(EV_P_ ev_idle *w, int revents);
 static int resize_cb(struct ncplane *n);
 
@@ -258,25 +260,6 @@ static void draw_preview(Ui *ui) {
   }
 }
 
-static inline void print_message(Ui *ui, const char *msg, bool error) {
-  struct ncplane *n = ui->planes.cmdline;
-  ncplane_erase(n);
-  ncplane_set_bg_default(n);
-  ncplane_set_styles(n, NCSTYLE_NONE);
-  if (error) {
-    ncplane_set_fg_palindex(ui->planes.cmdline, COLOR_RED);
-    ncplane_putstr_yx(ui->planes.cmdline, 0, 0, msg);
-  } else {
-    ncplane_set_fg_default(n);
-    ncplane_cursor_move_yx(n, 0, 0);
-    ncplane_addastr(n, msg);
-  }
-  notcurses_render(ui->nc);
-  ncplane_set_fg_default(n);
-  ncplane_set_bg_default(n);
-  ncplane_set_styles(n, NCSTYLE_NONE);
-}
-
 void ui_echom(Ui *ui, const char *format, ...) {
   va_list args;
   va_start(args, format);
@@ -311,159 +294,6 @@ void ui_vechom(Ui *ui, const char *format, va_list args) {
   cvector_push_back(ui->messages, msg);
 
   ui->show_message = true;
-}
-
-/* }}} */
-
-/* cmd line {{{ */
-
-static char *print_time(time_t time, char *buffer, size_t bufsz) {
-  strftime(buffer, bufsz, "%Y-%m-%d %H:%M:%S", localtime(&time));
-  return buffer;
-}
-
-static uint32_t int_sz(uint32_t n) {
-  uint32_t i = 1;
-  while (n >= 10) {
-    i++;
-    n /= 10;
-  }
-  return i;
-}
-
-void draw_cmdline(Ui *ui) {
-  if (ui->running && ui->show_message && !to_lfm(ui)->current_mode->input) {
-    struct message_s *msg = cvector_end(ui->messages) - 1;
-    print_message(ui, msg->text, msg->error);
-    return;
-  }
-
-  Fm *fm = &to_lfm(ui)->fm;
-
-  char nums[16];
-  char size[32];
-  char mtime[32];
-
-  struct ncplane *n = ui->planes.cmdline;
-
-  ncplane_erase(n);
-  /* sometimes the color is changed to grey */
-  ncplane_set_bg_default(n);
-  ncplane_set_fg_default(n);
-
-  uint32_t rhs_sz = 0;
-  uint32_t lhs_sz = 0;
-  ncplane_cursor_yx(n, 0, 0);
-
-  if (!to_lfm(ui)->current_mode->input) {
-    const Dir *dir = fm->dirs.visible[0];
-    if (dir) {
-      const File *file = dir_current_file(dir);
-      if (file) {
-        if (file_error(file)) {
-          lhs_sz = ncplane_printf(n, "error: %s", strerror(file_error(file)));
-        } else {
-          char buf[512];
-          buf[0] = 0;
-          if (file_islink(file)) {
-            if (cfg.linkchars_len > 0) {
-              snprintf(buf, sizeof buf - 1, " %s %s", cfg.linkchars,
-                       file_link_target(file));
-            } else {
-              snprintf(buf, sizeof buf - 1, " %s", file_link_target(file));
-            }
-          }
-          lhs_sz = ncplane_printf(
-              n, "%s %2.ld %s %s %4s %s%s", file_perms(file), file_nlink(file),
-              file_owner(file), file_group(file),
-              file_size_readable(file, size),
-              print_time(file_mtime(file), mtime, sizeof mtime), buf);
-        }
-      }
-
-      rhs_sz = snprintf(nums, sizeof nums, "%u/%u",
-                        dir->length > 0 ? dir->ind + 1 : 0, dir->length);
-      ncplane_putstr_yx(n, 0, ui->ncol - rhs_sz, nums);
-
-      // these are drawn right to left
-      if (dir->filter) {
-        rhs_sz += mbstowcs(NULL, filter_string(dir->filter), 0) + 2 + 1;
-        ncplane_set_bg_palindex(n, COLOR_GREEN);
-        ncplane_set_fg_palindex(n, COLOR_BLACK);
-        ncplane_putchar_yx(n, 0, ui->ncol - rhs_sz, ' ');
-        ncplane_putstr(n, filter_string(dir->filter));
-        ncplane_putchar(n, ' ');
-        ncplane_set_bg_default(n);
-        ncplane_set_fg_default(n);
-        ncplane_putchar(n, ' ');
-      }
-      if (dir->fuzzy) {
-        rhs_sz += mbstowcs(NULL, dir->fuzzy, 0) + 2 + 2 + 1;
-        ncplane_set_bg_palindex(n, COLOR_GREEN);
-        ncplane_set_fg_palindex(n, COLOR_BLACK);
-        ncplane_putstr_yx(n, 0, ui->ncol - rhs_sz, " * ");
-        ncplane_putstr(n, dir->fuzzy);
-        ncplane_putchar(n, ' ');
-        ncplane_set_bg_default(n);
-        ncplane_set_fg_default(n);
-        ncplane_putchar(n, ' ');
-      }
-      if (fm->paste.buffer->size > 0) {
-        if (fm->paste.mode == PASTE_MODE_COPY) {
-          ncplane_set_channels(n, cfg.colors.copy);
-        } else {
-          ncplane_set_channels(n, cfg.colors.delete);
-        }
-
-        rhs_sz += int_sz(fm->paste.buffer->size) + 2 + 1;
-        ncplane_printf_yx(n, 0, ui->ncol - rhs_sz, " %zu ",
-                          fm->paste.buffer->size);
-        ncplane_set_bg_default(n);
-        ncplane_set_fg_default(n);
-        ncplane_putchar(n, ' ');
-      }
-      if (fm->selection.paths->size > 0) {
-        ncplane_set_channels(n, cfg.colors.selection);
-        rhs_sz += int_sz(fm->selection.paths->size) + 2 + 1;
-        ncplane_printf_yx(n, 0, ui->ncol - rhs_sz, " %zu ",
-                          fm->selection.paths->size);
-        ncplane_set_bg_default(n);
-        ncplane_set_fg_default(n);
-        ncplane_putchar(n, ' ');
-      }
-      if (dir->last_loading_action > 0 &&
-          current_millis() - dir->last_loading_action >=
-              cfg.loading_indicator_delay) {
-        rhs_sz += 10;
-        ncplane_set_bg_palindex(n, 237);
-        ncplane_set_fg_palindex(n, 255);
-        ncplane_putstr_yx(n, 0, ui->ncol - rhs_sz, " loading ");
-        ncplane_set_bg_default(n);
-        ncplane_set_fg_default(n);
-        ncplane_putchar(n, ' ');
-      }
-      if (ui->keyseq) {
-        char *str = NULL;
-        for (size_t i = 0; i < cvector_size(ui->keyseq); i++) {
-          for (const char *s = input_to_key_name(ui->keyseq[i]); *s; s++) {
-            cvector_push_back(str, *s);
-          }
-        }
-        cvector_push_back(str, 0);
-        rhs_sz += mbstowcs(NULL, str, 0) + 1;
-        ncplane_putstr_yx(n, 0, ui->ncol - rhs_sz, str);
-        ncplane_putchar(n, ' ');
-        cvector_free(str);
-      }
-      if (lhs_sz + rhs_sz > ui->ncol) {
-        ncplane_putwc_yx(n, 0, ui->ncol - rhs_sz - 2, cfg.truncatechar);
-        ncplane_putchar(n, ' ');
-      }
-    }
-  } else {
-    const uint32_t cursor_pos = cmdline_print(&ui->cmdline, n);
-    notcurses_cursor_enable(ui->nc, ui->nrow - 1, cursor_pos);
-  }
 }
 
 /* }}} */
@@ -1038,6 +868,39 @@ void ui_drop_cache(Ui *ui) {
 }
 
 /* }}} */
+
+static inline void print_message(Ui *ui, const char *msg, bool error) {
+  struct ncplane *n = ui->planes.cmdline;
+  ncplane_erase(n);
+  ncplane_set_bg_default(n);
+  ncplane_set_styles(n, NCSTYLE_NONE);
+  if (error) {
+    ncplane_set_fg_palindex(ui->planes.cmdline, COLOR_RED);
+    ncplane_putstr_yx(ui->planes.cmdline, 0, 0, msg);
+  } else {
+    ncplane_set_fg_default(n);
+    ncplane_cursor_move_yx(n, 0, 0);
+    ncplane_addastr(n, msg);
+  }
+  notcurses_render(ui->nc);
+  ncplane_set_fg_default(n);
+  ncplane_set_bg_default(n);
+  ncplane_set_styles(n, NCSTYLE_NONE);
+}
+
+static inline void draw_cmdline(Ui *ui) {
+  if (to_lfm(ui)->current_mode->input) {
+    const uint32_t cursor_pos = cmdline_draw(&ui->cmdline, ui->planes.cmdline);
+    notcurses_cursor_enable(ui->nc, ui->nrow - 1, cursor_pos);
+  } else {
+    if (ui->running && ui->show_message) {
+      struct message_s *msg = cvector_end(ui->messages) - 1;
+      print_message(ui, msg->text, msg->error);
+    } else {
+      statusline_draw(ui);
+    }
+  }
+}
 
 static void loading_indicator_timer_cb(EV_P_ ev_timer *w, int revents) {
   (void)revents;

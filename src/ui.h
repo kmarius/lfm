@@ -119,15 +119,6 @@ static inline void ui_menu_hide(Ui *ui) {
   ui_menu_show(ui, NULL, 0);
 }
 
-static inline void ui_keyseq_show(Ui *ui, input_t *keyseq) {
-  ui->keyseq = keyseq;
-  ui_redraw(ui, REDRAW_CMDLINE);
-}
-
-static inline void ui_keyseq_hide(Ui *ui) {
-  ui_keyseq_show(ui, NULL);
-}
-
 void ui_drop_cache(Ui *ui);
 
 void ui_resume(Ui *ui);

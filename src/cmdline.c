@@ -315,7 +315,12 @@ const char *cmdline_get(Cmdline *c) {
   return c->buf.str;
 }
 
-uint32_t cmdline_print(Cmdline *c, struct ncplane *n) {
+uint32_t cmdline_draw(Cmdline *c, struct ncplane *n) {
+  ncplane_erase(n);
+  ncplane_set_bg_default(n);
+  ncplane_set_fg_default(n);
+  ncplane_cursor_yx(n, 0, 0);
+
   unsigned int ncol;
   int offset;
   ncplane_dim_yx(n, NULL, &ncol);

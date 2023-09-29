@@ -15,6 +15,7 @@
 #include "lua/lfmlua.h"
 #include "mode.h"
 #include "search.h"
+#include "statusline.h"
 #include "trie.h"
 #include "ui.h"
 #include "util.h"
@@ -91,7 +92,7 @@ static inline void input_clear(Lfm *lfm) {
   Ui *ui = &lfm->ui;
   ui->maps.cur = NULL;
   ui_menu_hide(ui);
-  ui_keyseq_hide(ui);
+  statusline_keyseq_hide(ui);
 }
 
 void input_handle_key(Lfm *lfm, input_t in) {
@@ -186,7 +187,7 @@ void input_handle_key(Lfm *lfm, input_t in) {
       }
       if (lfm->ui.maps.count > 0) {
         cvector_push_back(lfm->ui.maps.seq, in);
-        ui_keyseq_show(ui, lfm->ui.maps.seq);
+        statusline_keyseq_show(ui, lfm->ui.maps.seq);
       }
       return;
     }
@@ -225,7 +226,7 @@ void input_handle_key(Lfm *lfm, input_t in) {
       llua_call_from_ref(lfm->L, ref, lfm->ui.maps.count);
     } else {
       cvector_push_back(lfm->ui.maps.seq, in);
-      ui_keyseq_show(ui, lfm->ui.maps.seq);
+      statusline_keyseq_show(ui, lfm->ui.maps.seq);
       lfm->ui.maps.accept_count = false;
 
       Trie **leaves = NULL;
