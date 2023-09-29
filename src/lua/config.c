@@ -2,6 +2,7 @@
 #include <stdlib.h>
 
 #include "../config.h"
+#include "../infoline.h"
 #include "../log.h"
 #include "../ncutil.h"
 #include "../tpool.h"
@@ -346,9 +347,9 @@ static int l_config_newindex(lua_State *L) {
     return 0;
   } else if (streq(key, "infoline")) {
     if (lua_isnil(L, 3)) {
-      ui_set_infoline(&lfm->ui, NULL);
+      infoline_set(&lfm->ui, NULL);
     } else {
-      ui_set_infoline(&lfm->ui, luaL_checkstring(L, 3));
+      infoline_set(&lfm->ui, luaL_checkstring(L, 3));
     }
   } else if (streq(key, "histsize")) {
     int sz = luaL_checkinteger(L, 3);

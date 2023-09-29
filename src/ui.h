@@ -134,6 +134,4 @@ void ui_resume(Ui *ui);
 
 void ui_suspend(Ui *ui);
 
-void ui_set_infoline(Ui *ui, const char *line);
-
 void ui_start_loading_indicator_timer(Ui *ui);

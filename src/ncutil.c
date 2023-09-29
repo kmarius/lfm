@@ -3,6 +3,7 @@
 #include <curses.h>
 #include <limits.h>
 
+#include "config.h"
 #include "log.h"
 #include "ncutil.h"
 
@@ -194,4 +195,52 @@ size_t ansi_mblen(const char *s) {
     }
   }
   return len;
+}
+
+int print_shortened_w(struct ncplane *n, const wchar_t *name, int name_len,
+                      int max_len, bool has_ext) {
+  if (max_len <= 0) {
+    return 0;
+  }
+
+  const wchar_t *ext = has_ext ? wcsrchr(name, L'.') : NULL;
+
+  if (!ext || ext == name) {
+    ext = name + name_len;
+  }
+  const int ext_len = name_len - (ext - name);
+
+  int x = max_len;
+  if (name_len <= max_len) {
+    // everything fits
+    x = ncplane_putwstr(n, name);
+  } else if (max_len > ext_len + 1) {
+    // print extension and as much of the name as possible
+    int print_name_ind = max_len - ext_len - 1;
+    const wchar_t *print_name_ptr = name + print_name_ind;
+    while (name < print_name_ptr) {
+      ncplane_putwc(n, *(name++));
+    }
+    ncplane_putwc(n, cfg.truncatechar);
+    ncplane_putwstr(n, ext);
+  } else if (max_len >= 5) {
+    // print first char of the name and as mutch of the extension as possible
+    ncplane_putwc(n, *(name));
+    const wchar_t *ext_end = ext + max_len - 2 - 1;
+    ncplane_putwc(n, cfg.truncatechar);
+    while (ext < ext_end) {
+      ncplane_putwc(n, *(ext++));
+    }
+    ncplane_putwc(n, cfg.truncatechar);
+  } else if (max_len > 1) {
+    const wchar_t *name_end = name + max_len - 1;
+    while (name < name_end) {
+      ncplane_putwc(n, *(name++));
+    }
+    ncplane_putwc(n, cfg.truncatechar);
+  } else {
+    ncplane_putwc(n, *name);
+  }
+
+  return x;
 }
