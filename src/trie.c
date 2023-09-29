@@ -45,9 +45,9 @@ int trie_insert(Trie *t, const input_t *trie_keys, int ref, const char *keys,
   xfree(t->keys);
   t->desc = desc ? strdup(desc) : NULL;
   t->keys = keys ? strdup(keys) : NULL;
-  int ret = t->ref;
+  int oldref = t->ref;
   t->ref = ref;
-  return ret;
+  return oldref;
 }
 
 int trie_remove(Trie *t, const input_t *trie_keys) {
@@ -57,9 +57,9 @@ int trie_remove(Trie *t, const input_t *trie_keys) {
   if (*trie_keys == 0) {
     XFREE_CLEAR(t->keys);
     XFREE_CLEAR(t->desc);
-    int ret = t->ref;
+    int oldref = t->ref;
     t->ref = 0;
-    return ret;
+    return oldref;
   }
   Trie **prev = &t->child;
   for (Trie *n = t->child; n; n = n->next) {

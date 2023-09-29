@@ -140,9 +140,9 @@ static int l_spawn(lua_State *L) {
   char **stdin = NULL;
   bool out = true;
   bool err = true;
-  int out_cb_ref = -1;
-  int err_cb_ref = -1;
-  int cb_ref = -1;
+  int stdout_ref = 0;
+  int stderr_ref = 0;
+  int exit_ref = 0;
 
   if (lua_gettop(L) > 2) {
     return luaL_error(L, "too many arguments");
@@ -180,7 +180,7 @@ static int l_spawn(lua_State *L) {
 
     lua_getfield(L, 2, "out"); // [cmd, opts, opts.out]
     if (lua_isfunction(L, -1)) {
-      out_cb_ref = lua_set_callback(L); // [cmd, opts]
+      stdout_ref = lua_set_callback(L); // [cmd, opts]
     } else {
       out = lua_toboolean(L, -1);
       lua_pop(L, 1); // [cmd, opts]
@@ -188,7 +188,7 @@ static int l_spawn(lua_State *L) {
 
     lua_getfield(L, 2, "err"); // [cmd, opts, opts.err]
     if (lua_isfunction(L, -1)) {
-      err_cb_ref = lua_set_callback(L); // [cmd, opts]
+      stderr_ref = lua_set_callback(L); // [cmd, opts]
     } else {
       err = lua_toboolean(L, -1);
       lua_pop(L, 1); // [cmd, opts]
@@ -196,14 +196,14 @@ static int l_spawn(lua_State *L) {
 
     lua_getfield(L, 2, "callback"); // [cmd, opts, opts.callback]
     if (lua_isfunction(L, -1)) {
-      cb_ref = lua_set_callback(L); // [cmd, opts]
+      exit_ref = lua_set_callback(L); // [cmd, opts]
     } else {
       lua_pop(L, 1); // [cmd, opts]
     }
   }
 
-  int pid = lfm_spawn(lfm, args[0], args, stdin, out, err, out_cb_ref,
-                      err_cb_ref, cb_ref);
+  int pid = lfm_spawn(lfm, args[0], args, stdin, out, err, stdout_ref,
+                      stderr_ref, exit_ref);
 
   cvector_ffree(stdin, xfree);
   cvector_ffree(args, xfree);
@@ -285,9 +285,9 @@ static inline int map_key(lua_State *L, Trie *trie, bool allow_mode) {
     ref = luaL_ref(L, LUA_REGISTRYINDEX);
   }
 
-  int old_ref = input_map(trie, keys, ref, desc);
-  if (old_ref) {
-    luaL_unref(L, LUA_REGISTRYINDEX, old_ref);
+  int oldref = input_map(trie, keys, ref, desc);
+  if (oldref) {
+    luaL_unref(L, LUA_REGISTRYINDEX, oldref);
   }
 
   return 0;

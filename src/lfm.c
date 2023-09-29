@@ -57,7 +57,7 @@ static inline void destroy_io_watcher(ev_io *w) {
     return;
   }
   struct stdout_watcher_data *data = (struct stdout_watcher_data *)w;
-  if (data->ref >= 0) {
+  if (data->ref) {
     llua_run_stdout_callback(data->lfm->L, data->ref, NULL);
   }
   fclose(data->stream);
@@ -80,7 +80,7 @@ static void child_cb(EV_P_ ev_child *w, int revents) {
 
   ev_child_stop(EV_A_ w);
 
-  if (data->ref >= 0) {
+  if (data->ref) {
     llua_run_child_callback(data->lfm->L, data->ref, w->rstatus);
   }
 
@@ -141,7 +141,7 @@ static void command_stdout_cb(EV_P_ ev_io *w, int revents) {
       line[read - 1] = 0;
     }
 
-    if (data->ref >= 0) {
+    if (data->ref) {
       llua_run_stdout_callback(lfm->L, data->ref, line);
     } else {
       ui_echom(&lfm->ui, "%s", line);
@@ -349,8 +349,8 @@ int lfm_spawn(Lfm *lfm, const char *prog, char *const *args, char **stdin_lines,
               int exit_ref) {
   FILE *stdin_stream, *stdout_stream, *stderr_stream;
 
-  bool capture_stdout = out || stdout_ref >= 0;
-  bool capture_stderr = err || stderr_ref >= 0;
+  bool capture_stdout = out || stdout_ref;
+  bool capture_stderr = err || stderr_ref;
 
   // always pass out and err because popen2_arr_p doesnt close the fds
   int pid = popen2_arr_p(stdin_lines ? &stdin_stream : NULL,

@@ -60,7 +60,7 @@ void lfm_read_fifo(Lfm *lfm);
 // Spawn a background command. execvp semantics hold for `prog`, `args`.
 // A cvector of strings can be passed by `stdin_lines` and will be send to the
 // commands standard input. If `out` or `err` are true, output/errors will be
-// shown in the ui. If `stdout_ref` or `stderr_ref` are set (>= 0), the
+// shown in the ui. If `stdout_ref` or `stderr_ref` are set (>0), the
 // respective callbacks are called with each line of output/error and nothing
 // will be printed on the ui. `exit_ref` will be called with the return code
 // once the command finishes.
