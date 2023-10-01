@@ -81,16 +81,13 @@ static void stdin_cb(EV_P_ ev_io *w, int revents) {
 
     if (in.id == NCKEY_FOCUS) {
       lfm_run_hook(lfm, LFM_HOOK_FOCUSGAINED);
-      return;
-    }
-    if (in.id == NCKEY_UNFOCUS) {
+    } else if (in.id == NCKEY_UNFOCUS) {
       lfm_run_hook(lfm, LFM_HOOK_FOCUSLOST);
-      return;
+    } else {
+      log_trace("id: %d, shift: %d, ctrl: %d alt %d, type: %d, %s", in.id,
+                in.shift, in.ctrl, in.alt, in.evtype, in.utf8);
+      input_handle_key(lfm, ncinput_to_input(&in));
     }
-
-    log_trace("id: %d, shift: %d, ctrl: %d alt %d, type: %d, %s", in.id,
-              in.shift, in.ctrl, in.alt, in.evtype, in.utf8);
-    input_handle_key(lfm, ncinput_to_input(&in));
   }
 
   ev_idle_start(EV_A_ & lfm->ui.redraw_watcher);
