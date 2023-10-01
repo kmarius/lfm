@@ -26,16 +26,23 @@ lfm.version = {}
 ---@param command string[]
 function lfm.execute(command) end
 
+---@class Lfm.SpawnOpts
+---@field stdin? string|string[] Will be sent to the processe's stdin
+---@field out? boolean|function Function to capture stdout
+---@field err? boolean|function Function to capture stderr
+---@field callback? function Function to capture the return value
+
 ---Spawn a background command. Returns the pid on success, nil otherwise.
 ---Supported options:
---- `opts.stdin` string or a table of strings that will be sent to the processes stdin.
---- `opts.out`   should stdout be shown in the UI (default: `true`)
---- `opts.err`   should stderr be shown in the UI (default: `true`)
+--- `opts.stdin`    string or a table of strings that will be sent to the processes stdin.
+--- `opts.out`      should stdout be shown in the UI (default: `true`)
+--- `opts.err`      should stderr be shown in the UI (default: `true`)
+--- `opts.callback` called on exit with the command's return status
 ---
 ---`opts.out` and `opts.err` can instead be set to functions which will be called with
 ---each line output by the brogram. In this case, nothing is shown in the UI.
 ---@param command string[]
----@param opts? table
+---@param opts? Lfm.SpawnOpts
 ---@return number? pid
 function lfm.spawn(command, opts) end
 
