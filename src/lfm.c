@@ -81,7 +81,7 @@ static void child_cb(EV_P_ ev_child *w, int revents) {
   ev_child_stop(EV_A_ w);
 
   if (data->ref) {
-    llua_run_child_callback(data->lfm->L, data->ref, w->rstatus);
+    llua_run_child_callback(data->lfm->L, data->ref, WEXITSTATUS(w->rstatus));
   }
 
   if (data->stdout_watcher) {
