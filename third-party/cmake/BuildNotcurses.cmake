@@ -40,7 +40,8 @@ set(AMD64_ABI "")
 
 set(NOTCURSES_PATCH_COMMAND
 	patch -p0 < ${CMAKE_CURRENT_SOURCE_DIR}/patches/notcurses-install-headers.patch &&
-	patch -p0 < ${CMAKE_CURRENT_SOURCE_DIR}/patches/notcurses-bad-kitty.patch)
+	patch -p0 < ${CMAKE_CURRENT_SOURCE_DIR}/patches/notcurses-bad-kitty.patch &&
+	patch -p0 < ${CMAKE_CURRENT_SOURCE_DIR}/patches/notcurses-focus.patch)
 
 set(NOTCURSES_CONFIGURE_COMMAND
 	${CMAKE_COMMAND} -G ${CMAKE_GENERATOR}
