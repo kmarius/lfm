@@ -22,15 +22,3 @@ unchanged:
  
  // we received SIGCONT
  #define NCKEY_SIGNAL    preterunicode(400)
-only in patch2:
-unchanged:
---- src/lib/termdesc.c	2023-10-01 16:04:17.099206523 +0200
-+++ src/lib/termdesc.c.~1~	2023-10-01 16:04:10.265687139 +0200
-@@ -421,6 +421,7 @@
-                    GEOMXTSM \
-                    GEOMPIXEL \
-                    GEOMCELL \
-+                   "\x1b[?1004h" \
-                    PRIDEVATTR
- 
- // kitty keyboard push, used at start
