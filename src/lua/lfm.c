@@ -418,6 +418,10 @@ int l_register_hook(lua_State *L) {
     lfm_add_hook(lfm, LFM_HOOK_DIRUPDATED, ref);
   } else if (streq(name, LFM_HOOK_NAME_MODECHANGED)) {
     lfm_add_hook(lfm, LFM_HOOK_MODECHANGED, ref);
+  } else if (streq(name, LFM_HOOK_NAME_FOCUSGAINED)) {
+    lfm_add_hook(lfm, LFM_HOOK_FOCUSGAINED, ref);
+  } else if (streq(name, LFM_HOOK_NAME_FOCUSLOST)) {
+    lfm_add_hook(lfm, LFM_HOOK_FOCUSLOST, ref);
   } else {
     return luaL_error(L, "no such hook: %s", name);
   }

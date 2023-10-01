@@ -79,6 +79,15 @@ static void stdin_cb(EV_P_ ev_io *w, int revents) {
     //   continue;
     // }
 
+    if (in.id == NCKEY_FOCUS) {
+      lfm_run_hook(lfm, LFM_HOOK_FOCUSGAINED);
+      return;
+    }
+    if (in.id == NCKEY_UNFOCUS) {
+      lfm_run_hook(lfm, LFM_HOOK_FOCUSLOST);
+      return;
+    }
+
     log_trace("id: %d, shift: %d, ctrl: %d alt %d, type: %d, %s", in.id,
               in.shift, in.ctrl, in.alt, in.evtype, in.utf8);
     input_handle_key(lfm, ncinput_to_input(&in));
@@ -106,7 +115,6 @@ void input_handle_key(Lfm *lfm, input_t in) {
   }
 
   ev_timer_stop(lfm->loop, &lfm->ui.map_clear_timer);
-
   if (lfm->current_mode->input) {
     if (!lfm->ui.maps.cur && !lfm->ui.maps.cur_input) {
       // reset the buffer/trie only if no mode map and no input map are possible

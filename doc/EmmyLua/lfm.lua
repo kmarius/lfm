@@ -50,6 +50,8 @@ function lfm.spawn(command, opts) end
 ---| '"DirLoaded"'
 ---| '"DirUpdated"'
 ---| '"ModeChanged"'
+---| '"FocusGained"'
+---| '"FocusLost"'
 
 ---Register a function to hook into events. Curruntly supported hooks are
 ---```
@@ -63,6 +65,8 @@ function lfm.spawn(command, opts) end
 --- DirLoaded        A new directory was loaded from disk
 --- DirUpdated       A new directory was loaded from disk
 --- ModeChanged      Mode transition
+--- FocusGained      Terminal gained focus
+--- FocusLost        Terminal lost focus
 ---
 ---```
 ---@param name Lfm.Hook

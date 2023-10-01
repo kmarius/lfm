@@ -12,6 +12,8 @@ typedef enum {
   LFM_HOOK_DIRLOADED,
   LFM_HOOK_DIRUPDATED,
   LFM_HOOK_MODECHANGED,
+  LFM_HOOK_FOCUSGAINED,
+  LFM_HOOK_FOCUSLOST,
   LFM_NUM_HOOKS
 } lfm_hook_id;
 
@@ -24,6 +26,8 @@ typedef enum {
 #define LFM_HOOK_NAME_DIRLOADED "DirLoaded"
 #define LFM_HOOK_NAME_DIRUPDATED "DirUpdated"
 #define LFM_HOOK_NAME_MODECHANGED "ModeChanged"
+#define LFM_HOOK_NAME_FOCUSGAINED "FocusGained"
+#define LFM_HOOK_NAME_FOCUSLOST "FocusLost"
 
 void lfm_hooks_init(struct lfm_s *lfm);
 
