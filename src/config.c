@@ -135,6 +135,7 @@ void config_deinit(void) {
   cvector_ffree(cfg.inotify_blacklist, xfree);
   xfree(cfg.configdir);
   xfree(cfg.configpath);
+  xfree(cfg.user_configpath);
   xfree(cfg.corepath);
   xfree(cfg.statedir);
   xfree(cfg.datadir);

@@ -78,8 +78,8 @@ int main(int argc, char **argv) {
       cfg.selfile = optarg;
       break;
     case 'u':
-      xfree(cfg.configpath);
-      cfg.configpath = strdup(optarg);
+      // we should print an error if a config is provided here and not found
+      cfg.user_configpath = strdup(optarg);
       break;
     case 'v':
       version(argv[0]);

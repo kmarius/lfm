@@ -190,7 +190,9 @@ static int l_config_index(lua_State *L) {
     lua_pushstring(L, cfg.logpath);
     return 1;
   } else if (streq(key, "configpath")) {
-    lua_pushstring(L, cfg.configpath);
+    const char *path =
+        cfg.user_configpath ? cfg.user_configpath : cfg.configpath;
+    lua_pushstring(L, path);
     return 1;
   } else if (streq(key, "configdir")) {
     lua_pushstring(L, cfg.configdir);

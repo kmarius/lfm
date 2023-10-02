@@ -14,17 +14,18 @@
 #define LOADING_INDICATOR_DELAY 250
 
 typedef struct config_s {
-  char *configdir;   // ~/.config/lfm
-  char *configpath;  // ~/.config/lfm/init.lua
-  char *statedir;    // ~/.local/state/lfm
-  char *historypath; // ~/.local/state/lfm/history
-  char *datadir;     // /usr/share/lfm
-  char *luadir;      // /usr/share/lfm/lua
-  char *corepath;    // /usr/share/lfm/lua/core.lua
-  char *rundir;      // $XDG_RUNTIME_DIR or /tmp/runtime-$USER
-  char *cachedir;    // $XDG_CACHE_HOME/lfm or ~/.cache/lfm
-  char *fifopath;    // rundir/$PID.fifo
-  char *logpath;     // /tmp/lfm.$PID.log
+  char *configdir;       // ~/.config/lfm
+  char *configpath;      // ~/.config/lfm/init.lua
+  char *user_configpath; // NULL unless set via commandline
+  char *statedir;        // ~/.local/state/lfm
+  char *historypath;     // ~/.local/state/lfm/history
+  char *datadir;         // /usr/share/lfm
+  char *luadir;          // /usr/share/lfm/lua
+  char *corepath;        // /usr/share/lfm/lua/core.lua
+  char *rundir;          // $XDG_RUNTIME_DIR or /tmp/runtime-$USER
+  char *cachedir;        // $XDG_CACHE_HOME/lfm or ~/.cache/lfm
+  char *fifopath;        // rundir/$PID.fifo
+  char *logpath;         // /tmp/lfm.$PID.log
 
   int histsize;         // 100
   wchar_t truncatechar; // '~'

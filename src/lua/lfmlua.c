@@ -180,7 +180,11 @@ void llua_init(lua_State *L, Lfm *lfm_) {
   llua_init_packages(L);
 
   uint64_t t0 = current_micros();
-  llua_load_file(L, cfg.configpath, false);
+  if (cfg.user_configpath) {
+    llua_load_file(L, cfg.user_configpath, true);
+  } else {
+    llua_load_file(L, cfg.configpath, false);
+  }
   log_info("user configuration loaded in %.2fms",
            (current_micros() - t0) / 1000.0);
 }
