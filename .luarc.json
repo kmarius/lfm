@@ -1,6 +1,9 @@
 {
   "$schema": "https://raw.githubusercontent.com/sumneko/vscode-lua/master/setting/schema.json",
   "Lua.runtime.version": "LuaJIT",
+  "Lua.runtime.special": {
+    "lfm.quit": "os.exit"
+  },
   "Lua.globals": [
     "lfm"
   ],
