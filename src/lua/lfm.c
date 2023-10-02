@@ -323,6 +323,16 @@ static int l_current_mode(lua_State *L) {
   return 1;
 }
 
+static int l_get_modes(lua_State *L) {
+  lua_newtable(L);
+  int i = 1;
+  ht_foreach(struct mode * mode, &lfm->modes) {
+    lua_pushstring(L, mode->name);
+    lua_rawseti(L, -2, i++);
+  }
+  return 1;
+}
+
 static int l_mode(lua_State *L) {
   if (lfm_mode_enter(lfm, luaL_checkstring(L, -1)) != 0) {
     return luaL_error(L, "no such mode: %s", lua_tostring(L, -1));
@@ -431,6 +441,7 @@ int l_register_hook(lua_State *L) {
 
 static const struct luaL_Reg lfm_lib[] = {{"mode", l_mode},
                                           {"current_mode", l_current_mode},
+                                          {"get_modes", l_get_modes},
                                           {"register_mode", l_register_mode},
                                           {"register_hook", l_register_hook},
                                           {"schedule", l_schedule},

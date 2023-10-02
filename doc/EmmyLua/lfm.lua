@@ -188,6 +188,10 @@ function lfm.mode(name) end
 ---@return string The name of the current mode.
 function lfm.current_mode() end
 
+---Get the names of registered modes.
+---@return string[]
+function lfm.get_modes() end
+
 ---Quit lfm.
 ---@param ret? number Exit status that will be reported by lfm.
 function lfm.quit(ret) end
