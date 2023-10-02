@@ -199,14 +199,14 @@ static void sigterm_cb(EV_P_ ev_signal *w, int revents) {
   (void)revents;
   (void)loop;
   log_debug("received SIGTERM");
-  lfm_quit(w->data);
+  lfm_quit(w->data, 0);
 }
 
 static void sighup_cb(EV_P_ ev_signal *w, int revents) {
   (void)revents;
   (void)loop;
   log_debug("received SIGHUP");
-  lfm_quit(w->data);
+  lfm_quit(w->data, 0);
 }
 /* callbacks }}} */
 
@@ -282,16 +282,18 @@ void lfm_init(Lfm *lfm, FILE *log_fp) {
   }
 }
 
-void lfm_run(Lfm *lfm) {
+int lfm_run(Lfm *lfm) {
   ev_run(lfm->loop, 0);
+  return lfm->ret;
 }
 
-void lfm_quit(Lfm *lfm) {
+void lfm_quit(Lfm *lfm, int ret) {
   lfm_run_hook(lfm, LFM_HOOK_EXITPRE);
   ev_break(lfm->loop, EVBREAK_ALL);
   // prevent lua error from flashing in the UI, we use it to immediately give
   // back control to the host program.
   lfm->ui.running = false;
+  lfm->ret = ret;
 
   if (cfg.lastdir) {
     FILE *fp = fopen(cfg.lastdir, "w");

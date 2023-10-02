@@ -68,7 +68,7 @@ static void stdin_cb(EV_P_ ev_io *w, int revents) {
 
     if (in.id == NCKEY_EOF) {
       log_debug("received EOF, quitting");
-      lfm_quit(lfm);
+      lfm_quit(lfm, 0);
       return;
     }
     // to emulate legacy with the kitty protocol (once it works in notcurses)
@@ -107,7 +107,7 @@ void input_handle_key(Lfm *lfm, input_t in) {
 
   if (in == CTRL('Q')) {
     log_debug("received ctrl-q, quitting");
-    lfm_quit(lfm);
+    lfm_quit(lfm, 0);
     return;
   }
 

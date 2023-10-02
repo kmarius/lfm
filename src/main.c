@@ -120,7 +120,7 @@ int main(int argc, char **argv) {
 
   log_info("starting main loop after %.2f ms",
            (current_micros() - t0) / 1000.0);
-  lfm_run(&lfm);
+  ret = lfm_run(&lfm);
 
   lfm_deinit(&lfm);
 

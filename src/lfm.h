@@ -40,16 +40,17 @@ typedef struct lfm_s {
 
   int fifo_fd;
   FILE *log_fp;
+  int ret; /* set in lfm_quit and returned in main.c */
 } Lfm;
 
 // Initialize ui, fm and the lua_State.
 void lfm_init(Lfm *lfm, FILE *log_fp);
 
 // Start the main event loop.
-void lfm_run(Lfm *lfm);
+int lfm_run(Lfm *lfm);
 
 // Stop the event loop.
-void lfm_quit(Lfm *lfm);
+void lfm_quit(Lfm *lfm, int ret);
 
 // Free all recources i.e. ui, fm and the lua_State.
 void lfm_deinit(Lfm *lfm);
