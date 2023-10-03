@@ -349,19 +349,52 @@ map("a", require("lfm.functions").rename_before_ext, { desc = "Rename before ext
 map("A", require("lfm.functions").rename_after, { desc = "Rename at the end" })
 map("I", require("lfm.functions").rename_before, { desc = "Rename at the start" })
 
-map("on", a(fm.sortby, "natural", "noreverse"), { desc = "Sort: natural, noreverse" })
-map("oN", a(fm.sortby, "natural", "reverse"), { desc = "Sort: natural, reverse" })
-map("os", a(fm.sortby, "size", "reverse"), { desc = "Sort: size, noreverse" })
-map("oS", a(fm.sortby, "size", "noreverse"), { desc = "Sort: size, reverse" })
-map("oc", a(fm.sortby, "ctime", "noreverse"), { desc = "Sort: ctime, noreverse" })
-map("oC", a(fm.sortby, "ctime", "reverse"), { desc = "Sort: ctime, reverse" })
-map("oa", a(fm.sortby, "atime", "noreverse"), { desc = "Sort: atime, noreverse" })
-map("oA", a(fm.sortby, "atime", "reverse"), { desc = "Sort: atime, reverse" })
-map("om", a(fm.sortby, "mtime", "noreverse"), { desc = "Sort: mtime, noreverse" })
-map("oM", a(fm.sortby, "mtime", "reverse"), { desc = "Sort: mtime, reverse" })
-map("od", a(fm.sortby, "dirfirst"), { desc = "Sort: dirfirst" })
-map("oD", a(fm.sortby, "nodirfirst"), { desc = "Sort: nodirfirst" })
-map("or", a(fm.sortby, "random"), { desc = "Sort: random" })
+-- TODO: change these when more file info values are implemented
+local sortby = fm.sortby
+map("on", function()
+	sortby("natural", "noreverse")
+	config.info = "size"
+end, { desc = "Sort: natural, noreverse" })
+map("oN", function()
+	sortby("natural", "reverse")
+	config.info = "size"
+end, { desc = "Sort: natural, reverse" })
+map("os", function()
+	sortby("size", "reverse")
+	config.info = "size"
+end, { desc = "Sort: size, noreverse" })
+map("oS", function()
+	sortby("size", "noreverse")
+	config.info = "size"
+end, { desc = "Sort: size, reverse" })
+map("oc", function()
+	sortby("ctime", "noreverse")
+	config.info = "ctime"
+end, { desc = "Sort: ctime, noreverse" })
+map("oC", function()
+	sortby("ctime", "reverse")
+	config.info = "ctime"
+end, { desc = "Sort: ctime, reverse" })
+map("oa", function()
+	sortby("atime", "noreverse")
+	config.info = "size"
+end, { desc = "Sort: atime, noreverse" })
+map("oA", function()
+	sortby("atime", "reverse")
+	config.info = "size"
+end, { desc = "Sort: atime, reverse" })
+map("om", function()
+	sortby("mtime", "noreverse")
+	config.info = "size"
+end, { desc = "Sort: mtime, noreverse" })
+map("oM", function()
+	sortby("mtime", "reverse")
+	config.info = "size"
+end, { desc = "Sort: mtime, reverse" })
+map("or", function()
+	sortby("random")
+	config.info = "size"
+end, { desc = "Sort: random" })
 
 local function gmap(key, location)
 	map("g" .. key, function()
