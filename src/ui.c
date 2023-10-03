@@ -174,12 +174,15 @@ void ui_recol(Ui *ui) {
 
   struct ncplane_options opts = {
       .y = 1,
-      .rows = ui->nrow - 2,
+      .rows = ui->nrow > 2 ? ui->nrow - 2 : 1,
   };
 
   uint32_t xpos = 0;
   for (uint32_t i = 0; i < ui->ndirs - 1; i++) {
     opts.cols = (ui->ncol - ui->ndirs + 1) * cfg.ratios[i] / sum;
+    if (opts.cols == 0) {
+      opts.cols = 1;
+    }
     opts.x = xpos;
     cvector_push_back(ui->planes.dirs, ncplane_create(ncstd, &opts));
     xpos += opts.cols + 1;
