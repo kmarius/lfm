@@ -377,19 +377,19 @@ map("oC", function()
 end, { desc = "Sort: ctime, reverse" })
 map("oa", function()
 	sortby("atime", "noreverse")
-	config.info = "size"
+	config.info = "atime"
 end, { desc = "Sort: atime, noreverse" })
 map("oA", function()
 	sortby("atime", "reverse")
-	config.info = "size"
+	config.info = "atime"
 end, { desc = "Sort: atime, reverse" })
 map("om", function()
 	sortby("mtime", "noreverse")
-	config.info = "size"
+	config.info = "mtime"
 end, { desc = "Sort: mtime, noreverse" })
 map("oM", function()
 	sortby("mtime", "reverse")
-	config.info = "size"
+	config.info = "mtime"
 end, { desc = "Sort: mtime, reverse" })
 map("or", function()
 	sortby("random")

@@ -13,7 +13,13 @@
 #define MAP_CLEAR_DELAY 10000
 #define LOADING_INDICATOR_DELAY 250
 
-typedef enum { INFO_SIZE = 0, INFO_CTIME, NUM_FILEINFO } fileinfo;
+typedef enum {
+  INFO_SIZE = 0,
+  INFO_ATIME,
+  INFO_CTIME,
+  INFO_MTIME,
+  NUM_FILEINFO
+} fileinfo;
 extern const char *fileinfo_str[NUM_FILEINFO];
 
 typedef struct config_s {

@@ -619,7 +619,7 @@ static void print_file(struct ncplane *n, const File *file, bool iscurrent,
 
   if (print_info) {
     switch (cfg.fileinfo) {
-    case INFO_SIZE: {
+    case INFO_SIZE:
       if (file_isdir(file)) {
         if (file_dircount(file) < 0) {
           snprintf(info, sizeof info, "?");
@@ -629,12 +629,19 @@ static void print_file(struct ncplane *n, const File *file, bool iscurrent,
       } else {
         file_size_readable(file, info);
       }
+      break;
+    case INFO_ATIME: {
+      struct tm *tm = localtime(&file->stat.st_atim.tv_sec);
+      strftime(info, sizeof info, cfg.timefmt, tm);
     } break;
     case INFO_CTIME: {
-      /* "%Y-%m-%d %H:%M:%S" */
       struct tm *tm = localtime(&file->stat.st_ctim.tv_sec);
       strftime(info, sizeof info, cfg.timefmt, tm);
-    }
+    } break;
+    case INFO_MTIME: {
+      struct tm *tm = localtime(&file->stat.st_mtim.tv_sec);
+      strftime(info, sizeof info, cfg.timefmt, tm);
+    } break;
     case NUM_FILEINFO:
     default: {
     }

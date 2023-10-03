@@ -8,7 +8,9 @@
 
 ---@alias Lfm.Info
 ---| '"size"'
+---| '"atime"'
 ---| '"ctime"'
+---| '"mtime"'
 
 ---@alias Lfm.Color string|integer
 
