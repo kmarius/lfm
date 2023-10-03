@@ -232,6 +232,12 @@ static int l_config_index(lua_State *L) {
   } else if (streq(key, "linkchars")) {
     lua_pushstring(L, cfg.linkchars);
     return 1;
+  } else if (streq(key, "info")) {
+    lua_pushstring(L, fileinfo_str[cfg.fileinfo]);
+    return 1;
+  } else if (streq(key, "timefmt")) {
+    lua_pushstring(L, cfg.timefmt);
+    return 1;
   } else {
     luaL_error(L, "unexpected key %s", key);
   }
@@ -377,8 +383,23 @@ static int l_config_newindex(lua_State *L) {
     strncpy(cfg.linkchars, val, sizeof(cfg.linkchars) - 1);
     cfg.linkchars_len = ansi_mblen(val);
     ui_redraw(ui, REDRAW_FM);
+  } else if (streq(key, "info")) {
+    const char *val = luaL_checkstring(L, 3);
+    for (int i = 0; i < NUM_FILEINFO; i++) {
+      if (streq(val, fileinfo_str[i])) {
+        cfg.fileinfo = i;
+        ui_redraw(ui, REDRAW_FM);
+        return 0;
+      }
+    }
+    return luaL_error(L, "invalid option for info: %s", val);
+  } else if (streq(key, "timefmt")) {
+    const char *val = luaL_checkstring(L, 3);
+    xfree(cfg.timefmt);
+    cfg.timefmt = strdup(val);
+    ui_redraw(ui, REDRAW_FM);
   } else {
-    luaL_error(L, "unexpected key %s", key);
+    return luaL_error(L, "unexpected key %s", key);
   }
   return 0;
 }

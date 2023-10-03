@@ -13,6 +13,9 @@
 #define MAP_CLEAR_DELAY 10000
 #define LOADING_INDICATOR_DELAY 250
 
+typedef enum { INFO_SIZE = 0, INFO_CTIME, NUM_FILEINFO } fileinfo;
+extern const char *fileinfo_str[NUM_FILEINFO];
+
 typedef struct config_s {
   char *configdir;       // ~/.config/lfm
   char *configpath;      // ~/.config/lfm/init.lua
@@ -41,6 +44,8 @@ typedef struct config_s {
   bool icons;
   Hashtab *icon_map;
   uint32_t scrolloff;
+  fileinfo fileinfo;
+  char *timefmt;
   cvector_vector_type(char *) commands;
   cvector_vector_type(uint32_t) ratios;
 

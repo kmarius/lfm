@@ -6,6 +6,10 @@
 ---@field reverse boolean
 ---@field hidden boolean
 
+---@alias Lfm.Info
+---| '"size"'
+---| '"ctime"'
+
 ---@alias Lfm.Color string|integer
 
 ---@class Lfm.ColorPair
@@ -28,6 +32,8 @@
 ---@field current Lfm.ColorPair
 
 ---@class Lfm.Config
+---@field timefmt string Time format used to print dates for file info (default: "%Y-%m-%d %H:%M")
+---@field info Lfm.Info Information on the file that will be shown in the main column (default: "size")
 ---@field loading_indicator_delay number delay in ms after which an indicator will be shown that the current directory is being reloaded/checked (default: 250)
 ---@field map_clear_delay number delay in ms after which the current key input will be cleared, must be non-negative, 0 disables (default: 10000)
 ---@field map_suggestion_delay number delay in ms after which key suggestions will be shown, must be non-negative (default: 1000)

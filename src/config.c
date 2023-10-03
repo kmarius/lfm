@@ -20,6 +20,8 @@
 extern char *default_data_dir;
 extern char *default_lua_dir;
 
+const char *fileinfo_str[] = {"size", "ctime"};
+
 Config cfg = {
     .truncatechar = L'~',
     .scrolloff = 4,
@@ -116,6 +118,8 @@ void config_init(void) {
 
   asprintf(&cfg.corepath, "%s/lfm/core.lua", cfg.luadir);
 
+  cfg.timefmt = strdup("%Y-%m-%d %H:%M");
+
 #ifdef DEBUG
   cfg.logpath = strdup("/tmp/lfm.debug.log");
   asprintf(&cfg.fifopath, "%s/debug.fifo", cfg.rundir);
@@ -147,6 +151,7 @@ void config_deinit(void) {
   xfree(cfg.startfile);
   xfree(cfg.startpath);
   xfree(cfg.luadir);
+  xfree(cfg.timefmt);
 }
 
 void config_colors_clear(void) {

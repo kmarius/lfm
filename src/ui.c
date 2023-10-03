@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include <unistd.h>
 #include <wchar.h>
 
@@ -40,7 +41,7 @@ static void menu_delay_timer_cb(EV_P_ ev_timer *w, int revents);
 static void draw_dirs(Ui *ui);
 static void plane_draw_dir(struct ncplane *n, Dir *dir, LinkedHashtab *sel,
                            LinkedHashtab *load, paste_mode mode,
-                           const char *highlight, bool print_sizes);
+                           const char *highlight, bool print_info);
 static void draw_preview(Ui *ui);
 static void update_preview(Ui *ui);
 static void draw_menu(Ui *ui, cvector_vector_type(char *) menu);
@@ -607,26 +608,38 @@ static int print_highlighted_and_shortened(struct ncplane *n, const char *name,
 
 static void print_file(struct ncplane *n, const File *file, bool iscurrent,
                        LinkedHashtab *sel, LinkedHashtab *load, paste_mode mode,
-                       const char *highlight, bool print_sizes) {
+                       const char *highlight, bool print_info) {
   unsigned int ncol, y0;
   unsigned int x = 0;
-  char size[16];
+  char info[32];
   ncplane_dim_yx(n, NULL, &ncol);
   ncplane_cursor_yx(n, &y0, NULL);
 
   int rightmargin = 0;
 
-  if (print_sizes) {
-    if (file_isdir(file)) {
-      if (file_dircount(file) < 0) {
-        snprintf(size, sizeof size, "?");
+  if (print_info) {
+    switch (cfg.fileinfo) {
+    case INFO_SIZE: {
+      if (file_isdir(file)) {
+        if (file_dircount(file) < 0) {
+          snprintf(info, sizeof info, "?");
+        } else {
+          snprintf(info, sizeof info, "%d", file_dircount(file));
+        }
       } else {
-        snprintf(size, sizeof size, "%d", file_dircount(file));
+        file_size_readable(file, info);
       }
-    } else {
-      file_size_readable(file, size);
+    } break;
+    case INFO_CTIME: {
+      /* "%Y-%m-%d %H:%M:%S" */
+      struct tm *tm = localtime(&file->stat.st_ctim.tv_sec);
+      strftime(info, sizeof info, cfg.timefmt, tm);
     }
-    rightmargin = strlen(size) + 1;
+    case NUM_FILEINFO:
+    default: {
+    }
+    }
+    rightmargin = strlen(info) + 1;
 
     if (file_islink(file) && cfg.linkchars_len > 0) {
       rightmargin += cfg.linkchars_len;
@@ -759,7 +772,7 @@ static void print_file(struct ncplane *n, const File *file, bool iscurrent,
       ncplane_putstr(n, cfg.linkchars);
       ncplane_putchar(n, ' ');
     }
-    ncplane_putstr(n, size);
+    ncplane_putstr(n, info);
     ncplane_putchar(n, ' ');
   }
   ncplane_set_fg_default(n);
@@ -769,7 +782,7 @@ static void print_file(struct ncplane *n, const File *file, bool iscurrent,
 
 static void plane_draw_dir(struct ncplane *n, Dir *dir, LinkedHashtab *sel,
                            LinkedHashtab *load, paste_mode mode,
-                           const char *highlight, bool print_sizes) {
+                           const char *highlight, bool print_info) {
   unsigned int nrow;
 
   ncplane_erase(n);
@@ -803,7 +816,7 @@ static void plane_draw_dir(struct ncplane *n, Dir *dir, LinkedHashtab *sel,
     for (uint32_t i = 0; i < l; i++) {
       ncplane_cursor_move_yx(n, i, 0);
       print_file(n, dir->files[i + offset], i == dir->pos, sel, load, mode,
-                 highlight, print_sizes);
+                 highlight, print_info);
     }
   }
 }
