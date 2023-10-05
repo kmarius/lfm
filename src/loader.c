@@ -17,6 +17,7 @@
 #include "util.h"
 
 struct timer_data {
+  ev_timer watcher;
   Lfm *lfm;
   union {
     Preview *preview;
@@ -24,59 +25,45 @@ struct timer_data {
   };
 };
 
-#define DATA(w) ((struct timer_data *)w->data)
-
 void loader_init(Loader *loader) {
   loader->dir_cache = ht_create((ht_free_func)dir_destroy);
   loader->preview_cache = ht_create((ht_free_func)preview_destroy);
 }
 
 void loader_deinit(Loader *loader) {
-  cvector_foreach(struct ev_timer * timer, loader->dir_timers) {
-    xfree(timer->data);
-    xfree(timer);
-  }
-  cvector_foreach(struct ev_timer * timer, loader->preview_timers) {
-    xfree(timer->data);
-    xfree(timer);
-  }
-  cvector_free(loader->dir_timers);
-  cvector_free(loader->preview_timers);
+  cvector_ffree(loader->dir_timers, xfree);
+  cvector_ffree(loader->preview_timers, xfree);
   ht_destroy(loader->dir_cache);
   ht_destroy(loader->preview_cache);
 }
 
 static void dir_timer_cb(EV_P_ ev_timer *w, int revents) {
   (void)revents;
-  struct timer_data *data = w->data;
+  struct timer_data *data = (struct timer_data *)w;
   async_dir_load(&data->lfm->async, data->dir, true);
   data->dir->loading = true;
   ev_timer_stop(EV_A_ w);
   cvector_swap_remove(data->lfm->loader.dir_timers, w);
-  xfree(data);
   xfree(w);
 }
 
 static void pv_timer_cb(EV_P_ ev_timer *w, int revents) {
   (void)revents;
-  struct timer_data *data = w->data;
+  struct timer_data *data = (struct timer_data *)w;
   async_preview_load(&data->lfm->async, data->preview);
   ev_timer_stop(EV_A_ w);
   cvector_swap_remove(data->lfm->loader.preview_timers, w);
-  xfree(data);
   xfree(w);
 }
 
 static inline void schedule_dir_load(Loader *loader, Dir *dir, uint64_t time) {
-  ev_timer *timer = xmalloc(sizeof *timer);
-  double delay = (time - current_millis()) / 1000.;
-  ev_timer_init(timer, dir_timer_cb, 0, delay);
   struct timer_data *data = xmalloc(sizeof *data);
+  double delay = (time - current_millis()) / 1000.;
+  ev_timer_init(&data->watcher, dir_timer_cb, 0, delay);
   data->dir = dir;
   data->lfm = to_lfm(loader);
-  timer->data = data;
-  ev_timer_again(to_lfm(loader)->loop, timer);
-  cvector_push_back(loader->dir_timers, timer);
+  ev_timer_again(to_lfm(loader)->loop, &data->watcher);
+  cvector_push_back(loader->dir_timers, &data->watcher);
   dir->next_scheduled_load = time;
   dir->next_requested_load = 0;
   dir->scheduled = true;
@@ -85,14 +72,13 @@ static inline void schedule_dir_load(Loader *loader, Dir *dir, uint64_t time) {
 
 static inline void schedule_preview_load(Loader *loader, Preview *pv,
                                          uint64_t time) {
-  ev_timer *timer = xmalloc(sizeof *timer);
-  ev_timer_init(timer, pv_timer_cb, 0, (time - current_millis()) / 1000.);
   struct timer_data *data = xmalloc(sizeof *data);
+  ev_timer_init(&data->watcher, pv_timer_cb, 0,
+                (time - current_millis()) / 1000.);
   data->preview = pv;
   data->lfm = to_lfm(loader);
-  timer->data = data;
-  ev_timer_again(to_lfm(loader)->loop, timer);
-  cvector_push_back(loader->preview_timers, timer);
+  ev_timer_again(to_lfm(loader)->loop, &data->watcher);
+  cvector_push_back(loader->preview_timers, &data->watcher);
 }
 
 void loader_dir_reload(Loader *loader, Dir *dir) {
@@ -230,6 +216,8 @@ void loader_drop_dir_cache(Loader *loader) {
   cvector_set_size(loader->dir_timers, 0);
 }
 
+#define DATA(t) ((struct timer_data *)t)
+
 void loader_reschedule(Loader *loader) {
   Dir **dirs = NULL;
   bool contained;
@@ -239,7 +227,6 @@ void loader_reschedule(Loader *loader) {
       cvector_push_back(dirs, DATA(timer)->dir);
     }
     ev_timer_stop(to_lfm(loader)->loop, timer);
-    xfree(timer->data);
     xfree(timer);
   }
   cvector_set_size(loader->dir_timers, 0);
@@ -251,7 +238,6 @@ void loader_reschedule(Loader *loader) {
       cvector_push_back(previews, DATA(timer)->preview);
     }
     ev_timer_stop(to_lfm(loader)->loop, timer);
-    xfree(timer->data);
     xfree(timer);
   }
   cvector_set_size(loader->preview_timers, 0);
@@ -267,3 +253,4 @@ void loader_reschedule(Loader *loader) {
   cvector_free(dirs);
   cvector_free(previews);
 }
+#undef DATA
