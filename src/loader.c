@@ -179,8 +179,8 @@ Preview *loader_preview_from_path(Loader *loader, const char *path) {
 
   Preview *pv = ht_get(loader->preview_cache, path);
   if (pv) {
-    if (pv->reload_height < (int)to_lfm(loader)->ui.preview.rows ||
-        pv->reload_width < (int)to_lfm(loader)->ui.preview.cols) {
+    if (pv->reload_height < (int)to_lfm(loader)->ui.preview.y ||
+        pv->reload_width < (int)to_lfm(loader)->ui.preview.x) {
       /* TODO: don't need to reload text previews if the actual file holds fewer
        * lines (on 2022-09-14) */
       async_preview_load(&to_lfm(loader)->async, pv);
@@ -188,8 +188,8 @@ Preview *loader_preview_from_path(Loader *loader, const char *path) {
       async_preview_check(&to_lfm(loader)->async, pv);
     }
   } else {
-    pv = preview_create_loading(path, to_lfm(loader)->ui.nrow,
-                                to_lfm(loader)->ui.ncol);
+    pv = preview_create_loading(path, to_lfm(loader)->ui.y,
+                                to_lfm(loader)->ui.x);
     ht_set(loader->preview_cache, pv->path, pv);
     async_preview_load(&to_lfm(loader)->async, pv);
   }

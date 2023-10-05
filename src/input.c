@@ -4,6 +4,7 @@
 
 #include "cmdline.h"
 #include "config.h"
+#include "cvector.h"
 #include "fm.h"
 #include "hashtab.h"
 #include "hooks.h"
@@ -98,7 +99,8 @@ static inline void input_clear(Lfm *lfm) {
   Ui *ui = &lfm->ui;
   ui->maps.cur = NULL;
   ui_menu_hide(ui);
-  statusline_keyseq_hide(ui);
+  cvector_set_size(ui->maps.seq, 0);
+  ui_redraw(ui, REDRAW_CMDLINE);
 }
 
 void input_handle_key(Lfm *lfm, input_t in) {
@@ -192,7 +194,7 @@ void input_handle_key(Lfm *lfm, input_t in) {
       }
       if (lfm->ui.maps.count > 0) {
         cvector_push_back(lfm->ui.maps.seq, in);
-        statusline_keyseq_show(ui, lfm->ui.maps.seq);
+        ui_redraw(ui, REDRAW_CMDLINE);
       }
       return;
     }
@@ -231,7 +233,7 @@ void input_handle_key(Lfm *lfm, input_t in) {
       llua_call_from_ref(lfm->L, ref, lfm->ui.maps.count);
     } else {
       cvector_push_back(lfm->ui.maps.seq, in);
-      statusline_keyseq_show(ui, lfm->ui.maps.seq);
+      ui_redraw(ui, REDRAW_CMDLINE);
       lfm->ui.maps.accept_count = false;
 
       Trie **leaves = NULL;

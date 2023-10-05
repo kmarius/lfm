@@ -21,12 +21,12 @@ static int l_ui_clear(lua_State *L) {
 }
 
 static int l_ui_get_width(lua_State *L) {
-  lua_pushnumber(L, ui->ncol);
+  lua_pushnumber(L, ui->x);
   return 1;
 }
 
 static int l_ui_get_height(lua_State *L) {
-  lua_pushnumber(L, ui->nrow);
+  lua_pushnumber(L, ui->y);
   return 1;
 }
 

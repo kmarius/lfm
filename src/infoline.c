@@ -71,7 +71,7 @@ void infoline_draw(Ui *ui) {
   wchar_t *end = path + wcslen(path);
   unsigned int remaining;
   ncplane_cursor_yx(n, NULL, &remaining);
-  remaining = ui->ncol - remaining;
+  remaining = ui->x - remaining;
   if (file) {
     name = ambstowcs(file_name(file), &name_len);
     remaining -= name_len;
@@ -133,7 +133,7 @@ void infoline_draw(Ui *ui) {
 
   if (file) {
     ncplane_cursor_yx(n, NULL, &remaining);
-    remaining = ui->ncol - remaining;
+    remaining = ui->x - remaining;
     ncplane_set_fg_default(n);
     print_shortened_w(n, name, name_len, remaining, !file_isdir(file));
   }
@@ -212,7 +212,7 @@ static inline void draw_custom_info(Ui *ui, const char *user, const char *host,
     static_len += ansi_mblen(spacer_ptr + 1);
   }
 
-  int remaining = ui->ncol - static_len;
+  int remaining = ui->x - static_len;
 
   wchar_t *file = NULL;
   int file_len = 0;
@@ -305,12 +305,12 @@ static inline void draw_custom_info(Ui *ui, const char *user, const char *host,
   if (spacer_ptr) {
     unsigned int r;
     ncplane_cursor_yx(n, NULL, &r);
-    r = ui->ncol - r;
+    r = ui->x - r;
     while (ncplane_putchar(n, ' ') > 0)
       ;
     size_t l = ansi_mblen(spacer_ptr + 1);
     if (r >= l) {
-      ncplane_cursor_move_yx(n, 0, ui->ncol - l);
+      ncplane_cursor_move_yx(n, 0, ui->x - l);
       ncplane_addastr(n, spacer_ptr + 1);
     }
   }

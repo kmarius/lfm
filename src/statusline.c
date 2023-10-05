@@ -1,6 +1,7 @@
 #include <curses.h>
 
 #include "config.h"
+#include "cvector.h"
 #include "lfm.h"
 #include "macros.h"
 #include "ncutil.h"
@@ -52,14 +53,14 @@ void statusline_draw(Ui *ui) {
 
     rhs_sz = snprintf(nums, sizeof nums, "%u/%u",
                       dir->length > 0 ? dir->ind + 1 : 0, dir->length);
-    ncplane_putstr_yx(n, 0, ui->ncol - rhs_sz, nums);
+    ncplane_putstr_yx(n, 0, ui->x - rhs_sz, nums);
 
     // these are drawn right to left
     if (dir->filter) {
       rhs_sz += mbstowcs(NULL, filter_string(dir->filter), 0) + 2 + 1;
       ncplane_set_bg_palindex(n, COLOR_GREEN);
       ncplane_set_fg_palindex(n, COLOR_BLACK);
-      ncplane_putchar_yx(n, 0, ui->ncol - rhs_sz, ' ');
+      ncplane_putchar_yx(n, 0, ui->x - rhs_sz, ' ');
       ncplane_putstr(n, filter_string(dir->filter));
       ncplane_putchar(n, ' ');
       ncplane_set_bg_default(n);
@@ -70,7 +71,7 @@ void statusline_draw(Ui *ui) {
       rhs_sz += mbstowcs(NULL, dir->fuzzy, 0) + 2 + 2 + 1;
       ncplane_set_bg_palindex(n, COLOR_GREEN);
       ncplane_set_fg_palindex(n, COLOR_BLACK);
-      ncplane_putstr_yx(n, 0, ui->ncol - rhs_sz, " * ");
+      ncplane_putstr_yx(n, 0, ui->x - rhs_sz, " * ");
       ncplane_putstr(n, dir->fuzzy);
       ncplane_putchar(n, ' ');
       ncplane_set_bg_default(n);
@@ -85,8 +86,7 @@ void statusline_draw(Ui *ui) {
       }
 
       rhs_sz += uint32_num_digits(fm->paste.buffer->size) + 2 + 1;
-      ncplane_printf_yx(n, 0, ui->ncol - rhs_sz, " %zu ",
-                        fm->paste.buffer->size);
+      ncplane_printf_yx(n, 0, ui->x - rhs_sz, " %zu ", fm->paste.buffer->size);
       ncplane_set_bg_default(n);
       ncplane_set_fg_default(n);
       ncplane_putchar(n, ' ');
@@ -94,7 +94,7 @@ void statusline_draw(Ui *ui) {
     if (fm->selection.paths->size > 0) {
       ncplane_set_channels(n, cfg.colors.selection);
       rhs_sz += uint32_num_digits(fm->selection.paths->size) + 2 + 1;
-      ncplane_printf_yx(n, 0, ui->ncol - rhs_sz, " %zu ",
+      ncplane_printf_yx(n, 0, ui->x - rhs_sz, " %zu ",
                         fm->selection.paths->size);
       ncplane_set_bg_default(n);
       ncplane_set_fg_default(n);
@@ -106,26 +106,26 @@ void statusline_draw(Ui *ui) {
       rhs_sz += 10;
       ncplane_set_bg_palindex(n, 237);
       ncplane_set_fg_palindex(n, 255);
-      ncplane_putstr_yx(n, 0, ui->ncol - rhs_sz, " loading ");
+      ncplane_putstr_yx(n, 0, ui->x - rhs_sz, " loading ");
       ncplane_set_bg_default(n);
       ncplane_set_fg_default(n);
       ncplane_putchar(n, ' ');
     }
-    if (ui->keyseq) {
+    if (cvector_size(ui->maps.seq) > 0) {
       char *str = NULL;
-      for (size_t i = 0; i < cvector_size(ui->keyseq); i++) {
-        for (const char *s = input_to_key_name(ui->keyseq[i]); *s; s++) {
+      for (size_t i = 0; i < cvector_size(ui->maps.seq); i++) {
+        for (const char *s = input_to_key_name(ui->maps.seq[i]); *s; s++) {
           cvector_push_back(str, *s);
         }
       }
       cvector_push_back(str, 0);
       rhs_sz += mbstowcs(NULL, str, 0) + 1;
-      ncplane_putstr_yx(n, 0, ui->ncol - rhs_sz, str);
+      ncplane_putstr_yx(n, 0, ui->x - rhs_sz, str);
       ncplane_putchar(n, ' ');
       cvector_free(str);
     }
-    if (lhs_sz + rhs_sz > ui->ncol) {
-      ncplane_putwc_yx(n, 0, ui->ncol - rhs_sz - 2, cfg.truncatechar);
+    if (lhs_sz + rhs_sz > ui->x) {
+      ncplane_putwc_yx(n, 0, ui->x - rhs_sz - 2, cfg.truncatechar);
       ncplane_putchar(n, ' ');
     }
   }

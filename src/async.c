@@ -516,8 +516,8 @@ void async_preview_load(Async *async, Preview *pv) {
   work->async = async;
   work->preview = pv;
   work->path = strdup(pv->path);
-  work->width = to_lfm(async)->ui.preview.cols;
-  work->height = to_lfm(async)->ui.preview.rows;
+  work->width = to_lfm(async)->ui.preview.x;
+  work->height = to_lfm(async)->ui.preview.y;
   CHECK_INIT(work->check, to_lfm(async)->loader.preview_cache_version);
 
   tpool_add_work(async->tpool, async_preview_load_worker, work, true);

@@ -28,16 +28,27 @@ struct message_s {
 };
 
 typedef struct ui_s {
-  // Current terminal dimensions.
-  uint32_t nrow;
-  uint32_t ncol;
-
-  // Number of panes, including the preview.
-  uint32_t ndirs;
-
   // Indicates whether the UI is running or suspended.
   bool running;
 
+  // Current terminal dimensions.
+  uint32_t y, x;
+
+  // Number of ncplanes, including the preview.
+  uint32_t num_columns;
+
+  // notcurses state and ncplanes
+  struct notcurses *nc;
+  struct {
+    struct ncplane *cmdline;
+    struct ncplane *info;
+    struct ncplane *menu;
+    struct ncplane *preview;
+    cvector_vector_type(struct ncplane *) dirs;
+  } planes;
+
+  uint32_t redraw; // Bitfield indicating which components need to be drawn, see
+                   // REDRAW_*
   ev_idle redraw_watcher;
   ev_timer loading_indicator_timer;
   int loading_indicator_timer_recheck_count;
@@ -53,14 +64,16 @@ typedef struct ui_s {
     Trie *normal;
   } maps;
 
-  struct notcurses *nc;
+  // "hidden" under statusline if inactive
+  Cmdline cmdline;
+
+  // Information bar at the top
+  char *infoline;
+
   struct {
-    struct ncplane *cmdline;
-    struct ncplane *info;
-    struct ncplane *menu;
-    struct ncplane *preview;
-    cvector_vector_type(struct ncplane *) dirs;
-  } planes;
+    Preview *preview;
+    unsigned int y, x; // dimensions of the preview ncplane
+  } preview;
 
   cvector_vector_type(char *) menubuf;
   bool menu_visible;
@@ -68,25 +81,12 @@ typedef struct ui_s {
   ev_timer map_clear_timer;
 
   cvector_vector_type(struct message_s) messages;
-
-  Cmdline cmdline;
-
-  struct {
-    Preview *preview;
-    unsigned int cols;
-    unsigned int rows;
-  } preview;
+  bool show_message; // if true, the latest message is drawn over the statusline
+                     // at the bottom
 
   const char *highlight; /* pointer to search_string, or NULL */
   char *search_string;
   bool search_forward;
-
-  uint32_t redraw;
-
-  bool show_message;
-  input_t *keyseq;
-
-  char *infoline;
 } Ui;
 
 void kbblocking(bool blocking);
