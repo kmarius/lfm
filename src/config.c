@@ -89,7 +89,7 @@ void config_init(void) {
 
   const char *xdg_cache = getenv("XDG_CACHE_HOME");
   if (!xdg_cache || *xdg_cache == 0) {
-    asprintf(&cfg.cachedir, "/home/%s/.cache/lfm", getenv("USER"));
+    asprintf(&cfg.cachedir, "%s/.cache/lfm", getenv("HOME"));
   } else {
     asprintf(&cfg.cachedir, "%s/lfm", xdg_cache);
   }
