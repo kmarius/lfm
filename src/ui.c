@@ -90,6 +90,7 @@ static int resize_cb(struct ncplane *n) {
 }
 
 void ui_resume(Ui *ui) {
+  log_debug("resuming ui");
   kbblocking(false);
   struct notcurses_options ncopts = {
       .flags = NCOPTION_NO_WINCH_SIGHANDLER | NCOPTION_SUPPRESS_BANNERS |
@@ -136,6 +137,7 @@ void ui_resume(Ui *ui) {
 }
 
 void ui_suspend(Ui *ui) {
+  log_debug("suspending ui");
   ui->running = false;
   input_suspend(to_lfm(ui));
   cvector_ffree_clear(ui->planes.dirs, ncplane_destroy);
