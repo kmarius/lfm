@@ -2,6 +2,10 @@
 #include "file.h"
 #include "strnatcmp.h"
 
+const char *sorttype_str[NUM_SORTTYPE] = {
+    "natural", "name", "size", "ctime", "atime", "mtime", "random",
+};
+
 int compare_name(const void *a, const void *b) {
   return strcasecmp(file_name(*(File **)a), file_name(*(File **)b));
 }

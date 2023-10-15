@@ -2,15 +2,18 @@
 
 #include <stddef.h>
 
-typedef enum sorttype_e {
-  SORT_NATURAL,
+typedef enum {
+  SORT_NATURAL = 0,
   SORT_NAME,
   SORT_SIZE,
   SORT_CTIME,
   SORT_ATIME,
   SORT_MTIME,
   SORT_RAND,
+  NUM_SORTTYPE,
 } sorttype;
+
+extern const char *sorttype_str[NUM_SORTTYPE];
 
 int compare_name(const void *a, const void *b);
 

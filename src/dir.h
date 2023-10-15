@@ -22,7 +22,7 @@ struct dir_settings {
   bool hidden;
   bool dirfirst;
   bool reverse;
-  enum sorttype_e sorttype;
+  sorttype sorttype;
   fileinfo fileinfo;
 };
 

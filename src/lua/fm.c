@@ -195,30 +195,25 @@ static int l_fm_sortby(lua_State *L) {
   Dir *dir = fm_current_dir(fm);
   for (int i = 1; i <= l; i++) {
     const char *op = luaL_checkstring(L, i);
-    if (streq(op, "name")) {
-      dir->settings.sorttype = SORT_NAME;
-    } else if (streq(op, "natural")) {
-      dir->settings.sorttype = SORT_NATURAL;
-    } else if (streq(op, "ctime")) {
-      dir->settings.sorttype = SORT_CTIME;
-    } else if (streq(op, "atime")) {
-      dir->settings.sorttype = SORT_ATIME;
-    } else if (streq(op, "mtime")) {
-      dir->settings.sorttype = SORT_MTIME;
-    } else if (streq(op, "size")) {
-      dir->settings.sorttype = SORT_SIZE;
-    } else if (streq(op, "random")) {
-      dir->settings.sorttype = SORT_RAND;
-    } else if (streq(op, "dirfirst")) {
-      dir->settings.dirfirst = true;
-    } else if (streq(op, "nodirfirst")) {
-      dir->settings.dirfirst = false;
-    } else if (streq(op, "reverse")) {
-      dir->settings.reverse = true;
-    } else if (streq(op, "noreverse")) {
-      dir->settings.reverse = false;
-    } else {
-      return luaL_error(L, "sortby: unrecognized option: %s", op);
+    int j;
+    for (j = 0; j < NUM_SORTTYPE; j++) {
+      if (streq(op, sorttype_str[j])) {
+        dir->settings.sorttype = j;
+        break;
+      }
+    }
+    if (j == NUM_SORTTYPE) {
+      if (streq(op, "dirfirst")) {
+        dir->settings.dirfirst = true;
+      } else if (streq(op, "nodirfirst")) {
+        dir->settings.dirfirst = false;
+      } else if (streq(op, "reverse")) {
+        dir->settings.reverse = true;
+      } else if (streq(op, "noreverse")) {
+        dir->settings.reverse = false;
+      } else {
+        return luaL_error(L, "sortby: unrecognized option: %s", op);
+      }
     }
   }
   dir->sorted = false;

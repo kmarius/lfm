@@ -31,16 +31,14 @@ static inline int llua_dir_settings_set(lua_State *L, const char *path,
   lua_getfield(L, ind, "sorttype");
   if (!lua_isnil(L, -1)) {
     const char *op = luaL_checkstring(L, -1);
-    if (streq(op, "name")) {
-      s.sorttype = SORT_NAME;
-    } else if (streq(op, "natural")) {
-      s.sorttype = SORT_NATURAL;
-    } else if (streq(op, "ctime")) {
-      s.sorttype = SORT_CTIME;
-    } else if (streq(op, "size")) {
-      s.sorttype = SORT_SIZE;
-    } else if (streq(op, "random")) {
-      s.sorttype = SORT_RAND;
+    int i;
+    for (i = 0; i < NUM_SORTTYPE; i++) {
+      if (streq(op, sorttype_str[i])) {
+        s.sorttype = i;
+      }
+    }
+    if (i == NUM_SORTTYPE) {
+      return luaL_error(L, "unrecognized sort type: %s", op);
     }
   }
   lua_pop(L, 1);
@@ -90,28 +88,7 @@ static int l_dir_settings_index(lua_State *L) {
   lua_setfield(L, -2, "reverse");
   lua_pushstring(L, fileinfo_str[s->fileinfo]);
   lua_setfield(L, -2, "info");
-  /* TODO: refactor this if we need to convert enum <-> string more often (on
-   * 2022-10-09) */
-  switch (s->sorttype) {
-  case SORT_NATURAL:
-    lua_pushstring(L, "natural");
-    break;
-  case SORT_NAME:
-    lua_pushstring(L, "name");
-    break;
-  case SORT_SIZE:
-    lua_pushstring(L, "size");
-    break;
-  case SORT_CTIME:
-    lua_pushstring(L, "ctime");
-    break;
-  case SORT_RAND:
-    lua_pushstring(L, "random");
-    break;
-  default:
-    lua_pushstring(L, "unknown");
-    break;
-  }
+  lua_pushstring(L, sorttype_str[s->sorttype]);
   lua_setfield(L, -2, "sorttype");
   return 1;
 }
