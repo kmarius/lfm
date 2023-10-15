@@ -351,49 +351,50 @@ map("I", require("lfm.functions").rename_before, { desc = "Rename at the start" 
 
 -- TODO: change these when more file info values are implemented
 local sortby = fm.sortby
+local set_info = fm.set_info
 map("on", function()
 	sortby("natural", "noreverse")
-	config.info = "size"
+	set_info("size")
 end, { desc = "Sort: natural, noreverse" })
 map("oN", function()
 	sortby("natural", "reverse")
-	config.info = "size"
+	set_info("size")
 end, { desc = "Sort: natural, reverse" })
 map("os", function()
 	sortby("size", "reverse")
-	config.info = "size"
+	set_info("size")
 end, { desc = "Sort: size, noreverse" })
 map("oS", function()
 	sortby("size", "noreverse")
-	config.info = "size"
+	set_info("size")
 end, { desc = "Sort: size, reverse" })
 map("oc", function()
 	sortby("ctime", "noreverse")
-	config.info = "ctime"
+	set_info("ctime")
 end, { desc = "Sort: ctime, noreverse" })
 map("oC", function()
 	sortby("ctime", "reverse")
-	config.info = "ctime"
+	set_info("ctime")
 end, { desc = "Sort: ctime, reverse" })
 map("oa", function()
 	sortby("atime", "noreverse")
-	config.info = "atime"
+	set_info("atime")
 end, { desc = "Sort: atime, noreverse" })
 map("oA", function()
 	sortby("atime", "reverse")
-	config.info = "atime"
+	set_info("atime")
 end, { desc = "Sort: atime, reverse" })
 map("om", function()
 	sortby("mtime", "noreverse")
-	config.info = "mtime"
+	set_info("mtime")
 end, { desc = "Sort: mtime, noreverse" })
 map("oM", function()
 	sortby("mtime", "reverse")
-	config.info = "mtime"
+	set_info("mtime")
 end, { desc = "Sort: mtime, reverse" })
 map("or", function()
 	sortby("random")
-	config.info = "size"
+	set_info("size")
 end, { desc = "Sort: random" })
 
 local function gmap(key, location)

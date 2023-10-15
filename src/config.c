@@ -20,8 +20,6 @@
 extern char *default_data_dir;
 extern char *default_lua_dir;
 
-const char *fileinfo_str[] = {"size", "atime", "ctime", "mtime"};
-
 Config cfg = {
     .truncatechar = L'~',
     .scrolloff = 4,

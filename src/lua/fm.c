@@ -170,6 +170,25 @@ static int l_fm_visual_toggle(lua_State *L) {
   return 0;
 }
 
+static int l_fm_get_info(lua_State *L) {
+  Dir *dir = fm_current_dir(fm);
+  lua_pushstring(L, fileinfo_str[dir->settings.fileinfo]);
+  return 1;
+}
+
+static int l_fm_set_info(lua_State *L) {
+  const char *val = luaL_checkstring(L, 1);
+  Dir *dir = fm_current_dir(fm);
+  for (int i = 0; i < NUM_FILEINFO; i++) {
+    if (streq(val, fileinfo_str[i])) {
+      dir->settings.fileinfo = i;
+      ui_redraw(ui, REDRAW_FM);
+      return 0;
+    }
+  }
+  return luaL_error(L, "invalid option for info: %s", val);
+}
+
 static int l_fm_sortby(lua_State *L) {
   const int l = lua_gettop(L);
   fm_selection_visual_stop(fm);
@@ -400,6 +419,8 @@ static int l_fm_flatten(lua_State *L) {
 }
 
 static const struct luaL_Reg fm_lib[] = {
+    {"set_info", l_fm_set_info},
+    {"get_info", l_fm_get_info},
     {"flatten", l_fm_flatten},
     {"flatten_level", l_fm_flatten_level},
     {"bottom", l_fm_bot},

@@ -8,11 +8,22 @@
 #include "filter.h"
 #include "sort.h"
 
+typedef enum {
+  INFO_SIZE = 0,
+  INFO_ATIME,
+  INFO_CTIME,
+  INFO_MTIME,
+  NUM_FILEINFO
+} fileinfo;
+
+extern const char *fileinfo_str[NUM_FILEINFO];
+
 struct dir_settings {
   bool hidden;
   bool dirfirst;
   bool reverse;
   enum sorttype_e sorttype;
+  fileinfo fileinfo;
 };
 
 typedef struct dir_s {

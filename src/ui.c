@@ -610,7 +610,8 @@ static int print_highlighted_and_shortened(struct ncplane *n, const char *name,
 
 static void draw_file(struct ncplane *n, const File *file, bool iscurrent,
                       LinkedHashtab *sel, LinkedHashtab *load, paste_mode mode,
-                      const char *highlight, bool print_info) {
+                      const char *highlight, bool print_info,
+                      fileinfo fileinfo) {
   unsigned int ncol, y0;
   unsigned int x = 0;
   char info[32];
@@ -620,7 +621,7 @@ static void draw_file(struct ncplane *n, const File *file, bool iscurrent,
   int rightmargin = 0;
 
   if (print_info) {
-    switch (cfg.fileinfo) {
+    switch (fileinfo) {
     case INFO_SIZE:
       if (file_isdir(file)) {
         if (file_dircount(file) < 0) {
@@ -825,7 +826,7 @@ static void plane_draw_dir(struct ncplane *n, Dir *dir, LinkedHashtab *sel,
     for (uint32_t i = 0; i < l; i++) {
       ncplane_cursor_move_yx(n, i, 0);
       draw_file(n, dir->files[i + offset], i == dir->pos, sel, load, mode,
-                highlight, print_info);
+                highlight, print_info, dir->settings.fileinfo);
     }
   }
 }

@@ -17,6 +17,8 @@
 #include "sort.h"
 #include "util.h"
 
+const char *fileinfo_str[] = {"size", "atime", "ctime", "mtime"};
+
 File *dir_current_file(const Dir *d) {
   if (!d || d->ind >= d->length) {
     return NULL;

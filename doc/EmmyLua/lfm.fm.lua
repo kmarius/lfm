@@ -24,6 +24,12 @@ lfm.fm = {}
 ---| '"copy"'
 ---| '"move"'
 
+---@alias Lfm.Info
+---| '"size"'
+---| '"atime"'
+---| '"ctime"'
+---| '"mtime"'
+
 ---Set the filter string for the current directory.
 ---@param filter string The filter string.
 function lfm.fm.filter(filter) end
@@ -92,6 +98,15 @@ function lfm.fm.flatten(level) end
 ---@param opt1? Lfm.SortOption
 ---@vararg Lfm.SortOption
 function lfm.fm.sortby(opt1, ...) end
+
+---Get the info setting for the current directory.
+---@return Lfm.Info info
+function lfm.fm.get_info() end
+
+---Set the info setting for the current directory.
+---@param info Lfm.Info
+---@return Lfm.Info info
+function lfm.fm.set_info(info) end
 
 ---Start visual selection mode.
 function lfm.fm.visual_start() end
