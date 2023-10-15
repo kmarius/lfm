@@ -185,3 +185,8 @@ target_link_libraries(lfm
 install(TARGETS lfm DESTINATION bin)
 install(DIRECTORY runtime DESTINATION share/lfm)
 install(DIRECTORY doc/EmmyLua DESTINATION share/lfm)
+install(FILES doc/preview.sh DESTINATION share/lfm
+  PERMISSIONS
+  OWNER_READ OWNER_WRITE OWNER_EXECUTE
+  GROUP_READ GROUP_EXECUTE
+  WORLD_READ WORLD_EXECUTE)

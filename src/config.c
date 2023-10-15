@@ -75,9 +75,6 @@ void config_init(void) {
   cfg.dir_settings.sorttype = SORT_NATURAL;
   cfg.dir_settings.hidden = false;
 
-  cfg.previewer = strdup("stat");
-  cfg.preview = true;
-
   cfg.histsize = 100;
 
   const char *xdg_runtime = getenv("XDG_RUNTIME_DIR");
@@ -127,6 +124,9 @@ void config_init(void) {
   asprintf(&cfg.fifopath, "%s/%d.fifo", cfg.rundir, getpid());
   asprintf(&cfg.logpath, "/tmp/lfm.%d.log", getpid());
 #endif
+
+  asprintf(&cfg.previewer, "%s/preview.sh", default_data_dir);
+  cfg.preview = true;
 }
 
 void config_deinit(void) {
