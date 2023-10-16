@@ -234,7 +234,8 @@ static int l_fm_selection_toggle_current(lua_State *L) {
 }
 
 static int l_fm_selection_add(lua_State *L) {
-  fm_selection_add(fm, luaL_checkstring(L, 1));
+  fm_selection_add(fm, luaL_checkstring(L, 1), true);
+  lfm_run_hook(lfm, LFM_HOOK_SELECTION);
   return 0;
 }
 
@@ -245,9 +246,10 @@ static int l_fm_selection_set(lua_State *L) {
   fm_selection_clear(fm);
   if (lua_istable(L, 1)) {
     for (lua_pushnil(L); lua_next(L, -2); lua_pop(L, 1)) {
-      fm_selection_add(fm, luaL_checkstring(L, -1));
+      fm_selection_add(fm, luaL_checkstring(L, -1), false);
     }
   }
+  lfm_run_hook(lfm, LFM_HOOK_SELECTION);
   ui_redraw(ui, REDRAW_FM);
   return 0;
 }

@@ -172,16 +172,10 @@ void fm_selection_visual_toggle(Fm *fm);
 void fm_selection_toggle_current(Fm *fm);
 
 // Add `path` to the current selection if not already contained.
-static inline void fm_selection_add(Fm *fm, const char *path) {
-  char *val = strdup(path);
-  lht_set(fm->selection.paths, val, val);
-}
+void fm_selection_add(Fm *fm, const char *path, bool run_hook);
 
 // Clear the selection completely.
-static inline void fm_selection_clear(Fm *fm) {
-  fm_selection_visual_stop(fm);
-  lht_clear(fm->selection.paths);
-}
+void fm_selection_clear(Fm *fm);
 
 // Reverse the file selection.
 void fm_selection_reverse(Fm *fm);

@@ -422,6 +422,8 @@ int l_register_hook(lua_State *L) {
     lfm_add_hook(lfm, LFM_HOOK_CHDIRPOST, ref);
   } else if (streq(name, LFM_HOOK_NAME_PASTEBUF)) {
     lfm_add_hook(lfm, LFM_HOOK_PASTEBUF, ref);
+  } else if (streq(name, LFM_HOOK_NAME_SELECTION)) {
+    lfm_add_hook(lfm, LFM_HOOK_SELECTION, ref);
   } else if (streq(name, LFM_HOOK_NAME_DIRLOADED)) {
     lfm_add_hook(lfm, LFM_HOOK_DIRLOADED, ref);
   } else if (streq(name, LFM_HOOK_NAME_DIRUPDATED)) {

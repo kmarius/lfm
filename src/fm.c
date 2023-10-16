@@ -14,6 +14,7 @@
 #include "cvector.h"
 #include "fm.h"
 #include "hashtab.h"
+#include "hooks.h"
 #include "lfm.h"
 #include "loader.h"
 #include "log.h"
@@ -300,9 +301,13 @@ void fm_update_preview(Fm *fm) {
 
 /* selection {{{ */
 
-static inline void fm_selection_toggle(Fm *fm, const char *path) {
+static inline void fm_selection_toggle(Fm *fm, const char *path,
+                                       bool run_hook) {
   if (!lht_delete(fm->selection.paths, path)) {
-    fm_selection_add(fm, path);
+    fm_selection_add(fm, path, false);
+  }
+  if (run_hook) {
+    lfm_run_hook(to_lfm(fm), LFM_HOOK_SELECTION);
   }
 }
 
@@ -312,15 +317,33 @@ void fm_selection_toggle_current(Fm *fm) {
   }
   File *file = fm_current_file(fm);
   if (file) {
-    fm_selection_toggle(fm, file_path(file));
+    fm_selection_toggle(fm, file_path(file), true);
+  }
+}
+
+void fm_selection_add(Fm *fm, const char *path, bool run_hook) {
+  char *val = strdup(path);
+  lht_set(fm->selection.paths, val, val);
+  if (run_hook) {
+    lfm_run_hook(to_lfm(fm), LFM_HOOK_SELECTION);
+  }
+}
+
+void fm_selection_clear(Fm *fm) {
+  fm_selection_visual_stop(fm);
+  bool run_hook = fm->selection.paths->size > 0;
+  lht_clear(fm->selection.paths);
+  if (run_hook) {
+    lfm_run_hook(to_lfm(fm), LFM_HOOK_SELECTION);
   }
 }
 
 void fm_selection_reverse(Fm *fm) {
   const Dir *dir = fm_current_dir(fm);
   for (uint32_t i = 0; i < dir->length; i++) {
-    fm_selection_toggle(fm, file_path(dir->files[i]));
+    fm_selection_toggle(fm, file_path(dir->files[i]), false);
   }
+  lfm_run_hook(to_lfm(fm), LFM_HOOK_SELECTION);
 }
 
 void fm_selection_visual_start(Fm *fm) {
@@ -337,11 +360,12 @@ void fm_selection_visual_start(Fm *fm) {
    * active? (on 2021-11-15) */
   fm->visual.active = true;
   fm->visual.anchor = dir->ind;
-  fm_selection_add(fm, file_path(dir->files[dir->ind]));
+  fm_selection_add(fm, file_path(dir->files[dir->ind]), false);
   ht_clear(fm->selection.previous);
   lht_foreach(char *path, fm->selection.paths) {
     ht_set(fm->selection.previous, path, path);
   }
+  lfm_run_hook(to_lfm(fm), LFM_HOOK_SELECTION);
 }
 
 void fm_selection_visual_stop(Fm *fm) {
@@ -392,9 +416,10 @@ static void selection_visual_update(Fm *fm, uint32_t origin, uint32_t from,
   for (; lo <= hi; lo++) {
     // never unselect the old selection
     if (!ht_get(fm->selection.previous, file_path(dir->files[lo]))) {
-      fm_selection_toggle(fm, file_path(dir->files[lo]));
+      fm_selection_toggle(fm, file_path(dir->files[lo]), false);
     }
   }
+  lfm_run_hook(to_lfm(fm), LFM_HOOK_SELECTION);
 }
 
 void fm_selection_write(const Fm *fm, const char *path) {

@@ -9,6 +9,7 @@ typedef enum {
   LFM_HOOK_CHDIRPRE,
   LFM_HOOK_CHDIRPOST,
   LFM_HOOK_PASTEBUF,
+  LFM_HOOK_SELECTION,
   LFM_HOOK_DIRLOADED,
   LFM_HOOK_DIRUPDATED,
   LFM_HOOK_MODECHANGED,
@@ -23,11 +24,14 @@ typedef enum {
 #define LFM_HOOK_NAME_CHDIRPRE "ChdirPre"
 #define LFM_HOOK_NAME_CHDIRPOST "ChdirPost"
 #define LFM_HOOK_NAME_PASTEBUF "PasteBufChange"
+#define LFM_HOOK_NAME_SELECTION "SelectionChanged"
 #define LFM_HOOK_NAME_DIRLOADED "DirLoaded"
 #define LFM_HOOK_NAME_DIRUPDATED "DirUpdated"
 #define LFM_HOOK_NAME_MODECHANGED "ModeChanged"
 #define LFM_HOOK_NAME_FOCUSGAINED "FocusGained"
 #define LFM_HOOK_NAME_FOCUSLOST "FocusLost"
+
+extern const char *hook_str[LFM_NUM_HOOKS];
 
 void lfm_hooks_init(struct lfm_s *lfm);
 
