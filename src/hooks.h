@@ -37,7 +37,11 @@ void lfm_hooks_init(struct lfm_s *lfm);
 
 void lfm_hooks_deinit(struct lfm_s *lfm);
 
-void lfm_add_hook(struct lfm_s *lfm, lfm_hook_id hook, int ref);
+// Returns an id with which it can be removed later
+int lfm_add_hook(struct lfm_s *lfm, lfm_hook_id hook, int ref);
+
+// Returns the reference of the callback, or 0 if no hook was removed.
+int lfm_remove_hook(struct lfm_s *lfm, int id);
 
 void lfm_run_hook(struct lfm_s *lfm, lfm_hook_id hook);
 

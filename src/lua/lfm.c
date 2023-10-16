@@ -408,63 +408,57 @@ int l_register_hook(lua_State *L) {
   if (lua_gettop(L) != 2) {
     return luaL_error(L, "function takes two only arguments");
   }
-
-  int ref = lua_set_callback(L);
-  if (streq(name, LFM_HOOK_NAME_RESIZED)) {
-    lfm_add_hook(lfm, LFM_HOOK_RESIZED, ref);
-  } else if (streq(name, LFM_HOOK_NAME_ENTER)) {
-    lfm_add_hook(lfm, LFM_HOOK_ENTER, ref);
-  } else if (streq(name, LFM_HOOK_NAME_EXITPRE)) {
-    lfm_add_hook(lfm, LFM_HOOK_EXITPRE, ref);
-  } else if (streq(name, LFM_HOOK_NAME_CHDIRPRE)) {
-    lfm_add_hook(lfm, LFM_HOOK_CHDIRPRE, ref);
-  } else if (streq(name, LFM_HOOK_NAME_CHDIRPOST)) {
-    lfm_add_hook(lfm, LFM_HOOK_CHDIRPOST, ref);
-  } else if (streq(name, LFM_HOOK_NAME_PASTEBUF)) {
-    lfm_add_hook(lfm, LFM_HOOK_PASTEBUF, ref);
-  } else if (streq(name, LFM_HOOK_NAME_SELECTION)) {
-    lfm_add_hook(lfm, LFM_HOOK_SELECTION, ref);
-  } else if (streq(name, LFM_HOOK_NAME_DIRLOADED)) {
-    lfm_add_hook(lfm, LFM_HOOK_DIRLOADED, ref);
-  } else if (streq(name, LFM_HOOK_NAME_DIRUPDATED)) {
-    lfm_add_hook(lfm, LFM_HOOK_DIRUPDATED, ref);
-  } else if (streq(name, LFM_HOOK_NAME_MODECHANGED)) {
-    lfm_add_hook(lfm, LFM_HOOK_MODECHANGED, ref);
-  } else if (streq(name, LFM_HOOK_NAME_FOCUSGAINED)) {
-    lfm_add_hook(lfm, LFM_HOOK_FOCUSGAINED, ref);
-  } else if (streq(name, LFM_HOOK_NAME_FOCUSLOST)) {
-    lfm_add_hook(lfm, LFM_HOOK_FOCUSLOST, ref);
-  } else {
+  int id = 0;
+  int i;
+  for (i = 0; i < LFM_NUM_HOOKS; i++) {
+    if (streq(name, hook_str[i])) {
+      id = lfm_add_hook(lfm, i, lua_set_callback(L));
+      break;
+    }
+  }
+  if (i == LFM_NUM_HOOKS) {
     return luaL_error(L, "no such hook: %s", name);
   }
+  lua_pushnumber(L, id);
+  return 1;
+}
 
+int l_deregister_hook(lua_State *L) {
+  int id = luaL_checknumber(L, 1);
+  int ref = lfm_remove_hook(lfm, id);
+  if (!ref) {
+    return luaL_error(L, "no hook with id %d", id);
+  }
+  luaL_unref(L, LUA_REGISTRYINDEX, ref);
   return 0;
 }
 
-static const struct luaL_Reg lfm_lib[] = {{"mode", l_mode},
-                                          {"current_mode", l_current_mode},
-                                          {"get_modes", l_get_modes},
-                                          {"register_mode", l_register_mode},
-                                          {"register_hook", l_register_hook},
-                                          {"schedule", l_schedule},
-                                          {"colors_clear", l_colors_clear},
-                                          {"execute", l_execute},
-                                          {"spawn", l_spawn},
-                                          {"map", l_map_key},
-                                          {"cmap", l_cmap_key},
-                                          {"get_maps", l_get_maps},
-                                          {"handle_key", l_handle_key},
-                                          {"nohighlight", l_nohighlight},
-                                          {"search", l_search},
-                                          {"search_back", l_search_backwards},
-                                          {"search_next", l_search_next},
-                                          {"search_prev", l_search_prev},
-                                          {"crash", l_crash},
-                                          {"print", l_print},
-                                          {"error", l_error},
-                                          {"message_clear", l_message_clear},
-                                          {"quit", l_quit},
-                                          {NULL, NULL}};
+static const struct luaL_Reg lfm_lib[] = {
+    {"mode", l_mode},
+    {"current_mode", l_current_mode},
+    {"get_modes", l_get_modes},
+    {"register_mode", l_register_mode},
+    {"register_hook", l_register_hook},
+    {"deregister_hook", l_deregister_hook},
+    {"schedule", l_schedule},
+    {"colors_clear", l_colors_clear},
+    {"execute", l_execute},
+    {"spawn", l_spawn},
+    {"map", l_map_key},
+    {"cmap", l_cmap_key},
+    {"get_maps", l_get_maps},
+    {"handle_key", l_handle_key},
+    {"nohighlight", l_nohighlight},
+    {"search", l_search},
+    {"search_back", l_search_backwards},
+    {"search_next", l_search_next},
+    {"search_prev", l_search_prev},
+    {"crash", l_crash},
+    {"print", l_print},
+    {"error", l_error},
+    {"message_clear", l_message_clear},
+    {"quit", l_quit},
+    {NULL, NULL}};
 
 static int l_modes_index(lua_State *L) {
   const char *key = luaL_checkstring(L, 2);

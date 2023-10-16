@@ -1,5 +1,6 @@
 #include <lauxlib.h>
 #include <lua.h>
+#include <stddef.h>
 #include <string.h>
 
 #include "cvector.h"
@@ -8,6 +9,12 @@
 #include "log.h"
 #include "lua/lfmlua.h"
 #include "util.h"
+
+// we fold the hook_id and the ref into an id that is returned to the user
+//     id == (hook_id << 20) | ref
+
+#define REF_BITS 20
+#define REF_MASK ((1 << REF_BITS) - 1)
 
 // absolutely make sure this is the same order as the enum
 const char *hook_str[LFM_NUM_HOOKS] = {
@@ -28,8 +35,27 @@ void lfm_hooks_deinit(Lfm *lfm) {
   }
 }
 
-void lfm_add_hook(Lfm *lfm, lfm_hook_id hook, int ref) {
+int lfm_add_hook(Lfm *lfm, lfm_hook_id hook, int ref) {
   cvector_push_back(lfm->hook_refs[hook], ref);
+  return (hook << REF_BITS) | ref;
+}
+
+int lfm_remove_hook(Lfm *lfm, int id) {
+  int ref = id & REF_MASK;
+  int hook = id >> REF_BITS;
+  if (hook < 0 || hook >= LFM_NUM_HOOKS) {
+    // invalid id
+    return 0;
+  }
+  int *hooks = lfm->hook_refs[hook];
+  for (size_t i = 0; i < cvector_size(hooks); i++) {
+    if (hooks[i] == ref) {
+      cvector_swap_erase(hooks, i);
+      return ref;
+    }
+  }
+  // no hook
+  return 0;
 }
 
 void lfm_run_hook(Lfm *lfm, lfm_hook_id hook) {
