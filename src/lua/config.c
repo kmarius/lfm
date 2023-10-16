@@ -1,4 +1,5 @@
 #include <lauxlib.h>
+#include <stdint.h>
 #include <stdlib.h>
 
 #include "../config.h"
@@ -6,6 +7,7 @@
 #include "../log.h"
 #include "../ncutil.h"
 #include "../tpool.h"
+#include "lua.h"
 #include "private.h"
 
 #define DIRSETTINGS_META "Lfm.Dirsettings.Meta"
@@ -245,11 +247,12 @@ static int l_config_newindex(lua_State *L) {
     uint32_t *ratios = NULL;
     for (uint32_t i = 1; i <= l; i++) {
       lua_rawgeti(L, 3, i);
-      cvector_push_back(ratios, lua_tointeger(L, -1));
-      if (ratios[i - 1] <= 0) {
+      int32_t val = lua_tointeger(L, -1);
+      if (val <= 0) {
         cvector_free(ratios);
         return luaL_error(L, "ratio must be non-negative");
       }
+      cvector_push_back(ratios, lua_tointeger(L, -1));
       lua_pop(L, 1);
     }
     config_ratios_set(ratios);
