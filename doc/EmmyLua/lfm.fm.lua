@@ -30,20 +30,20 @@ lfm.fm = {}
 ---| '"ctime"'
 ---| '"mtime"'
 
----Set the filter string for the current directory.
----@param filter string The filter string.
+---Set the filter string for the current directory. "" or nil clears the filter.
+---@param filter string|nil The filter string.
 function lfm.fm.filter(filter) end
 
 ---Get the filter string for the current directory.
----@return string filter The filter string.
+---@return string|nil filter The filter string.
 function lfm.fm.getfilter() end
 
----Set the fuzzy filter string for the current directory.
----@param filter string The filter string.
+---Set the fuzzy filter string for the current directory. "" or nil clears the filter.
+---@param filter string|nil The filter string.
 function lfm.fm.fuzzy(filter) end
 
 ---Get the fuzzy filter string for the current directory.
----@return string filter The filter string.
+---@return string|nil filter The filter string.
 function lfm.fm.getfuzzy() end
 
 ---Jump to the directory saved by the automatic mark (e.g. with '')

@@ -365,7 +365,7 @@ static int l_fm_filter_get(lua_State *L) {
 }
 
 static int l_fm_filter(lua_State *L) {
-  fm_filter(fm, luaL_checkstring(L, 1));
+  fm_filter(fm, lua_tostring(L, 1));
   ui_redraw(ui, REDRAW_FM);
   return 0;
 }

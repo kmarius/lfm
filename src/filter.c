@@ -90,7 +90,7 @@ void filter_destroy(Filter *s) {
 }
 
 const char *filter_string(const Filter *f) {
-  return f ? f->string : "";
+  return f ? f->string : NULL;
 }
 
 static inline bool atom_match(const struct filter_atom *a, const char *str) {
