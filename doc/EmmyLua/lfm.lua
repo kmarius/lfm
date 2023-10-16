@@ -73,7 +73,8 @@ function lfm.spawn(command, opts) end
 ---| '"FocusGained"'
 ---| '"FocusLost"'
 
----Register a function to hook into events. Curruntly supported hooks are
+---Register a function to hook into events. Returns an id with which the hook
+---can be deregistered later. Curruntly supported hooks are
 ---```
 --- LfmEnter         Lfm has started and read all configuration
 --- ExitPre          Lfm is about to exit
@@ -91,7 +92,12 @@ function lfm.spawn(command, opts) end
 ---```
 ---@param name Lfm.Hook
 ---@param f function
+---@return integer id
 function lfm.register_hook(name, f) end
+
+---Deregister the hook with the given id previously returned by register_hook.
+---@param id integer
+function lfm.deregister_hook(id) end
 
 ---Schedule a lua function to run after `delay` milliseconds. Runs `f` immediately
 ---if `delay` non-positive.
