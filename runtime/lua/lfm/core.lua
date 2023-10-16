@@ -97,18 +97,18 @@ function lfm.register_command(name, f, t)
 	end
 end
 
--- lazily load submodules in the lfm namespace
+-- lazily load submodules in the lfm namespace, make sure to add them to doc/EmmyLua/lfm.lua
 local submodules = {
 	compl = true,
-	inspect = true,
 	functions = true,
+	inspect = true,
 	jumplist = true,
+	mode = true,
 	quickmarks = true,
 	rifle = true,
 	search = true,
 	shell = true,
 	util = true,
-	mode = true,
 }
 
 setmetatable(lfm, {

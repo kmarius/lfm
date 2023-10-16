@@ -9,6 +9,19 @@
 ---@field modes table<string, Lfm.Mode>
 lfm = {}
 
+-- Preloaded modules:
+
+lfm.compl = require("lfm.compl")
+lfm.functions = require("lfm.functions")
+lfm.inspect = require("lfm.inspect")
+lfm.jumplist = require("lfm.jumplist")
+lfm.mode = require("lfm.mode")
+lfm.quickmarks = require("lfm.quickmarks")
+lfm.rifle = require("lfm.rifle")
+lfm.search = require("lfm.search")
+lfm.shell = require("lfm.shell")
+lfm.util = require("lfm.util")
+
 ---@alias Lfm.Version.BuildType
 ---| '"Debug"'
 ---| '"Release"'
