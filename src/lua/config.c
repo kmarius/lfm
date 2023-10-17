@@ -234,8 +234,7 @@ static int l_config_newindex(lua_State *L) {
     cfg.truncatechar = w;
     ui_redraw(ui, REDRAW_FM);
   } else if (streq(key, "hidden")) {
-    bool hidden = lua_toboolean(L, 3);
-    fm_hidden_set(fm, hidden);
+    fm_hidden_set(fm, lua_toboolean(L, 3));
     ui_redraw(ui, REDRAW_FM);
   } else if (streq(key, "ratios")) {
     luaL_checktype(L, 3, LUA_TTABLE);
@@ -267,7 +266,6 @@ static int l_config_newindex(lua_State *L) {
       cvector_push_back(cfg.inotify_blacklist, strdup(lua_tostring(L, -1)));
       lua_pop(L, 1);
     }
-    return 0;
   } else if (streq(key, "inotify_timeout")) {
     int n = luaL_checkinteger(L, 3);
     if (n < 100) {
@@ -275,31 +273,30 @@ static int l_config_newindex(lua_State *L) {
     }
     cfg.inotify_timeout = n;
     loader_reschedule(&lfm->loader);
-    return 0;
   } else if (streq(key, "inotify_delay")) {
     int n = luaL_checkinteger(L, 3);
+    luaL_argcheck(L, 3, n >= 0, "inotify_delay must be non-negative");
     cfg.inotify_delay = n;
     loader_reschedule(&lfm->loader);
-    return 0;
   } else if (streq(key, "scrolloff")) {
-    cfg.scrolloff = max(luaL_checkinteger(L, 3), 0);
-    return 0;
+    int n = luaL_checkinteger(L, 3);
+    luaL_argcheck(L, 3, n >= 0, "scrolloff must be non-negative");
+    cfg.scrolloff = n;
   } else if (streq(key, "preview")) {
     cfg.preview = lua_toboolean(L, 3);
-    if (cfg.preview) {
+    if (!cfg.preview) {
       ui_drop_cache(ui);
     }
     fm_recol(fm);
     ui_redraw(ui, REDRAW_FM);
-    return 0;
   } else if (streq(key, "preview_images")) {
-    cfg.preview_images = lua_toboolean(L, 3);
-    fm_recol(fm);
-    /* TODO: check if the setting changed when loading previews
-     * instead of dropping the cache (on 2022-09-14) */
-    ui_drop_cache(ui);
-    ui_redraw(ui, REDRAW_PREVIEW);
-    return 0;
+    bool preview_images = lua_toboolean(L, 3);
+    if (preview_images != cfg.preview_images) {
+      cfg.preview_images = preview_images;
+      fm_recol(fm);
+      ui_drop_cache(ui);
+      ui_redraw(ui, REDRAW_PREVIEW);
+    }
   } else if (streq(key, "icons")) {
     cfg.icons = lua_toboolean(L, 3);
     ui_redraw(ui, REDRAW_FM);
@@ -307,6 +304,9 @@ static int l_config_newindex(lua_State *L) {
     luaL_checktype(L, 3, LUA_TTABLE);
     ht_clear(cfg.icon_map);
     for (lua_pushnil(L); lua_next(L, -2) != 0; lua_pop(L, 1)) {
+      if (lua_type(L, -2) != LUA_TSTRING || lua_type(L, -1) != LUA_TSTRING) {
+        return luaL_error(L, "icon_map: non-string key/value found");
+      }
       config_icon_map_add(lua_tostring(L, -2), lua_tostring(L, -1));
     }
     ui_redraw(ui, REDRAW_FM);
@@ -317,20 +317,18 @@ static int l_config_newindex(lua_State *L) {
       llua_dir_settings_set(L, luaL_checkstring(L, -2), -1);
     }
   } else if (streq(key, "previewer")) {
+    xfree(cfg.previewer);
     if (lua_isnoneornil(L, 3)) {
-      XFREE_CLEAR(cfg.previewer);
+      cfg.preview_images = NULL;
     } else {
       const char *str = luaL_checkstring(L, 3);
-      xfree(cfg.previewer);
-      cfg.previewer = str[0] != 0 ? path_replace_tilde(str) : NULL;
+      cfg.previewer = str[0] == 0 ? NULL : path_replace_tilde(str);
     }
     ui_drop_cache(ui);
-    return 0;
   } else if (streq(key, "threads")) {
     const int num = luaL_checknumber(L, 3);
-    luaL_argcheck(L, num >= 2, 3, "argument must be at least 2");
+    luaL_argcheck(L, num >= 2, 3, "threads must be at least 2");
     tpool_resize(lfm->async.tpool, num);
-    return 0;
   } else if (streq(key, "infoline")) {
     if (lua_isnil(L, 3)) {
       infoline_set(&lfm->ui, NULL);
@@ -339,23 +337,26 @@ static int l_config_newindex(lua_State *L) {
     }
   } else if (streq(key, "histsize")) {
     int sz = luaL_checkinteger(L, 3);
-    luaL_argcheck(L, sz >= 0, 3, "argument must be non-negative");
+    luaL_argcheck(L, sz >= 0, 3, "histsize must be non-negative");
     cfg.histsize = sz;
   } else if (streq(key, "map_suggestion_delay")) {
     int delay = luaL_checkinteger(L, 3);
-    luaL_argcheck(L, delay >= 0, 3, "argument must be non-negative");
+    luaL_argcheck(L, delay >= 0, 3,
+                  "map_suggestion_delay must be non-negative");
     cfg.map_suggestion_delay = delay;
   } else if (streq(key, "map_clear_delay")) {
     int delay = luaL_checkinteger(L, 3);
-    luaL_argcheck(L, delay >= 0, 3, "argument must be non-negative");
+    luaL_argcheck(L, delay >= 0, 3, "map_clear_delay must be non-negative");
     cfg.map_clear_delay = delay;
   } else if (streq(key, "loading_indicator_delay")) {
     int delay = luaL_checkinteger(L, 3);
-    luaL_argcheck(L, delay >= 0, 3, "argument must be non-negative");
+    luaL_argcheck(L, delay >= 0, 3,
+                  "loading_indicator_delay must be non-negative");
     cfg.loading_indicator_delay = delay;
   } else if (streq(key, "linkchars")) {
-    const char *val = luaL_checkstring(L, 3);
-    if (strlen(val) > sizeof cfg.linkchars - 1) {
+    size_t len;
+    const char *val = luaL_checklstring(L, 3, &len);
+    if (len > sizeof cfg.linkchars - 1) {
       return luaL_error(L, "linkchars too long");
     }
     strncpy(cfg.linkchars, val, sizeof(cfg.linkchars) - 1);
