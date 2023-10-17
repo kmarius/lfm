@@ -225,12 +225,11 @@ static int l_config_index(lua_State *L) {
 static int l_config_newindex(lua_State *L) {
   const char *key = luaL_checkstring(L, 2);
   if (streq(key, "truncatechar")) {
-    wchar_t w;
     const char *val = luaL_checkstring(L, 3);
+    wchar_t w;
     int l = mbtowc(&w, val, MB_LEN_MAX);
     if (l == -1) {
-      log_error("converting truncatechar to wchar_t");
-      return 0;
+      return luaL_error(L, "converting truncatechar to wchar_t");
     }
     cfg.truncatechar = w;
     ui_redraw(ui, REDRAW_FM);
