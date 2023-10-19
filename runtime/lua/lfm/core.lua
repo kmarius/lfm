@@ -3,7 +3,8 @@
 local config = lfm.config
 
 package.path = string.gsub(package.path, "%./%?.lua;", "")
-package.path = package.path .. ";" .. config.configdir .. "/lua/?.lua"
+package.path = package.path .. ";" .. config.configdir .. "/lua/?.lua;" .. config.configdir .. "/lua/?/init.lua"
+package.cpath = string.gsub(package.cpath, "%./%?.so;", "")
 
 local fm = lfm.fm
 local log = lfm.log
