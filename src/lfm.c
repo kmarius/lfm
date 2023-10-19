@@ -386,6 +386,7 @@ int lfm_spawn(Lfm *lfm, const char *prog, char *const *args, char **stdin_lines,
 // execute a foreground program
 bool lfm_execute(Lfm *lfm, const char *prog, char *const *args) {
   int pid, status, rc;
+  lfm_run_hook(lfm, LFM_HOOK_EXECPRE);
   ui_suspend(&lfm->ui);
   if ((pid = fork()) < 0) {
     status = -1;
@@ -408,6 +409,7 @@ bool lfm_execute(Lfm *lfm, const char *prog, char *const *args) {
 
   ui_resume(&lfm->ui);
   signal(SIGINT, SIG_IGN);
+  lfm_run_hook(lfm, LFM_HOOK_EXECPOST);
   return status == 0;
 }
 

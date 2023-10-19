@@ -15,6 +15,8 @@ typedef enum {
   LFM_HOOK_MODECHANGED,
   LFM_HOOK_FOCUSGAINED,
   LFM_HOOK_FOCUSLOST,
+  LFM_HOOK_EXECPRE,
+  LFM_HOOK_EXECPOST,
   LFM_NUM_HOOKS
 } lfm_hook_id;
 
@@ -30,6 +32,8 @@ typedef enum {
 #define LFM_HOOK_NAME_MODECHANGED "ModeChanged"
 #define LFM_HOOK_NAME_FOCUSGAINED "FocusGained"
 #define LFM_HOOK_NAME_FOCUSLOST "FocusLost"
+#define LFM_HOOK_NAME_EXECPRE "ExecPre"
+#define LFM_HOOK_NAME_EXECPOST "ExecPost"
 
 extern const char *hook_str[LFM_NUM_HOOKS];
 

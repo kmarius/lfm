@@ -72,6 +72,8 @@ function lfm.spawn(command, opts) end
 ---| '"ModeChanged"'
 ---| '"FocusGained"'
 ---| '"FocusLost"'
+---| '"ExecPre"'
+---| '"ExecPost"'
 
 ---Register a function to hook into events. Returns an id with which the hook
 ---can be deregistered later. Curruntly supported hooks are
@@ -88,6 +90,8 @@ function lfm.spawn(command, opts) end
 --- ModeChanged      Mode transition
 --- FocusGained      Terminal gained focus
 --- FocusLost        Terminal lost focus
+--- ExecPre          Before a foreground command is executed
+--- ExecPost         After a foreground command is executed
 ---
 ---```
 ---@param name Lfm.Hook
