@@ -62,6 +62,8 @@ int main(int argc, char **argv) {
 #endif
   log_set_quiet(true);
 
+  log_info("starting lfm " LFM_VERSION);
+
   int opt;
   while ((opt = getopt(argc, argv, ":c:hl:s:u:v")) != -1) {
     switch (opt) {
