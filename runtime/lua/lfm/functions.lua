@@ -169,6 +169,7 @@ end
 -- TODO: make a s mall module for ansi colors or put it in colors.lua
 local c27 = string.char(27)
 local green = c27 .. "[32m"
+local clear = c27 .. "[0m"
 
 ---Paste the load in the current directory, making backups of existing files.
 function M.paste()
@@ -194,7 +195,8 @@ function M.paste()
 			return
 		end
 		local operation = mode == "move" and "moving" or "copying"
-		local msg = string.format(green .. "finished %s %d %s", operation, #files, #files == 1 and "file" or "files")
+		local msg =
+			string.format("%sfinished %s %d %s%s", green, operation, #files, #files == 1 and "file" or "files", clear)
 		print(msg)
 	end
 	chain(function(file)
@@ -240,7 +242,8 @@ function M.paste_overwrite()
 			return
 		end
 		local operation = mode == "move" and "moving" or "copying"
-		local msg = string.format(green .. "finished %s %d %s", operation, #files, #files == 1 and "file" or "files")
+		local msg =
+			string.format("%sfinished %s %d %s%s", green, operation, #files, #files == 1 and "file" or "files", clear)
 		print(msg)
 	end
 	-- this doesn't "move" on the same filesystem, it copies and deletes
