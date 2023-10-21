@@ -22,6 +22,11 @@ if (CMAKE_BUILD_TYPE STREQUAL "Asan")
 	add_link_options(-fsanitize=address)
 endif()
 
+# We use this to remove the source prefix from the __FILE__ macro
+# -ffile-prefix-map should work but it breaks lookups of functions from luajit's ffi
+string(LENGTH "${CMAKE_SOURCE_DIR}/" SOURCE_PATH_SIZE)
+add_definitions("-DSOURCE_PATH_SIZE=${SOURCE_PATH_SIZE}")
+
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 message(STATUS "C_FLAGS: ${CMAKE_C_FLAGS}")
 
