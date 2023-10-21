@@ -292,12 +292,16 @@ static int l_fm_paste_mode_get(lua_State *L) {
 
 static int l_fm_paste_mode_set(lua_State *L) {
   const char *mode = luaL_checkstring(L, 1);
+  paste_mode prev = fm->paste.mode;
   if (streq(mode, "copy")) {
     fm->paste.mode = PASTE_MODE_COPY;
   } else if (streq(mode, "move")) {
     fm->paste.mode = PASTE_MODE_MOVE;
   } else {
     return luaL_error(L, "unrecognized paste mode: %s", mode);
+  }
+  if (fm->paste.mode != prev) {
+    lfm_run_hook(lfm, LFM_HOOK_PASTEBUF);
   }
   ui_redraw(ui, REDRAW_FM);
 
