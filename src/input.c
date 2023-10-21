@@ -86,7 +86,8 @@ static void stdin_cb(EV_P_ ev_io *w, int revents) {
       lfm_run_hook(lfm, LFM_HOOK_FOCUSLOST);
     } else {
       log_trace("id=%d shift=%d ctrl=%d alt=%d type=%d utf8=%s", in.id,
-                in.shift, in.ctrl, in.alt, in.evtype, in.utf8);
+                in.shift, in.ctrl, in.alt, in.evtype,
+                in.utf8[1] != 0 || isprint(in.utf8[0]) ? in.utf8 : "");
       input_handle_key(lfm, ncinput_to_input(&in));
     }
   }
@@ -206,8 +207,9 @@ void input_handle_key(Lfm *lfm, input_t in) {
         search_nohighlight(lfm);
         fm_selection_visual_stop(fm);
         fm_selection_clear(fm);
-        fm_paste_buffer_clear(fm);
-        lfm_run_hook(lfm, LFM_HOOK_PASTEBUF);
+        if (fm_paste_buffer_clear(fm)) {
+          lfm_run_hook(lfm, LFM_HOOK_PASTEBUF);
+        }
         lfm_mode_enter(lfm, "normal");
       }
       ui->show_message = false;

@@ -320,16 +320,9 @@ static int l_fm_paste_buffer_get(lua_State *L) {
 }
 
 static int l_fm_paste_buffer_set(lua_State *L) {
+  size_t prev_size = fm->paste.buffer->size;
+  paste_mode prev_mode = fm->paste.mode;
   fm_paste_buffer_clear(fm);
-
-  if (lua_type(L, 1) == LUA_TTABLE) {
-    const size_t l = lua_objlen(L, 1);
-    for (size_t i = 0; i < l; i++) {
-      lua_rawgeti(L, 1, i + 1);
-      fm_paste_buffer_add(fm, lua_tostring(L, -1));
-      lua_pop(L, 1);
-    }
-  }
 
   const char *mode = luaL_optstring(L, 2, "copy");
   if (streq(mode, "copy")) {
@@ -340,7 +333,17 @@ static int l_fm_paste_buffer_set(lua_State *L) {
     return luaL_error(L, "unrecognized paste mode: %s", mode);
   }
 
-  if (luaL_optbool(L, 3, true)) {
+  if (lua_type(L, 1) == LUA_TTABLE) {
+    const size_t l = lua_objlen(L, 1);
+    for (size_t i = 0; i < l; i++) {
+      lua_rawgeti(L, 1, i + 1);
+      fm_paste_buffer_add(fm, lua_tostring(L, -1));
+      lua_pop(L, 1);
+    }
+  }
+
+  if (luaL_optbool(L, 3, true) &&
+      (fm->paste.buffer->size != prev_size || fm->paste.mode != prev_mode)) {
     lfm_run_hook(lfm, LFM_HOOK_PASTEBUF);
   }
 

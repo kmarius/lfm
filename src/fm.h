@@ -187,9 +187,11 @@ void fm_selection_write(const Fm *fm, const char *path);
 // Set the current selection into the load buffer with mode `mode`.
 void fm_paste_mode_set(Fm *fm, paste_mode mode);
 
-// Clear copy/move buffer.
-static inline void fm_paste_buffer_clear(Fm *fm) {
+// Clear copy/move buffer. Returns the size of the buffer bofore clearing.
+static inline bool fm_paste_buffer_clear(Fm *fm) {
+  size_t prev_size = fm->paste.buffer->size;
   lht_clear(fm->paste.buffer);
+  return prev_size;
 }
 
 // Add a path to the paste buffer.
