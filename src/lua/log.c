@@ -55,42 +55,30 @@ static int l_log_fatal(lua_State *L) {
   return 0;
 }
 
+static int l_log_get_level(lua_State *L) {
+  int level = log_get_level_fp(lfm->log_fp);
+  lua_pushinteger(L, level);
+  return 1;
+}
+
+static int l_log_set_level(lua_State *L) {
+  long level = luaL_checkinteger(L, 1);
+  luaL_argcheck(L, level >= LOG_TRACE && level <= LOG_FATAL, 1,
+                "level must be between " STR(LOG_TRACE) " and " STR(LOG_FATAL));
+  log_set_level_fp(lfm->log_fp, level);
+  log_info("log level set to %d", level);
+  return 0;
+}
+
 static const struct luaL_Reg log_lib[] = {{"trace", l_log_trace},
                                           {"debug", l_log_debug},
                                           {"info", l_log_info},
                                           {"warn", l_log_warn},
                                           {"error", l_log_error},
                                           {"fatal", l_log_fatal},
+                                          {"set_level", l_log_set_level},
+                                          {"get_level", l_log_get_level},
                                           {NULL, NULL}};
-
-static int l_log_index(lua_State *L) {
-  const char *key = luaL_checkstring(L, 2);
-  if (streq(key, "level")) {
-    int level = log_get_level_fp(lfm->log_fp);
-    lua_pushinteger(L, level);
-  } else {
-    lua_rawget(L, 1);
-  }
-  return 1;
-}
-
-static int l_log_newindex(lua_State *L) {
-  const char *key = luaL_checkstring(L, 2);
-  if (streq(key, "level")) {
-    long level = lua_tointeger(L, 3);
-    luaL_argcheck(
-        L, level >= LOG_TRACE && level <= LOG_FATAL, 1,
-        "level must be between " STR(LOG_TRACE) " and " STR(LOG_FATAL));
-    log_info("log level set to %d", level);
-    log_set_level_fp(lfm->log_fp, level);
-  } else {
-    lua_rawset(L, 1);
-  }
-  return 0;
-}
-
-static const struct luaL_Reg log_mt[] = {
-    {"__index", l_log_index}, {"__newindex", l_log_newindex}, {NULL, NULL}};
 
 int luaopen_log(lua_State *L) {
   lua_newtable(L);
@@ -114,10 +102,6 @@ int luaopen_log(lua_State *L) {
   lua_setfield(L, -2, STR(FATAL));
 
   luaL_register(L, NULL, log_lib);
-
-  luaL_newmetatable(L, LFM_LOG_META);
-  luaL_register(L, NULL, log_mt);
-  lua_setmetatable(L, -2);
 
   return 1;
 }

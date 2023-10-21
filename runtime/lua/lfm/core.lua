@@ -13,25 +13,44 @@ local cmd = lfm.cmd
 
 -- enhance logging functions
 do
+	local level = log.get_level()
 	local string_format = string.format
-	local newlog = {}
-	for name, func in pairs(log) do
-		if type(func) == "function" then
-			newlog[name] = function(...)
-				local t = { ... }
-				for i, e in pairs(t) do
-					t[i] = tostring(e)
+	local table_concat = table.concat
+	-- Index in the table corresponds to the log level of the function
+	for l, name in ipairs({ "trace", "debug", "info", "warn", "error", "fatal" }) do
+		local func = log[name]
+		log[name] = function(...)
+			if l > level then
+				local args = { ... }
+				local n = select("#", ...)
+				for i = 1, n do
+					local arg = args[i]
+					args[i] = arg == nil and "nil" or tostring(arg)
 				end
-				func(table.concat(t, " "))
+				func(table_concat(args, "\t"))
 			end
-			newlog[name .. "f"] = function(...)
+		end
+		log[name .. "f"] = function(...)
+			if l > level then
 				func(string_format(...))
 			end
 		end
 	end
-	for name, func in pairs(newlog) do
-		log[name] = func
-	end
+	setmetatable(lfm.log, {
+		__index = function(_, k)
+			if k == "level" then
+				return level
+			end
+		end,
+		__newindex = function(t, k, v)
+			if k == "level" then
+				log.set_level(v)
+				level = v
+			else
+				rawset(t, k, v)
+			end
+		end,
+	})
 end
 
 ---@return table selection The currently selected files or the file at the current cursor position
