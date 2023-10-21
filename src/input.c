@@ -85,7 +85,7 @@ static void stdin_cb(EV_P_ ev_io *w, int revents) {
     } else if (in.id == NCKEY_UNFOCUS) {
       lfm_run_hook(lfm, LFM_HOOK_FOCUSLOST);
     } else {
-      log_trace("id: %d, shift: %d, ctrl: %d alt %d, type: %d, %s", in.id,
+      log_trace("id=%d shift=%d ctrl=%d alt=%d type=%d utf8=%s", in.id,
                 in.shift, in.ctrl, in.alt, in.evtype, in.utf8);
       input_handle_key(lfm, ncinput_to_input(&in));
     }
@@ -213,7 +213,6 @@ void input_handle_key(Lfm *lfm, input_t in) {
       ui->show_message = false;
       ui_redraw(ui, REDRAW_FM);
     } else if (!lfm->ui.maps.cur) {
-      // no keymapping, print an error
       cvector_push_back(lfm->ui.maps.seq, in);
       char *str = NULL;
       for (size_t i = 0; i < cvector_size(lfm->ui.maps.seq); i++) {
@@ -222,8 +221,8 @@ void input_handle_key(Lfm *lfm, input_t in) {
         }
       }
       cvector_push_back(str, 0);
-      log_info("key: %d, id: %d, shift: %d, ctrl: %d alt %d, %s", in, ID(in),
-               ISSHIFT(in), ISCTRL(in), ISALT(in), str);
+      log_debug("unmapped key sequence: %s (id=%d shift=%d ctrl=%d alt=%d)",
+                str, ID(in), ISSHIFT(in), ISCTRL(in), ISALT(in));
       cvector_free(str);
       input_clear(lfm);
     } else if (lfm->ui.maps.cur->keys) {
