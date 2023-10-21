@@ -12,15 +12,25 @@ local ui = lfm.ui
 local cmd = lfm.cmd
 
 -- enhance logging functions
-for k, f in pairs(log) do
-	if type(f) == "function" then
-		log[k] = function(...)
-			local t = { ... }
-			for i, e in pairs(t) do
-				t[i] = tostring(e)
+do
+	local string_format = string.format
+	local newlog = {}
+	for name, func in pairs(log) do
+		if type(func) == "function" then
+			newlog[name] = function(...)
+				local t = { ... }
+				for i, e in pairs(t) do
+					t[i] = tostring(e)
+				end
+				func(table.concat(t, " "))
 			end
-			f(table.concat(t, " "))
+			newlog[name .. "f"] = function(...)
+				func(string_format(...))
+			end
 		end
+	end
+	for name, func in pairs(newlog) do
+		log[name] = func
 	end
 end
 

@@ -8,32 +8,50 @@
 #define STR(x) #x
 
 static int l_log_trace(lua_State *L) {
-  log_trace("%s", luaL_checkstring(L, 1));
+  lua_Debug ar;
+  lua_getstack(L, 2, &ar);
+  lua_getinfo(L, "Sl", &ar);
+  log_log(LOG_TRACE, ar.source, ar.currentline, "%s", luaL_checkstring(L, 1));
   return 0;
 }
 
 static int l_log_debug(lua_State *L) {
-  log_debug("%s", luaL_checkstring(L, 1));
+  lua_Debug ar;
+  lua_getstack(L, 2, &ar);
+  lua_getinfo(L, "Sl", &ar);
+  log_log(LOG_DEBUG, ar.source, ar.currentline, "%s", luaL_checkstring(L, 1));
   return 0;
 }
 
 static int l_log_info(lua_State *L) {
-  log_info("%s", luaL_checkstring(L, 1));
+  lua_Debug ar;
+  lua_getstack(L, 2, &ar);
+  lua_getinfo(L, "Sl", &ar);
+  log_log(LOG_INFO, ar.source, ar.currentline, "%s", luaL_checkstring(L, 1));
   return 0;
 }
 
 static int l_log_warn(lua_State *L) {
-  log_warn("%s", luaL_checkstring(L, 1));
+  lua_Debug ar;
+  lua_getstack(L, 2, &ar);
+  lua_getinfo(L, "Sl", &ar);
+  log_log(LOG_WARN, ar.source, ar.currentline, "%s", luaL_checkstring(L, 1));
   return 0;
 }
 
 static int l_log_error(lua_State *L) {
-  log_error("%s", luaL_checkstring(L, 1));
+  lua_Debug ar;
+  lua_getstack(L, 2, &ar);
+  lua_getinfo(L, "Sl", &ar);
+  log_log(LOG_ERROR, ar.source, ar.currentline, "%s", luaL_checkstring(L, 1));
   return 0;
 }
 
 static int l_log_fatal(lua_State *L) {
-  log_fatal("%s", luaL_checkstring(L, 1));
+  lua_Debug ar;
+  lua_getstack(L, 2, &ar);
+  lua_getinfo(L, "Sl", &ar);
+  log_log(LOG_FATAL, ar.source, ar.currentline, "%s", luaL_checkstring(L, 1));
   return 0;
 }
 
@@ -50,11 +68,10 @@ static int l_log_index(lua_State *L) {
   if (streq(key, "level")) {
     int level = log_get_level_fp(lfm->log_fp);
     lua_pushinteger(L, level);
-    return 1;
   } else {
-    return luaL_error(L, "unexpected key %s", key);
+    lua_rawget(L, 1);
   }
-  return 0;
+  return 1;
 }
 
 static int l_log_newindex(lua_State *L) {
@@ -67,7 +84,7 @@ static int l_log_newindex(lua_State *L) {
     log_info("log level set to %d", level);
     log_set_level_fp(lfm->log_fp, level);
   } else {
-    return luaL_error(L, "unexpected key %s", key);
+    lua_rawset(L, 1);
   }
   return 0;
 }

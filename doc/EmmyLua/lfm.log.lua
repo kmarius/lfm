@@ -10,20 +10,44 @@
 ---@field FATAL number
 lfm.log = {}
 
----@vararg any
+---@param ... any
 function lfm.log.trace(...) end
 
----@vararg any
+---@param ... any
 function lfm.log.debug(...) end
 
----@vararg any
+---@param ... any
 function lfm.log.info(...) end
 
----@vararg any
+---@param ... any
 function lfm.log.warn(...) end
 
----@vararg any
+---@param ... any
 function lfm.log.error(...) end
 
----@vararg any
+---@param ... any
 function lfm.log.fatal(...) end
+
+---@param fmt string
+---@param ... any
+function lfm.log.tracef(fmt, ...) end
+
+---@param fmt string
+---@param ... any
+function lfm.log.debugf(fmt, ...) end
+
+---@param fmt string
+---@param ... any
+function lfm.log.infof(fmt, ...) end
+
+---@param fmt string
+---@param ... any
+function lfm.log.warnf(fmt, ...) end
+
+---@param fmt string
+---@param ... any
+function lfm.log.errorf(fmt, ...) end
+
+---@param fmt string
+---@param ... any
+function lfm.log.fatalf(fmt, ...) end
