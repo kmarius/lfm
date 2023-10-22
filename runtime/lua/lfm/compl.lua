@@ -191,6 +191,7 @@ local function shownext(increment)
 	local sep
 	if reset or #candidates == 0 or tok ~= candidates[ind] then
 		reset = false
+		---@diagnostic disable-next-line: need-check-nil
 		candidates, sep = provider(tok, line)
 		ind = 0
 		local contained = false

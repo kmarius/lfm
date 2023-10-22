@@ -168,7 +168,7 @@ function M.follow_link()
 	if target then
 		-- TODO: do these things even work with spaces in filenames? (on 2022-02-12)
 		lfm.eval("cd " .. dirname(target))
-		fm.sel(basename(target))
+		fm.sel(basename(target) --[[@as string]])
 	end
 end
 

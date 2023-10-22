@@ -34,8 +34,10 @@ function M.glob_select(glob)
 	local match = string.match
 	local insert = table.insert
 	local basename = basename
-	for _, file in pairs(fm.current_dir().files) do
-		if match(basename(file), pat) then
+	for _, file in ipairs(fm.current_dir().files) do
+		if
+			match(basename(file) --[[@as string]], pat)
+		then
 			insert(sel, file)
 		end
 	end

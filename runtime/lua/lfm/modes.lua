@@ -5,6 +5,7 @@ local map = lfm.map
 local fm = lfm.fm
 local compl = require("lfm.compl")
 local util = require("lfm.util")
+local basename = util.basename
 
 local a = util.a
 
@@ -216,7 +217,7 @@ function M._setup()
 			on_esc = function()
 				lfm.nohighlight()
 				if file then
-					fm.sel(util.basename(file))
+					fm.sel(basename(file) --[[@as string]])
 				end
 			end,
 		}
@@ -240,7 +241,7 @@ function M._setup()
 			on_esc = function()
 				lfm.nohighlight()
 				if file then
-					lfm.fm.sel(require("lfm.util").basename(file))
+					lfm.fm.sel(basename(file) --[[@as string]])
 				end
 			end,
 		}

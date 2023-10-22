@@ -1,24 +1,35 @@
 local M = { _NAME = ... }
 
-local log = lfm.log
+local lfm = lfm
+
 local sel_or_cur = lfm.sel_or_cur
+local lfm_execute = lfm.execute
+local lfm_spawn = lfm.spawn
+local table_insert = table.insert
 
----Pass files as argv.
-M.ARGV = 1
+---@enum Lfm.Shell.FilesVia
+local FilesVia = {
+	ARGV = 0,
+	ARRAY = 1,
+}
 
----pass files as an array named `files` (`bash`, `fish` and `tmux` only).
-M.ARRAY = 2
+---Pass files via argv.
+M.ARGV = FilesVia.ARGV
 
-local ARGV = M.ARGV
-local ARRAY = M.ARRAY
+---Pass files as an array named `files` if supported by the shell.
+M.ARRAY = FilesVia.ARRAY
 
----Wrap a string (ortable of strings) in single quotes.
+local ARGV = FilesVia.ARGV
+local ARRAY = FilesVia.ARRAY
+
+---Wrap a string (or table of strings) in single quotes and join them with an optional separator.
 ---```lua
----    escape({"file with witespace.txt", "audio.mp3"}, " ")
+---    local escaped = escape({"file with witespace.txt", "audio.mp3"}, " ")
 ---```
 ---@param args string[]|string
 ---@param sep? string separator (default: " ").
 ---@return string
+---@nodiscard
 function M.escape(args, sep)
 	if not args then
 		return ""
@@ -30,191 +41,328 @@ function M.escape(args, sep)
 	local ret = {}
 	for _, a in pairs(args) do
 		local s = string.gsub(tostring(a), "'", [['\'']])
-		table.insert(ret, "'" .. s .. "'")
+		table_insert(ret, "'" .. s .. "'")
 	end
 	return table.concat(ret, sep)
 end
-
----@class Lfm.Shell.ExecOpts
----@field quiet? boolean show command in the log (default: true)
----@field fork? boolean run the command in the background (default: false)
----@field out? boolean redirect stdout in the ui (default: true)
----@field err? boolean redirect stderr in the ui (default: true)
-
----Execute a foreground command.
----If `command` is a single string, it is executed as `sh -c command`.
----@param command string|string[]
----@param t? Lfm.Shell.ExecOpts
-function M.execute(command, t)
-	t = t or {}
-	if type(command) == "string" then
-		command = { "sh", "-c", command }
-	end
-	if not t.quiet then
-		log.debug(table.concat(command, " "))
-	end
-	if t.fork then
-		lfm.spawn(command, t)
-	else
-		lfm.execute(command)
-	end
-end
+local escape = M.escape
 
 ---Run a command an capture the output.
+---```lua
+---    local tmpdir = lfm.shell.popen("mktemp -d")[1]
+---```
 ---@param command string|string[]
 ---@return string[]
 function M.popen(command)
 	if type(command) == "table" then
-		command = M.escape(command)
+		command = escape(command)
 	end
 	local file = io.popen(command, "r")
 	local res = {}
 	if file then
 		for line in file:lines() do
-			table.insert(res, line)
+			table_insert(res, line)
 		end
 	end
 	return res
 end
 
----@class Lfm.Shell.BashOpts
----@field files_via? number
----@field quiet? boolean show command in the log (default: true)
----@field fork? boolean run the command in the background (default: false)
----@field out? boolean redirect stdout in the ui (default: true)
----@field err? boolean redirect stderr in the ui (default: true)
+do
+	---@class Lfm.Shell.Sh.SpawnOpts : Lfm.SpawnOpts
+	---@field files_via? Lfm.Shell.FilesVia
 
----Build a function from a bash command. Unless `t.files_via == shell.ARGV` the
----functions arguments are passed to the shell.
----@param command string
----@param t? Lfm.Shell.BashOpts
----@return function
-function M.bash(command, t)
-	t = t or {}
-	if t.files_via == ARGV then
-		return function()
-			M.execute({ "bash", "-c", command, "_", unpack(sel_or_cur()) }, t)
+	---@class Lfm.Shell.Sh.ExecOpts
+	---@field files_via? Lfm.Shell.FilesVia
+
+	---@class Lfm.Shell.Sh.BuildOpts: Lfm.Shell.Sh.ExecOpts, Lfm.Shell.Sh.SpawnOpts
+	---@field fg? true
+
+	---Spawn a shell process in the background.
+	---```lua
+	---    lfm.shell.sh.spawn("mv *.txt somedir")
+	---
+	---    lfm.shell.sh.spawn('mv "$@" somedir', { files_via = lfm.shell.ARGV })
+	---```
+	---@param command string
+	---@param opts? Lfm.Shell.Sh.SpawnOpts
+	---@param ... string Extra arguments will be passed to the command (unless opts.files_via == ARGV)
+	local function spawn(command, opts, ...)
+		opts = opts or {}
+		local cmd = { "sh", "-c", command }
+		if opts.files_via == ARGV then
+			cmd[#cmd + 1] = "_"
+			for _, file in ipairs(sel_or_cur()) do
+				cmd[#cmd + 1] = file
+			end
+		elseif opts.files_via == ARRAY then
+			error("files_via ARRAY not supported for sh")
+		else
+			local n = select("#", ...)
+			if n > 0 then
+				cmd[#cmd + 1] = "_"
+				local args = { ... }
+				for i = 1, n do
+					cmd[#cmd + 1] = args[i]
+				end
+			end
 		end
-	elseif t.files_via == ARRAY then
-		return function(...)
-			M.execute({ "bash", "-c", "files=(" .. M.escape(sel_or_cur()) .. "); " .. command, "_", ... }, t)
-		end
-	else
-		return function(...)
-			M.execute({ "bash", "-c", command, "_", ... }, t)
-		end
+		lfm_spawn(cmd, opts)
 	end
-end
 
----@class Lfm.Shell.TmuxOpts
----@field files_via? number
----@field quiet? boolean show command in the log (default: true)
----@field fork? boolean run the command in the background (default: false)
----@field out? boolean redirect stdout in the ui (default: true)
----@field err? boolean redirect stderr in the ui (default: true)
-
----Build a function from a bash command to run in a `tmux new-window`. Unless
----`t.files_via == shell.ARGV` the functions arguments are passed to the shell.
----@param command string
----@param t? Lfm.Shell.TmuxOpts
----@return function
-function M.tmux(command, t)
-	t = t or {}
-	if t.files_via == ARGV then
-		return function()
-			M.execute({ "tmux", "new-window", command, unpack(sel_or_cur()) }, t)
+	---Spawn a shell process in the foreground.
+	---```lua
+	---    lfm.shell.sh.execute("nvim *.txt")
+	---
+	---    lfm.shell.sh.execute('nvim "$@"', { files_via = lfm.shell.ARGV })
+	---```
+	---@param command string
+	---@param opts? Lfm.Shell.Sh.ExecOpts
+	---@param ... string Extra arguments will be passed to the command (unless opts.files_via == ARGV)
+	local function execute(command, opts, ...)
+		opts = opts or {}
+		local cmd = { "sh", "-c", command }
+		if opts.files_via == ARGV then
+			cmd[#cmd + 1] = "_"
+			for _, file in ipairs(sel_or_cur()) do
+				cmd[#cmd + 1] = file
+			end
+		elseif opts.files_via == ARRAY then
+			error("files_via ARRAY not supported for sh")
+		else
+			local n = select("#", ...)
+			if n > 0 then
+				cmd[#cmd + 1] = "_"
+				local args = { ... }
+				for i = 1, n do
+					cmd[#cmd + 1] = args[i]
+				end
+			end
 		end
-	elseif t.files_via == ARRAY then
-		return function(...)
-			M.execute({
-				"tmux",
-				"new-window",
-				"bash",
-				"-c",
-				"files=(" .. M.escape(sel_or_cur()) .. "); " .. command,
-				"_",
-				...,
-			}, t)
-		end
-	else
-		return function(...)
-			M.execute({ "tmux", "new-window", "bash", "-c", command, "_", ... }, t)
-		end
+		lfm_execute(cmd)
 	end
-end
 
----@class Lfm.Shell.FishOpts
----@field files_via? number
----@field tmux? boolean open command in a new tmux window (default: false)
----@field quiet? boolean show command in the log (default: true)
----@field fork? boolean run the command in the background (default: false)
----@field out? boolean redirect stdout in the ui (default: true)
----@field err? boolean redirect stderr in the ui (default: true)
-
----Build a function from a shell command. Unless `t.files_via == shell.ARGV` the
----functions arguments are passed to the shell.
----@param command string
----@param t? Lfm.Shell.FishOpts
----@return function
-function M.fish(command, t)
-	t = t or {}
-	if t.files_via == ARGV then
-		return function()
-			M.execute({ "fish", "-c", command, unpack(sel_or_cur()) }, t)
-		end
-	elseif t.files_via == ARRAY then
-		if t.tmux then
+	---Build a function that executes a shell command.
+	---```lua
+	---    local f = lfm.shell.sh.build("echo hey", { fork = true })
+	---    f()
+	---```
+	---@param command string
+	---@param opts? Lfm.Shell.Sh.BuildOpts
+	---@return function
+	local function build(command, opts)
+		opts = opts or {}
+		if opts.fg then
 			return function(...)
-				M.execute({
-					"tmux",
-					"new-window",
-					"fish",
-					"-c",
-					"set -U files " .. M.escape(sel_or_cur()),
-					"-c",
-					command,
-					"--",
-					...,
-				}, t)
+				execute(command, opts --[[@as Lfm.Shell.Sh.BuildOpts]], ...)
 			end
 		else
 			return function(...)
-				M.execute({ "fish", "-c", "set -U files " .. M.escape(sel_or_cur()), "-c", command, "--", ... }, t)
+				spawn(command, opts --[[@as Lfm.Shell.Sh.BuildOpts]], ...)
 			end
 		end
-	else
-		return function(...)
-			M.execute({ "fish", "-c", command, "--", ... }, t)
-		end
 	end
+
+	M.sh = { spawn = spawn, execute = execute, build = build }
 end
 
----@class Lfm.Shell.ShOpts
----@field files_via? number
----@field quiet? boolean show command in the log (default: true)
----@field fork? boolean run the command in the background (default: false)
----@field out? boolean redirect stdout in the ui (default: true)
----@field err? boolean redirect stderr in the ui (default: true)
+do
+	---@class Lfm.Shell.Bash.SpawnOpts : Lfm.SpawnOpts
+	---@field files_via? Lfm.Shell.FilesVia
 
----Build a function from a shell command. Unless `t.files_via == shell.ARGV` the
----functions arguments are passed to the shell.
----@param command string
----@param t? Lfm.Shell.ShOpts
----@return function
-function M.sh(command, t)
-	t = t or {}
-	if t.files_via == ARGV then
-		return function()
-			M.execute({ "sh", "-c", command, "_", sel_or_cur() }, t)
+	---@class Lfm.Shell.Bash.ExecOpts
+	---@field files_via? Lfm.Shell.FilesVia
+
+	---@class Lfm.Shell.Bash.BuildOpts : Lfm.Shell.Bash.ExecOpts, Lfm.Shell.Bash.SpawnOpts
+	---@field fg? true
+
+	---Spawn a shell process in the background.
+	---```lua
+	---    lfm.shell.bash.spawn("mv *.txt somedir")
+	---
+	---    lfm.shell.bash.spawn('mv "$@" somedir', { files_via = lfm.shell.ARGV })
+	---```
+	---@param command string
+	---@param opts? Lfm.Shell.Bash.SpawnOpts
+	---@param ... string Extra arguments will be passed to the command (unless opts.files_via == ARGV)
+	local function spawn(command, opts, ...)
+		opts = opts or {}
+		local cmd = { "bash", "-c", command }
+		if opts.files_via == ARGV then
+			cmd[#cmd + 1] = "_"
+			for _, file in ipairs(sel_or_cur()) do
+				cmd[#cmd + 1] = file
+			end
+		else
+			if opts.files_via == ARRAY then
+				cmd[3] = string.format("files=(%s); %s", escape(sel_or_cur()), command)
+			end
+			local n = select("#", ...)
+			if n > 0 then
+				cmd[#cmd + 1] = "_"
+				local args = { ... }
+				for i = 1, n do
+					cmd[#cmd + 1] = args[i]
+				end
+			end
 		end
-	elseif t.files_via == ARRAY then
-		lfm.error("sh does not support arrays")
-		return function() end
-	else
-		return function(...)
-			M.execute({ "sh", "-c", command, ... }, t)
+		lfm_spawn(cmd, opts)
+	end
+
+	---Spawn a shell process in the foreground.
+	---```lua
+	---    lfm.shell.bash.execute("nvim *.txt")
+	---
+	---    lfm.shell.bash.execute('nvim "$@"', { files_via = lfm.shell.ARGV })
+	---```
+	---@param command string
+	---@param opts? Lfm.Shell.Bash.ExecOpts
+	---@param ... string Extra arguments will be passed to the command (unless opts.files_via == ARGV)
+	local function execute(command, opts, ...)
+		opts = opts or {}
+		local cmd = { "bash", "-c", command }
+		if opts.files_via == ARGV then
+			cmd[#cmd + 1] = "_"
+			for _, file in ipairs(sel_or_cur()) do
+				cmd[#cmd + 1] = file
+			end
+		else
+			if opts.files_via == ARRAY then
+				cmd[3] = string.format("files=(%s); %s", escape(sel_or_cur()), command)
+			end
+			local n = select("#", ...)
+			if n > 0 then
+				cmd[#cmd + 1] = "_"
+				local args = { ... }
+				for i = 1, n do
+					cmd[#cmd + 1] = args[i]
+				end
+			end
+		end
+		lfm_execute(cmd)
+	end
+
+	---Build a function that executes a shell command.
+	---```lua
+	---    local f = lfm.shell.bash.build("echo hey", { fork = true })
+	---    f()
+	---```
+	---@param command string
+	---@param opts? Lfm.Shell.Bash.BuildOpts
+	---@return function
+	local function build(command, opts)
+		opts = opts or {}
+		if opts.fg then
+			return function(...)
+				execute(command, opts, ...)
+			end
+		else
+			return function(...)
+				spawn(command, opts, ...)
+			end
 		end
 	end
+	M.bash = { spawn = spawn, execute = execute, build = build }
+end
+
+do
+	---@class Lfm.Shell.Fish.SpawnOpts : Lfm.SpawnOpts
+	---@field files_via? Lfm.Shell.FilesVia
+
+	---@class Lfm.Shell.Fish.ExecOpts
+	---@field files_via? Lfm.Shell.FilesVia
+
+	---@class Lfm.Shell.Fish.BuildOpts : Lfm.Shell.Fish.ExecOpts ,Lfm.Shell.Fish.SpawnOpts
+	---@field fg? true
+
+	---Spawn a shell process in the background.
+	---```lua
+	---    lfm.shell.fish.spawn("mv *.txt somedir")
+	---
+	---    lfm.shell.fish.spawn('mv "$@" somedir', { files_via = lfm.shell.ARGV })
+	---```
+	---@param command string
+	---@param opts? Lfm.Shell.Fish.SpawnOpts
+	---@param ... string Extra arguments will be passed to the command (unless opts.files_via == ARGV)
+	local function spawn(command, opts, ...)
+		opts = opts or {}
+		local cmd = { "fish", "-c", command }
+		if opts.files_via == ARGV then
+			cmd[#cmd + 1] = "_"
+			for _, file in ipairs(sel_or_cur()) do
+				cmd[#cmd + 1] = file
+			end
+		else
+			if opts.files_via == ARRAY then
+				table_insert(cmd, 2, "-c")
+				table_insert(cmd, 2, "set files " .. escape(sel_or_cur()))
+			end
+			local n = select("#", ...)
+			if n > 0 then
+				cmd[#cmd + 1] = "--"
+				local args = { ... }
+				for i = 1, n do
+					cmd[#cmd + 1] = args[i]
+				end
+			end
+		end
+		lfm_spawn(cmd, opts)
+	end
+
+	---Spawn a shell process in the foreground.
+	---```lua
+	---    lfm.shell.fish.execute("nvim *.txt")
+	---
+	---    lfm.shell.fish.execute('nvim "$@"', { files_via = lfm.shell.ARGV })
+	---```
+	---@param command string
+	---@param opts? Lfm.Shell.Fish.ExecOpts
+	---@param ... string Extra arguments will be passed to the command (unless opts.files_via == ARGV)
+	local function execute(command, opts, ...)
+		opts = opts or {}
+		local cmd = { "fish", "-c", command }
+		if opts.files_via == ARGV then
+			cmd[#cmd + 1] = "--"
+			for _, file in ipairs(sel_or_cur()) do
+				cmd[#cmd + 1] = file
+			end
+		else
+			if opts.files_via == ARRAY then
+				table_insert(cmd, 2, "-c")
+				table_insert(cmd, 2, "set files " .. escape(sel_or_cur()))
+			end
+			local n = select("#", ...)
+			if n > 0 then
+				cmd[#cmd + 1] = "--"
+				local args = { ... }
+				for i = 1, n do
+					cmd[#cmd + 1] = args[i]
+				end
+			end
+		end
+		lfm_execute(cmd)
+	end
+
+	---Build a function that executes a shell command.
+	---```lua
+	---    local f = lfm.shell.fish.build("echo hey", { fork = true })
+	---    f()
+	---```
+	---@param command string
+	---@param opts? Lfm.Shell.Fish.BuildOpts
+	---@return function
+	local function build(command, opts)
+		opts = opts or {}
+		if opts.fg then
+			return function(...)
+				execute(command, opts --[[@as Lfm.Shell.Fish.BuildOpts]], ...)
+			end
+		else
+			return function(...)
+				spawn(command, opts --[[@as Lfm.Shell.Fish.BuildOpts]], ...)
+			end
+		end
+	end
+	M.fish = { spawn = spawn, execute = execute, build = build }
 end
 
 return M

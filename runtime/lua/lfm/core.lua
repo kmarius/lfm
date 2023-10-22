@@ -212,11 +212,11 @@ local compl = require("lfm.compl")
 local shell = require("lfm.shell")
 
 lfm.register_command("shell", function(arg)
-	shell.bash(arg, { files_via = shell.ARRAY })()
+	shell.bash.execute(arg, { files_via = shell.ARGV })
 end, { tokenize = false, compl = compl.files, desc = "Run a shell command." })
 
 lfm.register_command("shell-bg", function(arg)
-	shell.bash(arg, { files_via = shell.ARRAY, fork = true })()
+	shell.bash.spawn(arg, { files_via = shell.ARGV })
 end, { tokenize = false, compl = compl.files, desc = "Run a shell command in the background." })
 
 require("lfm.jumplist")._setup()

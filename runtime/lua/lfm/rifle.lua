@@ -38,15 +38,16 @@ function M.open(...)
 				if not term then
 					error("rifle: no terminal configured" .. (config and " in " .. config or ""))
 				end
-				shell.execute(
+				lfm.spawn(
 					{ "sh", "-c", term.command, "_", "sh", "-c", match.command, unpack(files) },
-					{ fork = true, out = false, err = false }
+					{ out = false, err = false }
 				)
 			else
-				shell.execute(
-					{ "sh", "-c", match.command, "_", unpack(files) },
-					{ fork = match.fork, out = false, err = false }
-				)
+				if match.fork then
+					lfm.spawn({ "sh", "-c", match.command, "_", unpack(files) }, { out = false, err = false })
+				else
+					lfm.execute({ "sh", "-c", match.command, "_", unpack(files) })
+				end
 			end
 		else
 			if #t > 0 then
@@ -54,7 +55,7 @@ function M.open(...)
 				for _, e in pairs(files) do
 					table.insert(t, e)
 				end
-				shell.execute(t)
+				lfm.execute(t)
 			else
 				print("no matching rules for " .. lfm.fn.mime(files[1]))
 			end
