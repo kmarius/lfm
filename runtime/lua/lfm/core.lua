@@ -1,7 +1,7 @@
--- DON'T use local lfm = lfm here because it brakes sumneko.
+-- NOTE: DON'T use local lfm = lfm here because it breaks LuaLS.
 
+-- Set up package.path to include ~/.config/lfm/lua and remove ./
 local config = lfm.config
-
 package.path = string.gsub(package.path, "%./%?.lua;", "")
 package.path = package.path .. ";" .. config.configdir .. "/lua/?.lua;" .. config.configdir .. "/lua/?/init.lua"
 package.cpath = string.gsub(package.cpath, "%./%?.so;", "")
@@ -10,11 +10,11 @@ local fm = lfm.fm
 local log = lfm.log
 local ui = lfm.ui
 local cmd = lfm.cmd
+local string_format = string.format
 
--- enhance logging functions
+-- Enhance logging functions
 do
 	local level = log.get_level()
-	local string_format = string.format
 	local table_concat = table.concat
 	-- Index in the table corresponds to the log level of the function
 	for l, name in ipairs({ "trace", "debug", "info", "warn", "error", "fatal" }) do
@@ -53,20 +53,45 @@ do
 	})
 end
 
----@return table selection The currently selected files or the file at the current cursor position
+---Print a formatted string.
+---```lua
+---    lfm.printf("Hello %s", "World")
+---```
+---@param fmt string
+---@param ... any
+function lfm.printf(fmt, ...)
+	print(string_format(fmt, ...))
+end
+
+---Print a formatted error.
+---```lua
+---    lfm.errorf("errno was %d", errno)
+---```
+---@param fmt string
+---@param ... any
+function lfm.errorf(fmt, ...)
+	lfm.error(string_format(fmt, ...))
+end
+
+---Get the current selection or file under the cursor.
+---```lua
+---    local files = lfm.sel_or_cur()
+---    for i, file in ipairs(files) do
+---      print(i, file)
+---    end
+---```
+---@return string[] selection
 function lfm.sel_or_cur()
 	local sel = fm.selection_get()
 	return #sel > 0 and sel or { fm.current_file() }
 end
 
----Executes line. If the first whitespace delimited token is a registered
----command it is executed with the following text as arguments. Otherwise line
----is assumed to be lua code and is executed. Example:
----```
----
---- lfm.eval("cd /home") -- expression is not lua as "cd" is a registered command
---- lfm.eval('print(2+2)') -- executed as lua code
----
+---Evaluates a line of lua code. If the first whitespace delimited token is a
+---registered command it is executed with the following text as arguments.
+---Otherwise line is assumed to be lua code and is executed. Results are printed.
+---```lua
+---    lfm.eval("cd /home")   -- expression is not lua because "cd" is a registered command
+---    lfm.eval('print(2+2)') -- executed as lua code
 ---```
 ---@param line string
 function lfm.eval(line)
@@ -98,30 +123,52 @@ function lfm.eval(line)
 	end
 end
 
--- Commands
-lfm.commands = {}
-
 ---@class Lfm.CommandOpts
 ---@field tokenize? boolean tokenize arguments (default: true)
----@field compl? function completion function
+---@field compl? Lfm.ComplFun completion function
 ---@field desc? string Description
+--
+---@class Lfm.Command
+---@field tokenize? boolean tokenize arguments (default: true)
+---@field compl? Lfm.ComplFun completion function
+---@field desc? string Description
+---@field f function corresponding function
+
+---@type table<string, Lfm.Command>
+lfm.commands = {}
 
 ---Register a function as a lfm command or unregister a command. Supported options
+---```lua
+---    lfm.register_command("updir", fm.updir, { desc = "Go to parent directory" })
 ---```
---- tokenize: tokenize the argument by whitespace and pass them as a table (default: false)
---- compl:    completion function
---- desc:     Description
+---Handling arguments:
+---```lua
+---    lfm.register_command("cmd", function(line)
+---      -- args passed as a single string
+---    end, {})
 ---
+---    lfm.register_command("cmd", function(...)
+---      local args = { ... }
+---      -- args are split by whitespace
+---    end, { tokenize = true })
+---```
+---Using completions (see `compl.lua`):
+---```lua
+---    lfm.register_command("cd", fm.chdir, {
+---      compl = require("lfm.compl").dirs,
+---      tokenize = true,
+---    })
 ---```
 ---@param name string Command name, can not contain whitespace.
 ---@param f function The function to execute or `nil` to unregister
----@param t? Lfm.CommandOpts Additional options.
-function lfm.register_command(name, f, t)
+---@param opts? Lfm.CommandOpts Additional options.
+function lfm.register_command(name, f, opts)
+	-- TODO: we should probably make a copy of opts
 	if f then
-		t = t or {}
-		t.f = f
-		t.tokenize = t.tokenize == nil and true or t.tokenize
-		lfm.commands[name] = t
+		opts = opts or {}
+		opts.f = f
+		opts.tokenize = opts.tokenize == nil and true or opts.tokenize
+		lfm.commands[name] = opts --[[@as Lfm.Command]]
 	else
 		lfm.commands[name] = nil
 	end
@@ -188,9 +235,12 @@ lfm.register_command("cd", fm.chdir, { tokenize = true, compl = compl.dirs })
 
 local handle_key = lfm.handle_key
 ---Feed keys into the key handler.
----@vararg string keys
+---```lua
+---    lfm.feedkeys("cd", "<Enter>")
+---```
+---@param ... string
 function lfm.feedkeys(...)
-	for _, seq in pairs({ ... }) do
+	for _, seq in ipairs({ ... }) do
 		handle_key(seq)
 	end
 end
@@ -258,8 +308,8 @@ local function open()
 	lfm.eval("open")
 end
 
-lfm.register_command("delete", function(a)
-	if a then
+lfm.register_command("delete", function(args)
+	if args then
 		error("command takes no arguments")
 	end
 	lfm.spawn({ "rm", "-rf", "--", unpack(lfm.sel_or_cur()) })
@@ -356,8 +406,8 @@ lfm.register_command(
 	require("lfm.flatten").flatten,
 	{ tokenize = true, desc = "(Un)flatten current directory." }
 )
-map("<a-+>", require("lfm.flatten").flatten_inc, { desc = "Increase flatten level" })
-map("<a-->", require("lfm.flatten").flatten_dec, { desc = "Decrease flatten level" })
+map("<a-+>", require("lfm.flatten").increment, { desc = "Increase flatten level" })
+map("<a-->", require("lfm.flatten").decrement, { desc = "Decrease flatten level" })
 
 -- Copy/pasting
 map("yn", require("lfm.functions").yank_name, { desc = "Yank name" })
@@ -366,7 +416,7 @@ map("yy", fm.copy, { desc = "copy" })
 map("dd", fm.cut, { desc = "cut" })
 map("ud", fm.paste_buffer_clear, { desc = "Clear paste buffer" })
 map("pp", require("lfm.functions").paste, { desc = "Paste files" })
-map("pt", require("lfm.functions").paste_toggle, { desc = "Toggle paste mode" })
+map("pt", require("lfm.functions").toggle_paste, { desc = "Toggle paste mode" })
 map("po", require("lfm.functions").paste_overwrite, { desc = "Paste files with overwrite" })
 map("pl", require("lfm.functions").symlink, { desc = "Create symlink" })
 map("pL", require("lfm.functions").symlink_relative, { desc = "Create relative symlink" })

@@ -1,9 +1,10 @@
-local quickmarks = {}
+local M = { _NAME = ... }
+
+local lfm = lfm
 
 ---@alias Lfm.Char string
 ---@alias Lfm.Path string
 
-local lfm = lfm
 local eval = lfm.eval
 local map = lfm.map
 local getpwd = lfm.fn.getpwd
@@ -17,8 +18,13 @@ local marks_path = lfm.config.statedir .. "/quickmarks.lua"
 local marks = {}
 
 ---Add a quickmark (essentially just setting a keybind).
+---```lua
+---    lfm.quickmarks.mark_set("h", "/home/john")
+---    lfm.quickmarks.mark_set("a", lfm.fn.getpwd())
+---    lfm.quickmarks.mark_set("a") -- same as above
+---```
 ---@param m Lfm.Char
----@param loc Lfm.Path
+---@param loc? Lfm.Path Defaults to the current location
 local function mark_set(m, loc)
 	loc = loc or getpwd()
 	local cmd = "cd " .. loc
@@ -58,8 +64,11 @@ local function write_to_file()
 end
 
 ---Add a quick mark for the current directory with character `m`.
+---```lua
+---    lfm.quickmarks.save("a")
+---```
 ---@param m Lfm.Char
-function quickmarks.save(m)
+function M.save(m)
 	load_from_file()
 	mark_set(m, getpwd())
 	write_to_file()
@@ -67,8 +76,14 @@ end
 
 ---Add multiple quick marks. Loads quick marks from disk, sets the marks passed
 ---in `t` and writes them back.
+---```lua
+---    lfm.quickmarks.add({
+---      a = "/home/john",
+---      t = "/tmp",
+---    })
+---```
 ---@param t table<Lfm.Char, Lfm.Path>
-function quickmarks.add(t)
+function M.add(t)
 	t = t or {}
 	load_from_file()
 	for k, v in pairs(t) do
@@ -78,8 +93,11 @@ function quickmarks.add(t)
 end
 
 ---Deletes the mark for character `m` and persists the change to disk.
+---```lua
+---    lfm.quickmarks.delete("a")
+---```
 ---@param m Lfm.Char
-function quickmarks.delete(m)
+function M.delete(m)
 	if marks[m] then
 		load_from_file()
 		map("'" .. m, nil)
@@ -98,7 +116,7 @@ local mode_mark_save = {
 	end,
 	on_esc = cmd_clear,
 	on_change = function()
-		quickmarks.save(line_get())
+		M.save(line_get())
 		cmd_clear()
 		lfm.mode("normal")
 	end,
@@ -114,26 +132,26 @@ local mode_mark_delete = {
 	end,
 	on_esc = cmd_clear,
 	on_change = function()
-		quickmarks.delete(line_get())
+		M.delete(line_get())
 		cmd_clear()
 		lfm.mode("normal")
 	end,
 }
 
-function quickmarks._setup()
-	lfm.register_command("mark-save", quickmarks.mark_save)
-	lfm.register_command("mark-delete", quickmarks.mark_delete)
+function M._setup()
+	lfm.register_command("mark-save", M.mark_save)
+	lfm.register_command("mark-delete", M.mark_delete)
 
 	lfm.register_mode(mode_mark_save)
 	lfm.register_mode(mode_mark_delete)
 
 	lfm.map("m", function()
 		lfm.mode(mode_mark_save.name)
-	end, { desc = "save quickmark" })
+	end, { desc = "Save quickmark" })
 
 	lfm.map("dm", function()
 		lfm.mode(mode_mark_delete.name)
-	end, { desc = "delete quickmark" })
+	end, { desc = "Delete quickmark" })
 end
 
-return quickmarks
+return M

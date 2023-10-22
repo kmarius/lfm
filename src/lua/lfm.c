@@ -303,7 +303,8 @@ static int l_get_maps(lua_State *L) {
     return luaL_error(L, "no such mode: %s", name);
   }
   cvector_vector_type(Trie *) keymaps = NULL;
-  trie_collect_leaves(mode->maps, &keymaps, lua_toboolean(L, 2));
+  bool prune = lua_toboolean(L, 2);
+  trie_collect_leaves(mode->maps, &keymaps, prune);
   lua_newtable(L);
   for (size_t i = 0; i < cvector_size(keymaps); i++) {
     lua_newtable(L);

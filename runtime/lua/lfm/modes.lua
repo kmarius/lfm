@@ -1,3 +1,5 @@
+local M = { _NAME = ... }
+
 local cmd = lfm.cmd
 local map = lfm.map
 local fm = lfm.fm
@@ -5,8 +7,6 @@ local compl = require("lfm.compl")
 local util = require("lfm.util")
 
 local a = util.a
-
-local M = {}
 
 function M._setup()
 	-- COMMAND mode

@@ -1,8 +1,10 @@
+local M = { _NAME = ... }
+
+-- TODO: needs work and should probably be merged with the ansi module
+
 local lfm = lfm
 
 local config = lfm.config
-
-local M = {}
 
 M.palette = {
 	black = "0",
@@ -28,7 +30,7 @@ M.palette = {
 ---@return table colors The table of color mappings that can be passed to lfm.config.colors
 function M.load_lscolors()
 	local patterns = {}
-	for str in string.gmatch(os.getenv("LS_COLORS"), "[^:]+") do
+	for str in string.gmatch(os.getenv("LS_COLORS") or "", "[^:]+") do
 		local ext, colors = string.match(str, "^%*(%.[^=]*)=(.*)")
 		if ext then
 			local t = {}

@@ -1,14 +1,19 @@
+local M = { _NAME = ... }
+
 local lfm = lfm
 
 local fm = lfm.fm
 local find = require("lfm.util").find
 local selection_set = fm.selection_set
 local basename = require("lfm.util").basename
-local M = {}
 
 -- TODO: should probably escape some special chars (on 2022-02-12)
 
---Convert a glob to a lua pattern.
+---Convert a glob to a lua pattern.
+---```lua
+---   local pat = glob_to_pattern("*.txt")
+---   string.match("/some/file.txt", pat)
+---```
 ---@param glob string
 ---@return string pattern
 function M.glob_to_pattern(glob)
@@ -18,7 +23,10 @@ function M.glob_to_pattern(glob)
 	return "^" .. res .. "$"
 end
 
---Select all files in the current directory matching a glob.
+---Select all files in the current directory matching a glob.
+---```lua
+---    glob_select("*.txt")
+---```
 ---@param glob string
 function M.glob_select(glob)
 	local pat = M.glob_to_pattern(glob)
@@ -36,6 +44,9 @@ end
 
 ---Recursiv select all files matching a glob in the current directory and subdirectories.
 ---(probably breaks on symlink loops)
+---```lua
+---    glob_select_recursive("*.txt")
+---```
 ---@param glob string
 function M.glob_select_recursive(glob)
 	local pat = M.glob_to_pattern(glob)

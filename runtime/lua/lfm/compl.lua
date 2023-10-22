@@ -1,3 +1,5 @@
+local M = { _NAME = ... }
+
 local lfm = lfm
 
 local line_get = lfm.cmd.line_get
@@ -6,13 +8,14 @@ local commands = lfm.commands
 local stat = require("posix.sys.stat")
 local dirent = require("posix.dirent")
 
-local M = {}
+---A completion function takes as first argument the current token to be completed
+---and as second argument the full command line.
+---It must return a table of completion candidates and optionally a separator,
+---e.g. `"/"` or `"."` or even `""`.
+---@alias Lfm.ComplFun fun(token: string, line: string): string[], string?
 
----@param tok string token to complete
----@param line string the full command line
----@return string[] candidates
----@return string? separator
-local function commands_provider(tok, line)
+---@type Lfm.ComplFun
+local function commands_provider(tok)
 	local t = {}
 	for c, _ in pairs(commands) do
 		if string.sub(c, 1, #tok) == tok then
@@ -22,7 +25,9 @@ local function commands_provider(tok, line)
 	return t, " "
 end
 
-function M.table(tok, line)
+---Complete fields from the lfm namespace. Used to complete functions in command mode.
+---@type Lfm.ComplFun
+function M.table(_, line)
 	local t = {}
 	local prefix, suffix = string.match(line, "^(.*%.)(.*)")
 	local tab = _G
@@ -47,6 +52,7 @@ end
 local reset = false
 local candidates = {}
 local ind = 0
+---@type Lfm.ComplFun
 local provider = commands_provider
 
 function M.reset()
@@ -61,6 +67,11 @@ local function is_dir(path)
 end
 
 ---Complete directories.
+---```lua
+---    local compl_fun = lfm.compl.dirs
+---    lfm.register_command("cool-command", { compl = compl_fun })
+---```
+---@type Lfm.ComplFun
 function M.dirs(path)
 	if path == "~" then
 		return { "~" }, "/"
@@ -98,6 +109,11 @@ end
 -- files could be additionaly filtered with a function
 
 ---Complete files.
+---```lua
+---    local compl_fun = lfm.compl.files
+---    lfm.register_command("cool-command", { compl = compl_fun })
+---```
+---@type Lfm.ComplFun
 function M.files(path)
 	if path == "~" then
 		return { "~" }, "/"
@@ -130,10 +146,16 @@ function M.files(path)
 	return t, (#t == 1 and string.sub(t[1], #t[1]) == "/") and "" or " "
 end
 
----Limit completion with `f` to `n` arguments.
+---Limit completion of completion function `f` to `n` arguments.
+---
+---Complete a single file argument:
+---```lua
+---    local compl_fun = lfm.compl.limit(1, lfm.compl.files)
+---    lfm.register_command("cool-command", { compl = compl_fun })
+---```
 ---@param n number
----@param f function
----@return function
+---@param f Lfm.ComplFun
+---@return Lfm.ComplFun
 function M.limit(n, f)
 	return function(tok, line)
 		local _, toks = lfm.fn.tokenize(line)
@@ -198,11 +220,17 @@ local function shownext(increment)
 end
 
 ---Show next completion entry.
+---```lfm
+---    lfm.compl.next()
+---```
 function M.next()
 	shownext(1)
 end
 
 ---Show previous completion entry.
+---```lfm
+---    lfm.compl.prev()
+---```
 function M.prev()
 	shownext(-1)
 end

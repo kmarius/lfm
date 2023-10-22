@@ -1,7 +1,7 @@
+local M = { _NAME = ... }
+
 local log = lfm.log
 local sel_or_cur = lfm.sel_or_cur
-
-local M = {}
 
 ---Pass files as argv.
 M.ARGV = 1
@@ -13,6 +13,9 @@ local ARGV = M.ARGV
 local ARRAY = M.ARRAY
 
 ---Wrap a string (ortable of strings) in single quotes.
+---```lua
+---    escape({"file with witespace.txt", "audio.mp3"}, " ")
+---```
 ---@param args string[]|string
 ---@param sep? string separator (default: " ").
 ---@return string

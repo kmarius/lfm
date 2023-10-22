@@ -1,3 +1,5 @@
+local M = { _NAME = ... }
+
 local lfm = lfm
 
 local stat = require("posix.sys.stat")
@@ -6,11 +8,13 @@ local dirent = require("posix.dirent")
 local eval = lfm.eval
 local feedkeys = lfm.feedkeys
 
-local M = {}
-
 ---Get dirname of path.
+---```lua
+---    lfm.util.dirname("/home/john/file.txt") == "/home/john"
+---```
 ---@param path string
 ---@return string
+---@overload fun(path: nil): nil
 function M.dirname(path)
 	if not path then
 		return nil
@@ -22,8 +26,12 @@ function M.dirname(path)
 end
 
 ---Get basename of path.
+---```lua
+---    lfm.util.basename("/home/john/file.txt") == "file.txt"
+---```
 ---@param path string
 ---@return string
+---@overload fun(path: nil): nil
 function M.basename(path)
 	if not path then
 		return nil
@@ -32,9 +40,17 @@ function M.basename(path)
 end
 
 ---Split a file into its base name and extension
+---```lua
+---    local a, ext = lfm.util.file_split("file.txt")
+---    assert(a == "file" and ext == "txt")
+---
+---    local a, ext = lfm.util.file_split(".hidden")
+---    assert(a == ".hidden" and ext ==  nil)
+---```
 ---@param file string
 ---@return string name
 ---@return string? extension
+---@overload fun(path: nil): nil
 function M.file_split(file)
 	if not file then
 		return nil
@@ -48,6 +64,13 @@ function M.file_split(file)
 end
 
 ---Construct a function that, when called, executes line as an expression.
+---```lua
+---    local f = lfm.util.expr("cd ~")
+--
+---    f()
+--
+---    lfm.map("H", f, { desc = "Go home" })
+---```
 ---@param line string
 ---@return function function
 function M.expr(line)
@@ -57,12 +80,10 @@ function M.expr(line)
 end
 
 ---Create a function that calls all functions given as the argument.
----
+---```lua
+---    lfm.util.c(lfm.fm.load_clear, lfm.ui.redraw)()
 ---```
---- c(lfm.fm.load_clear, lfm.ui.redraw)()
----```
----
----@vararg function
+---@param ... function
 ---@return function
 function M.c(...)
 	local t = { ... }
@@ -88,13 +109,11 @@ end
 
 ---Create a function that, when called, executes the provided function with
 ---the provided arguments.
----
----```
---- a(lfm.echo, "hey man")()
---
+---```lua
+---    lfm.util.a(lfm.echo, "hey man")()
 ---```
 ---@param f function
----@vararg any
+---@param ... any
 ---@return function
 function M.a(f, ...)
 	local t = { ... }
@@ -115,12 +134,11 @@ function M.a(f, ...)
 end
 
 ---Create a function that, when called, feeds keys into the keyhandler.
----
+---```lua
+---    lfm.util.feed(":quit")()
+---    lfm.util.feed("cd ~", "<Enter>", ":quit")()
 ---```
----feed(":quit")()
----```
----
----@vararg string
+---@param ... string
 function M.feed(...)
 	local keys = { ... }
 	return function()
@@ -129,6 +147,11 @@ function M.feed(...)
 end
 
 ---Check if an environment variable exists and is non-empty.
+---```lua
+---    if lfm.util.hasenv("TMUX") then
+---      -- ...
+---    end
+---````
 ---@param var string
 ---@return boolean
 function M.hasenv(var)
@@ -137,12 +160,10 @@ function M.hasenv(var)
 end
 
 ---Recursive dirwalk with an optional filter.
----
----```
---- for _, file in find(".", function(f) return string.sub(f, 1, 1) ~= "." end) do
----     print(file)
---- end
----
+---```lua
+---    for _, file in lfm.util.find(".", function(f) return string.sub(f, 1, 1) ~= "." end) do
+---        print(file)
+---    end
 ---```
 ---@param path string Start path.
 ---@param fn function Filter function called on the path of each file.

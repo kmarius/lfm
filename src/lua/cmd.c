@@ -14,7 +14,7 @@ static int l_cmd_line_set(lua_State *L) {
   ui->show_message = false;
 
   if (lua_gettop(L) > 2) {
-    luaL_error(L, "line_set takes up to two arguments");
+    luaL_error(L, "line_set takes only up to two arguments");
   }
 
   cmdline_set(&ui->cmdline, lua_tostring(L, 1), lua_tostring(L, 2));

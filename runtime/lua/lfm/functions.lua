@@ -1,3 +1,5 @@
+local M = { _NAME = ... }
+
 local lfm = lfm
 
 local fm = lfm.fm
@@ -9,13 +11,18 @@ local basename = util.basename
 local dirname = util.dirname
 local file_split = util.file_split
 
-local M = {}
-
 local function file_exists(path)
 	return stat.stat(path) ~= nil
 end
 
 ---Copy a string to the clipboard.
+---```lua
+---    M.wl_copy("some text")
+---```
+---```lua
+---    -- Use primary clipboard
+---    M.wl_copy("some text", true)
+---```
 ---@param text string|string[]
 ---@param primary boolean
 local function wl_copy(text, primary)
@@ -27,6 +34,9 @@ local function wl_copy(text, primary)
 end
 
 ---Copy full paths of the current selection to the clipboard.
+---```lua
+---    M.yank_path()
+---```
 function M.yank_path()
 	local files = lfm.sel_or_cur()
 	if #files > 0 then
@@ -35,6 +45,9 @@ function M.yank_path()
 end
 
 ---Copy filenames of the current selection to the clipboard.
+---```lua
+---    M.yank_name()
+---```
 function M.yank_name()
 	local files = lfm.sel_or_cur()
 	if #files > 0 then
@@ -46,6 +59,9 @@ function M.yank_name()
 end
 
 ---Rename (move) the currently selected file.
+---```lua
+---    M.rename("file.txt")
+---```
 ---@param name string
 function M.rename(name)
 	local file = fm.current_file()
@@ -59,6 +75,9 @@ function M.rename(name)
 end
 
 ---Populate the prompt to rename the current file up to its extension.
+---```lua
+---    M.rename_until_ext()
+---```
 function M.rename_until_ext()
 	local file = basename(fm.current_file())
 	if file then
@@ -74,6 +93,9 @@ function M.rename_until_ext()
 end
 
 ---Populate the prompt to rename the current file just before its extension.
+---```lua
+---    M.rename_before_ext()
+---```
 function M.rename_before_ext()
 	local file = basename(fm.current_file())
 	if file then
@@ -89,12 +111,18 @@ function M.rename_before_ext()
 end
 
 ---Populate the prompt to rename at the beginning of the file name.
+---```lua
+---    M.rename_before()
+---```
 function M.rename_before()
 	lfm.mode("command")
 	lfm.cmd.line_set("rename ", basename(fm.current_file()))
 end
 
 ---Populate the prompt to rename at the end of the file name.
+---```lua
+---    M.rename_after()
+---```
 function M.rename_after()
 	lfm.mode("command")
 	lfm.cmd.line_set("rename " .. basename(fm.current_file()), "")
@@ -102,6 +130,9 @@ end
 
 ---Create absolute symbolic links of the current load at the current location.
 ---Aborts if the mode is "move" instead of "copy".
+---```lua
+---    M.symlink()
+---```
 function M.symlink()
 	local files, mode = fm.paste_buffer_get()
 	if mode == "copy" then
@@ -114,6 +145,9 @@ end
 
 ---Create relative symbolic links of the current load at the current location.
 ---Aborts if the mode is "move" instead of "copy".
+---```lua
+---    M.symlink_relative()
+---```
 function M.symlink_relative()
 	local files, mode = fm.paste_buffer_get()
 	if mode == "copy" then
@@ -125,6 +159,9 @@ function M.symlink_relative()
 end
 
 ---Go to the location pointed at by the symlink at the cursor position.
+---```lua
+---    M.follow_link()
+---```
 function M.follow_link()
 	local file = fm.current_file()
 	local target = lfm.shell.popen({ "readlink", "--", file })[1]
@@ -172,6 +209,9 @@ local green = c27 .. "[32m"
 local clear = c27 .. "[0m"
 
 ---Paste the load in the current directory, making backups of existing files.
+---```lua
+---    M.paste()
+---```
 function M.paste()
 	local files, mode = fm.paste_buffer_get()
 	if #files == 0 then
@@ -216,13 +256,19 @@ function M.paste()
 	fm.paste_buffer_set({})
 end
 
----Toggle paste mode.
-function M.paste_toggle()
+---Toggle paste mode from "copy" to "move" and reverse.
+---```lua
+---    M.toggle_paste()
+---```
+function M.toggle_paste()
 	local mode = lfm.fm.paste_mode_get()
 	lfm.fm.paste_mode_set(mode == "copy" and "move" or "copy")
 end
 
 ---Paste the load in the current directory, overwriting existing files.
+---```lua
+---    M.paste_overwrite()
+---```
 function M.paste_overwrite()
 	local files, mode = fm.paste_buffer_get()
 	if #files == 0 then

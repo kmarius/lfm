@@ -30,22 +30,22 @@
 
 ---@class Lfm.Config
 ---@field timefmt string Time format used to print dates for file info (default: "%Y-%m-%d %H:%M")
----@field loading_indicator_delay number delay in ms after which an indicator will be shown that the current directory is being reloaded/checked (default: 250)
----@field map_clear_delay number delay in ms after which the current key input will be cleared, must be non-negative, 0 disables (default: 10000)
----@field map_suggestion_delay number delay in ms after which key suggestions will be shown, must be non-negative (default: 1000)
----@field histsize number history size, must be non-negative (default: 100)
+---@field loading_indicator_delay integer delay in ms after which an indicator will be shown that the current directory is being reloaded/checked (default: 250)
+---@field map_clear_delay integer delay in ms after which the current key input will be cleared, must be non-negative, 0 disables (default: 10000)
+---@field map_suggestion_delay integer delay in ms after which key suggestions will be shown, must be non-negative (default: 1000)
+---@field histsize integer history size, must be non-negative (default: 100)
 ---@field infoline string|nil infoline string
----@field threads number number of threads in the pool (at least 2, default: nprocs+1)
+---@field threads integer number of threads in the pool (at least 2, default: nprocs+1)
 ---@field dir_settings table<Lfm.Path, Lfm.DirSetting>
 ---@field ratios integer[] assignable
 ---@field truncatechar string assignable, only the first character is used
 ---@field linkchars string assignable, must fit into 16 bytes
 ---@field scrolloff integer assignable
----@field hidden boolean assignable
----@field preview boolean assignable
----@field preview_images boolean assignable
----@field previewer string assignable
----@field icons boolean assignable
+---@field hidden boolean assignable (default: `false`)
+---@field preview boolean assignable (default: `true`)
+---@field preview_images boolean assignable (default: `false`)
+---@field previewer string assignable (default: "$datadir/preview.sh")
+---@field icons boolean assignable (default: `false`)
 ---@field icon_map table<string, string> assignable
 ---@field configpath string
 ---@field configdir string

@@ -278,6 +278,9 @@ bool cmdline_set(Cmdline *c, const char *left, const char *right) {
     } else {
       c->left.len = n;
     }
+  } else {
+    c->left.len = 0;
+    c->left.str[0] = 0;
   }
   if (right && right[0]) {
     ENSURE_SPACE(c->right, strlen(right));
