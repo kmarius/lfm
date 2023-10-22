@@ -234,8 +234,18 @@ static int l_fm_selection_toggle_current(lua_State *L) {
 }
 
 static int l_fm_selection_add(lua_State *L) {
-  fm_selection_add(fm, luaL_checkstring(L, 1), true);
-  lfm_run_hook(lfm, LFM_HOOK_SELECTION);
+  luaL_checktype(L, 1, LUA_TTABLE);
+  int n = lua_objlen(L, 1);
+  for (int i = 1; i <= n; i++) {
+    lua_rawgeti(L, 1, i);
+    luaL_checktype(L, -1, LUA_TSTRING);
+    fm_selection_add(fm, lua_tostring(L, -1), true);
+    lua_pop(L, 1);
+  }
+  if (n > 0) {
+    lfm_run_hook(lfm, LFM_HOOK_SELECTION);
+    ui_redraw(ui, REDRAW_FM);
+  }
   return 0;
 }
 
