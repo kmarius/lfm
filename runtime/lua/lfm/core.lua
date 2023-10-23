@@ -1,4 +1,4 @@
--- NOTE: DON'T use local lfm = lfm here because it breaks LuaLS.
+local lfm = lfm
 
 -- Set up package.path to include ~/.config/lfm/lua and remove ./
 local config = lfm.config

@@ -1,5 +1,7 @@
 local M = { _NAME = ... }
 
+local lfm = lfm
+
 local cmd = lfm.cmd
 local map = lfm.map
 local fm = lfm.fm

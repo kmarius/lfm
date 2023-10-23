@@ -1,8 +1,8 @@
 local M = { _NAME = ... }
 
--- TODO: needs work and should probably be merged with the ansi module
-
 local lfm = lfm
+
+-- TODO: needs work and should probably be merged with the ansi module
 
 local config = lfm.config
 
