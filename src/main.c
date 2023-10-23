@@ -23,6 +23,7 @@
   "  -c <cmd>     Execute <cmd> after loading the config\n"                    \
   "  -h           Print this help message\n"                                   \
   "  -l <file>    Write last visited directory to file on exit\n"              \
+  "  -L <level>   Set the log level from 0 (Trace) to 5 (FATAL)\n"             \
   "  -s <file>    Write selection to file and quit\n"                          \
   "  -u <config>  Use this config file\n"                                      \
   "  -v           Print version information\n"
@@ -54,18 +55,15 @@ int main(int argc, char **argv) {
   config_init();
 
   FILE *log_fp = fopen(cfg.logpath, "w");
+  log_set_quiet(true);
+  int log_level = LOG_INFO;
 
 #ifdef DEBUG
-  log_add_fp(log_fp, LOG_DEBUG);
-#else
-  log_add_fp(log_fp, LOG_INFO);
+  log_level = LOG_DEBUG;
 #endif
-  log_set_quiet(true);
-
-  log_info("starting lfm " LFM_VERSION);
 
   int opt;
-  while ((opt = getopt(argc, argv, ":c:hl:s:u:v")) != -1) {
+  while ((opt = getopt(argc, argv, ":c:hl:L:s:u:v")) != -1) {
     switch (opt) {
     case 'c':
       cvector_push_back(cfg.commands, optarg);
@@ -75,6 +73,15 @@ int main(int argc, char **argv) {
       goto cleanup;
     case 'l':
       cfg.lastdir = optarg;
+      break;
+    case 'L':
+      log_level = atoi(optarg);
+      if (log_level < LOG_TRACE || log_level > LOG_FATAL) {
+        fprintf(stderr, "Invalid log level: %s\n", optarg);
+        usage(argv[0]);
+        ret = EXIT_FAILURE;
+        goto cleanup;
+      }
       break;
     case 's':
       cfg.selfile = optarg;
@@ -93,6 +100,9 @@ int main(int argc, char **argv) {
       goto cleanup;
     }
   }
+  log_add_fp(log_fp, log_level);
+
+  log_info("starting lfm " LFM_VERSION);
 
   // TODO: make it possible to move the cursor to a directory instead
   // of cd'ing into it
