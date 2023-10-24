@@ -1,21 +1,29 @@
-local lfm = lfm
-
 -- Set up package.path to include ~/.config/lfm/lua and remove ./
 local config = lfm.config
 package.path = string.gsub(package.path, "%./%?.lua;", "")
 package.path = package.path .. ";" .. config.configdir .. "/lua/?.lua;" .. config.configdir .. "/lua/?/init.lua"
 package.cpath = string.gsub(package.cpath, "%./%?.so;", "")
 
+local cmd = lfm.cmd
 local fm = lfm.fm
+local fn = lfm.fn
 local log = lfm.log
 local ui = lfm.ui
-local cmd = lfm.cmd
+
+local cmap = lfm.cmap
+local execute = lfm.execute
+local handle_key = lfm.handle_key
+local lfm_error = lfm.error
+local map = lfm.map
+local quit = lfm.quit
+local spawn = lfm.spawn
 local string_format = string.format
+local table_concat = table.concat
+local tokenize = fn.tokenize
 
 -- Enhance logging functions
 do
 	local level = log.get_level()
-	local table_concat = table.concat
 	-- Index in the table corresponds to the log level of the function
 	for l, name in ipairs({ "trace", "debug", "info", "warn", "error", "fatal" }) do
 		local func = log[name]
@@ -36,7 +44,7 @@ do
 			end
 		end
 	end
-	setmetatable(lfm.log, {
+	setmetatable(log, {
 		__index = function(_, k)
 			if k == "level" then
 				return level
@@ -59,7 +67,7 @@ end
 ---```
 ---@param fmt string
 ---@param ... any
-function lfm.printf(fmt, ...)
+local function printf(fmt, ...)
 	print(string_format(fmt, ...))
 end
 
@@ -69,8 +77,8 @@ end
 ---```
 ---@param fmt string
 ---@param ... any
-function lfm.errorf(fmt, ...)
-	lfm.error(string_format(fmt, ...))
+local function errorf(fmt, ...)
+	lfm_error(string_format(fmt, ...))
 end
 
 ---Get the current selection or file under the cursor.
@@ -81,45 +89,19 @@ end
 ---    end
 ---```
 ---@return string[] selection
-function lfm.sel_or_cur()
+local function sel_or_cur()
 	local sel = fm.selection_get()
 	return #sel > 0 and sel or { fm.current_file() }
 end
 
----Evaluates a line of lua code. If the first whitespace delimited token is a
----registered command it is executed with the following text as arguments.
----Otherwise line is assumed to be lua code and is executed. Results are printed.
+---Feed keys into the key handler.
 ---```lua
----    lfm.eval("cd /home")   -- expression is not lua because "cd" is a registered command
----    lfm.eval('print(2+2)') -- executed as lua code
+---    lfm.feedkeys("cd", "<Enter>")
 ---```
----@param line string
-function lfm.eval(line)
-	local cmd, args = lfm.fn.tokenize(line)
-	if not cmd then
-		return
-	end
-	local command = lfm.commands[cmd]
-	if command then
-		if command.tokenize then
-			command.f(unpack(args))
-		else
-			local arg = string.gsub(line, "^%s*[^ ]*%s*", "")
-			command.f(arg ~= "" and arg or nil)
-		end
-	else
-		if string.sub(line, 1, 1) == "=" then
-			line = "return " .. string.sub(line, 2, -1)
-		end
-		local bc, err = loadstring(line)
-		if bc then
-			local res = bc()
-			if res then
-				print(res)
-			end
-		else
-			error(err)
-		end
+---@param ... string
+local function feedkeys(...)
+	for _, seq in ipairs({ ... }) do
+		handle_key(seq)
 	end
 end
 
@@ -135,7 +117,8 @@ end
 ---@field f function corresponding function
 
 ---@type table<string, Lfm.Command>
-lfm.commands = {}
+local commands = {}
+lfm.commands = commands
 
 ---Register a function as a lfm command or unregister a command. Supported options
 ---```lua
@@ -154,7 +137,7 @@ lfm.commands = {}
 ---```
 ---Using completions (see `compl.lua`):
 ---```lua
----    lfm.register_command("cd", fm.chdir, {
+---    lfm.register_command("cd", chdir, {
 ---      compl = require("lfm.compl").dirs,
 ---      tokenize = true,
 ---    })
@@ -162,7 +145,7 @@ lfm.commands = {}
 ---@param name string Command name, can not contain whitespace.
 ---@param f function The function to execute or `nil` to unregister
 ---@param opts? Lfm.CommandOpts Additional options.
-function lfm.register_command(name, f, opts)
+local function register_command(name, f, opts)
 	-- TODO: we should probably make a copy of opts
 	if f then
 		opts = opts or {}
@@ -173,6 +156,49 @@ function lfm.register_command(name, f, opts)
 		lfm.commands[name] = nil
 	end
 end
+
+---Evaluates a line of lua code. If the first whitespace delimited token is a
+---registered command it is executed with the following text as arguments.
+---Otherwise line is assumed to be lua code and is executed. Results are printed.
+---```lua
+---    lfm.eval("cd /home")   -- expression is not lua because "cd" is a registered command
+---    lfm.eval('print(2+2)') -- executed as lua code
+---```
+---@param line string
+local function eval(line)
+	local cmd, args = tokenize(line)
+	if not cmd then
+		return
+	end
+	local command = commands[cmd]
+	if command then
+		if command.tokenize then
+			command.f(unpack(args))
+		else
+			local arg = string.gsub(line, "^%s*[^ ]*%s*", "")
+			command.f(arg ~= "" and arg or nil)
+		end
+	else
+		if string.sub(line, 1, 1) == "=" then
+			line = "return " .. string.sub(line, 2, -1)
+		end
+		local chunk, err = loadstring(line)
+		if not chunk then
+			error(err)
+		end
+		local res = chunk()
+		if res then
+			print(res)
+		end
+	end
+end
+
+lfm.printf = printf
+lfm.errorf = errorf
+lfm.sel_or_cur = sel_or_cur
+lfm.feedkeys = feedkeys
+lfm.eval = eval
+lfm.register_command = register_command
 
 -- lazily load submodules in the lfm namespace, make sure to add them to doc/EmmyLua/lfm.lua
 local submodules = {
@@ -211,11 +237,11 @@ local util = require("lfm.util")
 local compl = require("lfm.compl")
 local shell = require("lfm.shell")
 
-lfm.register_command("shell", function(arg)
+register_command("shell", function(arg)
 	shell.bash.execute(arg, { files_via = shell.ARGV })
 end, { tokenize = false, compl = compl.files, desc = "Run a shell command." })
 
-lfm.register_command("shell-bg", function(arg)
+register_command("shell-bg", function(arg)
 	shell.bash.spawn(arg, { files_via = shell.ARGV })
 end, { tokenize = false, compl = compl.files, desc = "Run a shell command in the background." })
 
@@ -223,30 +249,15 @@ require("lfm.jumplist")._setup()
 require("lfm.quickmarks")._setup()
 require("lfm.glob")._setup()
 
-lfm.register_command("quit", lfm.quit, { desc = "Quit Lfm." })
-lfm.register_command("q", lfm.quit, { desc = "Quit Lfm." })
-lfm.register_command(
+register_command("quit", quit, { desc = "Quit Lfm." })
+register_command("q", quit, { desc = "Quit Lfm." })
+register_command(
 	"rename",
 	require("lfm.functions").rename,
 	{ tokenize = false, compl = compl.limit(1, compl.files), desc = "Rename the current file." }
 )
 
-lfm.register_command("cd", fm.chdir, { tokenize = true, compl = compl.dirs })
-
-local handle_key = lfm.handle_key
----Feed keys into the key handler.
----```lua
----    lfm.feedkeys("cd", "<Enter>")
----```
----@param ... string
-function lfm.feedkeys(...)
-	for _, seq in ipairs({ ... }) do
-		handle_key(seq)
-	end
-end
-
-local map = lfm.map
-local cmap = lfm.cmap
+register_command("cd", fm.chdir, { tokenize = true, compl = compl.dirs })
 
 local c = util.c
 local a = util.a
@@ -305,14 +316,14 @@ require("lfm.colors").set({
 })
 
 local function open()
-	lfm.eval("open")
+	eval("open")
 end
 
-lfm.register_command("delete", function(args)
+register_command("delete", function(args)
 	if args then
 		error("command takes no arguments")
 	end
-	lfm.spawn({ "rm", "-rf", "--", unpack(lfm.sel_or_cur()) })
+	spawn({ "rm", "-rf", "--", unpack(sel_or_cur()) })
 	fm.selection_set()
 end, { desc = "Delete current selection without asking for confirmation." })
 
@@ -334,22 +345,22 @@ cmap("<c-u>", cmd.delete_line_left, { desc = "Delete line left" })
 cmap("<Tab>", compl.next, { desc = "Next completion item" })
 cmap("<s-Tab>", compl.prev, { desc = "Previous completion item" })
 
-map("q", lfm.quit, { desc = "Quit" })
-map("ZZ", lfm.quit, { desc = "Quit" })
+map("q", quit, { desc = "Quit" })
+map("ZZ", quit, { desc = "Quit" })
 -- maybe don't write selection/lastdir when exiting with ZQ/:q!
-map("ZQ", lfm.quit, { desc = "Quit" })
-map("<c-q>", lfm.quit, { desc = "Quit" })
+map("ZQ", quit, { desc = "Quit" })
+map("<c-q>", quit, { desc = "Quit" })
 map("<c-c>", function()
 	print("Type :q <Enter> or <Ctrl>q to exit")
 end, { desc = "ctrl-c" })
 map("<c-l>", ui.clear, { desc = "Clear screen and redraw" })
 map("<a-r>", fm.drop_cache, { desc = "Drop direcory/preview caches" })
-map("cd", a(lfm.feedkeys, ":cd "), { desc = ":cd " })
+map("cd", a(feedkeys, ":cd "), { desc = ":cd " })
 map("<a-c>", fm.check, { desc = "Check directories and reload" })
 
-map("&", a(lfm.feedkeys, ":shell-bg "), { desc = ":shell-bg " })
-map("s", a(lfm.feedkeys, ":shell "), { desc = ":shell " })
-map("S", a(lfm.execute, { "sh", "-c", "LFM_LEVEL=1 " .. os.getenv("SHELL") }), { desc = "Open a $SHELL" })
+map("&", a(feedkeys, ":shell-bg "), { desc = ":shell-bg " })
+map("s", a(feedkeys, ":shell "), { desc = ":shell " })
+map("S", a(execute, { "sh", "-c", "LFM_LEVEL=1 " .. os.getenv("SHELL") }), { desc = "Open a $SHELL" })
 
 -- Visual/selection
 map("<Space>", c(fm.selection_toggle, fm.down), { desc = "Select current file" })
@@ -366,11 +377,11 @@ map("k", fm.up, { desc = "Move cursor up" })
 map("h", fm.updir, { desc = "Go to parent directory" })
 map("l", open, { desc = "Open file/directory" })
 map("L", require("lfm.functions").follow_link, { desc = "Follow symlink under cursor" })
-map("H", a(lfm.feedkeys, "''")) -- complementary to "L"
+map("H", a(feedkeys, "''")) -- complementary to "L"
 map("gg", fm.top, { desc = "Go to top" })
 map("G", fm.bottom, { desc = "Go to bottom" })
 map("''", fm.jump_automark, { desc = "Jump to previous directory" })
-map("cd", a(lfm.feedkeys, ":cd "), { desc = ":cd " })
+map("cd", a(feedkeys, ":cd "), { desc = ":cd " })
 map("<Up>", fm.up, { desc = "Move cursor up" })
 map("<Down>", fm.down, { desc = "Move cursor down" })
 map("<c-y>", fm.scroll_up, { desc = "Scroll directory up" })
@@ -401,7 +412,7 @@ map("zh", function()
 end, { desc = "Toggle hidden files" })
 
 -- Flatten
-lfm.register_command(
+register_command(
 	"flatten",
 	require("lfm.flatten").flatten,
 	{ tokenize = true, desc = "(Un)flatten current directory." }
@@ -422,8 +433,8 @@ map("pl", require("lfm.functions").symlink, { desc = "Create symlink" })
 map("pL", require("lfm.functions").symlink_relative, { desc = "Create relative symlink" })
 
 -- Renaming
-map("cW", a(lfm.feedkeys, ":rename "), { desc = "Rename" })
-map("cc", a(lfm.feedkeys, ":rename "), { desc = "Rename" })
+map("cW", a(feedkeys, ":rename "), { desc = "Rename" })
+map("cc", a(feedkeys, ":rename "), { desc = "Rename" })
 map("cw", require("lfm.functions").rename_until_ext, { desc = "Rename until extension" })
 map("a", require("lfm.functions").rename_before_ext, { desc = "Rename before extension" })
 map("A", require("lfm.functions").rename_after, { desc = "Rename at the end" })
@@ -478,9 +489,10 @@ map("or", function()
 end, { desc = "Sort: random" })
 
 local function gmap(key, location)
+	local chdir = fm.chdir
 	map("g" .. key, function()
-		fm.chdir(location)
-	end, { desc = "cd " .. location })
+		chdir(location)
+	end, { desc = "Go to " .. location })
 end
 
 gmap("/", "/")
@@ -493,5 +505,3 @@ gmap("p", "/tmp")
 gmap("r", "/")
 gmap("s", "/srv")
 gmap("u", "/usr")
-
-return {}
