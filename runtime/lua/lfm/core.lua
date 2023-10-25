@@ -18,6 +18,7 @@ local map = lfm.map
 local quit = lfm.quit
 local spawn = lfm.spawn
 local string_format = string.format
+local string_match = string.match
 local table_concat = table.concat
 local tokenize = fn.tokenize
 
@@ -166,12 +167,13 @@ end
 ---```
 ---@param line string
 local function eval(line)
-	local cmd, args = tokenize(line)
+	local cmd = string_match(line, "^[^ ]*")
 	if not cmd then
 		return
 	end
 	local command = commands[cmd]
 	if command then
+		local _, args = tokenize(line)
 		if command.tokenize then
 			command.f(unpack(args))
 		else
