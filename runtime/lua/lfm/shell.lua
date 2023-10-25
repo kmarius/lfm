@@ -2,7 +2,7 @@ local M = { _NAME = ... }
 
 local lfm = lfm
 
-local sel_or_cur = lfm.sel_or_cur
+local sel_or_cur = lfm.fm.sel_or_cur
 local lfm_execute = lfm.execute
 local lfm_spawn = lfm.spawn
 local table_insert = table.insert

@@ -69,7 +69,7 @@ end
 ---    lfm.rifle.ask()
 ---```
 function M.ask()
-	local file = lfm.sel_or_cur()[1]
+	local file = fm.sel_or_cur()[1]
 	if file then
 		local menu = {}
 		for _, rule in pairs(M.query(file)) do

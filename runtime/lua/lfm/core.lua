@@ -84,7 +84,7 @@ end
 
 ---Get the current selection or file under the cursor.
 ---```lua
----    local files = lfm.sel_or_cur()
+---    local files = lfm.fm.sel_or_cur()
 ---    for i, file in ipairs(files) do
 ---      print(i, file)
 ---    end
@@ -197,10 +197,10 @@ end
 
 lfm.printf = printf
 lfm.errorf = errorf
-lfm.sel_or_cur = sel_or_cur
 lfm.feedkeys = feedkeys
 lfm.eval = eval
 lfm.register_command = register_command
+fm.sel_or_cur = sel_or_cur
 
 -- lazily load submodules in the lfm namespace, make sure to add them to doc/EmmyLua/lfm.lua
 local submodules = {

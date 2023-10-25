@@ -38,7 +38,7 @@ end
 ---    M.yank_path()
 ---```
 function M.yank_path()
-	local files = lfm.sel_or_cur()
+	local files = fm.sel_or_cur()
 	if #files > 0 then
 		wl_copy(files, true)
 	end
@@ -49,7 +49,7 @@ end
 ---    M.yank_name()
 ---```
 function M.yank_name()
-	local files = lfm.sel_or_cur()
+	local files = fm.sel_or_cur()
 	if #files > 0 then
 		for i, file in pairs(files) do
 			files[i] = basename(file)

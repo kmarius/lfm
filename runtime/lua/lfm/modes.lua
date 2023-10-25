@@ -184,8 +184,8 @@ function M._setup()
 				lfm.mode("normal")
 				if line == "y" then
 					-- TODO: use -- again when an updated version of trash-cli lands
-					-- lfm.spawn({ "trash-put", "--", unpack(lfm.sel_or_cur()) })
-					lfm.spawn({ "trash-put", unpack(lfm.sel_or_cur()) })
+					-- lfm.spawn({ "trash-put", "--", unpack(fm.sel_or_cur()) })
+					lfm.spawn({ "trash-put", unpack(fm.sel_or_cur()) })
 					fm.selection_set()
 				end
 			end,
