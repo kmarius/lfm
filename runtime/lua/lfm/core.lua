@@ -200,7 +200,7 @@ lfm.errorf = errorf
 lfm.feedkeys = feedkeys
 lfm.eval = eval
 lfm.register_command = register_command
-fm.sel_or_cur = sel_or_cur
+lfm.fm.sel_or_cur = sel_or_cur
 
 -- lazily load submodules in the lfm namespace, make sure to add them to doc/EmmyLua/lfm.lua
 local submodules = {
