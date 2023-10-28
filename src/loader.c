@@ -139,9 +139,20 @@ void loader_preview_reload(Loader *loader, Preview *pv) {
 
 Dir *loader_dir_from_path(Loader *loader, const char *path) {
   char fullpath[PATH_MAX];
+
+  // make sure there is no trailing / in path
   if (path_is_relative(path)) {
-    snprintf(fullpath, sizeof fullpath, "%s/%s", getenv("PWD"), path);
+    int len = snprintf(fullpath, sizeof fullpath, "%s/%s", getenv("PWD"), path);
+    if (fullpath[len - 1] == '/') {
+      fullpath[len - 1] = 0;
+    }
     path = fullpath;
+  } else {
+    int len = strlen(path);
+    if (len > 1 && path[len - 1] == '/') {
+      strncpy(fullpath, path, len - 1);
+      path = fullpath;
+    }
   }
 
   Dir *dir = ht_get(loader->dir_cache, path);
