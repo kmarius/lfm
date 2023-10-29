@@ -148,9 +148,10 @@ Dir *loader_dir_from_path(Loader *loader, const char *path) {
     }
     path = fullpath;
   } else {
-    int len = strlen(path);
+    unsigned long len = strlen(path);
     if (len > 1 && path[len - 1] == '/') {
-      strncpy(fullpath, path, len - 1);
+      strncpy(fullpath, path, sizeof fullpath);
+      fullpath[len - 1] = 0;
       path = fullpath;
     }
   }
