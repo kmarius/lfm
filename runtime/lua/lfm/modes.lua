@@ -3,6 +3,7 @@ local M = { _NAME = ... }
 local lfm = lfm
 
 local cmd = lfm.cmd
+local config = lfm.config
 local map = lfm.map
 local fm = lfm.fm
 local compl = require("lfm.compl")
@@ -93,10 +94,14 @@ function M._setup()
 
 	-- TRAVEL mode
 	do
+		local hidden
 		local mode = {
 			name = "travel",
 			input = true,
 			prefix = "travel: ",
+			on_enter = function()
+				hidden = config.hidden
+			end,
 			on_return = function()
 				local file = fm.current_file()
 				if file then
@@ -108,12 +113,31 @@ function M._setup()
 						cmd.clear()
 					end
 				end
+				if not hidden then
+					config.hidden = false
+				end
 			end,
 			on_change = function()
-				fm.filter(cmd.line_get())
+				local line = cmd.line_get()
+				if not hidden then
+					if line == "." then
+						config.hidden = true
+					elseif line == "" then
+						config.hidden = false
+					end
+				end
+				fm.filter(line)
 			end,
 			on_exit = function()
 				fm.filter("")
+				if not hidden then
+					config.hidden = false
+				end
+			end,
+			on_escape = function()
+				if not hidden then
+					config.hidden = false
+				end
 			end,
 		}
 		lfm.register_mode(mode)
@@ -131,10 +155,14 @@ function M._setup()
 
 	-- TRAVEL-FUZZY mode
 	do
+		local hidden
 		local mode = {
 			name = "travel-fuzzy",
 			input = true,
 			prefix = "travel-fuzzy: ",
+			on_enter = function()
+				hidden = config.hidden
+			end,
 			on_return = function()
 				local file = fm.current_file()
 				if file then
@@ -146,13 +174,32 @@ function M._setup()
 						cmd.clear()
 					end
 				end
+				if not hidden then
+					config.hidden = false
+				end
 			end,
 			on_change = function()
-				fm.fuzzy(cmd.line_get())
+				local line = cmd.line_get()
+				if not hidden then
+					if line == "." then
+						config.hidden = true
+					elseif line == "" then
+						config.hidden = false
+					end
+				end
+				fm.fuzzy(line)
 				fm.top()
 			end,
 			on_exit = function()
 				fm.fuzzy("")
+				if not hidden then
+					config.hidden = false
+				end
+			end,
+			on_escape = function()
+				if not hidden then
+					config.hidden = false
+				end
 			end,
 		}
 		lfm.register_mode(mode)
