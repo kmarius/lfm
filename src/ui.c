@@ -84,7 +84,7 @@ static int resize_cb(struct ncplane *n) {
   lfm_run_hook(to_lfm(ui), LFM_HOOK_RESIZED);
   ui_recol(ui);
   Fm *fm = &to_lfm(ui)->fm;
-  fm_resize(fm, ui->y - 2);
+  fm_on_resize(fm, ui->y - 2);
   menu_resize(ui);
   return 0;
 }

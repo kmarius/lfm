@@ -582,7 +582,7 @@ void fm_flatten(Fm *fm, uint32_t level) {
   async_dir_load(&to_lfm(fm)->async, fm_current_dir(fm), false);
 }
 
-void fm_resize(Fm *fm, uint32_t height) {
+void fm_on_resize(Fm *fm, uint32_t height) {
   uint32_t scrolloff = cfg.scrolloff;
   if (height < cfg.scrolloff * 2) {
     scrolloff = height / 2;

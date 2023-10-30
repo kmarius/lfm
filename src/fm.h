@@ -217,5 +217,6 @@ void fm_update_preview(Fm *fm);
 // Flatten the current directory up to `level`.
 void fm_flatten(Fm *fm, uint32_t level);
 
-// Resize fm, should be called on SIGWINCH.
-void fm_resize(Fm *fm, uint32_t height);
+// Must be called with the new height of the file manager when the Ui is
+// resized.
+void fm_on_resize(Fm *fm, uint32_t height);
