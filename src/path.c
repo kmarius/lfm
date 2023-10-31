@@ -36,6 +36,8 @@ char *path_replace_tilde(const char *path) {
   return ret;
 }
 
+#include <stdio.h>
+
 // replace //
 // replace /./
 // replace /../ and kill one component to the left
@@ -52,6 +54,7 @@ static char *remove_slashes_and_dots(char *path) {
                (*(p + 3) == '/' || *(p + 3) == 0)) {
       p += 3;
       if (q > path) {
+        q--;
         while (*q != '/') {
           q--;
         }
@@ -64,6 +67,8 @@ static char *remove_slashes_and_dots(char *path) {
   }
   if (q == path) {
     q++;
+  } else if (q > path + 1 && *(q - 1) == '/') {
+    q--;
   }
   *q = 0;
 
@@ -97,8 +102,8 @@ char *path_normalize_a(const char *path, const char *pwd) {
   // replace ~ or prepend PWD
   if (path[0] == '~') {
     const char *home = getenv("HOME");
-    const int l2 = strlen(path);
     const int l1 = strlen(home);
+    const int l2 = strlen(path);
     p = xmalloc(l2 - 1 + l1 + 1);
     strcpy(p, home);
     strcpy(p + l1, path + 1);
