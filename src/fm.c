@@ -84,7 +84,7 @@ static void fm_populate(Fm *fm) {
   fm->dirs.visible[0]->visible = true;
   Dir *d = fm_current_dir(fm);
   for (uint32_t i = 1; i < fm->dirs.length; i++) {
-    const char *s = dir_parent_path(d);
+    const char *s = path_parent_s(d->path);
     if (s) {
       d = loader_dir_from_path(&to_lfm(fm)->loader, s);
       d->visible = true;
@@ -546,7 +546,7 @@ bool fm_updir(Fm *fm) {
   }
 
   const char *name = fm_current_dir(fm)->name;
-  fm_async_chdir(fm, dir_parent_path(fm_current_dir(fm)), false, false);
+  fm_async_chdir(fm, path_parent_s(fm_current_dir(fm)->path), false, false);
   fm_move_cursor_to(fm, name);
   fm_update_preview(fm);
   return true;

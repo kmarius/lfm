@@ -14,6 +14,7 @@
 #include "fuzzy.h"
 #include "log.h"
 #include "memory.h"
+#include "path.h"
 #include "sort.h"
 #include "util.h"
 
@@ -28,13 +29,7 @@ File *dir_current_file(const Dir *d) {
 }
 
 const char *dir_parent_path(const Dir *d) {
-  if (dir_isroot(d)) {
-    return NULL;
-  }
-
-  static char tmp[PATH_MAX + 1];
-  strcpy(tmp, d->path);
-  return dirname(tmp);
+  return path_parent_s(d->path);
 }
 
 static int cmpchoice(const void *_idx1, const void *_idx2) {

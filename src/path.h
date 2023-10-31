@@ -10,6 +10,10 @@ char *basename_s(const char *p);
 
 char *dirname_s(const char *p);
 
+char *path_parent_s(const char *path);
+
+bool path_isroot(const char *path);
+
 static inline char *realpath_a(const char *p) {
   return strdup(realpath_s(p));
 }

@@ -17,6 +17,7 @@
 #include "macros.h"
 #include "memory.h"
 #include "notify.h"
+#include "path.h"
 #include "preview.h"
 #include "tpool.h"
 #include "ui.h"
@@ -312,7 +313,7 @@ struct dir_update_s {
 };
 
 static inline void update_parent_dircount(Lfm *lfm, Dir *dir, uint32_t length) {
-  const char *parent_path = dir_parent_path(dir);
+  const char *parent_path = path_parent_s(dir->path);
   if (parent_path) {
     Dir *parent = ht_get(lfm->loader.dir_cache, parent_path);
     if (parent) {

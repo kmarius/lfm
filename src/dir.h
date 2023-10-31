@@ -92,9 +92,6 @@ File *dir_current_file(const Dir *dir);
 // `dir->sorttype`.
 void dir_sort(Dir *dir);
 
-// Returns the path of the parent of `dir` and `NULL` for the root directory.
-const char *dir_parent_path(const Dir *dir);
-
 // Lfmlies the filter string `filter` to `dir`. `NULL` or `""` clears the
 // filter.
 void dir_filter(Dir *dir, const char *filter);

@@ -5,6 +5,20 @@
 #include "memory.h"
 #include "path.h"
 
+bool path_isroot(const char *path) {
+  return *path == '/' && *(path + 1) == 0;
+}
+
+char *path_parent_s(const char *path) {
+  if (path_isroot(path)) {
+    return NULL;
+  }
+
+  static char tmp[PATH_MAX + 1];
+  strncpy(tmp, path, sizeof tmp);
+  return dirname(tmp);
+}
+
 char *realpath_s(const char *p) {
   static char fullpath[PATH_MAX + 1];
   return realpath(p, fullpath);
