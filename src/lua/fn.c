@@ -5,7 +5,7 @@
 #include "../tokenize.h"
 #include "private.h"
 
-static int l_fn_qualify(lua_State *L) {
+static int l_fn_normalize(lua_State *L) {
   char *path = path_normalize_a(luaL_checkstring(L, 1), fm->pwd);
   lua_pushstring(L, path);
   xfree(path);
@@ -109,7 +109,7 @@ static const struct luaL_Reg fn_lib[] = {{"split_last", l_fn_split_last},
                                          {"unquote_space", l_fn_unquote_space},
                                          {"tokenize", l_fn_tokenize},
                                          {"mime", l_fn_mime},
-                                         {"qualify", l_fn_qualify},
+                                         {"normalize", l_fn_normalize},
                                          {"getpid", l_fn_getpid},
                                          {"getcwd", l_fn_getcwd},
                                          {"getpwd", l_fn_getpwd},

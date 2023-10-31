@@ -22,15 +22,15 @@ function lfm.fn.getpid() end
 ---@nodiscard
 function lfm.fn.tokenize(str) end
 
----Fully qualify `path`. Replaces '~', '..', '.', returns an absolute path.
+---Fully normalize `path`. Replaces '~', '..', '.', duplicate //, trailing /. Returns an absolute path.
 ---```lua
----    local path = lfm.fn.qualify("~/.config/lfm")
----    local path = lfm.fn.qualify("../jane/.config/lfm")
+---    local path = lfm.fn.normalize("~/.config/lfm")
+---    local path = lfm.fn.normalize("../jane/.config/lfm")
 ---```
 ---@param path string
 ---@return string
 ---@nodiscard
-function lfm.fn.qualify(path) end
+function lfm.fn.normalize(path) end
 
 ---Split a string into prefix, rest, where rest is the last space delimited token.
 ---Respects escaped spaces. Useful for completion command line tokens
