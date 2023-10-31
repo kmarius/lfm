@@ -7,6 +7,7 @@
 #include "cvector.h"
 #include "history.h"
 #include "log.h"
+#include "path.h"
 #include "util.h"
 
 /* TODO: signal errors on load/write (on 2021-10-23) */

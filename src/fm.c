@@ -20,6 +20,7 @@
 #include "log.h"
 #include "macros.h"
 #include "notify.h"
+#include "path.h"
 #include "util.h"
 
 static void fm_update_watchers(Fm *fm);

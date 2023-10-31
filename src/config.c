@@ -14,6 +14,7 @@
 #include "log.h"
 #include "ncutil.h"
 #include "notify.h"
+#include "path.h"
 #include "util.h"
 
 // automatically generated, see config/pathdefs.c.in

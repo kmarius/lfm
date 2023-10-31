@@ -12,6 +12,7 @@
 
 #include "../cvector.h"
 #include "../log.h"
+#include "../path.h"
 #include "../util.h"
 
 #define RIFLE_META "Lfm.Rifle.Meta"

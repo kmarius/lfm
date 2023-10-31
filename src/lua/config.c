@@ -6,6 +6,7 @@
 #include "../infoline.h"
 #include "../log.h"
 #include "../ncutil.h"
+#include "../path.h"
 #include "../tpool.h"
 #include "lua.h"
 #include "private.h"

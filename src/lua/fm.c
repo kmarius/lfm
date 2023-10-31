@@ -1,10 +1,12 @@
 #include <lauxlib.h>
+#include <linux/limits.h>
 #include <lua.h>
 
 #include "../config.h"
 #include "../fm.h"
 #include "../hooks.h"
 #include "../log.h"
+#include "../path.h"
 #include "../search.h"
 #include "../ui.h"
 #include "private.h"
@@ -37,7 +39,13 @@ static int l_fm_check(lua_State *L) {
 }
 
 static int l_fm_load(lua_State *L) {
-  loader_dir_from_path(&lfm->loader, luaL_checkstring(L, 1));
+  char buf[PATH_MAX];
+  size_t len;
+  const char *path = luaL_checklstring(L, 1, &len);
+  if (len > PATH_MAX) {
+    return luaL_error(L, "path too long");
+  }
+  loader_dir_from_path(&lfm->loader, path_normalize(path, fm->pwd, buf));
   return 0;
 }
 
@@ -234,12 +242,18 @@ static int l_fm_selection_toggle_current(lua_State *L) {
 }
 
 static int l_fm_selection_add(lua_State *L) {
+  char buf[PATH_MAX];
   luaL_checktype(L, 1, LUA_TTABLE);
   int n = lua_objlen(L, 1);
   for (int i = 1; i <= n; i++) {
     lua_rawgeti(L, 1, i);
     luaL_checktype(L, -1, LUA_TSTRING);
-    fm_selection_add(fm, lua_tostring(L, -1), true);
+    size_t len;
+    const char *path = luaL_checklstring(L, -1, &len);
+    if (len > PATH_MAX) {
+      luaL_error(L, "path too long");
+    }
+    fm_selection_add(fm, path_normalize(path, fm->pwd, buf), false);
     lua_pop(L, 1);
   }
   if (n > 0) {
@@ -253,10 +267,12 @@ static int l_fm_selection_set(lua_State *L) {
   if (lua_gettop(L) > 0 && !lua_isnil(L, 1) && !lua_istable(L, 1)) {
     return luaL_argerror(L, 1, "table or nil required");
   }
+  char buf[PATH_MAX];
   fm_selection_clear(fm);
   if (lua_istable(L, 1)) {
     for (lua_pushnil(L); lua_next(L, -2); lua_pop(L, 1)) {
-      fm_selection_add(fm, luaL_checkstring(L, -1), false);
+      fm_selection_add(
+          fm, path_normalize(luaL_checkstring(L, -1), fm->pwd, buf), false);
     }
   }
   lfm_run_hook(lfm, LFM_HOOK_SELECTION);
@@ -286,7 +302,7 @@ static int l_fm_chdir(lua_State *L) {
   const char *last_slash = strchr(arg, '/');
   bool should_save = (arg[0] == '/' || arg[0] == '~' ||
                       (last_slash != NULL && last_slash[1] != 0));
-  char *path = path_qualify(arg, fm->pwd);
+  char *path = path_normalize_a(arg, fm->pwd);
   search_nohighlight(lfm);
   lfm_run_hook(lfm, LFM_HOOK_CHDIRPRE);
   fm_async_chdir(fm, path, should_save, true);

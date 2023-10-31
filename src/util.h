@@ -94,39 +94,6 @@ static inline size_t mbslen(const char *s) {
   return mbstowcs(NULL, s, 0);
 }
 
-// these return pointer to statically allocated arrays
-char *realpath_s(const char *p);
-
-char *basename_s(const char *p);
-
-char *dirname_s(const char *p);
-
-ALLOC static inline char *realpath_a(const char *p) {
-  return strdup(realpath_s(p));
-}
-
-ALLOC static inline char *basename_a(const char *p) {
-  return strdup(basename_s(p));
-}
-
-ALLOC static inline char *dirname_a(const char *p) {
-  return strdup(dirname_s(p));
-}
-
-// Allocates a new path with a beginning ~/ replaced, otherwise a copy of path.
-ALLOC char *path_replace_tilde(const char *path);
-
-// Allocates a new absolute path with all ~, ., .., // replaced
-ALLOC char *path_qualify(const char *path, const char *pwd);
-
-static inline bool path_is_relative(const char *path) {
-  return *path != '/';
-}
-
-static inline bool path_is_absolute(const char *path) {
-  return *path == '/';
-}
-
 // Writes the mimetype of the file at PATH into the buffer dest of length sz.
 // Returns true on success, false on failure with *dest == '\0'
 bool get_mimetype(const char *path, char *dest, size_t sz);

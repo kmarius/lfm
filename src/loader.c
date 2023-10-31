@@ -13,6 +13,7 @@
 #include "log.h"
 #include "macros.h"
 #include "memory.h"
+#include "path.h"
 #include "ui.h"
 #include "util.h"
 

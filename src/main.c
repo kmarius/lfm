@@ -14,6 +14,7 @@
 #include "fm.h"
 #include "lfm.h"
 #include "log.h"
+#include "path.h"
 #include "ui.h"
 #include "util.h"
 
@@ -107,7 +108,7 @@ int main(int argc, char **argv) {
   // TODO: make it possible to move the cursor to a directory instead
   // of cd'ing into it
   if (optind < argc) {
-    char *path = path_qualify(argv[optind], NULL);
+    char *path = path_normalize_a(argv[optind], NULL);
     struct stat statbuf;
     if (stat(path, &statbuf) == -1) {
       // can't print to Ui yet, maybe pass something to init?

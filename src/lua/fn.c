@@ -1,11 +1,12 @@
 #include <lauxlib.h>
 #include <unistd.h>
 
+#include "../path.h"
 #include "../tokenize.h"
 #include "private.h"
 
 static int l_fn_qualify(lua_State *L) {
-  char *path = path_qualify(luaL_checkstring(L, 1), fm->pwd);
+  char *path = path_normalize_a(luaL_checkstring(L, 1), fm->pwd);
   lua_pushstring(L, path);
   xfree(path);
   return 1;

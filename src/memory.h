@@ -4,7 +4,9 @@
 
 // possibly extended with something useful in the future
 
+#ifndef ALLOC
 #define ALLOC __attribute__((malloc)) __attribute__((warn_unused_result))
+#endif
 
 ALLOC static inline void *xmalloc(size_t size) {
   return malloc(size);
