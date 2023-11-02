@@ -14,11 +14,10 @@
 
 static void mode_free(void *p);
 
-void normal_on_enter(Lfm *lfm);
+static void normal_on_enter(Lfm *lfm);
 
-void visual_on_enter(Lfm *lfm);
-void visual_on_exit(Lfm *lfm);
-void visual_on_esc(Lfm *lfm);
+static void visual_on_enter(Lfm *lfm);
+static void visual_on_exit(Lfm *lfm);
 
 void lfm_modes_init(Lfm *lfm) {
   ht_init(&lfm->modes, 8, mode_free);
@@ -61,16 +60,16 @@ static void mode_free(void *p) {
   }
 }
 
-void normal_on_enter(Lfm *lfm) {
+static void normal_on_enter(Lfm *lfm) {
   cmdline_clear(&lfm->ui.cmdline);
   cmdline_prefix_set(&lfm->ui.cmdline, "");
 }
 
-void visual_on_enter(Lfm *lfm) {
+static void visual_on_enter(Lfm *lfm) {
   fm_on_visual_enter(&lfm->fm);
 }
 
-void visual_on_exit(Lfm *lfm) {
+static void visual_on_exit(Lfm *lfm) {
   fm_on_visual_exit(&lfm->fm);
 }
 
