@@ -547,6 +547,7 @@ static void chdir_destroy(void *p) {
 static void chdir_callback(void *p, Lfm *lfm) {
   struct chdir_s *res = p;
   if (streq(res->path, lfm->fm.pwd)) {
+    lfm_mode_exit(lfm, "visual");
     if (res->err) {
       lfm_error(lfm, "stat: %s", strerror(res->err));
       fm_sync_chdir(&lfm->fm, res->origin, false, false);

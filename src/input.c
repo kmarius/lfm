@@ -203,13 +203,14 @@ void input_handle_key(Lfm *lfm, input_t in) {
     if (in == NCKEY_ESC) {
       if (cvector_size(lfm->ui.maps.seq) > 0) {
         input_clear(lfm);
+        log_trace("wut");
       } else {
         search_nohighlight(lfm);
-        fm_selection_visual_stop(fm);
-        fm_selection_clear(fm);
+        fm_selection_clear(&lfm->fm);
         if (fm_paste_buffer_clear(fm)) {
           lfm_run_hook(lfm, LFM_HOOK_PASTEBUF);
         }
+        mode_on_esc(lfm->current_mode, lfm);
         lfm_mode_enter(lfm, "normal");
       }
       ui->show_message = false;

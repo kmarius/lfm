@@ -31,6 +31,8 @@ int lfm_mode_register(struct lfm_s *lfm, const struct mode *mode);
 
 int lfm_mode_enter(struct lfm_s *lfm, const char *name);
 
+int lfm_mode_exit(struct lfm_s *lfm, const char *name);
+
 void mode_on_enter(struct mode *mode, struct lfm_s *lfm);
 
 void mode_on_change(struct mode *mode, struct lfm_s *lfm);

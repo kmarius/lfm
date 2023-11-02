@@ -117,8 +117,6 @@ void fm_recol(Fm *fm) {
 
 static inline bool fm_chdir_impl(Fm *fm, const char *path, bool save, bool hook,
                                  bool async) {
-  fm_selection_visual_stop(fm);
-
   char fullpath[PATH_MAX];
   if (path_is_relative(path)) {
     snprintf(fullpath, sizeof fullpath, "%s/%s", getenv("PWD"), path);
@@ -331,7 +329,7 @@ void fm_selection_add(Fm *fm, const char *path, bool run_hook) {
 }
 
 void fm_selection_clear(Fm *fm) {
-  fm_selection_visual_stop(fm);
+  log_trace("fm_selection_clear");
   bool run_hook = fm->selection.paths->size > 0;
   lht_clear(fm->selection.paths);
   if (run_hook) {
@@ -347,7 +345,7 @@ void fm_selection_reverse(Fm *fm) {
   lfm_run_hook(to_lfm(fm), LFM_HOOK_SELECTION);
 }
 
-void fm_selection_visual_start(Fm *fm) {
+void fm_on_visual_enter(Fm *fm) {
   if (fm->visual.active) {
     return;
   }
@@ -357,8 +355,6 @@ void fm_selection_visual_start(Fm *fm) {
     return;
   }
 
-  /* TODO: what actually happens if we change sortoptions while visual is
-   * active? (on 2021-11-15) */
   fm->visual.active = true;
   fm->visual.anchor = dir->ind;
   fm_selection_add(fm, file_path(dir->files[dir->ind]), false);
@@ -369,7 +365,7 @@ void fm_selection_visual_start(Fm *fm) {
   lfm_run_hook(to_lfm(fm), LFM_HOOK_SELECTION);
 }
 
-void fm_selection_visual_stop(Fm *fm) {
+void fm_on_visual_exit(Fm *fm) {
   if (!fm->visual.active) {
     return;
   }
@@ -377,14 +373,6 @@ void fm_selection_visual_stop(Fm *fm) {
   fm->visual.active = false;
   fm->visual.anchor = 0;
   ht_clear(fm->selection.previous);
-}
-
-void fm_selection_visual_toggle(Fm *fm) {
-  if (fm->visual.active) {
-    fm_selection_visual_stop(fm);
-  } else {
-    fm_selection_visual_start(fm);
-  }
 }
 
 static void selection_visual_update(Fm *fm, uint32_t origin, uint32_t from,
@@ -455,7 +443,6 @@ void fm_selection_write(const Fm *fm, const char *path) {
 /* load/copy/move {{{ */
 
 void fm_paste_mode_set(Fm *fm, paste_mode mode) {
-  fm_selection_visual_stop(fm);
   fm->paste.mode = mode;
   if (fm->selection.paths->size == 0) {
     fm_selection_toggle_current(fm);
@@ -529,7 +516,6 @@ File *fm_open(Fm *fm) {
     return NULL;
   }
 
-  fm_selection_visual_stop(fm);
   if (!file_isdir(file)) {
     return file;
   }

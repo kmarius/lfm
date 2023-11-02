@@ -1,5 +1,6 @@
 #include "mode.h"
 #include "cmdline.h"
+#include "fm.h"
 #include "hashtab.h"
 #include "hooks.h"
 #include "lfm.h"
@@ -15,6 +16,10 @@ static void mode_free(void *p);
 
 void normal_on_enter(Lfm *lfm);
 
+void visual_on_enter(Lfm *lfm);
+void visual_on_exit(Lfm *lfm);
+void visual_on_esc(Lfm *lfm);
+
 void lfm_modes_init(Lfm *lfm) {
   ht_init(&lfm->modes, 8, mode_free);
   lfm_mode_register(lfm, &(struct mode){
@@ -25,13 +30,24 @@ void lfm_modes_init(Lfm *lfm) {
                              .name = "input",
                              .input = true,
                          });
+  lfm_mode_register(lfm, &(struct mode){
+                             .name = "visual",
+                             .input = false,
+                             .on_enter = visual_on_enter,
+                             .on_exit = visual_on_exit,
+                         });
   struct mode *input = ht_get(&lfm->modes, "input");
   lfm->ui.maps.input = input->maps;
   lfm->current_mode = ht_get(&lfm->modes, "normal");
   lfm->ui.maps.normal = lfm->current_mode->maps;
+
+  // TODO: should be done properly eventually, like we do with input modes
+  ((struct mode *)ht_get(&lfm->modes, "visual"))->maps = lfm->ui.maps.normal;
 }
 
 void lfm_modes_deinit(Lfm *lfm) {
+  // maps belong to normal mode, don't double free
+  ((struct mode *)ht_get(&lfm->modes, "visual"))->maps = NULL;
   ht_deinit(&lfm->modes);
 }
 
@@ -48,6 +64,14 @@ static void mode_free(void *p) {
 void normal_on_enter(Lfm *lfm) {
   cmdline_clear(&lfm->ui.cmdline);
   cmdline_prefix_set(&lfm->ui.cmdline, "");
+}
+
+void visual_on_enter(Lfm *lfm) {
+  fm_on_visual_enter(&lfm->fm);
+}
+
+void visual_on_exit(Lfm *lfm) {
+  fm_on_visual_exit(&lfm->fm);
 }
 
 int lfm_mode_register(Lfm *lfm, const struct mode *mode) {
@@ -83,6 +107,13 @@ int lfm_mode_enter(Lfm *lfm, const char *name) {
 
   ui_redraw(&lfm->ui, REDRAW_INFO);
   return 0;
+}
+
+int lfm_mode_exit(Lfm *lfm, const char *name) {
+  if (streq(lfm->current_mode->name, name)) {
+    return lfm_mode_enter(lfm, "normal");
+  }
+  return 1;
 }
 
 void mode_on_enter(struct mode *mode, Lfm *lfm) {

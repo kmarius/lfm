@@ -160,13 +160,10 @@ static inline bool fm_jump_automark(Fm *fm) {
 }
 
 // Begin visual selection mode.
-void fm_selection_visual_start(Fm *fm);
+void fm_on_visual_enter(Fm *fm);
 
 // End visual selection mode.
-void fm_selection_visual_stop(Fm *fm);
-
-// Toggle visual selection mode.
-void fm_selection_visual_toggle(Fm *fm);
+void fm_on_visual_exit(Fm *fm);
 
 // Toggles the selection of the currently selected file.
 void fm_selection_toggle_current(Fm *fm);

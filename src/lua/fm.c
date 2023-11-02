@@ -112,6 +112,7 @@ static int l_fm_updir(lua_State *L) {
 }
 
 static int l_fm_open(lua_State *L) {
+  lfm_mode_exit(lfm, "visual");
   File *file = fm_open(fm);
   if (file) {
     if (cfg.selfile) {
@@ -159,21 +160,23 @@ static int l_fm_current_dir(lua_State *L) {
 
 static int l_fm_visual_start(lua_State *L) {
   (void)L;
-  fm_selection_visual_start(fm);
+  lfm_mode_enter(lfm, "visual");
   ui_redraw(ui, REDRAW_FM);
   return 0;
 }
 
 static int l_fm_visual_end(lua_State *L) {
   (void)L;
-  fm_selection_visual_stop(fm);
+  lfm_mode_exit(lfm, "visual");
   ui_redraw(ui, REDRAW_FM);
   return 0;
 }
 
 static int l_fm_visual_toggle(lua_State *L) {
   (void)L;
-  fm_selection_visual_toggle(fm);
+  if (lfm_mode_exit(lfm, "visual")) {
+    lfm_mode_enter(lfm, "visual");
+  }
   ui_redraw(ui, REDRAW_FM);
   return 0;
 }
@@ -199,7 +202,7 @@ static int l_fm_set_info(lua_State *L) {
 
 static int l_fm_sortby(lua_State *L) {
   const int l = lua_gettop(L);
-  fm_selection_visual_stop(fm);
+  lfm_mode_exit(lfm, "visual");
   Dir *dir = fm_current_dir(fm);
   for (int i = 1; i <= l; i++) {
     const char *op = luaL_checkstring(L, i);
@@ -269,6 +272,7 @@ static int l_fm_selection_set(lua_State *L) {
   }
   char buf[PATH_MAX];
   fm_selection_clear(fm);
+  lfm_mode_exit(lfm, "visual");
   if (lua_istable(L, 1)) {
     for (lua_pushnil(L); lua_next(L, -2); lua_pop(L, 1)) {
       fm_selection_add(
@@ -304,6 +308,7 @@ static int l_fm_chdir(lua_State *L) {
                       (last_slash != NULL && last_slash[1] != 0));
   char *path = path_normalize_a(arg, fm->pwd);
   search_nohighlight(lfm);
+  lfm_mode_exit(lfm, "visual");
   lfm_run_hook(lfm, LFM_HOOK_CHDIRPRE);
   fm_async_chdir(fm, path, should_save, true);
   ui_redraw(ui, REDRAW_FM);
@@ -380,6 +385,7 @@ static int l_fm_paste_buffer_set(lua_State *L) {
 
 static int l_fm_copy(lua_State *L) {
   (void)L;
+  lfm_mode_exit(lfm, "visual");
   fm_paste_mode_set(fm, PASTE_MODE_COPY);
   lfm_run_hook(lfm, LFM_HOOK_PASTEBUF);
   ui_redraw(ui, REDRAW_FM);
@@ -388,6 +394,7 @@ static int l_fm_copy(lua_State *L) {
 
 static int l_fm_cut(lua_State *L) {
   (void)L;
+  lfm_mode_exit(lfm, "visual");
   fm_paste_mode_set(fm, PASTE_MODE_MOVE);
   lfm_run_hook(lfm, LFM_HOOK_PASTEBUF);
   ui_redraw(ui, REDRAW_FM);
@@ -428,6 +435,7 @@ static int l_fm_fuzzy(lua_State *L) {
 static int l_fm_jump_automark(lua_State *L) {
   (void)L;
   lfm_run_hook(lfm, LFM_HOOK_CHDIRPRE);
+  lfm_mode_exit(lfm, "visual");
   fm_jump_automark(fm);
   ui_redraw(ui, REDRAW_FM);
   return 0;
