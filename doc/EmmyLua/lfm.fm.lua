@@ -184,24 +184,6 @@ function lfm.fm.get_info() end
 ---@return Lfm.Info info
 function lfm.fm.set_info(info) end
 
----Start visual selection mode.
----```lua
----    lfm.fm.visual_start()
----```
-function lfm.fm.visual_start() end
-
----End visual selection mode.
----```lua
----    lfm.fm.visual_end()
----```
-function lfm.fm.visual_end() end
-
----Toggle visual selection mode.
----```lua
----    lfm.fm.visual_toggle()
----```
-function lfm.fm.visual_toggle() end
-
 ---Change directory to the parent of the current directory, unless in "/".
 ---```lua
 ---    lfm.fm.updir()

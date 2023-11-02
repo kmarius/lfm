@@ -367,7 +367,10 @@ map("S", a(execute, { "sh", "-c", "LFM_LEVEL=1 " .. os.getenv("SHELL") }), { des
 -- Visual/selection
 map("<Space>", c(fm.selection_toggle, fm.down), { desc = "Select current file" })
 map("v", fm.selection_reverse, { desc = "Reverse selection" })
-map("V", fm.visual_toggle, { desc = "Toggle visual selection mode" })
+map("V", function()
+	local mode = lfm.current_mode()
+	lfm.mode(mode ~= "visual" and "visual" or "normal")
+end, { desc = "Toggle visual selection mode" })
 map("uv", c(fm.paste_buffer_set, fm.selection_set), { desc = "Clear selection" })
 
 -- Navigation

@@ -67,6 +67,7 @@ static void normal_on_enter(Lfm *lfm) {
 
 static void visual_on_enter(Lfm *lfm) {
   fm_on_visual_enter(&lfm->fm);
+  ui_redraw(&lfm->ui, REDRAW_FM);
 }
 
 static void visual_on_exit(Lfm *lfm) {

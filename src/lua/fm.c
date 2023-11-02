@@ -158,29 +158,6 @@ static int l_fm_current_dir(lua_State *L) {
   return 1;
 }
 
-static int l_fm_visual_start(lua_State *L) {
-  (void)L;
-  lfm_mode_enter(lfm, "visual");
-  ui_redraw(ui, REDRAW_FM);
-  return 0;
-}
-
-static int l_fm_visual_end(lua_State *L) {
-  (void)L;
-  lfm_mode_exit(lfm, "visual");
-  ui_redraw(ui, REDRAW_FM);
-  return 0;
-}
-
-static int l_fm_visual_toggle(lua_State *L) {
-  (void)L;
-  if (lfm_mode_exit(lfm, "visual")) {
-    lfm_mode_enter(lfm, "visual");
-  }
-  ui_redraw(ui, REDRAW_FM);
-  return 0;
-}
-
 static int l_fm_get_info(lua_State *L) {
   Dir *dir = fm_current_dir(fm);
   lua_pushstring(L, fileinfo_str[dir->settings.fileinfo]);
@@ -479,9 +456,6 @@ static const struct luaL_Reg fm_lib[] = {
     {"selection_get", l_fm_selection_get},
     {"sortby", l_fm_sortby},
     {"top", l_fm_top},
-    {"visual_start", l_fm_visual_start},
-    {"visual_end", l_fm_visual_end},
-    {"visual_toggle", l_fm_visual_toggle},
     {"updir", l_fm_updir},
     {"up", l_fm_up},
     {"scroll_down", l_fm_scroll_down},
