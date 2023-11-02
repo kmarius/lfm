@@ -124,7 +124,7 @@ void config_init(void) {
   asprintf(&cfg.logpath, "/tmp/lfm.%d.log", getpid());
 #endif
 
-  asprintf(&cfg.previewer, "%s/preview.sh", default_data_dir);
+  asprintf(&cfg.previewer, "%s/runtime/preview.sh", default_data_dir);
   cfg.preview = true;
 }
 
