@@ -33,15 +33,6 @@ bool notify_init(Notify *notify) {
     return false;
   }
 
-  // We use notify to detect changes to our fifo because with ev file watchers
-  // the callback sometimes gets called every loop, evin with clearerr etc.
-  if ((notify->fifo_wd = inotify_add_watch(notify->inotify_fd, cfg.rundir,
-                                           NOTIFY_EVENTS | IN_CLOSE_WRITE)) ==
-      -1) {
-    log_error("inotify: %s", strerror(errno));
-    return false;
-  }
-
   ev_io_init(&notify->watcher, inotify_cb, notify->inotify_fd, EV_READ);
   Lfm *lfm = to_lfm(notify);
   notify->watcher.data = lfm;
@@ -94,12 +85,6 @@ static void inotify_cb(EV_P_ ev_io *w, int revents) {
         continue;
       }
 
-      if (event->wd == notify->fifo_wd) {
-        // we could filter for *our* fifo here, the callback is called if any
-        // other fifo changes
-        lfm_read_fifo(lfm);
-      }
-
       Dir *dir = get_watched_dir(notify, event->wd);
       if (dir) {
         loader_dir_reload(&lfm->loader, dir);
@@ -125,14 +110,11 @@ void notify_add_watcher(Notify *notify, Dir *dir) {
     }
   }
 
-  int wd = notify->fifo_wd;
   const uint64_t t0 = current_millis();
-  if (!streq(dir->path, cfg.rundir)) {
-    wd = inotify_add_watch(notify->inotify_fd, dir->path, NOTIFY_EVENTS);
-    if (wd == -1) {
-      log_error("inotify: %s", strerror(errno));
-      return;
-    }
+  int wd = inotify_add_watch(notify->inotify_fd, dir->path, NOTIFY_EVENTS);
+  if (wd == -1) {
+    log_error("inotify: %s", strerror(errno));
+    return;
   }
   const uint64_t t1 = current_millis();
 
@@ -154,9 +136,7 @@ void notify_remove_watcher(Notify *notify, Dir *dir) {
 
   cvector_foreach_ptr(struct notify_watcher_data * data, notify->watchers) {
     if (data->dir == dir) {
-      if (data->wd != notify->fifo_wd) {
-        inotify_rm_watch(notify->inotify_fd, data->wd);
-      }
+      inotify_rm_watch(notify->inotify_fd, data->wd);
       cvector_swap_erase(notify->watchers, (size_t)(data - notify->watchers));
       return;
     }
@@ -169,9 +149,7 @@ void notify_set_watchers(Notify *notify, Dir **dirs, uint32_t n) {
   }
 
   cvector_foreach_ptr(struct notify_watcher_data * d, notify->watchers) {
-    if (d->wd != notify->fifo_wd) {
-      inotify_rm_watch(notify->inotify_fd, d->wd);
-    }
+    inotify_rm_watch(notify->inotify_fd, d->wd);
   }
   cvector_set_size(notify->watchers, 0);
 

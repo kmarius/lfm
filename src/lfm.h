@@ -30,6 +30,7 @@ typedef struct lfm_s {
   ev_signal sigwinch_watcher;
   ev_signal sigterm_watcher;
   ev_signal sighup_watcher;
+  ev_io fifo_watcher;
 
   cvector_vector_type(ev_timer *) schedule_timers;
   cvector_vector_type(ev_child *) child_watchers;
@@ -54,9 +55,6 @@ void lfm_quit(Lfm *lfm, int ret);
 
 // Free all recources i.e. ui, fm and the lua_State.
 void lfm_deinit(Lfm *lfm);
-
-// Try reading from the $LFMFIFO
-void lfm_read_fifo(Lfm *lfm);
 
 // Spawn a background command. execvp semantics hold for `prog`, `args`.
 // A cvector of strings can be passed by `stdin_lines` and will be send to the

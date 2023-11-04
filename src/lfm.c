@@ -6,6 +6,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/inotify.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -72,6 +73,42 @@ static inline void destroy_child_watcher(ev_child *w) {
   destroy_io_watcher(data->stdout_watcher);
   destroy_io_watcher(data->stderr_watcher);
   xfree(data);
+}
+
+static void fifo_cb(EV_P_ ev_io *w, int revents) {
+  (void)revents;
+
+  Lfm *lfm = w->data;
+
+  char buf[FIFO_BUF_SZ];
+  ssize_t nread = read(w->fd, buf, sizeof buf);
+
+  if (nread <= 0) {
+    return;
+  }
+
+  if ((size_t)nread < sizeof buf) {
+    buf[nread - 1] = 0;
+    llua_eval(lfm->L, buf);
+  } else {
+    size_t capacity = 2 * sizeof buf;
+    char *dyn_buf = xmalloc(capacity);
+    size_t length = nread;
+    memcpy(dyn_buf, buf, nread);
+    while ((nread = read(lfm->fifo_fd, dyn_buf + length, capacity - length)) >
+           0) {
+      length += nread;
+      if (length == capacity) {
+        capacity *= 2;
+        dyn_buf = xrealloc(dyn_buf, capacity);
+      }
+    }
+    dyn_buf[length] = 0;
+    llua_eval(lfm->L, dyn_buf);
+    xfree(dyn_buf);
+  }
+
+  ev_idle_start(lfm->loop, &lfm->ui.redraw_watcher);
 }
 
 static void child_cb(EV_P_ ev_child *w, int revents) {
@@ -228,10 +265,11 @@ void lfm_init(Lfm *lfm, FILE *log_fp) {
   }
 
   if ((mkfifo(cfg.fifopath, 0600) == -1 && errno != EEXIST) ||
-      (lfm->fifo_fd = open(cfg.fifopath, O_RDONLY | O_NONBLOCK, 0)) == -1) {
+      (lfm->fifo_fd = open(cfg.fifopath, O_RDWR | O_NONBLOCK, 0)) == -1) {
     log_error("fifo: %s", strerror(errno));
     exit(EXIT_FAILURE);
   }
+
   setenv("LFMFIFO", cfg.fifopath, 1);
 
   if (mkdir_p(cfg.cachedir, 0700) == -1 && errno != EEXIST) {
@@ -257,7 +295,10 @@ void lfm_init(Lfm *lfm, FILE *log_fp) {
 
   ev_timer_init(&lfm->timer_watcher, timer_cb, TICK, TICK);
   lfm->timer_watcher.data = lfm;
-  ev_timer_start(lfm->loop, &lfm->timer_watcher);
+
+  ev_io_init(&lfm->fifo_watcher, fifo_cb, lfm->fifo_fd, EV_READ);
+  lfm->fifo_watcher.data = lfm;
+  ev_io_start(lfm->loop, &lfm->fifo_watcher);
 
   signal(SIGINT, SIG_IGN);
 
@@ -441,39 +482,6 @@ void lfm_error(Lfm *lfm, const char *format, ...) {
   }
 
   va_end(args);
-}
-
-void lfm_read_fifo(Lfm *lfm) {
-  char buf[FIFO_BUF_SZ];
-
-  ssize_t nread = read(lfm->fifo_fd, buf, sizeof buf);
-
-  if (nread <= 0) {
-    return;
-  }
-
-  if ((size_t)nread < sizeof buf) {
-    buf[nread - 1] = 0;
-    llua_eval(lfm->L, buf);
-  } else {
-    size_t capacity = 2 * sizeof buf;
-    char *dyn_buf = xmalloc(capacity);
-    size_t length = nread;
-    memcpy(dyn_buf, buf, nread);
-    while ((nread = read(lfm->fifo_fd, dyn_buf + length, capacity - length)) >
-           0) {
-      length += nread;
-      if (length == capacity) {
-        capacity *= 2;
-        dyn_buf = xrealloc(dyn_buf, capacity);
-      }
-    }
-    dyn_buf[length] = 0;
-    llua_eval(lfm->L, dyn_buf);
-    xfree(dyn_buf);
-  }
-
-  ev_idle_start(lfm->loop, &lfm->ui.redraw_watcher);
 }
 
 void lfm_schedule(Lfm *lfm, int ref, uint32_t delay) {
