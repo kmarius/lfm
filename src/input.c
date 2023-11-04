@@ -203,7 +203,6 @@ void input_handle_key(Lfm *lfm, input_t in) {
     if (in == NCKEY_ESC) {
       if (cvector_size(lfm->ui.maps.seq) > 0) {
         input_clear(lfm);
-        log_trace("wut");
       } else {
         search_nohighlight(lfm);
         fm_selection_clear(&lfm->fm);
