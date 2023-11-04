@@ -15,7 +15,7 @@ char *path_parent_s(const char *path) {
   }
 
   static char tmp[PATH_MAX + 1];
-  strncpy(tmp, path, sizeof tmp);
+  strncpy(tmp, path, sizeof tmp - 1);
   return dirname(tmp);
 }
 
@@ -26,13 +26,13 @@ char *realpath_s(const char *p) {
 
 char *basename_s(const char *p) {
   static char buf[PATH_MAX + 1];
-  strncpy(buf, p, sizeof(buf) - 1);
+  strncpy(buf, p, sizeof buf - 1);
   return basename(buf);
 }
 
 char *dirname_s(const char *p) {
   static char buf[PATH_MAX + 1];
-  strncpy(buf, p, sizeof(buf) - 1);
+  strncpy(buf, p, sizeof buf - 1);
   return dirname(buf);
 }
 
