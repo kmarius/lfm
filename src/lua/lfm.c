@@ -40,8 +40,9 @@ static int l_colors_clear(lua_State *L) {
 }
 
 static int l_handle_key(lua_State *L) {
-  const char *keys = luaL_checkstring(L, 1);
-  input_t *buf = xmalloc((strlen(keys) + 1) * sizeof *buf);
+  size_t len;
+  const char *keys = luaL_checklstring(L, 1, &len);
+  input_t *buf = xmalloc((len + 1) * sizeof *buf);
   key_names_to_input(keys, buf);
   for (input_t *u = buf; *u; u++) {
     input_handle_key(lfm, *u);
@@ -88,14 +89,15 @@ static int l_quit(lua_State *L) {
 static int l_print(lua_State *L) {
   int n = lua_gettop(L);
   lua_getglobal(L, "tostring");
-  char *buf = xcalloc(128, 1);
   size_t buflen = 128;
+  char *buf = xcalloc(buflen, 1);
   size_t ind = 0;
   for (int i = 1; i <= n; i++) {
     lua_pushvalue(L, -1);
     lua_pushvalue(L, i);
     lua_call(L, 1, 1);
-    const char *s = lua_tostring(L, -1);
+    size_t len;
+    const char *s = lua_tolstring(L, -1, &len);
     if (s == NULL) {
       return luaL_error(
           L, LUA_QL("tostring") " must return a string to " LUA_QL("print"));
@@ -103,13 +105,14 @@ static int l_print(lua_State *L) {
     if (i > 1) {
       buf[ind++] = '\t';
     }
-    int l = strlen(s);
-    if (ind + l >= buflen) {
-      buflen *= 2;
+    if (ind + len >= buflen) {
+      do {
+        buflen *= 2;
+      } while (ind + len >= buflen);
       buf = xrealloc(buf, buflen);
     }
     strcpy(&buf[ind], s);
-    ind += l;
+    ind += len;
     lua_pop(L, 1); /* pop result */
   }
   buf[ind++] = 0;
@@ -207,7 +210,8 @@ static int l_spawn(lua_State *L) {
     return 1;
   } else {
     lua_pushnil(L);
-    lua_pushstring(L, strerror(errno)); // not sure if something even sets errno
+    lua_pushstring(L,
+                   strerror(errno)); // not sure if something even sets errno
     return 2;
   }
 }
@@ -239,7 +243,8 @@ static int l_execute(lua_State *L) {
     return 1;
   } else {
     lua_pushnil(L);
-    lua_pushstring(L, strerror(errno)); // not sure if something even sets errno
+    lua_pushstring(L,
+                   strerror(errno)); // not sure if something even sets errno
     return 2;
   }
 }

@@ -23,8 +23,9 @@ static int l_fn_mime(lua_State *L) {
 }
 
 static int l_fn_tokenize(lua_State *L) {
-  const char *string = luaL_optstring(L, 1, "");
-  char *buf = xmalloc(strlen(string) + 1);
+  size_t len;
+  const char *string = luaL_checklstring(L, 1, &len);
+  char *buf = xmalloc(len + 1);
   const char *pos1, *tok;
   char *pos2;
   if ((tok = tokenize(string, buf, &pos1, &pos2))) {
@@ -60,8 +61,9 @@ static int l_fn_split_last(lua_State *L) {
 }
 
 static int l_fn_unquote_space(lua_State *L) {
-  const char *string = luaL_checkstring(L, 1);
-  char *buf = xmalloc(strlen(string) + 1);
+  size_t len;
+  const char *string = luaL_checklstring(L, 1, &len);
+  char *buf = xmalloc(len + 1);
   char *t = buf;
   for (const char *s = string; *s != 0; s++) {
     if (*s != '\\' || *(s + 1) != ' ') {
@@ -74,8 +76,9 @@ static int l_fn_unquote_space(lua_State *L) {
 }
 
 static int l_fn_quote_space(lua_State *L) {
-  const char *string = luaL_checkstring(L, 1);
-  char *buf = xmalloc(strlen(string) * 2 + 1);
+  size_t len;
+  const char *string = luaL_checklstring(L, 1, &len);
+  char *buf = xmalloc(len * 2 + 1);
   char *t = buf;
   for (const char *s = string; *s; s++) {
     if (*s == ' ') {
