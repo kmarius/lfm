@@ -27,6 +27,7 @@ typedef struct lfm_s {
 
   ev_prepare prepare_watcher;
   ev_timer timer_watcher;
+  ev_signal sigint_watcher;
   ev_signal sigwinch_watcher;
   ev_signal sigterm_watcher;
   ev_signal sighup_watcher;

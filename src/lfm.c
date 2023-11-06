@@ -16,6 +16,7 @@
 #include "cvector.h"
 #include "hashtab.h"
 #include "hooks.h"
+#include "input.h"
 #include "lfm.h"
 #include "loader.h"
 #include "log.h"
@@ -77,6 +78,7 @@ static inline void destroy_child_watcher(ev_child *w) {
 
 static void fifo_cb(EV_P_ ev_io *w, int revents) {
   (void)revents;
+  (void)loop;
 
   Lfm *lfm = w->data;
 
@@ -223,6 +225,14 @@ static void prepare_cb(EV_P_ ev_prepare *w, int revents) {
   ev_prepare_stop(EV_A_ w);
 }
 
+static void sigint_cb(EV_P_ ev_signal *w, int revents) {
+  (void)revents;
+  Lfm *lfm = w->data;
+  log_debug("received SIGINT");
+  input_handle_key(lfm, CTRL('C'));
+  ev_idle_start(EV_A_ & lfm->ui.redraw_watcher);
+}
+
 // unclear if this happens before/after resizecb is called by notcurses
 static void sigwinch_cb(EV_P_ ev_signal *w, int revents) {
   (void)revents;
@@ -300,7 +310,11 @@ void lfm_init(Lfm *lfm, FILE *log_fp) {
   lfm->fifo_watcher.data = lfm;
   ev_io_start(lfm->loop, &lfm->fifo_watcher);
 
-  signal(SIGINT, SIG_IGN);
+  // signal(SIGINT, SIG_IGN);
+
+  ev_signal_init(&lfm->sigint_watcher, sigint_cb, SIGINT);
+  lfm->sigint_watcher.data = lfm;
+  ev_signal_start(lfm->loop, &lfm->sigint_watcher);
 
   ev_signal_init(&lfm->sigwinch_watcher, sigwinch_cb, SIGWINCH);
   lfm->sigwinch_watcher.data = lfm;
@@ -428,6 +442,7 @@ int lfm_spawn(Lfm *lfm, const char *prog, char *const *args, char **stdin_lines,
 bool lfm_execute(Lfm *lfm, const char *prog, char *const *args) {
   int pid, status, rc;
   lfm_run_hook(lfm, LFM_HOOK_EXECPRE);
+  ev_signal_stop(lfm->loop, &lfm->sigint_watcher);
   ui_suspend(&lfm->ui);
   if ((pid = fork()) < 0) {
     status = -1;
@@ -449,7 +464,7 @@ bool lfm_execute(Lfm *lfm, const char *prog, char *const *args) {
   }
 
   ui_resume(&lfm->ui);
-  signal(SIGINT, SIG_IGN);
+  ev_signal_start(lfm->loop, &lfm->sigint_watcher);
   lfm_run_hook(lfm, LFM_HOOK_EXECPOST);
   return status == 0;
 }
