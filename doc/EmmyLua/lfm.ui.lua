@@ -45,7 +45,7 @@ function lfm.ui.redraw(force) end
 ---    lfm.ui.menu({"line1", "line2"})
 ---    lfm.ui.menu("line1\nline2")
 ---```
----@param menu string[]|string
+---@param menu nil|string[]|string
 function lfm.ui.menu(menu) end
 
 ---Show all previously shown errors and messages.
