@@ -68,6 +68,13 @@ void *ht_get(struct hashtab_s *t, const char *key) __attribute__((nonnull));
 // Clear all values from the hash table.
 void ht_clear(struct hashtab_s *t) __attribute__((nonnull));
 
+struct linked_hashtab_s *lht_init(struct linked_hashtab_s *t, size_t capacity,
+                                  ht_free_func free)
+    __attribute__((nonnull(1)));
+
+struct linked_hashtab_s *lht_deinit(struct linked_hashtab_s *t)
+    __attribute__((nonnull(1)));
+
 // Create a new hash table with base `capacity` and a `free` function.
 struct linked_hashtab_s *lht_with_capacity(size_t capacity, ht_free_func free);
 

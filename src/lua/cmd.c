@@ -158,14 +158,11 @@ static int l_cmd_history_next(lua_State *L) {
 
 static int l_cmd_get_history(lua_State *L) {
   lua_newtable(L);
-  history_reset(&ui->cmdline.history);
-  const char *line, *prev = NULL;
-  for (int i = 1; (line = history_prev(&ui->cmdline.history)) && line != prev;
-       i++, prev = line) {
-    lua_pushstring(L, line);
-    lua_rawseti(L, -2, i);
+  int i = ui->cmdline.history.items.size;
+  lht_foreach(struct history_entry * e, &ui->cmdline.history.items) {
+    lua_pushstring(L, e->line);
+    lua_rawseti(L, -2, i--);
   }
-  history_reset(&ui->cmdline.history);
   return 1;
 }
 

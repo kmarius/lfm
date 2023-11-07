@@ -88,7 +88,7 @@ int vasprintf(char **dst, const char *format, va_list args);
 
 // converts mb string s to a newly allocated wchar string, optionally passes
 // the length to len
-ALLOC wchar_t *ambstowcs(const char *s, int *len);
+wchar_t *ambstowcs(const char *s, int *len);
 
 static inline size_t mbslen(const char *s) {
   return mbstowcs(NULL, s, 0);

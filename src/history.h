@@ -2,13 +2,21 @@
 
 #include <stddef.h>
 
+#include "hashtab.h"
+
 typedef struct history_s {
-  struct history_entry *entries;
-  struct history_entry *cur;
-  size_t num_old_entries; // entries that were read from the history file
+  LinkedHashtab items;
+  struct lht_bucket *cur;
   size_t num_new_entries; // new entries to be written to the file (excluding
                           // ones with leading space)
 } History;
+
+// Prefix contains an allocated string, line points to right after its nul byte.
+struct history_entry {
+  char *prefix;
+  const char *line;
+  bool is_new;
+};
 
 void history_load(History *h, const char *path);
 void history_write(History *h, const char *path, int histsize);

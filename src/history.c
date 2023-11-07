@@ -5,24 +5,29 @@
 #include <stdlib.h>
 
 #include "cvector.h"
+#include "hashtab.h"
 #include "history.h"
 #include "log.h"
+#include "memory.h"
 #include "path.h"
 #include "util.h"
 
 /* TODO: signal errors on load/write (on 2021-10-23) */
 /* TODO: only show history items with matching prefixes (on 2021-07-24) */
 
-// prefix contains an allocated string, line points to right after its nul byte.
-struct history_entry {
-  char *prefix;
-  const char *line;
-  bool is_new;
-};
+void free_history_entry(void *p) {
+  if (p) {
+    struct history_entry *e = p;
+    free(e->prefix);
+    free(e);
+  }
+}
 
 // don't call this on loaded history.
 void history_load(History *h, const char *path) {
   memset(h, 0, sizeof *h);
+
+  lht_init(&h->items, HT_DEFAULT_CAPACITY, free_history_entry);
 
   FILE *fp = fopen(path, "r");
   if (!fp) {
@@ -45,17 +50,16 @@ void history_load(History *h, const char *path) {
       continue;
     }
     *tab = 0;
-    struct history_entry n = {
-        .prefix = line,
-        .line = tab + 1,
-        .is_new = 0,
-    };
-    cvector_push_back(h->entries, n);
+
+    struct history_entry *e = xmalloc(sizeof *e);
+    e->prefix = line;
+    e->line = tab + 1;
+    e->is_new = 0;
+    lht_set(&h->items, tab + 1, e);
+
     line = NULL;
   }
   xfree(line);
-
-  h->num_old_entries = cvector_size(h->entries);
 
   fclose(fp);
 }
@@ -83,6 +87,8 @@ void history_write(History *h, const char *path, int histsize) {
 
   const int num_keep_old = histsize - h->num_new_entries;
 
+  int num_lines_written = 0;
+
   if (num_keep_old > 0) {
     FILE *fp_old = fopen(path, "r");
     if (fp_old) {
@@ -105,29 +111,40 @@ void history_write(History *h, const char *path, int histsize) {
         fputc(c, fp_new);
       }
       fclose(fp_old);
+      num_lines_written =
+          num_old_lines > num_keep_old ? num_keep_old : num_old_lines;
     }
   }
 
-  // skip some of our new entries if we have more than histsize
-  size_t i = h->num_old_entries;
-  if (num_keep_old < 0) {
-    int num_skip_new = -num_keep_old;
-    for (; i < cvector_size(h->entries) && num_skip_new > 0; i++) {
-      if (h->entries[i].line[0] != ' ') {
+  // new file now contains num_keep_old lines from the existing file if it was
+  // positive, or nothing
+
+  int num_save_new = histsize - num_lines_written;
+
+  if (num_save_new > 0) {
+    int num_skip_new = h->num_new_entries - num_save_new;
+
+    struct lht_bucket *iter = h->items.first;
+
+    // skip some of our new entries if we have more than histsize
+    for (; iter != h->items.last && num_skip_new > 0; iter = iter->order_next) {
+      struct history_entry *e = iter->val;
+      if (e->is_new) {
         num_skip_new--;
       }
     }
-  }
 
-  // write our new entries to path_new
-  for (; i < cvector_size(h->entries); i++) {
-    if (h->entries[i].line[0] == ' ') {
-      continue;
+    // write our new entries to path_new
+    for (; iter; iter = iter->order_next) {
+      struct history_entry *e = iter->val;
+      if (!e->is_new) {
+        continue;
+      }
+      fputs(e->prefix, fp_new);
+      fputc('\t', fp_new);
+      fputs(e->line, fp_new);
+      fputc('\n', fp_new);
     }
-    fputs(h->entries[i].prefix, fp_new);
-    fputc('\t', fp_new);
-    fputs(h->entries[i].line, fp_new);
-    fputc('\n', fp_new);
   }
   fclose(fp_new);
 
@@ -138,27 +155,32 @@ cleanup:
 }
 
 void history_deinit(History *h) {
-  for (size_t i = 0; i < cvector_size(h->entries); i++) {
-    xfree(h->entries[i].prefix);
-  }
-  cvector_free(h->entries);
+  lht_deinit(&h->items);
 }
 
 void history_append(History *h, const char *prefix, const char *line) {
-  struct history_entry *end = cvector_end(h->entries);
-  if (end && streq((end - 1)->line, line)) {
-    return; /* skip consecutive dupes */
+  struct history_entry *old = lht_get(&h->items, line);
+  if (old) {
+    if (old->is_new) {
+      h->num_new_entries--;
+    }
+    lht_delete(&h->items, line);
   }
-  int l = strlen(prefix);
-  struct history_entry e = {.is_new = true};
-  e.prefix = xmalloc(l + strlen(line) + 2);
-  e.line = e.prefix + l + 1;
-  strcpy(e.prefix, prefix);
-  strcpy(e.prefix + l + 1, line);
-  cvector_push_back(h->entries, e);
-  if (*line != ' ') {
+
+  int prefix_len = strlen(prefix);
+  struct history_entry *e = xmalloc(sizeof *e);
+  e->is_new = line[0] != ' ';
+  e->prefix = xmalloc(prefix_len + strlen(line) + 2);
+  e->line = e->prefix + prefix_len + 1;
+  strcpy(e->prefix, prefix);
+  strcpy(e->prefix + prefix_len + 1, line);
+
+  lht_set(&h->items, line, e);
+  if (e->is_new) {
     h->num_new_entries++;
   }
+
+  history_reset(h);
 }
 
 void history_reset(History *h) {
@@ -166,34 +188,33 @@ void history_reset(History *h) {
 }
 
 const char *history_prev(History *h) {
-  if (!h->entries) {
-    return NULL;
+  if (!h->cur) {
+    h->cur = h->items.last;
+  } else {
+    if (h->cur != h->items.first) {
+      h->cur = h->cur->order_prev;
+    }
   }
 
   if (!h->cur) {
-    h->cur = cvector_end(h->entries);
-  }
-
-  if (h->cur > cvector_begin(h->entries)) {
-    --h->cur;
-  }
-
-  return h->cur->line;
-}
-
-const char *history_next(History *h) {
-  if (!h->entries || !h->cur) {
     return NULL;
   }
 
-  if (h->cur < cvector_end(h->entries)) {
-    ++h->cur;
+  struct history_entry *e = h->cur->val;
+  return e->line;
+}
+
+const char *history_next(History *h) {
+  if (!h->cur) {
+    return NULL;
   }
 
-  /* TODO: could return the initial line here (on 2021-11-07) */
-  if (h->cur == cvector_end(h->entries)) {
-    return "";
+  h->cur = h->cur->order_next;
+
+  if (!h->cur) {
+    return NULL;
   }
 
-  return h->cur->line;
+  struct history_entry *e = h->cur->val;
+  return e->line;
 }

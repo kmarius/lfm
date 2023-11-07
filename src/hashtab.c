@@ -251,8 +251,8 @@ void ht_clear(Hashtab *ht) {
   ht_init(ht, n, free);
 }
 
-static inline LinkedHashtab *lht_init(LinkedHashtab *lht, size_t capacity,
-                                      ht_free_func free) {
+LinkedHashtab *lht_init(LinkedHashtab *lht, size_t capacity,
+                        ht_free_func free) {
   memset(lht, 0, sizeof *lht);
   lht->capacity = capacity;
   lht->n = capacity;
@@ -261,7 +261,7 @@ static inline LinkedHashtab *lht_init(LinkedHashtab *lht, size_t capacity,
   return lht;
 }
 
-static inline LinkedHashtab *lht_deinit(LinkedHashtab *lht) {
+LinkedHashtab *lht_deinit(LinkedHashtab *lht) {
   for (size_t i = 0; i < lht->capacity; i++) {
     if (lht->buckets[i].key) {
       for (struct lht_bucket *next, *b = lht->buckets[i].next; b; b = next) {
@@ -479,7 +479,6 @@ static bool lht_probe(const LinkedHashtab *lht, const char *key,
   }
 }
 
-// update keeps the order
 bool lht_set(LinkedHashtab *lht, const char *key, void *val) {
   bool ret = false;
   struct lht_bucket *b;

@@ -15,6 +15,8 @@ local a = util.a
 function M._setup()
 	-- COMMAND mode
 	do
+		-- Save the actual line of input so we can restore it when toggling past the newest history entry
+		local prev_line
 		local mode = {
 			name = "command",
 			input = true,
@@ -24,11 +26,17 @@ function M._setup()
 				cmd.history_append(":", line)
 				lfm.eval(line)
 			end,
-			on_change = compl.reset,
+			on_change = function()
+				prev_line = nil
+				compl.reset()
+			end,
 		}
 		lfm.register_mode(mode)
 		map(":", a(lfm.mode, "command"), { desc = "enter COMMAND mode" })
 		map("<Up>", function()
+			if not prev_line then
+				prev_line = cmd.line_get()
+			end
 			local line = cmd.history_prev()
 			if line then
 				cmd.line_set(line)
@@ -36,9 +44,7 @@ function M._setup()
 		end, { mode = "command", desc = "Previous history item" })
 		map("<Down>", function()
 			local line = cmd.history_next()
-			if line then
-				cmd.line_set(line)
-			end
+			cmd.line_set(line or prev_line)
 		end, { mode = "command", desc = "Next history item" })
 	end
 
