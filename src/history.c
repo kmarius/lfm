@@ -50,12 +50,16 @@ void history_load(History *h, const char *path) {
       continue;
     }
     *tab = 0;
+    char *hist_line = tab + 1;
 
     struct history_entry *e = xmalloc(sizeof *e);
     e->prefix = line;
-    e->line = tab + 1;
+    e->line = hist_line;
     e->is_new = 0;
-    lht_set(&h->items, tab + 1, e);
+
+    // make sure duplicates are stored at the last occurrence
+    lht_delete(&h->items, hist_line);
+    lht_set(&h->items, hist_line, e);
 
     line = NULL;
   }
