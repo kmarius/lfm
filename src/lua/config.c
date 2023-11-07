@@ -82,7 +82,7 @@ static int l_dir_settings_index(lua_State *L) {
     return 0;
   }
 
-  lua_newtable(L);
+  lua_createtable(L, 0, 5);
   lua_pushboolean(L, s->dirfirst);
   lua_setfield(L, -2, "dirfirst");
   lua_pushboolean(L, s->hidden);

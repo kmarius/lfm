@@ -361,7 +361,7 @@ static int l_rifle_fileinfo(lua_State *L) {
   char mime[256];
   get_mimetype(path, mime, sizeof mime);
 
-  lua_newtable(L);
+  lua_createtable(L, 0, 3);
 
   lua_pushstring(L, file);
   lua_setfield(L, -2, "file");
@@ -376,7 +376,7 @@ static int l_rifle_fileinfo(lua_State *L) {
 }
 
 static inline int llua_push_rule(lua_State *L, const Rule *r, int num) {
-  lua_newtable(L);
+  lua_createtable(L, 0, 5);
 
   lua_pushstring(L, r->command);
   lua_setfield(L, -2, "command");

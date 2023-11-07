@@ -157,8 +157,8 @@ static int l_cmd_history_next(lua_State *L) {
 }
 
 static int l_cmd_get_history(lua_State *L) {
-  lua_newtable(L);
   int i = ui->cmdline.history.items.size;
+  lua_createtable(L, i, 0);
   lht_foreach(struct history_entry * e, &ui->cmdline.history.items) {
     lua_pushstring(L, e->line);
     lua_rawseti(L, -2, i--);

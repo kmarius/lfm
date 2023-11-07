@@ -310,9 +310,9 @@ static int l_get_maps(lua_State *L) {
   cvector_vector_type(Trie *) keymaps = NULL;
   bool prune = lua_toboolean(L, 2);
   trie_collect_leaves(mode->maps, &keymaps, prune);
-  lua_newtable(L);
+  lua_createtable(L, cvector_size(keymaps), 0);
   for (size_t i = 0; i < cvector_size(keymaps); i++) {
-    lua_newtable(L);
+    lua_createtable(L, 0, 3);
     lua_pushstring(L, keymaps[i]->desc ? keymaps[i]->desc : "");
     lua_setfield(L, -2, "desc");
     lua_pushstring(L, keymaps[i]->keys);
@@ -330,7 +330,7 @@ static int l_current_mode(lua_State *L) {
 }
 
 static int l_get_modes(lua_State *L) {
-  lua_newtable(L);
+  lua_createtable(L, lfm->modes.size, 0);
   int i = 1;
   ht_foreach(struct mode * mode, &lfm->modes) {
     lua_pushstring(L, mode->name);

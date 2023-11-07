@@ -6,7 +6,7 @@
 #include "private.h"
 
 static int l_ui_messages(lua_State *L) {
-  lua_newtable(L);
+  lua_createtable(L, cvector_size(ui->messages), 0);
   for (size_t i = 0; i < cvector_size(ui->messages); i++) {
     lua_pushstring(L, ui->messages[i].text);
     lua_rawseti(L, -2, i + 1);

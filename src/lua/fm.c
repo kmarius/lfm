@@ -142,13 +142,13 @@ static int l_fm_current_file(lua_State *L) {
 
 static int l_fm_current_dir(lua_State *L) {
   const Dir *dir = fm_current_dir(fm);
-  lua_newtable(L);
+  lua_createtable(L, 0, 3);
   lua_pushstring(L, dir->path);
   lua_setfield(L, -2, "path");
   lua_pushstring(L, dir->name);
   lua_setfield(L, -2, "name");
 
-  lua_newtable(L);
+  lua_createtable(L, dir->length, 0);
   for (uint32_t i = 0; i < dir->length; i++) {
     lua_pushstring(L, file_path(dir->files[i]));
     lua_rawseti(L, -2, i + 1);
