@@ -156,6 +156,19 @@ static int l_cmd_history_next(lua_State *L) {
   return 1;
 }
 
+static int l_cmd_get_history(lua_State *L) {
+  lua_newtable(L);
+  history_reset(&ui->cmdline.history);
+  const char *line, *prev = NULL;
+  for (int i = 1; (line = history_prev(&ui->cmdline.history)) && line != prev;
+       i++, prev = line) {
+    lua_pushstring(L, line);
+    lua_rawseti(L, -2, i);
+  }
+  history_reset(&ui->cmdline.history);
+  return 1;
+}
+
 static const struct luaL_Reg lfm_cmd_lib[] = {
     {"clear", l_cmd_clear},
     {"delete", l_cmd_delete},
@@ -175,6 +188,7 @@ static const struct luaL_Reg lfm_cmd_lib[] = {
     {"history_append", l_cmd_history_append},
     {"history_next", l_cmd_history_next},
     {"history_prev", l_cmd_history_prev},
+    {"get_history", l_cmd_get_history},
     {NULL, NULL}};
 
 int luaopen_cmd(lua_State *L) {

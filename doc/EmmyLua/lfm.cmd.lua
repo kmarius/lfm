@@ -142,3 +142,14 @@ function lfm.cmd.history_next() end
 ---@return string
 ---@nodiscard
 function lfm.cmd.history_prev() end
+
+---Get the full history, latest items first
+---```lua
+---    local history = lfm.cmd.get_history()
+---    for i, item in ipairs(history) do
+---      print(i, item)
+---    end
+---```
+---@return string
+---@nodiscard
+function lfm.cmd.get_history() end
