@@ -20,21 +20,6 @@ typedef enum {
   LFM_NUM_HOOKS
 } lfm_hook_id;
 
-#define LFM_HOOK_NAME_RESIZED "Resized"
-#define LFM_HOOK_NAME_ENTER "LfmEnter"
-#define LFM_HOOK_NAME_EXITPRE "ExitPre"
-#define LFM_HOOK_NAME_CHDIRPRE "ChdirPre"
-#define LFM_HOOK_NAME_CHDIRPOST "ChdirPost"
-#define LFM_HOOK_NAME_PASTEBUF "PasteBufChange"
-#define LFM_HOOK_NAME_SELECTION "SelectionChanged"
-#define LFM_HOOK_NAME_DIRLOADED "DirLoaded"
-#define LFM_HOOK_NAME_DIRUPDATED "DirUpdated"
-#define LFM_HOOK_NAME_MODECHANGED "ModeChanged"
-#define LFM_HOOK_NAME_FOCUSGAINED "FocusGained"
-#define LFM_HOOK_NAME_FOCUSLOST "FocusLost"
-#define LFM_HOOK_NAME_EXECPRE "ExecPre"
-#define LFM_HOOK_NAME_EXECPOST "ExecPost"
-
 extern const char *hook_str[LFM_NUM_HOOKS];
 
 void lfm_hooks_init(struct lfm_s *lfm);

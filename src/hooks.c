@@ -17,21 +17,21 @@
 #define REF_MASK ((1 << REF_BITS) - 1)
 
 // absolutely make sure this is the same order as the enum
-const char *hook_str[LFM_NUM_HOOKS] = {
-    [LFM_HOOK_RESIZED] = LFM_HOOK_NAME_RESIZED,
-    [LFM_HOOK_ENTER] = LFM_HOOK_NAME_ENTER,
-    [LFM_HOOK_EXITPRE] = LFM_HOOK_NAME_EXITPRE,
-    [LFM_HOOK_CHDIRPRE] = LFM_HOOK_NAME_CHDIRPRE,
-    [LFM_HOOK_CHDIRPOST] = LFM_HOOK_NAME_CHDIRPOST,
-    [LFM_HOOK_PASTEBUF] = LFM_HOOK_NAME_PASTEBUF,
-    [LFM_HOOK_SELECTION] = LFM_HOOK_NAME_SELECTION,
-    [LFM_HOOK_DIRLOADED] = LFM_HOOK_NAME_DIRLOADED,
-    [LFM_HOOK_DIRUPDATED] = LFM_HOOK_NAME_DIRUPDATED,
-    [LFM_HOOK_MODECHANGED] = LFM_HOOK_NAME_MODECHANGED,
-    [LFM_HOOK_FOCUSGAINED] = LFM_HOOK_NAME_FOCUSGAINED,
-    [LFM_HOOK_FOCUSLOST] = LFM_HOOK_NAME_FOCUSLOST,
-    [LFM_HOOK_EXECPRE] = LFM_HOOK_NAME_EXECPRE,
-    [LFM_HOOK_EXECPOST] = LFM_HOOK_NAME_EXECPOST};
+const char *hook_str[LFM_NUM_HOOKS] = {[LFM_HOOK_RESIZED] = "Resized",
+                                       [LFM_HOOK_ENTER] = "LfmEnter",
+                                       [LFM_HOOK_EXITPRE] = "ExitPre",
+                                       [LFM_HOOK_CHDIRPRE] = "ChdirPre",
+                                       [LFM_HOOK_CHDIRPOST] = "ChdirPost",
+                                       [LFM_HOOK_PASTEBUF] = "PasteBufChange",
+                                       [LFM_HOOK_SELECTION] =
+                                           "SelectionChanged",
+                                       [LFM_HOOK_DIRLOADED] = "DirLoaded",
+                                       [LFM_HOOK_DIRUPDATED] = "DirUpdated",
+                                       [LFM_HOOK_MODECHANGED] = "ModeChanged",
+                                       [LFM_HOOK_FOCUSGAINED] = "FocusGained",
+                                       [LFM_HOOK_FOCUSLOST] = "FocusLost",
+                                       [LFM_HOOK_EXECPRE] = "ExecPre",
+                                       [LFM_HOOK_EXECPOST] = "ExecPost"};
 
 void lfm_hooks_init(Lfm *lfm) {
   memset(lfm->hook_refs, 0, sizeof lfm->hook_refs);
