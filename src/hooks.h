@@ -1,6 +1,6 @@
 #pragma once
 
-struct lfm_s;
+struct Lfm;
 
 typedef enum {
   LFM_HOOK_RESIZED = 0,
@@ -22,16 +22,16 @@ typedef enum {
 
 extern const char *hook_str[LFM_NUM_HOOKS];
 
-void lfm_hooks_init(struct lfm_s *lfm);
+void lfm_hooks_init(struct Lfm *lfm);
 
-void lfm_hooks_deinit(struct lfm_s *lfm);
+void lfm_hooks_deinit(struct Lfm *lfm);
 
 // Returns an id with which it can be removed later
-int lfm_add_hook(struct lfm_s *lfm, lfm_hook_id hook, int ref);
+int lfm_add_hook(struct Lfm *lfm, lfm_hook_id hook, int ref);
 
 // Returns the reference of the callback, or 0 if no hook was removed.
-int lfm_remove_hook(struct lfm_s *lfm, int id);
+int lfm_remove_hook(struct Lfm *lfm, int id);
 
-void lfm_run_hook(struct lfm_s *lfm, lfm_hook_id hook);
+void lfm_run_hook(struct Lfm *lfm, lfm_hook_id hook);
 
-void lfm_run_hook1(struct lfm_s *lfm, lfm_hook_id hook, const char *arg1);
+void lfm_run_hook1(struct Lfm *lfm, lfm_hook_id hook, const char *arg1);

@@ -13,7 +13,7 @@
 #define MAP_CLEAR_DELAY 10000
 #define LOADING_INDICATOR_DELAY 250
 
-typedef struct config_s {
+typedef struct config {
   char *configdir;       // ~/.config/lfm
   char *configpath;      // ~/.config/lfm/init.lua
   char *user_configpath; // NULL unless set via commandline

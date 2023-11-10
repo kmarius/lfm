@@ -7,13 +7,13 @@
 #include "cvector.h"
 
 struct ncplane;
-struct preview_s;
+struct Preview;
 
-typedef void (*preview_draw_fun)(const struct preview_s *, struct ncplane *);
-typedef void (*preview_update_fun)(struct preview_s *, struct preview_s *);
-typedef void (*preview_destroy_fun)(struct preview_s *);
+typedef void (*preview_draw_fun)(const struct Preview *, struct ncplane *);
+typedef void (*preview_update_fun)(struct Preview *, struct Preview *);
+typedef void (*preview_destroy_fun)(struct Preview *);
 
-typedef struct preview_s {
+typedef struct Preview {
   char *path;
   union {
     cvector_vector_type(char *) lines;

@@ -124,7 +124,7 @@ void mode_on_enter(struct mode *mode, Lfm *lfm) {
   }
 }
 
-void mode_on_return(struct mode *mode, struct lfm_s *lfm, const char *line) {
+void mode_on_return(struct mode *mode, struct Lfm *lfm, const char *line) {
   if (mode->on_return) {
     mode->on_return(lfm, line);
   } else if (mode->on_return_ref) {

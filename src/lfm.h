@@ -13,7 +13,7 @@
 #include "notify.h"
 #include "ui.h"
 
-typedef struct lfm_s {
+typedef struct Lfm {
   Ui ui;
   Fm fm;
   Notify notify;
@@ -38,7 +38,7 @@ typedef struct lfm_s {
 
   int *hook_refs[LFM_NUM_HOOKS];
 
-  struct message_s *messages;
+  struct message *messages;
 
   int fifo_fd;
   FILE *log_fp;

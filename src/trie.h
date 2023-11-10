@@ -6,10 +6,10 @@
 // Stores key-values of input_t* -> int. Can't store 0 because it signals that a
 // node is empty.
 
-typedef struct trie_s {
+typedef struct Trie {
   input_t key;
-  struct trie_s *child; // can be NULL
-  struct trie_s *next;  // next sibling, can be NULL
+  struct Trie *child; // can be NULL
+  struct Trie *next;  // next sibling, can be NULL
   struct {
     int ref;    // reference to a function in the registry, or 0
     char *keys; // full key sequence (used for menu), NULL for non-leaves

@@ -9,7 +9,7 @@
 #define NOTIFY_TIMEOUT 1000 // minimum time between directory reloads
 #define NOTIFY_DELAY 50 // delay before reloading after an event is triggered
 
-typedef struct notify_s {
+typedef struct notify {
   ev_io watcher;
   int inotify_fd;
   int fifo_wd;

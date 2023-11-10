@@ -17,7 +17,7 @@ struct vwstr {
   uint32_t len;
 };
 
-typedef struct cmdline_s {
+typedef struct Cmdline {
   struct vstr prefix;
   struct vwstr left;
   struct vwstr right;

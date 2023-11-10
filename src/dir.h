@@ -26,7 +26,7 @@ struct dir_settings {
   fileinfo fileinfo;
 };
 
-typedef struct dir_s {
+typedef struct Dir {
   char *path;
   char *name; // substring of path
 

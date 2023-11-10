@@ -23,34 +23,33 @@
 
 typedef void (*ht_free_func)(void *);
 
-struct hashtab_s;
-struct linked_hashtab_s;
+struct Hashtab;
+struct LinkedHashtab;
 
-struct hashtab_s *ht_init(struct hashtab_s *ht, size_t capacity,
-                          ht_free_func free);
+struct Hashtab *ht_init(struct Hashtab *ht, size_t capacity, ht_free_func free);
 
-struct hashtab_s *ht_deinit(struct hashtab_s *ht);
+struct Hashtab *ht_deinit(struct Hashtab *ht);
 
 // Create a new hash table with base `capacity` and a `free` function.
-struct hashtab_s *ht_with_capacity(size_t capacity, ht_free_func free);
+struct Hashtab *ht_with_capacity(size_t capacity, ht_free_func free);
 
 // Create a new hash table using a default base capacity of
 // `HT_DEFAULT_CAPCCITY` and a `free` function..
-static inline struct hashtab_s *ht_create(ht_free_func free) {
+static inline struct Hashtab *ht_create(ht_free_func free) {
   return ht_with_capacity(HT_DEFAULT_CAPACITY, free);
 }
 
 // Destroy a hash table, freeing all elements.
-void ht_destroy(struct hashtab_s *t) __attribute__((nonnull));
+void ht_destroy(struct Hashtab *t) __attribute__((nonnull));
 
 // Insert or update key-value pair. Returns `true` on insert, `false` on update.
-bool ht_set(struct hashtab_s *t, const char *key, void *val)
+bool ht_set(struct Hashtab *t, const char *key, void *val)
     __attribute__((nonnull));
 
 // Create a copy of key/val and inserts it into the table. The hash table should
 // have `xfree` as its free function.
 __attribute__((nonnull)) static inline void
-ht_set_copy(struct hashtab_s *t, const char *key, const void *val, size_t sz) {
+ht_set_copy(struct Hashtab *t, const char *key, const void *val, size_t sz) {
   char *mem = xmalloc(sz + strlen(key) + 1);
   memcpy(mem, val, sz);
   strcpy(mem + sz, key);
@@ -59,49 +58,48 @@ ht_set_copy(struct hashtab_s *t, const char *key, const void *val, size_t sz) {
 
 // Delete `key` from the hash table. Returns `true` on deletion, `false` if the
 // key wasn't found.
-bool ht_delete(struct hashtab_s *t, const char *key) __attribute__((nonnull));
+bool ht_delete(struct Hashtab *t, const char *key) __attribute__((nonnull));
 
 // Probe the has table for `key`. Returns the corresponding value on success,
 // `NULL` otherwise.
-void *ht_get(struct hashtab_s *t, const char *key) __attribute__((nonnull));
+void *ht_get(struct Hashtab *t, const char *key) __attribute__((nonnull));
 
 // Clear all values from the hash table.
-void ht_clear(struct hashtab_s *t) __attribute__((nonnull));
+void ht_clear(struct Hashtab *t) __attribute__((nonnull));
 
-struct linked_hashtab_s *lht_init(struct linked_hashtab_s *t, size_t capacity,
-                                  ht_free_func free)
-    __attribute__((nonnull(1)));
+struct LinkedHashtab *lht_init(struct LinkedHashtab *t, size_t capacity,
+                               ht_free_func free) __attribute__((nonnull(1)));
 
-struct linked_hashtab_s *lht_deinit(struct linked_hashtab_s *t)
+struct LinkedHashtab *lht_deinit(struct LinkedHashtab *t)
     __attribute__((nonnull(1)));
 
 // Create a new hash table with base `capacity` and a `free` function.
-struct linked_hashtab_s *lht_with_capacity(size_t capacity, ht_free_func free);
+struct LinkedHashtab *lht_with_capacity(size_t capacity, ht_free_func free);
 
 // Create a new hash table using a default base capacity of
 // `HT_DEFAULT_CAPCCITY` and a `free` function..
-static inline struct linked_hashtab_s *lht_create(ht_free_func free) {
+static inline struct LinkedHashtab *lht_create(ht_free_func free) {
   return lht_with_capacity(HT_DEFAULT_CAPACITY, free);
 }
 
 // Destroy a hash table, freeing all elements.
-void lht_destroy(struct linked_hashtab_s *t) __attribute__((nonnull));
+void lht_destroy(struct LinkedHashtab *t) __attribute__((nonnull));
 
 // Insert or update key-value pair. Returns `true` on insert, `false` on update.
-bool lht_set(struct linked_hashtab_s *t, const char *key, void *val)
+bool lht_set(struct LinkedHashtab *t, const char *key, void *val)
     __attribute__((nonnull));
 
 // returns true on delete
-bool lht_delete(struct linked_hashtab_s *t, const char *key)
+bool lht_delete(struct LinkedHashtab *t, const char *key)
     __attribute__((nonnull));
 
 // Probe the has table for `key`. Returns the corresponding value on success,
 // `NULL` otherwise.
-void *lht_get(const struct linked_hashtab_s *t, const char *key)
+void *lht_get(const struct LinkedHashtab *t, const char *key)
     __attribute__((nonnull));
 
 // Clear all values from the hash table.
-void lht_clear(struct linked_hashtab_s *t) __attribute__((nonnull));
+void lht_clear(struct LinkedHashtab *t) __attribute__((nonnull));
 
 struct ht_bucket {
   const char *key;
@@ -109,7 +107,7 @@ struct ht_bucket {
   struct ht_bucket *next;
 };
 
-typedef struct hashtab_s {
+typedef struct Hashtab {
   struct ht_bucket *buckets;
   size_t capacity; // All buckets currently in use (the actual array might be
                    // larger)
@@ -128,7 +126,7 @@ struct lht_bucket {
   struct lht_bucket *order_prev;
 };
 
-typedef struct linked_hashtab_s {
+typedef struct LinkedHashtab {
   struct lht_bucket *buckets;
   size_t capacity;
   size_t n;

@@ -7,10 +7,10 @@
 
 #include <lua.h>
 
-struct lfm_s;
+struct Lfm;
 
 // Initialize lua state, load libraries.
-void llua_init(lua_State *L, struct lfm_s *lfm);
+void llua_init(lua_State *L, struct Lfm *lfm);
 
 void llua_deinit(lua_State *L);
 

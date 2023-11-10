@@ -210,7 +210,7 @@ static void prepare_cb(EV_P_ ev_prepare *w, int revents) {
   }
 
   if (lfm->messages) {
-    cvector_foreach_ptr(struct message_s * m, lfm->messages) {
+    cvector_foreach_ptr(struct message * m, lfm->messages) {
       if (m->error) {
         lfm_error(lfm, "%s", m->text);
       } else {
@@ -474,7 +474,7 @@ void lfm_print(Lfm *lfm, const char *format, ...) {
   va_start(args, format);
 
   if (!lfm->ui.running) {
-    struct message_s msg = {NULL, false};
+    struct message msg = {NULL, false};
     vasprintf(&msg.text, format, args);
     cvector_push_back(lfm->messages, msg);
   } else {
@@ -489,7 +489,7 @@ void lfm_error(Lfm *lfm, const char *format, ...) {
   va_start(args, format);
 
   if (!lfm->ui.running) {
-    struct message_s msg = {NULL, true};
+    struct message msg = {NULL, true};
     vasprintf(&msg.text, format, args);
     cvector_push_back(lfm->messages, msg);
   } else {

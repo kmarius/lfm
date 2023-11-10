@@ -4,7 +4,7 @@
 
 #include "hashtab.h"
 
-typedef struct history_s {
+typedef struct history {
   LinkedHashtab items;
   struct lht_bucket *cur;
   size_t num_new_entries; // new entries to be written to the file (excluding

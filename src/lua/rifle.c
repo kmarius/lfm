@@ -25,13 +25,12 @@
 #define DELIM_CONDITION ","
 #define DELIM_COMMAND " = "
 
-struct fileinfo_s;
+struct FileInfo;
+struct Condition;
 
-struct condition_s;
+typedef bool(check_fun)(struct Condition *, const struct FileInfo *);
 
-typedef bool(check_fun)(struct condition_s *, const struct fileinfo_s *);
-
-typedef struct condition_s {
+typedef struct Condition {
   bool negate;
   union {
     char *arg;
@@ -43,7 +42,7 @@ typedef struct condition_s {
   check_fun *check;
 } Condition;
 
-typedef struct rule_s {
+typedef struct Rule {
   Condition **conditions;
   char *command;
   char *label;
@@ -54,13 +53,13 @@ typedef struct rule_s {
   bool flag_esc;
 } Rule;
 
-typedef struct fileinfo_s {
+typedef struct FileInfo {
   const char *file;
   const char *path;
   const char *mime;
 } FileInfo;
 
-typedef struct rifle_s {
+typedef struct {
   char *config_file;
   Rule **rules;
 } Rifle;

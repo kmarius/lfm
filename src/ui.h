@@ -22,12 +22,12 @@
 #define REDRAW_FULL                                                            \
   (REDRAW_INFO | REDRAW_FM | REDRAW_CMDLINE | REDRAW_MENU | REDRAW_PREVIEW)
 
-struct message_s {
+struct message {
   char *text;
   bool error;
 };
 
-typedef struct ui_s {
+typedef struct Ui {
   // Indicates whether the UI is running or suspended.
   bool running;
 
@@ -55,9 +55,9 @@ typedef struct ui_s {
 
   ev_io input_watcher;
   struct {
-    struct trie_s *cur;       // current leaf in the trie of the active mode
-    struct trie_s *cur_input; // current leaf in the trie of input maps
-    input_t *seq;             // current key sequence
+    struct Trie *cur;       // current leaf in the trie of the active mode
+    struct Trie *cur_input; // current leaf in the trie of input maps
+    input_t *seq;           // current key sequence
     int count;
     bool accept_count;
     Trie *input;
@@ -80,7 +80,7 @@ typedef struct ui_s {
   ev_timer menu_delay_timer;
   ev_timer map_clear_timer;
 
-  cvector_vector_type(struct message_s) messages;
+  cvector_vector_type(struct message) messages;
   bool show_message; // if true, the latest message is drawn over the statusline
                      // at the bottom
 

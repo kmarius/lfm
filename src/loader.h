@@ -6,7 +6,7 @@
 #include "hashtab.h"
 #include "preview.h"
 
-typedef struct loader_s {
+typedef struct Loader {
   Hashtab *dir_cache;
   Hashtab *preview_cache;
   size_t dir_cache_version; // number of times the cache has been dropped

@@ -65,7 +65,7 @@ void ui_init(Ui *ui) {
 
 void ui_deinit(Ui *ui) {
   ui_suspend(ui);
-  cvector_foreach_ptr(struct message_s * m, ui->messages) {
+  cvector_foreach_ptr(struct message * m, ui->messages) {
     xfree(m->text);
   }
   cvector_free(ui->messages);
@@ -283,7 +283,7 @@ void ui_error(Ui *ui, const char *format, ...) {
 }
 
 void ui_verror(Ui *ui, const char *format, va_list args) {
-  struct message_s msg = {NULL, true};
+  struct message msg = {NULL, true};
   vasprintf(&msg.text, format, args);
 
   log_error(msg.text);
@@ -294,7 +294,7 @@ void ui_verror(Ui *ui, const char *format, va_list args) {
 }
 
 void ui_vechom(Ui *ui, const char *format, va_list args) {
-  struct message_s msg = {NULL, false};
+  struct message msg = {NULL, false};
   vasprintf(&msg.text, format, args);
 
   cvector_push_back(ui->messages, msg);
@@ -920,7 +920,7 @@ static inline void draw_cmdline(Ui *ui) {
     notcurses_cursor_enable(ui->nc, ui->y - 1, cursor_pos);
   } else {
     if (ui->running && ui->show_message) {
-      struct message_s *msg = cvector_end(ui->messages) - 1;
+      struct message *msg = cvector_end(ui->messages) - 1;
       print_message(ui, msg->text, msg->error);
     } else {
       statusline_draw(ui);

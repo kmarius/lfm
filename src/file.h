@@ -7,7 +7,7 @@
 #include "fuzzy.h"
 #include "util.h"
 
-typedef struct file_s {
+typedef struct File {
   char *path;
   char *name;
   char *ext;

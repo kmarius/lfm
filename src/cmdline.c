@@ -10,7 +10,7 @@
 #include "ncutil.h"
 #include "ui.h"
 
-#define get_ui(cmdline_) container_of(cmdline_, struct ui_s, cmdline)
+#define get_ui(cmdline_) container_of(cmdline_, struct Ui, cmdline)
 
 #define VSTR_INIT(vec, c)                                                      \
   do {                                                                         \

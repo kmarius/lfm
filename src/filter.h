@@ -1,6 +1,6 @@
 #include <stdbool.h>
 
-typedef struct filter_s Filter;
+typedef struct Filter Filter;
 
 Filter *filter_create(const char *filter);
 void filter_destroy(Filter *filter);
