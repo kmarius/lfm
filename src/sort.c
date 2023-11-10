@@ -1,5 +1,6 @@
 #include "sort.h"
 #include "file.h"
+#include "memory.h"
 #include "strnatcmp.h"
 
 const char *sorttype_str[NUM_SORTTYPE] = {

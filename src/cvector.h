@@ -2,7 +2,7 @@
 //
 // Copyright (c) 2015 Evan Teran
 //
-// Permission is hereby granted, xfree of charge, to any person obtaining a copy
+// Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
@@ -21,17 +21,18 @@
 // SOFTWARE.
 
 /* Based on https://github.com/eteran/c-vector/blob/master/cvector.h
- * Changes: always use logarithmic grow
+ * Changes: always use exponential grow
  *          startsize is 4
- *          add macro cvector_ffree to pass a function/macro to xfree elements
+ *          add macro cvector_ffree to pass a function/macro to free elements
  *          ...
  */
 
 #pragma once
 
 #include <assert.h> /* for assert */
-#include <stdlib.h> /* for xmalloc/xrealloc/xfree */
 #include <string.h> /* for memcpy */
+
+#include "memory.h" /* for xmalloc/xrealloc/xfree */
 
 #define CVECTOR_INITIAL_CAPACITY 8
 
@@ -210,18 +211,18 @@
 
 /**
  * @brief cvector_swap_ferase - removes the element at index i from the vector
- * and replaces it with the last element, with an additional parameter to xfree
+ * and replaces it with the last element, with an additional parameter to free
  * the object
  * @param vec - the vector
  * @param i - index of element to remove
  * @return void
  */
-#define cvector_swap_ferase(vec, xfree, i)                                     \
+#define cvector_swap_ferase(vec, free, i)                                      \
   do {                                                                         \
     if (vec) {                                                                 \
       const size_t cv_sz = cvector_size(vec);                                  \
       if ((i) < cv_sz) {                                                       \
-        xfree((vec)[i]);                                                       \
+        free((vec)[i]);                                                        \
         (vec)[(i)] = (vec)[cv_sz - 1];                                         \
         cvector_set_size((vec), cv_sz - 1);                                    \
       }                                                                        \
@@ -230,17 +231,17 @@
 
 /**
  * @brief cvector_erase - removes the element at index i from the vector with an
- * additional parameter to xfree the object
+ * additional parameter to free the object
  * @param vec - the vector
  * @param i - index of element to remove
  * @return void
  */
-#define cvector_ferase(vec, xfree, i)                                          \
+#define cvector_ferase(vec, free, i)                                           \
   do {                                                                         \
     if (vec) {                                                                 \
       const size_t cv_sz = cvector_size(vec);                                  \
       if ((i) < cv_sz) {                                                       \
-        xfree((vec)[i]);                                                       \
+        free((vec)[i]);                                                        \
         cvector_set_size((vec), cv_sz - 1);                                    \
         size_t cv_x;                                                           \
         for (cv_x = (i); cv_x < (cv_sz - 1); ++cv_x) {                         \
@@ -296,54 +297,54 @@
   } while (0)
 
 /**
- * @brief cvector_ffree - calls a function to xfree each element and frees the
+ * @brief cvector_ffree - calls a function to free each element and frees the
  * vector
  * @param vec - the vector
- * @param xfree - a function/macro used to xfree each object
+ * @param free - a function/macro used to free each object
  * @return void
  */
-#define cvector_ffree(vec, xfree)                                              \
+#define cvector_ffree(vec, free)                                               \
   do {                                                                         \
     if (vec) {                                                                 \
       const size_t cv_sz = cvector_size(vec);                                  \
       for (size_t cv_i = 0; cv_i < cv_sz; ++cv_i) {                            \
-        xfree((vec)[cv_i]);                                                    \
+        free((vec)[cv_i]);                                                     \
       }                                                                        \
       cvector_free(vec);                                                       \
     }                                                                          \
   } while (0)
 
 /**
- * @brief cvector_ffree_clear - calls a function to xfree each element and frees
+ * @brief cvector_ffree_clear - calls a function to free each element and frees
  * the vector, NULLs the pointer
  * @param vec - the vector
- * @param xfree - a function/macro used to xfree each object
+ * @param free - a function/macro used to free each object
  * @return void
  */
-#define cvector_ffree_clear(vec, xfree)                                        \
+#define cvector_ffree_clear(vec, free)                                         \
   do {                                                                         \
     if (vec) {                                                                 \
       const size_t cv_sz = cvector_size(vec);                                  \
       for (size_t cv_i = 0; cv_i < cv_sz; ++cv_i) {                            \
-        xfree((vec)[cv_i]);                                                    \
+        free((vec)[cv_i]);                                                     \
       }                                                                        \
       cvector_free_clear(vec);                                                 \
     }                                                                          \
   } while (0)
 
 /**
- * @brief cvector_fclear - calls a function to xfree each element and sets the
+ * @brief cvector_fclear - calls a function to free each element and sets the
  * size to zero
  * @param vec - the vector
- * @param xfree - a function/macro used to xfree each object
+ * @param free - a function/macro used to free each object
  * @return void
  */
-#define cvector_fclear(vec, xfree)                                             \
+#define cvector_fclear(vec, free)                                              \
   do {                                                                         \
     if (vec) {                                                                 \
       const size_t cv_sz = cvector_size(vec);                                  \
       for (size_t cv_i = 0; cv_i < cv_sz; ++cv_i) {                            \
-        xfree((vec)[cv_i]);                                                    \
+        free((vec)[cv_i]);                                                     \
       }                                                                        \
       cvector_set_size(vec, 0);                                                \
     }                                                                          \

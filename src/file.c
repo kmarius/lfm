@@ -11,6 +11,7 @@
 #include <unistd.h> // readlink
 
 #include "file.h"
+#include "memory.h"
 #include "util.h" // asprintf
 
 File *file_create(const char *dir, const char *name) {

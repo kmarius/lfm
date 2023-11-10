@@ -10,8 +10,6 @@
 #include <wchar.h>
 #include <wctype.h>
 
-#include "memory.h"
-
 #ifndef streq
 #define streq(X, Y) (*(char *)(X) == *(char *)(Y) && strcmp(X, Y) == 0)
 #endif
@@ -20,36 +18,20 @@
 #define strcaseeq(X, Y) (strcasecmp(X, Y) == 0)
 #endif
 
-static inline char *rtrim(char *s) {
-  char *t = s;
-  char *end = s - 1;
-  while (*t) {
-    if (!isspace(*t)) {
-      end = t;
-    }
-    t++;
-  }
-  *++end = 0;
-  return s;
-}
-
-static inline char *ltrim(char *s) {
-  s--;
-  while (isspace(*++s)) {
-  }
-  return s;
-}
-
-static inline char *trim(char *s) {
-  return ltrim(rtrim(s));
-}
-
 static inline int min(int i, int j) {
   return i < j ? i : j;
 }
 
 static inline int max(int i, int j) {
   return i > j ? i : j;
+}
+
+char *rtrim(char *s);
+
+char *ltrim(char *s);
+
+static inline char *trim(char *s) {
+  return ltrim(rtrim(s));
 }
 
 bool haswprefix(const wchar_t *restrict string, const wchar_t *restrict prefix);

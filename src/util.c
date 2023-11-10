@@ -15,6 +15,26 @@
 #include "memory.h"
 #include "util.h"
 
+char *rtrim(char *s) {
+  char *t = s;
+  char *end = s - 1;
+  while (*t) {
+    if (!isspace(*t)) {
+      end = t;
+    }
+    t++;
+  }
+  *++end = 0;
+  return s;
+}
+
+char *ltrim(char *s) {
+  s--;
+  while (isspace(*++s)) {
+  }
+  return s;
+}
+
 const wchar_t *wstrcasestr(const wchar_t *str, const wchar_t *sub) {
 
   if (*sub == 0) {
