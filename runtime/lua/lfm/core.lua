@@ -121,6 +121,30 @@ end
 local commands = {}
 lfm.commands = commands
 
+local reserved = {
+	["and"] = true,
+	["break"] = true,
+	["do"] = true,
+	["elseif"] = true,
+	["else"] = true,
+	["end"] = true,
+	["false"] = true,
+	["for"] = true,
+	["function"] = true,
+	["if"] = true,
+	["in"] = true,
+	["local"] = true,
+	["nil"] = true,
+	["not"] = true,
+	["or"] = true,
+	["repeat"] = true,
+	["return"] = true,
+	["then"] = true,
+	["true"] = true,
+	["until"] = true,
+	["while"] = true,
+}
+
 ---Register a function as a lfm command or unregister a command. Supported options
 ---```lua
 ---    lfm.register_command("updir", fm.updir, { desc = "Go to parent directory" })
@@ -147,6 +171,9 @@ lfm.commands = commands
 ---@param f function The function to execute or `nil` to unregister
 ---@param opts? Lfm.CommandOpts Additional options.
 local function register_command(name, f, opts)
+	if reserved[name] then
+		error("reserved command name: " .. name)
+	end
 	-- TODO: we should probably make a copy of opts
 	if f then
 		opts = opts or {}
