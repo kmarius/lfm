@@ -2,16 +2,17 @@
 
 #include <notcurses/notcurses.h>
 
+// if the highest 3 bits are used in notcurses at some point we need to go
+// move to uint64_t
 typedef uint32_t input_t;
 
-// if these bits are used we need to go higher
-#define SHIFT_MASK ((input_t)1 << 31)
-#define CTRL_MASK ((input_t)1 << 30)
-#define ALT_MASK ((input_t)1 << 29)
+#define SHIFT_MASK ((input_t)1 << (sizeof(input_t) * 8 - 1))
+#define CTRL_MASK ((input_t)1 << (sizeof(input_t) * 8 - 2))
+#define ALT_MASK ((input_t)1 << (sizeof(input_t) * 8 - 3))
 #define ID(u) ((input_t)(u & 0x1fffffff))
-#define ISSHIFT(u) ((u & SHIFT_MASK) >> 31)
-#define ISCTRL(u) ((u & CTRL_MASK) >> 30)
-#define ISALT(u) ((u & ALT_MASK) >> 29)
+#define ISSHIFT(u) (u & SHIFT_MASK)
+#define ISCTRL(u) (u & CTRL_MASK)
+#define ISALT(u) (u & ALT_MASK)
 #define SHIFT(u) (u | SHIFT_MASK)
 #define CTRL(u) (u | CTRL_MASK)
 #define ALT(u) (u | ALT_MASK)
