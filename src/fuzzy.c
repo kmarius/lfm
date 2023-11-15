@@ -97,7 +97,7 @@ static inline char *strcasechr(const char *s, char c) {
   return strpbrk(s, accept);
 }
 
-int has_match(const char *needle, const char *haystack) {
+int fzy_has_match(const char *needle, const char *haystack) {
   while (*needle) {
     char nch = *needle++;
 
@@ -193,7 +193,7 @@ static inline void match_row(const struct match_struct *match, int row,
   }
 }
 
-score_t match(const char *needle, const char *haystack) {
+score_t fzy_match(const char *needle, const char *haystack) {
   if (!*needle)
     return SCORE_MIN;
 
@@ -242,8 +242,8 @@ score_t match(const char *needle, const char *haystack) {
   return last_M[m - 1];
 }
 
-score_t match_positions(const char *needle, const char *haystack,
-                        size_t *positions) {
+score_t fzy_match_positions(const char *needle, const char *haystack,
+                            size_t *positions) {
   if (!*needle)
     return SCORE_MIN;
 

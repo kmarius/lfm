@@ -59,7 +59,8 @@ static void apply_filters(Dir *d) {
   if (d->fuzzy) {
     uint32_t j = 0;
     for (uint32_t i = 0; i < d->length_sorted; i++) {
-      if (has_match(d->fuzzy, file_name(d->files_sorted[i]))) {
+      if (fzy_has_match(d->fuzzy, file_name(d->files_sorted[i]))) {
+        fzy_match(d->fuzzy, file_name(d->files_sorted[i]));
         d->files[j++] = d->files_sorted[i];
       } else {
         d->files_sorted[i]->score = 0;
