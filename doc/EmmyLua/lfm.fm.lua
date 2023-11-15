@@ -30,35 +30,38 @@ lfm.fm = {}
 ---| '"ctime"'
 ---| '"mtime"'
 
+---@alias Lfm.FilterType
+---| '"substring"'
+---| '"fuzzy"'
+---| '"lua"'
+
+---@alias Lfm.FilterFunction fun(name: string):any
+
 ---Set the filter string for the current directory. "" or nil clears the filter.
 ---```lua
 ---    lfm.fm.filter(".txt")
+---    lfm.fm.filter(".txt", "substring")
+---
+---    lfm.fm.filter("txt", "fuzzy")
+---
+---    lfm.fm.filter(function(name) return string.find(name, "txt") end, "lua")
+---
+---    lfm.fm.filter()
 ---```
----@param filter string|nil The filter string.
-function lfm.fm.filter(filter) end
+---@param filter? string The filter string.
+---@param type? Lfm.FilterType The filter type.
+---@overload fun(function: Lfm.FilterFunction, type: "lua")
+---@overload fun()
+function lfm.fm.filter(filter, type) end
 
 ---Get the filter string for the current directory.
 ---```lua
 ---    local filter = lfm.fm.getfilter()
 ---```
 ---@return string|nil filter The filter string.
+---@return Lfm.FilterType|nil filter The filter type.
 ---@nodiscard
 function lfm.fm.getfilter() end
-
----Set the fuzzy filter string for the current directory. "" or nil clears the filter.
----```lua
----    lfm.fm.fuzzy(".txt")
----```
----@param filter string|nil The filter string.
-function lfm.fm.fuzzy(filter) end
-
----Get the fuzzy filter string for the current directory.
----```lua
----    local fuzzy = lfm.fm.getfuzzy()
----```
----@return string|nil filter The filter string.
----@nodiscard
-function lfm.fm.getfuzzy() end
 
 ---Jump to the directory saved by the automatic mark (e.g. with '')
 ---```lua

@@ -6,6 +6,7 @@
  */
 
 #include <lua.h>
+#include <stdbool.h>
 
 struct Lfm;
 
@@ -32,3 +33,5 @@ void llua_run_stdout_callback(lua_State *L, int ref, const char *line);
 
 // Call a function from reference, passing an optional count if it is positive
 void llua_call_from_ref(lua_State *L, int ref, int count);
+
+bool llua_filter(lua_State *L, int ref, const char *name);

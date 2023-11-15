@@ -379,31 +379,32 @@ static int l_fm_cut(lua_State *L) {
 }
 
 static int l_fm_filter_get(lua_State *L) {
-  lua_pushstring(L, fm_filter_get(fm));
-  return 1;
-}
-
-static int l_fm_filter(lua_State *L) {
-  fm_filter(fm, lua_tostring(L, 1));
-  ui_redraw(ui, REDRAW_FM);
+  Filter *filter = fm_current_dir(fm)->filter;
+  if (filter) {
+    lua_pushstring(L, filter_string(filter));
+    lua_pushstring(L, filter_type(filter));
+    return 2;
+  }
   return 0;
 }
 
-static int l_fm_fuzzy_get(lua_State *L) {
-  const char *fuzzy = fm_current_dir(fm)->fuzzy;
-  if (fuzzy) {
-    lua_pushstring(L, fuzzy);
+static int l_fm_filter(lua_State *L) {
+  if (!lua_isnoneornil(L, 1)) {
+    const char *type = lua_tostring(L, 2);
+    if (!type || streq(type, "substring")) {
+      fm_filter(fm, filter_create_sub(lua_tostring(L, 1)));
+    } else if (streq(type, "fuzzy")) {
+      fm_filter(fm, filter_create_fuzzy(lua_tostring(L, 1)));
+    } else if (streq(type, "lua")) {
+      luaL_checktype(L, 1, LUA_TFUNCTION);
+      lua_settop(L, 1);
+      int ref = lua_set_callback(L);
+      fm_filter(fm, filter_create_lua(ref, L));
+    } else {
+      return luaL_error(L, "unrecognized filter type: %s", type);
+    }
   } else {
-    lua_pushnil(L);
-  }
-  return 1;
-}
-
-static int l_fm_fuzzy(lua_State *L) {
-  if (lua_isnil(L, 1)) {
-    fm_fuzzy(fm, NULL);
-  } else {
-    fm_fuzzy(fm, lua_tostring(L, 1));
+    fm_filter(fm, NULL);
   }
   ui_redraw(ui, REDRAW_FM);
   return 0;
@@ -442,9 +443,7 @@ static const struct luaL_Reg fm_lib[] = {
     {"chdir", l_fm_chdir},
     {"down", l_fm_down},
     {"filter", l_fm_filter},
-    {"fuzzy", l_fm_fuzzy},
     {"getfilter", l_fm_filter_get},
-    {"getfuzzy", l_fm_fuzzy_get},
     {"jump_automark", l_fm_jump_automark},
     {"open", l_fm_open},
     {"current_dir", l_fm_current_dir},

@@ -55,7 +55,11 @@ function M._setup()
 			input = true,
 			prefix = "filter: ",
 			on_enter = function()
-				cmd.line_set(fm.getfilter())
+				local filter, type = fm.getfilter()
+				if type ~= "substring" then
+					fm.filter(filter)
+				end
+				cmd.line_set(filter)
 			end,
 			on_change = function()
 				fm.filter(cmd.line_get())
@@ -79,17 +83,22 @@ function M._setup()
 			input = true,
 			prefix = "fuzzy: ",
 			on_enter = function()
-				cmd.line_set(fm.getfuzzy())
+				local filter, type = fm.getfilter()
+				if type ~= "fuzzy" then
+					fm.filter(filter, "fuzzy")
+				end
+				cmd.line_set(filter)
 			end,
 			on_change = function()
-				fm.fuzzy(cmd.line_get())
+				local filter = cmd.line_get()
+				fm.filter(filter, "fuzzy")
 				fm.top()
 			end,
 			on_return = function()
 				lfm.mode("normal")
 			end,
 			on_esc = function()
-				fm.fuzzy("")
+				fm.filter()
 			end,
 		}
 		lfm.register_mode(mode)
@@ -172,7 +181,7 @@ function M._setup()
 			on_return = function()
 				local file = fm.current_file()
 				if file then
-					fm.fuzzy("")
+					fm.filter()
 					if fm.open() then
 						lfm.mode("normal")
 						lfm.eval("open")
@@ -193,11 +202,11 @@ function M._setup()
 						config.hidden = false
 					end
 				end
-				fm.fuzzy(line)
+				fm.filter(line, "fuzzy")
 				fm.top()
 			end,
 			on_exit = function()
-				fm.fuzzy("")
+				fm.filter()
 				if not hidden then
 					config.hidden = false
 				end

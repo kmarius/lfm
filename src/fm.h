@@ -135,9 +135,7 @@ bool fm_updir(Fm *fm);
 void fm_move_cursor_to(Fm *fm, const char *name);
 
 // Apply the filter string given by `filter` to the current directory.
-void fm_filter(Fm *fm, const char *filter);
-
-void fm_fuzzy(Fm *fm, const char *fuzzy);
+void fm_filter(Fm *fm, Filter *filter);
 
 // Return the filter string of the currently selected directory.
 static inline const char *fm_filter_get(const Fm *fm) {

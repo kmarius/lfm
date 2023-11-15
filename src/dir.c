@@ -32,50 +32,20 @@ const char *dir_parent_path(const Dir *d) {
   return path_parent_s(d->path);
 }
 
-static int cmpchoice(const void *_idx1, const void *_idx2) {
-  const File *a = *(File **)_idx1;
-  const File *b = *(File **)_idx2;
-
-  if (a->score == b->score) {
-    // TODO:
-    /* To ensure a stable sort, we must also sort by the string
-     * pointers. We can do this since we know all the strings are
-     * from a contiguous memory segment (buffer in choices_t).
-     */
-    /* if (a->str < b->str) { */
-    if (_idx1 < _idx2) {
-      return -1;
-    } else {
-      return 1;
-    }
-  } else if (a->score < b->score) {
-    return 1;
-  } else {
-    return -1;
-  }
-}
-
 static void apply_filters(Dir *d) {
-  if (d->fuzzy) {
+  if (d->filter) {
     uint32_t j = 0;
     for (uint32_t i = 0; i < d->length_sorted; i++) {
-      if (fzy_has_match(d->fuzzy, file_name(d->files_sorted[i]))) {
-        fzy_match(d->fuzzy, file_name(d->files_sorted[i]));
+      if (filter_match(d->filter, d->files_sorted[i])) {
         d->files[j++] = d->files_sorted[i];
       } else {
         d->files_sorted[i]->score = 0;
       }
     }
     d->length = j;
-    qsort(d->files, d->length, sizeof(File *), cmpchoice);
-  } else if (d->filter) {
-    uint32_t j = 0;
-    for (uint32_t i = 0; i < d->length_sorted; i++) {
-      if (filter_match(d->filter, file_name(d->files_sorted[i]))) {
-        d->files[j++] = d->files_sorted[i];
-      }
+    if (filter_sort(d->filter)) {
+      qsort(d->files, d->length, sizeof(File *), filter_sort(d->filter));
     }
-    d->length = j;
   } else {
     /* TODO: try to select previously selected file
      * note that on the first call dir->files is not yet valid */
@@ -171,32 +141,12 @@ void dir_sort(Dir *d) {
   apply_filters(d);
 }
 
-void dir_filter(Dir *d, const char *filter) {
+void dir_filter(Dir *d, Filter *filter) {
   if (d->filter) {
     filter_destroy(d->filter);
     d->filter = NULL;
   }
-
-  if (filter && filter[0] != 0) {
-    if (d->fuzzy) {
-      XFREE_CLEAR(d->fuzzy);
-    }
-    d->filter = filter_create(filter);
-  }
-  apply_filters(d);
-}
-
-void dir_fuzzy(Dir *d, const char *fuzzy) {
-  if (d->fuzzy) {
-    XFREE_CLEAR(d->fuzzy);
-  }
-  if (fuzzy && fuzzy[0] != 0) {
-    if (d->filter) {
-      filter_destroy(d->filter);
-      d->filter = NULL;
-    }
-    d->fuzzy = strdup(fuzzy);
-  }
+  d->filter = filter;
   apply_filters(d);
 }
 
@@ -475,7 +425,6 @@ void dir_destroy(Dir *d) {
 
   cvector_ffree(d->files_all, file_destroy);
   filter_destroy(d->filter);
-  xfree(d->fuzzy);
   xfree(d->files_sorted);
   xfree(d->files);
   xfree(d->sel);

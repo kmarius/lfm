@@ -192,3 +192,13 @@ void llua_init(lua_State *L, Lfm *lfm_) {
 void llua_deinit(lua_State *L) {
   lua_close(L);
 }
+
+bool llua_filter(lua_State *L, int ref, const char *name) {
+  lua_get_callback(L, ref, false);
+  lua_pushstring(L, name);
+  if (llua_pcall(L, 1, 1)) { // []
+    ui_error(ui, "%s", lua_tostring(L, -1));
+    lua_pop(L, 1);
+  }
+  return lua_toboolean(L, -1);
+}

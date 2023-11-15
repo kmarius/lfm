@@ -61,7 +61,6 @@ typedef struct Dir {
   char *sel;
 
   Filter *filter;
-  char *fuzzy;
 
   uint32_t flatten_level;
   bool dircounts;
@@ -94,9 +93,7 @@ void dir_sort(Dir *dir);
 
 // Lfmlies the filter string `filter` to `dir`. `NULL` or `""` clears the
 // filter.
-void dir_filter(Dir *dir, const char *filter);
-
-void dir_fuzzy(Dir *d, const char *fuzzy);
+void dir_filter(Dir *dir, Filter *filter);
 
 // Check `dir` for changes on disk by comparing mtime. Returns `true` if there
 // are no changes, `false` otherwise.

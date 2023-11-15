@@ -513,11 +513,11 @@ void lfm_deinit(Lfm *lfm) {
   cvector_ffree(lfm->child_watchers, destroy_child_watcher);
   cvector_ffree(lfm->schedule_timers, free);
   notify_deinit(&lfm->notify);
-  llua_deinit(lfm->L);
   ui_deinit(&lfm->ui);
   fm_deinit(&lfm->fm);
   lfm_hooks_deinit(lfm);
   loader_deinit(&lfm->loader);
+  llua_deinit(lfm->L);
   async_deinit(&lfm->async);
   if (lfm->fifo_fd > 0) {
     close(lfm->fifo_fd);
