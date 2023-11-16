@@ -1,4 +1,6 @@
+#include <assert.h>
 #include <lauxlib.h>
+#include <limits.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -6,6 +8,7 @@
 
 #include "filter.h"
 #include "fuzzy.h"
+#include "log.h"
 #include "lua.h"
 #include "lua/lfmlua.h"
 #include "memory.h"
@@ -44,11 +47,7 @@ __compar_fn_t filter_sort(const Filter *filter) {
   return filter->cmp;
 }
 
-// substring filtering
-
-// Performance is surprisingly good even on very large directories (100k-1m
-// files). Unless something changes don't bother with incrementally extending
-// and existing filter and just rebuild it every time.
+// general filtering
 
 struct subfilter;
 
@@ -61,8 +60,12 @@ typedef struct SubstringFilter {
 } SubstringFilter;
 
 struct filter_atom {
-  char *string;
+  bool (*pred)(const struct filter_atom *, const File *);
   bool negate;
+  union {
+    int64_t size;
+    void *string;
+  };
 };
 
 struct subfilter {
@@ -70,6 +73,76 @@ struct subfilter {
   uint32_t capacity;
   struct filter_atom *atoms;
 };
+
+static bool pred_substr(const struct filter_atom *atom, const File *file) {
+  return (strcasestr(file->name, atom->string) != NULL);
+}
+
+static bool pred_size_lt(const struct filter_atom *atom, const File *file) {
+  return file->lstat.st_size < atom->size;
+}
+
+static bool pred_size_gt(const struct filter_atom *atom, const File *file) {
+  return file->lstat.st_size > atom->size;
+}
+
+static bool pred_size_eq(const struct filter_atom *atom, const File *file) {
+  return file->lstat.st_size == atom->size;
+}
+
+static inline int size_atom(struct filter_atom *atom, const char *tok) {
+  assert(tok[0] == 's');
+  if (tok[1] != '>' && tok[1] != '<' && tok[1] != '=') {
+    return 1;
+  }
+  const char *start = &tok[2];
+  if (tok[1] == '>') {
+    if (tok[2] == '=') {
+      atom->pred = pred_size_lt;
+      atom->negate ^= 1;
+      start++;
+    } else {
+      atom->pred = pred_size_gt;
+    }
+  } else if (tok[1] == '<') {
+    if (tok[2] == '=') {
+      atom->pred = pred_size_gt;
+      atom->negate ^= 1;
+      start++;
+    } else {
+      atom->pred = pred_size_lt;
+    }
+  } else {
+    atom->pred = pred_size_eq;
+  }
+  char *end;
+  double size = strtod(start, &end);
+  if (end != start) {
+    switch (tolower(end[0])) {
+    case 'g':
+      size *= 1024;
+      // fall through
+    case 'm':
+      size *= 1024;
+      // fall through
+    case 'k':
+      size *= 1024;
+      // fall through
+    case 0:
+      break;
+    default:
+      // invalid char
+      return 1;
+    }
+    if (end[0] && end[1]) {
+      // trailing char
+      return 1;
+    }
+    atom->size = (int64_t)size;
+  }
+
+  return 0;
+}
 
 static void subfilter_init(struct subfilter *s, char *filter) {
   s->length = 0;
@@ -83,11 +156,29 @@ static void subfilter_init(struct subfilter *s, char *filter) {
       s->capacity *= 2;
       s->atoms = xrealloc(s->atoms, s->capacity * sizeof *s->atoms);
     }
-    s->atoms[s->length].negate = tok[0] == '!';
-    if (s->atoms[s->length].negate) {
+
+    struct filter_atom *atom = &s->atoms[s->length];
+    atom->negate = tok[0] == '!';
+    if (tok[0] == '!') {
       tok++;
     }
-    s->atoms[s->length++].string = tok;
+    if (tok[0] == 0) {
+      continue;
+    }
+
+    int ret = 1;
+    switch (tok[0]) {
+    case 's':
+      ret = size_atom(atom, tok);
+      break;
+    }
+
+    // fall back to literal string matching
+    if (ret != 0) {
+      atom->pred = pred_substr;
+      atom->string = tok;
+    }
+    s->length++;
   }
 }
 
@@ -103,7 +194,7 @@ Filter *filter_create_sub(const char *filter) {
   f->super.match = &sub_match;
   f->super.destroy = &sub_destroy;
   f->super.string = strdup(filter);
-  f->super.type = FILTER_TYPE_SUBSTRING;
+  f->super.type = FILTER_TYPE_GENERAL;
 
   f->capacity = FILTER_INITIAL_CAPACITY;
   f->filters = xmalloc(f->capacity * sizeof *f->filters);
@@ -115,7 +206,10 @@ Filter *filter_create_sub(const char *filter) {
       f->capacity *= 2;
       f->filters = xrealloc(f->filters, f->capacity * sizeof *f->filters);
     }
-    subfilter_init(&f->filters[f->length++], tok);
+    subfilter_init(&f->filters[f->length], tok);
+    if (f->filters[f->length].length) {
+      f->length++;
+    }
   }
 
   return (Filter *)f;
@@ -131,13 +225,14 @@ void sub_destroy(Filter *filter) {
   xfree(f);
 }
 
-static inline bool atom_match(const struct filter_atom *a, const char *str) {
-  return (strcasestr(str, a->string) != NULL) != a->negate;
+static inline bool atom_match(const struct filter_atom *a, const File *file) {
+  return a->pred(a, file) != a->negate;
 }
 
-static inline bool subfilter_match(const struct subfilter *s, const char *str) {
+static inline bool subfilter_match(const struct subfilter *s,
+                                   const File *file) {
   for (uint32_t i = 0; i < s->length; i++) {
-    if (atom_match(&s->atoms[i], str)) {
+    if (atom_match(&s->atoms[i], file)) {
       return true;
     }
   }
@@ -147,7 +242,7 @@ static inline bool subfilter_match(const struct subfilter *s, const char *str) {
 bool sub_match(const Filter *filter, const File *file) {
   const SubstringFilter *f = (SubstringFilter *)filter;
   for (uint32_t i = 0; i < f->length; i++) {
-    if (!subfilter_match(&f->filters[i], file->name)) {
+    if (!subfilter_match(&f->filters[i], file)) {
       return false;
     }
   }

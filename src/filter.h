@@ -2,7 +2,7 @@
 
 #include "file.h"
 
-#define FILTER_TYPE_SUBSTRING "substring"
+#define FILTER_TYPE_GENERAL "filter"
 #define FILTER_TYPE_FUZZY "fuzzy"
 #define FILTER_TYPE_LUA "lua"
 

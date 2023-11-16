@@ -31,7 +31,7 @@ lfm.fm = {}
 ---| '"mtime"'
 
 ---@alias Lfm.FilterType
----| '"substring"'
+---| '"filter"'
 ---| '"fuzzy"'
 ---| '"lua"'
 
@@ -40,7 +40,7 @@ lfm.fm = {}
 ---Set the filter string for the current directory. "" or nil clears the filter.
 ---```lua
 ---    lfm.fm.filter(".txt")
----    lfm.fm.filter(".txt", "substring")
+---    lfm.fm.filter(".txt", "filter")
 ---
 ---    lfm.fm.filter("txt", "fuzzy")
 ---
