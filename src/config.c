@@ -1,13 +1,5 @@
-#include <linux/limits.h>
-#include <ncurses.h> // COLOR_ constants
-#include <notcurses/notcurses.h>
-#include <stdarg.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
 #include "config.h"
+
 #include "cvector.h"
 #include "dir.h"
 #include "hashtab.h"
@@ -16,6 +8,17 @@
 #include "notify.h"
 #include "path.h"
 #include "util.h"
+
+#include <ncurses.h> // COLOR_ constants
+#include <notcurses/notcurses.h>
+
+#include <stdarg.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include <linux/limits.h>
 
 // automatically generated, see config/pathdefs.c.in
 extern char *default_data_dir;

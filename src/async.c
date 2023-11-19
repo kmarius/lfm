@@ -1,10 +1,5 @@
-#include <errno.h>
-#include <ev.h>
-#include <pthread.h>
-#include <stdint.h>
-#include <sys/sysinfo.h>
-
 #include "async.h"
+
 #include "config.h"
 #include "dir.h"
 #include "file.h"
@@ -22,6 +17,14 @@
 #include "tpool.h"
 #include "ui.h"
 #include "util.h"
+
+#include <ev.h>
+
+#include <errno.h>
+#include <stdint.h>
+
+#include <pthread.h>
+#include <sys/sysinfo.h>
 
 #define DIRCOUNT_THRESHOLD 200 // send batches of dircounts around every 200ms
 

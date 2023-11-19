@@ -1,10 +1,10 @@
 #pragma once
 
+#include "cvector.h"
+
 #include <stdbool.h>
 #include <stdint.h>
 #include <time.h>
-
-#include "cvector.h"
 
 struct ncplane;
 struct Preview;

@@ -1,9 +1,9 @@
-#include <lauxlib.h>
-#include <lua.h>
-
 #include "../cmdline.h"
 #include "../ui.h"
 #include "private.h"
+
+#include <lauxlib.h>
+#include <lua.h>
 
 static int l_cmd_line_get(lua_State *L) {
   lua_pushstring(L, cmdline_get(&ui->cmdline));

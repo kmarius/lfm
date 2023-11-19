@@ -1,10 +1,10 @@
 #pragma once
 
-#include <ev.h>
-
 #include "dir.h"
 #include "hashtab.h"
 #include "preview.h"
+
+#include <ev.h>
 
 typedef struct Loader {
   Hashtab *dir_cache;

@@ -1,18 +1,8 @@
-#include <errno.h>
-#include <libgen.h>
-#include <linux/limits.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <unistd.h>
+#include "fm.h"
 
 #include "async.h"
 #include "config.h"
 #include "cvector.h"
-#include "fm.h"
 #include "hashtab.h"
 #include "hooks.h"
 #include "lfm.h"
@@ -22,6 +12,18 @@
 #include "notify.h"
 #include "path.h"
 #include "util.h"
+
+#include <errno.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include <libgen.h>
+#include <linux/limits.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 static void fm_update_watchers(Fm *fm);
 static void fm_remove_preview(Fm *fm);

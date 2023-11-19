@@ -1,11 +1,13 @@
-#include <assert.h>
-#include <ctype.h>
-#include <curses.h>
-#include <limits.h>
+#include "ncutil.h"
 
 #include "config.h"
 #include "log.h"
-#include "ncutil.h"
+
+#include <curses.h>
+
+#include <assert.h>
+#include <ctype.h>
+#include <limits.h>
 
 static inline void normal(struct ncplane *n) {
   ncplane_set_styles(n, NCSTYLE_NONE);

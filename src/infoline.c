@@ -1,13 +1,15 @@
-#include <curses.h>
-#include <unistd.h>
+#include "infoline.h"
 
 #include "config.h"
-#include "infoline.h"
 #include "lfm.h"
 #include "macros.h"
 #include "memory.h"
 #include "ncutil.h"
 #include "ui.h"
+
+#include <curses.h>
+
+#include <unistd.h>
 
 static inline void draw_custom_info(Ui *ui, const char *user, const char *host,
                                     const char *home);

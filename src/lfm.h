@@ -1,9 +1,5 @@
 #pragma once
 
-#include <ev.h>
-#include <lua.h>
-#include <stdint.h>
-
 #include "async.h"
 #include "fm.h"
 #include "hashtab.h"
@@ -12,6 +8,11 @@
 #include "mode.h"
 #include "notify.h"
 #include "ui.h"
+
+#include <ev.h>
+#include <lua.h>
+
+#include <stdint.h>
 
 typedef struct Lfm {
   Ui ui;

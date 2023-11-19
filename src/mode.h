@@ -1,6 +1,7 @@
 #pragma once
 
 #include "trie.h"
+
 #include <stdbool.h>
 
 struct Lfm;

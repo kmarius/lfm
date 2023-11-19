@@ -1,3 +1,5 @@
+#pragma once
+
 #include "keys.h"
 #include "trie.h"
 

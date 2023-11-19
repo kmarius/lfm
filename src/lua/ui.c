@@ -1,9 +1,10 @@
+#include "private.h"
+
 #include <ev.h>
 #include <lauxlib.h>
 #include <lua.h>
-#include <stdint.h>
 
-#include "private.h"
+#include <stdint.h>
 
 static int l_ui_messages(lua_State *L) {
   lua_createtable(L, cvector_size(ui->messages), 0);

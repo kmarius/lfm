@@ -1,22 +1,24 @@
-#include <errno.h>
-#include <limits.h>
-#include <linux/limits.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/stat.h>
-#include <sys/wait.h>
-#include <time.h>
+#include "preview.h"
 
 #include "config.h"
 #include "cvector.h"
 #include "log.h"
 #include "ncutil.h"
 #include "popen_arr.h"
-#include "preview.h"
 #include "sha256.h"
 #include "util.h"
+
+#include <errno.h>
+#include <limits.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+
+#include <linux/limits.h>
+#include <sys/stat.h>
+#include <sys/wait.h>
 
 #define PREVIEW_MAX_LINE_LENGTH 1024 // includes escapes and color codes
 

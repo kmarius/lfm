@@ -1,19 +1,20 @@
-#include <errno.h>
-#include <lauxlib.h>
-#include <lua.h>
-#include <stdbool.h>
-#include <stdlib.h>
-
-#include "auto/versiondef.h"
 #include "lfm.h"
-#include "lfmlua.h"
-#include "private.h"
 
 #include "../config.h"
 #include "../hooks.h"
 #include "../input.h"
 #include "../log.h"
 #include "../search.h"
+#include "auto/versiondef.h"
+#include "lfmlua.h"
+#include "private.h"
+
+#include <lauxlib.h>
+#include <lua.h>
+
+#include <errno.h>
+#include <stdbool.h>
+#include <stdlib.h>
 
 #define MODES_META "Lfm.Modes.Meta"
 #define MODE_META "Lfm.Mode.Meta"

@@ -1,9 +1,11 @@
-#include <assert.h>
-#include <libgen.h>
-#include <linux/limits.h>
+#include "path.h"
 
 #include "memory.h"
-#include "path.h"
+
+#include <assert.h>
+
+#include <libgen.h>
+#include <linux/limits.h>
 
 bool path_isroot(const char *path) {
   return *path == '/' && *(path + 1) == 0;

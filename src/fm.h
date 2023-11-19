@@ -1,12 +1,12 @@
 #pragma once
 
-#include <stdbool.h>
-#include <stdint.h>
-
 #include "cvector.h"
 #include "dir.h"
 #include "file.h"
 #include "hashtab.h"
+
+#include <stdbool.h>
+#include <stdint.h>
 
 typedef enum paste_mode_e {
   PASTE_MODE_MOVE,

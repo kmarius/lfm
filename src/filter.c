@@ -1,18 +1,19 @@
-#include <assert.h>
+#include "filter.h"
+
+#include "fuzzy.h"
+#include "lua/lfmlua.h"
+#include "memory.h"
+#include "util.h"
+
 #include <lauxlib.h>
+#include <lua.h>
+
+#include <assert.h>
 #include <limits.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include "filter.h"
-#include "fuzzy.h"
-#include "log.h"
-#include "lua.h"
-#include "lua/lfmlua.h"
-#include "memory.h"
-#include "util.h"
 
 #define FILTER_INITIAL_CAPACITY 2
 

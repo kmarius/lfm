@@ -1,14 +1,16 @@
-#include <lauxlib.h>
-#include <lua.h>
-#include <stddef.h>
-#include <string.h>
+#include "hooks.h"
 
 #include "cvector.h"
-#include "hooks.h"
 #include "lfm.h"
 #include "log.h"
 #include "lua/lfmlua.h"
 #include "util.h"
+
+#include <lauxlib.h>
+#include <lua.h>
+
+#include <stddef.h>
+#include <string.h>
 
 // we fold the hook_id and the ref into an id that is returned to the user
 //     id == (hook_id << 20) | ref

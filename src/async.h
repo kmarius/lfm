@@ -1,9 +1,11 @@
 #pragma once
 
 #include <ev.h>
-#include <pthread.h>
+
 #include <stdbool.h>
 #include <stdint.h>
+
+#include <pthread.h>
 
 struct Dir;
 struct Preview;

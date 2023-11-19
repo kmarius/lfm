@@ -23,13 +23,14 @@
  *  - close stdin
  */
 
+#include "popen_arr.h"
+
 #include <errno.h>
-#include <fcntl.h>
 #include <signal.h>
 #include <string.h>
-#include <unistd.h>
 
-#include "popen_arr.h"
+#include <fcntl.h>
+#include <unistd.h>
 
 static int popen2_impl(FILE **in, FILE **out, FILE **err, const char *program,
                        char *const argv[], const char *pwd, int lookup_path) {

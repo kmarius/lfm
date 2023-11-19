@@ -1,7 +1,9 @@
 #pragma once
 
 #include "history.h"
+
 #include <notcurses/notcurses.h>
+
 #include <stdbool.h>
 #include <wchar.h>
 

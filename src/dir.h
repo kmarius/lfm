@@ -1,12 +1,12 @@
 #pragma once
 
-#include <stdbool.h>
-#include <stdint.h>
-
 #include "cvector.h"
 #include "file.h"
 #include "filter.h"
 #include "sort.h"
+
+#include <stdbool.h>
+#include <stdint.h>
 
 typedef enum {
   INFO_SIZE = 0,

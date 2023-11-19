@@ -29,10 +29,10 @@
 
 #pragma once
 
+#include "memory.h" /* for xmalloc/xrealloc/xfree */
+
 #include <assert.h> /* for assert */
 #include <string.h> /* for memcpy */
-
-#include "memory.h" /* for xmalloc/xrealloc/xfree */
 
 #define CVECTOR_INITIAL_CAPACITY 8
 

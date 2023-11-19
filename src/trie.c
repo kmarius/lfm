@@ -1,9 +1,10 @@
-#include <stdio.h>
-#include <stdlib.h>
+#include "trie.h"
 
 #include "cvector.h"
 #include "memory.h"
-#include "trie.h"
+
+#include <stdio.h>
+#include <stdlib.h>
 
 static inline Trie *trie_node_create(input_t key, Trie *next) {
   Trie *n = xcalloc(1, sizeof *n);

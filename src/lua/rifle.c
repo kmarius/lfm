@@ -1,20 +1,21 @@
-#include <lauxlib.h>
-#include <linux/limits.h>
-#include <lua.h>
-#include <lualib.h>
-
-#include <pcre.h>
-#include <stdbool.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/stat.h>
-#include <unistd.h>
-
 #include "../cvector.h"
 #include "../log.h"
 #include "../path.h"
 #include "../util.h"
+
+#include <lauxlib.h>
+#include <lua.h>
+#include <lualib.h>
+#include <pcre.h>
+
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include <linux/limits.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 #define RIFLE_META "Lfm.Rifle.Meta"
 

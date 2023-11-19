@@ -1,8 +1,8 @@
 #pragma once
 
-#include <stddef.h>
-
 #include "hashtab.h"
+
+#include <stddef.h>
 
 typedef struct History {
   LinkedHashtab items;

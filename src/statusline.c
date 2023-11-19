@@ -1,12 +1,13 @@
-#include <curses.h>
+#include "statusline.h"
 
 #include "config.h"
 #include "cvector.h"
 #include "lfm.h"
 #include "macros.h"
 #include "ncutil.h"
-#include "statusline.h"
 #include "ui.h"
+
+#include <curses.h>
 
 static inline char *my_strftime(time_t time, char *buffer, size_t bufsz);
 static inline uint32_t uint32_num_digits(uint32_t n);

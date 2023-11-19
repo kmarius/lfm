@@ -1,4 +1,5 @@
 #include "mode.h"
+
 #include "cmdline.h"
 #include "fm.h"
 #include "hashtab.h"

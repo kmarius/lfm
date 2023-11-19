@@ -1,10 +1,11 @@
 #pragma once
 
+#include "dir.h"
+
 #include <ev.h>
+
 #include <stdbool.h>
 #include <stdint.h>
-
-#include "dir.h"
 
 #define NOTIFY_TIMEOUT 1000 // minimum time between directory reloads
 #define NOTIFY_DELAY 50 // delay before reloading after an event is triggered

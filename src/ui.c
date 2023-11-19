@@ -1,16 +1,4 @@
-#include <errno.h>
-#include <ev.h>
-#include <fcntl.h>
-#include <libgen.h>
-#include <ncurses.h>
-#include <notcurses/notcurses.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
-#include <unistd.h>
-#include <wchar.h>
+#include "ui.h"
 
 #include "async.h"
 #include "cmdline.h"
@@ -32,8 +20,23 @@
 #include "mode.h"
 #include "ncutil.h"
 #include "statusline.h"
-#include "ui.h"
 #include "util.h"
+
+#include <ev.h>
+#include <ncurses.h>
+#include <notcurses/notcurses.h>
+
+#include <errno.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+#include <wchar.h>
+
+#include <fcntl.h>
+#include <libgen.h>
+#include <unistd.h>
 
 #define EXT_MAX_LEN 128 // to convert the extension to lowercase
 

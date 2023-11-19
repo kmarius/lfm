@@ -6,6 +6,7 @@
  */
 
 #include <lua.h>
+
 #include <stdbool.h>
 
 struct Lfm;

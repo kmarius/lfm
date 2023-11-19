@@ -1,8 +1,8 @@
-#include <lauxlib.h>
-#include <lua.h>
-
 #include "../log.h"
 #include "private.h"
+
+#include <lauxlib.h>
+#include <lua.h>
 
 #define LFM_LOG_META "Lfm.Log.Meta"
 #define STR(x) #x

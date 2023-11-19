@@ -1,8 +1,9 @@
+#include "keys.h"
+
+#include "util.h" /* hascaseprefix */
+
 #include <wchar.h>
 #include <wctype.h> /* towlower, towlupper */
-
-#include "keys.h"
-#include "util.h" /* hascaseprefix */
 
 #define MAX_KEY_NAME_LEN 2 + 9 + 2 + 2 + 2 /* <> + backspace + c- + a- + s- */
 

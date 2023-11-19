@@ -1,19 +1,22 @@
-#include <assert.h>
-#include <ctype.h>
-#include <errno.h>
-#include <libgen.h>
-#include <magic.h>
-#include <stdbool.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/stat.h>
-#include <sys/time.h>
-#include <sys/types.h>
-#include <time.h>
+#include "util.h"
 
 #include "log.h"
 #include "memory.h"
-#include "util.h"
+
+#include <magic.h>
+
+#include <assert.h>
+#include <ctype.h>
+#include <errno.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+
+#include <libgen.h>
+#include <sys/stat.h>
+#include <sys/time.h>
+#include <sys/types.h>
 
 char *rtrim(char *s) {
   char *t = s;

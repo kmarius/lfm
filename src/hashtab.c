@@ -1,11 +1,12 @@
+#include "hashtab.h"
+
+#include "util.h"
+
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include "hashtab.h"
-#include "util.h"
 
 // Take the lowest l bits from hash value
 #define HASH(h, l) ((h) & ((1 << (l)) - 1))

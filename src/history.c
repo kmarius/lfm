@@ -1,16 +1,17 @@
-#include <errno.h>
-#include <libgen.h>
-#include <stdbool.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include "history.h"
 
 #include "cvector.h"
 #include "hashtab.h"
-#include "history.h"
 #include "log.h"
 #include "memory.h"
 #include "path.h"
 #include "util.h"
+
+#include <errno.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+#include <libgen.h>
 
 /* TODO: signal errors on load/write (on 2021-10-23) */
 /* TODO: only show history items with matching prefixes (on 2021-07-24) */

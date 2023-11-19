@@ -1,15 +1,4 @@
-#include <errno.h>
-#include <ev.h>
-#include <fcntl.h>
-#include <lauxlib.h>
-#include <notcurses/notcurses.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/inotify.h>
-#include <sys/wait.h>
-#include <unistd.h>
+#include "lfm.h"
 
 #include "async.h"
 #include "config.h"
@@ -17,7 +6,6 @@
 #include "hashtab.h"
 #include "hooks.h"
 #include "input.h"
-#include "lfm.h"
 #include "loader.h"
 #include "log.h"
 #include "lua/lfmlua.h"
@@ -26,6 +14,21 @@
 #include "popen_arr.h"
 #include "ui.h"
 #include "util.h"
+
+#include <ev.h>
+#include <lauxlib.h>
+#include <notcurses/notcurses.h>
+
+#include <errno.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include <fcntl.h>
+#include <sys/inotify.h>
+#include <sys/wait.h>
+#include <unistd.h>
 
 #define TICK 1 // in seconds
 

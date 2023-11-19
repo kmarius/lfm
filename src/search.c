@@ -1,9 +1,10 @@
-#include <stdlib.h>
-#include <string.h>
+#include "search.h"
 
 #include "dir.h"
 #include "lfm.h"
-#include "search.h"
+
+#include <stdlib.h>
+#include <string.h>
 
 /* pass NULL to highlight previous search */
 static inline void search_highlight(Lfm *lfm, const char *string) {

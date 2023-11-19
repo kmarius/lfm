@@ -1,8 +1,4 @@
-#include <errno.h>
-#include <ev.h>
-#include <string.h>
-#include <sys/inotify.h>
-#include <unistd.h>
+#include "notify.h"
 
 #include "async.h"
 #include "config.h"
@@ -12,8 +8,15 @@
 #include "loader.h"
 #include "log.h"
 #include "macros.h"
-#include "notify.h"
 #include "util.h"
+
+#include <ev.h>
+
+#include <errno.h>
+#include <string.h>
+
+#include <sys/inotify.h>
+#include <unistd.h>
 
 // This is plenty of space, most file names are shorter and as long as
 // *one* event fits we should not get overwhelmed

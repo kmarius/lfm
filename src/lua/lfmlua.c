@@ -1,13 +1,16 @@
-#include <lauxlib.h>
-#include <lua.h>
-#include <lualib.h>
-#include <stdint.h>
-#include <string.h>
+#include "lfmlua.h"
 
 #include "../config.h"
 #include "../log.h"
 #include "lfm.h"
 #include "private.h"
+
+#include <lauxlib.h>
+#include <lua.h>
+#include <lualib.h>
+
+#include <stdint.h>
+#include <string.h>
 
 typedef struct {
   char *name;

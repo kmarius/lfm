@@ -1,13 +1,14 @@
 #pragma once
 
-#include <stdbool.h>
-#include <stdint.h>
-#include <unistd.h>
-#include <wchar.h>
-
 #include "cvector.h"
 #include "dir.h"
 #include "hashtab.h"
+
+#include <stdbool.h>
+#include <stdint.h>
+#include <wchar.h>
+
+#include <unistd.h>
 
 #define MAP_SUGGESTION_DELAY 1000
 #define MAP_CLEAR_DELAY 10000

@@ -1,6 +1,6 @@
-#include <stdlib.h> // NULL
-
 #include "tokenize.h"
+
+#include <stdlib.h> // NULL
 
 char *tokenize(const char *str, char *buf, const char **pos_str,
                char **pos_buf) {

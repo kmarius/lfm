@@ -22,6 +22,10 @@
  * THE SOFTWARE.
  */
 
+#include "fuzzy.h"
+
+#include "memory.h"
+
 #include <assert.h>
 #include <ctype.h>
 #include <float.h>
@@ -30,9 +34,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
-
-#include "fuzzy.h"
-#include "memory.h"
 
 #define SCORE_GAP_LEADING -0.005
 #define SCORE_GAP_TRAILING -0.005

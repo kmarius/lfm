@@ -1,9 +1,10 @@
-#include <lauxlib.h>
-#include <unistd.h>
-
 #include "../path.h"
 #include "../tokenize.h"
 #include "private.h"
+
+#include <lauxlib.h>
+
+#include <unistd.h>
 
 static int l_fn_normalize(lua_State *L) {
   char *path = path_normalize_a(luaL_checkstring(L, 1), fm->pwd);

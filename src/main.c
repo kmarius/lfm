@@ -1,13 +1,3 @@
-#include <errno.h>
-#include <ev.h>
-#include <libgen.h>
-#include <locale.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/stat.h>
-#include <sys/time.h>
-#include <unistd.h>
-
 #include "auto/versiondef.h"
 #include "config.h"
 #include "cvector.h"
@@ -17,6 +7,18 @@
 #include "path.h"
 #include "ui.h"
 #include "util.h"
+
+#include <ev.h>
+
+#include <errno.h>
+#include <locale.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+#include <libgen.h>
+#include <sys/stat.h>
+#include <sys/time.h>
+#include <unistd.h>
 
 #define USAGE_FMT                                                              \
   "Usage:\n  %s [options] <directory>\n\n"                                     \

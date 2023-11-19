@@ -1,14 +1,15 @@
-#include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
-#include <wctype.h>
-
 #include "cmdline.h"
+
 #include "config.h"
 #include "macros.h"
 #include "memory.h"
 #include "ncutil.h"
 #include "ui.h"
+
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+#include <wctype.h>
 
 #define get_ui(cmdline_) container_of(cmdline_, struct Ui, cmdline)
 

@@ -20,11 +20,13 @@
 //
 // See https://nachtimwald.com/2019/04/12/thread-pool-in-c/
 
-#include <pthread.h>
-#include <stdlib.h>
+#include "tpool.h"
 
 #include "memory.h"
-#include "tpool.h"
+
+#include <stdlib.h>
+
+#include <pthread.h>
 
 struct tpool_work {
   thread_func_t func;

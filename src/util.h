@@ -1,6 +1,5 @@
 #pragma once
 
-#include <bits/types.h>
 #include <ctype.h>
 #include <stdarg.h>
 #include <stdbool.h>
@@ -9,6 +8,8 @@
 #include <string.h>
 #include <wchar.h>
 #include <wctype.h>
+
+#include <bits/types.h>
 
 #ifndef streq
 #define streq(X, Y) (*(char *)(X) == *(char *)(Y) && strcmp(X, Y) == 0)

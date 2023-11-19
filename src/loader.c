@@ -1,5 +1,4 @@
-#include <ev.h>
-#include <stdint.h>
+#include "loader.h"
 
 #include "async.h"
 #include "config.h"
@@ -9,13 +8,16 @@
 #include "hashtab.h"
 #include "hooks.h"
 #include "lfm.h"
-#include "loader.h"
 #include "log.h"
 #include "macros.h"
 #include "memory.h"
 #include "path.h"
 #include "ui.h"
 #include "util.h"
+
+#include <ev.h>
+
+#include <stdint.h>
 
 struct timer_data {
   ev_timer watcher;

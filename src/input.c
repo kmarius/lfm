@@ -1,6 +1,4 @@
-#include <notcurses/nckeys.h>
-#include <notcurses/notcurses.h>
-#include <wctype.h>
+#include "input.h"
 
 #include "cmdline.h"
 #include "config.h"
@@ -8,7 +6,6 @@
 #include "fm.h"
 #include "hashtab.h"
 #include "hooks.h"
-#include "input.h"
 #include "keys.h"
 #include "lfm.h"
 #include "log.h"
@@ -20,6 +17,11 @@
 #include "trie.h"
 #include "ui.h"
 #include "util.h"
+
+#include <notcurses/nckeys.h>
+#include <notcurses/notcurses.h>
+
+#include <wctype.h>
 
 static void map_clear_timer_cb(EV_P_ ev_timer *w, int revents);
 static void stdin_cb(EV_P_ ev_io *w, int revents);

@@ -1,7 +1,7 @@
+#include "memory.h"
+
 #include <assert.h>
 #include <string.h>
-
-#include "memory.h"
 
 // strchrsub and xstrlcpy are borrowed from neovim
 

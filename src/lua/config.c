@@ -1,7 +1,3 @@
-#include <lauxlib.h>
-#include <stdint.h>
-#include <stdlib.h>
-
 #include "../config.h"
 #include "../infoline.h"
 #include "../log.h"
@@ -10,6 +6,11 @@
 #include "../tpool.h"
 #include "lua.h"
 #include "private.h"
+
+#include <lauxlib.h>
+
+#include <stdint.h>
+#include <stdlib.h>
 
 #define DIRSETTINGS_META "Lfm.Dirsettings.Meta"
 #define CONFIG_META "Lfm.Config.Meta"

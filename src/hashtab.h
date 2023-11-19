@@ -10,13 +10,13 @@
  * keys are not dublicated and should be a member of the value object.
  */
 
+#include "memory.h"
+
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include "memory.h"
 
 #define HT_DEFAULT_CAPACITY 16
 #define HT_GROW_THRESHOLD 0.75

@@ -1,22 +1,24 @@
-#include <dirent.h>
-#include <errno.h>
-#include <libgen.h>
-#include <linux/limits.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <unistd.h>
+#include "dir.h"
 
 #include "cvector.h"
-#include "dir.h"
 #include "fuzzy.h"
 #include "log.h"
 #include "memory.h"
 #include "path.h"
 #include "sort.h"
 #include "util.h"
+
+#include <errno.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include <dirent.h>
+#include <libgen.h>
+#include <linux/limits.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 const char *fileinfo_str[] = {"size", "atime", "ctime", "mtime"};
 

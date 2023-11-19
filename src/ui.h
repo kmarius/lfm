@@ -1,10 +1,5 @@
 #pragma once
 
-#include <ev.h>
-#include <notcurses/notcurses.h>
-#include <stdarg.h>
-#include <stdint.h>
-
 #include "cmdline.h"
 #include "cvector.h"
 #include "dir.h"
@@ -13,6 +8,12 @@
 #include "keys.h"
 #include "preview.h"
 #include "trie.h"
+
+#include <ev.h>
+#include <notcurses/notcurses.h>
+
+#include <stdarg.h>
+#include <stdint.h>
 
 #define REDRAW_INFO 1
 #define REDRAW_FM 2

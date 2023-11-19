@@ -1,11 +1,11 @@
 #pragma once
 
-#include <lauxlib.h>
-#include <lua.h>
-
 #include "../fm.h"
 #include "../lfm.h"
 #include "../ui.h"
+
+#include <lauxlib.h>
+#include <lua.h>
 
 extern Lfm *lfm;
 extern Ui *ui;

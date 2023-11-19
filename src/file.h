@@ -1,11 +1,12 @@
 #pragma once
 
-#include <stdbool.h>
-#include <stdint.h>
-#include <sys/stat.h>
-
 #include "fuzzy.h"
 #include "util.h"
+
+#include <stdbool.h>
+#include <stdint.h>
+
+#include <sys/stat.h>
 
 typedef struct File {
   char *path;
