@@ -2,11 +2,12 @@
 
 /*
  * Hashtable and linked hashtable with macros to iterate over the contents. The
- * table grows/shrinks dynamically, amortized by rehashing one bucket at a time.
- * The buckets of the linked version form a linked list so that one can iterate
- * in insertion order.
+ * table grows/shrinks dynamically, de-amortized by rehashing one bucket at a
+ * time. The buckets of the linked version form a doubly-linked list so that one
+ * can iterate in insertion order.
  *
- * Currently only hashes zero terminated strings and cannot store NULL.
+ * Currently only hashes zero terminated strings and cannot store NULL. Hash
+ * keys are not dublicated and should be a member of the value object.
  */
 
 #include <stdbool.h>
@@ -17,7 +18,7 @@
 
 #include "memory.h"
 
-#define HT_DEFAULT_CAPACITY 128
+#define HT_DEFAULT_CAPACITY 16
 #define HT_GROW_THRESHOLD 0.75
 #define HT_SHRINK_THRESHOLD 0.125
 
@@ -26,11 +27,14 @@ typedef void (*ht_free_func)(void *);
 struct Hashtab;
 struct LinkedHashtab;
 
+// Initialize a hash table with `capacity` and a `free` function.
+// Capacity will be rounded up to the next power of 2.
 struct Hashtab *ht_init(struct Hashtab *ht, size_t capacity, ht_free_func free);
 
 struct Hashtab *ht_deinit(struct Hashtab *ht);
 
-// Create a new hash table with base `capacity` and a `free` function.
+// Create a new hash table with `capacity` and a `free` function.
+// Capacity will be rounded up to the next power of 2.
 struct Hashtab *ht_with_capacity(size_t capacity, ht_free_func free);
 
 // Create a new hash table using a default base capacity of
@@ -40,40 +44,43 @@ static inline struct Hashtab *ht_create(ht_free_func free) {
 }
 
 // Destroy a hash table, freeing all elements.
-void ht_destroy(struct Hashtab *t) __attribute__((nonnull));
+void ht_destroy(struct Hashtab *ht) __attribute__((nonnull));
 
 // Insert or update key-value pair. Returns `true` on insert, `false` on update.
-bool ht_set(struct Hashtab *t, const char *key, void *val)
+bool ht_set(struct Hashtab *ht, const char *key, void *val)
     __attribute__((nonnull));
 
 // Create a copy of key/val and inserts it into the table. The hash table should
 // have `xfree` as its free function.
 __attribute__((nonnull)) static inline void
-ht_set_copy(struct Hashtab *t, const char *key, const void *val, size_t sz) {
+ht_set_copy(struct Hashtab *ht, const char *key, const void *val, size_t sz) {
   char *mem = xmalloc(sz + strlen(key) + 1);
   memcpy(mem, val, sz);
   strcpy(mem + sz, key);
-  ht_set(t, mem + sz, mem);
+  ht_set(ht, mem + sz, mem);
 }
 
 // Delete `key` from the hash table. Returns `true` on deletion, `false` if the
-// key wasn't found.
-bool ht_delete(struct Hashtab *t, const char *key) __attribute__((nonnull));
+// key wasn'ht found.
+bool ht_delete(struct Hashtab *ht, const char *key) __attribute__((nonnull));
 
 // Probe the has table for `key`. Returns the corresponding value on success,
 // `NULL` otherwise.
-void *ht_get(struct Hashtab *t, const char *key) __attribute__((nonnull));
+void *ht_get(struct Hashtab *ht, const char *key) __attribute__((nonnull));
 
 // Clear all values from the hash table.
-void ht_clear(struct Hashtab *t) __attribute__((nonnull));
+void ht_clear(struct Hashtab *ht) __attribute__((nonnull));
 
-struct LinkedHashtab *lht_init(struct LinkedHashtab *t, size_t capacity,
+// Initialize new hash table with `capacity` and a `free` function.
+// Capacity will be rounded up to the next power of 2.
+struct LinkedHashtab *lht_init(struct LinkedHashtab *ht, size_t capacity,
                                ht_free_func free) __attribute__((nonnull(1)));
 
-struct LinkedHashtab *lht_deinit(struct LinkedHashtab *t)
+struct LinkedHashtab *lht_deinit(struct LinkedHashtab *ht)
     __attribute__((nonnull(1)));
 
-// Create a new hash table with base `capacity` and a `free` function.
+// Create a new hash table with `capacity` and a `free` function.
+// Capacity will be rounded up to the next power of 2.
 struct LinkedHashtab *lht_with_capacity(size_t capacity, ht_free_func free);
 
 // Create a new hash table using a default base capacity of
@@ -83,23 +90,23 @@ static inline struct LinkedHashtab *lht_create(ht_free_func free) {
 }
 
 // Destroy a hash table, freeing all elements.
-void lht_destroy(struct LinkedHashtab *t) __attribute__((nonnull));
+void lht_destroy(struct LinkedHashtab *ht) __attribute__((nonnull));
 
 // Insert or update key-value pair. Returns `true` on insert, `false` on update.
-bool lht_set(struct LinkedHashtab *t, const char *key, void *val)
+bool lht_set(struct LinkedHashtab *ht, const char *key, void *val)
     __attribute__((nonnull));
 
 // returns true on delete
-bool lht_delete(struct LinkedHashtab *t, const char *key)
+bool lht_delete(struct LinkedHashtab *ht, const char *key)
     __attribute__((nonnull));
 
 // Probe the has table for `key`. Returns the corresponding value on success,
 // `NULL` otherwise.
-void *lht_get(const struct LinkedHashtab *t, const char *key)
+void *lht_get(const struct LinkedHashtab *ht, const char *key)
     __attribute__((nonnull));
 
 // Clear all values from the hash table.
-void lht_clear(struct LinkedHashtab *t) __attribute__((nonnull));
+void lht_clear(struct LinkedHashtab *ht) __attribute__((nonnull));
 
 struct ht_bucket {
   const char *key;
@@ -111,10 +118,10 @@ typedef struct Hashtab {
   struct ht_bucket *buckets;
   size_t capacity; // All buckets currently in use (the actual array might be
                    // larger)
-  size_t n;        // base capacity
   size_t size;     // number of elements held
   size_t xptr;     // index of the next bucket to be rehashed
-  uint8_t xlvl;    // number of full expansions completed
+  uint8_t xlvl;    // number of bits of hash used (expansion level)
+  uint8_t blvl;    // minimum expansion level (log_2 of initial capacity)
   ht_free_func free;
 } Hashtab;
 
@@ -128,14 +135,15 @@ struct lht_bucket {
 
 typedef struct LinkedHashtab {
   struct lht_bucket *buckets;
-  size_t capacity;
-  size_t n;
-  size_t size;
+  size_t capacity; // All buckets currently in use (the actual array might be
+                   // larger)
+  size_t size;     // number of elements held
+  size_t xptr;     // index of the next bucket to be rehashed
+  uint8_t xlvl;    // number of bits of hash used (expansion level)
+  uint8_t blvl;    // minimum expansion level (log_2 of initial capacity)
+  ht_free_func free;
   struct lht_bucket *first;
   struct lht_bucket *last;
-  size_t xptr;
-  uint8_t xlvl;
-  ht_free_func free;
 } LinkedHashtab;
 
 //

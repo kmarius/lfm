@@ -20,7 +20,7 @@ static void visual_on_enter(Lfm *lfm);
 static void visual_on_exit(Lfm *lfm);
 
 void lfm_modes_init(Lfm *lfm) {
-  ht_init(&lfm->modes, 8, mode_free);
+  ht_init(&lfm->modes, HT_DEFAULT_CAPACITY, mode_free);
   lfm_mode_register(lfm, &(struct mode){
                              .name = "normal",
                              .on_enter = normal_on_enter,
