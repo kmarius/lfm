@@ -57,12 +57,8 @@ typedef struct Fm {
     uint32_t anchor;
   } visual;
 
-  // Prefix used in find.c
-  char *find_prefix;
-
   // Previous directory, not changed on updir/open.
   char *automark;
-
 } Fm;
 
 // Moves to the correct starting directory, loads initial dirs and sets up

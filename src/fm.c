@@ -76,7 +76,6 @@ void fm_deinit(Fm *fm) {
   ht_destroy(fm->selection.previous);
   lht_destroy(fm->paste.buffer);
   xfree(fm->automark);
-  xfree(fm->find_prefix);
   xfree(fm->pwd);
 }
 
