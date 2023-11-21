@@ -57,7 +57,7 @@ int main(int argc, char **argv) {
 
   config_init();
 
-  FILE *log_fp = fopen(cfg.logpath, "w");
+  FILE *log = fopen(cfg.logpath, "w");
   log_set_quiet(true);
   int log_level = LOG_INFO;
 
@@ -103,7 +103,7 @@ int main(int argc, char **argv) {
       goto cleanup;
     }
   }
-  log_add_fp(log_fp, log_level);
+  log_add_fp(log, log_level);
 
   log_info("starting lfm " LFM_VERSION);
 
@@ -131,7 +131,7 @@ int main(int argc, char **argv) {
 
   srand(time(NULL));
 
-  lfm_init(&lfm, log_fp);
+  lfm_init(&lfm, log);
 
   log_info("starting main loop after %.2f ms",
            (current_micros() - t0) / 1000.0);
@@ -142,7 +142,7 @@ int main(int argc, char **argv) {
 cleanup:
 
   log_info("fin");
-  fclose(log_fp);
+  fclose(log);
 
 #ifndef DEBUG
   remove(cfg.logpath);

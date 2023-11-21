@@ -171,10 +171,14 @@ bool llua_load_file(lua_State *L, const char *path, bool err_on_non_exist) {
   return true;
 }
 
-void llua_init(lua_State *L, Lfm *lfm_) {
+void lfm_lua_init(Lfm *lfm_) {
   lfm = lfm_;
   ui = &lfm_->ui;
   fm = &lfm_->fm;
+
+  lua_State *L = luaL_newstate();
+  lfm->L = L;
+  ev_set_userdata(lfm->loop, lfm->L);
 
   luaL_openlibs(L);
   luaopen_jit(L);
@@ -192,8 +196,8 @@ void llua_init(lua_State *L, Lfm *lfm_) {
            (current_micros() - t0) / 1000.0);
 }
 
-void llua_deinit(lua_State *L) {
-  lua_close(L);
+void lfm_lua_deinit(Lfm *lfm) {
+  lua_close(lfm->L);
 }
 
 bool llua_filter(lua_State *L, int ref, const char *name) {

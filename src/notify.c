@@ -13,6 +13,8 @@
 #include <ev.h>
 
 #include <errno.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include <sys/inotify.h>
@@ -33,7 +35,8 @@ static void inotify_cb(EV_P_ ev_io *w, int revents);
 bool notify_init(Notify *notify) {
   notify->inotify_fd = inotify_init1(IN_NONBLOCK);
   if (notify->inotify_fd == -1) {
-    return false;
+    fprintf(stderr, "inotify_init1: %s\n", strerror(errno));
+    exit(EXIT_FAILURE);
   }
 
   ev_io_init(&notify->watcher, inotify_cb, notify->inotify_fd, EV_READ);
@@ -45,10 +48,6 @@ bool notify_init(Notify *notify) {
 }
 
 void notify_deinit(Notify *notify) {
-  if (notify->inotify_fd == -1) {
-    return;
-  }
-
   cvector_foreach_ptr(struct notify_watcher_data * d, notify->watchers) {
     inotify_rm_watch(notify->inotify_fd, d->wd);
   }
@@ -97,10 +96,6 @@ static void inotify_cb(EV_P_ ev_io *w, int revents) {
 }
 
 void notify_add_watcher(Notify *notify, Dir *dir) {
-  if (notify->inotify_fd == -1) {
-    return;
-  }
-
   cvector_foreach(const char *s, cfg.inotify_blacklist) {
     if (hasprefix(dir->path, s)) {
       return;
@@ -133,10 +128,6 @@ void notify_add_watcher(Notify *notify, Dir *dir) {
 }
 
 void notify_remove_watcher(Notify *notify, Dir *dir) {
-  if (notify->inotify_fd == -1) {
-    return;
-  }
-
   cvector_foreach_ptr(struct notify_watcher_data * data, notify->watchers) {
     if (data->dir == dir) {
       inotify_rm_watch(notify->inotify_fd, data->wd);
@@ -147,10 +138,6 @@ void notify_remove_watcher(Notify *notify, Dir *dir) {
 }
 
 void notify_set_watchers(Notify *notify, Dir **dirs, uint32_t n) {
-  if (notify->inotify_fd == -1) {
-    return;
-  }
-
   cvector_foreach_ptr(struct notify_watcher_data * d, notify->watchers) {
     inotify_rm_watch(notify->inotify_fd, d->wd);
   }

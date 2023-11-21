@@ -30,15 +30,11 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-#define TICK 1 // in seconds
+#define TICK 1 // heartbeat, in seconds
 
 // Size of the buffer for reading from the fifo. Switches to a dynamic buffer if
 // full.
 #define FIFO_BUF_SZ 512
-
-// callbacks {{{
-
-// child watchers {{{
 
 struct stdout_watcher_data {
   ev_io watcher;
@@ -141,10 +137,6 @@ static void child_cb(EV_P_ ev_child *w, int revents) {
   destroy_child_watcher(w);
 }
 
-// }}}
-
-// scheduling timers {{{
-
 struct schedule_timer_data {
   ev_timer watcher;
   Lfm *lfm;
@@ -161,11 +153,10 @@ static void schedule_timer_cb(EV_P_ ev_timer *w, int revents) {
   free(w);
 }
 
-// }}}
-
 static void timer_cb(EV_P_ ev_timer *w, int revents) {
   (void)revents;
-  /* Lfm *lfm = w->data; */
+  Lfm *lfm = w->data;
+  (void)lfm;
   ev_timer_stop(EV_A_ w);
 }
 
@@ -231,7 +222,7 @@ static void prepare_cb(EV_P_ ev_prepare *w, int revents) {
 static void sigint_cb(EV_P_ ev_signal *w, int revents) {
   (void)revents;
   Lfm *lfm = w->data;
-  log_debug("received SIGINT");
+  log_trace("received SIGINT");
   input_handle_key(lfm, CTRL('C'));
   ev_idle_start(EV_A_ & lfm->ui.redraw_watcher);
 }
@@ -240,7 +231,7 @@ static void sigint_cb(EV_P_ ev_signal *w, int revents) {
 static void sigwinch_cb(EV_P_ ev_signal *w, int revents) {
   (void)revents;
   Lfm *lfm = w->data;
-  log_debug("received SIGWINCH");
+  log_trace("received SIGWINCH");
   ui_clear(&lfm->ui);
   ev_idle_start(EV_A_ & lfm->ui.redraw_watcher);
 }
@@ -248,73 +239,64 @@ static void sigwinch_cb(EV_P_ ev_signal *w, int revents) {
 static void sigterm_cb(EV_P_ ev_signal *w, int revents) {
   (void)revents;
   (void)loop;
-  log_debug("received SIGTERM");
+  log_trace("received SIGTERM");
   lfm_quit(w->data, 0);
 }
 
 static void sighup_cb(EV_P_ ev_signal *w, int revents) {
   (void)revents;
   (void)loop;
-  log_debug("received SIGHUP");
+  log_trace("received SIGHUP");
   lfm_quit(w->data, 0);
 }
-/* callbacks }}} */
 
-void lfm_init(Lfm *lfm, FILE *log_fp) {
-  memset(lfm, 0, sizeof *lfm);
-
-  lfm->log_fp = log_fp;
-
-  lfm->loop = ev_default_loop(EVFLAG_NOENV);
-
+static inline void init_dirs(Lfm *lfm) {
+  (void)lfm;
   if (mkdir_p(cfg.rundir, 0700) == -1 && errno != EEXIST) {
     fprintf(stderr, "mkdir: %s", strerror(errno));
     exit(EXIT_FAILURE);
   }
-
   if (mkdir_p(cfg.statedir, 0700) == -1 && errno != EEXIST) {
     fprintf(stderr, "mkdir: %s", strerror(errno));
     exit(EXIT_FAILURE);
   }
+  if (mkdir_p(cfg.cachedir, 0700) == -1 && errno != EEXIST) {
+    fprintf(stderr, "mkdir: %s", strerror(errno));
+    exit(EXIT_FAILURE);
+  }
+}
 
-  if ((mkfifo(cfg.fifopath, 0600) == -1 && errno != EEXIST) ||
-      (lfm->fifo_fd = open(cfg.fifopath, O_RDWR | O_NONBLOCK, 0)) == -1) {
-    log_error("fifo: %s", strerror(errno));
+static inline void init_fifo(Lfm *lfm) {
+  if ((mkfifo(cfg.fifopath, 0600) == -1 && errno != EEXIST)) {
+    fprintf(stderr, "mkfifo: %s", strerror(errno));
+    exit(EXIT_FAILURE);
+  }
+  if ((lfm->fifo_fd = open(cfg.fifopath, O_RDWR | O_NONBLOCK, 0)) == -1) {
+    fprintf(stderr, "open: %s", strerror(errno));
     exit(EXIT_FAILURE);
   }
 
   setenv("LFMFIFO", cfg.fifopath, 1);
 
-  if (mkdir_p(cfg.cachedir, 0700) == -1 && errno != EEXIST) {
-    log_error("fifo: %s", strerror(errno));
-  }
+  ev_io_init(&lfm->fifo_watcher, fifo_cb, lfm->fifo_fd, EV_READ);
+  lfm->fifo_watcher.data = lfm;
+  ev_io_start(lfm->loop, &lfm->fifo_watcher);
+}
 
-  /* notify should be available on fm startup */
-  if (!notify_init(&lfm->notify)) {
-    log_error("inotify: %s", strerror(errno));
-    exit(EXIT_FAILURE);
-  }
+static inline void init_loop(Lfm *lfm) {
+  lfm->loop = ev_default_loop(EVFLAG_NOENV);
 
-  loader_init(&lfm->loader);
-  async_init(&lfm->async);
-  fm_init(&lfm->fm);
-  ui_init(&lfm->ui);
-  lfm_hooks_init(lfm);
-  lfm_modes_init(lfm);
-
+  // Runs only once, executes commands passed via command line, prints messages,
+  // runs the LfmEnter hook
   ev_prepare_init(&lfm->prepare_watcher, prepare_cb);
   lfm->prepare_watcher.data = lfm;
   ev_prepare_start(lfm->loop, &lfm->prepare_watcher);
 
+  // Heartbeat, currently does nothing
   ev_timer_init(&lfm->timer_watcher, timer_cb, TICK, TICK);
   lfm->timer_watcher.data = lfm;
 
-  ev_io_init(&lfm->fifo_watcher, fifo_cb, lfm->fifo_fd, EV_READ);
-  lfm->fifo_watcher.data = lfm;
-  ev_io_start(lfm->loop, &lfm->fifo_watcher);
-
-  // signal(SIGINT, SIG_IGN);
-
+  // Catch some signals
   ev_signal_init(&lfm->sigint_watcher, sigint_cb, SIGINT);
   lfm->sigint_watcher.data = lfm;
   ev_signal_start(lfm->loop, &lfm->sigint_watcher);
@@ -330,14 +312,46 @@ void lfm_init(Lfm *lfm, FILE *log_fp) {
   ev_signal_init(&lfm->sighup_watcher, sighup_cb, SIGHUP);
   lfm->sighup_watcher.data = lfm;
   ev_signal_start(lfm->loop, &lfm->sighup_watcher);
+}
 
-  lfm->L = luaL_newstate();
-  ev_set_userdata(lfm->loop, lfm->L);
-  llua_init(lfm->L, lfm);
-  // can't run these hooks in the loader before initialization
+void lfm_init(Lfm *lfm, FILE *log) {
+  memset(lfm, 0, sizeof *lfm);
+  lfm->log_fp = log;
+
+  init_loop(lfm);
+  init_dirs(lfm);
+  init_fifo(lfm);
+
+  /* notify should be available on fm startup */
+  notify_init(&lfm->notify);
+  loader_init(&lfm->loader);
+  async_init(&lfm->async);
+  fm_init(&lfm->fm);
+  ui_init(&lfm->ui);
+  lfm_hooks_init(lfm);
+  lfm_modes_init(lfm);
+
+  // Initialize lua state, we need to run some hooks that could not run during
+  // fm initialization.
+  lfm_lua_init(lfm);
   ht_foreach(Dir * dir, lfm->loader.dir_cache) {
     lfm_run_hook1(lfm, LFM_HOOK_DIRLOADED, dir->path);
   }
+}
+
+void lfm_deinit(Lfm *lfm) {
+  lfm_modes_deinit(lfm);
+  cvector_ffree(lfm->child_watchers, destroy_child_watcher);
+  cvector_ffree(lfm->schedule_timers, free);
+  notify_deinit(&lfm->notify);
+  ui_deinit(&lfm->ui);
+  fm_deinit(&lfm->fm);
+  lfm_hooks_deinit(lfm);
+  loader_deinit(&lfm->loader);
+  lfm_lua_deinit(lfm);
+  async_deinit(&lfm->async);
+  close(lfm->fifo_fd);
+  remove(cfg.fifopath);
 }
 
 int lfm_run(Lfm *lfm) {
@@ -509,21 +523,4 @@ void lfm_schedule(Lfm *lfm, int ref, uint32_t delay) {
   ev_timer_init(&data->watcher, schedule_timer_cb, 1.0 * delay / 1000, 0);
   ev_timer_start(lfm->loop, &data->watcher);
   cvector_push_back(lfm->schedule_timers, &data->watcher);
-}
-
-void lfm_deinit(Lfm *lfm) {
-  lfm_modes_deinit(lfm);
-  cvector_ffree(lfm->child_watchers, destroy_child_watcher);
-  cvector_ffree(lfm->schedule_timers, free);
-  notify_deinit(&lfm->notify);
-  ui_deinit(&lfm->ui);
-  fm_deinit(&lfm->fm);
-  lfm_hooks_deinit(lfm);
-  loader_deinit(&lfm->loader);
-  llua_deinit(lfm->L);
-  async_deinit(&lfm->async);
-  if (lfm->fifo_fd > 0) {
-    close(lfm->fifo_fd);
-  }
-  remove(cfg.fifopath);
 }

@@ -12,9 +12,9 @@
 struct Lfm;
 
 // Initialize lua state, load libraries.
-void llua_init(lua_State *L, struct Lfm *lfm);
+void lfm_lua_init(struct Lfm *lfm);
 
-void llua_deinit(lua_State *L);
+void lfm_lua_deinit(struct Lfm *lfm);
 
 // Evaluate an expr, which is either a chunk of lua code or a registered command
 // (with arguments) as if typed in the command line.

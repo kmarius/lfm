@@ -46,17 +46,17 @@ typedef struct Lfm {
   int ret; /* set in lfm_quit and returned in main.c */
 } Lfm;
 
-// Initialize ui, fm and the lua_State.
-void lfm_init(Lfm *lfm, FILE *log_fp);
+// Initialize lfm and all its components.
+void lfm_init(Lfm *lfm, FILE *log);
+
+// Deinitialize lfm.
+void lfm_deinit(Lfm *lfm);
 
 // Start the main event loop.
 int lfm_run(Lfm *lfm);
 
 // Stop the event loop.
 void lfm_quit(Lfm *lfm, int ret);
-
-// Free all recources i.e. ui, fm and the lua_State.
-void lfm_deinit(Lfm *lfm);
 
 // Spawn a background command. execvp semantics hold for `prog`, `args`.
 // A cvector of strings can be passed by `stdin_lines` and will be send to the
