@@ -42,7 +42,7 @@ const char *filter_type(const Filter *filter) {
   return filter ? filter->type : NULL;
 }
 
-__compar_fn_t filter_sort(const Filter *filter) {
+__compar_fn_t filter_cmp(const Filter *filter) {
   return filter->cmp;
 }
 

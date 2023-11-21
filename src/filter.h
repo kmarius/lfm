@@ -16,4 +16,4 @@ void filter_destroy(Filter *filter);
 bool filter_match(const Filter *filter, const File *file);
 const char *filter_string(const Filter *filter);
 const char *filter_type(const Filter *filter);
-__compar_fn_t filter_sort(const Filter *filter);
+__compar_fn_t filter_cmp(const Filter *filter);

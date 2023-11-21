@@ -45,8 +45,8 @@ static void apply_filters(Dir *d) {
       }
     }
     d->length = j;
-    if (filter_sort(d->filter)) {
-      qsort(d->files, d->length, sizeof(File *), filter_sort(d->filter));
+    if (filter_cmp(d->filter)) {
+      qsort(d->files, d->length, sizeof(File *), filter_cmp(d->filter));
     }
   } else {
     /* TODO: try to select previously selected file
