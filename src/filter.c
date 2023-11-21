@@ -15,8 +15,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define FILTER_INITIAL_CAPACITY 2
-
 typedef struct Filter {
   bool (*match)(const Filter *, const File *file);
   void (*destroy)(Filter *);
@@ -50,29 +48,25 @@ __compar_fn_t filter_sort(const Filter *filter) {
 
 // general filtering
 
-struct subfilter;
+struct subfilter {
+  uint32_t length;
+  struct filter_atom *atoms;
+};
 
 typedef struct SubstringFilter {
   Filter super;
   char *buf;
   uint32_t length;
-  uint32_t capacity;
-  struct subfilter *filters;
+  struct subfilter filters[];
 } SubstringFilter;
 
 struct filter_atom {
   bool (*pred)(const struct filter_atom *, const File *);
-  bool negate;
   union {
     int64_t size;
     void *string;
   };
-};
-
-struct subfilter {
-  uint32_t length;
-  uint32_t capacity;
-  struct filter_atom *atoms;
+  bool negate;
 };
 
 static bool pred_substr(const struct filter_atom *atom, const File *file) {
@@ -145,19 +139,22 @@ static inline int size_atom(struct filter_atom *atom, const char *tok) {
   return 0;
 }
 
+static inline int charcnt(const char *s, char c) {
+  int ct = 0;
+  while (*s) {
+    if (*s++ == c) {
+      ct++;
+    }
+  }
+  return ct;
+}
+
 static void subfilter_init(struct subfilter *s, char *filter) {
   s->length = 0;
-  s->capacity = FILTER_INITIAL_CAPACITY;
-  s->atoms = xmalloc(s->capacity * sizeof *s->atoms);
+  s->atoms = xmalloc((charcnt(filter, '|') + 1) * sizeof *s->atoms);
 
-  char *ptr;
-  for (char *tok = strtok_r(filter, "|", &ptr); tok != NULL;
+  for (char *ptr, *tok = strtok_r(filter, "|", &ptr); tok != NULL;
        tok = strtok_r(NULL, "|", &ptr)) {
-    if (s->capacity == s->length) {
-      s->capacity *= 2;
-      s->atoms = xrealloc(s->atoms, s->capacity * sizeof *s->atoms);
-    }
-
     struct filter_atom *atom = &s->atoms[s->length];
     atom->negate = tok[0] == '!';
     if (tok[0] == '!') {
@@ -191,22 +188,19 @@ Filter *filter_create_sub(const char *filter) {
     return NULL;
   }
 
-  SubstringFilter *f = xcalloc(1, sizeof *f);
+  int num_subfilters = (charcnt(filter, ' ') + 1);
+
+  SubstringFilter *f =
+      xcalloc(1, num_subfilters * sizeof(struct subfilter) + sizeof *f);
   f->super.match = &sub_match;
   f->super.destroy = &sub_destroy;
   f->super.string = strdup(filter);
   f->super.type = FILTER_TYPE_GENERAL;
 
-  f->capacity = FILTER_INITIAL_CAPACITY;
-  f->filters = xmalloc(f->capacity * sizeof *f->filters);
   f->length = 0;
 
   f->buf = strdup(filter);
   for (char *tok = strtok(f->buf, " "); tok != NULL; tok = strtok(NULL, " ")) {
-    if (f->length == f->capacity) {
-      f->capacity *= 2;
-      f->filters = xrealloc(f->filters, f->capacity * sizeof *f->filters);
-    }
     subfilter_init(&f->filters[f->length], tok);
     if (f->filters[f->length].length) {
       f->length++;
@@ -221,7 +215,6 @@ void sub_destroy(Filter *filter) {
   for (uint32_t i = 0; i < f->length; i++) {
     xfree(f->filters[i].atoms);
   }
-  xfree(f->filters);
   xfree(f->buf);
   xfree(f);
 }
