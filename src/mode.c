@@ -42,7 +42,9 @@ void lfm_modes_init(Lfm *lfm) {
   lfm->ui.maps.normal = lfm->current_mode->maps;
 
   // TODO: should be done properly eventually, like we do with input modes
-  ((struct mode *)ht_get(&lfm->modes, "visual"))->maps = lfm->ui.maps.normal;
+  struct mode *visual = ht_get(&lfm->modes, "visual");
+  trie_destroy(visual->maps);
+  visual->maps = lfm->ui.maps.normal;
 }
 
 void lfm_modes_deinit(Lfm *lfm) {
