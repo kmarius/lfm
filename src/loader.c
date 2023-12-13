@@ -1,9 +1,10 @@
+#include "dir.h"
+
 #include "loader.h"
 
 #include "async.h"
 #include "config.h"
 #include "cvector.h"
-#include "dir.h"
 #include "fm.h"
 #include "hashtab.h"
 #include "hooks.h"
@@ -12,12 +13,30 @@
 #include "macros.h"
 #include "memory.h"
 #include "path.h"
+#include "preview.h"
 #include "ui.h"
 #include "util.h"
 
 #include <ev.h>
 
 #include <stdint.h>
+
+#define i_implement
+#include "stc/cstr.h"
+
+static inline void Preview_drop(Preview **pv);
+
+#define i_is_forward
+#define i_type previewcache
+#define i_key_str
+#define i_val Preview *
+#define i_valdrop Preview_drop
+#define i_no_clone
+#include "stc/cmap.h"
+
+static inline void Preview_drop(Preview **pv) {
+  preview_destroy(*pv);
+}
 
 struct timer_data {
   ev_timer watcher;
@@ -29,15 +48,15 @@ struct timer_data {
 };
 
 void loader_init(Loader *loader) {
-  loader->dir_cache = ht_create((ht_free_func)dir_destroy);
-  loader->preview_cache = ht_create((ht_free_func)preview_destroy);
+  loader->dc = dircache_init();
+  loader->pc = previewcache_init();
 }
 
 void loader_deinit(Loader *loader) {
   cvector_ffree(loader->dir_timers, xfree);
   cvector_ffree(loader->preview_timers, xfree);
-  ht_destroy(loader->dir_cache);
-  ht_destroy(loader->preview_cache);
+  dircache_drop(&loader->dc);
+  previewcache_drop(&loader->pc);
 }
 
 static void dir_timer_cb(EV_P_ ev_timer *w, int revents) {
@@ -159,7 +178,8 @@ Dir *loader_dir_from_path(Loader *loader, const char *path) {
     }
   }
 
-  Dir *dir = ht_get(loader->dir_cache, path);
+  dircache_value *v = dircache_get_mut(&loader->dc, path);
+  Dir *dir = v ? v->second : NULL;
   if (dir) {
     if (dir->updates > 0) {
       // don't check before we have actually loaded the directory
@@ -173,7 +193,7 @@ Dir *loader_dir_from_path(Loader *loader, const char *path) {
     dir = dir_create(path);
     struct dir_settings *s = ht_get(cfg.dir_settings_map, path);
     memcpy(&dir->settings, s ? s : &cfg.dir_settings, sizeof *s);
-    ht_set(loader->dir_cache, dir->path, dir);
+    dircache_insert(&loader->dc, cstr_from(path), dir);
     async_dir_load(&to_lfm(loader)->async, dir, false);
     dir->last_loading_action = current_millis();
     ui_start_loading_indicator_timer(&to_lfm(loader)->ui);
@@ -192,8 +212,10 @@ Preview *loader_preview_from_path(Loader *loader, const char *path) {
     path = fullpath;
   }
 
-  Preview *pv = ht_get(loader->preview_cache, path);
-  if (pv) {
+  previewcache_value *v = previewcache_get_mut(&loader->pc, path);
+  Preview *pv;
+  if (v) {
+    pv = v->second;
     if (pv->reload_height < (int)to_lfm(loader)->ui.preview.y ||
         pv->reload_width < (int)to_lfm(loader)->ui.preview.x) {
       /* TODO: don't need to reload text previews if the actual file holds fewer
@@ -205,7 +227,7 @@ Preview *loader_preview_from_path(Loader *loader, const char *path) {
   } else {
     pv = preview_create_loading(path, to_lfm(loader)->ui.y,
                                 to_lfm(loader)->ui.x);
-    ht_set(loader->preview_cache, pv->path, pv);
+    previewcache_insert(&loader->pc, cstr_from(path), pv);
     async_preview_load(&to_lfm(loader)->async, pv);
   }
   return pv;
@@ -213,7 +235,7 @@ Preview *loader_preview_from_path(Loader *loader, const char *path) {
 
 void loader_drop_preview_cache(Loader *loader) {
   loader->preview_cache_version++;
-  ht_clear(loader->preview_cache);
+  previewcache_clear(&loader->pc);
   cvector_foreach(ev_timer * timer, loader->preview_timers) {
     ev_timer_stop(to_lfm(loader)->loop, timer);
     xfree(timer);
@@ -223,7 +245,7 @@ void loader_drop_preview_cache(Loader *loader) {
 
 void loader_drop_dir_cache(Loader *loader) {
   loader->dir_cache_version++;
-  ht_clear(loader->dir_cache);
+  dircache_clear(&loader->dc);
   cvector_foreach(ev_timer * timer, loader->dir_timers) {
     ev_timer_stop(to_lfm(loader)->loop, timer);
     xfree(timer);
@@ -269,3 +291,8 @@ void loader_reschedule(Loader *loader) {
   cvector_free(previews);
 }
 #undef DATA
+
+Preview *loader_preview_get(Loader *loader, const char *path) {
+  previewcache_value *v = previewcache_get_mut(&loader->pc, path);
+  return v ? v->second : NULL;
+}

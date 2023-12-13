@@ -577,7 +577,8 @@ void fm_on_resize(Fm *fm, uint32_t height) {
   }
 
   // is there a way to restore the position when just undoing a previous resize?
-  ht_foreach(Dir * dir, to_lfm(fm)->loader.dir_cache) {
+  c_foreach(v, dircache, to_lfm(fm)->loader.dc) {
+    Dir *dir = v.ref->second;
     if (height > fm->height) {
       uint32_t scrolloff_top = dir->ind;
       if (scrolloff_top > scrolloff) {

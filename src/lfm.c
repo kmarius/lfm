@@ -334,8 +334,8 @@ void lfm_init(Lfm *lfm, FILE *log) {
   // Initialize lua state, we need to run some hooks that could not run during
   // fm initialization.
   lfm_lua_init(lfm);
-  ht_foreach(Dir * dir, lfm->loader.dir_cache) {
-    lfm_run_hook1(lfm, LFM_HOOK_DIRLOADED, dir->path);
+  c_foreach(v, dircache, lfm->loader.dc) {
+    lfm_run_hook1(lfm, LFM_HOOK_DIRLOADED, v.ref->second->path);
   }
 }
 

@@ -318,7 +318,8 @@ struct dir_update_data {
 static inline void update_parent_dircount(Lfm *lfm, Dir *dir, uint32_t length) {
   const char *parent_path = path_parent_s(dir->path);
   if (parent_path) {
-    Dir *parent = ht_get(lfm->loader.dir_cache, parent_path);
+    dircache_value *v = dircache_get_mut(&lfm->loader.dc, parent_path);
+    Dir *parent = v ? v->second : NULL;
     if (parent) {
       cvector_foreach(File * file, parent->files_all) {
         if (streq(file_name(file), dir->name)) {
@@ -434,7 +435,7 @@ static void preview_check_destroy(void *p) {
 
 static void preview_check_callback(void *p, Lfm *lfm) {
   struct preview_check_data *res = p;
-  Preview *pv = ht_get(lfm->loader.preview_cache, res->path);
+  Preview *pv = loader_preview_get(&lfm->loader, res->path);
   if (pv) {
     loader_preview_reload(&lfm->loader, pv);
   }

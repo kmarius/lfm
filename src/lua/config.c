@@ -20,9 +20,10 @@ static inline int llua_dir_settings_set(lua_State *L, const char *path,
                                         int ind) {
   if (lua_isnil(L, ind)) {
     ht_delete(cfg.dir_settings_map, path);
-    Dir *d = ht_get(lfm->loader.dir_cache, path);
-    if (d) {
-      memcpy(&d->settings, &cfg.dir_settings, sizeof d->settings);
+    dircache_value *v = dircache_get_mut(&lfm->loader.dc, path);
+    if (v) {
+      memcpy(&v->second->settings, &cfg.dir_settings,
+             sizeof v->second->settings);
     }
     return 0;
   }
@@ -68,9 +69,9 @@ static inline int llua_dir_settings_set(lua_State *L, const char *path,
   lua_pop(L, 1);
 
   config_dir_setting_add(path, &s);
-  Dir *d = ht_get(lfm->loader.dir_cache, path);
-  if (d) {
-    memcpy(&d->settings, &s, sizeof s);
+  dircache_value *v = dircache_get_mut(&lfm->loader.dc, path);
+  if (v) {
+    memcpy(&v->second->settings, &s, sizeof s);
   }
 
   return 0;
