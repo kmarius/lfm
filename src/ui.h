@@ -2,9 +2,6 @@
 
 #include "cmdline.h"
 #include "cvector.h"
-#include "dir.h"
-#include "fm.h"
-#include "hashtab.h"
 #include "keys.h"
 #include "preview.h"
 #include "trie.h"

@@ -1,7 +1,6 @@
 #include "../fm.h"
 #include "../config.h"
 #include "../hooks.h"
-#include "../log.h"
 #include "../path.h"
 #include "../search.h"
 #include "../ui.h"
@@ -263,10 +262,10 @@ static int l_fm_selection_set(lua_State *L) {
 }
 
 static int l_fm_selection_get(lua_State *L) {
-  lua_createtable(L, fm->selection.paths->size, 0);
+  lua_createtable(L, pathlist_size(&fm->selection.current), 0);
   int i = 1;
-  lht_foreach(char *path, fm->selection.paths) {
-    lua_pushstring(L, path);
+  c_foreach(it, pathlist, fm->selection.current) {
+    lua_pushstring(L, *it.ref);
     lua_rawseti(L, -2, i++);
   }
   return 1;
@@ -318,10 +317,10 @@ static int l_fm_paste_mode_set(lua_State *L) {
 }
 
 static int l_fm_paste_buffer_get(lua_State *L) {
-  lua_createtable(L, fm->paste.buffer->size, 0);
+  lua_createtable(L, pathlist_size(&fm->paste.buffer), 0);
   int i = 1;
-  lht_foreach(char *path, fm->paste.buffer) {
-    lua_pushstring(L, path);
+  c_foreach(it, pathlist, fm->paste.buffer) {
+    lua_pushstring(L, *it.ref);
     lua_rawseti(L, -2, i++);
   }
   lua_pushstring(L, fm->paste.mode == PASTE_MODE_MOVE ? "move" : "copy");
@@ -329,7 +328,7 @@ static int l_fm_paste_buffer_get(lua_State *L) {
 }
 
 static int l_fm_paste_buffer_set(lua_State *L) {
-  size_t prev_size = fm->paste.buffer->size;
+  size_t prev_size = pathlist_size(&fm->paste.buffer);
   paste_mode prev_mode = fm->paste.mode;
   fm_paste_buffer_clear(fm);
 
@@ -352,7 +351,8 @@ static int l_fm_paste_buffer_set(lua_State *L) {
   }
 
   if (luaL_optbool(L, 3, true) &&
-      (fm->paste.buffer->size != prev_size || fm->paste.mode != prev_mode)) {
+      (pathlist_size(&fm->paste.buffer) != prev_size ||
+       fm->paste.mode != prev_mode)) {
     lfm_run_hook(lfm, LFM_HOOK_PASTEBUF);
   }
 

@@ -8,7 +8,6 @@
 #include "file.h"
 #include "filter.h"
 #include "fm.h"
-#include "hashtab.h"
 #include "hooks.h"
 #include "infoline.h"
 #include "input.h"
@@ -26,7 +25,6 @@
 #include <ncurses.h>
 #include <notcurses/notcurses.h>
 
-#include <errno.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -42,8 +40,8 @@
 
 static void menu_delay_timer_cb(EV_P_ ev_timer *w, int revents);
 static void draw_dirs(Ui *ui);
-static void plane_draw_dir(struct ncplane *n, Dir *dir, LinkedHashtab *sel,
-                           LinkedHashtab *load, paste_mode mode,
+static void plane_draw_dir(struct ncplane *n, Dir *dir, pathlist *sel,
+                           pathlist *load, paste_mode mode,
                            const char *highlight, bool print_info);
 static void draw_preview(Ui *ui);
 static void update_preview(Ui *ui);
@@ -247,7 +245,7 @@ static void draw_dirs(Ui *ui) {
   const uint32_t l = fm->dirs.length;
   for (uint32_t i = 0; i < l; i++) {
     plane_draw_dir(ui->planes.dirs[l - i - 1], fm->dirs.visible[i],
-                   fm->selection.paths, fm->paste.buffer, fm->paste.mode,
+                   &fm->selection.current, &fm->paste.buffer, fm->paste.mode,
                    i == 0 ? ui->highlight : NULL, i == 0);
   }
 }
@@ -256,8 +254,9 @@ static void draw_preview(Ui *ui) {
   Fm *fm = &to_lfm(ui)->fm;
   if (cfg.preview && ui->num_columns > 1) {
     if (fm->dirs.preview) {
-      plane_draw_dir(ui->planes.preview, fm->dirs.preview, fm->selection.paths,
-                     fm->paste.buffer, fm->paste.mode, NULL, false);
+      plane_draw_dir(ui->planes.preview, fm->dirs.preview,
+                     &fm->selection.current, &fm->paste.buffer, fm->paste.mode,
+                     NULL, false);
     } else {
       update_preview(ui);
       if (ui->preview.preview) {
@@ -612,7 +611,7 @@ static int print_highlighted_and_shortened(struct ncplane *n, const char *name,
 }
 
 static void draw_file(struct ncplane *n, const File *file, bool iscurrent,
-                      LinkedHashtab *sel, LinkedHashtab *load, paste_mode mode,
+                      pathlist *sel, pathlist *load, paste_mode mode,
                       const char *highlight, bool print_info,
                       fileinfo fileinfo) {
   unsigned int ncol, y0;
@@ -671,11 +670,13 @@ static void draw_file(struct ncplane *n, const File *file, bool iscurrent,
 
   ncplane_set_bg_default(n);
 
-  if (lht_get(sel, file_path(file))) {
+  if (pathlist_contains(sel, file_path(file))) {
     ncplane_set_channels(n, cfg.colors.selection);
-  } else if (mode == PASTE_MODE_MOVE && lht_get(load, file_path(file))) {
+  } else if (mode == PASTE_MODE_MOVE &&
+             pathlist_contains(load, file_path(file))) {
     ncplane_set_channels(n, cfg.colors.delete);
-  } else if (mode == PASTE_MODE_COPY && lht_get(load, file_path(file))) {
+  } else if (mode == PASTE_MODE_COPY &&
+             pathlist_contains(load, file_path(file))) {
     ncplane_set_channels(n, cfg.colors.copy);
   }
 
@@ -793,8 +794,8 @@ static void draw_file(struct ncplane *n, const File *file, bool iscurrent,
   ncplane_set_styles(n, NCSTYLE_NONE);
 }
 
-static void plane_draw_dir(struct ncplane *n, Dir *dir, LinkedHashtab *sel,
-                           LinkedHashtab *load, paste_mode mode,
+static void plane_draw_dir(struct ncplane *n, Dir *dir, pathlist *sel,
+                           pathlist *load, paste_mode mode,
                            const char *highlight, bool print_info) {
   unsigned int nrow;
 

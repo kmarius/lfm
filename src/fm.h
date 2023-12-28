@@ -3,7 +3,7 @@
 #include "cvector.h"
 #include "dir.h"
 #include "file.h"
-#include "hashtab.h"
+#include "pathlist.h"
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -36,15 +36,15 @@ typedef struct Fm {
 
   struct {
     // Current and previous selection (needed for visual mode)
-    LinkedHashtab *paths;
+    pathlist current;
 
     // Previous selection, needed for visual selection mode.
-    Hashtab *previous;
+    pathlist previous;
   } selection;
 
   struct {
     // Copy/move buffer, hash table of paths.
-    LinkedHashtab *buffer;
+    pathlist buffer;
 
     paste_mode mode;
   } paste;
@@ -180,15 +180,14 @@ void fm_paste_mode_set(Fm *fm, paste_mode mode);
 
 // Clear copy/move buffer. Returns the size of the buffer bofore clearing.
 static inline bool fm_paste_buffer_clear(Fm *fm) {
-  size_t prev_size = fm->paste.buffer->size;
-  lht_clear(fm->paste.buffer);
+  size_t prev_size = pathlist_size(&fm->paste.buffer);
+  pathlist_clear(&fm->paste.buffer);
   return prev_size;
 }
 
 // Add a path to the paste buffer.
 static inline void fm_paste_buffer_add(Fm *fm, const char *file) {
-  char *val = strdup(file);
-  lht_set(fm->paste.buffer, val, val);
+  pathlist_add(&fm->paste.buffer, file);
 }
 
 // Get the mode current load, one of `MODE_COPY`, `MODE_MOVE`.

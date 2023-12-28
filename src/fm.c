@@ -3,7 +3,6 @@
 #include "async.h"
 #include "config.h"
 #include "cvector.h"
-#include "hashtab.h"
 #include "hooks.h"
 #include "lfm.h"
 #include "loader.h"
@@ -11,6 +10,7 @@
 #include "macros.h"
 #include "notify.h"
 #include "path.h"
+#include "pathlist.h"
 #include "util.h"
 
 #include <errno.h>
@@ -55,9 +55,9 @@ void fm_init(Fm *fm) {
   fm->dirs.length = cvector_size(cfg.ratios) - (cfg.preview ? 1 : 0);
   cvector_grow(fm->dirs.visible, fm->dirs.length);
 
-  fm->selection.paths = lht_create(xfree);
-  fm->selection.previous = ht_create(NULL);
-  fm->paste.buffer = lht_create(xfree);
+  pathlist_init(&fm->selection.current);
+  pathlist_init(&fm->selection.previous);
+  pathlist_init(&fm->paste.buffer);
 
   fm_populate(fm);
 
@@ -72,9 +72,9 @@ void fm_init(Fm *fm) {
 
 void fm_deinit(Fm *fm) {
   cvector_free(fm->dirs.visible);
-  lht_destroy(fm->selection.paths);
-  ht_destroy(fm->selection.previous);
-  lht_destroy(fm->paste.buffer);
+  pathlist_deinit(&fm->selection.current);
+  pathlist_deinit(&fm->selection.previous);
+  pathlist_deinit(&fm->paste.buffer);
   xfree(fm->automark);
   xfree(fm->pwd);
 }
@@ -303,7 +303,7 @@ void fm_update_preview(Fm *fm) {
 
 static inline void fm_selection_toggle(Fm *fm, const char *path,
                                        bool run_hook) {
-  if (!lht_delete(fm->selection.paths, path)) {
+  if (!pathlist_remove(&fm->selection.current, path)) {
     fm_selection_add(fm, path, false);
   }
   if (run_hook) {
@@ -322,8 +322,7 @@ void fm_selection_toggle_current(Fm *fm) {
 }
 
 void fm_selection_add(Fm *fm, const char *path, bool run_hook) {
-  char *val = strdup(path);
-  lht_set(fm->selection.paths, val, val);
+  pathlist_add(&fm->selection.current, path);
   if (run_hook) {
     lfm_run_hook(to_lfm(fm), LFM_HOOK_SELECTION);
   }
@@ -331,8 +330,8 @@ void fm_selection_add(Fm *fm, const char *path, bool run_hook) {
 
 void fm_selection_clear(Fm *fm) {
   log_trace("fm_selection_clear");
-  bool run_hook = fm->selection.paths->size > 0;
-  lht_clear(fm->selection.paths);
+  bool run_hook = pathlist_size(&fm->selection.current) > 0;
+  pathlist_clear(&fm->selection.current);
   if (run_hook) {
     lfm_run_hook(to_lfm(fm), LFM_HOOK_SELECTION);
   }
@@ -359,9 +358,9 @@ void fm_on_visual_enter(Fm *fm) {
   fm->visual.active = true;
   fm->visual.anchor = dir->ind;
   fm_selection_add(fm, file_path(dir->files[dir->ind]), false);
-  ht_clear(fm->selection.previous);
-  lht_foreach(char *path, fm->selection.paths) {
-    ht_set(fm->selection.previous, path, path);
+  pathlist_clear(&fm->selection.previous);
+  c_foreach(it, pathlist, fm->selection.current) {
+    pathlist_add(&fm->selection.previous, *it.ref);
   }
   lfm_run_hook(to_lfm(fm), LFM_HOOK_SELECTION);
 }
@@ -373,7 +372,7 @@ void fm_on_visual_exit(Fm *fm) {
 
   fm->visual.active = false;
   fm->visual.anchor = 0;
-  ht_clear(fm->selection.previous);
+  pathlist_clear(&fm->selection.previous);
 }
 
 static void selection_visual_update(Fm *fm, uint32_t origin, uint32_t from,
@@ -405,7 +404,8 @@ static void selection_visual_update(Fm *fm, uint32_t origin, uint32_t from,
   const Dir *dir = fm_current_dir(fm);
   for (; lo <= hi; lo++) {
     // never unselect the old selection
-    if (!ht_get(fm->selection.previous, file_path(dir->files[lo]))) {
+    if (!pathlist_contains(&fm->selection.previous,
+                           file_path(dir->files[lo]))) {
       fm_selection_toggle(fm, file_path(dir->files[lo]), false);
     }
   }
@@ -424,9 +424,10 @@ void fm_selection_write(const Fm *fm, const char *path) {
     return;
   }
 
-  if (fm->selection.paths->size > 0) {
-    lht_foreach(char *path, fm->selection.paths) {
-      fputs(path, fp);
+  if (pathlist_size(&fm->selection.current) > 0) {
+    for (pathlist_iter it = pathlist_begin(&fm->selection.current); it.ref;
+         pathlist_next(&it)) {
+      fputs(*it.ref, fp);
       fputc('\n', fp);
     }
   } else {
@@ -445,12 +446,12 @@ void fm_selection_write(const Fm *fm, const char *path) {
 
 void fm_paste_mode_set(Fm *fm, paste_mode mode) {
   fm->paste.mode = mode;
-  if (fm->selection.paths->size == 0) {
+  if (pathlist_size(&fm->selection.current) == 0) {
     fm_selection_toggle_current(fm);
   }
-  lht_destroy(fm->paste.buffer);
-  fm->paste.buffer = fm->selection.paths;
-  fm->selection.paths = lht_create(xfree);
+  pathlist_deinit(&fm->paste.buffer);
+  fm->paste.buffer = fm->selection.current;
+  pathlist_init(&fm->selection.current);
 }
 
 /* }}} */

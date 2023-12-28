@@ -4,7 +4,6 @@
 #include "cvector.h"
 #include "lfm.h"
 #include "macros.h"
-#include "ncutil.h"
 #include "ui.h"
 
 #include <curses.h>
@@ -68,24 +67,26 @@ void statusline_draw(Ui *ui) {
       ncplane_set_fg_default(n);
       ncplane_putchar(n, ' ');
     }
-    if (fm->paste.buffer->size > 0) {
+    size_t paste_size = pathlist_size(&fm->paste.buffer);
+    if (paste_size > 0) {
       if (fm->paste.mode == PASTE_MODE_COPY) {
         ncplane_set_channels(n, cfg.colors.copy);
       } else {
         ncplane_set_channels(n, cfg.colors.delete);
       }
 
-      rhs_sz += uint32_num_digits(fm->paste.buffer->size) + 2 + 1;
-      ncplane_printf_yx(n, 0, ui->x - rhs_sz, " %zu ", fm->paste.buffer->size);
+      size_t paste_size = pathlist_size(&fm->paste.buffer);
+      rhs_sz += uint32_num_digits(paste_size) + 2 + 1;
+      ncplane_printf_yx(n, 0, ui->x - rhs_sz, " %zu ", paste_size);
       ncplane_set_bg_default(n);
       ncplane_set_fg_default(n);
       ncplane_putchar(n, ' ');
     }
-    if (fm->selection.paths->size > 0) {
+    size_t sel_size = pathlist_size(&fm->selection.current);
+    if (sel_size > 0) {
       ncplane_set_channels(n, cfg.colors.selection);
-      rhs_sz += uint32_num_digits(fm->selection.paths->size) + 2 + 1;
-      ncplane_printf_yx(n, 0, ui->x - rhs_sz, " %zu ",
-                        fm->selection.paths->size);
+      rhs_sz += uint32_num_digits(sel_size) + 2 + 1;
+      ncplane_printf_yx(n, 0, ui->x - rhs_sz, " %zu ", sel_size);
       ncplane_set_bg_default(n);
       ncplane_set_fg_default(n);
       ncplane_putchar(n, ' ');
