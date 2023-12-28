@@ -3,7 +3,6 @@
 #include <ev.h>
 
 #include <stdbool.h>
-#include <stdint.h>
 
 #include <pthread.h>
 

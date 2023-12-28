@@ -8,6 +8,7 @@
 #include <lualib.h>
 #include <pcre.h>
 
+#include <ctype.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>

@@ -9,7 +9,7 @@
 #include <lua.h>
 
 #include <assert.h>
-#include <limits.h>
+#include <ctype.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>

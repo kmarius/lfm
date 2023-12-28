@@ -29,6 +29,7 @@
 
 #pragma once
 
+#include <math.h>
 #include <stddef.h>
 
 typedef double score_t;

@@ -1,11 +1,9 @@
 #include "auto/versiondef.h"
 #include "config.h"
 #include "cvector.h"
-#include "fm.h"
 #include "lfm.h"
 #include "log.h"
 #include "path.h"
-#include "ui.h"
 #include "util.h"
 
 #include <ev.h>

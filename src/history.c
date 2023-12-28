@@ -1,6 +1,5 @@
 #include "history.h"
 
-#include "cvector.h"
 #include "hashtab.h"
 #include "log.h"
 #include "memory.h"

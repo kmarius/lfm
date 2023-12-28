@@ -1,7 +1,6 @@
 #include "dir.h"
 
 #include "cvector.h"
-#include "fuzzy.h"
 #include "log.h"
 #include "memory.h"
 #include "path.h"

@@ -5,7 +5,6 @@
 #include "async.h"
 #include "config.h"
 #include "cvector.h"
-#include "fm.h"
 #include "hashtab.h"
 #include "hooks.h"
 #include "lfm.h"

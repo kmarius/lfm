@@ -1,6 +1,5 @@
 #include "notify.h"
 
-#include "async.h"
 #include "config.h"
 #include "cvector.h"
 #include "dir.h"

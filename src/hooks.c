@@ -4,7 +4,6 @@
 #include "lfm.h"
 #include "log.h"
 #include "lua/lfmlua.h"
-#include "util.h"
 
 #include <lauxlib.h>
 #include <lua.h>

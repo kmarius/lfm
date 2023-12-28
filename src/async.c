@@ -4,7 +4,6 @@
 #include "dir.h"
 #include "file.h"
 #include "fm.h"
-#include "hashtab.h"
 #include "hooks.h"
 #include "lfm.h"
 #include "loader.h"
