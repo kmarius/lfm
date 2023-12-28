@@ -3,7 +3,6 @@
 #include "async.h"
 #include "config.h"
 #include "cvector.h"
-#include "hashtab.h"
 #include "hooks.h"
 #include "input.h"
 #include "loader.h"

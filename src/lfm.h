@@ -2,7 +2,6 @@
 
 #include "async.h"
 #include "fm.h"
-#include "hashtab.h"
 #include "hooks.h"
 #include "loader.h"
 #include "mode.h"
@@ -23,7 +22,7 @@ typedef struct Lfm {
   struct ev_loop *loop;
   lua_State *L;
 
-  Hashtab modes;
+  hmap_modes modes;
   struct mode *current_mode;
 
   ev_prepare prepare_watcher;

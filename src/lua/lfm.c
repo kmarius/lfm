@@ -3,10 +3,9 @@
 #include "../config.h"
 #include "../hooks.h"
 #include "../input.h"
-#include "../log.h"
+#include "../mode.h"
 #include "../search.h"
 #include "auto/versiondef.h"
-#include "lfmlua.h"
 #include "private.h"
 
 #include <lauxlib.h>
@@ -270,11 +269,11 @@ static inline int map_key(lua_State *L, Trie *trie, bool allow_mode) {
       if (!allow_mode) {
         return luaL_error(L, "mode not allowed here");
       }
-      struct mode *mode = ht_get(&lfm->modes, lua_tostring(L, -1));
-      if (!mode) {
+      hmap_modes_iter it = hmap_modes_find(&lfm->modes, lua_tostring(L, -1));
+      if (!it.ref) {
         return luaL_error(L, "no such mode: %s", lua_tostring(L, -1));
       }
-      trie = mode->maps;
+      trie = (*it.ref).second.maps;
     }
     lua_pop(L, 1);
   }
@@ -304,7 +303,7 @@ static int l_cmap_key(lua_State *L) {
 static int l_get_maps(lua_State *L) {
   const char *name = luaL_checkstring(L, 1);
   luaL_checktype(L, 2, LUA_TBOOLEAN);
-  struct mode *mode = ht_get(&lfm->modes, name);
+  const struct mode *mode = hmap_modes_at(&lfm->modes, name);
   if (!mode) {
     return luaL_error(L, "no such mode: %s", name);
   }
@@ -333,8 +332,8 @@ static int l_current_mode(lua_State *L) {
 static int l_get_modes(lua_State *L) {
   lua_createtable(L, lfm->modes.size, 0);
   int i = 1;
-  ht_foreach(struct mode * mode, &lfm->modes) {
-    lua_pushstring(L, mode->name);
+  c_foreach(it, hmap_modes, lfm->modes) {
+    lua_pushstring(L, (*it.ref).second.name);
     lua_rawseti(L, -2, i++);
   }
   return 1;
@@ -469,7 +468,7 @@ static const struct luaL_Reg lfm_lib[] = {
 
 static int l_modes_index(lua_State *L) {
   const char *key = luaL_checkstring(L, 2);
-  struct mode *mode = ht_get(&lfm->modes, key);
+  struct mode *mode = hmap_modes_at_mut(&lfm->modes, key);
   if (!mode) {
     return 0;
   }
