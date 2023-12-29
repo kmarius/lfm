@@ -2,7 +2,6 @@
 
 #include "cvector.h"
 #include "dir.h"
-#include "hashtab.h"
 #include "ncutil.h"
 #include "notify.h"
 #include "util.h"
@@ -45,30 +44,27 @@ Config cfg = {
     }};
 
 void config_init(void) {
-  cfg.colors.color_map = ht_create(xfree);
   cvector_vector_type(uint32_t) r = NULL;
   cvector_push_back(r, 1);
   cvector_push_back(r, 2);
   cvector_push_back(r, 3);
   config_ratios_set(r);
 
-  cfg.icon_map = ht_create(xfree);
-  config_icon_map_add("ln", "l");
-  config_icon_map_add("or", "l");
-  config_icon_map_add("tw", "t");
-  config_icon_map_add("ow", "d");
-  config_icon_map_add("st", "t");
-  config_icon_map_add("di", "d");
-  config_icon_map_add("pi", "p");
-  config_icon_map_add("so", "s");
-  config_icon_map_add("bd", "b");
-  config_icon_map_add("cd", "c");
-  config_icon_map_add("su", "u");
-  config_icon_map_add("sg", "g");
-  config_icon_map_add("ex", "x");
-  config_icon_map_add("fi", "-");
+  hmap_icon_emplace_or_assign(&cfg.icon_map, "ln", "l");
+  hmap_icon_emplace_or_assign(&cfg.icon_map, "or", "l");
+  hmap_icon_emplace_or_assign(&cfg.icon_map, "tw", "t");
+  hmap_icon_emplace_or_assign(&cfg.icon_map, "ow", "d");
+  hmap_icon_emplace_or_assign(&cfg.icon_map, "st", "t");
+  hmap_icon_emplace_or_assign(&cfg.icon_map, "di", "d");
+  hmap_icon_emplace_or_assign(&cfg.icon_map, "pi", "p");
+  hmap_icon_emplace_or_assign(&cfg.icon_map, "so", "s");
+  hmap_icon_emplace_or_assign(&cfg.icon_map, "bd", "b");
+  hmap_icon_emplace_or_assign(&cfg.icon_map, "cd", "c");
+  hmap_icon_emplace_or_assign(&cfg.icon_map, "su", "u");
+  hmap_icon_emplace_or_assign(&cfg.icon_map, "sg", "g");
+  hmap_icon_emplace_or_assign(&cfg.icon_map, "ex", "x");
+  hmap_icon_emplace_or_assign(&cfg.icon_map, "fi", "-");
 
-  cfg.dir_settings_map = ht_create(xfree);
   cfg.dir_settings.dirfirst = true;
   cfg.dir_settings.reverse = false;
   cfg.dir_settings.sorttype = SORT_NATURAL;
@@ -130,9 +126,9 @@ void config_init(void) {
 
 void config_deinit(void) {
   config_colors_clear();
-  ht_destroy(cfg.colors.color_map);
-  ht_destroy(cfg.icon_map);
-  ht_destroy(cfg.dir_settings_map);
+  hmap_channel_drop(&cfg.colors.color_map);
+  hmap_icon_drop(&cfg.icon_map);
+  hmap_dirsetting_drop(&cfg.dir_settings_map);
   cvector_free(cfg.ratios);
   cvector_free(cfg.commands);
   cvector_ffree(cfg.inotify_blacklist, xfree);
@@ -164,5 +160,5 @@ void config_colors_clear(void) {
   cfg.colors.search = NCCHANNELS_INITIALIZER_PALINDEX(-1, -1);
   cfg.colors.selection = NCCHANNELS_INITIALIZER_PALINDEX(-1, -1);
 
-  ht_clear(cfg.colors.color_map);
+  hmap_channel_clear(&cfg.colors.color_map);
 }

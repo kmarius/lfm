@@ -2,7 +2,6 @@
 
 #include "cvector.h"
 #include "dir.h"
-#include "hashtab.h"
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -13,6 +12,50 @@
 #define MAP_SUGGESTION_DELAY 1000
 #define MAP_CLEAR_DELAY 10000
 #define LOADING_INDICATOR_DELAY 250
+
+#define i_type hmap_channel
+#define i_key char *
+#define i_val uint64_t
+#define i_keyraw const char *
+#define i_keyfrom(p) strdup(p)
+#define i_keyto(p) (*p)
+#define i_keydrop(p) free(*(p))
+#define i_no_clone
+#define i_eq(p, q) (!strcmp(*(p), *(q)))
+#define i_hash ccharptr_hash
+#include "stc/hmap.h"
+
+#define i_type hmap_icon
+#define i_key char *
+#define i_keyraw const char *
+#define i_keyfrom(p) strdup((p))
+#define i_keyto(p) (*p)
+#define i_keydrop(p) free(*(p))
+#define i_val char *
+#define i_valraw const char *
+#define i_valfrom(p) strdup((p))
+#define i_valto(p) (*p)
+#define i_valdrop(p) free(*(p))
+#define i_eq(p, q) (!strcmp(*(p), *(q)))
+#define i_hash ccharptr_hash
+#define i_no_clone
+#include "stc/hmap.h"
+
+#define i_type hmap_dirsetting
+#define i_key char *
+#define i_keyraw const char *
+#define i_keyfrom(p) strdup((p))
+#define i_keyto(p) (*p)
+#define i_keydrop(p) free(*(p))
+#define i_val struct dir_settings
+/* #define i_valraw const char * */
+/* #define i_valfrom(p) strdup((p)) */
+/* #define i_valto(p) (*p) */
+/* #define i_valdrop(p) free(*(p)) */
+#define i_eq(p, q) (!strcmp(*(p), *(q)))
+#define i_hash ccharptr_hash
+#define i_no_clone
+#include "stc/hmap.h"
 
 typedef struct config {
   char *configdir;       // ~/.config/lfm
@@ -40,7 +83,7 @@ typedef struct config {
   bool preview_images;
   char *previewer;
   bool icons;
-  Hashtab *icon_map;
+  hmap_icon icon_map;
   uint32_t scrolloff;
   char *timefmt;
   cvector_vector_type(char *) commands;
@@ -55,10 +98,10 @@ typedef struct config {
   uint32_t loading_indicator_delay;
 
   struct dir_settings dir_settings; // default dir_settings
-  Hashtab *dir_settings_map;        // path -> dir_settings
+  hmap_dirsetting dir_settings_map; // path -> dir_settings
 
   struct colors {
-    Hashtab *color_map; // char* -> uint64
+    hmap_channel color_map; // char* -> uint64
 
     uint64_t normal;
     uint64_t selection;
@@ -84,19 +127,6 @@ static inline void config_ratios_set(cvector_vector_type(uint32_t) ratios) {
   }
   cvector_free(cfg.ratios);
   cfg.ratios = ratios;
-}
-
-static inline void config_color_map_add(const char *ext, uint64_t channel) {
-  ht_set_copy(cfg.colors.color_map, ext, &channel, sizeof channel);
-}
-
-static inline void config_dir_setting_add(const char *path,
-                                          const struct dir_settings *s) {
-  ht_set_copy(cfg.dir_settings_map, path, s, sizeof *s);
-}
-
-static inline void config_icon_map_add(const char *ext, const char *icon) {
-  ht_set_copy(cfg.icon_map, ext, icon, strlen(icon) + 1);
 }
 
 void config_colors_clear(void);

@@ -407,15 +407,16 @@ static uint64_t ext_channel_get(const char *ext) {
   char buf[EXT_MAX_LEN];
 
   if (ext) {
+    log_trace("%s %lu", ext, hmap_channel_size(&cfg.colors.color_map));
     // lowercase for ascii - good enough for now
     size_t i;
     for (i = 0; ext[i] && i < EXT_MAX_LEN - 1; i++) {
       buf[i] = tolower(ext[i]);
     }
     buf[i] = 0;
-    uint64_t *chan = ht_get(cfg.colors.color_map, buf);
-    if (chan) {
-      return *chan;
+    hmap_channel_iter it = hmap_channel_find(&cfg.colors.color_map, buf);
+    if (it.ref) {
+      return it.ref->second;
     }
   }
   return 0;
@@ -741,23 +742,22 @@ static void draw_file(struct ncplane *n, const File *file, bool iscurrent,
       key = "ex";
     }
 
-    const char *icon = NULL;
-
+    hmap_icon_iter it;
     if (key) {
-      icon = ht_get(cfg.icon_map, key);
+      it = hmap_icon_find(&cfg.icon_map, key);
     }
 
-    if (!icon && file_ext(file)) {
-      icon = ht_get(cfg.icon_map, file_ext(file));
+    if (!it.ref && file_ext(file)) {
+      it = hmap_icon_find(&cfg.icon_map, file_ext(file));
     }
 
-    if (!icon) {
-      icon = ht_get(cfg.icon_map, "fi");
+    if (!it.ref) {
+      it = hmap_icon_find(&cfg.icon_map, "fi");
     }
 
-    if (icon) {
+    if (it.ref) {
       // move the corsor to make sure we only print one char
-      ncplane_putstr(n, icon);
+      ncplane_putstr(n, it.ref->second);
       ncplane_putstr_yx(n, y0, 3, " ");
     } else {
       ncplane_putstr(n, "  ");

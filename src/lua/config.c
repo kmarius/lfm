@@ -19,7 +19,7 @@
 static inline int llua_dir_settings_set(lua_State *L, const char *path,
                                         int ind) {
   if (lua_isnil(L, ind)) {
-    ht_delete(cfg.dir_settings_map, path);
+    hmap_dirsetting_erase(&cfg.dir_settings_map, path);
     dircache_value *v = dircache_get_mut(&lfm->loader.dc, path);
     if (v) {
       memcpy(&v->second->settings, &cfg.dir_settings,
@@ -40,6 +40,7 @@ static inline int llua_dir_settings_set(lua_State *L, const char *path,
     for (i = 0; i < NUM_SORTTYPE; i++) {
       if (streq(op, sorttype_str[i])) {
         s.sorttype = i;
+        break;
       }
     }
     if (i == NUM_SORTTYPE) {
@@ -68,7 +69,8 @@ static inline int llua_dir_settings_set(lua_State *L, const char *path,
   }
   lua_pop(L, 1);
 
-  config_dir_setting_add(path, &s);
+  hmap_dirsetting_emplace_or_assign(&cfg.dir_settings_map, path, s);
+
   dircache_value *v = dircache_get_mut(&lfm->loader.dc, path);
   if (v) {
     memcpy(&v->second->settings, &s, sizeof s);
@@ -79,10 +81,11 @@ static inline int llua_dir_settings_set(lua_State *L, const char *path,
 
 static int l_dir_settings_index(lua_State *L) {
   const char *key = luaL_checkstring(L, 2);
-  struct dir_settings *s = ht_get(cfg.dir_settings_map, key);
-  if (!s) {
+  hmap_dirsetting_iter it = hmap_dirsetting_find(&cfg.dir_settings_map, key);
+  if (!it.ref) {
     return 0;
   }
+  struct dir_settings *s = &it.ref->second;
 
   lua_createtable(L, 0, 5);
   lua_pushboolean(L, s->dirfirst);
@@ -95,6 +98,7 @@ static int l_dir_settings_index(lua_State *L) {
   lua_setfield(L, -2, "info");
   lua_pushstring(L, sorttype_str[s->sorttype]);
   lua_setfield(L, -2, "sorttype");
+
   return 1;
 }
 
@@ -161,10 +165,10 @@ static int l_config_index(lua_State *L) {
     lua_pushboolean(L, cfg.icons);
     return 1;
   } else if (streq(key, "icon_map")) {
-    lua_createtable(L, 0, cfg.icon_map->size);
-    ht_foreach_kv(const char *key, const char *val, cfg.icon_map) {
-      lua_pushstring(L, val);
-      lua_setfield(L, -2, key);
+    lua_createtable(L, 0, hmap_icon_size(&cfg.icon_map));
+    c_foreach(it, hmap_icon, cfg.icon_map) {
+      lua_pushstring(L, it.ref->second);
+      lua_setfield(L, -2, it.ref->first);
     }
     return 1;
   } else if (streq(key, "fifopath")) {
@@ -305,17 +309,18 @@ static int l_config_newindex(lua_State *L) {
     ui_redraw(ui, REDRAW_FM);
   } else if (streq(key, "icon_map")) {
     luaL_checktype(L, 3, LUA_TTABLE);
-    ht_clear(cfg.icon_map);
+    hmap_icon_clear(&cfg.icon_map);
     for (lua_pushnil(L); lua_next(L, -2) != 0; lua_pop(L, 1)) {
       if (lua_type(L, -2) != LUA_TSTRING || lua_type(L, -1) != LUA_TSTRING) {
         return luaL_error(L, "icon_map: non-string key/value found");
       }
-      config_icon_map_add(lua_tostring(L, -2), lua_tostring(L, -1));
+      hmap_icon_emplace_or_assign(&cfg.icon_map, lua_tostring(L, -2),
+                                  lua_tostring(L, -1));
     }
     ui_redraw(ui, REDRAW_FM);
   } else if (streq(key, "dir_settings")) {
     luaL_checktype(L, 3, LUA_TTABLE);
-    ht_clear(cfg.dir_settings_map);
+    hmap_dirsetting_clear(&cfg.dir_settings_map);
     for (lua_pushnil(L); lua_next(L, -2) != 0; lua_pop(L, 1)) {
       llua_dir_settings_set(L, luaL_checkstring(L, -2), -1);
     }
@@ -453,7 +458,8 @@ static int l_colors_newindex(lua_State *L) {
 
         lua_getfield(L, -1, "ext");
         for (lua_pushnil(L); lua_next(L, -2); lua_pop(L, 1)) {
-          config_color_map_add(lua_tostring(L, -1), ch);
+          hmap_channel_emplace_or_assign(&cfg.colors.color_map,
+                                         lua_tostring(L, -1), ch);
         }
         lua_pop(L, 1);
       }

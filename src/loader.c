@@ -5,7 +5,6 @@
 #include "async.h"
 #include "config.h"
 #include "cvector.h"
-#include "hashtab.h"
 #include "hooks.h"
 #include "lfm.h"
 #include "log.h"
@@ -190,8 +189,9 @@ Dir *loader_dir_from_path(Loader *loader, const char *path) {
     dir_sort(dir);
   } else {
     dir = dir_create(path);
-    struct dir_settings *s = ht_get(cfg.dir_settings_map, path);
-    memcpy(&dir->settings, s ? s : &cfg.dir_settings, sizeof *s);
+    hmap_dirsetting_iter it = hmap_dirsetting_find(&cfg.dir_settings_map, path);
+    struct dir_settings *s = it.ref ? &it.ref->second : &cfg.dir_settings;
+    memcpy(&dir->settings, s, sizeof *s);
     dircache_insert(&loader->dc, cstr_from(path), dir);
     async_dir_load(&to_lfm(loader)->async, dir, false);
     dir->last_loading_action = current_millis();
