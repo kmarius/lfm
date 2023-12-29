@@ -4,8 +4,7 @@
 
 #include <stdbool.h>
 
-// TODO: replace with doubly linked list to delete in O(1)
-forward_list(_pathlist_list, char *);
+forward_dlist(_pathlist_list, char *);
 forward_hmap(_pathlist_hmap, char *, _pathlist_list_node *);
 
 typedef struct pathlist {

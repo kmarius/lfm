@@ -12,7 +12,7 @@
 #define i_keydrop(p) free(*(p))
 #define i_eq(p, q) ((*p) == (*q))
 #define i_noclone
-#include "stc/list.h"
+#include "stc/dlist.h"
 
 #define i_is_forward
 #define i_type _pathlist_hmap
@@ -51,7 +51,7 @@ void pathlist_add(pathlist *self, const char *path) {
 bool pathlist_remove(pathlist *self, const char *path) {
   const _pathlist_hmap_iter val = _pathlist_hmap_find(&self->map, path);
   if (val.ref) {
-    assert(_pathlist_list_remove(&self->list, val.ref->second->value));
+    _pathlist_list_erase_node(&self->list, val.ref->second);
     _pathlist_hmap_erase_at(&self->map, val);
   }
   return val.ref != NULL;
