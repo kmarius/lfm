@@ -407,7 +407,6 @@ static uint64_t ext_channel_get(const char *ext) {
   char buf[EXT_MAX_LEN];
 
   if (ext) {
-    log_trace("%s %lu", ext, hmap_channel_size(&cfg.colors.color_map));
     // lowercase for ascii - good enough for now
     size_t i;
     for (i = 0; ext[i] && i < EXT_MAX_LEN - 1; i++) {

@@ -1,4 +1,5 @@
 #include "../cmdline.h"
+#include "../history.h"
 #include "../ui.h"
 #include "private.h"
 
@@ -148,7 +149,7 @@ static int l_cmd_history_prev(lua_State *L) {
 }
 
 static int l_cmd_history_next(lua_State *L) {
-  const char *line = history_next(&ui->cmdline.history);
+  const char *line = history_next_entry(&ui->cmdline.history);
   if (!line) {
     return 0;
   }
@@ -157,10 +158,10 @@ static int l_cmd_history_next(lua_State *L) {
 }
 
 static int l_cmd_get_history(lua_State *L) {
-  int i = ui->cmdline.history.items.size;
+  int i = history_size(&ui->cmdline.history);
   lua_createtable(L, i, 0);
-  lht_foreach(struct history_entry * e, &ui->cmdline.history.items) {
-    lua_pushstring(L, e->line);
+  c_foreach(it, history, lfm->ui.cmdline.history) {
+    lua_pushstring(L, it.ref->line);
     lua_rawseti(L, -2, i--);
   }
   return 1;
