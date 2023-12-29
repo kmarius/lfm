@@ -29,6 +29,7 @@
 #define forward_arc(C, VAL) _c_arc_types(C, VAL)
 #define forward_box(C, VAL) _c_box_types(C, VAL)
 #define forward_deq(C, VAL) _c_deq_types(C, VAL)
+#define forward_dlist(C, VAL) _c_dlist_types(C, VAL)
 #define forward_list(C, VAL) _c_list_types(C, VAL)
 #define forward_hmap(C, KEY, VAL) _c_htable_types(C, KEY, VAL, c_true, c_false)
 #define forward_hset(C, KEY) _c_htable_types(C, cset, KEY, KEY, c_false, c_true)
@@ -134,6 +135,19 @@ typedef union {
         intptr_t pos; \
         const SELF* _s; \
     } SELF##_iter
+
+#define _c_dlist_types(SELF, VAL) \
+    typedef VAL SELF##_value; \
+    typedef struct SELF##_node SELF##_node; \
+\
+    typedef struct { \
+        SELF##_value *ref; \
+        SELF##_node *const *_last, *prev; \
+    } SELF##_iter; \
+\
+    typedef struct SELF { \
+        SELF##_node *last; \
+    } SELF
 
 #define _c_list_types(SELF, VAL) \
     typedef VAL SELF##_value; \
