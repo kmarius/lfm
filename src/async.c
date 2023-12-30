@@ -320,7 +320,8 @@ static inline void update_parent_dircount(Lfm *lfm, Dir *dir, uint32_t length) {
     dircache_value *v = dircache_get_mut(&lfm->loader.dc, parent_path);
     Dir *parent = v ? v->second : NULL;
     if (parent) {
-      cvector_foreach(File * file, parent->files_all) {
+      for (uint32_t i = 0; i < parent->length_all; i++) {
+        File *file = parent->files_all[i];
         if (streq(file_name(file), dir->name)) {
           file_dircount_set(file, length);
           return;

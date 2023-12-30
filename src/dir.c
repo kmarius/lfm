@@ -1,6 +1,6 @@
 #include "dir.h"
 
-#include "cvector.h"
+#include "file.h"
 #include "log.h"
 #include "memory.h"
 #include "path.h"
@@ -8,6 +8,7 @@
 #include "util.h"
 
 #include <errno.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -18,6 +19,10 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+
+#define i_type vec_file
+#define i_val File *
+#include "stc/vec.h"
 
 const char *fileinfo_str[] = {"size", "atime", "ctime", "mtime"};
 
@@ -204,6 +209,8 @@ Dir *dir_load(const char *path, bool load_dircount) {
     return dir;
   }
 
+  vec_file files = vec_file_init();
+
   while ((dp = readdir(dirp))) {
     if (dp->d_name[0] == '.' &&
         (dp->d_name[1] == 0 || (dp->d_name[1] == '.' && dp->d_name[2] == 0))) {
@@ -216,15 +223,17 @@ Dir *dir_load(const char *path, bool load_dircount) {
         file->dircount = file_dircount_load(file);
       }
 
-      cvector_push_back(dir->files_all, file);
+      vec_file_push(&files, file);
     }
   }
   closedir(dirp);
 
-  dir->length_all = cvector_size(dir->files_all);
+  dir->length_all = vec_file_size(&files);
   dir->length_sorted = dir->length_all;
   dir->length = dir->length_all;
 
+  vec_file_shrink_to_fit(&files);
+  dir->files_all = files.data;
   dir->files_sorted = xmalloc(dir->length_all * sizeof *dir->files_all);
   dir->files = xmalloc(dir->length_all * sizeof *dir->files_all);
 
@@ -264,6 +273,8 @@ Dir *dir_load_flat(const char *path, uint32_t level, bool load_dircount) {
   queue.head->level = 0;
   queue.head->next = NULL;
   queue.head->hidden = false;
+
+  vec_file files = vec_file_init();
 
   while (queue.head) {
     struct queue_dirs_node *head = queue.head;
@@ -315,7 +326,7 @@ Dir *dir_load_flat(const char *path, uint32_t level, bool load_dircount) {
           }
         }
 
-        cvector_push_back(dir->files_all, file);
+        vec_file_push(&files, file);
       }
     }
     closedir(dirp);
@@ -323,10 +334,12 @@ Dir *dir_load_flat(const char *path, uint32_t level, bool load_dircount) {
     xfree(head);
   }
 
-  dir->length_all = cvector_size(dir->files_all);
+  dir->length_all = vec_file_size(&files);
   dir->length_sorted = dir->length_all;
   dir->length = dir->length_all;
 
+  vec_file_shrink_to_fit(&files);
+  dir->files_all = files.data;
   dir->files_sorted = xmalloc(dir->length_all * sizeof *dir->files_sorted);
   dir->files = xmalloc(dir->length_all * sizeof *dir->files);
 
@@ -391,7 +404,10 @@ void dir_update_with(Dir *d, Dir *update, uint32_t height, uint32_t scrolloff) {
     d->sel = strdup(file_name(d->files[d->ind]));
   }
 
-  cvector_ffree(d->files_all, file_destroy);
+  for (uint32_t i = 0; i < d->length_all; i++) {
+    file_destroy(d->files_all[i]);
+  }
+  xfree(d->files_all);
   xfree(d->files_sorted);
   xfree(d->files);
 
@@ -424,7 +440,10 @@ void dir_destroy(Dir *d) {
     return;
   }
 
-  cvector_ffree(d->files_all, file_destroy);
+  for (uint32_t i = 0; i < d->length_all; i++) {
+    file_destroy(d->files_all[i]);
+  }
+  xfree(d->files_all);
   filter_destroy(d->filter);
   xfree(d->files_sorted);
   xfree(d->files);
