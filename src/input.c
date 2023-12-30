@@ -2,7 +2,6 @@
 
 #include "cmdline.h"
 #include "config.h"
-#include "cvector.h"
 #include "fm.h"
 #include "hooks.h"
 #include "keys.h"
@@ -25,15 +24,13 @@ static void stdin_cb(EV_P_ ev_io *w, int revents);
 void input_resume(Lfm *lfm);
 
 void input_init(Lfm *lfm) {
-  lfm->ui.maps.seq = NULL;
-
   ev_timer_init(&lfm->ui.map_clear_timer, map_clear_timer_cb, 0, 0);
   lfm->ui.map_clear_timer.data = lfm;
   lfm->ui.input_watcher.data = lfm;
 }
 
 void input_deinit(Lfm *lfm) {
-  cvector_free(lfm->ui.maps.seq);
+  vec_input_drop(&lfm->ui.maps.seq);
   ev_timer_stop(lfm->loop, &lfm->ui.map_clear_timer);
 }
 
@@ -99,7 +96,7 @@ static inline void input_clear(Lfm *lfm) {
   Ui *ui = &lfm->ui;
   ui->maps.cur = NULL;
   ui_menu_hide(ui);
-  cvector_set_size(ui->maps.seq, 0);
+  vec_input_clear(&ui->maps.seq);
   ui_redraw(ui, REDRAW_CMDLINE);
 }
 
@@ -118,7 +115,7 @@ void input_handle_key(Lfm *lfm, input_t in) {
     if (!lfm->ui.maps.cur && !lfm->ui.maps.cur_input) {
       // reset the buffer/trie only if no mode map and no input map are possible
       lfm->ui.maps.cur = lfm->current_mode->maps;
-      cvector_set_size(lfm->ui.maps.seq, 0);
+      vec_input_clear(&lfm->ui.maps.seq);
       lfm->ui.maps.count = -1;
       lfm->ui.maps.accept_count = true;
     }
@@ -182,7 +179,7 @@ void input_handle_key(Lfm *lfm, input_t in) {
     // non-input mode, printable keys are mappings
     if (!lfm->ui.maps.cur) {
       lfm->ui.maps.cur = lfm->current_mode->maps;
-      cvector_set_size(lfm->ui.maps.seq, 0);
+      vec_input_clear(&lfm->ui.maps.seq);
       lfm->ui.maps.count = -1;
       lfm->ui.maps.accept_count = true;
     }
@@ -193,14 +190,14 @@ void input_handle_key(Lfm *lfm, input_t in) {
         lfm->ui.maps.count = lfm->ui.maps.count * 10 + in - '0';
       }
       if (lfm->ui.maps.count > 0) {
-        cvector_push_back(lfm->ui.maps.seq, in);
+        vec_input_push(&lfm->ui.maps.seq, in);
         ui_redraw(ui, REDRAW_CMDLINE);
       }
       return;
     }
     lfm->ui.maps.cur = trie_find_child(lfm->ui.maps.cur, in);
     if (in == NCKEY_ESC) {
-      if (cvector_size(lfm->ui.maps.seq) > 0) {
+      if (vec_input_size(&lfm->ui.maps.seq) > 0) {
         input_clear(lfm);
       } else {
         search_nohighlight(lfm);
@@ -214,10 +211,10 @@ void input_handle_key(Lfm *lfm, input_t in) {
       ui->show_message = false;
       ui_redraw(ui, REDRAW_FM);
     } else if (!lfm->ui.maps.cur) {
-      cvector_push_back(lfm->ui.maps.seq, in);
+      vec_input_push(&lfm->ui.maps.seq, in);
       char *str = NULL;
-      for (size_t i = 0; i < cvector_size(lfm->ui.maps.seq); i++) {
-        for (const char *s = input_to_key_name(lfm->ui.maps.seq[i]); *s; s++) {
+      c_foreach(it, vec_input, lfm->ui.maps.seq) {
+        for (const char *s = input_to_key_name(*it.ref); *s; s++) {
           cvector_push_back(str, *s);
         }
       }
@@ -232,7 +229,7 @@ void input_handle_key(Lfm *lfm, input_t in) {
       input_clear(lfm);
       llua_call_from_ref(lfm->L, ref, lfm->ui.maps.count);
     } else {
-      cvector_push_back(lfm->ui.maps.seq, in);
+      vec_input_push(&lfm->ui.maps.seq, in);
       ui_redraw(ui, REDRAW_CMDLINE);
       lfm->ui.maps.accept_count = false;
 

@@ -25,6 +25,9 @@ struct message {
 #define i_no_clone
 #include "stc/vec.h"
 
+#define i_TYPE vec_input, input_t
+#include "stc/vec.h"
+
 #define REDRAW_INFO 1
 #define REDRAW_FM 2
 #define REDRAW_CMDLINE 4
@@ -63,7 +66,7 @@ typedef struct Ui {
   struct {
     struct Trie *cur;       // current leaf in the trie of the active mode
     struct Trie *cur_input; // current leaf in the trie of input maps
-    input_t *seq;           // current key sequence
+    vec_input seq;          // current key sequence
     int count;
     bool accept_count;
     Trie *input;

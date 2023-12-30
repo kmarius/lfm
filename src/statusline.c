@@ -1,7 +1,6 @@
 #include "statusline.h"
 
 #include "config.h"
-#include "cvector.h"
 #include "lfm.h"
 #include "macros.h"
 #include "ui.h"
@@ -102,18 +101,23 @@ void statusline_draw(Ui *ui) {
       ncplane_set_fg_default(n);
       ncplane_putchar(n, ' ');
     }
-    if (cvector_size(ui->maps.seq) > 0) {
-      char *str = NULL;
-      for (size_t i = 0; i < cvector_size(ui->maps.seq); i++) {
-        for (const char *s = input_to_key_name(ui->maps.seq[i]); *s; s++) {
-          cvector_push_back(str, *s);
+    if (vec_input_size(&ui->maps.seq) > 0) {
+      // unlikely we get to print this much anyway
+      char buf[256];
+      int i = 0;
+      c_foreach(it, vec_input, ui->maps.seq) {
+        const char *s = input_to_key_name(*it.ref);
+        size_t l = strlen(s);
+        if (i + l + 1 > sizeof buf) {
+          break;
         }
+        strcpy(buf + i, s);
+        i += l;
       }
-      cvector_push_back(str, 0);
-      rhs_sz += mbstowcs(NULL, str, 0) + 1;
-      ncplane_putstr_yx(n, 0, ui->x - rhs_sz, str);
+      buf[i] = 0;
+      rhs_sz += mbstowcs(NULL, buf, 0) + 1;
+      ncplane_putstr_yx(n, 0, ui->x - rhs_sz, buf);
       ncplane_putchar(n, ' ');
-      cvector_free(str);
     }
     if (lhs_sz + rhs_sz > ui->x) {
       ncplane_putwc_yx(n, 0, ui->x - rhs_sz - 2, cfg.truncatechar);
