@@ -19,15 +19,15 @@ static void visual_on_exit(Lfm *lfm);
 void lfm_modes_init(Lfm *lfm) {
   lfm->modes = hmap_modes_init();
   lfm_mode_register(lfm, &(struct mode){
-                             .name = "normal",
+                             .name = (char *)"normal",
                              .on_enter = normal_on_enter,
                          });
   lfm_mode_register(lfm, &(struct mode){
-                             .name = "input",
+                             .name = (char *)"input",
                              .input = true,
                          });
   lfm_mode_register(lfm, &(struct mode){
-                             .name = "visual",
+                             .name = (char *)"visual",
                              .input = false,
                              .on_enter = visual_on_enter,
                              .on_exit = visual_on_exit,
@@ -69,16 +69,8 @@ int lfm_mode_register(Lfm *lfm, const struct mode *mode) {
   }
   // modes might change when if the table is resized
   char *current = lfm->current_mode ? lfm->current_mode->name : NULL;
-  /* hmap_modes_result res = hmap_modes_insert(&lfm->modes, mode->name, *mode);
-   */
   hmap_modes_result res = hmap_modes_emplace(&lfm->modes, mode->name, *mode);
   res.ref->first = res.ref->second.name;
-  /* struct mode *newmode = &res.ref->second; */
-  /* newmode->name = strdup(newmode->name); */
-  /* if (newmode->prefix) { */
-  /*   newmode->prefix = strdup(newmode->prefix); */
-  /* } */
-  /* newmode->maps = trie_create(); */
   if (current) {
     lfm->current_mode = hmap_modes_at_mut(&lfm->modes, current);
   }
