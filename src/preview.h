@@ -1,6 +1,6 @@
 #pragma once
 
-#include "cvector.h"
+#include "containers.h"
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -16,7 +16,7 @@ typedef void (*preview_destroy_fun)(struct Preview *);
 typedef struct Preview {
   char *path;
   union {
-    cvector_vector_type(char *) lines;
+    vec_str_o lines;
     struct ncvisual *ncv;
   };
   uint64_t next;
