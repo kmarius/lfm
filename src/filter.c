@@ -31,6 +31,7 @@ void filter_destroy(Filter *filter) {
   if (filter) {
     xfree(filter->string);
     filter->destroy(filter);
+    xfree(filter);
   }
 }
 
@@ -178,6 +179,9 @@ static void subfilter_init(struct subfilter *s, char *filter) {
     }
     s->length++;
   }
+  if (!s->length) {
+    xfree(s->atoms);
+  }
 }
 
 bool sub_match(const Filter *filter, const File *file);
@@ -216,7 +220,6 @@ void sub_destroy(Filter *filter) {
     xfree(f->filters[i].atoms);
   }
   xfree(f->buf);
-  xfree(f);
 }
 
 static inline bool atom_match(const struct filter_atom *a, const File *file) {
