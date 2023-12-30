@@ -36,7 +36,7 @@ typedef struct Lfm {
   cvector_vector_type(ev_timer *) schedule_timers;
   cvector_vector_type(ev_child *) child_watchers;
 
-  int *hook_refs[LFM_NUM_HOOKS];
+  vec_int hook_refs[LFM_NUM_HOOKS];
 
   struct message *messages;
 

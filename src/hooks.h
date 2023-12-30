@@ -1,5 +1,8 @@
 #pragma once
 
+#include "stc/forward.h"
+forward_vec(vec_int, int);
+
 struct Lfm;
 
 typedef enum {
