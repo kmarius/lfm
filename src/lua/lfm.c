@@ -134,7 +134,7 @@ static int l_message_clear(lua_State *L) {
 }
 
 static int l_spawn(lua_State *L) {
-  char **stdin = NULL;
+  vec_str stdin = {0};
   bool out = true;
   bool err = true;
   int stdout_ref = 0;
@@ -164,12 +164,12 @@ static int l_spawn(lua_State *L) {
   if (lua_gettop(L) == 2) {
     lua_getfield(L, 2, "stdin"); // [cmd, opts, opts.stdin]
     if (lua_isstring(L, -1)) {
-      cvector_push_back(stdin, strdup(lua_tostring(L, -1)));
+      vec_str_push(&stdin, strdup(lua_tostring(L, -1)));
     } else if (lua_istable(L, -1)) {
       const size_t m = lua_objlen(L, -1);
       for (uint32_t i = 1; i <= m; i++) {
         lua_rawgeti(L, -1, i); // [cmd, opts, opts.stdin, str]
-        cvector_push_back(stdin, strdup(lua_tostring(L, -1)));
+        vec_str_push(&stdin, strdup(lua_tostring(L, -1)));
         lua_pop(L, 1); // [cmd, otps, opts.stdin]
       }
     }
@@ -199,10 +199,12 @@ static int l_spawn(lua_State *L) {
     }
   }
 
-  int pid = lfm_spawn(lfm, args[0], args, stdin, out, err, stdout_ref,
+  int pid = lfm_spawn(lfm, args[0], args, &stdin, out, err, stdout_ref,
                       stderr_ref, exit_ref);
 
-  cvector_ffree(stdin, xfree);
+  c_foreach(it, vec_str, stdin) {
+    xfree(*it.ref);
+  }
   cvector_ffree(args, xfree);
 
   if (pid != -1) {

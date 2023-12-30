@@ -130,7 +130,6 @@ void config_deinit(void) {
   hmap_icon_drop(&cfg.icon_map);
   hmap_dirsetting_drop(&cfg.dir_settings_map);
   cvector_free(cfg.ratios);
-  cvector_free(cfg.commands);
   cvector_ffree(cfg.inotify_blacklist, xfree);
   xfree(cfg.configdir);
   xfree(cfg.configpath);

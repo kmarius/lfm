@@ -13,6 +13,11 @@
 #define MAP_CLEAR_DELAY 10000
 #define LOADING_INDICATOR_DELAY 250
 
+// does not own or free the string
+#define i_type vec_str
+#define i_val char *
+#include "stc/vec.h"
+
 #define i_type hmap_channel
 #define i_key char *
 #define i_val uint64_t
@@ -86,7 +91,7 @@ typedef struct config {
   hmap_icon icon_map;
   uint32_t scrolloff;
   char *timefmt;
-  cvector_vector_type(char *) commands;
+  vec_str commands;
   cvector_vector_type(uint32_t) ratios;
 
   cvector_vector_type(char *) inotify_blacklist;
