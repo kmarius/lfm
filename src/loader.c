@@ -1,17 +1,15 @@
+#include "dir.h"
+
 #include "loader.h"
 
 #include "async.h"
 #include "config.h"
-#include "cvector.h"
-#include "dir.h"
-#include "fm.h"
-#include "hashtab.h"
 #include "hooks.h"
 #include "lfm.h"
-#include "log.h"
 #include "macros.h"
-#include "memory.h"
 #include "path.h"
+#include "preview.h"
+#include "stc/common.h"
 #include "ui.h"
 #include "util.h"
 
@@ -19,7 +17,18 @@
 
 #include <stdint.h>
 
-struct timer_data {
+#define i_implement
+#include "stc/cstr.h"
+
+#define i_is_forward
+#define i_type previewcache
+#define i_key_str
+#define i_val Preview *
+#define i_valdrop(p) preview_destroy(*(p))
+#define i_no_clone
+#include "stc/hmap.h"
+
+struct loader_timer {
   ev_timer watcher;
   Lfm *lfm;
   union {
@@ -28,60 +37,76 @@ struct timer_data {
   };
 };
 
+#define i_is_forward
+#define i_type list_loader_timer
+#define i_val struct loader_timer
+#include "stc/dlist.h"
+
+#define i_TYPE set_dir, Dir *
+#include "stc/hset.h"
+
+#define i_TYPE set_preview, Preview *
+#include "stc/hset.h"
+
 void loader_init(Loader *loader) {
-  loader->dir_cache = ht_create((ht_free_func)dir_destroy);
-  loader->preview_cache = ht_create((ht_free_func)preview_destroy);
+  loader->dc = dircache_init();
+  loader->pc = previewcache_init();
 }
 
 void loader_deinit(Loader *loader) {
-  cvector_ffree(loader->dir_timers, xfree);
-  cvector_ffree(loader->preview_timers, xfree);
-  ht_destroy(loader->dir_cache);
-  ht_destroy(loader->preview_cache);
+  list_loader_timer_drop(&loader->dir_timers);
+  list_loader_timer_drop(&loader->preview_timers);
+  dircache_drop(&loader->dc);
+  previewcache_drop(&loader->pc);
 }
 
 static void dir_timer_cb(EV_P_ ev_timer *w, int revents) {
   (void)revents;
-  struct timer_data *data = (struct timer_data *)w;
-  async_dir_load(&data->lfm->async, data->dir, true);
-  data->dir->loading = true;
+  struct loader_timer *timer = (struct loader_timer *)w;
+  Lfm *lfm = timer->lfm;
+  async_dir_load(&lfm->async, timer->dir, true);
+  timer->dir->loading = true;
   ev_timer_stop(EV_A_ w);
-  cvector_swap_remove(data->lfm->loader.dir_timers, w);
-  xfree(w);
+  list_loader_timer_erase_node(&lfm->loader.dir_timers,
+                               list_loader_timer_get_node(timer));
 }
 
 static void pv_timer_cb(EV_P_ ev_timer *w, int revents) {
   (void)revents;
-  struct timer_data *data = (struct timer_data *)w;
-  async_preview_load(&data->lfm->async, data->preview);
+  struct loader_timer *timer = (struct loader_timer *)w;
+  Lfm *lfm = timer->lfm;
+  async_preview_load(&lfm->async, timer->preview);
   ev_timer_stop(EV_A_ w);
-  cvector_swap_remove(data->lfm->loader.preview_timers, w);
-  xfree(w);
+  list_loader_timer_erase_node(&lfm->loader.preview_timers,
+                               list_loader_timer_get_node(timer));
 }
 
 static inline void schedule_dir_load(Loader *loader, Dir *dir, uint64_t time) {
-  struct timer_data *data = xmalloc(sizeof *data);
-  double delay = (time - current_millis()) / 1000.;
-  ev_timer_init(&data->watcher, dir_timer_cb, 0, delay);
-  data->dir = dir;
-  data->lfm = to_lfm(loader);
-  ev_timer_again(to_lfm(loader)->loop, &data->watcher);
-  cvector_push_back(loader->dir_timers, &data->watcher);
+  Lfm *lfm = to_lfm(loader);
+  struct loader_timer *timer =
+      list_loader_timer_push(&loader->dir_timers, (struct loader_timer){
+                                                      .dir = dir,
+                                                      .lfm = lfm,
+                                                  });
+  ev_timer_init(&timer->watcher, dir_timer_cb, 0,
+                (time - current_millis()) / 1000.);
+  ev_timer_again(lfm->loop, &timer->watcher);
   dir->next_scheduled_load = time;
   dir->next_requested_load = 0;
   dir->scheduled = true;
-  log_trace("scheduled %s in %fs", dir->path, delay);
 }
 
 static inline void schedule_preview_load(Loader *loader, Preview *pv,
                                          uint64_t time) {
-  struct timer_data *data = xmalloc(sizeof *data);
-  ev_timer_init(&data->watcher, pv_timer_cb, 0,
+  Lfm *lfm = to_lfm(loader);
+  struct loader_timer *timer =
+      list_loader_timer_push(&loader->preview_timers, (struct loader_timer){
+                                                          .preview = pv,
+                                                          .lfm = lfm,
+                                                      });
+  ev_timer_init(&timer->watcher, pv_timer_cb, 0,
                 (time - current_millis()) / 1000.);
-  data->preview = pv;
-  data->lfm = to_lfm(loader);
-  ev_timer_again(to_lfm(loader)->loop, &data->watcher);
-  cvector_push_back(loader->preview_timers, &data->watcher);
+  ev_timer_again(lfm->loop, &timer->watcher);
 }
 
 void loader_dir_reload(Loader *loader, Dir *dir) {
@@ -159,7 +184,8 @@ Dir *loader_dir_from_path(Loader *loader, const char *path) {
     }
   }
 
-  Dir *dir = ht_get(loader->dir_cache, path);
+  dircache_value *v = dircache_get_mut(&loader->dc, path);
+  Dir *dir = v ? v->second : NULL;
   if (dir) {
     if (dir->updates > 0) {
       // don't check before we have actually loaded the directory
@@ -171,9 +197,10 @@ Dir *loader_dir_from_path(Loader *loader, const char *path) {
     dir_sort(dir);
   } else {
     dir = dir_create(path);
-    struct dir_settings *s = ht_get(cfg.dir_settings_map, path);
-    memcpy(&dir->settings, s ? s : &cfg.dir_settings, sizeof *s);
-    ht_set(loader->dir_cache, dir->path, dir);
+    hmap_dirsetting_iter it = hmap_dirsetting_find(&cfg.dir_settings_map, path);
+    struct dir_settings *s = it.ref ? &it.ref->second : &cfg.dir_settings;
+    memcpy(&dir->settings, s, sizeof *s);
+    dircache_insert(&loader->dc, cstr_from(path), dir);
     async_dir_load(&to_lfm(loader)->async, dir, false);
     dir->last_loading_action = current_millis();
     ui_start_loading_indicator_timer(&to_lfm(loader)->ui);
@@ -192,8 +219,10 @@ Preview *loader_preview_from_path(Loader *loader, const char *path) {
     path = fullpath;
   }
 
-  Preview *pv = ht_get(loader->preview_cache, path);
-  if (pv) {
+  previewcache_value *v = previewcache_get_mut(&loader->pc, path);
+  Preview *pv;
+  if (v) {
+    pv = v->second;
     if (pv->reload_height < (int)to_lfm(loader)->ui.preview.y ||
         pv->reload_width < (int)to_lfm(loader)->ui.preview.x) {
       /* TODO: don't need to reload text previews if the actual file holds fewer
@@ -205,7 +234,7 @@ Preview *loader_preview_from_path(Loader *loader, const char *path) {
   } else {
     pv = preview_create_loading(path, to_lfm(loader)->ui.y,
                                 to_lfm(loader)->ui.x);
-    ht_set(loader->preview_cache, pv->path, pv);
+    previewcache_insert(&loader->pc, cstr_from(path), pv);
     async_preview_load(&to_lfm(loader)->async, pv);
   }
   return pv;
@@ -213,59 +242,51 @@ Preview *loader_preview_from_path(Loader *loader, const char *path) {
 
 void loader_drop_preview_cache(Loader *loader) {
   loader->preview_cache_version++;
-  ht_clear(loader->preview_cache);
-  cvector_foreach(ev_timer * timer, loader->preview_timers) {
-    ev_timer_stop(to_lfm(loader)->loop, timer);
-    xfree(timer);
+  previewcache_clear(&loader->pc);
+  c_foreach(it, list_loader_timer, loader->preview_timers) {
+    ev_timer_stop(to_lfm(loader)->loop, &it.ref->watcher);
   }
-  cvector_set_size(loader->preview_timers, 0);
+  list_loader_timer_clear(&loader->preview_timers);
 }
 
 void loader_drop_dir_cache(Loader *loader) {
   loader->dir_cache_version++;
-  ht_clear(loader->dir_cache);
-  cvector_foreach(ev_timer * timer, loader->dir_timers) {
-    ev_timer_stop(to_lfm(loader)->loop, timer);
-    xfree(timer);
+  dircache_clear(&loader->dc);
+  c_foreach(it, list_loader_timer, loader->dir_timers) {
+    ev_timer_stop(to_lfm(loader)->loop, &it.ref->watcher);
   }
-  cvector_set_size(loader->dir_timers, 0);
+  list_loader_timer_clear(&loader->dir_timers);
 }
 
-#define DATA(t) ((struct timer_data *)t)
-
 void loader_reschedule(Loader *loader) {
-  Dir **dirs = NULL;
-  bool contained;
-  cvector_foreach(ev_timer * timer, loader->dir_timers) {
-    cvector_contains(dirs, DATA(timer)->dir, contained);
-    if (!contained) {
-      cvector_push_back(dirs, DATA(timer)->dir);
-    }
-    ev_timer_stop(to_lfm(loader)->loop, timer);
-    xfree(timer);
+  set_dir dirs = set_dir_init();
+  c_foreach(it, list_loader_timer, loader->dir_timers) {
+    set_dir_insert(&dirs, it.ref->dir);
+    ev_timer_stop(to_lfm(loader)->loop, &it.ref->watcher);
   }
-  cvector_set_size(loader->dir_timers, 0);
+  list_loader_timer_clear(&loader->dir_timers);
 
-  Preview **previews = NULL;
-  cvector_foreach(ev_timer * timer, loader->preview_timers) {
-    cvector_contains(previews, DATA(timer)->preview, contained);
-    if (!contained) {
-      cvector_push_back(previews, DATA(timer)->preview);
-    }
-    ev_timer_stop(to_lfm(loader)->loop, timer);
-    xfree(timer);
+  set_preview previews = set_preview_init();
+  c_foreach(it, list_loader_timer, loader->preview_timers) {
+    set_preview_insert(&previews, it.ref->preview);
+    ev_timer_stop(to_lfm(loader)->loop, &it.ref->watcher);
   }
-  cvector_set_size(loader->preview_timers, 0);
+  list_loader_timer_clear(&loader->preview_timers);
 
   uint64_t next = current_millis() + cfg.inotify_timeout + cfg.inotify_delay;
 
-  cvector_foreach(Dir * dir, dirs) {
-    schedule_dir_load(loader, dir, next);
+  c_foreach(it, set_dir, dirs) {
+    schedule_dir_load(loader, *it.ref, next);
   }
-  cvector_foreach(Preview * pv, previews) {
-    schedule_preview_load(loader, pv, next);
+  c_foreach(it, set_preview, previews) {
+    schedule_preview_load(loader, *it.ref, next);
   }
-  cvector_free(dirs);
-  cvector_free(previews);
+
+  set_dir_clear(&dirs);
+  set_preview_clear(&previews);
 }
-#undef DATA
+
+Preview *loader_preview_get(Loader *loader, const char *path) {
+  previewcache_value *v = previewcache_get_mut(&loader->pc, path);
+  return v ? v->second : NULL;
+}

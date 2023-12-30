@@ -24,6 +24,29 @@ struct mode {
   Trie *maps;
 };
 
+static inline void mode_drop(struct mode *mode) {
+  trie_destroy(mode->maps);
+  free(mode->name);
+  free(mode->prefix);
+}
+
+static inline struct mode mode_valfrom(struct mode mode) {
+  mode.name = strdup(mode.name);
+  mode.prefix = mode.prefix ? strdup(mode.prefix) : NULL;
+  mode.maps = trie_create();
+  return mode;
+}
+
+#define i_type hmap_modes
+#define i_key const char *
+#define i_val struct mode
+#define i_no_clone
+#define i_valdrop mode_drop
+#define i_valfrom mode_valfrom
+#define i_hash ccharptr_hash
+#define i_eq(p, q) (!strcmp(*(p), *(q)))
+#include "stc/hmap.h"
+
 void lfm_modes_init(struct Lfm *lfm);
 
 void lfm_modes_deinit(struct Lfm *lfm);

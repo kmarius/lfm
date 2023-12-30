@@ -2,18 +2,14 @@
 
 #include "cmdline.h"
 #include "config.h"
-#include "cvector.h"
 #include "fm.h"
-#include "hashtab.h"
 #include "hooks.h"
 #include "keys.h"
 #include "lfm.h"
 #include "log.h"
-#include "lua.h"
 #include "lua/lfmlua.h"
 #include "mode.h"
 #include "search.h"
-#include "statusline.h"
 #include "trie.h"
 #include "ui.h"
 #include "util.h"
@@ -28,15 +24,13 @@ static void stdin_cb(EV_P_ ev_io *w, int revents);
 void input_resume(Lfm *lfm);
 
 void input_init(Lfm *lfm) {
-  lfm->ui.maps.seq = NULL;
-
   ev_timer_init(&lfm->ui.map_clear_timer, map_clear_timer_cb, 0, 0);
   lfm->ui.map_clear_timer.data = lfm;
   lfm->ui.input_watcher.data = lfm;
 }
 
 void input_deinit(Lfm *lfm) {
-  cvector_free(lfm->ui.maps.seq);
+  vec_input_drop(&lfm->ui.maps.seq);
   ev_timer_stop(lfm->loop, &lfm->ui.map_clear_timer);
 }
 
@@ -102,7 +96,7 @@ static inline void input_clear(Lfm *lfm) {
   Ui *ui = &lfm->ui;
   ui->maps.cur = NULL;
   ui_menu_hide(ui);
-  cvector_set_size(ui->maps.seq, 0);
+  vec_input_clear(&ui->maps.seq);
   ui_redraw(ui, REDRAW_CMDLINE);
 }
 
@@ -121,7 +115,7 @@ void input_handle_key(Lfm *lfm, input_t in) {
     if (!lfm->ui.maps.cur && !lfm->ui.maps.cur_input) {
       // reset the buffer/trie only if no mode map and no input map are possible
       lfm->ui.maps.cur = lfm->current_mode->maps;
-      cvector_set_size(lfm->ui.maps.seq, 0);
+      vec_input_clear(&lfm->ui.maps.seq);
       lfm->ui.maps.count = -1;
       lfm->ui.maps.accept_count = true;
     }
@@ -185,7 +179,7 @@ void input_handle_key(Lfm *lfm, input_t in) {
     // non-input mode, printable keys are mappings
     if (!lfm->ui.maps.cur) {
       lfm->ui.maps.cur = lfm->current_mode->maps;
-      cvector_set_size(lfm->ui.maps.seq, 0);
+      vec_input_clear(&lfm->ui.maps.seq);
       lfm->ui.maps.count = -1;
       lfm->ui.maps.accept_count = true;
     }
@@ -196,14 +190,14 @@ void input_handle_key(Lfm *lfm, input_t in) {
         lfm->ui.maps.count = lfm->ui.maps.count * 10 + in - '0';
       }
       if (lfm->ui.maps.count > 0) {
-        cvector_push_back(lfm->ui.maps.seq, in);
+        vec_input_push(&lfm->ui.maps.seq, in);
         ui_redraw(ui, REDRAW_CMDLINE);
       }
       return;
     }
     lfm->ui.maps.cur = trie_find_child(lfm->ui.maps.cur, in);
     if (in == NCKEY_ESC) {
-      if (cvector_size(lfm->ui.maps.seq) > 0) {
+      if (vec_input_size(&lfm->ui.maps.seq) > 0) {
         input_clear(lfm);
       } else {
         search_nohighlight(lfm);
@@ -217,17 +211,21 @@ void input_handle_key(Lfm *lfm, input_t in) {
       ui->show_message = false;
       ui_redraw(ui, REDRAW_FM);
     } else if (!lfm->ui.maps.cur) {
-      cvector_push_back(lfm->ui.maps.seq, in);
-      char *str = NULL;
-      for (size_t i = 0; i < cvector_size(lfm->ui.maps.seq); i++) {
-        for (const char *s = input_to_key_name(lfm->ui.maps.seq[i]); *s; s++) {
-          cvector_push_back(str, *s);
+      vec_input_push(&lfm->ui.maps.seq, in);
+      char buf[256];
+      int i = 0;
+      c_foreach(it, vec_input, lfm->ui.maps.seq) {
+        const char *s = input_to_key_name(*it.ref);
+        size_t l = strlen(s);
+        if (i + l + 1 > sizeof buf) {
+          break;
         }
+        strcpy(buf + i, s);
+        i += l;
       }
-      cvector_push_back(str, 0);
+      buf[i] = 0;
       log_debug("unmapped key sequence: %s (id=%d shift=%d ctrl=%d alt=%d)",
-                str, ID(in), ISSHIFT(in), ISCTRL(in), ISALT(in));
-      cvector_free(str);
+                buf, ID(in), ISSHIFT(in), ISCTRL(in), ISALT(in));
       input_clear(lfm);
     } else if (lfm->ui.maps.cur->keys) {
       // A command is mapped to the current keysequence. Execute it and reset.
@@ -235,24 +233,23 @@ void input_handle_key(Lfm *lfm, input_t in) {
       input_clear(lfm);
       llua_call_from_ref(lfm->L, ref, lfm->ui.maps.count);
     } else {
-      cvector_push_back(lfm->ui.maps.seq, in);
+      vec_input_push(&lfm->ui.maps.seq, in);
       ui_redraw(ui, REDRAW_CMDLINE);
       lfm->ui.maps.accept_count = false;
 
-      Trie **leaves = NULL;
-      trie_collect_leaves(lfm->ui.maps.cur, &leaves, true);
+      vec_trie maps = trie_collect_leaves(lfm->ui.maps.cur, true);
 
-      char **menu = NULL;
+      vec_str menu = vec_str_init();
 
-      cvector_push_back(menu, strdup("\033[1mkeys\tcommand\033[0m"));
+      vec_str_push(&menu, strdup("\033[1mkeys\tcommand\033[0m"));
       char *s;
-      for (size_t i = 0; i < cvector_size(leaves); i++) {
-        asprintf(&s, "%s\t%s", leaves[i]->keys,
-                 leaves[i]->desc ? leaves[i]->desc : "");
-        cvector_push_back(menu, s);
+      c_foreach(it, vec_trie, maps) {
+        Trie *map = *it.ref;
+        asprintf(&s, "%s\t%s", map->keys, map->desc ? map->desc : "");
+        vec_str_push(&menu, s);
       }
-      cvector_free(leaves);
-      ui_menu_show(ui, menu, cfg.map_suggestion_delay);
+      vec_trie_drop(&maps);
+      ui_menu_show(ui, &menu, cfg.map_suggestion_delay);
       lfm->ui.map_clear_timer.repeat = (float)cfg.map_clear_delay / 1000.0;
       ev_timer_again(lfm->loop, &lfm->ui.map_clear_timer);
     }

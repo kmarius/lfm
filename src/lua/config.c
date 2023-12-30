@@ -19,10 +19,11 @@
 static inline int llua_dir_settings_set(lua_State *L, const char *path,
                                         int ind) {
   if (lua_isnil(L, ind)) {
-    ht_delete(cfg.dir_settings_map, path);
-    Dir *d = ht_get(lfm->loader.dir_cache, path);
-    if (d) {
-      memcpy(&d->settings, &cfg.dir_settings, sizeof d->settings);
+    hmap_dirsetting_erase(&cfg.dir_settings_map, path);
+    dircache_value *v = dircache_get_mut(&lfm->loader.dc, path);
+    if (v) {
+      memcpy(&v->second->settings, &cfg.dir_settings,
+             sizeof v->second->settings);
     }
     return 0;
   }
@@ -39,6 +40,7 @@ static inline int llua_dir_settings_set(lua_State *L, const char *path,
     for (i = 0; i < NUM_SORTTYPE; i++) {
       if (streq(op, sorttype_str[i])) {
         s.sorttype = i;
+        break;
       }
     }
     if (i == NUM_SORTTYPE) {
@@ -67,10 +69,11 @@ static inline int llua_dir_settings_set(lua_State *L, const char *path,
   }
   lua_pop(L, 1);
 
-  config_dir_setting_add(path, &s);
-  Dir *d = ht_get(lfm->loader.dir_cache, path);
-  if (d) {
-    memcpy(&d->settings, &s, sizeof s);
+  hmap_dirsetting_emplace_or_assign(&cfg.dir_settings_map, path, s);
+
+  dircache_value *v = dircache_get_mut(&lfm->loader.dc, path);
+  if (v) {
+    memcpy(&v->second->settings, &s, sizeof s);
   }
 
   return 0;
@@ -78,10 +81,11 @@ static inline int llua_dir_settings_set(lua_State *L, const char *path,
 
 static int l_dir_settings_index(lua_State *L) {
   const char *key = luaL_checkstring(L, 2);
-  struct dir_settings *s = ht_get(cfg.dir_settings_map, key);
-  if (!s) {
+  hmap_dirsetting_iter it = hmap_dirsetting_find(&cfg.dir_settings_map, key);
+  if (!it.ref) {
     return 0;
   }
+  struct dir_settings *s = &it.ref->second;
 
   lua_createtable(L, 0, 5);
   lua_pushboolean(L, s->dirfirst);
@@ -94,6 +98,7 @@ static int l_dir_settings_index(lua_State *L) {
   lua_setfield(L, -2, "info");
   lua_pushstring(L, sorttype_str[s->sorttype]);
   lua_setfield(L, -2, "sorttype");
+
   return 1;
 }
 
@@ -123,18 +128,18 @@ static int l_config_index(lua_State *L) {
     lua_pushboolean(L, cfg.dir_settings.hidden);
     return 1;
   } else if (streq(key, "ratios")) {
-    const size_t l = cvector_size(cfg.ratios);
+    const size_t l = vec_int_size(&cfg.ratios);
     lua_createtable(L, l, 0);
     for (size_t i = 0; i < l; i++) {
-      lua_pushinteger(L, cfg.ratios[i]);
+      lua_pushinteger(L, *vec_int_at(&cfg.ratios, i));
       lua_rawseti(L, -2, i + 1);
     }
     return 1;
   } else if (streq(key, "inotify_blacklist")) {
-    const size_t l = cvector_size(cfg.inotify_blacklist);
+    const size_t l = vec_str_size(&cfg.inotify_blacklist);
     lua_createtable(L, l, 0);
     for (size_t i = 0; i < l; i++) {
-      lua_pushstring(L, cfg.inotify_blacklist[i]);
+      lua_pushstring(L, *vec_str_at(&cfg.inotify_blacklist, i));
       lua_rawseti(L, -2, i + 1);
     }
     return 1;
@@ -160,10 +165,10 @@ static int l_config_index(lua_State *L) {
     lua_pushboolean(L, cfg.icons);
     return 1;
   } else if (streq(key, "icon_map")) {
-    lua_createtable(L, 0, cfg.icon_map->size);
-    ht_foreach_kv(const char *key, const char *val, cfg.icon_map) {
-      lua_pushstring(L, val);
-      lua_setfield(L, -2, key);
+    lua_createtable(L, 0, hmap_icon_size(&cfg.icon_map));
+    c_foreach(it, hmap_icon, cfg.icon_map) {
+      lua_pushstring(L, it.ref->second);
+      lua_setfield(L, -2, it.ref->first);
     }
     return 1;
   } else if (streq(key, "fifopath")) {
@@ -244,28 +249,29 @@ static int l_config_newindex(lua_State *L) {
     if (l == 0) {
       luaL_argerror(L, 3, "no ratios given");
     }
-    uint32_t *ratios = NULL;
+    vec_int ratios = vec_int_init();
     for (uint32_t i = 1; i <= l; i++) {
       lua_rawgeti(L, 3, i);
       int32_t val = lua_tointeger(L, -1);
       if (val <= 0) {
-        cvector_free(ratios);
+        vec_int_drop(&ratios);
         return luaL_error(L, "ratio must be non-negative");
       }
-      cvector_push_back(ratios, lua_tointeger(L, -1));
+      vec_int_push(&ratios, lua_tointeger(L, -1));
       lua_pop(L, 1);
     }
-    config_ratios_set(ratios);
+    vec_int_drop(&cfg.ratios);
+    cfg.ratios = ratios;
     fm_recol(fm);
     ui_recol(ui);
     ui_redraw(ui, REDRAW_FM);
   } else if (streq(key, "inotify_blacklist")) {
     luaL_checktype(L, 3, LUA_TTABLE);
     const size_t l = lua_objlen(L, 3);
-    cvector_fclear(cfg.inotify_blacklist, xfree);
+    vec_str_clear(&cfg.inotify_blacklist);
     for (size_t i = 1; i <= l; i++) {
       lua_rawgeti(L, 3, i);
-      cvector_push_back(cfg.inotify_blacklist, strdup(lua_tostring(L, -1)));
+      vec_str_emplace(&cfg.inotify_blacklist, lua_tostring(L, -1));
       lua_pop(L, 1);
     }
   } else if (streq(key, "inotify_timeout")) {
@@ -304,17 +310,18 @@ static int l_config_newindex(lua_State *L) {
     ui_redraw(ui, REDRAW_FM);
   } else if (streq(key, "icon_map")) {
     luaL_checktype(L, 3, LUA_TTABLE);
-    ht_clear(cfg.icon_map);
+    hmap_icon_clear(&cfg.icon_map);
     for (lua_pushnil(L); lua_next(L, -2) != 0; lua_pop(L, 1)) {
       if (lua_type(L, -2) != LUA_TSTRING || lua_type(L, -1) != LUA_TSTRING) {
         return luaL_error(L, "icon_map: non-string key/value found");
       }
-      config_icon_map_add(lua_tostring(L, -2), lua_tostring(L, -1));
+      hmap_icon_emplace_or_assign(&cfg.icon_map, lua_tostring(L, -2),
+                                  lua_tostring(L, -1));
     }
     ui_redraw(ui, REDRAW_FM);
   } else if (streq(key, "dir_settings")) {
     luaL_checktype(L, 3, LUA_TTABLE);
-    ht_clear(cfg.dir_settings_map);
+    hmap_dirsetting_clear(&cfg.dir_settings_map);
     for (lua_pushnil(L); lua_next(L, -2) != 0; lua_pop(L, 1)) {
       llua_dir_settings_set(L, luaL_checkstring(L, -2), -1);
     }
@@ -452,7 +459,8 @@ static int l_colors_newindex(lua_State *L) {
 
         lua_getfield(L, -1, "ext");
         for (lua_pushnil(L); lua_next(L, -2); lua_pop(L, 1)) {
-          config_color_map_add(lua_tostring(L, -1), ch);
+          hmap_channel_emplace_or_assign(&cfg.colors.color_map,
+                                         lua_tostring(L, -1), ch);
         }
         lua_pop(L, 1);
       }

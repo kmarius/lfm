@@ -1,13 +1,11 @@
 #pragma once
 
-#include <ctype.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
-#include <wctype.h>
 
 #include <bits/types.h>
 

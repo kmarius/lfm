@@ -1,11 +1,8 @@
 #include "auto/versiondef.h"
 #include "config.h"
-#include "cvector.h"
-#include "fm.h"
 #include "lfm.h"
 #include "log.h"
 #include "path.h"
-#include "ui.h"
 #include "util.h"
 
 #include <ev.h>
@@ -69,7 +66,7 @@ int main(int argc, char **argv) {
   while ((opt = getopt(argc, argv, ":c:hl:L:s:u:v")) != -1) {
     switch (opt) {
     case 'c':
-      cvector_push_back(cfg.commands, optarg);
+      vec_str_emplace(&cfg.commands, optarg);
       break;
     case 'h':
       usage(argv[0]);

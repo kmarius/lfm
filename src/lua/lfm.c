@@ -3,10 +3,9 @@
 #include "../config.h"
 #include "../hooks.h"
 #include "../input.h"
-#include "../log.h"
+#include "../mode.h"
 #include "../search.h"
 #include "auto/versiondef.h"
-#include "lfmlua.h"
 #include "private.h"
 
 #include <lauxlib.h>
@@ -135,7 +134,7 @@ static int l_message_clear(lua_State *L) {
 }
 
 static int l_spawn(lua_State *L) {
-  char **stdin = NULL;
+  vec_str stdin = {0};
   bool out = true;
   bool err = true;
   int stdout_ref = 0;
@@ -155,22 +154,24 @@ static int l_spawn(lua_State *L) {
   const int n = lua_objlen(L, 1);
   luaL_argcheck(L, n > 0, 1, "no command given");
 
-  char **args = NULL;
+  vec_str args = vec_str_init();
+  vec_str_reserve(&args, n + 1);
   for (int i = 1; i <= n; i++) {
     lua_rawgeti(L, 1, i); // [cmd, opts?, arg]
-    cvector_push_back(args, strdup(lua_tostring(L, -1)));
+    vec_str_emplace(&args, lua_tostring(L, -1));
     lua_pop(L, 1); // [cmd, opts?]
   }
-  cvector_push_back(args, NULL);
+  vec_str_push(&args, NULL);
+
   if (lua_gettop(L) == 2) {
     lua_getfield(L, 2, "stdin"); // [cmd, opts, opts.stdin]
     if (lua_isstring(L, -1)) {
-      cvector_push_back(stdin, strdup(lua_tostring(L, -1)));
+      vec_str_emplace(&stdin, lua_tostring(L, -1));
     } else if (lua_istable(L, -1)) {
       const size_t m = lua_objlen(L, -1);
       for (uint32_t i = 1; i <= m; i++) {
         lua_rawgeti(L, -1, i); // [cmd, opts, opts.stdin, str]
-        cvector_push_back(stdin, strdup(lua_tostring(L, -1)));
+        vec_str_emplace(&stdin, lua_tostring(L, -1));
         lua_pop(L, 1); // [cmd, otps, opts.stdin]
       }
     }
@@ -200,11 +201,11 @@ static int l_spawn(lua_State *L) {
     }
   }
 
-  int pid = lfm_spawn(lfm, args[0], args, stdin, out, err, stdout_ref,
-                      stderr_ref, exit_ref);
+  int pid = lfm_spawn(lfm, args.data[0], args.data, &stdin, out, err,
+                      stdout_ref, stderr_ref, exit_ref);
 
-  cvector_ffree(stdin, xfree);
-  cvector_ffree(args, xfree);
+  vec_str_drop(&stdin);
+  vec_str_drop(&args);
 
   if (pid != -1) {
     lua_pushnumber(L, pid);
@@ -227,25 +228,25 @@ static int l_execute(lua_State *L) {
   const int n = lua_objlen(L, 1);
   luaL_argcheck(L, n > 0, 1, "no command given");
 
-  char **args = NULL;
+  vec_str args = vec_str_init();
   for (int i = 1; i <= n; i++) {
     lua_rawgeti(L, 1, i);
-    cvector_push_back(args, strdup(lua_tostring(L, -1)));
+    vec_str_emplace(&args, lua_tostring(L, -1));
     lua_pop(L, 1);
   }
-  cvector_push_back(args, NULL);
+  vec_str_push(&args, NULL);
 
-  bool ret = lfm_execute(lfm, args[0], args);
+  bool ret = lfm_execute(lfm, args.data[0], args.data);
 
-  cvector_ffree(args, xfree);
+  vec_str_drop(&args);
 
   if (ret) {
     lua_pushboolean(L, true);
     return 1;
   } else {
     lua_pushnil(L);
-    lua_pushstring(L,
-                   strerror(errno)); // not sure if something even sets errno
+    // not sure if something even sets errno
+    lua_pushstring(L, strerror(errno));
     return 2;
   }
 }
@@ -270,11 +271,11 @@ static inline int map_key(lua_State *L, Trie *trie, bool allow_mode) {
       if (!allow_mode) {
         return luaL_error(L, "mode not allowed here");
       }
-      struct mode *mode = ht_get(&lfm->modes, lua_tostring(L, -1));
-      if (!mode) {
+      hmap_modes_iter it = hmap_modes_find(&lfm->modes, lua_tostring(L, -1));
+      if (!it.ref) {
         return luaL_error(L, "no such mode: %s", lua_tostring(L, -1));
       }
-      trie = mode->maps;
+      trie = (*it.ref).second.maps;
     }
     lua_pop(L, 1);
   }
@@ -304,24 +305,27 @@ static int l_cmap_key(lua_State *L) {
 static int l_get_maps(lua_State *L) {
   const char *name = luaL_checkstring(L, 1);
   luaL_checktype(L, 2, LUA_TBOOLEAN);
-  struct mode *mode = ht_get(&lfm->modes, name);
+  const struct mode *mode = hmap_modes_at(&lfm->modes, name);
   if (!mode) {
     return luaL_error(L, "no such mode: %s", name);
   }
-  cvector_vector_type(Trie *) keymaps = NULL;
   bool prune = lua_toboolean(L, 2);
-  trie_collect_leaves(mode->maps, &keymaps, prune);
-  lua_createtable(L, cvector_size(keymaps), 0);
-  for (size_t i = 0; i < cvector_size(keymaps); i++) {
+  vec_trie maps = trie_collect_leaves(mode->maps, prune);
+  lua_createtable(L, vec_trie_size(&maps), 0);
+  size_t i = 0;
+  c_foreach(it, vec_trie, maps) {
+    Trie *map = *it.ref;
     lua_createtable(L, 0, 3);
-    lua_pushstring(L, keymaps[i]->desc ? keymaps[i]->desc : "");
+    lua_pushstring(L, map->desc ? map->desc : "");
     lua_setfield(L, -2, "desc");
-    lua_pushstring(L, keymaps[i]->keys);
+    lua_pushstring(L, map->keys);
     lua_setfield(L, -2, "keys");
-    lua_rawgeti(L, LUA_REGISTRYINDEX, keymaps[i]->ref);
+    lua_rawgeti(L, LUA_REGISTRYINDEX, map->ref);
     lua_setfield(L, -2, "f");
     lua_rawseti(L, -2, i + 1);
+    i++;
   }
+  vec_trie_drop(&maps);
   return 1;
 }
 
@@ -333,8 +337,8 @@ static int l_current_mode(lua_State *L) {
 static int l_get_modes(lua_State *L) {
   lua_createtable(L, lfm->modes.size, 0);
   int i = 1;
-  ht_foreach(struct mode * mode, &lfm->modes) {
-    lua_pushstring(L, mode->name);
+  c_foreach(it, hmap_modes, lfm->modes) {
+    lua_pushstring(L, (*it.ref).second.name);
     lua_rawseti(L, -2, i++);
   }
   return 1;
@@ -469,7 +473,7 @@ static const struct luaL_Reg lfm_lib[] = {
 
 static int l_modes_index(lua_State *L) {
   const char *key = luaL_checkstring(L, 2);
-  struct mode *mode = ht_get(&lfm->modes, key);
+  struct mode *mode = hmap_modes_at_mut(&lfm->modes, key);
   if (!mode) {
     return 0;
   }

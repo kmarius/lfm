@@ -1,6 +1,5 @@
 #pragma once
 
-#include "cvector.h"
 #include "keys.h"
 
 // Stores key-values of input_t* -> int. Can't store 0 because it signals that a
@@ -16,6 +15,10 @@ typedef struct Trie {
     char *desc; // description of the command, can be NULL
   };
 } Trie;
+
+#define i_type vec_trie
+#define i_val Trie *
+#include "stc/vec.h"
 
 // Allocate a new trie root.
 Trie *trie_create(void);
@@ -37,5 +40,4 @@ Trie *trie_find_child(const Trie *trie, input_t key);
 
 // Collect leaves and in the vector. If `prune` is `true`, only
 // reachable leaves are collected.
-void trie_collect_leaves(Trie *trie, cvector_vector_type(Trie *) * vec,
-                         bool prune);
+vec_trie trie_collect_leaves(Trie *trie, bool prune);

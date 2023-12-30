@@ -1,17 +1,16 @@
 #include "util.h"
 
-#include "log.h"
 #include "memory.h"
 
 #include <magic.h>
 
-#include <assert.h>
 #include <ctype.h>
 #include <errno.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <wctype.h>
 
 #include <libgen.h>
 #include <sys/stat.h>

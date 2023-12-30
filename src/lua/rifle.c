@@ -1,5 +1,5 @@
-#include "../cvector.h"
 #include "../log.h"
+#include "../memory.h"
 #include "../path.h"
 #include "../util.h"
 
@@ -8,6 +8,7 @@
 #include <lualib.h>
 #include <pcre.h>
 
+#include <ctype.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -43,8 +44,22 @@ typedef struct Condition {
   check_fun *check;
 } Condition;
 
+static inline void condition_drop(Condition *self) {
+  if (self->pcre_extra) {
+    pcre_free(self->pcre);
+    pcre_free(self->pcre_extra);
+  } else {
+    xfree(self->arg);
+  }
+}
+
+#define i_TYPE conditions, Condition
+#define i_keydrop condition_drop
+#define i_no_clone
+#include "../stc/vec.h"
+
 typedef struct Rule {
-  Condition **conditions;
+  conditions conditions;
   char *command;
   char *label;
   int number;
@@ -54,6 +69,17 @@ typedef struct Rule {
   bool flag_esc;
 } Rule;
 
+static inline void rule_drop(Rule *self) {
+  conditions_drop(&self->conditions);
+  xfree(self->label);
+  xfree(self->command);
+}
+
+#define i_TYPE rules, Rule
+#define i_keydrop rule_drop
+#define i_no_clone
+#include "../stc/vec.h"
+
 typedef struct FileInfo {
   const char *file;
   const char *path;
@@ -62,46 +88,16 @@ typedef struct FileInfo {
 
 typedef struct {
   char *config_file;
-  Rule **rules;
+  rules rules;
 } Rifle;
 
-static inline Condition *condition_create(check_fun *f, const char *arg,
-                                          bool negate) {
-  Condition *cd = xcalloc(1, sizeof *cd);
-  cd->check = f;
-  cd->arg = arg ? strdup(arg) : NULL;
-  cd->negate = negate;
+static inline Condition condition_create(check_fun *f, const char *arg,
+                                         bool negate) {
+  Condition cd = {0};
+  cd.check = f;
+  cd.arg = arg ? strdup(arg) : NULL;
+  cd.negate = negate;
   return cd;
-}
-
-static inline void condition_destroy(Condition *cd) {
-  if (!cd) {
-    return;
-  }
-  if (cd->pcre_extra) {
-    pcre_free(cd->pcre);
-    pcre_free(cd->pcre_extra);
-  } else {
-    xfree(cd->arg);
-  }
-  xfree(cd);
-}
-
-static inline Rule *rule_create(const char *command) {
-  Rule *rl = xcalloc(1, sizeof *rl);
-  rl->command = command ? strdup(command) : NULL;
-  rl->number = -1;
-  return rl;
-}
-
-static inline void rule_destroy(Rule *rl) {
-  if (!rl) {
-    return;
-  }
-  cvector_ffree(rl->conditions, condition_destroy);
-  xfree(rl->label);
-  xfree(rl->command);
-  xfree(rl);
 }
 
 static inline void rule_set_flags(Rule *r, const char *flags) {
@@ -174,21 +170,19 @@ static bool check_fun_else(Condition *cd, const FileInfo *info) {
 }
 
 /* TODO: log errors (on 2022-10-15) */
-static inline Condition *condition_create_re(check_fun *f, const char *re,
-                                             bool negate) {
+static inline Condition condition_create_re(check_fun *f, const char *re,
+                                            bool negate) {
   const char *pcre_error_str;
   int pcre_error_offset;
-  Condition *c = condition_create(f, NULL, negate);
-  c->pcre = pcre_compile(re, 0, &pcre_error_str, &pcre_error_offset, NULL);
-  if (!c->pcre) {
-    xfree(c);
-    return NULL;
+  Condition c = condition_create(f, NULL, negate);
+  c.pcre = pcre_compile(re, 0, &pcre_error_str, &pcre_error_offset, NULL);
+  if (!c.pcre) {
+    return (Condition){0};
   }
-  c->pcre_extra = pcre_study(c->pcre, 0, &pcre_error_str);
+  c.pcre_extra = pcre_study(c.pcre, 0, &pcre_error_str);
   if (pcre_error_str) {
-    pcre_free(c->pcre);
-    xfree(c);
-    return NULL;
+    pcre_free(c.pcre);
+    return (Condition){0};
   }
   return c;
 }
@@ -218,27 +212,25 @@ static bool check_fun_has(Condition *cd, const FileInfo *info) {
   return !system(cmd) != cd->negate;
 }
 
-static inline Condition *condition_create_re_name(const char *arg,
-                                                  bool negate) {
+static inline Condition condition_create_re_name(const char *arg, bool negate) {
   return condition_create_re(check_fun_name, arg, negate);
 }
 
-static inline Condition *condition_create_re_ext(const char *arg, bool negate) {
+static inline Condition condition_create_re_ext(const char *arg, bool negate) {
   char *regex_str = xmalloc(strlen(arg) + 8);
   sprintf(regex_str, "\\.(%s)$", arg);
-  Condition *c = condition_create_re(check_fun_name, regex_str, negate);
-  c->check = check_fun_name;
+  Condition c = condition_create_re(check_fun_name, regex_str, negate);
+  c.check = check_fun_name;
   xfree(regex_str);
   return c;
 }
 
-static inline Condition *condition_create_re_mime(const char *arg,
-                                                  bool negate) {
+static inline Condition condition_create_re_mime(const char *arg, bool negate) {
   return condition_create_re(check_fun_mime, arg, negate);
 }
 
-static inline Condition *condition_create_re_match(const char *arg,
-                                                   bool negate) {
+static inline Condition condition_create_re_match(const char *arg,
+                                                  bool negate) {
   return condition_create_re(check_fun_match, arg, negate);
 }
 
@@ -257,7 +249,7 @@ static inline bool is_comment_or_whitespace(char *s) {
   return *s == '#' || *s == '\0';
 }
 
-static inline bool rule_add_condition(Rule *r, char *cond_str) {
+static inline bool rule_add_condition(Rule *self, char *cond_str) {
   if (*cond_str == 0) {
     return true;
   }
@@ -271,7 +263,7 @@ static inline bool rule_add_condition(Rule *r, char *cond_str) {
     func++;
   }
 
-  Condition *c = NULL;
+  Condition c = {0};
 
   if (streq(func, "file")) {
     c = condition_create(check_fun_file, NULL, negate);
@@ -291,13 +283,13 @@ static inline bool rule_add_condition(Rule *r, char *cond_str) {
     }
 
     if (streq(func, "label")) {
-      r->label = strdup(arg);
+      self->label = strdup(arg);
     } else if (streq(func, "number")) {
       /* TODO: cant distringuish between 0 and invalid number
        * (on 2021-07-27) */
-      r->number = atoi(arg);
+      self->number = atoi(arg);
     } else if (streq(func, "flag")) {
-      rule_set_flags(r, arg);
+      rule_set_flags(self, arg);
     } else if (streq(func, "ext")) {
       c = condition_create_re_ext(arg, negate);
     } else if (streq(func, "path")) {
@@ -305,7 +297,7 @@ static inline bool rule_add_condition(Rule *r, char *cond_str) {
     } else if (streq(func, "mime")) {
       c = condition_create_re_mime(arg, negate);
       if (!negate) {
-        r->has_mime = true;
+        self->has_mime = true;
       }
     } else if (streq(func, "name")) {
       c = condition_create_re_name(arg, negate);
@@ -321,29 +313,32 @@ static inline bool rule_add_condition(Rule *r, char *cond_str) {
     }
   }
 
-  if (c) {
-    cvector_push_back(r->conditions, c);
+  if (c.check) {
+    conditions_push(&self->conditions, c);
   }
 
   return true;
 }
 
-static inline Rule *parse_rule(char *rule, const char *command) {
-  Rule *r = rule_create(command);
+static inline int rule_init(Rule *self, char *str, const char *command) {
+  memset(self, 0, sizeof *self);
+  self->command = command ? strdup(command) : NULL;
+  self->number = -1;
 
   char *cond;
-  while ((cond = strtok_r(rule, DELIM_CONDITION, &rule))) {
-    if (!rule_add_condition(r, cond)) {
-      rule_destroy(r);
-      return NULL;
+  while ((cond = strtok_r(str, DELIM_CONDITION, &str))) {
+    if (!rule_add_condition(self, cond)) {
+      rule_drop(self);
+      return -1;
     }
   }
 
-  return r;
+  return 0;
 }
 
-static inline bool rule_check(Rule *r, const FileInfo *info) {
-  cvector_foreach(Condition * c, r->conditions) {
+static inline bool rule_check(Rule *self, const FileInfo *info) {
+  c_foreach(it, conditions, self->conditions) {
+    Condition *c = it.ref;
     if (!c->check(c, info)) {
       return false;
     }
@@ -423,7 +418,8 @@ static int l_rifle_query_mime(lua_State *L) {
   int i = 1;
   int ct_match = 0;
 
-  cvector_foreach(Rule * r, rifle->rules) {
+  c_foreach(it, rules, rifle->rules) {
+    Rule *r = it.ref;
     if (r->has_mime && rule_check(r, &info)) {
       if (r->number > 0) {
         ct_match = r->number;
@@ -485,7 +481,8 @@ static int l_rifle_query(lua_State *L) {
   int i = 1;
   int ct_match = 0;
 
-  cvector_foreach(Rule * r, rifle->rules) {
+  c_foreach(it, rules, rifle->rules) {
+    Rule *r = it.ref;
     if (rule_check(r, &info)) {
       if (r->number > 0) {
         ct_match = r->number;
@@ -535,9 +532,9 @@ static void load_rules(Rifle *rifle) {
       continue;
     }
 
-    Rule *r = parse_rule(buf, command);
-    if (r) {
-      cvector_push_back(rifle->rules, r);
+    Rule r;
+    if (rule_init(&r, buf, command) == 0) {
+      rules_push(&rifle->rules, r);
     }
   }
 
@@ -558,12 +555,12 @@ static inline int llua_parse_rules(lua_State *L, int idx, Rifle *rifle) {
       log_error("malformed rule: %s", str);
     }
 
-    Rule *r = parse_rule(buf, command);
-    if (!r) {
+    Rule r;
+    if (rule_init(&r, buf, command) != 0) {
       log_error("malformed rule: %s", str);
       continue;
     }
-    cvector_push_back(rifle->rules, r);
+    rules_push(&rifle->rules, r);
   }
   return 0;
 }
@@ -571,7 +568,7 @@ static inline int llua_parse_rules(lua_State *L, int idx, Rifle *rifle) {
 static int l_rifle_setup(lua_State *L) {
   Rifle *rifle = lua_touserdata(L, lua_upvalueindex(1));
 
-  cvector_fclear(rifle->rules, rule_destroy);
+  rules_clear(&rifle->rules);
 
   if (lua_istable(L, 1)) {
     lua_getfield(L, 1, "rules");
@@ -595,14 +592,14 @@ static int l_rifle_setup(lua_State *L) {
 
 static int l_rifle_nrules(lua_State *L) {
   Rifle *rifle = lua_touserdata(L, lua_upvalueindex(1));
-  lua_pushinteger(L, cvector_size(rifle->rules));
+  lua_pushinteger(L, rules_size(&rifle->rules));
   return 1;
 }
 
 static int l_rifle_gc(lua_State *L) {
-  Rifle *r = luaL_checkudata(L, 1, RIFLE_META);
-  cvector_ffree(r->rules, rule_destroy);
-  xfree(r->config_file);
+  Rifle *rifle = luaL_checkudata(L, 1, RIFLE_META);
+  rules_drop(&rifle->rules);
+  xfree(rifle->config_file);
   return 0;
 }
 

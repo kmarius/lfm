@@ -1,15 +1,13 @@
 #include "hooks.h"
 
-#include "cvector.h"
+#include "containers.h"
 #include "lfm.h"
 #include "log.h"
 #include "lua/lfmlua.h"
-#include "util.h"
 
 #include <lauxlib.h>
 #include <lua.h>
 
-#include <stddef.h>
 #include <string.h>
 
 // we fold the hook_id and the ref into an id that is returned to the user
@@ -41,12 +39,12 @@ void lfm_hooks_init(Lfm *lfm) {
 
 void lfm_hooks_deinit(Lfm *lfm) {
   for (int i = 0; i < LFM_NUM_HOOKS; i++) {
-    cvector_free(lfm->hook_refs[i]);
+    vec_int_drop(&lfm->hook_refs[i]);
   }
 }
 
 int lfm_add_hook(Lfm *lfm, lfm_hook_id hook, int ref) {
-  cvector_push_back(lfm->hook_refs[hook], ref);
+  vec_int_push(&lfm->hook_refs[hook], ref);
   return (hook << REF_BITS) | ref;
 }
 
@@ -57,10 +55,9 @@ int lfm_remove_hook(Lfm *lfm, int id) {
     // invalid id
     return 0;
   }
-  int *hooks = lfm->hook_refs[hook];
-  for (size_t i = 0; i < cvector_size(hooks); i++) {
-    if (hooks[i] == ref) {
-      cvector_swap_erase(hooks, i);
+  c_foreach(it, vec_int, lfm->hook_refs[hook]) {
+    if (*it.ref == ref) {
+      vec_int_erase_at(&lfm->hook_refs[hook], it);
       return ref;
     }
   }
@@ -70,14 +67,14 @@ int lfm_remove_hook(Lfm *lfm, int id) {
 
 void lfm_run_hook(Lfm *lfm, lfm_hook_id hook) {
   log_trace("running hook: %s", hook_str[hook]);
-  cvector_foreach(int ref, lfm->hook_refs[hook]) {
-    llua_call_ref(lfm->L, ref);
+  c_foreach(it, vec_int, lfm->hook_refs[hook]) {
+    llua_call_ref(lfm->L, *it.ref);
   }
 }
 
 void lfm_run_hook1(Lfm *lfm, lfm_hook_id hook, const char *arg1) {
   log_trace("running hook: %s %s", hook_str[hook], arg1);
-  cvector_foreach(int ref, lfm->hook_refs[hook]) {
-    llua_call_ref1(lfm->L, ref, arg1);
+  c_foreach(it, vec_int, lfm->hook_refs[hook]) {
+    llua_call_ref1(lfm->L, *it.ref, arg1);
   }
 }

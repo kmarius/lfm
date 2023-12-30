@@ -1,19 +1,25 @@
 #pragma once
 
-#include "dir.h"
-#include "hashtab.h"
+#include "dir.h"      // must be included before dircache.h
+#include "stc/cstr.h" // must be included before dircache.h
+
+#include "dircache.h"
 #include "preview.h"
 
-#include <ev.h>
+#include "stc/forward.h"
+
+struct loader_timer;
+forward_dlist(list_loader_timer, struct loader_timer);
+forward_hmap(previewcache, cstr, Preview *);
 
 typedef struct Loader {
-  Hashtab *dir_cache;
-  Hashtab *preview_cache;
+  dircache dc;
+  previewcache pc;
   size_t dir_cache_version; // number of times the cache has been dropped
   size_t preview_cache_version;
 
-  ev_timer **dir_timers;
-  ev_timer **preview_timers;
+  list_loader_timer dir_timers;
+  list_loader_timer preview_timers;
 } Loader;
 
 void loader_init(Loader *loader);
@@ -29,5 +35,6 @@ void loader_dir_load_callback(Loader *loader, Dir *dir);
 void loader_drop_dir_cache(Loader *loader);
 
 Preview *loader_preview_from_path(Loader *loader, const char *path);
+Preview *loader_preview_get(Loader *loader, const char *path);
 void loader_preview_reload(Loader *loader, Preview *pv);
 void loader_drop_preview_cache(Loader *loader);

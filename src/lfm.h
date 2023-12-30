@@ -1,18 +1,23 @@
 #pragma once
 
 #include "async.h"
+#include "containers.h"
 #include "fm.h"
-#include "hashtab.h"
 #include "hooks.h"
 #include "loader.h"
 #include "mode.h"
 #include "notify.h"
+#include "stc/forward.h"
 #include "ui.h"
 
 #include <ev.h>
 #include <lua.h>
 
 #include <stdint.h>
+
+forward_dlist(list_timer, struct sched_timer);
+forward_dlist(list_child, struct child_watcher);
+struct vec_str; // defined in config.h
 
 typedef struct Lfm {
   Ui ui;
@@ -23,7 +28,7 @@ typedef struct Lfm {
   struct ev_loop *loop;
   lua_State *L;
 
-  Hashtab modes;
+  hmap_modes modes;
   struct mode *current_mode;
 
   ev_prepare prepare_watcher;
@@ -34,12 +39,12 @@ typedef struct Lfm {
   ev_signal sighup_watcher;
   ev_io fifo_watcher;
 
-  cvector_vector_type(ev_timer *) schedule_timers;
-  cvector_vector_type(ev_child *) child_watchers;
+  list_timer schedule_timers;
+  list_child child_watchers;
 
-  int *hook_refs[LFM_NUM_HOOKS];
+  vec_int hook_refs[LFM_NUM_HOOKS];
 
-  struct message *messages;
+  vec_message messages;
 
   int fifo_fd;
   FILE *log_fp;
@@ -59,14 +64,15 @@ int lfm_run(Lfm *lfm);
 void lfm_quit(Lfm *lfm, int ret);
 
 // Spawn a background command. execvp semantics hold for `prog`, `args`.
-// A cvector of strings can be passed by `stdin_lines` and will be send to the
+// A vector of strings can be passed by `stdin_lines` and will be send to the
 // commands standard input. If `out` or `err` are true, output/errors will be
 // shown in the ui. If `stdout_ref` or `stderr_ref` are set (>0), the
 // respective callbacks are called with each line of output/error and nothing
 // will be printed on the ui. `exit_ref` will be called with the return code
 // once the command finishes.
-int lfm_spawn(Lfm *lfm, const char *prog, char *const *args, char **stdin_lines,
-              bool out, bool err, int stdout_ref, int stderr_ref, int exit_ref);
+int lfm_spawn(Lfm *lfm, const char *prog, char *const *args,
+              const struct vec_str *stdin_lines, bool out, bool err,
+              int stdout_ref, int stderr_ref, int exit_ref);
 
 // Execute a foreground program. Uses execvp semantics.
 bool lfm_execute(Lfm *lfm, const char *prog, char *const *args);

@@ -1,12 +1,14 @@
 #pragma once
 
-#include "cvector.h"
 #include "dir.h"
 #include "file.h"
-#include "hashtab.h"
+#include "pathlist.h"
+#include "stc/forward.h"
 
 #include <stdbool.h>
 #include <stdint.h>
+
+forward_vec(vec_dir, Dir *);
 
 typedef enum paste_mode_e {
   PASTE_MODE_MOVE,
@@ -24,7 +26,7 @@ typedef struct Fm {
 
   struct {
     // Visible directories excluding preview.
-    cvector_vector_type(Dir *) visible;
+    vec_dir visible;
 
     // Number of visible directories, excluding the preview.
     uint32_t length;
@@ -36,15 +38,15 @@ typedef struct Fm {
 
   struct {
     // Current and previous selection (needed for visual mode)
-    LinkedHashtab *paths;
+    pathlist current;
 
     // Previous selection, needed for visual selection mode.
-    Hashtab *previous;
+    pathlist previous;
   } selection;
 
   struct {
     // Copy/move buffer, hash table of paths.
-    LinkedHashtab *buffer;
+    pathlist buffer;
 
     paste_mode mode;
   } paste;
@@ -73,7 +75,7 @@ void fm_deinit(Fm *fm);
 void fm_recol(Fm *fm);
 
 // Current directory. Never `NULL`.
-#define fm_current_dir(fm) (fm)->dirs.visible[0]
+#define fm_current_dir(fm) (fm)->dirs.visible.data[0]
 
 // Current file of the current directory. Can be `NULL`.
 #define fm_current_file(fm) dir_current_file(fm_current_dir(fm))
@@ -180,15 +182,14 @@ void fm_paste_mode_set(Fm *fm, paste_mode mode);
 
 // Clear copy/move buffer. Returns the size of the buffer bofore clearing.
 static inline bool fm_paste_buffer_clear(Fm *fm) {
-  size_t prev_size = fm->paste.buffer->size;
-  lht_clear(fm->paste.buffer);
+  size_t prev_size = pathlist_size(&fm->paste.buffer);
+  pathlist_clear(&fm->paste.buffer);
   return prev_size;
 }
 
 // Add a path to the paste buffer.
 static inline void fm_paste_buffer_add(Fm *fm, const char *file) {
-  char *val = strdup(file);
-  lht_set(fm->paste.buffer, val, val);
+  pathlist_add(&fm->paste.buffer, file);
 }
 
 // Get the mode current load, one of `MODE_COPY`, `MODE_MOVE`.

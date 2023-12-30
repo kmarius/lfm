@@ -1,8 +1,8 @@
 #include "preview.h"
 
 #include "config.h"
-#include "cvector.h"
 #include "log.h"
+#include "memory.h"
 #include "ncutil.h"
 #include "popen_arr.h"
 #include "sha256.h"
@@ -60,7 +60,7 @@ static inline Preview *preview_create(const char *path, int height, int width) {
 }
 
 static void destroy_text_preview(Preview *p) {
-  cvector_ffree(p->lines, xfree);
+  vec_str_drop(&p->lines);
   xfree(p->path);
   xfree(p);
 }
@@ -72,7 +72,7 @@ Preview *preview_create_loading(const char *path, int height, int width) {
 }
 
 static void update_text_preview(Preview *p, Preview *u) {
-  cvector_ffree(p->lines, xfree);
+  vec_str_drop(&p->lines);
   p->lines = u->lines;
   p->mtime = u->mtime;
   p->reload_width = u->reload_width;
@@ -168,7 +168,7 @@ Preview *preview_create_from_file(const char *path, uint32_t width,
   snprintf(w, sizeof w, "%u", width);
   snprintf(h, sizeof h, "%u", height);
 
-  char *const args[7] = {cfg.previewer,
+  const char *args[7] = {cfg.previewer,
                          p->path,
                          w,
                          h,
@@ -177,15 +177,15 @@ Preview *preview_create_from_file(const char *path, uint32_t width,
                          NULL};
 
   FILE *fp = NULL;
-  int pid = popen2_arr_p(NULL, &fp, NULL, args[0], args, NULL);
+  int pid = popen2_arr_p(NULL, &fp, NULL, args[0], (char *const *)args, NULL);
   if (!fp) {
-    cvector_push_back(p->lines, strerror(errno));
+    vec_str_emplace(&p->lines, strerror(errno));
     log_error("popen2_arr_p: %s", strerror(errno));
     return p;
   }
 
   for (uint32_t i = 0; i < height && fgets_seek(buf, sizeof buf, fp); i++) {
-    cvector_push_back(p->lines, strdup(buf));
+    vec_str_emplace(&p->lines, buf);
   }
   while (getc(fp) != EOF) {
   }
@@ -205,19 +205,19 @@ Preview *preview_create_from_file(const char *path, uint32_t width,
       case PREVIEW_DISPLAY_STDOUT:
         break;
       case PREVIEW_NONE:
-        cvector_fclear(p->lines, xfree);
+        vec_str_clear(&p->lines);
         break; // no preview
       case PREVIEW_FILE_CONTENTS:
-        cvector_fclear(p->lines, xfree);
+        vec_str_clear(&p->lines);
         FILE *fp_file = fopen(path, "r");
         if (fp_file) {
           for (uint32_t i = 0;
                i < height && fgets_seek(buf, sizeof buf, fp_file); i++) {
-            cvector_push_back(p->lines, strdup(buf));
+            vec_str_emplace(&p->lines, buf);
           }
           fclose(fp_file);
         } else {
-          cvector_push_back(p->lines, strerror(errno));
+          vec_str_emplace(&p->lines, strerror(errno));
           log_error("fopen: %s", strerror(errno));
         }
         break;
@@ -235,14 +235,14 @@ Preview *preview_create_from_file(const char *path, uint32_t width,
         if (cfg.preview_images) {
           struct ncvisual *ncv = ncvisual_from_file(cache_path);
           if (ncv) {
-            cvector_ffree(p->lines, xfree);
+            vec_str_drop(&p->lines);
             p->ncv = ncv;
             p->draw = draw_image_preview;
             p->update = update_image_preview;
             p->destroy = destroy_image_preview;
           } else {
-            cvector_fclear(p->lines, xfree);
-            cvector_push_back(p->lines, strdup("error loading image preview"));
+            vec_str_clear(&p->lines);
+            vec_str_emplace(&p->lines, "error loading image preview");
             log_error("ncvisual_from_file %s", cache_path);
           }
         }
@@ -251,14 +251,14 @@ Preview *preview_create_from_file(const char *path, uint32_t width,
         if (cfg.preview_images) {
           struct ncvisual *ncv = ncvisual_from_file(path);
           if (ncv) {
-            cvector_ffree(p->lines, xfree);
+            vec_str_drop(&p->lines);
             p->ncv = ncv;
             p->draw = draw_image_preview;
             p->update = update_image_preview;
             p->destroy = destroy_image_preview;
           } else {
-            cvector_fclear(p->lines, xfree);
-            cvector_push_back(p->lines, strdup("error (ncvisual_from_file)"));
+            vec_str_clear(&p->lines);
+            vec_str_emplace(&p->lines, "error (ncvisual_from_file)");
             log_error("ncvisual_from_file %s", path);
           }
         }
@@ -283,12 +283,12 @@ static void draw_text_preview(const Preview *p, struct ncplane *n) {
   ncplane_set_fg_default(n);
   ncplane_set_bg_default(n);
 
-  for (size_t i = 0; i < cvector_size(p->lines) && i < (size_t)nrow; i++) {
+  for (int i = 0; i < vec_str_size(&p->lines) && i < (int)nrow; i++) {
     ncplane_cursor_move_yx(n, i, 0);
     ncplane_set_fg_default(n);
     ncplane_set_bg_default(n);
     ncplane_set_styles(n, NCSTYLE_NONE);
-    ncplane_addastr(n, p->lines[i]);
+    ncplane_addastr(n, *vec_str_at(&p->lines, i));
   }
 }
 

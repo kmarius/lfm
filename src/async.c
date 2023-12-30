@@ -4,7 +4,6 @@
 #include "dir.h"
 #include "file.h"
 #include "fm.h"
-#include "hashtab.h"
 #include "hooks.h"
 #include "lfm.h"
 #include "loader.h"
@@ -228,17 +227,20 @@ struct file_path_tup {
   char *path;
 };
 
+#define i_TYPE file_counts, struct file_count_tup
+#include "stc/vec.h"
+
 struct dir_count_data {
   struct result super;
   Dir *dir;
-  struct file_count_tup *counts;
+  file_counts counts;
   bool last_batch;
   struct validity_check64 check;
 };
 
 static void dir_count_destroy(void *p) {
   struct dir_count_data *res = p;
-  cvector_free(res->counts);
+  file_counts_drop(&res->counts);
   xfree(res);
 }
 
@@ -246,8 +248,8 @@ static void dir_count_callback(void *p, Lfm *lfm) {
   struct dir_count_data *res = p;
   // discard if any other update has been applied in the meantime
   if (CHECK_PASSES(res->check) && !res->dir->dircounts) {
-    for (size_t i = 0; i < cvector_size(res->counts); i++) {
-      file_dircount_set(res->counts[i].file, res->counts[i].count);
+    c_foreach(it, file_counts, res->counts) {
+      file_dircount_set(it.ref->file, it.ref->count);
     }
     ui_redraw(&lfm->ui, REDRAW_FM);
     if (res->last_batch) {
@@ -258,14 +260,14 @@ static void dir_count_callback(void *p, Lfm *lfm) {
 }
 
 static inline struct dir_count_data *
-dir_count_create(Dir *dir, struct file_count_tup *files,
-                 struct validity_check64 check, bool last) {
+dir_count_create(Dir *dir, file_counts counts, struct validity_check64 check,
+                 bool last) {
   struct dir_count_data *res = xcalloc(1, sizeof *res);
   res->super.callback = &dir_count_callback;
   res->super.destroy = &dir_count_destroy;
 
   res->dir = dir;
-  res->counts = files;
+  res->counts = counts;
   res->last_batch = last;
   res->check = check;
   return res;
@@ -275,13 +277,13 @@ dir_count_create(Dir *dir, struct file_count_tup *files,
 static void async_load_dircounts(Async *async, Dir *dir,
                                  struct validity_check64 check, uint32_t n,
                                  struct file_path_tup *files) {
-  cvector_vector_type(struct file_count_tup) counts = NULL;
+  file_counts counts = file_counts_init();
 
   uint64_t latest = current_millis();
 
   for (uint32_t i = 0; i < n; i++) {
-    cvector_push_back(
-        counts,
+    file_counts_push(
+        &counts,
         ((struct file_count_tup){files[i].file, path_dircount(files[i].path)}));
     xfree(files[i].path);
 
@@ -289,7 +291,7 @@ static void async_load_dircounts(Async *async, Dir *dir,
       struct dir_count_data *res = dir_count_create(dir, counts, check, false);
       enqueue_and_signal(async, (struct result *)res);
 
-      counts = NULL;
+      counts = file_counts_init();
       latest = current_millis();
     }
   }
@@ -318,9 +320,11 @@ struct dir_update_data {
 static inline void update_parent_dircount(Lfm *lfm, Dir *dir, uint32_t length) {
   const char *parent_path = path_parent_s(dir->path);
   if (parent_path) {
-    Dir *parent = ht_get(lfm->loader.dir_cache, parent_path);
+    dircache_value *v = dircache_get_mut(&lfm->loader.dc, parent_path);
+    Dir *parent = v ? v->second : NULL;
     if (parent) {
-      cvector_foreach(File * file, parent->files_all) {
+      for (uint32_t i = 0; i < parent->length_all; i++) {
+        File *file = parent->files_all[i];
         if (streq(file_name(file), dir->name)) {
           file_dircount_set(file, length);
           return;
@@ -434,7 +438,7 @@ static void preview_check_destroy(void *p) {
 
 static void preview_check_callback(void *p, Lfm *lfm) {
   struct preview_check_data *res = p;
-  Preview *pv = ht_get(lfm->loader.preview_cache, res->path);
+  Preview *pv = loader_preview_get(&lfm->loader, res->path);
   if (pv) {
     loader_preview_reload(&lfm->loader, pv);
   }

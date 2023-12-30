@@ -1,10 +1,8 @@
 #include "statusline.h"
 
 #include "config.h"
-#include "cvector.h"
 #include "lfm.h"
 #include "macros.h"
-#include "ncutil.h"
 #include "ui.h"
 
 #include <curses.h>
@@ -28,7 +26,7 @@ void statusline_draw(Ui *ui) {
   uint32_t lhs_sz = 0;
   ncplane_cursor_yx(n, 0, 0);
 
-  const Dir *dir = fm->dirs.visible[0];
+  const Dir *dir = fm->dirs.visible.data[0];
   if (dir) {
     const File *file = dir_current_file(dir);
     if (file) {
@@ -68,24 +66,26 @@ void statusline_draw(Ui *ui) {
       ncplane_set_fg_default(n);
       ncplane_putchar(n, ' ');
     }
-    if (fm->paste.buffer->size > 0) {
+    size_t paste_size = pathlist_size(&fm->paste.buffer);
+    if (paste_size > 0) {
       if (fm->paste.mode == PASTE_MODE_COPY) {
         ncplane_set_channels(n, cfg.colors.copy);
       } else {
         ncplane_set_channels(n, cfg.colors.delete);
       }
 
-      rhs_sz += uint32_num_digits(fm->paste.buffer->size) + 2 + 1;
-      ncplane_printf_yx(n, 0, ui->x - rhs_sz, " %zu ", fm->paste.buffer->size);
+      size_t paste_size = pathlist_size(&fm->paste.buffer);
+      rhs_sz += uint32_num_digits(paste_size) + 2 + 1;
+      ncplane_printf_yx(n, 0, ui->x - rhs_sz, " %zu ", paste_size);
       ncplane_set_bg_default(n);
       ncplane_set_fg_default(n);
       ncplane_putchar(n, ' ');
     }
-    if (fm->selection.paths->size > 0) {
+    size_t sel_size = pathlist_size(&fm->selection.current);
+    if (sel_size > 0) {
       ncplane_set_channels(n, cfg.colors.selection);
-      rhs_sz += uint32_num_digits(fm->selection.paths->size) + 2 + 1;
-      ncplane_printf_yx(n, 0, ui->x - rhs_sz, " %zu ",
-                        fm->selection.paths->size);
+      rhs_sz += uint32_num_digits(sel_size) + 2 + 1;
+      ncplane_printf_yx(n, 0, ui->x - rhs_sz, " %zu ", sel_size);
       ncplane_set_bg_default(n);
       ncplane_set_fg_default(n);
       ncplane_putchar(n, ' ');
@@ -101,18 +101,23 @@ void statusline_draw(Ui *ui) {
       ncplane_set_fg_default(n);
       ncplane_putchar(n, ' ');
     }
-    if (cvector_size(ui->maps.seq) > 0) {
-      char *str = NULL;
-      for (size_t i = 0; i < cvector_size(ui->maps.seq); i++) {
-        for (const char *s = input_to_key_name(ui->maps.seq[i]); *s; s++) {
-          cvector_push_back(str, *s);
+    if (vec_input_size(&ui->maps.seq) > 0) {
+      // unlikely we get to print this much anyway
+      char buf[256];
+      int i = 0;
+      c_foreach(it, vec_input, ui->maps.seq) {
+        const char *s = input_to_key_name(*it.ref);
+        size_t l = strlen(s);
+        if (i + l + 1 > sizeof buf) {
+          break;
         }
+        strcpy(buf + i, s);
+        i += l;
       }
-      cvector_push_back(str, 0);
-      rhs_sz += mbstowcs(NULL, str, 0) + 1;
-      ncplane_putstr_yx(n, 0, ui->x - rhs_sz, str);
+      buf[i] = 0;
+      rhs_sz += mbstowcs(NULL, buf, 0) + 1;
+      ncplane_putstr_yx(n, 0, ui->x - rhs_sz, buf);
       ncplane_putchar(n, ' ');
-      cvector_free(str);
     }
     if (lhs_sz + rhs_sz > ui->x) {
       ncplane_putwc_yx(n, 0, ui->x - rhs_sz - 2, cfg.truncatechar);

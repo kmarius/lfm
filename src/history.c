@@ -1,7 +1,5 @@
 #include "history.h"
 
-#include "cvector.h"
-#include "hashtab.h"
 #include "log.h"
 #include "memory.h"
 #include "path.h"
@@ -13,22 +11,45 @@
 
 #include <libgen.h>
 
+#define i_is_forward
+#define i_type _history_list
+#define i_key struct history_entry
+#define i_no_clone
+#define i_keydrop(p) free(p->prefix)
+#define i_noclone
+#include "stc/dlist.h"
+
+#define i_is_forward
+#define i_type _history_hmap
+#define i_key const char *
+#define i_val _history_list_node *
+#define i_hash ccharptr_hash
+#define i_eq(p, q) (!strcmp(*(p), *(q)))
+#include "stc/hmap.h"
+
 /* TODO: signal errors on load/write (on 2021-10-23) */
 /* TODO: only show history items with matching prefixes (on 2021-07-24) */
 
-void free_history_entry(void *p) {
-  if (p) {
-    struct history_entry *e = p;
-    free(e->prefix);
-    free(e);
+// returns true on append, false on move to back
+static inline bool append_or_move(History *self, struct history_entry e) {
+  struct history_entry *entry = _history_list_push_back(&self->list, e);
+  _history_hmap_iter it = _history_hmap_find(&self->map, e.line);
+  if (it.ref) {
+    _history_list_erase_node(&self->list, it.ref->second);
+    it.ref->first = (char *)entry->line;
+    it.ref->second = _history_list_get_node(entry);
+    log_debug("moved %s", e.line);
+  } else {
+    _history_hmap_insert(&self->map, (char *)entry->line,
+                         _history_list_get_node(entry));
+    log_debug("appended %s", e.line);
   }
+  return it.ref == NULL;
 }
 
 // don't call this on loaded history.
 void history_load(History *h, const char *path) {
   memset(h, 0, sizeof *h);
-
-  lht_init(&h->items, HT_DEFAULT_CAPACITY, free_history_entry);
 
   FILE *fp = fopen(path, "r");
   if (!fp) {
@@ -51,22 +72,19 @@ void history_load(History *h, const char *path) {
       continue;
     }
     *tab = 0;
-    char *hist_line = tab + 1;
 
-    struct history_entry *e = xmalloc(sizeof *e);
-    e->prefix = line;
-    e->line = hist_line;
-    e->is_new = 0;
-
-    // make sure duplicates are stored at the last occurrence
-    lht_delete(&h->items, hist_line);
-    lht_set(&h->items, hist_line, e);
+    append_or_move(h, (struct history_entry){
+                          .prefix = line,
+                          .line = tab + 1,
+                      });
 
     line = NULL;
   }
   xfree(line);
 
   fclose(fp);
+  log_trace("%d history entries loaded", _history_hmap_size(&h->map));
+  assert(_history_list_count(&h->list) == _history_hmap_size(&h->map));
 }
 
 void history_write(History *h, const char *path, int histsize) {
@@ -129,19 +147,20 @@ void history_write(History *h, const char *path, int histsize) {
   if (num_save_new > 0) {
     int num_skip_new = h->num_new_entries - num_save_new;
 
-    struct lht_bucket *iter = h->items.first;
+    _history_list_iter it = _history_list_begin(&h->list);
 
     // skip some of our new entries if we have more than histsize
-    for (; iter != h->items.last && num_skip_new > 0; iter = iter->order_next) {
-      struct history_entry *e = iter->val;
+    for (; it.ref != _history_list_back(&h->list) && num_skip_new > 0;
+         _history_list_next(&it)) {
+      struct history_entry *e = it.ref;
       if (e->is_new) {
         num_skip_new--;
       }
     }
 
     // write our new entries to path_new
-    for (; iter; iter = iter->order_next) {
-      struct history_entry *e = iter->val;
+    for (; it.ref; _history_list_next(&it)) {
+      struct history_entry *e = it.ref;
       if (!e->is_new) {
         continue;
       }
@@ -160,28 +179,35 @@ cleanup:
 }
 
 void history_deinit(History *h) {
-  lht_deinit(&h->items);
+  _history_list_drop(&h->list);
 }
 
 void history_append(History *h, const char *prefix, const char *line) {
-  struct history_entry *old = lht_get(&h->items, line);
-  if (old) {
-    if (old->is_new) {
+  _history_hmap_iter it = _history_hmap_find(&h->map, line);
+  if (it.ref) {
+    if (it.ref->second->value.is_new) {
       h->num_new_entries--;
     }
-    lht_delete(&h->items, line);
+    _history_list_erase_node(&h->list, it.ref->second);
+    _history_hmap_erase_at(&h->map, it);
   }
 
   int prefix_len = strlen(prefix);
-  struct history_entry *e = xmalloc(sizeof *e);
-  e->is_new = line[0] != ' ';
-  e->prefix = xmalloc(prefix_len + strlen(line) + 2);
-  e->line = e->prefix + prefix_len + 1;
-  strcpy(e->prefix, prefix);
-  strcpy(e->prefix + prefix_len + 1, line);
+  char *prefix_ = xmalloc(prefix_len + strlen(line) + 2);
+  char *line_ = prefix_ + prefix_len + 1;
+  bool is_new = line[0] != ' ';
+  strcpy(prefix_, prefix);
+  strcpy(prefix_ + prefix_len + 1, line);
 
-  lht_set(&h->items, line, e);
-  if (e->is_new) {
+  struct history_entry *entry =
+      _history_list_push_back(&h->list, (struct history_entry){
+                                            .is_new = is_new,
+                                            .prefix = prefix_,
+                                            .line = line_,
+                                        });
+  _history_hmap_insert(&h->map, (char *)line, _history_list_get_node(entry));
+
+  if (is_new) {
     h->num_new_entries++;
   }
 
@@ -189,37 +215,47 @@ void history_append(History *h, const char *prefix, const char *line) {
 }
 
 void history_reset(History *h) {
-  h->cur = NULL;
+  h->cur.ref = NULL;
 }
 
 const char *history_prev(History *h) {
-  if (!h->cur) {
-    h->cur = h->items.last;
+  if (!h->cur.ref) {
+    h->cur = _history_list_last(&h->list);
   } else {
-    if (h->cur != h->items.first) {
-      h->cur = h->cur->order_prev;
+    if (h->cur.ref != _history_list_front(&h->list)) {
+      _history_list_prev(&h->cur);
     }
   }
 
-  if (!h->cur) {
+  if (!h->cur.ref) {
     return NULL;
   }
 
-  struct history_entry *e = h->cur->val;
-  return e->line;
+  return h->cur.ref->line;
 }
 
-const char *history_next(History *h) {
-  if (!h->cur) {
+const char *history_next_entry(History *h) {
+  if (!h->cur.ref) {
     return NULL;
   }
 
-  h->cur = h->cur->order_next;
+  _history_list_next(&h->cur);
 
-  if (!h->cur) {
+  if (!h->cur.ref) {
     return NULL;
   }
 
-  struct history_entry *e = h->cur->val;
-  return e->line;
+  return h->cur.ref->line;
+}
+
+size_t history_size(History *self) {
+  return _history_hmap_size(&self->map);
+}
+
+history_iter history_begin(History *self) {
+  return _history_list_begin(&self->list);
+}
+
+void history_next(history_iter *it) {
+  _history_list_next(it);
 }
