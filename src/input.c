@@ -239,14 +239,14 @@ void input_handle_key(Lfm *lfm, input_t in) {
 
       vec_trie maps = trie_collect_leaves(lfm->ui.maps.cur, true);
 
-      vec_str_o menu = vec_str_o_init();
+      vec_str menu = vec_str_init();
 
-      vec_str_o_push(&menu, strdup("\033[1mkeys\tcommand\033[0m"));
+      vec_str_push(&menu, strdup("\033[1mkeys\tcommand\033[0m"));
       char *s;
       c_foreach(it, vec_trie, maps) {
         Trie *map = *it.ref;
         asprintf(&s, "%s\t%s", map->keys, map->desc ? map->desc : "");
-        vec_str_o_push(&menu, s);
+        vec_str_push(&menu, s);
       }
       vec_trie_drop(&maps);
       ui_menu_show(ui, &menu, cfg.map_suggestion_delay);

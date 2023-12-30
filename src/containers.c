@@ -5,7 +5,7 @@
 #include "stc/vec.h"
 
 #define i_implement
-#define i_type vec_str_o
+#define i_type vec_str
 #define i_val char *
 #define i_valraw const char *
 #define i_valfrom(p) (strdup(p))

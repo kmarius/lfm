@@ -154,24 +154,24 @@ static int l_spawn(lua_State *L) {
   const int n = lua_objlen(L, 1);
   luaL_argcheck(L, n > 0, 1, "no command given");
 
-  vec_str_o args = vec_str_o_init();
-  vec_str_o_reserve(&args, n + 1);
+  vec_str args = vec_str_init();
+  vec_str_reserve(&args, n + 1);
   for (int i = 1; i <= n; i++) {
     lua_rawgeti(L, 1, i); // [cmd, opts?, arg]
-    vec_str_o_emplace(&args, lua_tostring(L, -1));
+    vec_str_emplace(&args, lua_tostring(L, -1));
     lua_pop(L, 1); // [cmd, opts?]
   }
-  vec_str_o_push(&args, NULL);
+  vec_str_push(&args, NULL);
 
   if (lua_gettop(L) == 2) {
     lua_getfield(L, 2, "stdin"); // [cmd, opts, opts.stdin]
     if (lua_isstring(L, -1)) {
-      vec_str_push(&stdin, strdup(lua_tostring(L, -1)));
+      vec_str_emplace(&stdin, lua_tostring(L, -1));
     } else if (lua_istable(L, -1)) {
       const size_t m = lua_objlen(L, -1);
       for (uint32_t i = 1; i <= m; i++) {
         lua_rawgeti(L, -1, i); // [cmd, opts, opts.stdin, str]
-        vec_str_push(&stdin, strdup(lua_tostring(L, -1)));
+        vec_str_emplace(&stdin, lua_tostring(L, -1));
         lua_pop(L, 1); // [cmd, otps, opts.stdin]
       }
     }
@@ -204,10 +204,8 @@ static int l_spawn(lua_State *L) {
   int pid = lfm_spawn(lfm, args.data[0], args.data, &stdin, out, err,
                       stdout_ref, stderr_ref, exit_ref);
 
-  c_foreach(it, vec_str, stdin) {
-    xfree(*it.ref);
-  }
-  vec_str_o_drop(&args);
+  vec_str_drop(&stdin);
+  vec_str_drop(&args);
 
   if (pid != -1) {
     lua_pushnumber(L, pid);
@@ -230,17 +228,17 @@ static int l_execute(lua_State *L) {
   const int n = lua_objlen(L, 1);
   luaL_argcheck(L, n > 0, 1, "no command given");
 
-  vec_str_o args = vec_str_o_init();
+  vec_str args = vec_str_init();
   for (int i = 1; i <= n; i++) {
     lua_rawgeti(L, 1, i);
-    vec_str_o_emplace(&args, lua_tostring(L, -1));
+    vec_str_emplace(&args, lua_tostring(L, -1));
     lua_pop(L, 1);
   }
-  vec_str_o_push(&args, NULL);
+  vec_str_push(&args, NULL);
 
   bool ret = lfm_execute(lfm, args.data[0], args.data);
 
-  vec_str_o_drop(&args);
+  vec_str_drop(&args);
 
   if (ret) {
     lua_pushboolean(L, true);

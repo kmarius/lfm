@@ -16,7 +16,7 @@ typedef void (*preview_destroy_fun)(struct Preview *);
 typedef struct Preview {
   char *path;
   union {
-    vec_str_o lines;
+    vec_str lines;
     struct ncvisual *ncv;
   };
   uint64_t next;

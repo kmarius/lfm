@@ -204,6 +204,7 @@ static void prepare_cb(EV_P_ ev_prepare *w, int revents) {
     llua_eval(lfm->L, *it.ref);
   }
   vec_str_drop(&cfg.commands);
+  cfg.commands = vec_str_init();
 
   c_foreach(it, vec_message, lfm->messages) {
     if (it.ref->error) {

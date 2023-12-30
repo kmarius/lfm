@@ -13,11 +13,6 @@
 #define MAP_CLEAR_DELAY 10000
 #define LOADING_INDICATOR_DELAY 250
 
-// does not own or free the string
-#define i_type vec_str
-#define i_val char *
-#include "stc/vec.h"
-
 #define i_type hmap_channel
 #define i_key char *
 #define i_val uint64_t
@@ -94,7 +89,7 @@ typedef struct config {
   vec_str commands;
   vec_int ratios;
 
-  vec_str_o inotify_blacklist;
+  vec_str inotify_blacklist;
   uint32_t inotify_timeout;
   uint32_t inotify_delay;
 

@@ -136,10 +136,10 @@ static int l_config_index(lua_State *L) {
     }
     return 1;
   } else if (streq(key, "inotify_blacklist")) {
-    const size_t l = vec_str_o_size(&cfg.inotify_blacklist);
+    const size_t l = vec_str_size(&cfg.inotify_blacklist);
     lua_createtable(L, l, 0);
     for (size_t i = 0; i < l; i++) {
-      lua_pushstring(L, *vec_str_o_at(&cfg.inotify_blacklist, i));
+      lua_pushstring(L, *vec_str_at(&cfg.inotify_blacklist, i));
       lua_rawseti(L, -2, i + 1);
     }
     return 1;
@@ -268,10 +268,10 @@ static int l_config_newindex(lua_State *L) {
   } else if (streq(key, "inotify_blacklist")) {
     luaL_checktype(L, 3, LUA_TTABLE);
     const size_t l = lua_objlen(L, 3);
-    vec_str_o_clear(&cfg.inotify_blacklist);
+    vec_str_clear(&cfg.inotify_blacklist);
     for (size_t i = 1; i <= l; i++) {
       lua_rawgeti(L, 3, i);
-      vec_str_o_emplace(&cfg.inotify_blacklist, lua_tostring(L, -1));
+      vec_str_emplace(&cfg.inotify_blacklist, lua_tostring(L, -1));
       lua_pop(L, 1);
     }
   } else if (streq(key, "inotify_timeout")) {

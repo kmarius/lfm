@@ -84,7 +84,7 @@ typedef struct Ui {
     unsigned int y, x; // dimensions of the preview ncplane
   } preview;
 
-  vec_str_o menubuf;
+  vec_str menubuf;
   bool menu_visible;
   ev_timer menu_delay_timer;
   ev_timer map_clear_timer;
@@ -122,7 +122,7 @@ void ui_verror(Ui *ui, const char *format, va_list args);
 
 void ui_vechom(Ui *ui, const char *format, va_list args);
 
-void ui_menu_show(Ui *ui, vec_str_o *vec, uint32_t delay);
+void ui_menu_show(Ui *ui, vec_str *vec, uint32_t delay);
 
 static inline void ui_menu_hide(Ui *ui) {
   ui_menu_show(ui, NULL, 0);
