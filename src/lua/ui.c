@@ -7,10 +7,12 @@
 #include <stdint.h>
 
 static int l_ui_messages(lua_State *L) {
-  lua_createtable(L, cvector_size(ui->messages), 0);
-  for (size_t i = 0; i < cvector_size(ui->messages); i++) {
-    lua_pushstring(L, ui->messages[i].text);
-    lua_rawseti(L, -2, i + 1);
+  lua_createtable(L, vec_message_size(&ui->messages), 0);
+  int i = 1;
+  c_foreach(it, vec_message, ui->messages) {
+    lua_pushstring(L, it.ref->text);
+    lua_rawseti(L, -2, i);
+    i++;
   }
   return 1;
 }
@@ -32,13 +34,13 @@ static int l_ui_get_height(lua_State *L) {
 }
 
 static int l_ui_menu(lua_State *L) {
-  char **menubuf = NULL;
+  vec_str_o menu = vec_str_o_init();
   uint32_t delay = 0;
   if (lua_type(L, 1) == LUA_TTABLE) {
     const int n = lua_objlen(L, 1);
     for (int i = 1; i <= n; i++) {
       lua_rawgeti(L, 1, i);
-      cvector_push_back(menubuf, strdup(lua_tostring(L, -1)));
+      vec_str_o_emplace(&menu, lua_tostring(L, -1));
       lua_pop(L, 1);
     }
     if (lua_gettop(L) == 2) {
@@ -50,11 +52,11 @@ static int l_ui_menu(lua_State *L) {
   } else if (lua_type(L, -1) == LUA_TSTRING) {
     const char *str = lua_tostring(L, 1);
     for (const char *nl; (nl = strchr(str, '\n')); str = nl + 1) {
-      cvector_push_back(menubuf, strndup(str, nl - str));
+      vec_str_o_push(&menu, strndup(str, nl - str));
     }
-    cvector_push_back(menubuf, strdup(str));
+    vec_str_o_emplace(&menu, str);
   }
-  ui_menu_show(ui, menubuf, delay);
+  ui_menu_show(ui, &menu, delay);
   return 0;
 }
 

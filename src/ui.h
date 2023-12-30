@@ -1,8 +1,8 @@
 #pragma once
 
 #include "cmdline.h"
-#include "cvector.h"
 #include "keys.h"
+#include "memory.h"
 #include "preview.h"
 #include "trie.h"
 
@@ -12,6 +12,19 @@
 #include <stdarg.h>
 #include <stdint.h>
 
+forward_vec(vec_ncplane, struct ncplane *);
+
+struct message {
+  char *text;
+  bool error;
+};
+
+#define i_type vec_message
+#define i_val struct message
+#define i_valdrop(p) (xfree(p->text))
+#define i_no_clone
+#include "stc/vec.h"
+
 #define REDRAW_INFO 1
 #define REDRAW_FM 2
 #define REDRAW_CMDLINE 4
@@ -19,11 +32,6 @@
 #define REDRAW_PREVIEW 16
 #define REDRAW_FULL                                                            \
   (REDRAW_INFO | REDRAW_FM | REDRAW_CMDLINE | REDRAW_MENU | REDRAW_PREVIEW)
-
-struct message {
-  char *text;
-  bool error;
-};
 
 typedef struct Ui {
   // Indicates whether the UI is running or suspended.
@@ -42,7 +50,7 @@ typedef struct Ui {
     struct ncplane *info;
     struct ncplane *menu;
     struct ncplane *preview;
-    cvector_vector_type(struct ncplane *) dirs;
+    vec_ncplane dirs;
   } planes;
 
   uint32_t redraw; // Bitfield indicating which components need to be drawn, see
@@ -73,12 +81,12 @@ typedef struct Ui {
     unsigned int y, x; // dimensions of the preview ncplane
   } preview;
 
-  cvector_vector_type(char *) menubuf;
+  vec_str_o menubuf;
   bool menu_visible;
   ev_timer menu_delay_timer;
   ev_timer map_clear_timer;
 
-  cvector_vector_type(struct message) messages;
+  vec_message messages;
   bool show_message; // if true, the latest message is drawn over the statusline
                      // at the bottom
 
@@ -111,7 +119,7 @@ void ui_verror(Ui *ui, const char *format, va_list args);
 
 void ui_vechom(Ui *ui, const char *format, va_list args);
 
-void ui_menu_show(Ui *ui, cvector_vector_type(char *) vec, uint32_t delay);
+void ui_menu_show(Ui *ui, vec_str_o *vec, uint32_t delay);
 
 static inline void ui_menu_hide(Ui *ui) {
   ui_menu_show(ui, NULL, 0);

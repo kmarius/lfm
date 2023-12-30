@@ -3,7 +3,6 @@
 #include "async.h"
 #include "cmdline.h"
 #include "config.h"
-#include "cvector.h"
 #include "dir.h"
 #include "file.h"
 #include "filter.h"
@@ -36,6 +35,13 @@
 #include <libgen.h>
 #include <unistd.h>
 
+#define i_is_forward
+#define i_type vec_ncplane
+#define i_val struct ncplane *
+#define i_valdrop(p) (ncplane_destroy(*(p)))
+#define i_no_clone
+#include "stc/vec.h"
+
 #define EXT_MAX_LEN 128 // to convert the extension to lowercase
 
 static void menu_delay_timer_cb(EV_P_ ev_timer *w, int revents);
@@ -45,7 +51,7 @@ static void plane_draw_dir(struct ncplane *n, Dir *dir, pathlist *sel,
                            const char *highlight, bool print_info);
 static void draw_preview(Ui *ui);
 static void update_preview(Ui *ui);
-static void draw_menu(Ui *ui, cvector_vector_type(char *) menu);
+static void draw_menu(Ui *ui, const vec_str_o *menu);
 static void menu_resize(Ui *ui);
 static inline void print_message(Ui *ui, const char *msg, bool error);
 static inline void draw_cmdline(Ui *ui);
@@ -66,11 +72,9 @@ void ui_init(Ui *ui) {
 
 void ui_deinit(Ui *ui) {
   ui_suspend(ui);
-  cvector_foreach_ptr(struct message * m, ui->messages) {
-    xfree(m->text);
-  }
-  cvector_free(ui->messages);
-  cvector_ffree(ui->menubuf, xfree);
+  vec_message_drop(&ui->messages);
+  vec_str_o_drop(&ui->menubuf);
+  vec_ncplane_drop(&ui->planes.dirs);
   cmdline_deinit(&ui->cmdline);
   xfree(ui->search_string);
   xfree(ui->infoline);
@@ -141,7 +145,7 @@ void ui_suspend(Ui *ui) {
   log_debug("suspending ui");
   ui->running = false;
   input_suspend(to_lfm(ui));
-  cvector_ffree_clear(ui->planes.dirs, ncplane_destroy);
+  vec_ncplane_clear(&ui->planes.dirs);
   ncplane_destroy(ui->planes.cmdline);
   ncplane_destroy(ui->planes.menu);
   ncplane_destroy(ui->planes.info);
@@ -167,7 +171,7 @@ void kbblocking(bool blocking) {
 void ui_recol(Ui *ui) {
   struct ncplane *ncstd = notcurses_stdplane(ui->nc);
 
-  cvector_fclear(ui->planes.dirs, ncplane_destroy);
+  vec_ncplane_clear(&ui->planes.dirs);
 
   ui->num_columns = vec_int_size(&cfg.ratios);
 
@@ -189,13 +193,14 @@ void ui_recol(Ui *ui) {
       opts.cols = 1;
     }
     opts.x = xpos;
-    cvector_push_back(ui->planes.dirs, ncplane_create(ncstd, &opts));
+    vec_ncplane_push(&ui->planes.dirs, ncplane_create(ncstd, &opts));
     xpos += opts.cols + 1;
   }
   opts.x = xpos;
   opts.cols = ui->x - xpos - 1;
-  cvector_push_back(ui->planes.dirs, ncplane_create(ncstd, &opts));
-  ui->planes.preview = ui->planes.dirs[ui->num_columns - 1];
+  vec_ncplane_push(&ui->planes.dirs, ncplane_create(ncstd, &opts));
+  ui->planes.preview = *vec_ncplane_back(&ui->planes.dirs);
+  /* ui->planes.preview = ui->planes.dirs[ui->num_columns - 1]; */
   ui->preview.x = opts.cols;
   ui->preview.y = ui->y - 2;
 }
@@ -215,7 +220,7 @@ void ui_draw(Ui *ui) {
     draw_dirs(ui);
   }
   if (ui->redraw & (REDRAW_MENU | REDRAW_MENU)) {
-    draw_menu(ui, ui->menubuf);
+    draw_menu(ui, &ui->menubuf);
   }
   if (ui->redraw & (REDRAW_FM | REDRAW_CMDLINE)) {
     draw_cmdline(ui);
@@ -245,8 +250,9 @@ static void draw_dirs(Ui *ui) {
   Fm *fm = &to_lfm(ui)->fm;
   const uint32_t l = fm->dirs.length;
   for (uint32_t i = 0; i < l; i++) {
-    plane_draw_dir(ui->planes.dirs[l - i - 1], fm->dirs.visible[i],
-                   &fm->selection.current, &fm->paste.buffer, fm->paste.mode,
+    plane_draw_dir(*vec_ncplane_at(&ui->planes.dirs, l - i - 1),
+                   fm->dirs.visible[i], &fm->selection.current,
+                   &fm->paste.buffer, fm->paste.mode,
                    i == 0 ? ui->highlight : NULL, i == 0);
   }
 }
@@ -291,7 +297,7 @@ void ui_verror(Ui *ui, const char *format, va_list args) {
 
   log_error(msg.text);
 
-  cvector_push_back(ui->messages, msg);
+  vec_message_push(&ui->messages, msg);
 
   ui->show_message = true;
 }
@@ -300,7 +306,7 @@ void ui_vechom(Ui *ui, const char *format, va_list args) {
   struct message msg = {NULL, false};
   vasprintf(&msg.text, format, args);
 
-  cvector_push_back(ui->messages, msg);
+  vec_message_push(&ui->messages, msg);
 
   ui->show_message = true;
 }
@@ -310,7 +316,7 @@ void ui_vechom(Ui *ui, const char *format, va_list args) {
 /* menu {{{ */
 
 /* most notably, replaces tabs with (up to) 8 spaces */
-static void draw_menu(Ui *ui, cvector_vector_type(char *) menubuf) {
+static void draw_menu(Ui *ui, const vec_str_o *menubuf) {
   if (!menubuf || !ui->menu_visible) {
     return;
   }
@@ -322,9 +328,9 @@ static void draw_menu(Ui *ui, cvector_vector_type(char *) menubuf) {
   /* needed to draw over directories */
   ncplane_set_base(n, " ", 0, 0);
 
-  for (size_t i = 0; i < cvector_size(menubuf); i++) {
+  for (int i = 0; i < vec_str_o_size(menubuf); i++) {
     ncplane_cursor_move_yx(n, i, 0);
-    const char *str = menubuf[i];
+    const char *str = *vec_str_o_at(menubuf, i);
     uint32_t xpos = 0;
 
     while (*str) {
@@ -348,16 +354,17 @@ static void draw_menu(Ui *ui, cvector_vector_type(char *) menubuf) {
 }
 
 static void menu_resize(Ui *ui) {
-  const uint32_t h = max(1, min(cvector_size(ui->menubuf), ui->y - 2));
+  int buf_sz = vec_str_o_size(&ui->menubuf);
+  const uint32_t h = max(1, min(buf_sz, ui->y - 2));
   ncplane_resize(ui->planes.menu, 0, 0, 0, 0, 0, 0, h, ui->x);
   ncplane_move_yx(ui->planes.menu, ui->y - 1 - h, 0);
-  if (ui->menubuf) {
+  if (buf_sz) {
     ncplane_move_top(ui->planes.menu);
   }
 }
 
 static void menu_clear(Ui *ui) {
-  if (!ui->menubuf) {
+  if (vec_str_o_size(&ui->menubuf) == 0) {
     return;
   }
 
@@ -365,16 +372,16 @@ static void menu_clear(Ui *ui) {
   ncplane_move_bottom(ui->planes.menu);
 }
 
-void ui_menu_show(Ui *ui, cvector_vector_type(char *) vec, uint32_t delay) {
+void ui_menu_show(Ui *ui, vec_str_o *vec, uint32_t delay) {
   struct ev_loop *loop = to_lfm(ui)->loop;
   ev_timer_stop(EV_A_ & ui->menu_delay_timer);
-  if (ui->menubuf) {
+  if (vec_str_o_size(&ui->menubuf) > 0) {
     menu_clear(ui);
-    cvector_ffree_clear(ui->menubuf, xfree);
+    vec_str_o_drop(&ui->menubuf);
     ui->menu_visible = false;
   }
-  if (cvector_size(vec) > 0) {
-    ui->menubuf = vec;
+  if (vec && vec_str_o_size(vec) > 0) {
+    ui->menubuf = *vec;
 
     if (delay > 0) {
       ui->menu_delay_timer.repeat = (float)delay / 1000.0;
@@ -382,6 +389,8 @@ void ui_menu_show(Ui *ui, cvector_vector_type(char *) vec, uint32_t delay) {
     } else {
       menu_delay_timer_cb(EV_A_ & ui->menu_delay_timer, 0);
     }
+  } else {
+    ui->menubuf = vec_str_o_init();
   }
   ui_redraw(ui, REDRAW_MENU);
 }
@@ -390,7 +399,7 @@ static void menu_delay_timer_cb(EV_P_ ev_timer *w, int revents) {
   (void)revents;
   Lfm *lfm = w->data;
   Ui *ui = &lfm->ui;
-  if (ui->menubuf) {
+  if (vec_str_o_size(&ui->menubuf) > 0) {
     menu_resize(ui);
     ncplane_move_top(ui->planes.menu);
     ui->menu_visible = true;
@@ -924,7 +933,7 @@ static inline void draw_cmdline(Ui *ui) {
     notcurses_cursor_enable(ui->nc, ui->y - 1, cursor_pos);
   } else {
     if (ui->running && ui->show_message) {
-      struct message *msg = cvector_end(ui->messages) - 1;
+      const struct message *msg = vec_message_back(&ui->messages);
       print_message(ui, msg->text, msg->error);
     } else {
       statusline_draw(ui);

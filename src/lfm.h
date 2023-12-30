@@ -17,7 +17,6 @@
 
 forward_dlist(list_timer, struct sched_timer);
 forward_dlist(list_child, struct child_watcher);
-forward_vec(vec_message, struct message);
 struct vec_str; // defined in config.h
 
 typedef struct Lfm {

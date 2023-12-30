@@ -58,13 +58,6 @@ static inline void destroy_io_watcher(ev_io *w);
 #define i_no_clone
 #include "stc/dlist.h"
 
-#define i_is_forward
-#define i_type vec_message
-#define i_val struct message
-#define i_valdrop(p) (xfree(p->text))
-#define i_no_clone
-#include "stc/vec.h"
-
 #define TICK 1 // heartbeat, in seconds
 
 // Size of the buffer for reading from the fifo. Switches to a dynamic buffer if
