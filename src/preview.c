@@ -72,7 +72,7 @@ Preview *preview_create_loading(const char *path, int height, int width) {
 }
 
 static void update_text_preview(Preview *p, Preview *u) {
-  vec_str_o_clear(&p->lines);
+  vec_str_o_drop(&p->lines);
   p->lines = u->lines;
   p->mtime = u->mtime;
   p->reload_width = u->reload_width;

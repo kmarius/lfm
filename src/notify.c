@@ -1,7 +1,6 @@
 #include "notify.h"
 
 #include "config.h"
-#include "cvector.h"
 #include "dir.h"
 #include "lfm.h"
 #include "loader.h"
@@ -18,6 +17,18 @@
 
 #include <sys/inotify.h>
 #include <unistd.h>
+
+#define i_is_forward
+#define i_type map_wd_dir
+#define i_key int
+#define i_val Dir *
+#include "stc/hmap.h"
+
+#define i_is_forward
+#define i_type map_dir_wd
+#define i_key Dir *
+#define i_val int
+#include "stc/hmap.h"
 
 // This is plenty of space, most file names are shorter and as long as
 // *one* event fits we should not get overwhelmed
@@ -47,22 +58,13 @@ bool notify_init(Notify *notify) {
 }
 
 void notify_deinit(Notify *notify) {
-  cvector_foreach_ptr(struct notify_watcher_data * d, notify->watchers) {
-    inotify_rm_watch(notify->inotify_fd, d->wd);
+  c_foreach(it, map_dir_wd, notify->wds) {
+    inotify_rm_watch(notify->inotify_fd, it.ref->second);
   }
-  cvector_free(notify->watchers);
-  notify->watchers = NULL;
+  map_wd_dir_drop(&notify->dirs);
+  map_dir_wd_drop(&notify->wds);
   close(notify->inotify_fd);
   notify->inotify_fd = -1;
-}
-
-static inline Dir *get_watched_dir(Notify *notify, int wd) {
-  cvector_foreach_ptr(struct notify_watcher_data * d, notify->watchers) {
-    if (d->wd == wd) {
-      return d->dir;
-    }
-  }
-  return NULL;
 }
 
 /* TODO: we currently don't notice if the current directory is deleted while
@@ -86,9 +88,9 @@ static void inotify_cb(EV_P_ ev_io *w, int revents) {
         continue;
       }
 
-      Dir *dir = get_watched_dir(notify, event->wd);
-      if (dir) {
-        loader_dir_reload(&lfm->loader, dir);
+      map_wd_dir_iter it = map_wd_dir_find(&notify->dirs, event->wd);
+      if (it.ref) {
+        loader_dir_reload(&lfm->loader, it.ref->second);
       }
     }
   }
@@ -101,10 +103,8 @@ void notify_add_watcher(Notify *notify, Dir *dir) {
     }
   }
 
-  cvector_foreach_ptr(struct notify_watcher_data * d, notify->watchers) {
-    if (d->dir == dir) {
-      return;
-    }
+  if (map_dir_wd_contains(&notify->wds, dir)) {
+    return;
   }
 
   const uint64_t t0 = current_millis();
@@ -123,24 +123,26 @@ void notify_add_watcher(Notify *notify, Dir *dir) {
              t1 - t0);
   }
 
-  cvector_push_back(notify->watchers, ((struct notify_watcher_data){wd, dir}));
+  map_wd_dir_insert(&notify->dirs, wd, dir);
+  map_dir_wd_insert(&notify->wds, dir, wd);
 }
 
 void notify_remove_watcher(Notify *notify, Dir *dir) {
-  cvector_foreach_ptr(struct notify_watcher_data * data, notify->watchers) {
-    if (data->dir == dir) {
-      inotify_rm_watch(notify->inotify_fd, data->wd);
-      cvector_swap_erase(notify->watchers, (size_t)(data - notify->watchers));
-      return;
-    }
+  map_dir_wd_iter it = map_dir_wd_find(&notify->wds, dir);
+  if (it.ref) {
+    int wd = it.ref->second;
+    inotify_rm_watch(notify->inotify_fd, wd);
+    map_dir_wd_erase_at(&notify->wds, it);
+    map_wd_dir_erase(&notify->dirs, wd);
   }
 }
 
 void notify_set_watchers(Notify *notify, Dir **dirs, uint32_t n) {
-  cvector_foreach_ptr(struct notify_watcher_data * d, notify->watchers) {
-    inotify_rm_watch(notify->inotify_fd, d->wd);
+  c_foreach(it, map_dir_wd, notify->wds) {
+    inotify_rm_watch(notify->inotify_fd, it.ref->second);
   }
-  cvector_set_size(notify->watchers, 0);
+  map_dir_wd_clear(&notify->wds);
+  map_wd_dir_clear(&notify->dirs);
 
   for (uint32_t i = 0; i < n; i++) {
     if (dirs[i]) {
