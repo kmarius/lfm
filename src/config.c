@@ -1,7 +1,8 @@
 #include "config.h"
 
-#include "cvector.h"
+#include "containers.h"
 #include "dir.h"
+#include "memory.h"
 #include "ncutil.h"
 #include "notify.h"
 #include "util.h"
@@ -9,7 +10,6 @@
 #include <ncurses.h> // COLOR_ constants
 #include <notcurses/notcurses.h>
 
-#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -44,11 +44,9 @@ Config cfg = {
     }};
 
 void config_init(void) {
-  cvector_vector_type(uint32_t) r = NULL;
-  cvector_push_back(r, 1);
-  cvector_push_back(r, 2);
-  cvector_push_back(r, 3);
-  config_ratios_set(r);
+  vec_int_push(&cfg.ratios, 1);
+  vec_int_push(&cfg.ratios, 2);
+  vec_int_push(&cfg.ratios, 3);
 
   hmap_icon_emplace_or_assign(&cfg.icon_map, "ln", "l");
   hmap_icon_emplace_or_assign(&cfg.icon_map, "or", "l");
@@ -129,8 +127,8 @@ void config_deinit(void) {
   hmap_channel_drop(&cfg.colors.color_map);
   hmap_icon_drop(&cfg.icon_map);
   hmap_dirsetting_drop(&cfg.dir_settings_map);
-  cvector_free(cfg.ratios);
-  cvector_ffree(cfg.inotify_blacklist, xfree);
+  vec_int_drop(&cfg.ratios);
+  vec_str_o_drop(&cfg.inotify_blacklist);
   xfree(cfg.configdir);
   xfree(cfg.configpath);
   xfree(cfg.user_configpath);

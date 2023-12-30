@@ -128,18 +128,18 @@ static int l_config_index(lua_State *L) {
     lua_pushboolean(L, cfg.dir_settings.hidden);
     return 1;
   } else if (streq(key, "ratios")) {
-    const size_t l = cvector_size(cfg.ratios);
+    const size_t l = vec_int_size(&cfg.ratios);
     lua_createtable(L, l, 0);
     for (size_t i = 0; i < l; i++) {
-      lua_pushinteger(L, cfg.ratios[i]);
+      lua_pushinteger(L, *vec_int_at(&cfg.ratios, i));
       lua_rawseti(L, -2, i + 1);
     }
     return 1;
   } else if (streq(key, "inotify_blacklist")) {
-    const size_t l = cvector_size(cfg.inotify_blacklist);
+    const size_t l = vec_str_o_size(&cfg.inotify_blacklist);
     lua_createtable(L, l, 0);
     for (size_t i = 0; i < l; i++) {
-      lua_pushstring(L, cfg.inotify_blacklist[i]);
+      lua_pushstring(L, *vec_str_o_at(&cfg.inotify_blacklist, i));
       lua_rawseti(L, -2, i + 1);
     }
     return 1;
@@ -249,28 +249,29 @@ static int l_config_newindex(lua_State *L) {
     if (l == 0) {
       luaL_argerror(L, 3, "no ratios given");
     }
-    uint32_t *ratios = NULL;
+    vec_int ratios = vec_int_init();
     for (uint32_t i = 1; i <= l; i++) {
       lua_rawgeti(L, 3, i);
       int32_t val = lua_tointeger(L, -1);
       if (val <= 0) {
-        cvector_free(ratios);
+        vec_int_drop(&ratios);
         return luaL_error(L, "ratio must be non-negative");
       }
-      cvector_push_back(ratios, lua_tointeger(L, -1));
+      vec_int_push(&ratios, lua_tointeger(L, -1));
       lua_pop(L, 1);
     }
-    config_ratios_set(ratios);
+    vec_int_drop(&cfg.ratios);
+    cfg.ratios = ratios;
     fm_recol(fm);
     ui_recol(ui);
     ui_redraw(ui, REDRAW_FM);
   } else if (streq(key, "inotify_blacklist")) {
     luaL_checktype(L, 3, LUA_TTABLE);
     const size_t l = lua_objlen(L, 3);
-    cvector_fclear(cfg.inotify_blacklist, xfree);
+    vec_str_o_clear(&cfg.inotify_blacklist);
     for (size_t i = 1; i <= l; i++) {
       lua_rawgeti(L, 3, i);
-      cvector_push_back(cfg.inotify_blacklist, strdup(lua_tostring(L, -1)));
+      vec_str_o_emplace(&cfg.inotify_blacklist, lua_tostring(L, -1));
       lua_pop(L, 1);
     }
   } else if (streq(key, "inotify_timeout")) {

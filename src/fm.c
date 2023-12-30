@@ -52,7 +52,7 @@ void fm_init(Fm *fm) {
     }
   }
 
-  fm->dirs.length = cvector_size(cfg.ratios) - (cfg.preview ? 1 : 0);
+  fm->dirs.length = vec_int_size(&cfg.ratios) - (cfg.preview ? 1 : 0);
   cvector_grow(fm->dirs.visible, fm->dirs.length);
 
   pathlist_init(&fm->selection.current);
@@ -106,7 +106,7 @@ void fm_recol(Fm *fm) {
     }
   }
 
-  const uint32_t l = max(1, cvector_size(cfg.ratios) - (cfg.preview ? 1 : 0));
+  const uint32_t l = max(1, vec_int_size(&cfg.ratios) - (cfg.preview ? 1 : 0));
   cvector_grow(fm->dirs.visible, l);
   cvector_set_size(fm->dirs.visible, l);
   fm->dirs.length = l;

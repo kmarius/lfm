@@ -1,6 +1,7 @@
 #pragma once
 
 #include "async.h"
+#include "containers.h"
 #include "fm.h"
 #include "hooks.h"
 #include "loader.h"

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "cvector.h"
+#include "containers.h"
 #include "dir.h"
 
 #include <stdbool.h>
@@ -92,9 +92,9 @@ typedef struct config {
   uint32_t scrolloff;
   char *timefmt;
   vec_str commands;
-  cvector_vector_type(uint32_t) ratios;
+  vec_int ratios;
 
-  cvector_vector_type(char *) inotify_blacklist;
+  vec_str_o inotify_blacklist;
   uint32_t inotify_timeout;
   uint32_t inotify_delay;
 
@@ -125,13 +125,5 @@ extern Config cfg;
 void config_init(void);
 
 void config_deinit(void);
-
-static inline void config_ratios_set(cvector_vector_type(uint32_t) ratios) {
-  if (cvector_size(ratios) == 0) {
-    return;
-  }
-  cvector_free(cfg.ratios);
-  cfg.ratios = ratios;
-}
 
 void config_colors_clear(void);

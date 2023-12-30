@@ -1,6 +1,5 @@
 #include "auto/versiondef.h"
 #include "config.h"
-#include "cvector.h"
 #include "lfm.h"
 #include "log.h"
 #include "path.h"

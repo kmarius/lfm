@@ -1,5 +1,6 @@
 #include "hooks.h"
 
+#include "containers.h"
 #include "lfm.h"
 #include "log.h"
 #include "lua/lfmlua.h"
@@ -8,10 +9,6 @@
 #include <lua.h>
 
 #include <string.h>
-
-#define i_is_forward
-#define i_val int
-#include "stc/vec.h"
 
 // we fold the hook_id and the ref into an id that is returned to the user
 //     id == (hook_id << 20) | ref

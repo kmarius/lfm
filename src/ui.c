@@ -169,11 +169,11 @@ void ui_recol(Ui *ui) {
 
   cvector_fclear(ui->planes.dirs, ncplane_destroy);
 
-  ui->num_columns = cvector_size(cfg.ratios);
+  ui->num_columns = vec_int_size(&cfg.ratios);
 
   uint32_t sum = 0;
-  for (uint32_t i = 0; i < ui->num_columns; i++) {
-    sum += cfg.ratios[i];
+  c_foreach(it, vec_int, cfg.ratios) {
+    sum += *it.ref;
   }
 
   struct ncplane_options opts = {
@@ -183,7 +183,8 @@ void ui_recol(Ui *ui) {
 
   uint32_t xpos = 0;
   for (uint32_t i = 0; i < ui->num_columns - 1; i++) {
-    opts.cols = (ui->x - ui->num_columns + 1) * cfg.ratios[i] / sum;
+    opts.cols =
+        (ui->x - ui->num_columns + 1) * *vec_int_at(&cfg.ratios, i) / sum;
     if (opts.cols == 0) {
       opts.cols = 1;
     }
