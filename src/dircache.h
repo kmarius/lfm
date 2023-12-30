@@ -4,4 +4,4 @@
 #define i_key_str
 #define i_val Dir *
 #define i_header
-#include "stc/cmap.h"
+#include "stc/hmap.h"

@@ -20,19 +20,13 @@
 #define i_implement
 #include "stc/cstr.h"
 
-static inline void Preview_drop(Preview **pv);
-
 #define i_is_forward
 #define i_type previewcache
 #define i_key_str
 #define i_val Preview *
-#define i_valdrop Preview_drop
+#define i_valdrop(p) preview_destroy(*(p))
 #define i_no_clone
-#include "stc/cmap.h"
-
-static inline void Preview_drop(Preview **pv) {
-  preview_destroy(*pv);
-}
+#include "stc/hmap.h"
 
 struct loader_timer {
   ev_timer watcher;

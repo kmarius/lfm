@@ -10,7 +10,7 @@
 
 struct loader_timer;
 forward_dlist(list_loader_timer, struct loader_timer);
-forward_cmap(previewcache, cstr, Preview *);
+forward_hmap(previewcache, cstr, Preview *);
 
 typedef struct Loader {
   dircache dc;
