@@ -13,7 +13,7 @@
 #include <string.h>
 
 typedef struct {
-  char *name;
+  const char *name;
   const uint8_t *data;
   size_t size;
 } ModuleDef;
