@@ -751,7 +751,7 @@ static void draw_file(struct ncplane *n, const File *file, bool iscurrent,
       key = "ex";
     }
 
-    hmap_icon_iter it;
+    hmap_icon_iter it = hmap_icon_end(&cfg.icon_map);
     if (key) {
       it = hmap_icon_find(&cfg.icon_map, key);
     }
@@ -766,6 +766,7 @@ static void draw_file(struct ncplane *n, const File *file, bool iscurrent,
 
     if (it.ref) {
       // move the corsor to make sure we only print one char
+      // log_error("%p %s", it.ref->second, it.ref->second);
       ncplane_putstr(n, it.ref->second);
       ncplane_putstr_yx(n, y0, 3, " ");
     } else {
