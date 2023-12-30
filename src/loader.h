@@ -8,9 +8,9 @@
 
 #include "stc/forward.h"
 
+struct loader_timer;
+forward_dlist(list_loader_timer, struct loader_timer);
 forward_cmap(previewcache, cstr, Preview *);
-
-struct ev_timer;
 
 typedef struct Loader {
   dircache dc;
@@ -18,8 +18,8 @@ typedef struct Loader {
   size_t dir_cache_version; // number of times the cache has been dropped
   size_t preview_cache_version;
 
-  struct ev_timer **dir_timers;
-  struct ev_timer **preview_timers;
+  list_loader_timer dir_timers;
+  list_loader_timer preview_timers;
 } Loader;
 
 void loader_init(Loader *loader);
