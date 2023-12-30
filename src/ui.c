@@ -251,7 +251,7 @@ static void draw_dirs(Ui *ui) {
   const uint32_t l = fm->dirs.length;
   for (uint32_t i = 0; i < l; i++) {
     plane_draw_dir(*vec_ncplane_at(&ui->planes.dirs, l - i - 1),
-                   fm->dirs.visible[i], &fm->selection.current,
+                   fm->dirs.visible.data[i], &fm->selection.current,
                    &fm->paste.buffer, fm->paste.mode,
                    i == 0 ? ui->highlight : NULL, i == 0);
   }

@@ -154,13 +154,15 @@ static int l_spawn(lua_State *L) {
   const int n = lua_objlen(L, 1);
   luaL_argcheck(L, n > 0, 1, "no command given");
 
-  char **args = NULL;
+  vec_str_o args = vec_str_o_init();
+  vec_str_o_reserve(&args, n + 1);
   for (int i = 1; i <= n; i++) {
     lua_rawgeti(L, 1, i); // [cmd, opts?, arg]
-    cvector_push_back(args, strdup(lua_tostring(L, -1)));
+    vec_str_o_emplace(&args, lua_tostring(L, -1));
     lua_pop(L, 1); // [cmd, opts?]
   }
-  cvector_push_back(args, NULL);
+  vec_str_o_push(&args, NULL);
+
   if (lua_gettop(L) == 2) {
     lua_getfield(L, 2, "stdin"); // [cmd, opts, opts.stdin]
     if (lua_isstring(L, -1)) {
@@ -199,13 +201,13 @@ static int l_spawn(lua_State *L) {
     }
   }
 
-  int pid = lfm_spawn(lfm, args[0], args, &stdin, out, err, stdout_ref,
-                      stderr_ref, exit_ref);
+  int pid = lfm_spawn(lfm, args.data[0], args.data, &stdin, out, err,
+                      stdout_ref, stderr_ref, exit_ref);
 
   c_foreach(it, vec_str, stdin) {
     xfree(*it.ref);
   }
-  cvector_ffree(args, xfree);
+  vec_str_o_drop(&args);
 
   if (pid != -1) {
     lua_pushnumber(L, pid);
@@ -228,25 +230,25 @@ static int l_execute(lua_State *L) {
   const int n = lua_objlen(L, 1);
   luaL_argcheck(L, n > 0, 1, "no command given");
 
-  char **args = NULL;
+  vec_str_o args = vec_str_o_init();
   for (int i = 1; i <= n; i++) {
     lua_rawgeti(L, 1, i);
-    cvector_push_back(args, strdup(lua_tostring(L, -1)));
+    vec_str_o_emplace(&args, lua_tostring(L, -1));
     lua_pop(L, 1);
   }
-  cvector_push_back(args, NULL);
+  vec_str_o_push(&args, NULL);
 
-  bool ret = lfm_execute(lfm, args[0], args);
+  bool ret = lfm_execute(lfm, args.data[0], args.data);
 
-  cvector_ffree(args, xfree);
+  vec_str_o_drop(&args);
 
   if (ret) {
     lua_pushboolean(L, true);
     return 1;
   } else {
     lua_pushnil(L);
-    lua_pushstring(L,
-                   strerror(errno)); // not sure if something even sets errno
+    // not sure if something even sets errno
+    lua_pushstring(L, strerror(errno));
     return 2;
   }
 }

@@ -2,7 +2,6 @@
 
 #include "async.h"
 #include "config.h"
-#include "cvector.h"
 #include "hooks.h"
 #include "lfm.h"
 #include "loader.h"
@@ -24,6 +23,10 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+
+#define i_is_forward
+#define i_TYPE vec_dir, Dir *
+#include "stc/vec.h"
 
 static void fm_update_watchers(Fm *fm);
 static void fm_remove_preview(Fm *fm);
@@ -53,7 +56,7 @@ void fm_init(Fm *fm) {
   }
 
   fm->dirs.length = vec_int_size(&cfg.ratios) - (cfg.preview ? 1 : 0);
-  cvector_grow(fm->dirs.visible, fm->dirs.length);
+  vec_dir_resize(&fm->dirs.visible, fm->dirs.length, 0);
 
   pathlist_init(&fm->selection.current);
   pathlist_init(&fm->selection.previous);
@@ -71,7 +74,7 @@ void fm_init(Fm *fm) {
 }
 
 void fm_deinit(Fm *fm) {
-  cvector_free(fm->dirs.visible);
+  vec_dir_drop(&fm->dirs.visible);
   pathlist_deinit(&fm->selection.current);
   pathlist_deinit(&fm->selection.previous);
   pathlist_deinit(&fm->paste.buffer);
@@ -80,20 +83,20 @@ void fm_deinit(Fm *fm) {
 }
 
 static void fm_populate(Fm *fm) {
-  fm->dirs.visible[0] =
+  fm->dirs.visible.data[0] =
       loader_dir_from_path(&to_lfm(fm)->loader, fm->pwd); /* current dir */
-  fm->dirs.visible[0]->visible = true;
+  fm->dirs.visible.data[0]->visible = true;
   Dir *d = fm_current_dir(fm);
   for (uint32_t i = 1; i < fm->dirs.length; i++) {
     const char *s = path_parent_s(d->path);
     if (s) {
       d = loader_dir_from_path(&to_lfm(fm)->loader, s);
       d->visible = true;
-      fm->dirs.visible[i] = d;
-      dir_cursor_move_to(d, fm->dirs.visible[i - 1]->name, fm->height,
+      fm->dirs.visible.data[i] = d;
+      dir_cursor_move_to(d, fm->dirs.visible.data[i - 1]->name, fm->height,
                          cfg.scrolloff);
     } else {
-      fm->dirs.visible[i] = NULL;
+      fm->dirs.visible.data[i] = NULL;
     }
   }
 }
@@ -101,14 +104,13 @@ static void fm_populate(Fm *fm) {
 void fm_recol(Fm *fm) {
   fm_remove_preview(fm);
   for (uint32_t i = 0; i < fm->dirs.length; i++) {
-    if (fm->dirs.visible[i]) {
-      fm->dirs.visible[i]->visible = false;
+    if (fm->dirs.visible.data[i]) {
+      fm->dirs.visible.data[i]->visible = false;
     }
   }
 
   const uint32_t l = max(1, vec_int_size(&cfg.ratios) - (cfg.preview ? 1 : 0));
-  cvector_grow(fm->dirs.visible, l);
-  cvector_set_size(fm->dirs.visible, l);
+  vec_dir_resize(&fm->dirs.visible, l, 0);
   fm->dirs.length = l;
 
   fm_populate(fm);
@@ -143,8 +145,8 @@ static inline bool fm_chdir_impl(Fm *fm, const char *path, bool save, bool hook,
 
   fm_remove_preview(fm);
   for (uint32_t i = 0; i < fm->dirs.length; i++) {
-    if (fm->dirs.visible[i]) {
-      fm->dirs.visible[i]->visible = false;
+    if (fm->dirs.visible.data[i]) {
+      fm->dirs.visible.data[i]->visible = false;
     }
   }
 
@@ -167,8 +169,8 @@ static inline void fm_update_watchers(Fm *fm) {
   // watcher for preview is updated in update_preview
   notify_remove_watchers(&to_lfm(fm)->notify);
   for (size_t i = 0; i < fm->dirs.length; i++) {
-    if (fm->dirs.visible[i]) {
-      async_notify_add(&to_lfm(fm)->async, fm->dirs.visible[i]);
+    if (fm->dirs.visible.data[i]) {
+      async_notify_add(&to_lfm(fm)->async, fm->dirs.visible.data[i]);
     }
   }
 }
@@ -191,7 +193,7 @@ static inline void fm_sort_and_reselect(Fm *fm, Dir *dir) {
 
 void fm_sort(Fm *fm) {
   for (uint32_t i = 0; i < fm->dirs.length; i++) {
-    fm_sort_and_reselect(fm, fm->dirs.visible[i]);
+    fm_sort_and_reselect(fm, fm->dirs.visible.data[i]);
   }
   fm_sort_and_reselect(fm, fm->dirs.preview);
 }
@@ -204,8 +206,8 @@ void fm_hidden_set(Fm *fm, bool hidden) {
 
 void fm_check_dirs(const Fm *fm) {
   for (uint32_t i = 0; i < fm->dirs.length; i++) {
-    if (fm->dirs.visible[i] && !dir_check(fm->dirs.visible[i])) {
-      loader_dir_reload(&to_lfm(fm)->loader, fm->dirs.visible[i]);
+    if (fm->dirs.visible.data[i] && !dir_check(fm->dirs.visible.data[i])) {
+      loader_dir_reload(&to_lfm(fm)->loader, fm->dirs.visible.data[i]);
     }
   }
 
@@ -229,8 +231,8 @@ void fm_drop_cache(Fm *fm) {
 
 void fm_reload(Fm *fm) {
   for (uint32_t i = 0; i < fm->dirs.length; i++) {
-    if (fm->dirs.visible[i]) {
-      async_dir_load(&to_lfm(fm)->async, fm->dirs.visible[i], true);
+    if (fm->dirs.visible.data[i]) {
+      async_dir_load(&to_lfm(fm)->async, fm->dirs.visible.data[i], true);
     }
   }
   if (fm->dirs.preview) {
@@ -266,8 +268,8 @@ void fm_update_preview(Fm *fm) {
       /* don't remove watcher if it is a currently visible (non-preview) dir */
       uint32_t i;
       for (i = 0; i < fm->dirs.length; i++) {
-        if (fm->dirs.visible[i] &&
-            streq(fm->dirs.preview->path, fm->dirs.visible[i]->path)) {
+        if (fm->dirs.visible.data[i] &&
+            streq(fm->dirs.preview->path, fm->dirs.visible.data[i]->path)) {
           break;
         }
       }
@@ -285,8 +287,8 @@ void fm_update_preview(Fm *fm) {
     if (fm->dirs.preview) {
       uint32_t i;
       for (i = 0; i < fm->dirs.length; i++) {
-        if (fm->dirs.visible[i] &&
-            streq(fm->dirs.preview->path, fm->dirs.visible[i]->path)) {
+        if (fm->dirs.visible.data[i] &&
+            streq(fm->dirs.preview->path, fm->dirs.visible.data[i]->path)) {
           break;
         }
       }

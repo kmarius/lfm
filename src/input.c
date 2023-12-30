@@ -212,16 +212,20 @@ void input_handle_key(Lfm *lfm, input_t in) {
       ui_redraw(ui, REDRAW_FM);
     } else if (!lfm->ui.maps.cur) {
       vec_input_push(&lfm->ui.maps.seq, in);
-      char *str = NULL;
+      char buf[256];
+      int i = 0;
       c_foreach(it, vec_input, lfm->ui.maps.seq) {
-        for (const char *s = input_to_key_name(*it.ref); *s; s++) {
-          cvector_push_back(str, *s);
+        const char *s = input_to_key_name(*it.ref);
+        size_t l = strlen(s);
+        if (i + l + 1 > sizeof buf) {
+          break;
         }
+        strcpy(buf + i, s);
+        i += l;
       }
-      cvector_push_back(str, 0);
+      buf[i] = 0;
       log_debug("unmapped key sequence: %s (id=%d shift=%d ctrl=%d alt=%d)",
-                str, ID(in), ISSHIFT(in), ISCTRL(in), ISALT(in));
-      cvector_free(str);
+                buf, ID(in), ISSHIFT(in), ISCTRL(in), ISALT(in));
       input_clear(lfm);
     } else if (lfm->ui.maps.cur->keys) {
       // A command is mapped to the current keysequence. Execute it and reset.

@@ -1,12 +1,14 @@
 #pragma once
 
-#include "cvector.h"
 #include "dir.h"
 #include "file.h"
 #include "pathlist.h"
+#include "stc/forward.h"
 
 #include <stdbool.h>
 #include <stdint.h>
+
+forward_vec(vec_dir, Dir *);
 
 typedef enum paste_mode_e {
   PASTE_MODE_MOVE,
@@ -24,7 +26,7 @@ typedef struct Fm {
 
   struct {
     // Visible directories excluding preview.
-    cvector_vector_type(Dir *) visible;
+    vec_dir visible;
 
     // Number of visible directories, excluding the preview.
     uint32_t length;
@@ -73,7 +75,7 @@ void fm_deinit(Fm *fm);
 void fm_recol(Fm *fm);
 
 // Current directory. Never `NULL`.
-#define fm_current_dir(fm) (fm)->dirs.visible[0]
+#define fm_current_dir(fm) (fm)->dirs.visible.data[0]
 
 // Current file of the current directory. Can be `NULL`.
 #define fm_current_file(fm) dir_current_file(fm_current_dir(fm))

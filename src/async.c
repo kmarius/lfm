@@ -227,17 +227,20 @@ struct file_path_tup {
   char *path;
 };
 
+#define i_TYPE file_counts, struct file_count_tup
+#include "stc/vec.h"
+
 struct dir_count_data {
   struct result super;
   Dir *dir;
-  struct file_count_tup *counts;
+  file_counts counts;
   bool last_batch;
   struct validity_check64 check;
 };
 
 static void dir_count_destroy(void *p) {
   struct dir_count_data *res = p;
-  cvector_free(res->counts);
+  file_counts_drop(&res->counts);
   xfree(res);
 }
 
@@ -245,8 +248,8 @@ static void dir_count_callback(void *p, Lfm *lfm) {
   struct dir_count_data *res = p;
   // discard if any other update has been applied in the meantime
   if (CHECK_PASSES(res->check) && !res->dir->dircounts) {
-    for (size_t i = 0; i < cvector_size(res->counts); i++) {
-      file_dircount_set(res->counts[i].file, res->counts[i].count);
+    c_foreach(it, file_counts, res->counts) {
+      file_dircount_set(it.ref->file, it.ref->count);
     }
     ui_redraw(&lfm->ui, REDRAW_FM);
     if (res->last_batch) {
@@ -257,14 +260,14 @@ static void dir_count_callback(void *p, Lfm *lfm) {
 }
 
 static inline struct dir_count_data *
-dir_count_create(Dir *dir, struct file_count_tup *files,
-                 struct validity_check64 check, bool last) {
+dir_count_create(Dir *dir, file_counts counts, struct validity_check64 check,
+                 bool last) {
   struct dir_count_data *res = xcalloc(1, sizeof *res);
   res->super.callback = &dir_count_callback;
   res->super.destroy = &dir_count_destroy;
 
   res->dir = dir;
-  res->counts = files;
+  res->counts = counts;
   res->last_batch = last;
   res->check = check;
   return res;
@@ -274,13 +277,13 @@ dir_count_create(Dir *dir, struct file_count_tup *files,
 static void async_load_dircounts(Async *async, Dir *dir,
                                  struct validity_check64 check, uint32_t n,
                                  struct file_path_tup *files) {
-  cvector_vector_type(struct file_count_tup) counts = NULL;
+  file_counts counts = file_counts_init();
 
   uint64_t latest = current_millis();
 
   for (uint32_t i = 0; i < n; i++) {
-    cvector_push_back(
-        counts,
+    file_counts_push(
+        &counts,
         ((struct file_count_tup){files[i].file, path_dircount(files[i].path)}));
     xfree(files[i].path);
 
@@ -288,7 +291,7 @@ static void async_load_dircounts(Async *async, Dir *dir,
       struct dir_count_data *res = dir_count_create(dir, counts, check, false);
       enqueue_and_signal(async, (struct result *)res);
 
-      counts = NULL;
+      counts = file_counts_init();
       latest = current_millis();
     }
   }

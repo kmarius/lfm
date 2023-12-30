@@ -26,7 +26,7 @@ void statusline_draw(Ui *ui) {
   uint32_t lhs_sz = 0;
   ncplane_cursor_yx(n, 0, 0);
 
-  const Dir *dir = fm->dirs.visible[0];
+  const Dir *dir = fm->dirs.visible.data[0];
   if (dir) {
     const File *file = dir_current_file(dir);
     if (file) {
