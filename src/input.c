@@ -236,19 +236,18 @@ void input_handle_key(Lfm *lfm, input_t in) {
       ui_redraw(ui, REDRAW_CMDLINE);
       lfm->ui.maps.accept_count = false;
 
-      Trie **leaves = NULL;
-      trie_collect_leaves(lfm->ui.maps.cur, &leaves, true);
+      vec_trie maps = trie_collect_leaves(lfm->ui.maps.cur, true);
 
       char **menu = NULL;
 
       cvector_push_back(menu, strdup("\033[1mkeys\tcommand\033[0m"));
       char *s;
-      for (size_t i = 0; i < cvector_size(leaves); i++) {
-        asprintf(&s, "%s\t%s", leaves[i]->keys,
-                 leaves[i]->desc ? leaves[i]->desc : "");
+      c_foreach(it, vec_trie, maps) {
+        Trie *map = *it.ref;
+        asprintf(&s, "%s\t%s", map->keys, map->desc ? map->desc : "");
         cvector_push_back(menu, s);
       }
-      cvector_free(leaves);
+      vec_trie_drop(&maps);
       ui_menu_show(ui, menu, cfg.map_suggestion_delay);
       lfm->ui.map_clear_timer.repeat = (float)cfg.map_clear_delay / 1000.0;
       ev_timer_again(lfm->loop, &lfm->ui.map_clear_timer);

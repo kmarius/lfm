@@ -1,6 +1,5 @@
 #include "trie.h"
 
-#include "cvector.h"
 #include "memory.h"
 
 #include <stdio.h>
@@ -77,20 +76,26 @@ int trie_remove(Trie *t, const input_t *trie_keys) {
   return 0;
 }
 
-void trie_collect_leaves(Trie *t, cvector_vector_type(Trie *) * vec,
-                         bool prune) {
+static inline void trie_collect_leaves_impl(Trie *t, vec_trie *vec,
+                                            bool prune) {
   if (!t) {
     return;
   }
   if (t->ref) {
-    cvector_push_back(*vec, t);
+    vec_trie_push(vec, t);
     if (prune) {
       return;
     }
   }
   for (Trie *n = t->child; n; n = n->next) {
-    trie_collect_leaves(n, vec, prune);
+    trie_collect_leaves_impl(n, vec, prune);
   }
+}
+
+vec_trie trie_collect_leaves(Trie *trie, bool prune) {
+  vec_trie vec = {0};
+  trie_collect_leaves_impl(trie, &vec, prune);
+  return vec;
 }
 
 void trie_destroy(Trie *t) {

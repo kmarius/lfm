@@ -309,20 +309,23 @@ static int l_get_maps(lua_State *L) {
   if (!mode) {
     return luaL_error(L, "no such mode: %s", name);
   }
-  cvector_vector_type(Trie *) keymaps = NULL;
   bool prune = lua_toboolean(L, 2);
-  trie_collect_leaves(mode->maps, &keymaps, prune);
-  lua_createtable(L, cvector_size(keymaps), 0);
-  for (size_t i = 0; i < cvector_size(keymaps); i++) {
+  vec_trie maps = trie_collect_leaves(mode->maps, prune);
+  lua_createtable(L, vec_trie_size(&maps), 0);
+  size_t i = 0;
+  c_foreach(it, vec_trie, maps) {
+    Trie *map = *it.ref;
     lua_createtable(L, 0, 3);
-    lua_pushstring(L, keymaps[i]->desc ? keymaps[i]->desc : "");
+    lua_pushstring(L, map->desc ? map->desc : "");
     lua_setfield(L, -2, "desc");
-    lua_pushstring(L, keymaps[i]->keys);
+    lua_pushstring(L, map->keys);
     lua_setfield(L, -2, "keys");
-    lua_rawgeti(L, LUA_REGISTRYINDEX, keymaps[i]->ref);
+    lua_rawgeti(L, LUA_REGISTRYINDEX, map->ref);
     lua_setfield(L, -2, "f");
     lua_rawseti(L, -2, i + 1);
+    i++;
   }
+  vec_trie_drop(&maps);
   return 1;
 }
 
