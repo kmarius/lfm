@@ -168,7 +168,7 @@ Preview *preview_create_from_file(const char *path, uint32_t width,
   snprintf(w, sizeof w, "%u", width);
   snprintf(h, sizeof h, "%u", height);
 
-  char *const args[7] = {cfg.previewer,
+  const char *args[7] = {cfg.previewer,
                          p->path,
                          w,
                          h,
@@ -177,7 +177,7 @@ Preview *preview_create_from_file(const char *path, uint32_t width,
                          NULL};
 
   FILE *fp = NULL;
-  int pid = popen2_arr_p(NULL, &fp, NULL, args[0], args, NULL);
+  int pid = popen2_arr_p(NULL, &fp, NULL, args[0], (char *const *)args, NULL);
   if (!fp) {
     cvector_push_back(p->lines, strerror(errno));
     log_error("popen2_arr_p: %s", strerror(errno));
