@@ -189,10 +189,10 @@ Dir *dir_create(const char *path) {
   return d;
 }
 
-Dir *dir_load(const char *path, bool load_dircount) {
+Dir *dir_load(const char *path, bool load_fileinfo) {
   struct dirent *dp;
   Dir *dir = dir_create(path);
-  dir->dircounts = load_dircount;
+  dir->has_fileinfo = load_fileinfo;
 
   if (stat(path, &dir->stat) == -1) {
     // TODO: figure out if/how we should handle errors here, we currently
@@ -217,12 +217,8 @@ Dir *dir_load(const char *path, bool load_dircount) {
       continue;
     }
 
-    File *file = file_create(path, dp->d_name);
+    File *file = file_create(path, dp->d_name, load_fileinfo);
     if (file) {
-      if (load_dircount && file_isdir(file)) {
-        file->dircount = file_dircount_load(file);
-      }
-
       vec_file_push(&files, file);
     }
   }
@@ -258,9 +254,9 @@ struct queue_dirs {
   struct queue_dirs_node *tail;
 };
 
-Dir *dir_load_flat(const char *path, uint32_t level, bool load_dircount) {
+Dir *dir_load_flat(const char *path, uint32_t level, bool load_fileinfo) {
   Dir *dir = dir_create(path);
-  dir->dircounts = load_dircount;
+  dir->has_fileinfo = load_fileinfo;
   dir->flatten_level = level;
 
   if (lstat(path, &dir->stat) == -1) {
@@ -296,14 +292,10 @@ Dir *dir_load_flat(const char *path, uint32_t level, bool load_dircount) {
         continue;
       }
 
-      File *file = file_create(head->path, dp->d_name);
+      File *file = file_create(head->path, dp->d_name, load_fileinfo);
       if (file) {
         file->hidden |= head->hidden;
         if (file_isdir(file)) {
-          if (load_dircount) {
-            file->dircount = file_dircount_load(file);
-          }
-
           if (head->level + 1 <= level) {
             struct queue_dirs_node *n = xmalloc(sizeof *n);
             n->path = file_path(file);

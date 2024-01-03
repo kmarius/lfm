@@ -38,11 +38,9 @@ static inline bool append_or_move(History *self, struct history_entry e) {
     _history_list_erase_node(&self->list, it.ref->second);
     it.ref->first = (char *)entry->line;
     it.ref->second = _history_list_get_node(entry);
-    log_debug("moved %s", e.line);
   } else {
     _history_hmap_insert(&self->map, (char *)entry->line,
                          _history_list_get_node(entry));
-    log_debug("appended %s", e.line);
   }
   return it.ref == NULL;
 }

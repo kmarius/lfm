@@ -25,7 +25,7 @@
 #include <pthread.h>
 #include <sys/sysinfo.h>
 
-#define DIRCOUNT_THRESHOLD 200 // send batches of dircounts around every 200ms
+#define FILEINFO_THRESHOLD 200 // send batches of dircounts around every 200ms
 
 struct result {
   void (*callback)(void *, Lfm *);
@@ -215,88 +215,120 @@ void async_dir_check(Async *async, Dir *dir) {
 
 /* }}} */
 
-/* dir_count {{{ */
+/* fileinfo {{{ */
 
-struct file_count_tup {
+struct fileinfo {
   File *file;
-  uint32_t count;
+  int32_t count;    // number of files, if it is a directory, -1 if no result
+  struct stat stat; // stat of the link target, if it is a symlink
+  int ret;          // -1: stat failed, 0: stat success, >0 no stat result
 };
 
 struct file_path_tup {
   File *file;
   char *path;
+  bool is_link;
 };
 
-#define i_TYPE file_counts, struct file_count_tup
+#define i_TYPE fileinfos, struct fileinfo
 #include "stc/vec.h"
 
-struct dir_count_data {
+struct fileinfo_result {
   struct result super;
   Dir *dir;
-  file_counts counts;
+  fileinfos infos;
   bool last_batch;
   struct validity_check64 check;
 };
 
-static void dir_count_destroy(void *p) {
-  struct dir_count_data *res = p;
-  file_counts_drop(&res->counts);
+static void fileinfo_result_destroy(void *p) {
+  struct fileinfo_result *res = p;
+  fileinfos_drop(&res->infos);
   xfree(res);
 }
 
-static void dir_count_callback(void *p, Lfm *lfm) {
-  struct dir_count_data *res = p;
+static void fileinfo_callback(void *p, Lfm *lfm) {
+  struct fileinfo_result *res = p;
   // discard if any other update has been applied in the meantime
-  if (CHECK_PASSES(res->check) && !res->dir->dircounts) {
-    c_foreach(it, file_counts, res->counts) {
-      file_dircount_set(it.ref->file, it.ref->count);
+  if (CHECK_PASSES(res->check) && !res->dir->has_fileinfo) {
+    c_foreach(it, fileinfos, res->infos) {
+      if (it.ref->count >= 0) {
+        file_dircount_set(it.ref->file, it.ref->count);
+      }
+      if (it.ref->ret == 0) {
+        it.ref->file->stat = it.ref->stat;
+      } else if (it.ref->ret == -1) {
+        it.ref->file->isbroken = true;
+      }
     }
     ui_redraw(&lfm->ui, REDRAW_FM);
     if (res->last_batch) {
-      res->dir->dircounts = true;
+      res->dir->has_fileinfo = true;
     }
+    dir_sort(res->dir);
   }
-  dir_count_destroy(p);
+  fileinfo_result_destroy(p);
 }
 
-static inline struct dir_count_data *
-dir_count_create(Dir *dir, file_counts counts, struct validity_check64 check,
-                 bool last) {
-  struct dir_count_data *res = xcalloc(1, sizeof *res);
-  res->super.callback = &dir_count_callback;
-  res->super.destroy = &dir_count_destroy;
+static inline struct fileinfo_result *
+fileinfo_result_create(Dir *dir, fileinfos infos, struct validity_check64 check,
+                       bool last) {
+  struct fileinfo_result *res = xcalloc(1, sizeof *res);
+  res->super.callback = &fileinfo_callback;
+  res->super.destroy = &fileinfo_result_destroy;
 
   res->dir = dir;
-  res->counts = counts;
+  res->infos = infos;
   res->last_batch = last;
   res->check = check;
   return res;
 }
 
 // Not a worker function because we just call it from async_dir_load_worker
-static void async_load_dircounts(Async *async, Dir *dir,
-                                 struct validity_check64 check, uint32_t n,
-                                 struct file_path_tup *files) {
-  file_counts counts = file_counts_init();
+static void async_load_fileinfo(Async *async, Dir *dir,
+                                struct validity_check64 check, uint32_t n,
+                                struct file_path_tup *files) {
+  fileinfos infos = fileinfos_init();
 
   uint64_t latest = current_millis();
 
   for (uint32_t i = 0; i < n; i++) {
-    file_counts_push(
-        &counts,
-        ((struct file_count_tup){files[i].file, path_dircount(files[i].path)}));
-    xfree(files[i].path);
+    if (!files[i].is_link) {
+      continue;
+    }
+    struct fileinfo *info =
+        fileinfos_push(&infos, ((struct fileinfo){files[i].file, .count = -1}));
 
-    if (current_millis() - latest > DIRCOUNT_THRESHOLD) {
-      struct dir_count_data *res = dir_count_create(dir, counts, check, false);
+    info->ret = stat(files[i].path, &info->stat);
+
+    if (current_millis() - latest > FILEINFO_THRESHOLD) {
+      struct fileinfo_result *res =
+          fileinfo_result_create(dir, infos, check, false);
       enqueue_and_signal(async, (struct result *)res);
 
-      counts = file_counts_init();
+      infos = fileinfos_init();
       latest = current_millis();
     }
   }
 
-  struct dir_count_data *res = dir_count_create(dir, counts, check, true);
+  for (uint32_t i = 0; i < n; i++) {
+    int count = path_dircount(files[i].path);
+    fileinfos_push(
+        &infos, ((struct fileinfo){files[i].file, .count = count, .ret = 1}));
+
+    if (current_millis() - latest > FILEINFO_THRESHOLD) {
+      struct fileinfo_result *res =
+          fileinfo_result_create(dir, infos, check, false);
+      enqueue_and_signal(async, (struct result *)res);
+
+      infos = fileinfos_init();
+      latest = current_millis();
+    }
+
+    xfree(files[i].path);
+  }
+
+  struct fileinfo_result *res = fileinfo_result_create(dir, infos, check, true);
   enqueue_and_signal(async, (struct result *)res);
 
   xfree(files);
@@ -311,7 +343,7 @@ struct dir_update_data {
   Async *async;
   char *path;
   Dir *dir; // dir might not exist anymore, don't touch
-  bool load_dircounts;
+  bool load_fileinfo;
   Dir *update;
   uint32_t level;
   struct validity_check64 check; // lfm.loader.dir_cache_version
@@ -365,42 +397,44 @@ static void async_dir_load_worker(void *arg) {
   struct dir_update_data *work = arg;
 
   if (work->level > 0) {
-    work->update = dir_load_flat(work->path, work->level, work->load_dircounts);
+    work->update = dir_load_flat(work->path, work->level, work->load_fileinfo);
   } else {
-    work->update = dir_load(work->path, work->load_dircounts);
+    work->update = dir_load(work->path, work->load_fileinfo);
   }
 
   const uint32_t num_files = work->update->length_all;
 
-  if (work->load_dircounts || num_files == 0) {
+  if (work->load_fileinfo || num_files == 0) {
     enqueue_and_signal(work->async, (struct result *)work);
     return;
   }
 
   struct file_path_tup *files = xmalloc(num_files * sizeof *files);
   for (uint32_t i = 0; i < num_files; i++) {
-    files[i].file = work->update->files_all[i];
-    files[i].path = strdup(work->update->files_all[i]->path);
+    File *file = work->update->files_all[i];
+    files[i].file = file;
+    files[i].path = strdup(file->path);
+    files[i].is_link = file_islink(file);
   }
 
   /* Copy these because the main thread can invalidate the work struct in
    * extremely rare cases after we enqueue, and before we call
-   * async_load_dircounts */
+   * async_load_fileinfo */
   Dir *dir = work->dir;
   Async *async = work->async;
   struct validity_check64 check = work->check;
 
   enqueue_and_signal(work->async, (struct result *)work);
 
-  async_load_dircounts(async, dir, check, num_files, files);
+  async_load_fileinfo(async, dir, check, num_files, files);
 }
 
-void async_dir_load(Async *async, Dir *dir, bool dircounts) {
+void async_dir_load(Async *async, Dir *dir, bool load_fileinfo) {
   struct dir_update_data *work = xcalloc(1, sizeof *work);
   work->super.callback = &dir_update_callback;
   work->super.destroy = &dir_update_destroy;
 
-  dir->dircounts = dircounts;
+  dir->has_fileinfo = load_fileinfo;
   if (dir->last_loading_action == 0) {
     dir->last_loading_action = current_millis();
     ui_start_loading_indicator_timer(&to_lfm(async)->ui);
@@ -409,7 +443,7 @@ void async_dir_load(Async *async, Dir *dir, bool dircounts) {
   work->async = async;
   work->dir = dir;
   work->path = strdup(dir->path);
-  work->load_dircounts = dircounts;
+  work->load_fileinfo = load_fileinfo;
   work->level = dir->flatten_level;
   CHECK_INIT(work->check, to_lfm(async)->loader.dir_cache_version);
 

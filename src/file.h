@@ -22,7 +22,7 @@ typedef struct File {
   score_t score;
 } File;
 
-File *file_create(const char *dir, const char *name);
+File *file_create(const char *dir, const char *name, bool load_info);
 
 void file_destroy(File *file);
 
@@ -60,7 +60,7 @@ static inline bool file_isexec(const File *file) {
 
 // Returns `true` if the file is a symbolic link.
 static inline bool file_islink(const File *file) {
-  return file->link_target != NULL;
+  return S_ISLNK(file->stat.st_mode);
 }
 
 // Returns `true` if the file is a broken symbolic link.

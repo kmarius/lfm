@@ -16,7 +16,7 @@
 #include <pwd.h>
 #include <unistd.h> // readlink
 
-File *file_create(const char *dir, const char *name) {
+File *file_create(const char *dir, const char *name, bool load_info) {
   char buf[PATH_MAX] = {0};
 
   File *f = xcalloc(1, sizeof *f);
@@ -46,7 +46,9 @@ File *file_create(const char *dir, const char *name) {
   }
 
   if (S_ISLNK(f->lstat.st_mode)) {
-    if (stat(f->path, &f->stat) == -1) {
+    if (!load_info) {
+      f->stat = f->lstat;
+    } else if (stat(f->path, &f->stat) == -1) {
       f->isbroken = true;
       f->stat = f->lstat;
     }
@@ -62,6 +64,9 @@ File *file_create(const char *dir, const char *name) {
 
   if (file_isdir(f)) {
     f->ext = NULL;
+    if (load_info) {
+      f->dircount = file_dircount_load(f);
+    }
   }
 
   return f;

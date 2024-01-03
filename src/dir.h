@@ -62,7 +62,7 @@ typedef struct Dir {
   Filter *filter;
 
   uint32_t flatten_level;
-  bool dircounts;
+  bool has_fileinfo;
   bool sorted;
   struct dir_settings settings;
 } Dir;
