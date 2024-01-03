@@ -23,7 +23,9 @@
 #include <stdint.h>
 
 #include <pthread.h>
+#include <sys/stat.h>
 #include <sys/sysinfo.h>
+#include <wchar.h>
 
 #define FILEINFO_THRESHOLD 200 // send batches of dircounts around every 200ms
 
@@ -227,7 +229,7 @@ struct fileinfo {
 struct file_path_tup {
   File *file;
   char *path;
-  bool is_link;
+  __mode_t mode;
 };
 
 #define i_TYPE fileinfos, struct fileinfo
@@ -293,13 +295,16 @@ static void async_load_fileinfo(Async *async, Dir *dir,
   uint64_t latest = current_millis();
 
   for (uint32_t i = 0; i < n; i++) {
-    if (!files[i].is_link) {
+    if (!S_ISLNK(files[i].mode)) {
       continue;
     }
     struct fileinfo *info =
         fileinfos_push(&infos, ((struct fileinfo){files[i].file, .count = -1}));
 
     info->ret = stat(files[i].path, &info->stat);
+    if (info->ret == 0) {
+      files[i].mode = info->stat.st_mode;
+    }
 
     if (current_millis() - latest > FILEINFO_THRESHOLD) {
       struct fileinfo_result *res =
@@ -312,6 +317,9 @@ static void async_load_fileinfo(Async *async, Dir *dir,
   }
 
   for (uint32_t i = 0; i < n; i++) {
+    if (!S_ISDIR(files[i].mode)) {
+      continue;
+    }
     int count = path_dircount(files[i].path);
     fileinfos_push(
         &infos, ((struct fileinfo){files[i].file, .count = count, .ret = 1}));
@@ -409,12 +417,17 @@ static void async_dir_load_worker(void *arg) {
     return;
   }
 
+  // prepare list of symlinks/directories to load afterwards
   struct file_path_tup *files = xmalloc(num_files * sizeof *files);
+  int j = 0;
   for (uint32_t i = 0; i < num_files; i++) {
     File *file = work->update->files_all[i];
-    files[i].file = file;
-    files[i].path = strdup(file->path);
-    files[i].is_link = file_islink(file);
+    if (S_ISLNK(file->lstat.st_mode) || S_ISDIR(file->lstat.st_mode)) {
+      files[j].file = file;
+      files[j].path = strdup(file->path);
+      files[j].mode = file->lstat.st_mode;
+      j++;
+    }
   }
 
   /* Copy these because the main thread can invalidate the work struct in
@@ -426,7 +439,7 @@ static void async_dir_load_worker(void *arg) {
 
   enqueue_and_signal(work->async, (struct result *)work);
 
-  async_load_fileinfo(async, dir, check, num_files, files);
+  async_load_fileinfo(async, dir, check, j, files);
 }
 
 void async_dir_load(Async *async, Dir *dir, bool load_fileinfo) {
