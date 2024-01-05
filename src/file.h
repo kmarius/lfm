@@ -60,7 +60,7 @@ static inline bool file_isexec(const File *file) {
 
 // Returns `true` if the file is a symbolic link.
 static inline bool file_islink(const File *file) {
-  return S_ISLNK(file->stat.st_mode);
+  return S_ISLNK(file->lstat.st_mode);
 }
 
 // Returns `true` if the file is a broken symbolic link.
