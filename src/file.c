@@ -46,11 +46,11 @@ File *file_create(const char *dir, const char *name, bool load_info) {
   }
 
   if (S_ISLNK(f->lstat.st_mode)) {
-    if (!load_info) {
-      f->stat = f->lstat;
-    } else if (stat(f->path, &f->stat) == -1) {
-      f->isbroken = true;
-      f->stat = f->lstat;
+    if (load_info) {
+      if (stat(f->path, &f->stat) == -1) {
+        f->isbroken = true;
+        f->stat = f->lstat;
+      }
     }
     if (readlink(f->path, buf, sizeof buf) == -1) {
       f->isbroken = true;
