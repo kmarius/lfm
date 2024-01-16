@@ -332,7 +332,9 @@ static void async_load_fileinfo(Async *async, Dir *dir,
       infos = fileinfos_init();
       latest = current_millis();
     }
+  }
 
+  for (uint32_t i = 0; i < n; i++) {
     xfree(files[i].path);
   }
 

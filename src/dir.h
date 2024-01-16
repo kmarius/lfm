@@ -112,7 +112,7 @@ void dir_update_with(Dir *dir, Dir *update, uint32_t height,
                      uint32_t scrolloff);
 
 // Returns true `d` is the root directory.
-inline bool dir_isroot(const Dir *dir) {
+static inline bool dir_isroot(const Dir *dir) {
   return (dir->path[0] == '/' && dir->path[1] == 0);
 }
 
