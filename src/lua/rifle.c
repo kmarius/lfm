@@ -243,8 +243,8 @@ static inline char *split_command(char *s) {
 }
 
 static inline bool is_comment_or_whitespace(char *s) {
-  s--;
-  while (isspace(*++s)) {
+  while (isspace(*s)) {
+    s++;
   }
   return *s == '#' || *s == '\0';
 }

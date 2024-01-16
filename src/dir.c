@@ -69,6 +69,9 @@ static inline void swap(File **a, File **b) {
 
 /* sort allfiles and copy non-hidden ones to sortedfiles */
 void dir_sort(Dir *d) {
+  if (!d->files_all) {
+    return;
+  }
   if (!d->sorted) {
     switch (d->settings.sorttype) {
     case SORT_NATURAL:
@@ -263,7 +266,7 @@ Dir *dir_load_flat(const char *path, uint32_t level, bool load_fileinfo) {
     log_debug("lstat: %s", strerror(errno));
   }
 
-  struct queue_dirs queue;
+  struct queue_dirs queue = {0};
   queue.head = xmalloc(sizeof *queue.head);
   queue.head->path = path;
   queue.head->level = 0;
