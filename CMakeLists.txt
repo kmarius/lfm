@@ -10,6 +10,7 @@ set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_FLAGS "-Wall -Wextra -Wvla -Werror=implicit -pthread -rdynamic")
 set(CMAKE_C_FLAGS_DEBUG "-DDEBUG -Og -g")
 set(CMAKE_C_FLAGS_ASAN "${CMAKE_C_FLAGS_DEBUG}")
+set(CMAKE_C_FLAGS_UBSAN "${CMAKE_C_FLAGS_DEBUG} -O1")
 set(CMAKE_C_FLAGS_RELEASE "-DNDEBUG -O2 -flto -g")
 
 if(NOT CMAKE_BUILD_TYPE)
@@ -20,6 +21,11 @@ endif()
 if (CMAKE_BUILD_TYPE STREQUAL "Asan")
 	add_compile_options(-fsanitize=address)
 	add_link_options(-fsanitize=address)
+endif()
+
+if (CMAKE_BUILD_TYPE STREQUAL "UBSan")
+	add_compile_options(-fsanitize=undefined -fno-omit-frame-pointer)
+	add_link_options(-fsanitize=undefined -fno-omit-frame-pointer)
 endif()
 
 # We use this to remove the source prefix from the __FILE__ macro
