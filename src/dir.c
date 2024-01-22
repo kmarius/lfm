@@ -410,6 +410,8 @@ void dir_update_with(Dir *d, Dir *update, uint32_t height, uint32_t scrolloff) {
   d->files_sorted = update->files_sorted;
   d->files = update->files;
   d->length_all = update->length_all;
+  d->length_sorted = update->length_sorted;
+  d->length = update->length;
   d->load_time = update->load_time;
   d->error = update->error;
   d->flatten_level = update->flatten_level;
