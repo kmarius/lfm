@@ -268,6 +268,7 @@ static void fileinfo_callback(void *p, Lfm *lfm) {
       res->dir->has_fileinfo = true;
     }
     dir_sort(res->dir);
+    fm_update_preview(&lfm->fm);
   }
   fileinfo_result_destroy(p);
 }
