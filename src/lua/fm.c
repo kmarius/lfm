@@ -147,6 +147,8 @@ static int l_fm_current_dir(lua_State *L) {
   lua_setfield(L, -2, "path");
   lua_pushstring(L, dir->name);
   lua_setfield(L, -2, "name");
+  lua_pushstring(L, sorttype_str[dir->settings.sorttype]);
+  lua_setfield(L, -2, "sorttype");
 
   lua_createtable(L, dir->length, 0);
   for (uint32_t i = 0; i < dir->length; i++) {

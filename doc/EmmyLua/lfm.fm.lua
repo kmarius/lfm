@@ -6,8 +6,9 @@ lfm.fm = {}
 ---@field path string
 ---@field name string
 ---@field files table[string] table of filenames
+---@field sorttype Lfm.SortType
 
----@alias Lfm.SortOption
+---@alias Lfm.SortType
 ---| '"name"'
 ---| '"natural"'
 ---| '"ctime"'
@@ -15,6 +16,8 @@ lfm.fm = {}
 ---| '"atime"'
 ---| '"size"'
 ---| '"random"'
+
+---@alias Lfm.SortOption
 ---| '"dirfirst"'
 ---| '"nodirfirst"'
 ---| '"reverse"'
@@ -168,7 +171,7 @@ function lfm.fm.flatten_level() end
 ---```lua
 ---    lfm.fm.sortby("ctime", "nodirfirst", "reverse")
 ---```
----@param ... Lfm.SortOption
+---@param ... Lfm.SortType|Lfm.SortOption
 function lfm.fm.sortby(...) end
 
 ---Get the info setting for the current directory.
