@@ -9,6 +9,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <strings.h> // strcasecmp
 #include <time.h>
 #include <wctype.h>
 

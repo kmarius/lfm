@@ -6,6 +6,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 
 set(CMAKE_C_STANDARD 11)
+add_compile_definitions(_XOPEN_SOURCE=700)
 
 set(CMAKE_C_FLAGS "-Wall -Wextra -Wvla -Werror=implicit -pthread -rdynamic")
 set(CMAKE_C_FLAGS_DEBUG "-DDEBUG -Og -g")
