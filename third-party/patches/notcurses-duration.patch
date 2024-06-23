@@ -1,0 +1,29 @@
+--- src/media/ffmpeg.c	2022-12-10 11:20:23.000000000 +0100
++++ src/media/ffmpeg.c.~1~	2024-06-23 11:00:14.221760355 +0200
+@@ -75,7 +75,7 @@
+   }
+   fprintf(stderr, " PTS %" PRId64 " Flags: 0x%04x\n", f->pts, f->flags);
+   fprintf(stderr, " %" PRIu64 "ms@%" PRIu64 "ms (%skeyframe) qual: %d\n",
+-          f->pkt_duration, // FIXME in 'time_base' units
++          f->duration, // FIXME in 'time_base' units
+           f->best_effort_timestamp,
+           f->key_frame ? "" : "non-",
+           f->quality);
+@@ -485,7 +485,7 @@
+   clock_gettime(CLOCK_MONOTONIC, &begin);
+   uint64_t nsbegin = timespec_to_ns(&begin);
+   //bool usets = false;
+-  // each frame has a pkt_duration in milliseconds. keep the aggregate, in case
++  // each frame has a duration in milliseconds. keep the aggregate, in case
+   // we don't have PTS available.
+   uint64_t sum_duration = 0;
+   ncplane* newn = NULL;
+@@ -520,7 +520,7 @@
+       activevopts.n = newn;
+     }
+     ++frame;
+-    uint64_t duration = ncv->details->frame->pkt_duration * tbase * NANOSECS_IN_SEC;
++    uint64_t duration = ncv->details->frame->duration * tbase * NANOSECS_IN_SEC;
+     double schedns = nsbegin;
+     sum_duration += (duration * timescale);
+     schedns += sum_duration;

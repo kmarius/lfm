@@ -38,10 +38,15 @@ endfunction()
 set(NO_STACK_CHECK "")
 set(AMD64_ABI "")
 
+try_compile(avframe_has_duration "${CMAKE_BINARY_DIR}/temp" ${CMAKE_CURRENT_SOURCE_DIR}/patches/test_avframe_has_duration.c)
 set(NOTCURSES_PATCH_COMMAND
 	patch -p0 < ${CMAKE_CURRENT_SOURCE_DIR}/patches/notcurses-install-headers.patch &&
 	patch -p0 < ${CMAKE_CURRENT_SOURCE_DIR}/patches/notcurses-bad-kitty.patch &&
 	patch -p0 < ${CMAKE_CURRENT_SOURCE_DIR}/patches/notcurses-focus.patch)
+if (avframe_has_duration)
+  set(NOTCURSES_PATCH_COMMAND
+    ${NOTCURSES_PATCH_COMMAND} && patch -p0 < ${CMAKE_CURRENT_SOURCE_DIR}/patches/notcurses-duration.patch)
+endif()
 
 set(NOTCURSES_CONFIGURE_COMMAND
 	${CMAKE_COMMAND} -G ${CMAKE_GENERATOR}
