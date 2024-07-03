@@ -22,9 +22,11 @@
 #include <errno.h>
 #include <stdint.h>
 
+#include <dirent.h>
 #include <pthread.h>
 #include <sys/stat.h>
 #include <sys/sysinfo.h>
+#include <sys/types.h>
 #include <wchar.h>
 
 #define FILEINFO_THRESHOLD 200 // send batches of dircounts around every 200ms
@@ -681,6 +683,15 @@ void async_notify_add_worker(void *arg) {
     notify_add_result_destroy(work);
     return;
   }
+  // We open the directory here so that adding the notify watcher
+  // can be added immediately. Otherwise, the call to inotify_add_watch
+  // can block for several seconds e.g. on automounted nfs mounts.
+  DIR *dirp = opendir(work->path);
+  if (!dirp) {
+    notify_add_result_destroy(work);
+    return;
+  }
+  closedir(dirp);
 
   enqueue_and_signal(work->async, (struct result *)work);
 }
