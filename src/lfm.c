@@ -219,6 +219,19 @@ static void prepare_cb(EV_P_ ev_prepare *w, int revents) {
   ev_prepare_stop(EV_A_ w);
 }
 
+static void sigtstp_cb(EV_P_ ev_signal *w, int revents) {
+  (void)revents;
+  Lfm *lfm = w->data;
+  log_trace("received SIGTSTP");
+  ev_signal_stop(loop, w);
+  ui_suspend(&lfm->ui);
+  raise(SIGTSTP);
+  ui_resume(&lfm->ui);
+  ui_redraw(&lfm->ui, REDRAW_FULL);
+  ev_idle_start(EV_A_ & lfm->ui.redraw_watcher);
+  ev_signal_start(loop, w);
+}
+
 static void sigint_cb(EV_P_ ev_signal *w, int revents) {
   (void)revents;
   Lfm *lfm = w->data;
@@ -312,6 +325,10 @@ static inline void init_loop(Lfm *lfm) {
   ev_signal_init(&lfm->sighup_watcher, sighup_cb, SIGHUP);
   lfm->sighup_watcher.data = lfm;
   ev_signal_start(lfm->loop, &lfm->sighup_watcher);
+
+  ev_signal_init(&lfm->sigtstp_watcher, sigtstp_cb, SIGTSTP);
+  lfm->sigtstp_watcher.data = lfm;
+  ev_signal_start(lfm->loop, &lfm->sigtstp_watcher);
 }
 
 void lfm_init(Lfm *lfm, FILE *log) {
@@ -455,6 +472,7 @@ bool lfm_execute(Lfm *lfm, const char *prog, char *const *args) {
   int pid, status, rc;
   lfm_run_hook(lfm, LFM_HOOK_EXECPRE);
   ev_signal_stop(lfm->loop, &lfm->sigint_watcher);
+  ev_signal_stop(lfm->loop, &lfm->sigtstp_watcher);
   ui_suspend(&lfm->ui);
   if ((pid = fork()) < 0) {
     status = -1;
@@ -477,6 +495,7 @@ bool lfm_execute(Lfm *lfm, const char *prog, char *const *args) {
 
   ui_resume(&lfm->ui);
   ev_signal_start(lfm->loop, &lfm->sigint_watcher);
+  ev_signal_start(lfm->loop, &lfm->sigtstp_watcher);
   lfm_run_hook(lfm, LFM_HOOK_EXECPOST);
   return status == 0;
 }
