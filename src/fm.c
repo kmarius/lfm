@@ -48,7 +48,7 @@ void fm_init(Fm *fm) {
     } else {
       char pwd[PATH_MAX];
       if (getcwd(pwd, sizeof pwd) == NULL) {
-        fprintf(stderr, "getcwd: %s\n", strerror(errno));
+        perror("getcwd");
         _exit(1);
       }
       fm->pwd = strdup(pwd);
@@ -63,13 +63,11 @@ void fm_init(Fm *fm) {
   pathlist_init(&fm->paste.buffer);
 
   fm_populate(fm);
-
-  fm_update_watchers(fm);
-
   if (cfg.startfile) {
     fm_move_cursor_to(fm, cfg.startfile);
   }
 
+  fm_update_watchers(fm);
   fm_update_preview(fm);
 }
 
@@ -86,14 +84,14 @@ static void fm_populate(Fm *fm) {
   fm->dirs.visible.data[0] =
       loader_dir_from_path(&to_lfm(fm)->loader, fm->pwd); /* current dir */
   fm->dirs.visible.data[0]->visible = true;
-  Dir *d = fm_current_dir(fm);
+  Dir *dir = fm_current_dir(fm);
   for (uint32_t i = 1; i < fm->dirs.length; i++) {
-    const char *s = path_parent_s(d->path);
-    if (s) {
-      d = loader_dir_from_path(&to_lfm(fm)->loader, s);
-      d->visible = true;
-      fm->dirs.visible.data[i] = d;
-      dir_cursor_move_to(d, fm->dirs.visible.data[i - 1]->name, fm->height,
+    const char *parent = path_parent_s(dir->path);
+    if (parent) {
+      dir = loader_dir_from_path(&to_lfm(fm)->loader, parent);
+      dir->visible = true;
+      fm->dirs.visible.data[i] = dir;
+      dir_cursor_move_to(dir, fm->dirs.visible.data[i - 1]->name, fm->height,
                          cfg.scrolloff);
     } else {
       fm->dirs.visible.data[i] = NULL;
@@ -301,8 +299,6 @@ void fm_update_preview(Fm *fm) {
   }
 }
 
-/* selection {{{ */
-
 static inline void fm_selection_toggle(Fm *fm, const char *path,
                                        bool run_hook) {
   if (!pathlist_remove(&fm->selection.current, path)) {
@@ -442,10 +438,6 @@ void fm_selection_write(const Fm *fm, const char *path) {
   fclose(fp);
 }
 
-/* }}} */
-
-/* load/copy/move {{{ */
-
 void fm_paste_mode_set(Fm *fm, paste_mode mode) {
   fm->paste.mode = mode;
   if (pathlist_size(&fm->selection.current) == 0) {
@@ -455,10 +447,6 @@ void fm_paste_mode_set(Fm *fm, paste_mode mode) {
   fm->paste.buffer = fm->selection.current;
   pathlist_init(&fm->selection.current);
 }
-
-/* }}} */
-
-/* navigation {{{ */
 
 bool fm_cursor_move(Fm *fm, int32_t ct) {
   Dir *dir = fm_current_dir(fm);
@@ -542,10 +530,6 @@ bool fm_updir(Fm *fm) {
   return true;
 }
 
-/* }}} */
-
-/* filter {{{ */
-
 void fm_filter(Fm *fm, Filter *filter) {
   Dir *dir = fm_current_dir(fm);
   File *file = dir_current_file(dir);
@@ -554,8 +538,6 @@ void fm_filter(Fm *fm, Filter *filter) {
                      cfg.scrolloff);
   fm_update_preview(fm);
 }
-
-/* }}} */
 
 /* TODO: To reload flattened directories, more notify watchers are needed (on
  * 2022-02-06) */
@@ -570,7 +552,8 @@ void fm_on_resize(Fm *fm, uint32_t height) {
     scrolloff = height / 2;
   }
 
-  // is there a way to restore the position when just undoing a previous resize?
+  // TODO: is there a way to restore the position when just undoing a previous
+  // resize?
   c_foreach(v, dircache, to_lfm(fm)->loader.dc) {
     Dir *dir = v.ref->second;
     if (height > fm->height) {
