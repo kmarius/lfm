@@ -41,24 +41,33 @@ const char *dir_parent_path(const Dir *d) {
 static void apply_filters(Dir *d) {
   if (d->filter) {
     uint32_t j = 0;
+    uint32_t up = 0;
     for (uint32_t i = 0; i < d->length_sorted; i++) {
       if (filter_match(d->filter, d->files_sorted[i])) {
         d->files[j++] = d->files_sorted[i];
       } else {
+        if (i <= d->ind) {
+          up++;
+        }
         d->files_sorted[i]->score = 0;
       }
     }
     d->length = j;
     if (filter_cmp(d->filter)) {
-      qsort(d->files, d->length, sizeof(File *), filter_cmp(d->filter));
+      qsort(d->files, d->length, sizeof *d->files, filter_cmp(d->filter));
+    }
+    if (up > d->ind) {
+      d->ind = 0;
+    } else {
+      d->ind -= up;
     }
   } else {
     /* TODO: try to select previously selected file
      * note that on the first call dir->files is not yet valid */
     memcpy(d->files, d->files_sorted, d->length_sorted * sizeof *d->files);
     d->length = d->length_sorted;
+    d->ind = max(min(d->ind, d->length - 1), 0);
   }
-  d->ind = max(min(d->ind, d->length - 1), 0);
 }
 
 static inline void swap(File **a, File **b) {
