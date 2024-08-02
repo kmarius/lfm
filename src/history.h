@@ -13,7 +13,7 @@ struct history_entry {
 };
 
 forward_dlist(_history_list, struct history_entry);
-forward_hmap(_history_hmap, char *, _history_list_node *);
+forward_hmap(_history_hmap, const char *, _history_list_node *);
 
 typedef _history_list_iter history_iter;
 
