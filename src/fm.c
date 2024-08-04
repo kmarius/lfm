@@ -557,6 +557,7 @@ void fm_on_resize(Fm *fm, uint32_t height) {
   c_foreach(v, dircache, to_lfm(fm)->loader.dc) {
     Dir *dir = v.ref->second;
     if (height > fm->height) {
+      // terminal grew
       uint32_t scrolloff_top = dir->ind;
       if (scrolloff_top > scrolloff) {
         scrolloff_top = scrolloff;
@@ -568,12 +569,13 @@ void fm_on_resize(Fm *fm, uint32_t height) {
         dir->pos = scrolloff_top;
       }
     } else if (height < fm->height) {
-      uint32_t scrolloff_bot = dir->length - dir->ind;
-      if (scrolloff_bot > scrolloff) {
-        scrolloff_bot = scrolloff;
-      }
-      if (dir->length > height && height - dir->pos < scrolloff_bot) {
-        dir->pos = height - scrolloff_bot;
+      // terminal shrinked
+      if (dir->ind >= dir->length - scrolloff) {
+        // already closer to the end of the directory than scrolloff
+        dir->pos -= fm->height - height;
+      } else if (dir->pos > height - scrolloff) {
+        // current position is over scrolloff for the new dimensions
+        dir->pos = height - scrolloff - 1;
       }
     }
   }
