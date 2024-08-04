@@ -99,7 +99,7 @@ void ui_resume(Ui *ui) {
   kbblocking(false);
   struct notcurses_options ncopts = {
       .flags = NCOPTION_NO_WINCH_SIGHANDLER | NCOPTION_SUPPRESS_BANNERS |
-               NCOPTION_PRESERVE_CURSOR,
+               NCOPTION_PRESERVE_CURSOR | NCOPTION_NO_QUIT_SIGHANDLERS,
   };
   // ui->nc = notcurses_core_init(&ncopts, NULL);
   ui->nc = notcurses_init(&ncopts, NULL);
