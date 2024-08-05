@@ -399,6 +399,7 @@ map("V", function()
 	lfm.mode(mode ~= "visual" and "visual" or "normal")
 end, { desc = "Toggle visual selection mode" })
 map("uv", c(fm.paste_buffer_set, fm.selection_set), { desc = "Clear selection" })
+map("gu", fm.selection_restore, { desc = "Restore previous selection" })
 
 -- Navigation
 map("<Enter>", open, { desc = "Open file or directory" })
@@ -536,4 +537,3 @@ gmap("o", "/opt")
 gmap("p", "/tmp")
 gmap("r", "/")
 gmap("s", "/srv")
-gmap("u", "/usr")

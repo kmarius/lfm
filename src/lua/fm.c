@@ -280,6 +280,16 @@ static int l_fm_selection_reverse(lua_State *L) {
   return 0;
 }
 
+static int l_fm_selection_restore(lua_State *L) {
+  (void)L;
+  pathlist tmp = fm->selection.current;
+  fm->selection.current = fm->selection.previous;
+  fm->selection.previous = tmp;
+  lfm_run_hook(lfm, LFM_HOOK_SELECTION);
+  ui_redraw(ui, REDRAW_FM);
+  return 0;
+}
+
 static int l_fm_chdir(lua_State *L) {
   const char *arg = luaL_optstring(L, 1, "~");
   const char *last_slash = strchr(arg, '/');
@@ -456,6 +466,7 @@ static const struct luaL_Reg fm_lib[] = {
     {"selection_add", l_fm_selection_add},
     {"selection_set", l_fm_selection_set},
     {"selection_get", l_fm_selection_get},
+    {"selection_restore", l_fm_selection_restore},
     {"sortby", l_fm_sortby},
     {"top", l_fm_top},
     {"updir", l_fm_updir},

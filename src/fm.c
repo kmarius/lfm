@@ -59,6 +59,7 @@ void fm_init(Fm *fm) {
   vec_dir_resize(&fm->dirs.visible, fm->dirs.length, 0);
 
   pathlist_init(&fm->selection.current);
+  pathlist_init(&fm->selection.keep_in_visual);
   pathlist_init(&fm->selection.previous);
   pathlist_init(&fm->paste.buffer);
 
@@ -74,6 +75,7 @@ void fm_init(Fm *fm) {
 void fm_deinit(Fm *fm) {
   vec_dir_drop(&fm->dirs.visible);
   pathlist_deinit(&fm->selection.current);
+  pathlist_deinit(&fm->selection.keep_in_visual);
   pathlist_deinit(&fm->selection.previous);
   pathlist_deinit(&fm->paste.buffer);
   xfree(fm->automark);
@@ -328,9 +330,11 @@ void fm_selection_add(Fm *fm, const char *path, bool run_hook) {
 
 void fm_selection_clear(Fm *fm) {
   log_trace("fm_selection_clear");
-  bool run_hook = pathlist_size(&fm->selection.current) > 0;
-  pathlist_clear(&fm->selection.current);
-  if (run_hook) {
+  if (pathlist_size(&fm->selection.current) > 0) {
+    pathlist tmp = fm->selection.previous;
+    fm->selection.previous = fm->selection.current;
+    fm->selection.current = tmp;
+    pathlist_clear(&fm->selection.current);
     lfm_run_hook(to_lfm(fm), LFM_HOOK_SELECTION);
   }
 }
@@ -356,9 +360,9 @@ void fm_on_visual_enter(Fm *fm) {
   fm->visual.active = true;
   fm->visual.anchor = dir->ind;
   fm_selection_add(fm, file_path(dir->files[dir->ind]), false);
-  pathlist_clear(&fm->selection.previous);
+  pathlist_clear(&fm->selection.keep_in_visual);
   c_foreach(it, pathlist, fm->selection.current) {
-    pathlist_add(&fm->selection.previous, *it.ref);
+    pathlist_add(&fm->selection.keep_in_visual, *it.ref);
   }
   lfm_run_hook(to_lfm(fm), LFM_HOOK_SELECTION);
 }
@@ -370,7 +374,7 @@ void fm_on_visual_exit(Fm *fm) {
 
   fm->visual.active = false;
   fm->visual.anchor = 0;
-  pathlist_clear(&fm->selection.previous);
+  pathlist_clear(&fm->selection.keep_in_visual);
 }
 
 static void selection_visual_update(Fm *fm, uint32_t origin, uint32_t from,
@@ -402,7 +406,7 @@ static void selection_visual_update(Fm *fm, uint32_t origin, uint32_t from,
   const Dir *dir = fm_current_dir(fm);
   for (; lo <= hi; lo++) {
     // never unselect the old selection
-    if (!pathlist_contains(&fm->selection.previous,
+    if (!pathlist_contains(&fm->selection.keep_in_visual,
                            file_path(dir->files[lo]))) {
       fm_selection_toggle(fm, file_path(dir->files[lo]), false);
     }

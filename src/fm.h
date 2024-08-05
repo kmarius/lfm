@@ -37,10 +37,13 @@ typedef struct Fm {
   } dirs;
 
   struct {
-    // Current and previous selection (needed for visual mode)
+    // Current selection
     pathlist current;
 
-    // Previous selection, needed for visual selection mode.
+    // selection that was active when entering visual mode
+    pathlist keep_in_visual;
+
+    // Previous selection that can be restored
     pathlist previous;
   } selection;
 
@@ -182,8 +185,15 @@ void fm_paste_mode_set(Fm *fm, paste_mode mode);
 
 // Clear copy/move buffer. Returns the size of the buffer bofore clearing.
 static inline bool fm_paste_buffer_clear(Fm *fm) {
+  // TODO
   size_t prev_size = pathlist_size(&fm->paste.buffer);
-  pathlist_clear(&fm->paste.buffer);
+  if (prev_size > 0) {
+    // swap paste_buffer and prev
+    pathlist tmp = fm->selection.previous;
+    fm->selection.previous = fm->paste.buffer;
+    fm->paste.buffer = tmp;
+    pathlist_clear(&fm->paste.buffer);
+  }
   return prev_size;
 }
 

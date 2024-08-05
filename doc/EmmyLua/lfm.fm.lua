@@ -151,6 +151,12 @@ function lfm.fm.selection_set(files) end
 ---@nodiscard
 function lfm.fm.selection_get() end
 
+---Restore the previous selection. Previous selection is set whenever the selection/paste buffer is cleared.
+---```lua
+---    lfm.fm.selection_restore()
+---```
+function lfm.fm.selection_restore() end
+
 ---Flatten the current directory `level`s deep.
 ---```lua
 ---    lfm.fm.flatten(2)
