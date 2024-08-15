@@ -574,11 +574,14 @@ void fm_on_resize(Fm *fm, uint32_t height) {
       }
     } else if (height < fm->height) {
       // terminal shrinked
-      if (dir->ind >= dir->length - scrolloff) {
-        // already closer to the end of the directory than scrolloff
-        dir->pos -= fm->height - height;
-      } else if (dir->pos > height - scrolloff) {
-        // current position is over scrolloff for the new dimensions
+      uint32_t scrolloff = cfg.scrolloff;
+      if (height < scrolloff * 2) {
+        scrolloff = height / 2;
+      }
+      if (scrolloff >= dir->length - dir->ind) {
+        // closer to the end of directory than scrolloff
+        dir->pos = height - (dir->length - dir->ind);
+      } else if (dir->pos + scrolloff >= height) {
         dir->pos = height - scrolloff - 1;
       }
     }
