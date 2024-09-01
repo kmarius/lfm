@@ -127,14 +127,16 @@ void notify_add_watcher(Notify *notify, Dir *dir) {
   map_dir_wd_insert(&notify->wds, dir, wd);
 }
 
-void notify_remove_watcher(Notify *notify, Dir *dir) {
+bool notify_remove_watcher(Notify *notify, Dir *dir) {
   map_dir_wd_iter it = map_dir_wd_find(&notify->wds, dir);
   if (it.ref) {
     int wd = it.ref->second;
     inotify_rm_watch(notify->inotify_fd, wd);
     map_dir_wd_erase_at(&notify->wds, it);
     map_wd_dir_erase(&notify->dirs, wd);
+    return true;
   }
+  return false;
 }
 
 void notify_set_watchers(Notify *notify, Dir **dirs, uint32_t n) {
