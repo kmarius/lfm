@@ -15,24 +15,61 @@ int compare_name(const void *a, const void *b) {
 }
 
 int compare_size(const void *a, const void *b) {
-  const int64_t c = file_size(*(File **)a) - file_size(*(File **)b);
-  return c < 0 ? -1 : c > 0 ? 1 : 0;
+  long cmp = file_size(*(File **)a) - file_size(*(File **)b);
+  if (cmp) {
+    return cmp;
+  }
+  return (*(File **)a)->lstat.st_ino - (*(File **)b)->lstat.st_ino;
 }
 
 int compare_natural(const void *a, const void *b) {
-  return strnatcasecmp(file_name(*(File **)a), file_name(*(File **)b));
+  int cmp = strnatcasecmp(file_name(*(File **)a), file_name(*(File **)b));
+  if (cmp) {
+    return cmp;
+  }
+  return (*(File **)a)->lstat.st_ino - (*(File **)b)->lstat.st_ino;
 }
 
 int compare_ctime(const void *a, const void *b) {
-  return file_ctime(*(File **)b) - file_ctime(*(File **)a);
+  File *aa = *(File **)a;
+  File *bb = *(File **)b;
+  long cmp = aa->lstat.st_ctim.tv_sec - bb->lstat.st_ctim.tv_sec;
+  if (cmp) {
+    return cmp;
+  }
+  cmp = aa->lstat.st_ctim.tv_nsec - bb->lstat.st_ctim.tv_nsec;
+  if (cmp) {
+    return cmp;
+  }
+  return aa->lstat.st_ino - bb->lstat.st_ino;
 }
 
 int compare_atime(const void *a, const void *b) {
-  return file_atime(*(File **)b) - file_atime(*(File **)a);
+  File *aa = *(File **)a;
+  File *bb = *(File **)b;
+  long cmp = aa->lstat.st_atim.tv_sec - bb->lstat.st_atim.tv_sec;
+  if (cmp) {
+    return cmp;
+  }
+  cmp = aa->lstat.st_atim.tv_nsec - bb->lstat.st_atim.tv_nsec;
+  if (cmp) {
+    return cmp;
+  }
+  return aa->lstat.st_ino - bb->lstat.st_ino;
 }
 
 int compare_mtime(const void *a, const void *b) {
-  return file_mtime(*(File **)b) - file_mtime(*(File **)a);
+  File *aa = *(File **)a;
+  File *bb = *(File **)b;
+  long cmp = aa->lstat.st_mtim.tv_sec - bb->lstat.st_mtim.tv_sec;
+  if (cmp) {
+    return cmp;
+  }
+  cmp = aa->lstat.st_mtim.tv_nsec - bb->lstat.st_mtim.tv_nsec;
+  if (cmp) {
+    return cmp;
+  }
+  return aa->lstat.st_ino - bb->lstat.st_ino;
 }
 
 // https://stackoverflow.com/questions/6127503/shuffle-array-in-c
