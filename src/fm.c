@@ -2,6 +2,7 @@
 
 #include "async.h"
 #include "config.h"
+#include "dir.h"
 #include "hooks.h"
 #include "lfm.h"
 #include "loader.h"
@@ -93,8 +94,10 @@ static void fm_populate(Fm *fm) {
       dir = loader_dir_from_path(&to_lfm(fm)->loader, parent);
       dir->visible = true;
       fm->dirs.visible.data[i] = dir;
-      dir_cursor_move_to(dir, fm->dirs.visible.data[i - 1]->name, fm->height,
-                         cfg.scrolloff);
+      if (dir_loading(dir)) {
+        dir_cursor_move_to(dir, fm->dirs.visible.data[i - 1]->name, fm->height,
+                           cfg.scrolloff);
+      }
     } else {
       fm->dirs.visible.data[i] = NULL;
     }
@@ -527,9 +530,7 @@ bool fm_updir(Fm *fm) {
     return false;
   }
 
-  const char *name = fm_current_dir(fm)->name;
   fm_async_chdir(fm, path_parent_s(fm_current_dir(fm)->path), false, false);
-  fm_move_cursor_to(fm, name);
   fm_update_preview(fm);
   return true;
 }
