@@ -1,10 +1,13 @@
 #include "private.h"
 
+#include "../macro.h"
+
 #include <ev.h>
 #include <lauxlib.h>
 #include <lua.h>
 
 #include <stdint.h>
+#include <wchar.h>
 
 static int l_ui_messages(lua_State *L) {
   lua_createtable(L, vec_message_size(&ui->messages), 0);
@@ -98,7 +101,47 @@ static int l_notcurses_canhalfblock(lua_State *L) {
   return 1;
 }
 
+static int l_macro_recording(lua_State *L) {
+  lua_pushboolean(L, macro_recording);
+  return 1;
+}
+
+static int l_macro_record(lua_State *L) {
+  const char *str = luaL_checkstring(L, 1);
+  wchar_t w;
+  if (mbtowc(&w, str, MB_LEN_MAX) == -1) {
+    return luaL_error(L, "converting to wchar_t");
+  }
+  if (macro_record(w)) {
+    return luaL_error(L, "already recording recording");
+  }
+  return 1;
+}
+
+static int l_macro_stop_record(lua_State *L) {
+  if (macro_stop_record()) {
+    return luaL_error(L, "currently not recording");
+  }
+  return 0;
+}
+
+static int l_macro_play(lua_State *L) {
+  const char *str = luaL_checkstring(L, 1);
+  wchar_t w;
+  if (mbtowc(&w, str, MB_LEN_MAX) == -1) {
+    return luaL_error(L, "converting to wchar_t");
+  }
+  if (macro_play(w, lfm)) {
+    return luaL_error(L, "no such macro");
+  }
+  return 0;
+}
+
 static const struct luaL_Reg ui_lib[] = {
+    {"macro_recording", l_macro_recording},
+    {"macro_record", l_macro_record},
+    {"macro_stop_record", l_macro_stop_record},
+    {"macro_play", l_macro_play},
     {"notcurses_canopen_images", l_notcurses_canopen_images},
     {"notcurses_canhalfblock", l_notcurses_canhalfblock},
     {"notcurses_canquadrant", l_notcurses_canquadrant},

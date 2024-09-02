@@ -237,6 +237,7 @@ local submodules = {
 	jumplist = true,
 	mode = true,
 	quickmarks = true,
+	macros = true,
 	rifle = true,
 	search = true,
 	shell = true,
@@ -276,6 +277,7 @@ end, { tokenize = false, compl = compl.files, desc = "Run a shell command in the
 
 require("lfm.jumplist")._setup()
 require("lfm.quickmarks")._setup()
+require("lfm.macros")._setup()
 require("lfm.glob")._setup()
 
 register_command("quit", quit, { desc = "Quit Lfm." })

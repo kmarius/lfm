@@ -106,3 +106,35 @@ function lfm.ui.notcurses_canbraille() end
 ---@return boolean
 ---@nodiscard
 function lfm.ui.notcurses_canpixel() end
+
+---Check if a macro is currently being recorded.
+---```lua
+---    local recording = lfm.ui.macro_recording()
+---```
+---@return boolean
+---@nodiscard
+function lfm.ui.macro_recording() end
+
+---Start recording a macro. Keytrokes are recorded until macro_stop_record is called.
+---Returns false if a macro is already being recorded.
+---```lua
+---    lfm.ui.macro_record("a")
+---```
+---@param id string First found wchar is used as an id.
+---@return boolean
+function lfm.ui.macro_record(id) end
+
+---Stop recording current macro.
+---```lua
+---    lfm.ui.macro_stop_record()
+---```
+---@return boolean
+function lfm.ui.macro_stop_record() end
+
+---Replay a macro.
+---```lua
+---    lfm.ui.macro_play("a")
+---```
+---@param id string First found wchar is used as an id.
+---@return boolean
+function lfm.ui.macro_play(id) end

@@ -143,7 +143,7 @@ function lfm.register_hook(name, f) end
 ---@param id integer
 function lfm.deregister_hook(id) end
 
----Schedule a lua function to run after `delay` milliseconds. Runs `f` immediately
+---Schedule a lua function to run after `delay` milliseconds. Runs `f` immediately after the programs main loop is back in control.
 ---if `delay` non-positive.
 ---```lua
 ---    lfm.schedule(function()
@@ -151,7 +151,7 @@ function lfm.deregister_hook(id) end
 ---    end, 5000)
 ---```
 ---@param f function
----@param delay integer
+---@param delay? integer delay in milliseconds
 function lfm.schedule(f, delay) end
 
 ---Search files in the current directory.

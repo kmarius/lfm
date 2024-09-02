@@ -8,6 +8,7 @@
 #include "lfm.h"
 #include "log.h"
 #include "lua/lfmlua.h"
+#include "macro.h"
 #include "mode.h"
 #include "search.h"
 #include "trie.h"
@@ -27,9 +28,11 @@ void input_init(Lfm *lfm) {
   ev_timer_init(&lfm->ui.map_clear_timer, map_clear_timer_cb, 0, 0);
   lfm->ui.map_clear_timer.data = lfm;
   lfm->ui.input_watcher.data = lfm;
+  macro_init();
 }
 
 void input_deinit(Lfm *lfm) {
+  macro_deinit();
   vec_input_drop(&lfm->ui.maps.seq);
   ev_timer_stop(lfm->loop, &lfm->ui.map_clear_timer);
 }
@@ -84,7 +87,11 @@ static void stdin_cb(EV_P_ ev_io *w, int revents) {
       log_trace("id=%d shift=%d ctrl=%d alt=%d type=%d utf8=%s", in.id,
                 in.shift, in.ctrl, in.alt, in.evtype,
                 in.utf8[1] != 0 || isprint(in.utf8[0]) ? in.utf8 : "");
-      input_handle_key(lfm, ncinput_to_input(&in));
+      input_t key = ncinput_to_input(&in);
+      if (macro_recording) {
+        macro_add_key(key);
+      }
+      input_handle_key(lfm, key);
     }
   }
 
