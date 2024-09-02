@@ -1,6 +1,7 @@
 #include "../fm.h"
 #include "../config.h"
 #include "../hooks.h"
+#include "../macro.h"
 #include "../path.h"
 #include "../search.h"
 #include "../ui.h"
@@ -299,7 +300,11 @@ static int l_fm_chdir(lua_State *L) {
   search_nohighlight(lfm);
   lfm_mode_exit(lfm, "visual");
   lfm_run_hook(lfm, LFM_HOOK_CHDIRPRE);
-  fm_async_chdir(fm, path, should_save, true);
+  if (macro_playing) {
+    fm_sync_chdir(fm, path, should_save, true);
+  } else {
+    fm_async_chdir(fm, path, should_save, true);
+  }
   ui_redraw(ui, REDRAW_FM);
   xfree(path);
   return 0;

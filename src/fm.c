@@ -132,7 +132,12 @@ static inline bool fm_chdir_impl(Fm *fm, const char *path, bool save, bool hook,
   if (async) {
     async_chdir(&to_lfm(fm)->async, path, hook);
   } else {
-    setenv("PWD", path, true);
+    if (chdir(path) == 0) {
+      setenv("PWD", path, true);
+    } else {
+      lfm_error(to_lfm(fm), "chdir: %s", strerror(errno));
+      return false;
+    }
   }
 
   notify_remove_watchers(&to_lfm(fm)->notify);
@@ -156,6 +161,10 @@ static inline bool fm_chdir_impl(Fm *fm, const char *path, bool save, bool hook,
   fm_populate(fm);
   fm_update_watchers(fm);
   fm_update_preview(fm);
+
+  if (!async && hook) {
+    lfm_run_hook(to_lfm(fm), LFM_HOOK_CHDIRPOST);
+  }
 
   return true;
 }
