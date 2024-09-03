@@ -138,7 +138,7 @@ local mode_mark_delete = {
 	end,
 }
 
-function M._setup()
+function M._setup(t)
 	lfm.register_command("mark-save", M.mark_save)
 	lfm.register_command("mark-delete", M.mark_delete)
 

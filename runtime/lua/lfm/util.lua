@@ -190,4 +190,29 @@ local function find(path, fn)
 end
 M.find = find
 
+---Merges a table of default options into a given table. Applied recursively on subtables.
+---opts table is mutated in the process and returned.
+---```lua
+---    local dflt = { next = "n", prev = "p" }
+---    local opts = { next = "<right>" }
+---    opts = apply_default_options(opts, dflt)
+---    assert(opts.next == "<right>")
+---    assert(opts.prev == "p")
+---```
+---@param opts table Table of options
+---@param dflt table Table of default options
+---@return table
+local function apply_default_options(opts, dflt)
+	opts = opts or {}
+	for key, value in pairs(dflt) do
+		if type(value) == "table" then
+			opts[key] = apply_default_options(opts[key], value)
+		else
+			opts[key] = opts[key] or value
+		end
+	end
+	return opts
+end
+M.apply_default_options = apply_default_options
+
 return M

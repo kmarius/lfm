@@ -7,7 +7,6 @@ local chdir = lfm.fm.chdir
 
 local list = { getpwd() }
 local ind = 1
-local hooked
 
 local function on_chdir()
 	local dir = getpwd()
@@ -46,19 +45,11 @@ function M.jump_prev()
 	end
 end
 
----@class Lfm.JumpList.SetupOpts
----@field key_next string default "]"
----@field key_prev string default "["
-
----Set up jumplist: sets the two keybinds and registers the necessary hook.
----@param t? Lfm.JumpList.SetupOpts
-function M._setup(t)
-	t = t or {}
-	if not hooked then
-		hooked = lfm.register_hook("ChdirPost", on_chdir)
-	end
-	lfm.map(t.key_next or "]", M.jump_next, { desc = "jumplist-next" })
-	lfm.map(t.key_prev or "[", M.jump_prev, { desc = "jumplist-prev" })
+---Set up jumplist: sets keybinds and registers the necessary hook.
+function M._setup()
+	lfm.register_hook("ChdirPost", on_chdir)
+	lfm.map("]", M.jump_next, { desc = "jumplist-next" })
+	lfm.map("[", M.jump_prev, { desc = "jumplist-prev" })
 end
 
 return M
