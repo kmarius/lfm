@@ -304,12 +304,11 @@ static int l_cmap_key(lua_State *L) {
 
 static int l_get_maps(lua_State *L) {
   const char *name = luaL_checkstring(L, 1);
-  luaL_checktype(L, 2, LUA_TBOOLEAN);
   const struct mode *mode = hmap_modes_at(&lfm->modes, name);
   if (!mode) {
     return luaL_error(L, "no such mode: %s", name);
   }
-  bool prune = lua_toboolean(L, 2);
+  bool prune = luaL_optbool(L, 2, false);
   vec_trie maps = trie_collect_leaves(mode->maps, prune);
   lua_createtable(L, vec_trie_size(&maps), 0);
   size_t i = 0;
