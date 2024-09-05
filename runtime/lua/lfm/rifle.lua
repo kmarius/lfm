@@ -33,6 +33,18 @@ function M.open(...)
 			if match.command == "ask" then
 				lfm.mode("command")
 				lfm.cmd.line_set("shell ", ' "${files[@]}"')
+			elseif match.lfm then
+				local f, err = loadstring(match.command)
+				if not f then
+					error(err)
+				end
+				local res = f(unpack(files))
+				if res then
+					if type(res) == "table" then
+						res = lfm.inspect(res)
+					end
+					print(res)
+				end
 			elseif match.term then
 				local term = M.query_mime("rifle/x-terminal-emulator", { limit = 1 })[1]
 				if not term then

@@ -67,6 +67,7 @@ typedef struct Rule {
   bool flag_fork;
   bool flag_term;
   bool flag_esc;
+  bool flag_lfm;
 } Rule;
 
 static inline void rule_drop(Rule *self) {
@@ -112,6 +113,9 @@ static inline void rule_set_flags(Rule *r, const char *flags) {
     case 'e':
       r->flag_esc = true;
       break;
+    case 'l':
+      r->flag_lfm = true;
+      break;
     }
   }
   for (const char *f = flags; *f; f++) {
@@ -124,6 +128,9 @@ static inline void rule_set_flags(Rule *r, const char *flags) {
       break;
     case 'E':
       r->flag_esc = false;
+      break;
+    case 'L':
+      r->flag_lfm = false;
       break;
     }
   }
@@ -379,6 +386,9 @@ static inline int llua_push_rule(lua_State *L, const Rule *r, int num) {
 
   lua_pushboolean(L, r->flag_fork);
   lua_setfield(L, -2, "fork");
+
+  lua_pushboolean(L, r->flag_lfm);
+  lua_setfield(L, -2, "lfm");
 
   lua_pushboolean(L, r->flag_term);
   lua_setfield(L, -2, "term");
