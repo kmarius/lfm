@@ -2,7 +2,7 @@
 
 #include "config.h"
 #include "lfm.h"
-#include "macros.h"
+#include "macros_defs.h"
 #include "ui.h"
 
 #include <curses.h>

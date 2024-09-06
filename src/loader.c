@@ -6,7 +6,7 @@
 #include "config.h"
 #include "hooks.h"
 #include "lfm.h"
-#include "macros.h"
+#include "macros_defs.h"
 #include "path.h"
 #include "preview.h"
 #include "stc/common.h"

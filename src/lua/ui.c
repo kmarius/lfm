@@ -1,6 +1,6 @@
 #include "private.h"
 
-#include "../macro.h"
+#include "../macros.h"
 
 #include <ev.h>
 #include <lauxlib.h>

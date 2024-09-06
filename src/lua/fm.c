@@ -1,7 +1,7 @@
 #include "../fm.h"
 #include "../config.h"
 #include "../hooks.h"
-#include "../macro.h"
+#include "../macros.h"
 #include "../path.h"
 #include "../search.h"
 #include "../ui.h"

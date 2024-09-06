@@ -1,4 +1,4 @@
-#include "macro.h"
+#include "macros.h"
 
 #include "input.h"
 #include "keys.h"
@@ -24,11 +24,11 @@ bool macro_recording = false;
 bool macro_playing = false;
 static struct macro *current = NULL;
 
-void macro_init() {
+void macros_init() {
   macros = malloc(capacity * sizeof *macros);
 }
 
-void macro_deinit() {
+void macros_deinit() {
   for (int i = 0; i < length; i++) {
     free(macros[i].macro.inputs);
   }

@@ -1,7 +1,7 @@
 #include "cmdline.h"
 
 #include "config.h"
-#include "macros.h"
+#include "macros_defs.h"
 #include "memory.h"
 #include "ncutil.h"
 #include "ui.h"

@@ -8,7 +8,7 @@
 #include "lfm.h"
 #include "log.h"
 #include "lua/lfmlua.h"
-#include "macro.h"
+#include "macros.h"
 #include "mode.h"
 #include "search.h"
 #include "trie.h"
@@ -28,11 +28,11 @@ void input_init(Lfm *lfm) {
   ev_timer_init(&lfm->ui.map_clear_timer, map_clear_timer_cb, 0, 0);
   lfm->ui.map_clear_timer.data = lfm;
   lfm->ui.input_watcher.data = lfm;
-  macro_init();
+  macros_init();
 }
 
 void input_deinit(Lfm *lfm) {
-  macro_deinit();
+  macros_deinit();
   vec_input_drop(&lfm->ui.maps.seq);
   ev_timer_stop(lfm->loop, &lfm->ui.map_clear_timer);
 }
