@@ -144,12 +144,21 @@ static int l_fm_current_file(lua_State *L) {
 static int l_fm_current_dir(lua_State *L) {
   const Dir *dir = fm_current_dir(fm);
   lua_createtable(L, 0, 3);
+
   lua_pushstring(L, dir->path);
   lua_setfield(L, -2, "path");
+
   lua_pushstring(L, dir->name);
   lua_setfield(L, -2, "name");
+
+  lua_createtable(L, 0, 3);
   lua_pushstring(L, sorttype_str[dir->settings.sorttype]);
-  lua_setfield(L, -2, "sorttype");
+  lua_setfield(L, -2, "type");
+  lua_pushboolean(L, dir->settings.dirfirst);
+  lua_setfield(L, -2, "dirfirst");
+  lua_pushboolean(L, dir->settings.reverse);
+  lua_setfield(L, -2, "reverse");
+  lua_setfield(L, -2, "sortopts");
 
   lua_createtable(L, dir->length, 0);
   for (uint32_t i = 0; i < dir->length; i++) {
@@ -180,35 +189,43 @@ static int l_fm_set_info(lua_State *L) {
   return luaL_error(L, "invalid option for info: %s", val);
 }
 
-static int l_fm_sortby(lua_State *L) {
-  const int l = lua_gettop(L);
+static int l_fm_sort(lua_State *L) {
   lfm_mode_exit(lfm, "visual");
+  luaL_checktype(L, 1, LUA_TTABLE);
   Dir *dir = fm_current_dir(fm);
-  for (int i = 1; i <= l; i++) {
-    const char *op = luaL_checkstring(L, i);
-    int j;
-    for (j = 0; j < NUM_SORTTYPE; j++) {
+
+  lua_getfield(L, 1, "dirfirst");
+  if (!lua_isnoneornil(L, -1)) {
+    dir->settings.dirfirst = lua_toboolean(L, -1);
+  }
+  lua_pop(L, 1);
+
+  lua_getfield(L, 1, "reverse");
+  if (!lua_isnoneornil(L, -1)) {
+    dir->settings.reverse = lua_toboolean(L, -1);
+  }
+  lua_pop(L, 1);
+
+  lua_getfield(L, 1, "reverse");
+  if (!lua_isnoneornil(L, -1)) {
+    dir->settings.reverse = lua_toboolean(L, -1);
+  }
+  lua_pop(L, 1);
+
+  lua_getfield(L, 1, "type");
+  if (!lua_isnoneornil(L, -1)) {
+    const char *op = luaL_checkstring(L, -1);
+    for (int j = 0; j < NUM_SORTTYPE; j++) {
       if (streq(op, sorttype_str[j])) {
         dir->settings.sorttype = j;
         break;
       }
     }
-    if (j == NUM_SORTTYPE) {
-      if (streq(op, "dirfirst")) {
-        dir->settings.dirfirst = true;
-      } else if (streq(op, "nodirfirst")) {
-        dir->settings.dirfirst = false;
-      } else if (streq(op, "reverse")) {
-        dir->settings.reverse = true;
-      } else if (streq(op, "noreverse")) {
-        dir->settings.reverse = false;
-      } else {
-        return luaL_error(L, "sortby: unrecognized option: %s", op);
-      }
-    }
   }
-  dir->sorted = false;
+  lua_pop(L, 1);
+
   const File *file = dir_current_file(dir);
+  dir->sorted = false;
   dir_sort(dir);
   if (file) {
     fm_move_cursor_to(fm, file_name(file));
@@ -472,7 +489,7 @@ static const struct luaL_Reg fm_lib[] = {
     {"selection_set", l_fm_selection_set},
     {"selection_get", l_fm_selection_get},
     {"selection_restore", l_fm_selection_restore},
-    {"sortby", l_fm_sortby},
+    {"sort", l_fm_sort},
     {"top", l_fm_top},
     {"updir", l_fm_updir},
     {"up", l_fm_up},

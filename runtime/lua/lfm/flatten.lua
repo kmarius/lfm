@@ -34,7 +34,7 @@ end
 ---```
 function M.increment()
 	if fm.flatten_level() == 0 then
-		fm.sortby("nodirfirst")
+		fm.sort({ dirfirst = false })
 	end
 	M.flatten("+")
 end
@@ -47,7 +47,7 @@ end
 function M.decrement()
 	M.flatten("-")
 	if fm.flatten_level() == 0 then
-		fm.sortby("dirfirst")
+		fm.sort({ dirfirst = true })
 	end
 end
 

@@ -6,7 +6,7 @@ lfm.fm = {}
 ---@field path string
 ---@field name string
 ---@field files table[string] table of filenames
----@field sorttype Lfm.SortType
+---@field sortopts Lfm.SortOpts
 
 ---@alias Lfm.SortType
 ---| '"name"'
@@ -17,11 +17,10 @@ lfm.fm = {}
 ---| '"size"'
 ---| '"random"'
 
----@alias Lfm.SortOption
----| '"dirfirst"'
----| '"nodirfirst"'
----| '"reverse"'
----| '"noreverse"'
+---@class Lfm.SortOpts
+---@field type? Lfm.SortType
+---@field dirfirst? boolean
+---@field reverse? boolean
 
 ---@alias Lfm.PasteMode
 ---| '"copy"'
@@ -175,10 +174,10 @@ function lfm.fm.flatten_level() end
 
 ---Set the sort method. Multiple options can be set at once. Later options may override previous ones.
 ---```lua
----    lfm.fm.sortby("ctime", "nodirfirst", "reverse")
+---    lfm.fm.sort({ type = "ctime", dirfirst = true, reverse = false })
 ---```
----@param ... Lfm.SortType|Lfm.SortOption
-function lfm.fm.sortby(...) end
+---@param opts Lfm.SortOpts
+function lfm.fm.sort(opts) end
 
 ---Get the info setting for the current directory.
 ---```lua
