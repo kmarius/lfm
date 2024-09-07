@@ -22,6 +22,8 @@ static int capacity = 8;
 
 bool macro_recording = false;
 bool macro_playing = false;
+input_t macro_identifier;
+
 static struct macro *current = NULL;
 
 void macros_init() {
@@ -63,6 +65,7 @@ int macro_record(uint64_t id) {
   }
   current->length = 0;
   macro_recording = true;
+  macro_identifier = id;
   return 0;
 }
 

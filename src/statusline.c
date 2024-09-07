@@ -1,7 +1,9 @@
 #include "statusline.h"
 
 #include "config.h"
+#include "keys.h"
 #include "lfm.h"
+#include "macros.h"
 #include "macros_defs.h"
 #include "ui.h"
 
@@ -99,6 +101,14 @@ void statusline_draw(Ui *ui) {
       ncplane_putstr_yx(n, 0, ui->x - rhs_sz, " loading ");
       ncplane_set_bg_default(n);
       ncplane_set_fg_default(n);
+      ncplane_putchar(n, ' ');
+    }
+    if (macro_recording) {
+      char buf[256];
+      snprintf(buf, sizeof buf, "recording @%s",
+               input_to_key_name(macro_identifier));
+      rhs_sz += mbstowcs(NULL, buf, 0) + 1;
+      ncplane_putstr_yx(n, 0, ui->x - rhs_sz, buf);
       ncplane_putchar(n, ' ');
     }
     if (vec_input_size(&ui->maps.seq) > 0) {

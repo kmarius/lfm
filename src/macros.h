@@ -7,8 +7,9 @@
 
 struct Lfm;
 
-extern bool macro_recording; // true, if currently recording a macro
-extern bool macro_playing;   // true, if currently playing a macro
+extern bool macro_recording;     // true, if currently recording a macro
+extern bool macro_playing;       // true, if currently playing a macro
+extern input_t macro_identifier; // identifier of the macro being recorded
 
 void macros_init(void);
 void macros_deinit(void);
