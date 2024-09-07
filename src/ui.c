@@ -295,7 +295,7 @@ void ui_verror(Ui *ui, const char *format, va_list args) {
   struct message msg = {NULL, true};
   vasprintf(&msg.text, format, args);
 
-  log_error(msg.text);
+  log_error("%s", msg.text);
 
   vec_message_push(&ui->messages, msg);
 
