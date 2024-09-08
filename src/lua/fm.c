@@ -194,35 +194,42 @@ static int l_fm_sort(lua_State *L) {
   luaL_checktype(L, 1, LUA_TTABLE);
   Dir *dir = fm_current_dir(fm);
 
+  struct dir_settings settings = dir->settings;
   lua_getfield(L, 1, "dirfirst");
   if (!lua_isnoneornil(L, -1)) {
-    dir->settings.dirfirst = lua_toboolean(L, -1);
+    settings.dirfirst = lua_toboolean(L, -1);
   }
   lua_pop(L, 1);
 
   lua_getfield(L, 1, "reverse");
   if (!lua_isnoneornil(L, -1)) {
-    dir->settings.reverse = lua_toboolean(L, -1);
+    settings.reverse = lua_toboolean(L, -1);
   }
   lua_pop(L, 1);
 
   lua_getfield(L, 1, "reverse");
   if (!lua_isnoneornil(L, -1)) {
-    dir->settings.reverse = lua_toboolean(L, -1);
+    settings.reverse = lua_toboolean(L, -1);
   }
   lua_pop(L, 1);
 
   lua_getfield(L, 1, "type");
   if (!lua_isnoneornil(L, -1)) {
     const char *op = luaL_checkstring(L, -1);
-    for (int j = 0; j < NUM_SORTTYPE; j++) {
+    int j;
+    for (j = 0; j < NUM_SORTTYPE; j++) {
       if (streq(op, sorttype_str[j])) {
-        dir->settings.sorttype = j;
+        settings.sorttype = j;
         break;
       }
     }
+    if (j == NUM_SORTTYPE) {
+      return luaL_error(L, "unrecognized sort type: %s", op);
+    }
   }
   lua_pop(L, 1);
+
+  dir->settings = settings;
 
   const File *file = dir_current_file(dir);
   dir->sorted = false;
