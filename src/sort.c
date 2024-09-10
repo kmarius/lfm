@@ -15,24 +15,29 @@ int compare_name(const void *a, const void *b) {
 }
 
 int compare_size(const void *a, const void *b) {
-  long cmp = file_size(*(File **)a) - file_size(*(File **)b);
+  const File *aa = *(File **)a;
+  const File *bb = *(File **)b;
+  long cmp = file_size(aa) - file_size(bb);
   if (cmp) {
-    return cmp;
+    // conversion from long to int breaks this for large files
+    return cmp < 0 ? -1 : 1;
   }
-  return (*(File **)a)->lstat.st_ino - (*(File **)b)->lstat.st_ino;
+  return aa->lstat.st_ino - bb->lstat.st_ino;
 }
 
 int compare_natural(const void *a, const void *b) {
-  int cmp = strnatcasecmp(file_name(*(File **)a), file_name(*(File **)b));
+  const File *aa = *(File **)a;
+  const File *bb = *(File **)b;
+  int cmp = strnatcasecmp(file_name(aa), file_name(bb));
   if (cmp) {
     return cmp;
   }
-  return (*(File **)a)->lstat.st_ino - (*(File **)b)->lstat.st_ino;
+  return aa->lstat.st_ino - bb->lstat.st_ino;
 }
 
 int compare_ctime(const void *a, const void *b) {
-  File *aa = *(File **)a;
-  File *bb = *(File **)b;
+  const File *aa = *(File **)a;
+  const File *bb = *(File **)b;
   long cmp = aa->lstat.st_ctim.tv_sec - bb->lstat.st_ctim.tv_sec;
   if (cmp) {
     return cmp;
@@ -45,8 +50,8 @@ int compare_ctime(const void *a, const void *b) {
 }
 
 int compare_atime(const void *a, const void *b) {
-  File *aa = *(File **)a;
-  File *bb = *(File **)b;
+  const File *aa = *(File **)a;
+  const File *bb = *(File **)b;
   long cmp = aa->lstat.st_atim.tv_sec - bb->lstat.st_atim.tv_sec;
   if (cmp) {
     return cmp;
@@ -59,8 +64,8 @@ int compare_atime(const void *a, const void *b) {
 }
 
 int compare_mtime(const void *a, const void *b) {
-  File *aa = *(File **)a;
-  File *bb = *(File **)b;
+  const File *aa = *(File **)a;
+  const File *bb = *(File **)b;
   long cmp = aa->lstat.st_mtim.tv_sec - bb->lstat.st_mtim.tv_sec;
   if (cmp) {
     return cmp;
