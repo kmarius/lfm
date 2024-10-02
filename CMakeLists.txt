@@ -177,7 +177,7 @@ find_package(Pcre REQUIRED)
 find_package(ZLIB REQUIRED)
 find_package(Ev REQUIRED)
 find_package(FFmpeg REQUIRED COMPONENTS AVCODEC AVFORMAT AVUTIL SWSCALE)
-set(NOTCURSES_DEPS m unistring ncursesw readline deflate)
+set(NOTCURSES_DEPS m unistring ncursesw readline deflate avdevice)
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
