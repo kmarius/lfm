@@ -812,6 +812,9 @@ static void plane_draw_dir(struct ncplane *n, Dir *dir, pathlist *sel,
   ncplane_erase(n);
   ncplane_dim_yx(n, &nrow, NULL);
   ncplane_cursor_move_yx(n, 0, 0);
+  ncplane_set_styles(n, NCSTYLE_NONE);
+  ncplane_set_fg_default(n);
+  ncplane_set_bg_default(n);
 
   if (!dir) {
     return;
