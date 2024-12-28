@@ -234,7 +234,7 @@ static int l_fm_sort(lua_State *L) {
   const File *file = dir_current_file(dir);
   dir->sorted = false;
   dir_sort(dir);
-  if (file) {
+  if (file && dir->dirty) {
     fm_move_cursor_to(fm, file_name(file));
   }
   ui_redraw(ui, REDRAW_FM);

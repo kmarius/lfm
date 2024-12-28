@@ -54,6 +54,7 @@ typedef struct Dir {
                                 // one is already scheduled, otherwise 0
   bool loading;                 // is a reload in the process
   bool scheduled;               // is a reload scheduled
+  bool dirty;
 
   uint32_t ind; // cursor position in files[]
   uint32_t pos; // cursor position in the ui, offset from the top row
