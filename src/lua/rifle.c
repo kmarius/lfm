@@ -223,6 +223,10 @@ static inline Condition condition_create_re_name(const char *arg, bool negate) {
   return condition_create_re(check_fun_name, arg, negate);
 }
 
+static inline Condition condition_create_re_path(const char *arg, bool negate) {
+  return condition_create_re(check_fun_path, arg, negate);
+}
+
 static inline Condition condition_create_re_ext(const char *arg, bool negate) {
   char *regex_str = xmalloc(strlen(arg) + 8);
   sprintf(regex_str, "\\.(%s)$", arg);
@@ -300,7 +304,7 @@ static inline bool rule_add_condition(Rule *self, char *cond_str) {
     } else if (streq(func, "ext")) {
       c = condition_create_re_ext(arg, negate);
     } else if (streq(func, "path")) {
-      c = condition_create(check_fun_path, arg, negate);
+      c = condition_create_re_path(arg, negate);
     } else if (streq(func, "mime")) {
       c = condition_create_re_mime(arg, negate);
       if (!negate) {
