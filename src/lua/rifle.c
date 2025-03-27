@@ -30,7 +30,7 @@
 struct FileInfo;
 struct Condition;
 
-typedef bool(check_fun)(struct Condition *, const struct FileInfo *);
+typedef bool(check_fn)(struct Condition *, const struct FileInfo *);
 
 typedef struct Condition {
   bool negate;
@@ -41,7 +41,7 @@ typedef struct Condition {
       pcre_extra *pcre_extra;
     };
   };
-  check_fun *check;
+  check_fn *check;
 } Condition;
 
 static inline void condition_drop(Condition *self) {
@@ -92,13 +92,13 @@ typedef struct {
   rules rules;
 } Rifle;
 
-static inline Condition condition_create(check_fun *f, const char *arg,
+static inline Condition condition_create(check_fn *f, const char *arg,
                                          bool negate) {
-  Condition cd = {0};
-  cd.check = f;
-  cd.arg = arg ? strdup(arg) : NULL;
-  cd.negate = negate;
-  return cd;
+  Condition cond = {0};
+  cond.check = f;
+  cond.arg = arg ? strdup(arg) : NULL;
+  cond.negate = negate;
+  return cond;
 }
 
 static inline void rule_set_flags(Rule *r, const char *flags) {
@@ -143,41 +143,41 @@ static inline bool re_match(pcre *re, pcre_extra *re_extra,
                    30) >= 0;
 }
 
-static bool check_fun_file(Condition *cd, const FileInfo *info) {
+static bool check_fn_file(Condition *cond, const FileInfo *info) {
   struct stat path_stat;
   if (stat(info->file, &path_stat) == -1) {
-    return cd->negate;
+    return cond->negate;
   }
-  return S_ISREG(path_stat.st_mode) != cd->negate;
+  return S_ISREG(path_stat.st_mode) != cond->negate;
 }
 
-static bool check_fun_dir(Condition *cd, const FileInfo *info) {
+static bool check_fn_dir(Condition *cond, const FileInfo *info) {
   struct stat statbuf;
   if (stat(info->file, &statbuf) != 0) {
-    return cd->negate;
+    return cond->negate;
   }
-  return S_ISDIR(statbuf.st_mode) != cd->negate;
+  return S_ISDIR(statbuf.st_mode) != cond->negate;
 }
 
 // not sure if this even works from within lfm
-static bool check_fun_term(Condition *cd, const FileInfo *info) {
+static bool check_fn_term(Condition *cond, const FileInfo *info) {
   (void)info;
-  return (isatty(0) && isatty(1) && isatty(2)) != cd->negate;
+  return (isatty(0) && isatty(1) && isatty(2)) != cond->negate;
 }
 
-static bool check_fun_env(Condition *cd, const FileInfo *info) {
+static bool check_fn_env(Condition *cond, const FileInfo *info) {
   (void)info;
-  const char *val = getenv(cd->arg);
-  return (val && *val) != cd->negate;
+  const char *val = getenv(cond->arg);
+  return (val && *val) != cond->negate;
 }
 
-static bool check_fun_else(Condition *cd, const FileInfo *info) {
+static bool check_fn_else(Condition *cond, const FileInfo *info) {
   (void)info;
-  return !cd->negate;
+  return !cond->negate;
 }
 
 /* TODO: log errors (on 2022-10-15) */
-static inline Condition condition_create_re(check_fun *f, const char *re,
+static inline Condition condition_create_re(check_fn *f, const char *re,
                                             bool negate) {
   const char *pcre_error_str;
   int pcre_error_offset;
@@ -194,55 +194,54 @@ static inline Condition condition_create_re(check_fun *f, const char *re,
   return c;
 }
 
-static bool check_fun_path(Condition *cd, const FileInfo *info) {
-  return re_match(cd->pcre, cd->pcre_extra, info->path) != cd->negate;
+static bool check_fn_path(Condition *cond, const FileInfo *info) {
+  return re_match(cond->pcre, cond->pcre_extra, info->path) != cond->negate;
 }
 
-static bool check_fun_mime(Condition *cd, const FileInfo *info) {
-  return re_match(cd->pcre, cd->pcre_extra, info->mime) != cd->negate;
+static bool check_fn_mime(Condition *cond, const FileInfo *info) {
+  return re_match(cond->pcre, cond->pcre_extra, info->mime) != cond->negate;
 }
 
-static bool check_fun_name(Condition *cd, const FileInfo *info) {
+static bool check_fn_name(Condition *cond, const FileInfo *info) {
   const char *ptr = strrchr(info->file, '/');
-  return re_match(cd->pcre, cd->pcre_extra, ptr ? ptr : info->file) !=
-         cd->negate;
+  return re_match(cond->pcre, cond->pcre_extra, ptr ? ptr : info->file) !=
+         cond->negate;
 }
 
-static bool check_fun_match(Condition *cd, const FileInfo *info) {
-  return re_match(cd->pcre, cd->pcre_extra, info->file) != cd->negate;
+static bool check_fn_match(Condition *cond, const FileInfo *info) {
+  return re_match(cond->pcre, cond->pcre_extra, info->file) != cond->negate;
 }
 
-static bool check_fun_has(Condition *cd, const FileInfo *info) {
+static bool check_fn_has(Condition *cond, const FileInfo *info) {
   (void)info;
   char cmd[EXECUTABLE_MAX];
-  snprintf(cmd, sizeof cmd, "command -v \"%s\" >/dev/null 2>&1", cd->arg);
-  return !system(cmd) != cd->negate;
+  snprintf(cmd, sizeof cmd, "command -v \"%s\" >/dev/null 2>&1", cond->arg);
+  return !system(cmd) != cond->negate;
 }
 
 static inline Condition condition_create_re_name(const char *arg, bool negate) {
-  return condition_create_re(check_fun_name, arg, negate);
+  return condition_create_re(check_fn_name, arg, negate);
 }
 
 static inline Condition condition_create_re_path(const char *arg, bool negate) {
-  return condition_create_re(check_fun_path, arg, negate);
+  return condition_create_re(check_fn_path, arg, negate);
 }
 
 static inline Condition condition_create_re_ext(const char *arg, bool negate) {
   char *regex_str = xmalloc(strlen(arg) + 8);
   sprintf(regex_str, "\\.(%s)$", arg);
-  Condition c = condition_create_re(check_fun_name, regex_str, negate);
-  c.check = check_fun_name;
+  Condition cond = condition_create_re(check_fn_name, regex_str, negate);
   xfree(regex_str);
-  return c;
+  return cond;
 }
 
 static inline Condition condition_create_re_mime(const char *arg, bool negate) {
-  return condition_create_re(check_fun_mime, arg, negate);
+  return condition_create_re(check_fn_mime, arg, negate);
 }
 
 static inline Condition condition_create_re_match(const char *arg,
                                                   bool negate) {
-  return condition_create_re(check_fun_match, arg, negate);
+  return condition_create_re(check_fn_match, arg, negate);
 }
 
 static inline char *split_command(char *s) {
@@ -274,20 +273,20 @@ static inline bool rule_add_condition(Rule *self, char *cond_str) {
     func++;
   }
 
-  Condition c = {0};
+  Condition cond = {0};
 
   if (streq(func, "file")) {
-    c = condition_create(check_fun_file, NULL, negate);
+    cond = condition_create(check_fn_file, NULL, negate);
   } else if (streq(func, "directory")) {
-    c = condition_create(check_fun_dir, NULL, negate);
+    cond = condition_create(check_fn_dir, NULL, negate);
   } else if (streq(func, "terminal")) {
-    c = condition_create(check_fun_term, NULL, negate);
+    cond = condition_create(check_fn_term, NULL, negate);
   } else if (streq(func, "X")) {
-    c = condition_create(check_fun_env, "DISPLAY", negate);
+    cond = condition_create(check_fn_env, "DISPLAY", negate);
   } else if (streq(func, "W")) {
-    c = condition_create(check_fun_env, "WAYLAND_DISPLAY", negate);
+    cond = condition_create(check_fn_env, "WAYLAND_DISPLAY", negate);
   } else if (streq(func, "else")) {
-    c = condition_create(check_fun_else, NULL, negate);
+    cond = condition_create(check_fn_else, NULL, negate);
   } else {
     if ((arg = strtok_r(cond_str, "\0", &cond_str)) == NULL) {
       return false;
@@ -302,30 +301,30 @@ static inline bool rule_add_condition(Rule *self, char *cond_str) {
     } else if (streq(func, "flag")) {
       rule_set_flags(self, arg);
     } else if (streq(func, "ext")) {
-      c = condition_create_re_ext(arg, negate);
+      cond = condition_create_re_ext(arg, negate);
     } else if (streq(func, "path")) {
-      c = condition_create_re_path(arg, negate);
+      cond = condition_create_re_path(arg, negate);
     } else if (streq(func, "mime")) {
-      c = condition_create_re_mime(arg, negate);
+      cond = condition_create_re_mime(arg, negate);
       if (!negate) {
         self->has_mime = true;
       }
     } else if (streq(func, "name")) {
-      c = condition_create_re_name(arg, negate);
+      cond = condition_create_re_name(arg, negate);
     } else if (streq(func, "match")) {
-      c = condition_create_re_match(arg, negate);
+      cond = condition_create_re_match(arg, negate);
     } else if (streq(func, "env")) {
-      c = condition_create(check_fun_env, arg, negate);
+      cond = condition_create(check_fn_env, arg, negate);
     } else if (streq(func, "has")) {
       /* could be checked here? some others too */
-      c = condition_create(check_fun_has, arg, negate);
+      cond = condition_create(check_fn_has, arg, negate);
     } else {
       return false;
     }
   }
 
-  if (c.check) {
-    conditions_push(&self->conditions, c);
+  if (cond.check) {
+    conditions_push(&self->conditions, cond);
   }
 
   return true;
