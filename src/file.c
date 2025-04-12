@@ -161,38 +161,38 @@ const char *file_perms(const File *f) {
 }
 
 const char *file_owner(const File *f) {
-  static char owner[32];
+  static char name[32];
   static uid_t cached_uid = UINT_MAX;
-  struct passwd *pwd;
 
-  if (f->lstat.st_uid != cached_uid) {
-    if ((pwd = getpwuid(f->lstat.st_uid))) {
-      strncpy(owner, pwd->pw_name, sizeof owner - 1);
-      owner[sizeof owner - 1] = 0;
-      cached_uid = f->lstat.st_uid;
+  unsigned int uid = f->lstat.st_uid;
+  if (uid != cached_uid) {
+    struct passwd *pwd = getpwuid(uid);
+    if (pwd) {
+      strncpy(name, pwd->pw_name, sizeof name - 1);
     } else {
-      owner[0] = 0;
-      cached_uid = INT_MAX;
+      snprintf(name, sizeof name, "%d/UNKNOWN", uid);
     }
+    name[sizeof name - 1] = 0;
+    cached_uid = f->lstat.st_uid;
   }
-  return owner;
+  return name;
 }
 
 // getgrgid() is somewhat slow, so we cache one call
 const char *file_group(const File *f) {
-  static char group[32];
+  static char name[32];
   static gid_t cached_gid = UINT_MAX;
-  struct group *grp;
 
-  if (f->lstat.st_gid != cached_gid) {
-    if ((grp = getgrgid(f->lstat.st_gid))) {
-      strncpy(group, grp->gr_name, sizeof group - 1);
-      group[sizeof group - 1] = 0;
-      cached_gid = f->lstat.st_gid;
+  unsigned int gid = f->lstat.st_gid;
+  if (gid != cached_gid) {
+    struct group *grp = getgrgid(gid);
+    if (grp) {
+      strncpy(name, grp->gr_name, sizeof name - 1);
     } else {
-      group[0] = 0;
-      cached_gid = INT_MAX;
+      snprintf(name, sizeof name, "%d/UNKNOWN", gid);
     }
+    name[sizeof name - 1] = 0;
+    cached_gid = gid;
   }
-  return group;
+  return name;
 }
