@@ -1,7 +1,7 @@
 # https://github.com/neovim/neovim/blob/master/third-party/CMakeLists.txt
 
 # This is not meant to be included by the top-level.
-cmake_minimum_required (VERSION 2.8.12)
+cmake_minimum_required (VERSION 3.5.1)
 project(LFM_DEPS C)
 
 # Needed for: check_c_compiler_flag()
