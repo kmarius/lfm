@@ -230,6 +230,8 @@ static int l_fm_sort(lua_State *L) {
   dir_sort(dir);
   if (file && dir->dirty) {
     fm_move_cursor_to(fm, file_name(file));
+  } else {
+    fm_update_preview(fm);
   }
   ui_redraw(ui, REDRAW_FM);
   return 0;
