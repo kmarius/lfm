@@ -207,12 +207,6 @@ static int l_fm_sort(lua_State *L) {
   }
   lua_pop(L, 1);
 
-  lua_getfield(L, 1, "reverse");
-  if (!lua_isnoneornil(L, -1)) {
-    settings.reverse = lua_toboolean(L, -1);
-  }
-  lua_pop(L, 1);
-
   lua_getfield(L, 1, "type");
   if (!lua_isnoneornil(L, -1)) {
     const char *op = luaL_checkstring(L, -1);
