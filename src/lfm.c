@@ -35,9 +35,8 @@ struct sched_timer {
   int ref;
 };
 
-#define i_is_forward
-#define i_type list_timer
-#define i_val struct sched_timer
+#define i_declared
+#define i_type list_timer, struct sched_timer
 #include "stc/dlist.h"
 
 struct child_watcher {
@@ -50,9 +49,8 @@ struct child_watcher {
 
 static inline void destroy_io_watcher(ev_io *w);
 
-#define i_is_forward
-#define i_type list_child
-#define i_val struct child_watcher
+#define i_declared
+#define i_type list_child, struct child_watcher
 #define i_valdrop(p)                                                           \
   (destroy_io_watcher(p->stdout_watcher), destroy_io_watcher(p->stderr_watcher))
 #define i_no_clone

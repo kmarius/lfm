@@ -3,12 +3,12 @@
 #include "dir.h"
 #include "file.h"
 #include "pathlist.h"
-#include "stc/forward.h"
+#include "stc/types.h"
 
 #include <stdbool.h>
 #include <stdint.h>
 
-forward_vec(vec_dir, Dir *);
+declare_vec(vec_dir, Dir *);
 
 typedef enum paste_mode_e {
   PASTE_MODE_MOVE,

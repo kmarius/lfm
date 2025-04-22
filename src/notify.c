@@ -18,13 +18,13 @@
 #include <sys/inotify.h>
 #include <unistd.h>
 
-#define i_is_forward
+#define i_declared
 #define i_type map_wd_dir
 #define i_key int
 #define i_val Dir *
 #include "stc/hmap.h"
 
-#define i_is_forward
+#define i_declared
 #define i_type map_dir_wd
 #define i_key Dir *
 #define i_val int

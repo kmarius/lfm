@@ -1,9 +1,7 @@
-#include "dir.h"
-
 #include "loader.h"
-
 #include "async.h"
 #include "config.h"
+#include "dir.h"
 #include "hooks.h"
 #include "lfm.h"
 #include "macros_defs.h"
@@ -17,10 +15,9 @@
 
 #include <stdint.h>
 
-#define i_implement
 #include "stc/cstr.h"
 
-#define i_is_forward
+#define i_declared
 #define i_type previewcache
 #define i_key_str
 #define i_val Preview *
@@ -37,9 +34,8 @@ struct loader_timer {
   };
 };
 
-#define i_is_forward
-#define i_type list_loader_timer
-#define i_val struct loader_timer
+#define i_declared
+#define i_type list_loader_timer, struct loader_timer
 #include "stc/dlist.h"
 
 #define i_TYPE set_dir, Dir *

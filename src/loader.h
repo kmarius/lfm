@@ -6,11 +6,11 @@
 #include "dircache.h"
 #include "preview.h"
 
-#include "stc/forward.h"
+#include "stc/types.h"
 
 struct loader_timer;
-forward_dlist(list_loader_timer, struct loader_timer);
-forward_hmap(previewcache, cstr, Preview *);
+declare_dlist(list_loader_timer, struct loader_timer);
+declare_hmap(previewcache, cstr, Preview *);
 
 typedef struct Loader {
   dircache dc;

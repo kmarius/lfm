@@ -35,9 +35,8 @@
 #include <libgen.h>
 #include <unistd.h>
 
-#define i_is_forward
-#define i_type vec_ncplane
-#define i_val struct ncplane *
+#define i_declared
+#define i_type vec_ncplane, struct ncplane *
 #define i_valdrop(p) (ncplane_destroy(*(p)))
 #define i_no_clone
 #include "stc/vec.h"

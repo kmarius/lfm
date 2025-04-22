@@ -5,12 +5,12 @@
 
 #pragma once
 
-#include "stc/forward.h"
+#include "stc/types.h"
 
 #include <stdbool.h>
 
-forward_dlist(_pathlist_list, char *);
-forward_hmap(_pathlist_hmap, const char *, _pathlist_list_node *);
+declare_dlist(_pathlist_list, char *);
+declare_hmap(_pathlist_hmap, const char *, _pathlist_list_node *);
 
 typedef struct pathlist {
   _pathlist_hmap map;

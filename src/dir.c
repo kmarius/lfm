@@ -20,8 +20,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#define i_type vec_file
-#define i_val File *
+#define i_type vec_file, File *
 #include "stc/vec.h"
 
 const char *fileinfo_str[] = {"size", "atime", "ctime", "mtime"};

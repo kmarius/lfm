@@ -11,7 +11,7 @@
 
 #include <libgen.h>
 
-#define i_is_forward
+#define i_declared
 #define i_type _history_list
 #define i_key struct history_entry
 #define i_no_clone
@@ -19,11 +19,11 @@
 #define i_noclone
 #include "stc/dlist.h"
 
-#define i_is_forward
+#define i_declared
 #define i_type _history_hmap
 #define i_key const char *
 #define i_val _history_list_node *
-#define i_hash ccharptr_hash
+#define i_hash cstr_raw_hash
 #define i_eq(p, q) (!strcmp(*(p), *(q)))
 #include "stc/hmap.h"
 

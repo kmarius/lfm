@@ -1,6 +1,6 @@
 #pragma once
 
-#include "stc/forward.h"
+#include "stc/types.h"
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -13,8 +13,8 @@ struct history_entry {
                     // history file
 };
 
-forward_dlist(_history_list, struct history_entry);
-forward_hmap(_history_hmap, const char *, _history_list_node *);
+declare_dlist(_history_list, struct history_entry);
+declare_hmap(_history_hmap, const char *, _history_list_node *);
 typedef _history_list_iter history_iter;
 
 typedef struct History {

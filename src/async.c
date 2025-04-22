@@ -2,6 +2,7 @@
 
 #include "config.h"
 #include "dir.h"
+#include "dircache.h"
 #include "file.h"
 #include "fm.h"
 #include "hooks.h"

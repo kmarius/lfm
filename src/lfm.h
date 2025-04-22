@@ -7,7 +7,7 @@
 #include "loader.h"
 #include "mode.h"
 #include "notify.h"
-#include "stc/forward.h"
+#include "stc/types.h"
 #include "ui.h"
 
 #include <ev.h>
@@ -15,8 +15,8 @@
 
 #include <stdint.h>
 
-forward_dlist(list_timer, struct sched_timer);
-forward_dlist(list_child, struct child_watcher);
+declare_dlist(list_timer, struct sched_timer);
+declare_dlist(list_child, struct child_watcher);
 struct vec_str; // defined in config.h
 
 typedef struct Lfm {

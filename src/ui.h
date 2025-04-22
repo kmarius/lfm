@@ -12,15 +12,15 @@
 #include <stdarg.h>
 #include <stdint.h>
 
-forward_vec(vec_ncplane, struct ncplane *);
+#include "stc/types.h"
+declare_vec(vec_ncplane, struct ncplane *);
 
 struct message {
   char *text;
   bool error;
 };
 
-#define i_type vec_message
-#define i_val struct message
+#define i_type vec_message, struct message
 #define i_valdrop(p) (xfree(p->text))
 #define i_no_clone
 #include "stc/vec.h"

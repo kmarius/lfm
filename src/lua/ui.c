@@ -1,5 +1,6 @@
 #include "private.h"
 
+#include "../containers.h"
 #include "../macros.h"
 
 #include <ev.h>

@@ -13,47 +13,37 @@
 #define MAP_CLEAR_DELAY 10000
 #define LOADING_INDICATOR_DELAY 250
 
-#define i_type hmap_channel
-#define i_key char *
-#define i_val uint64_t
+#define i_type hmap_channel, char *, uint64_t
 #define i_keyraw const char *
 #define i_keyfrom(p) strdup(p)
-#define i_keyto(p) (*p)
+#define i_keytoraw(p) (*p)
 #define i_keydrop(p) free(*(p))
 #define i_no_clone
 #define i_eq(p, q) (!strcmp(*(p), *(q)))
-#define i_hash ccharptr_hash
+#define i_hash cstr_raw_hash
 #include "stc/hmap.h"
 
-#define i_type hmap_icon
-#define i_key char *
+#define i_type hmap_icon, char *, char *
 #define i_keyraw const char *
 #define i_keyfrom(p) strdup((p))
-#define i_keyto(p) (*p)
+#define i_keytoraw(p) (*p)
 #define i_keydrop(p) free(*(p))
-#define i_val char *
 #define i_valraw const char *
 #define i_valfrom(p) strdup((p))
-#define i_valto(p) (*p)
+#define i_valtoraw(p) (*p)
 #define i_valdrop(p) free(*(p))
 #define i_eq(p, q) (!strcmp(*(p), *(q)))
-#define i_hash ccharptr_hash
+#define i_hash cstr_raw_hash
 #define i_no_clone
 #include "stc/hmap.h"
 
-#define i_type hmap_dirsetting
-#define i_key char *
+#define i_type hmap_dirsetting, char *, struct dir_settings
 #define i_keyraw const char *
 #define i_keyfrom(p) strdup((p))
-#define i_keyto(p) (*p)
+#define i_keytoraw(p) (*p)
 #define i_keydrop(p) free(*(p))
-#define i_val struct dir_settings
-/* #define i_valraw const char * */
-/* #define i_valfrom(p) strdup((p)) */
-/* #define i_valto(p) (*p) */
-/* #define i_valdrop(p) free(*(p)) */
 #define i_eq(p, q) (!strcmp(*(p), *(q)))
-#define i_hash ccharptr_hash
+#define i_hash cstr_raw_hash
 #define i_no_clone
 #include "stc/hmap.h"
 

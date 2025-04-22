@@ -2,11 +2,10 @@
 
 #include <assert.h>
 
-#define i_is_forward
-#define i_type _pathlist_list
-#define i_key char *
+#define i_declared
+#define i_type _pathlist_list, char *
 #define i_keyraw const char *
-#define i_keyto(p) (*p)
+#define i_keytoraw(p) (*p)
 #define i_keyfrom(p) strdup(p)
 #define i_keyclone(p) strdup(p)
 #define i_keydrop(p) free(*(p))
@@ -14,11 +13,11 @@
 #define i_noclone
 #include "stc/dlist.h"
 
-#define i_is_forward
+#define i_declared
 #define i_type _pathlist_hmap
 #define i_key const char *
 #define i_val _pathlist_list_node *
-#define i_hash ccharptr_hash
+#define i_hash cstr_raw_hash
 #define i_eq(p, q) (!strcmp(*(p), *(q)))
 #include "stc/hmap.h"
 

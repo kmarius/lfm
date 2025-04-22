@@ -7,15 +7,15 @@
 #pragma once
 
 #include "dir.h"
-#include "stc/forward.h"
+#include "stc/types.h"
 
 #include <ev.h>
 
 #include <stdbool.h>
 #include <stdint.h>
 
-forward_hmap(map_wd_dir, int, Dir *);
-forward_hmap(map_dir_wd, Dir *, int);
+declare_hmap(map_wd_dir, int, Dir *);
+declare_hmap(map_dir_wd, Dir *, int);
 
 #define NOTIFY_TIMEOUT 1000 // minimum time between directory reloads
 #define NOTIFY_DELAY 50 // delay before reloading after an event is triggered

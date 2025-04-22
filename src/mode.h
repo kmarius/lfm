@@ -37,13 +37,11 @@ static inline struct mode mode_valfrom(struct mode mode) {
   return mode;
 }
 
-#define i_type hmap_modes
-#define i_key const char *
-#define i_val struct mode
+#define i_type hmap_modes, const char *, struct mode
 #define i_no_clone
 #define i_valdrop mode_drop
 #define i_valfrom mode_valfrom
-#define i_hash ccharptr_hash
+#define i_hash cstr_raw_hash
 #define i_eq(p, q) (!strcmp(*(p), *(q)))
 #include "stc/hmap.h"
 

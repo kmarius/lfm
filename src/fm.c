@@ -25,7 +25,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#define i_is_forward
+#define i_declared
 #define i_TYPE vec_dir, Dir *
 #include "stc/vec.h"
 

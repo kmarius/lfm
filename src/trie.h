@@ -16,8 +16,7 @@ typedef struct Trie {
   };
 } Trie;
 
-#define i_type vec_trie
-#define i_val Trie *
+#define i_type vec_trie, Trie *
 #include "stc/vec.h"
 
 // Allocate a new trie root.
