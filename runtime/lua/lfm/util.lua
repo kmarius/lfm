@@ -19,10 +19,17 @@ function M.dirname(path)
 	if not path then
 		return nil
 	end
-	if not string.match(path, "^/") then
+  if path == "/" then
+    return "/"
+  end
+	if string.sub(path, 1, 1) ~= "/" then
 		path = "./" .. path
 	end
-	return (string.gsub(path, "/[^/]*$", ""))
+  local dirname = string.gsub(path, "/[^/]*$", "")
+  if dirname == "" then
+    return "/"
+  end
+	return dirname
 end
 
 ---Get basename of path.
