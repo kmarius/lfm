@@ -23,6 +23,32 @@
 #define i_type vec_file, File *
 #include "stc/vec.h"
 
+// define templated sorting functions
+
+#define i_type files_natural, File *
+#define i_cmp compare_natural
+#include "stc/sort.h"
+
+#define i_type files_name, File *
+#define i_cmp compare_name
+#include "stc/sort.h"
+
+#define i_type files_size, File *
+#define i_cmp compare_size
+#include "stc/sort.h"
+
+#define i_type files_atime, File *
+#define i_cmp compare_atime
+#include "stc/sort.h"
+
+#define i_type files_ctime, File *
+#define i_cmp compare_ctime
+#include "stc/sort.h"
+
+#define i_type files_mtime, File *
+#define i_cmp compare_mtime
+#include "stc/sort.h"
+
 const char *fileinfo_str[] = {"size", "atime", "ctime", "mtime"};
 
 File *dir_current_file(const Dir *d) {
@@ -83,16 +109,22 @@ void dir_sort(Dir *d) {
   if (!d->sorted) {
     switch (d->settings.sorttype) {
     case SORT_NATURAL:
-      qsort(d->files_all, d->length_all, sizeof *d->files_all, compare_natural);
+      files_natural_sort(d->files_all, d->length_all);
       break;
     case SORT_NAME:
-      qsort(d->files_all, d->length_all, sizeof *d->files_all, compare_name);
+      files_name_sort(d->files_all, d->length_all);
       break;
     case SORT_SIZE:
-      qsort(d->files_all, d->length_all, sizeof *d->files_all, compare_size);
+      files_size_sort(d->files_all, d->length_all);
+      break;
+    case SORT_ATIME:
+      files_atime_sort(d->files_all, d->length_all);
       break;
     case SORT_CTIME:
-      qsort(d->files_all, d->length_all, sizeof *d->files_all, compare_ctime);
+      files_ctime_sort(d->files_all, d->length_all);
+      break;
+    case SORT_MTIME:
+      files_mtime_sort(d->files_all, d->length_all);
       break;
     case SORT_RAND:
       shuffle(d->files_all, d->length_all, sizeof *d->files_all);
