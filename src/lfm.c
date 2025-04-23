@@ -51,7 +51,7 @@ static inline void destroy_io_watcher(ev_io *w);
 
 #define i_declared
 #define i_type list_child, struct child_watcher
-#define i_valdrop(p)                                                           \
+#define i_keydrop(p)                                                           \
   (destroy_io_watcher(p->stdout_watcher), destroy_io_watcher(p->stderr_watcher))
 #define i_no_clone
 #include "stc/dlist.h"
@@ -130,12 +130,12 @@ static void child_cb(EV_P_ ev_child *w, int revents) {
   }
 
   if (watcher->stdout_watcher) {
-    watcher->stdout_watcher->cb(EV_A_ watcher->stdout_watcher, 0);
+    ev_invoke(EV_A_ watcher->stdout_watcher, 0);
     ev_io_stop(EV_A_ watcher->stdout_watcher);
   }
 
   if (watcher->stderr_watcher) {
-    watcher->stderr_watcher->cb(EV_A_ watcher->stderr_watcher, 0);
+    ev_invoke(EV_A_ watcher->stderr_watcher, 0);
     ev_io_stop(EV_A_ watcher->stderr_watcher);
   }
 
