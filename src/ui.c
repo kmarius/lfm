@@ -37,7 +37,7 @@
 
 #define i_declared
 #define i_type vec_ncplane, struct ncplane *
-#define i_valdrop(p) (ncplane_destroy(*(p)))
+#define i_keydrop(p) (ncplane_destroy(*(p)))
 #define i_no_clone
 #include "stc/vec.h"
 
@@ -808,6 +808,7 @@ static void plane_draw_dir(struct ncplane *n, Dir *dir, pathlist *sel,
                            const char *highlight, bool print_info) {
   unsigned int nrow;
 
+  // log_info("erasing %s", dir->name);
   ncplane_erase(n);
   ncplane_dim_yx(n, &nrow, NULL);
   ncplane_cursor_move_yx(n, 0, 0);
@@ -840,6 +841,7 @@ static void plane_draw_dir(struct ncplane *n, Dir *dir, pathlist *sel,
 
     const uint32_t l = min(dir->length - offset, nrow);
     for (uint32_t i = 0; i < l; i++) {
+      // log_info("%d", i);
       ncplane_cursor_move_yx(n, i, 0);
       draw_file(n, dir->files[i + offset], i == dir->pos, sel, load, mode,
                 highlight, print_info, dir->settings.fileinfo);

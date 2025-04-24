@@ -21,7 +21,7 @@ struct message {
 };
 
 #define i_type vec_message, struct message
-#define i_valdrop(p) (xfree(p->text))
+#define i_keydrop(p) (xfree(p->text))
 #define i_no_clone
 #include "stc/vec.h"
 
