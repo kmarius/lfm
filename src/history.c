@@ -178,36 +178,37 @@ cleanup:
 
 void history_deinit(History *h) {
   _history_list_drop(&h->list);
+  _history_hmap_drop(&h->map);
 }
 
 void history_append(History *h, const char *prefix, const char *line) {
   _history_hmap_iter it = _history_hmap_find(&h->map, line);
   if (it.ref) {
     if (it.ref->second->value.is_new) {
+      // existing value that was already counted as new, will be re-inserted as
+      // new
       h->num_new_entries--;
     }
     _history_list_erase_node(&h->list, it.ref->second);
     _history_hmap_erase_at(&h->map, it);
   }
 
+  h->num_new_entries++;
+
   int prefix_len = strlen(prefix);
   char *prefix_ = xmalloc(prefix_len + strlen(line) + 2);
   char *line_ = prefix_ + prefix_len + 1;
-  bool is_new = line[0] != ' ';
   strcpy(prefix_, prefix);
   strcpy(prefix_ + prefix_len + 1, line);
 
   struct history_entry *entry =
       _history_list_push_back(&h->list, (struct history_entry){
-                                            .is_new = is_new,
+                                            .is_new = true,
                                             .prefix = prefix_,
                                             .line = line_,
                                         });
-  _history_hmap_insert(&h->map, (char *)line, _history_list_get_node(entry));
-
-  if (is_new) {
-    h->num_new_entries++;
-  }
+  _history_hmap_insert(&h->map, (const char *)line,
+                       _history_list_get_node(entry));
 
   history_reset(h);
 }
