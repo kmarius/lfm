@@ -89,8 +89,8 @@ static int l_quit(lua_State *L) {
 static int l_print(lua_State *L) {
   int n = lua_gettop(L);
   lua_getglobal(L, "tostring");
-  size_t buflen = 128;
-  char *buf = xcalloc(buflen, 1);
+  size_t bufsz = 128;
+  char *buf = xcalloc(bufsz, 1);
   size_t ind = 0;
   for (int i = 1; i <= n; i++) {
     lua_pushvalue(L, -1);
@@ -99,25 +99,28 @@ static int l_print(lua_State *L) {
     size_t len;
     const char *s = lua_tolstring(L, -1, &len);
     if (s == NULL) {
+      xfree(buf);
       return luaL_error(
           L, LUA_QL("tostring") " must return a string to " LUA_QL("print"));
     }
     if (i > 1) {
-      buf[ind++] = '\t';
+      // should print '\t' here, revisit once
+      // https://github.com/dankamongmen/notcurses/issues/2870 gets fixed
+      buf[ind++] = ' ';
     }
-    if (ind + len >= buflen) {
+    if (ind + len >= bufsz) {
       do {
-        buflen *= 2;
-      } while (ind + len >= buflen);
-      buf = xrealloc(buf, buflen);
+        bufsz *= 2;
+      } while (ind + len >= bufsz);
+      buf = xrealloc(buf, bufsz);
     }
-    strcpy(&buf[ind], s);
+    strncpy(&buf[ind], s, len);
     ind += len;
     lua_pop(L, 1); /* pop result */
   }
   buf[ind++] = 0;
   ui_echom(ui, "%s", buf);
-  free(buf);
+  xfree(buf);
   return 0;
 }
 
