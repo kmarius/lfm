@@ -137,8 +137,8 @@ void input_handle_key(Lfm *lfm, input_t in) {
     } else if (in == NCKEY_ENTER) {
       // return key pressed, call the callback in the mode
       const char *line = cmdline_get(&ui->cmdline);
-      mode_on_return(lfm->current_mode, lfm, line);
       input_clear(lfm);
+      mode_on_return(lfm->current_mode, lfm, line);
     } else if (lfm->ui.maps.cur) {
       // current key sequence is a prefix/full match of a mode mapping, always
       // taking precedence
@@ -209,6 +209,7 @@ void input_handle_key(Lfm *lfm, input_t in) {
       } else {
         search_nohighlight(lfm);
         fm_selection_clear(&lfm->fm);
+        ui_menu_hide(&lfm->ui);
         if (fm_paste_buffer_clear(fm)) {
           lfm_run_hook(lfm, LFM_HOOK_PASTEBUF);
         }

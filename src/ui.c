@@ -362,34 +362,24 @@ static void menu_resize(Ui *ui) {
   }
 }
 
-static void menu_clear(Ui *ui) {
-  if (vec_str_size(&ui->menubuf) == 0) {
-    return;
-  }
-
-  ncplane_erase(ui->planes.menu);
-  ncplane_move_bottom(ui->planes.menu);
-}
-
 void ui_menu_show(Ui *ui, vec_str *vec, uint32_t delay) {
   struct ev_loop *loop = to_lfm(ui)->loop;
   ev_timer_stop(EV_A_ & ui->menu_delay_timer);
   if (vec_str_size(&ui->menubuf) > 0) {
-    menu_clear(ui);
-    vec_str_drop(&ui->menubuf);
+    ncplane_erase(ui->planes.menu);
+    ncplane_move_bottom(ui->planes.menu);
+    vec_str_clear(&ui->menubuf);
     ui->menu_visible = false;
   }
-  if (vec && vec_str_size(vec) > 0) {
-    ui->menubuf = *vec;
+  if (vec) {
+    vec_str_take(&ui->menubuf, *vec);
 
     if (delay > 0) {
       ui->menu_delay_timer.repeat = (float)delay / 1000.0;
       ev_timer_again(EV_A_ & ui->menu_delay_timer);
     } else {
-      menu_delay_timer_cb(EV_A_ & ui->menu_delay_timer, 0);
+      ev_invoke(EV_A_ & ui->menu_delay_timer, 0);
     }
-  } else {
-    ui->menubuf = vec_str_init();
   }
   ui_redraw(ui, REDRAW_MENU);
 }

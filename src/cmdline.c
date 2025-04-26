@@ -264,7 +264,7 @@ bool cmdline_clear(Cmdline *c) {
   c->overwrite = false;
   history_reset(&c->history);
   notcurses_cursor_disable(get_ui(c)->nc);
-  ui_menu_show(get_ui(c), NULL, 0);
+  ui_menu_hide(get_ui(c));
   ui_redraw(get_ui(c), REDRAW_CMDLINE | REDRAW_MENU);
   return true;
 }
