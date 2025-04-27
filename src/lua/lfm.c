@@ -104,9 +104,7 @@ static int l_print(lua_State *L) {
           L, LUA_QL("tostring") " must return a string to " LUA_QL("print"));
     }
     if (i > 1) {
-      // should print '\t' here, revisit once
-      // https://github.com/dankamongmen/notcurses/issues/2870 gets fixed
-      buf[ind++] = ' ';
+      buf[ind++] = '\t';
     }
     if (ind + len >= bufsz) {
       do {
