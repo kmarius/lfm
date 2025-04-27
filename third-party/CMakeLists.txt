@@ -92,8 +92,8 @@ set(LIBEV_SHA256 507eb7b8d1015fbec5b935f34ebed15bf346bed04a11ab82b8eee848c4205ae
 set(LUAJIT_URL https://github.com/LuaJIT/LuaJIT/archive/1d20f33d2905db55fb7191076bbac10f570f9175.tar.gz)
 set(LUAJIT_SHA256 4b6e2fc726ed8bf51fe461d90db9fffbc5c894bbdc862a67d17a70190f1fb07f)
 
-set(NOTCURSES_URL https://github.com/dankamongmen/notcurses/archive/refs/tags/v3.0.10.tar.gz)
-set(NOTCURSES_SHA256 f35fc0916afaa8978c23c386f0c107e4597db6e0a0511c33375fc09080887512)
+set(NOTCURSES_URL https://github.com/dankamongmen/notcurses/archive/refs/tags/v3.0.14.tar.gz)
+set(NOTCURSES_SHA256 45afdda09d64c4a8bf2fc261dbbe5fa3784df6eff23a994778b234ee1d6fb30b)
 
 if(USE_BUNDLED_LIBEV)
   include(BuildLibev)
