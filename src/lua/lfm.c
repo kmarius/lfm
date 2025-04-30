@@ -345,7 +345,7 @@ static int l_get_modes(lua_State *L) {
 }
 
 static int l_mode(lua_State *L) {
-  if (lfm_mode_enter(lfm, luaL_checkstring(L, -1)) != 0) {
+  if (lfm_mode_enter(lfm, luaL_checkstring(L, 1)) != 0) {
     return luaL_error(L, "no such mode: %s", lua_tostring(L, -1));
   }
   return 0;
