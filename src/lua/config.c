@@ -223,6 +223,9 @@ static int l_config_index(lua_State *L) {
   } else if (streq(key, "timefmt")) {
     lua_pushstring(L, cfg.timefmt);
     return 1;
+  } else if (streq(key, "preview_delay")) {
+    lua_pushnumber(L, cfg.preview_delay);
+    return 1;
   } else {
     luaL_error(L, "unexpected key %s", key);
   }
@@ -376,6 +379,12 @@ static int l_config_newindex(lua_State *L) {
     xfree(cfg.timefmt);
     cfg.timefmt = strdup(val);
     ui_redraw(ui, REDRAW_FM);
+  } else if (streq(key, "preview_delay")) {
+    int delay = luaL_checkinteger(L, 3);
+    luaL_argcheck(L, delay >= 0, 3, "preview_delay must be non-negative");
+    cfg.preview_delay = delay;
+    lfm->fm.preview_load_timer.repeat = delay / 1000.0;
+    return 1;
   } else {
     return luaL_error(L, "unexpected key %s", key);
   }

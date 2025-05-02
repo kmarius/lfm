@@ -11,9 +11,11 @@
 #include "notify.h"
 #include "path.h"
 #include "pathlist.h"
+#include "ui.h"
 #include "util.h"
 
 #include <errno.h>
+#include <ev.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -29,12 +31,17 @@
 #define i_TYPE vec_dir, Dir *
 #include "stc/vec.h"
 
+static void preview_timer_cb(EV_P_ ev_timer *w, int revents);
 static void fm_update_watchers(Fm *fm);
 static void fm_remove_preview(Fm *fm);
 static void fm_populate(Fm *fm);
 
 void fm_init(Fm *fm) {
   fm->paste.mode = PASTE_MODE_COPY;
+
+  ev_timer_init(&fm->preview_load_timer, preview_timer_cb, 0,
+                cfg.preview_delay / 1000.0);
+  fm->preview_load_timer.data = to_lfm(fm);
 
   if (cfg.startpath) {
     if (chdir(cfg.startpath) != 0) {
@@ -81,6 +88,14 @@ void fm_deinit(Fm *fm) {
   pathlist_deinit(&fm->paste.buffer);
   xfree(fm->automark);
   xfree(fm->pwd);
+}
+
+static void preview_timer_cb(EV_P_ ev_timer *w, int revents) {
+  (void)revents;
+  Lfm *lfm = w->data;
+  fm_update_preview(&lfm->fm);
+  ev_timer_stop(lfm->loop, w);
+  ui_redraw(&lfm->ui, REDRAW_PREVIEW);
 }
 
 static void fm_populate(Fm *fm) {
@@ -260,6 +275,15 @@ static inline void fm_remove_preview(Fm *fm) {
   notify_remove_watcher(&to_lfm(fm)->notify, fm->dirs.preview);
   fm->dirs.preview->visible = false;
   fm->dirs.preview = NULL;
+}
+
+// TODO: check where this should be used instead of fm_update_preview
+static void fm_update_preview_delayed(Fm *fm) {
+  if (fm->preview_load_timer.repeat == 0) {
+    fm_update_preview(fm);
+    return;
+  }
+  ev_timer_again(to_lfm(fm)->loop, &fm->preview_load_timer);
 }
 
 void fm_update_preview(Fm *fm) {
@@ -466,13 +490,14 @@ void fm_paste_mode_set(Fm *fm, paste_mode mode) {
 
 bool fm_cursor_move(Fm *fm, int32_t ct) {
   Dir *dir = fm_current_dir(fm);
-  const uint32_t cur = dir->ind;
+  uint32_t cur = dir->ind;
   dir_cursor_move(dir, ct, fm->height, cfg.scrolloff);
   if (dir->ind != cur) {
     if (fm->visual.active) {
       selection_visual_update(fm, fm->visual.anchor, cur, dir->ind);
     }
-    fm_update_preview(fm);
+    fm_remove_preview(fm);
+    fm_update_preview_delayed(fm);
   }
   return dir->ind != cur;
 }

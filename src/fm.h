@@ -5,6 +5,8 @@
 #include "pathlist.h"
 #include "stc/types.h"
 
+#include <ev.h>
+
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -61,6 +63,9 @@ typedef struct Fm {
     // Start index of the visual selection.
     uint32_t anchor;
   } visual;
+
+  // timer for delayed preview loading
+  ev_timer preview_load_timer;
 
   // Previous directory, not changed on updir/open.
   char *automark;

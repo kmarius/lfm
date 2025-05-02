@@ -45,6 +45,7 @@
 ---@field preview boolean assignable (default: `true`)
 ---@field preview_images boolean assignable (default: `false`)
 ---@field previewer string assignable (default: "$datadir/preview.sh")
+---@field preview_delay integer delay in milliseconds after which previews are loaded (default: 0)
 ---@field icons boolean assignable (default: `false`)
 ---@field icon_map table<string, string> assignable
 ---@field configpath string
