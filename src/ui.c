@@ -819,6 +819,8 @@ static void plane_draw_dir(struct ncplane *n, Dir *dir, pathlist *sel,
 
   if (dir->error) {
     ncplane_putstr_yx(n, 0, 2, strerror(dir->error));
+  } else if (dir->status == DIR_LOADING_DELAYED) {
+    // print nothing
   } else if (dir->status == DIR_LOADING_INITIAL) {
     ncplane_putstr_yx(n, 0, 2, "loading");
   } else if (dir->length == 0) {
