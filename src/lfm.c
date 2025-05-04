@@ -198,9 +198,7 @@ static void prepare_cb(EV_P_ ev_prepare *w, int revents) {
   (void)revents;
   Lfm *lfm = w->data;
 
-  c_foreach(it, vec_str, cfg.commands) {
-    llua_eval(lfm->L, *it.ref);
-  }
+  c_foreach(it, vec_str, cfg.commands) { llua_eval(lfm->L, *it.ref); }
   vec_str_drop(&cfg.commands);
   cfg.commands = vec_str_init();
 
@@ -294,9 +292,7 @@ static inline void init_fifo(Lfm *lfm) {
   ev_io_start(lfm->loop, &lfm->fifo_watcher);
 }
 
-static inline void init_loop(Lfm *lfm) {
-  lfm->loop = ev_default_loop(EVFLAG_NOENV);
-
+static inline void setup_signal_handlers(Lfm *lfm) {
   // Runs only once, executes commands passed via command line, prints messages,
   // runs the LfmEnter hook
   ev_prepare_init(&lfm->prepare_watcher, prepare_cb);
@@ -329,6 +325,10 @@ static inline void init_loop(Lfm *lfm) {
   ev_signal_start(lfm->loop, &lfm->sigtstp_watcher);
 }
 
+static inline void init_loop(Lfm *lfm) {
+  lfm->loop = ev_default_loop(EVFLAG_NOENV);
+}
+
 void lfm_init(Lfm *lfm, FILE *log) {
   memset(lfm, 0, sizeof *lfm);
   lfm->log_fp = log;
@@ -343,6 +343,7 @@ void lfm_init(Lfm *lfm, FILE *log) {
   async_init(&lfm->async);
   fm_init(&lfm->fm);
   ui_init(&lfm->ui);
+  setup_signal_handlers(lfm);
   lfm_hooks_init(lfm);
   lfm_modes_init(lfm);
 
