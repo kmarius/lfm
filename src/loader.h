@@ -27,7 +27,7 @@ void loader_deinit(Loader *loader);
 // Reschedule reloads, e.g. when timeout/delay is changed.
 void loader_reschedule(Loader *loader);
 
-Dir *loader_dir_from_path(Loader *loader, const char *path);
+Dir *loader_dir_from_path(Loader *loader, const char *path, bool do_load);
 void loader_dir_reload(Loader *loader, Dir *dir);
 // Schould be called when the load completes, i.e. the update is applied to
 // the directory.

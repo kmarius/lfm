@@ -15,6 +15,12 @@ typedef enum {
   NUM_FILEINFO
 } fileinfo;
 
+typedef enum {
+  DIR_LOADING_DELAYED = 0,
+  DIR_LOADING_INITIAL,
+  DIR_LOADING_FULLY,
+} dir_loading_status;
+
 extern const char *fileinfo_str[NUM_FILEINFO];
 
 struct dir_settings {
@@ -39,11 +45,11 @@ typedef struct Dir {
   uint32_t length;
 
   bool visible;
+  dir_loading_status status;
 
   int32_t error; // shows errno if an error occured during loading, 0 otherwise
 
   time_t load_time;             // used to check for changes
-  uint32_t updates;             // number of applied updates
   uint64_t last_loading_action; // Time (in milliseconds) at which the last
                                 // action started after which a "loading"
                                 // indicator should be shown for this directory.
@@ -80,7 +86,7 @@ void dir_destroy(Dir *dir);
 
 // Is the directory in the process of being loaded?
 static inline bool dir_loading(const Dir *dir) {
-  return dir->loading;
+  return dir->status < DIR_LOADING_FULLY;
 }
 
 // Current file of `dir`. Can be `NULL` if it is empty or not yet loaded, or

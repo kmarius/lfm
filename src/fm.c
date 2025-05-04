@@ -31,7 +31,7 @@
 #define i_TYPE vec_dir, Dir *
 #include "stc/vec.h"
 
-static void preview_timer_cb(EV_P_ ev_timer *w, int revents);
+static void update_preview_delayed_cb(EV_P_ ev_timer *w, int revents);
 static void fm_update_watchers(Fm *fm);
 static void fm_remove_preview(Fm *fm);
 static void fm_populate(Fm *fm);
@@ -39,7 +39,7 @@ static void fm_populate(Fm *fm);
 void fm_init(Fm *fm) {
   fm->paste.mode = PASTE_MODE_COPY;
 
-  ev_timer_init(&fm->preview_load_timer, preview_timer_cb, 0,
+  ev_timer_init(&fm->preview_load_timer, update_preview_delayed_cb, 0,
                 cfg.preview_delay / 1000.0);
   fm->preview_load_timer.data = to_lfm(fm);
 
@@ -90,23 +90,15 @@ void fm_deinit(Fm *fm) {
   xfree(fm->pwd);
 }
 
-static void preview_timer_cb(EV_P_ ev_timer *w, int revents) {
-  (void)revents;
-  Lfm *lfm = w->data;
-  fm_update_preview(&lfm->fm);
-  ev_timer_stop(lfm->loop, w);
-  ui_redraw(&lfm->ui, REDRAW_PREVIEW);
-}
-
 static void fm_populate(Fm *fm) {
-  fm->dirs.visible.data[0] =
-      loader_dir_from_path(&to_lfm(fm)->loader, fm->pwd); /* current dir */
+  fm->dirs.visible.data[0] = loader_dir_from_path(&to_lfm(fm)->loader, fm->pwd,
+                                                  true); /* current dir */
   fm->dirs.visible.data[0]->visible = true;
   Dir *dir = fm_current_dir(fm);
   for (uint32_t i = 1; i < fm->dirs.length; i++) {
     const char *parent = path_parent_s(dir->path);
     if (parent) {
-      dir = loader_dir_from_path(&to_lfm(fm)->loader, parent);
+      dir = loader_dir_from_path(&to_lfm(fm)->loader, parent, true);
       dir->visible = true;
       fm->dirs.visible.data[i] = dir;
       if (dir_loading(dir)) {
@@ -277,16 +269,28 @@ static inline void fm_remove_preview(Fm *fm) {
   fm->dirs.preview = NULL;
 }
 
-// TODO: check where this should be used instead of fm_update_preview
-static void fm_update_preview_delayed(Fm *fm) {
-  if (fm->preview_load_timer.repeat == 0) {
+static inline void fm_update_preview_impl(Fm *fm, bool do_load);
+
+static void update_preview_delayed_cb(EV_P_ ev_timer *w, int revents) {
+  (void)revents;
+  Lfm *lfm = w->data;
+  fm_update_preview(&lfm->fm);
+  ev_timer_stop(lfm->loop, w);
+  ui_redraw(&lfm->ui, REDRAW_PREVIEW);
+}
+
+static inline void fm_update_preview_delayed(Fm *fm) {
+  if (cfg.preview_delay == 0) {
     fm_update_preview(fm);
     return;
   }
+  fm_update_preview_impl(fm, false);
   ev_timer_again(to_lfm(fm)->loop, &fm->preview_load_timer);
 }
 
-void fm_update_preview(Fm *fm) {
+void fm_update_preview(Fm *fm) { return fm_update_preview_impl(fm, true); }
+
+static inline void fm_update_preview_impl(Fm *fm, bool do_load) {
   if (!cfg.preview) {
     fm_remove_preview(fm);
     return;
@@ -296,12 +300,15 @@ void fm_update_preview(Fm *fm) {
   if (file && file_isdir(file)) {
     if (fm->dirs.preview) {
       if (streq(fm->dirs.preview->path, file_path(file))) {
-        // this forces the loader to recheck the current preview
-        loader_dir_from_path(&to_lfm(fm)->loader, file_path(file));
+        if (do_load) {
+          // same preview file as before, force the loader to recheck
+          loader_dir_from_path(&to_lfm(fm)->loader, file_path(file), true);
+        }
         return;
       }
 
-      /* don't remove watcher if it is a currently visible (non-preview) dir */
+      /* don't remove watcher if it is a currently visible (non-preview) dir
+       */
       uint32_t i;
       for (i = 0; i < fm->dirs.length; i++) {
         if (fm->dirs.visible.data[i] &&
@@ -309,13 +316,13 @@ void fm_update_preview(Fm *fm) {
           break;
         }
       }
-      if (i >= fm->dirs.length) {
+      if (i == fm->dirs.length) {
         notify_remove_watcher(&to_lfm(fm)->notify, fm->dirs.preview);
         fm->dirs.preview->visible = false;
       }
     }
     fm->dirs.preview =
-        loader_dir_from_path(&to_lfm(fm)->loader, file_path(file));
+        loader_dir_from_path(&to_lfm(fm)->loader, file_path(file), do_load);
     fm->dirs.preview->visible = true;
     async_notify_preview_add(&to_lfm(fm)->async, fm->dirs.preview);
   } else {

@@ -46,7 +46,7 @@ static int l_fm_load(lua_State *L) {
   if (len > PATH_MAX) {
     return luaL_error(L, "path too long");
   }
-  loader_dir_from_path(&lfm->loader, path_normalize(path, fm->pwd, buf));
+  loader_dir_from_path(&lfm->loader, path_normalize(path, fm->pwd, buf), true);
   return 0;
 }
 

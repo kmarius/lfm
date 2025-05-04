@@ -4,6 +4,7 @@
 #include "dir.h"
 #include "hooks.h"
 #include "lfm.h"
+#include "log.h"
 #include "macros_defs.h"
 #include "path.h"
 #include "preview.h"
@@ -161,7 +162,7 @@ void loader_preview_reload(Loader *loader, Preview *pv) {
   pv->next = next;
 }
 
-Dir *loader_dir_from_path(Loader *loader, const char *path) {
+Dir *loader_dir_from_path(Loader *loader, const char *path, bool do_load) {
   char fullpath[PATH_MAX];
 
   // make sure there is no trailing / in path
@@ -183,7 +184,15 @@ Dir *loader_dir_from_path(Loader *loader, const char *path) {
   dircache_value *v = dircache_get_mut(&loader->dc, path);
   Dir *dir = v ? v->second : NULL;
   if (dir) {
-    if (dir->updates > 0) {
+    if (dir->status == DIR_LOADING_DELAYED) {
+      log_trace("delayed loading %s", dir->name);
+      // delayed loading
+      async_dir_load(&to_lfm(loader)->async, dir, false);
+      dir->last_loading_action = current_millis();
+      ui_start_loading_indicator_timer(&to_lfm(loader)->ui);
+      return dir;
+    }
+    if (dir->status == DIR_LOADING_FULLY) {
       // don't check before we have actually loaded the directory
       // (in particular stat data which we compare)
       async_dir_check(&to_lfm(loader)->async, dir);
@@ -197,9 +206,11 @@ Dir *loader_dir_from_path(Loader *loader, const char *path) {
     struct dir_settings *s = it.ref ? &it.ref->second : &cfg.dir_settings;
     memcpy(&dir->settings, s, sizeof *s);
     dircache_insert(&loader->dc, cstr_from(path), dir);
-    async_dir_load(&to_lfm(loader)->async, dir, false);
-    dir->last_loading_action = current_millis();
-    ui_start_loading_indicator_timer(&to_lfm(loader)->ui);
+    if (do_load) {
+      async_dir_load(&to_lfm(loader)->async, dir, false);
+      dir->last_loading_action = current_millis();
+      ui_start_loading_indicator_timer(&to_lfm(loader)->ui);
+    }
     dir->loading = true;
     if (to_lfm(loader)->L) {
       lfm_run_hook1(to_lfm(loader), LFM_HOOK_DIRLOADED, path);
@@ -271,9 +282,7 @@ void loader_reschedule(Loader *loader) {
 
   uint64_t next = current_millis() + cfg.inotify_timeout + cfg.inotify_delay;
 
-  c_foreach(it, set_dir, dirs) {
-    schedule_dir_load(loader, *it.ref, next);
-  }
+  c_foreach(it, set_dir, dirs) { schedule_dir_load(loader, *it.ref, next); }
   c_foreach(it, set_preview, previews) {
     schedule_preview_load(loader, *it.ref, next);
   }

@@ -9,7 +9,6 @@
 
 #include <errno.h>
 #include <stdint.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -59,9 +58,7 @@ File *dir_current_file(const Dir *d) {
   return d->files[d->ind];
 }
 
-const char *dir_parent_path(const Dir *d) {
-  return path_parent_s(d->path);
-}
+const char *dir_parent_path(const Dir *d) { return path_parent_s(d->path); }
 
 static void apply_filters(Dir *d) {
   if (d->filter) {
@@ -279,7 +276,7 @@ Dir *dir_load(const char *path, bool load_fileinfo) {
   memcpy(dir->files_sorted, dir->files_all,
          dir->length_all * sizeof *dir->files_all);
   memcpy(dir->files, dir->files_all, dir->length_all * sizeof *dir->files_all);
-  dir->updates = 1;
+  dir->status = DIR_LOADING_FULLY;
   dir->loading = false;
 
   return dir;
@@ -457,8 +454,7 @@ void dir_update_with(Dir *d, Dir *update, uint32_t height, uint32_t scrolloff) {
   d->error = update->error;
   d->flatten_level = update->flatten_level;
   d->stat = update->stat;
-
-  d->updates++;
+  d->status = DIR_LOADING_FULLY;
 
   xfree(update->sel);
   xfree(update->path);

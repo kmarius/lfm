@@ -148,7 +148,9 @@ void ui_suspend(Ui *ui) {
   ncplane_destroy(ui->planes.cmdline);
   ncplane_destroy(ui->planes.menu);
   ncplane_destroy(ui->planes.info);
+  log_debug("destroying notcurses context");
   notcurses_stop(ui->nc);
+  ui->nc = NULL;
   ui->planes.cmdline = NULL;
   ui->planes.menu = NULL;
   ui->planes.info = NULL;
@@ -175,9 +177,7 @@ void ui_recol(Ui *ui) {
   ui->num_columns = vec_int_size(&cfg.ratios);
 
   uint32_t sum = 0;
-  c_foreach(it, vec_int, cfg.ratios) {
-    sum += *it.ref;
-  }
+  c_foreach(it, vec_int, cfg.ratios) { sum += *it.ref; }
 
   struct ncplane_options opts = {
       .y = 1,
@@ -812,7 +812,7 @@ static void plane_draw_dir(struct ncplane *n, Dir *dir, pathlist *sel,
 
   if (dir->error) {
     ncplane_putstr_yx(n, 0, 2, strerror(dir->error));
-  } else if (dir->updates == 0) {
+  } else if (dir->status == DIR_LOADING_INITIAL) {
     ncplane_putstr_yx(n, 0, 2, "loading");
   } else if (dir->length == 0) {
     if (dir->length_all > 0) {
@@ -831,7 +831,6 @@ static void plane_draw_dir(struct ncplane *n, Dir *dir, pathlist *sel,
 
     const uint32_t l = min(dir->length - offset, nrow);
     for (uint32_t i = 0; i < l; i++) {
-      // log_info("%d", i);
       ncplane_cursor_move_yx(n, i, 0);
       draw_file(n, dir->files[i + offset], i == dir->pos, sel, load, mode,
                 highlight, print_info, dir->settings.fileinfo);
