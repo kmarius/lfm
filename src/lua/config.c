@@ -384,6 +384,7 @@ static int l_config_newindex(lua_State *L) {
     luaL_argcheck(L, delay >= 0, 3, "preview_delay must be non-negative");
     cfg.preview_delay = delay;
     lfm->fm.preview_load_timer.repeat = delay / 1000.0;
+    lfm->ui.preview_load_timer.repeat = delay / 1000.0;
     return 1;
   } else {
     return luaL_error(L, "unexpected key %s", key);

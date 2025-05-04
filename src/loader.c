@@ -185,7 +185,6 @@ Dir *loader_dir_from_path(Loader *loader, const char *path, bool do_load) {
   Dir *dir = v ? v->second : NULL;
   if (dir) {
     if (dir->status == DIR_LOADING_DELAYED) {
-      log_trace("delayed loading %s", dir->name);
       // delayed loading
       async_dir_load(&to_lfm(loader)->async, dir, false);
       dir->last_loading_action = current_millis();
@@ -219,7 +218,8 @@ Dir *loader_dir_from_path(Loader *loader, const char *path, bool do_load) {
   return dir;
 }
 
-Preview *loader_preview_from_path(Loader *loader, const char *path) {
+Preview *loader_preview_from_path(Loader *loader, const char *path,
+                                  bool do_load) {
   char fullpath[PATH_MAX];
   if (path_is_relative(path)) {
     snprintf(fullpath, sizeof fullpath, "%s/%s", getenv("PWD"), path);
@@ -229,20 +229,27 @@ Preview *loader_preview_from_path(Loader *loader, const char *path) {
   previewcache_value *v = previewcache_get_mut(&loader->pc, path);
   Preview *pv;
   if (v) {
+    // preview existing in cache
     pv = v->second;
-    if (pv->reload_height < (int)to_lfm(loader)->ui.preview.y ||
-        pv->reload_width < (int)to_lfm(loader)->ui.preview.x) {
-      /* TODO: don't need to reload text previews if the actual file holds fewer
-       * lines (on 2022-09-14) */
+    if (pv->status == PV_LOADING_DELAYED) {
       async_preview_load(&to_lfm(loader)->async, pv);
-    } else {
-      async_preview_check(&to_lfm(loader)->async, pv);
+      return pv;
+    }
+    if (pv->status == PV_LOADING_NORMAL) {
+      if (pv->reload_height < (int)to_lfm(loader)->ui.preview.y ||
+          pv->reload_width < (int)to_lfm(loader)->ui.preview.x) {
+        async_preview_load(&to_lfm(loader)->async, pv);
+      } else {
+        async_preview_check(&to_lfm(loader)->async, pv);
+      }
     }
   } else {
     pv = preview_create_loading(path, to_lfm(loader)->ui.y,
                                 to_lfm(loader)->ui.x);
     previewcache_insert(&loader->pc, cstr_from(path), pv);
-    async_preview_load(&to_lfm(loader)->async, pv);
+    if (do_load) {
+      async_preview_load(&to_lfm(loader)->async, pv);
+    }
   }
   return pv;
 }

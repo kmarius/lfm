@@ -477,6 +477,7 @@ void async_dir_load(Async *async, Dir *dir, bool load_fileinfo) {
   work->level = dir->flatten_level;
   CHECK_INIT(work->check, to_lfm(async)->loader.dir_cache_version);
 
+  log_trace("loading directory %s", dir->path);
   tpool_add_work(async->tpool, async_dir_load_worker, work, true);
 }
 
@@ -585,6 +586,9 @@ void async_preview_load(Async *async, Preview *pv) {
   work->super.callback = preview_load_callback;
   work->super.destroy = preview_load_destroy;
 
+  pv->status =
+      pv->status == PV_LOADING_DELAYED ? PV_LOADING_INITIAL : PV_LOADING_NORMAL;
+
   work->async = async;
   work->preview = pv;
   work->path = strdup(pv->path);
@@ -592,6 +596,7 @@ void async_preview_load(Async *async, Preview *pv) {
   work->height = to_lfm(async)->ui.preview.y;
   CHECK_INIT(work->check, to_lfm(async)->loader.preview_cache_version);
 
+  log_trace("loading preview for %s", pv->path);
   tpool_add_work(async->tpool, async_preview_load_worker, work, true);
 }
 

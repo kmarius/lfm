@@ -9,6 +9,12 @@
 struct ncplane;
 struct Preview;
 
+typedef enum {
+  PV_LOADING_DELAYED = 0,
+  PV_LOADING_INITIAL,
+  PV_LOADING_NORMAL
+} pv_loading_status;
+
 typedef void (*preview_draw_fun)(const struct Preview *, struct ncplane *);
 typedef void (*preview_update_fun)(struct Preview *, struct Preview *);
 typedef void (*preview_destroy_fun)(struct Preview *);
@@ -23,6 +29,7 @@ typedef struct Preview {
   time_t mtime;
   uint64_t loadtime;
   bool loading;
+  pv_loading_status status;
   preview_draw_fun draw;
   preview_update_fun update;
   preview_destroy_fun destroy;

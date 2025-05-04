@@ -34,7 +34,8 @@ void loader_dir_reload(Loader *loader, Dir *dir);
 void loader_dir_load_callback(Loader *loader, Dir *dir);
 void loader_drop_dir_cache(Loader *loader);
 
-Preview *loader_preview_from_path(Loader *loader, const char *path);
+Preview *loader_preview_from_path(Loader *loader, const char *path,
+                                  bool do_load);
 Preview *loader_preview_get(Loader *loader, const char *path);
 void loader_preview_reload(Loader *loader, Preview *pv);
 void loader_drop_preview_cache(Loader *loader);

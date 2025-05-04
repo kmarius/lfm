@@ -88,6 +88,7 @@ typedef struct Ui {
   bool menu_visible;
   ev_timer menu_delay_timer;
   ev_timer map_clear_timer;
+  ev_timer preview_load_timer;
 
   vec_message messages;
   bool show_message; // if true, the latest message is drawn over the statusline
@@ -109,6 +110,9 @@ void ui_deinit(Ui *ui);
 void ui_clear(Ui *ui);
 
 void ui_draw(Ui *ui);
+
+void ui_update_file_preview(Ui *ui);
+void ui_update_file_preview_delayed(Ui *ui);
 
 static inline void ui_redraw(Ui *ui, uint32_t mode) {
   ui->redraw |= mode;

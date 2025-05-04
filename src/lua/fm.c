@@ -7,6 +7,7 @@
 #include "../ui.h"
 #include "private.h"
 
+#include "../log.h"
 #include <lauxlib.h>
 #include <lua.h>
 
@@ -52,12 +53,14 @@ static int l_fm_load(lua_State *L) {
 
 static int l_fm_sel(lua_State *L) {
   fm_move_cursor_to(fm, luaL_checkstring(L, 1));
+  ui_update_file_preview(ui);
   ui_redraw(ui, REDRAW_FM);
   return 0;
 }
 
 static int l_fm_up(lua_State *L) {
   if (fm_up(fm, luaL_optint(L, 1, 1))) {
+    ui_update_file_preview_delayed(ui);
     ui_redraw(ui, REDRAW_FM);
   }
   return 0;
@@ -65,6 +68,7 @@ static int l_fm_up(lua_State *L) {
 
 static int l_fm_down(lua_State *L) {
   if (fm_down(fm, luaL_optint(L, 1, 1))) {
+    ui_update_file_preview_delayed(ui);
     ui_redraw(ui, REDRAW_FM);
   }
   return 0;
@@ -73,6 +77,7 @@ static int l_fm_down(lua_State *L) {
 static int l_fm_top(lua_State *L) {
   (void)L;
   if (fm_top(fm)) {
+    ui_update_file_preview(ui);
     ui_redraw(ui, REDRAW_FM);
   }
   return 0;
@@ -81,6 +86,7 @@ static int l_fm_top(lua_State *L) {
 static int l_fm_scroll_up(lua_State *L) {
   (void)L;
   if (fm_scroll_up(fm)) {
+    ui_update_file_preview(ui);
     ui_redraw(ui, REDRAW_FM);
   }
   return 0;
@@ -89,6 +95,7 @@ static int l_fm_scroll_up(lua_State *L) {
 static int l_fm_scroll_down(lua_State *L) {
   (void)L;
   if (fm_scroll_down(fm)) {
+    ui_update_file_preview(ui);
     ui_redraw(ui, REDRAW_FM);
   }
   return 0;
@@ -97,6 +104,7 @@ static int l_fm_scroll_down(lua_State *L) {
 static int l_fm_bot(lua_State *L) {
   (void)L;
   if (fm_bot(fm)) {
+    ui_update_file_preview(ui);
     ui_redraw(ui, REDRAW_FM);
   }
   return 0;
@@ -107,6 +115,7 @@ static int l_fm_updir(lua_State *L) {
   if (fm_updir(fm)) {
     lfm_run_hook(lfm, LFM_HOOK_CHDIRPOST);
     search_nohighlight(lfm);
+    ui_update_file_preview(ui);
     ui_redraw(ui, REDRAW_FM);
   }
   return 0;
@@ -126,6 +135,7 @@ static int l_fm_open(lua_State *L) {
   } else {
     /* changed directory */
     lfm_run_hook(lfm, LFM_HOOK_CHDIRPOST);
+    ui_update_file_preview(ui);
     ui_redraw(ui, REDRAW_FM);
     search_nohighlight(lfm);
     return 0;
@@ -231,8 +241,9 @@ static int l_fm_sort(lua_State *L) {
   if (file && dir->dirty) {
     fm_move_cursor_to(fm, file_name(file));
   } else {
-    fm_update_preview(fm);
+    log_trace("fm_update_preview");
   }
+  ui_update_file_preview(ui);
   ui_redraw(ui, REDRAW_FM);
   return 0;
 }
@@ -444,6 +455,7 @@ static int l_fm_filter(lua_State *L) {
   } else {
     fm_filter(fm, NULL);
   }
+  ui_update_file_preview_delayed(ui);
   ui_redraw(ui, REDRAW_FM);
   return 0;
 }
@@ -453,6 +465,7 @@ static int l_fm_jump_automark(lua_State *L) {
   lfm_run_hook(lfm, LFM_HOOK_CHDIRPRE);
   lfm_mode_exit(lfm, "visual");
   fm_jump_automark(fm);
+  ui_update_file_preview(ui);
   ui_redraw(ui, REDRAW_FM);
   return 0;
 }

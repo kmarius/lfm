@@ -51,6 +51,7 @@ static inline Preview *preview_init(Preview *p, const char *path, int height,
   p->draw = draw_text_preview;
   p->update = update_text_preview;
   p->destroy = destroy_text_preview;
+  p->loading = PV_LOADING_DELAYED;
 
   return p;
 }
@@ -79,6 +80,7 @@ static void update_text_preview(Preview *p, Preview *u) {
   p->reload_height = u->reload_height;
   p->loadtime = u->loadtime;
   p->loading = false;
+  p->status = PV_LOADING_NORMAL;
 
   p->draw = u->draw;
   p->update = u->update;
@@ -98,6 +100,7 @@ static void update_image_preview(Preview *p, Preview *u) {
   p->loading = false;
   p->reload_width = u->reload_width;
   p->reload_height = u->reload_height;
+  p->status = PV_LOADING_NORMAL;
 
   xfree(u->path);
   xfree(u);
