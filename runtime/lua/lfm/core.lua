@@ -110,16 +110,24 @@ end
 ---@field tokenize? boolean tokenize arguments (default: true)
 ---@field compl? Lfm.ComplFun completion function
 ---@field desc? string Description
---
----@class Lfm.Command
----@field tokenize? boolean tokenize arguments (default: true)
----@field compl? Lfm.ComplFun completion function
----@field desc? string Description
+
+---@class Lfm.Command : Lfm.CommandOpts
 ---@field f function corresponding function
+---@overload fun(t: string[]): boolean
 
 ---@type table<string, Lfm.Command>
 local commands = {}
 lfm.commands = commands
+
+local command_mt = {
+	__call = function(self, arg)
+		if arg then
+			self.f(unpack(arg))
+		else
+			self.f()
+		end
+	end,
+}
 
 local reserved = {
 	["and"] = true,
@@ -174,11 +182,14 @@ local function register_command(name, f, opts)
 	if reserved[name] then
 		error("reserved command name: " .. name)
 	end
+
 	-- TODO: we should probably make a copy of opts
 	if f then
 		opts = opts or {}
+		---@diagnostic disable-next-line: inject-field
 		opts.f = f
 		opts.tokenize = opts.tokenize == nil and true or opts.tokenize
+		opts = setmetatable(opts, command_mt)
 		lfm.commands[name] = opts --[[@as Lfm.Command]]
 	else
 		lfm.commands[name] = nil
