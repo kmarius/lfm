@@ -1,11 +1,11 @@
 ---@meta
 
 ---@class Lfm.DirSetting
----@field sorttype Lfm.SortType
----@field dirfirst boolean
----@field reverse boolean
----@field hidden boolean
----@field info Lfm.Info
+---@field sorttype? Lfm.SortType
+---@field dirfirst? boolean
+---@field reverse? boolean
+---@field hidden? boolean
+---@field info? Lfm.Info
 
 ---@alias Lfm.Color string|integer
 
