@@ -65,7 +65,7 @@ typedef struct Fm {
   } visual;
 
   // timer for delayed preview loading
-  ev_timer preview_load_timer;
+  ev_timer cursor_resting_timer;
 
   // Previous directory, not changed on updir/open.
   char *automark;

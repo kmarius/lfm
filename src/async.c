@@ -215,6 +215,7 @@ void async_dir_check(Async *async, Dir *dir) {
   work->ino = dir->stat.st_ino;
   CHECK_INIT(work->check, to_lfm(async)->loader.dir_cache_version);
 
+  log_trace("checking directory %s", dir->path);
   tpool_add_work(async->tpool, async_dir_check_worker, work, true);
 }
 
@@ -538,6 +539,7 @@ void async_preview_check(Async *async, Preview *pv) {
   work->mtime = pv->mtime;
   work->loadtime = pv->loadtime;
 
+  log_trace("checking directory %s", pv->path);
   tpool_add_work(async->tpool, async_preview_check_worker, work, true);
 }
 
@@ -724,6 +726,7 @@ void async_notify_add(Async *async, Dir *dir) {
   CHECK_INIT(work->check0, to_lfm(async)->notify.version);
   CHECK_INIT(work->check1, to_lfm(async)->loader.dir_cache_version);
 
+  log_trace("watching %s", dir->path);
   tpool_add_work(async->tpool, async_notify_add_worker, work, true);
 }
 
@@ -738,6 +741,7 @@ void async_notify_preview_add(Async *async, Dir *dir) {
   CHECK_INIT(work->check0, to_lfm(async)->notify.version);
   CHECK_INIT(work->check1, to_lfm(async)->fm.dirs.preview);
 
+  log_trace("watching %s", dir->path);
   tpool_add_work(async->tpool, async_notify_add_worker, work, true);
 }
 

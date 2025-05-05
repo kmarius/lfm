@@ -58,7 +58,9 @@ File *dir_current_file(const Dir *d) {
   return d->files[d->ind];
 }
 
-const char *dir_parent_path(const Dir *d) { return path_parent_s(d->path); }
+const char *dir_parent_path(const Dir *d) {
+  return path_parent_s(d->path);
+}
 
 static void apply_filters(Dir *d) {
   if (d->filter) {
@@ -221,10 +223,6 @@ Dir *dir_create(const char *path) {
 
   d->load_time = time(NULL);
   d->name = basename(d->path);
-  d->next_scheduled_load = current_millis();
-  d->next_requested_load = 0;
-  d->loading = true;
-  d->scheduled = false;
 
   return d;
 }

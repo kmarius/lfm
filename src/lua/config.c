@@ -383,7 +383,7 @@ static int l_config_newindex(lua_State *L) {
     int delay = luaL_checkinteger(L, 3);
     luaL_argcheck(L, delay >= 0, 3, "preview_delay must be non-negative");
     cfg.preview_delay = delay;
-    lfm->fm.preview_load_timer.repeat = delay / 1000.0;
+    lfm->fm.cursor_resting_timer.repeat = delay / 1000.0;
     lfm->ui.preview_load_timer.repeat = delay / 1000.0;
     return 1;
   } else {

@@ -31,7 +31,8 @@
 #define i_TYPE vec_dir, Dir *
 #include "stc/vec.h"
 
-static void update_preview_delayed_cb(EV_P_ ev_timer *w, int revents);
+static inline void on_cursor_moved(Fm *fm, bool delay_action);
+static void on_cursor_resting(EV_P_ ev_timer *w, int revents);
 static void fm_update_watchers(Fm *fm);
 static void fm_remove_preview(Fm *fm);
 static void fm_populate(Fm *fm);
@@ -39,9 +40,9 @@ static void fm_populate(Fm *fm);
 void fm_init(Fm *fm) {
   fm->paste.mode = PASTE_MODE_COPY;
 
-  ev_timer_init(&fm->preview_load_timer, update_preview_delayed_cb, 0,
+  ev_timer_init(&fm->cursor_resting_timer, on_cursor_resting, 0,
                 cfg.preview_delay / 1000.0);
-  fm->preview_load_timer.data = to_lfm(fm);
+  fm->cursor_resting_timer.data = to_lfm(fm);
 
   if (cfg.startpath) {
     if (chdir(cfg.startpath) != 0) {
@@ -77,7 +78,7 @@ void fm_init(Fm *fm) {
   }
 
   fm_update_watchers(fm);
-  fm_update_preview(fm);
+  on_cursor_moved(fm, false);
 }
 
 void fm_deinit(Fm *fm) {
@@ -125,7 +126,7 @@ void fm_recol(Fm *fm) {
 
   fm_populate(fm);
   fm_update_watchers(fm);
-  fm_update_preview(fm);
+  on_cursor_moved(fm, false);
 }
 
 static inline bool fm_chdir_impl(Fm *fm, const char *path, bool save, bool hook,
@@ -167,7 +168,7 @@ static inline bool fm_chdir_impl(Fm *fm, const char *path, bool save, bool hook,
 
   fm_populate(fm);
   fm_update_watchers(fm);
-  fm_update_preview(fm);
+  on_cursor_moved(fm, false);
 
   if (!async && hook) {
     lfm_run_hook(to_lfm(fm), LFM_HOOK_CHDIRPOST);
@@ -220,7 +221,7 @@ void fm_sort(Fm *fm) {
 void fm_hidden_set(Fm *fm, bool hidden) {
   cfg.dir_settings.hidden = hidden;
   fm_sort(fm);
-  fm_update_preview(fm);
+  on_cursor_moved(fm, false);
 }
 
 void fm_check_dirs(const Fm *fm) {
@@ -244,8 +245,8 @@ void fm_drop_cache(Fm *fm) {
   loader_drop_dir_cache(&to_lfm(fm)->loader);
 
   fm_populate(fm);
-  fm_update_preview(fm);
   fm_update_watchers(fm);
+  on_cursor_moved(fm, false);
 }
 
 void fm_reload(Fm *fm) {
@@ -260,86 +261,74 @@ void fm_reload(Fm *fm) {
 }
 
 static inline void fm_remove_preview(Fm *fm) {
-  if (!fm->dirs.preview) {
-    return;
+  if (fm->dirs.preview) {
+    log_trace("removing preview %s", fm->dirs.preview->path);
+    notify_remove_watcher(&to_lfm(fm)->notify, fm->dirs.preview);
+    fm->dirs.preview->visible = false;
+    fm->dirs.preview = NULL;
   }
-
-  notify_remove_watcher(&to_lfm(fm)->notify, fm->dirs.preview);
-  fm->dirs.preview->visible = false;
-  fm->dirs.preview = NULL;
 }
 
-static inline void fm_update_preview_impl(Fm *fm, bool do_load);
+// ev calls this with revents == 256
+// we invoke it manually with revents == 0 to indicate that the actual loading
+// of the directory has already been arranged
+static void on_cursor_resting(EV_P_ ev_timer *w, int revents) {
+  log_trace("on_cursor_resting revents=%d", revents);
+  if (revents != 0) {
+    ev_timer_stop(loop, w);
+  }
 
-static void update_preview_delayed_cb(EV_P_ ev_timer *w, int revents) {
-  (void)revents;
   Lfm *lfm = w->data;
-  fm_update_preview(&lfm->fm);
-  ev_timer_stop(lfm->loop, w);
-  ui_redraw(&lfm->ui, REDRAW_PREVIEW);
-}
 
-static inline void fm_update_preview_delayed(Fm *fm) {
-  if (cfg.preview_delay == 0) {
-    fm_update_preview(fm);
-    return;
+  if (lfm->fm.dirs.preview) {
+    if (revents != 0) {
+      Dir *dir = lfm->fm.dirs.preview;
+      if (dir->status == DIR_LOADING_DELAYED) {
+        async_dir_load(&lfm->async, lfm->fm.dirs.preview, false);
+      } else {
+        async_dir_check(&lfm->async, dir);
+      }
+    }
+    async_notify_preview_add(&lfm->async, lfm->fm.dirs.preview);
   }
-  fm_update_preview_impl(fm, false);
-  ev_timer_again(to_lfm(fm)->loop, &fm->preview_load_timer);
 }
 
-void fm_update_preview(Fm *fm) { return fm_update_preview_impl(fm, true); }
+void fm_update_preview(Fm *fm) {
+  on_cursor_moved(fm, false);
+}
 
-static inline void fm_update_preview_impl(Fm *fm, bool do_load) {
+static inline void on_cursor_moved(Fm *fm, bool delay_action) {
+  delay_action &= cfg.preview_delay > 0;
+  log_trace("on_cursor_moved delay_action=%d", delay_action);
+
   if (!cfg.preview) {
     fm_remove_preview(fm);
     return;
   }
 
   const File *file = fm_current_file(fm);
-  if (file && file_isdir(file)) {
-    if (fm->dirs.preview) {
-      if (streq(fm->dirs.preview->path, file_path(file))) {
-        if (do_load) {
-          // same preview file as before, force the loader to recheck
-          loader_dir_from_path(&to_lfm(fm)->loader, file_path(file), true);
-        }
-        return;
-      }
+  bool is_directory_preview = file != NULL && file_isdir(file);
+  bool is_same_preview = file != NULL && fm->dirs.preview != NULL &&
+                         streq(fm->dirs.preview->path, file_path(file));
 
-      /* don't remove watcher if it is a currently visible (non-preview) dir
-       */
-      uint32_t i;
-      for (i = 0; i < fm->dirs.length; i++) {
-        if (fm->dirs.visible.data[i] &&
-            streq(fm->dirs.preview->path, fm->dirs.visible.data[i]->path)) {
-          break;
-        }
-      }
-      if (i == fm->dirs.length) {
-        notify_remove_watcher(&to_lfm(fm)->notify, fm->dirs.preview);
-        fm->dirs.preview->visible = false;
-      }
-    }
-    fm->dirs.preview =
-        loader_dir_from_path(&to_lfm(fm)->loader, file_path(file), do_load);
+  if (!is_same_preview) {
+    fm_remove_preview(fm);
+  }
+
+  if (is_directory_preview && !is_same_preview) {
+    fm->dirs.preview = loader_dir_from_path(&to_lfm(fm)->loader,
+                                            file_path(file), !delay_action);
     fm->dirs.preview->visible = true;
-    async_notify_preview_add(&to_lfm(fm)->async, fm->dirs.preview);
-  } else {
-    // file preview or empty
-    if (fm->dirs.preview) {
-      uint32_t i;
-      for (i = 0; i < fm->dirs.length; i++) {
-        if (fm->dirs.visible.data[i] &&
-            streq(fm->dirs.preview->path, fm->dirs.visible.data[i]->path)) {
-          break;
-        }
-      }
-      if (i == fm->dirs.length) {
-        notify_remove_watcher(&to_lfm(fm)->notify, fm->dirs.preview);
-        fm->dirs.preview->visible = false;
-      }
-      fm->dirs.preview = NULL;
+  }
+
+  if (!is_same_preview) {
+    // invoke on_cursor_resting (on delay) to set up watcher/actually load the
+    // directory
+
+    if (delay_action && cfg.preview_delay > 0) {
+      ev_timer_again(to_lfm(fm)->loop, &fm->cursor_resting_timer);
+    } else {
+      ev_invoke(to_lfm(fm)->loop, &fm->cursor_resting_timer, 0);
     }
   }
 }
@@ -503,15 +492,14 @@ bool fm_cursor_move(Fm *fm, int32_t ct) {
     if (fm->visual.active) {
       selection_visual_update(fm, fm->visual.anchor, cur, dir->ind);
     }
-    fm_remove_preview(fm);
-    fm_update_preview_delayed(fm);
+    on_cursor_moved(fm, true);
   }
   return dir->ind != cur;
 }
 
 void fm_move_cursor_to(Fm *fm, const char *name) {
   dir_cursor_move_to(fm_current_dir(fm), name, fm->height, cfg.scrolloff);
-  fm_update_preview(fm);
+  on_cursor_moved(fm, false);
 }
 
 bool fm_scroll_up(Fm *fm) {
@@ -527,7 +515,7 @@ bool fm_scroll_up(Fm *fm) {
     if (dir->ind > dir->length - cfg.scrolloff - 1) {
       dir->ind = dir->length - cfg.scrolloff - 1;
     }
-    fm_update_preview(fm);
+    on_cursor_moved(fm, false);
   }
   return true;
 }
@@ -545,7 +533,7 @@ bool fm_scroll_down(Fm *fm) {
     if (dir->ind < dir->pos) {
       dir->ind = dir->pos;
     }
-    fm_update_preview(fm);
+    on_cursor_moved(fm, false);
   }
   return true;
 }
@@ -572,7 +560,7 @@ bool fm_updir(Fm *fm) {
   }
 
   fm_async_chdir(fm, path_parent_s(fm_current_dir(fm)->path), false, false);
-  fm_update_preview(fm);
+  on_cursor_moved(fm, false);
   return true;
 }
 
@@ -582,7 +570,7 @@ void fm_filter(Fm *fm, Filter *filter) {
   dir_filter(dir, filter);
   dir_cursor_move_to(dir, file ? file_name(file) : NULL, fm->height,
                      cfg.scrolloff);
-  fm_update_preview(fm);
+  on_cursor_moved(fm, false);
 }
 
 /* TODO: To reload flattened directories, more notify watchers are needed (on
