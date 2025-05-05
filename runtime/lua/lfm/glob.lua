@@ -1,27 +1,128 @@
 local M = { _NAME = ... }
 
+---A set of globs (patterns)
+---@class Glob.GlobPatterns
+
+---@class Glob.Opts
+---@field full_paths? boolean List files with their full paths
+
 local lfm = lfm
 
 local api = lfm.api
 
 local find = require("lfm.util").find
-local selection_set = api.fm_selection_set
-local basename = require("lfm.util").basename
+local dirent = require("posix.dirent")
 
--- TODO: should probably escape some special chars (on 2022-02-12)
+---Match files against a single glob
+---@param path string
+---@param glob string
+---@param opts? Glob.Opts
+---@return string[]
+local function glob_files_single(path, glob, opts)
+	opts = opts or {}
+	local pattern, match_dot = M.to_pattern(glob)
+	local files = {}
+	for file in dirent.files(path) do
+		if file ~= "." and file ~= ".." then
+			if (file:sub(1, 1) == ".") == match_dot then
+				if string.match(file, pattern) then
+					if opts.full_paths then
+						file = path .. "/" .. file
+					end
+					table.insert(files, file)
+				end
+			end
+		end
+	end
+	return files
+end
 
----Convert a glob to a lua pattern.
+---Match files against a multiple globs
+---@param path string
+---@param globs Glob.GlobPatterns
+---@param opts? Glob.Opts
+---@return string[]
+local function glob_files_multiple(path, globs, opts)
+	opts = opts or {}
+	local patterns = M.to_patterns(globs)
+	local files = {}
+	for file in dirent.files(path) do
+		if file ~= "." and file ~= ".." then
+			for pattern, match_dot in pairs(patterns) do
+				if (file:sub(1, 1) == ".") == match_dot then
+					if string.match(file, pattern) then
+						if opts.full_paths then
+							file = path .. "/" .. file
+						end
+						table.insert(files, file)
+					end
+				end
+			end
+		end
+	end
+	return files
+end
+
+---Convert a glob into a pattern. Can not contain "/". Second return value indicates wether it should match dot files.
 ---```lua
 ---   local pat = glob_to_pattern("*.txt")
 ---   string.match("/some/file.txt", pat)
 ---```
 ---@param glob string
 ---@return string pattern
-function M.glob_to_pattern(glob)
-	local res = string.gsub(glob, "%.", "%%.")
-	res = string.gsub(res, "%*", ".*")
-	res = string.gsub(res, "%?", ".?")
-	return "^" .. res .. "$"
+---@return boolean
+function M.to_pattern(glob)
+	if glob:match("/") then
+		error('"/" in glob')
+	end
+	local match_dot = glob:sub(1, 1) == "."
+	glob = string.gsub(glob, "%.", "%%.")
+	glob = string.gsub(glob, "*", ".*")
+	glob = string.gsub(glob, "?", ".")
+	return "^" .. glob .. "$", match_dot
+end
+
+---Convert an array of globs into a set of patterns
+---@param globs string[]
+---@return Glob.GlobPatterns
+function M.to_patterns(globs)
+	assert(type(globs) == "table")
+	local patterns = {}
+	for _, g in ipairs(globs) do
+		local pattern, match_dot = M.to_pattern(g)
+		patterns[pattern] = match_dot
+	end
+	return patterns
+end
+
+---Check if a file matches a set of globs
+---@param file string
+---@param globs Glob.GlobPatterns|string
+---@param match_dot? boolean
+---@return boolean
+function M.matches(file, globs, match_dot)
+	if type(globs) == "string" then
+		return match_dot == (file:sub(1, 1) == ".") and file:match(globs)
+	end
+	for pattern, match_dot in pairs(globs) do
+		if match_dot == (file:sub(1, 1) == ".") and file:match(pattern) then
+			return true
+		end
+	end
+	return false
+end
+
+---Get files matching one or more globs in a directory.
+---@param path string The directory.
+---@param glob string|string[] The globs.
+---@param opts? Glob.Opts
+---@return string[]
+function M.files(path, glob, opts)
+	if type(glob) == "table" then
+		return glob_files_multiple(path, glob, opts)
+	else
+		return glob_files_single(path, glob, opts)
+	end
 end
 
 ---Select all files in the current directory matching a glob.
@@ -30,19 +131,8 @@ end
 ---```
 ---@param glob string
 function M.glob_select(glob)
-	local pat = M.glob_to_pattern(glob)
-	local sel = {}
-	local match = string.match
-	local insert = table.insert
-	local basename = basename
-	for _, file in ipairs(api.fm_current_dir().files) do
-		if
-			match(basename(file) --[[@as string]], pat)
-		then
-			insert(sel, file)
-		end
-	end
-	selection_set(sel)
+	local files = glob_files_single(".", glob, { full_paths = true })
+	api.fm_selection_set(files)
 end
 
 ---Recursiv select all files matching a glob in the current directory and subdirectories.
@@ -52,23 +142,20 @@ end
 ---```
 ---@param glob string
 function M.glob_select_recursive(glob)
-	local pat = M.glob_to_pattern(glob)
-	local sel = {}
-	local match = string.match
-	local insert = table.insert
-	local function filter(f)
-		return match(f, pat)
+	local pattern, match_dot = M.glob_to_pattern(glob)
+	local files = {}
+	local function filter(file)
+		return M.matches(file, pattern, match_dot)
 	end
 	for f in find(lfm.fn.getpwd(), filter) do
-		insert(sel, f)
+		table.insert(files, f)
 	end
-	selection_set(sel)
+	api.fm_selection_set(files)
 end
 
 function M._setup()
 	-- GLOBSELECT mode
 	local map = lfm.map
-	local cmd = lfm.cmd
 	local a = require("lfm.util").a
 
 	local mode = {
