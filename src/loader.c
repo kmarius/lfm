@@ -233,16 +233,19 @@ Preview *loader_preview_from_path(Loader *loader, const char *path,
   if (v) {
     // preview existing in cache
     pv = v->second;
-    if (pv->status == PV_LOADING_DELAYED) {
-      async_preview_load(&to_lfm(loader)->async, pv);
-      return pv;
-    }
-    if (pv->status == PV_LOADING_NORMAL) {
-      if (pv->reload_height < (int)to_lfm(loader)->ui.preview.y ||
-          pv->reload_width < (int)to_lfm(loader)->ui.preview.x) {
+
+    if (do_load) {
+      if (pv->status == PV_LOADING_DELAYED) {
         async_preview_load(&to_lfm(loader)->async, pv);
-      } else {
-        async_preview_check(&to_lfm(loader)->async, pv);
+        return pv;
+      }
+      if (pv->status == PV_LOADING_NORMAL) {
+        if (pv->reload_height < (int)to_lfm(loader)->ui.preview.y ||
+            pv->reload_width < (int)to_lfm(loader)->ui.preview.x) {
+          async_preview_load(&to_lfm(loader)->async, pv);
+        } else {
+          async_preview_check(&to_lfm(loader)->async, pv);
+        }
       }
     }
   } else {

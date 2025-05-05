@@ -57,7 +57,7 @@ static inline void draw_cmdline(Ui *ui);
 static void redraw_cb(EV_P_ ev_idle *w, int revents);
 static int resize_cb(struct ncplane *n);
 
-static void update_preview_delayed_cb(EV_P_ ev_timer *w, int revents);
+static void on_cursor_resting(EV_P_ ev_timer *w, int revents);
 
 /* init/resize {{{ */
 
@@ -66,7 +66,7 @@ void ui_init(Ui *ui) {
   ui->redraw_watcher.data = ui;
   ev_idle_start(to_lfm(ui)->loop, &ui->redraw_watcher);
 
-  ev_timer_init(&ui->preview_load_timer, update_preview_delayed_cb, 0,
+  ev_timer_init(&ui->preview_load_timer, on_cursor_resting, 0,
                 cfg.preview_delay / 1000.0);
   ui->preview_load_timer.data = to_lfm(ui);
 
@@ -184,7 +184,9 @@ void ui_recol(Ui *ui) {
   ui->num_columns = vec_int_size(&cfg.ratios);
 
   uint32_t sum = 0;
-  c_foreach(it, vec_int, cfg.ratios) { sum += *it.ref; }
+  c_foreach(it, vec_int, cfg.ratios) {
+    sum += *it.ref;
+  }
 
   struct ncplane_options opts = {
       .y = 1,
@@ -850,85 +852,87 @@ static void plane_draw_dir(struct ncplane *n, Dir *dir, pathlist *sel,
 
 /* preview {{{ */
 
-static inline Preview *load_preview(Ui *ui, File *file, bool do_load) {
-  return loader_preview_from_path(&to_lfm(ui)->loader, file_path(file),
-                                  do_load);
-}
-
-static inline void reset_preview_plane_size(Ui *ui) {
+static inline void remove_preview(Ui *ui) {
   // ncvisual_blit shrinks the ncplane to approximately fit the image, we
   // need to fix it
   ncplane_resize(ui->planes.preview, 0, 0, 0, 0, 0, 0, ui->preview.y,
                  ui->preview.x);
+  ui->preview.preview = NULL;
 }
 
-static inline void ui_update_file_preview_impl(Ui *ui, bool do_load) {
-  unsigned int ncol, nrow;
-  ncplane_dim_yx(ui->planes.preview, &nrow, &ncol);
+static inline void on_cursor_moved(Ui *ui, bool delay_action);
 
-  File *file = fm_current_file(&to_lfm(ui)->fm);
-  if (file && !file_isdir(file)) {
-    Preview *pv = ui->preview.preview;
-    if (pv) {
-      if (streq(pv->path, file_path(file))) {
-        // same preview as previous call
-        if (do_load) {
-          if (pv->status == PV_LOADING_DELAYED) {
-            // always load delayed previews here
-            load_preview(ui, file, true);
-          } else {
-            if (!ui->preview.preview->loading) {
-              if (ui->preview.preview->reload_height < (int)nrow ||
-                  ui->preview.preview->reload_width < (int)ncol) {
-                loader_preview_reload(&to_lfm(ui)->loader, ui->preview.preview);
-                ui->preview.preview->loading = true;
-              } else {
-                if (ui->preview.preview->loadtime + cfg.inotify_delay <=
-                    current_millis()) {
-                  async_preview_check(&to_lfm(ui)->async, ui->preview.preview);
-                }
-              }
-            }
-          }
-        }
+void ui_update_file_preview(Ui *ui) {
+  on_cursor_moved(ui, false);
+}
+
+static void on_cursor_resting(EV_P_ ev_timer *w, int revents) {
+  log_trace("on_cursor_resting revents=%d", revents);
+
+  if (revents != 0) {
+    ev_timer_stop(loop, w);
+  }
+
+  Lfm *lfm = w->data;
+  Ui *ui = &lfm->ui;
+
+  Preview *preview = ui->preview.preview;
+  if (preview) {
+    if (revents != 0) {
+      if (preview->status == PV_LOADING_DELAYED) {
+        async_preview_load(&lfm->async, preview);
       } else {
-        // different file to preview
-        reset_preview_plane_size(ui);
-        ui->preview.preview = load_preview(ui, file, do_load);
-        ui_redraw(ui, REDRAW_PREVIEW);
+        async_preview_check(&lfm->async, preview);
       }
-    } else {
-      // currently no file preview
-      reset_preview_plane_size(ui);
-      ui->preview.preview = load_preview(ui, file, do_load);
-      ui_redraw(ui, REDRAW_PREVIEW);
-    }
-  } else {
-    // nothing to show
-    if (ui->preview.preview) {
-      ui->preview.preview = NULL;
-      ui_redraw(ui, REDRAW_PREVIEW);
     }
   }
-}
-
-void ui_update_file_preview(Ui *ui) { ui_update_file_preview_impl(ui, true); }
-
-static void update_preview_delayed_cb(EV_P_ ev_timer *w, int revents) {
-  (void)revents;
-  Lfm *lfm = w->data;
-  ui_update_file_preview(&lfm->ui);
-  ev_timer_stop(lfm->loop, w);
   ui_redraw(&lfm->ui, REDRAW_PREVIEW);
 }
 
 void ui_update_file_preview_delayed(Ui *ui) {
-  Lfm *lfm = to_lfm(ui);
-  if (!cfg.preview || ui->num_columns == 1 || lfm->fm.dirs.preview != NULL) {
+  if (!cfg.preview || ui->num_columns == 1) {
     return;
   }
-  ui_update_file_preview_impl(ui, false);
-  ev_timer_again(to_lfm(ui)->loop, &ui->preview_load_timer);
+  on_cursor_moved(ui, true);
+}
+
+// check if the dimensions changed and the preview should be reloaded
+#define CHECK_DIMS(pv, nrow) (!(pv)->loading && (pv)->reload_height < (int)nrow)
+
+static inline void on_cursor_moved(Ui *ui, bool delay_action) {
+  delay_action &= cfg.preview_delay > 0;
+  log_trace("on_cursor_moved delay_action=%d", delay_action);
+
+  File *file = fm_current_file(&to_lfm(ui)->fm);
+  Preview *preview = ui->preview.preview;
+  bool is_file_preview = file && !file_isdir(file);
+  bool is_same_preview =
+      file != NULL && preview != NULL && streq(preview->path, file_path(file));
+
+  unsigned int ncol, nrow;
+  ncplane_dim_yx(ui->planes.preview, &nrow, &ncol);
+  bool dims_changed = preview != NULL && CHECK_DIMS(preview, nrow);
+
+  if (is_same_preview && dims_changed) {
+    preview->status = PV_LOADING_DELAYED;
+  }
+
+  if (!is_same_preview) {
+    remove_preview(ui);
+  }
+
+  if (is_file_preview) {
+    // gives us the existing preview or a dummy and, depending on delay_action,
+    // loads the preview in the background (or checks and reloads it)
+    ui->preview.preview = loader_preview_from_path(
+        &to_lfm(ui)->loader, file_path(file), !delay_action);
+  }
+
+  if (delay_action) {
+    ev_timer_again(to_lfm(ui)->loop, &ui->preview_load_timer);
+  } else {
+    ev_invoke(to_lfm(ui)->loop, &ui->preview_load_timer, 0);
+  }
 }
 
 void ui_drop_cache(Ui *ui) {
@@ -1006,3 +1010,5 @@ void ui_start_loading_indicator_timer(Ui *ui) {
     }
   }
 }
+
+#undef CHECK_DIMS

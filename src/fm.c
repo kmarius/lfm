@@ -11,7 +11,6 @@
 #include "notify.h"
 #include "path.h"
 #include "pathlist.h"
-#include "ui.h"
 #include "util.h"
 
 #include <errno.h>
@@ -280,9 +279,9 @@ static void on_cursor_resting(EV_P_ ev_timer *w, int revents) {
 
   Lfm *lfm = w->data;
 
-  if (lfm->fm.dirs.preview) {
+  Dir *dir = lfm->fm.dirs.preview;
+  if (dir) {
     if (revents != 0) {
-      Dir *dir = lfm->fm.dirs.preview;
       if (dir->status == DIR_LOADING_DELAYED) {
         async_dir_load(&lfm->async, lfm->fm.dirs.preview, false);
       } else {
@@ -325,7 +324,7 @@ static inline void on_cursor_moved(Fm *fm, bool delay_action) {
     // invoke on_cursor_resting (on delay) to set up watcher/actually load the
     // directory
 
-    if (delay_action && cfg.preview_delay > 0) {
+    if (delay_action) {
       ev_timer_again(to_lfm(fm)->loop, &fm->cursor_resting_timer);
     } else {
       ev_invoke(to_lfm(fm)->loop, &fm->cursor_resting_timer, 0);

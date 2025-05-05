@@ -409,6 +409,9 @@ static void dir_update_callback(void *p, Lfm *lfm) {
     lfm_run_hook1(lfm, LFM_HOOK_DIRUPDATED, res->dir->path);
     if (res->dir->visible) {
       fm_update_preview(&lfm->fm);
+      if (fm_current_dir(&lfm->fm) == res->dir) {
+        ui_update_file_preview(&lfm->ui);
+      }
       ui_redraw(&lfm->ui, REDRAW_FM);
     }
     res->dir->last_loading_action = 0;
@@ -539,7 +542,7 @@ void async_preview_check(Async *async, Preview *pv) {
   work->mtime = pv->mtime;
   work->loadtime = pv->loadtime;
 
-  log_trace("checking directory %s", pv->path);
+  log_trace("checking preview %s", pv->path);
   tpool_add_work(async->tpool, async_preview_check_worker, work, true);
 }
 
@@ -590,6 +593,7 @@ void async_preview_load(Async *async, Preview *pv) {
 
   pv->status =
       pv->status == PV_LOADING_DELAYED ? PV_LOADING_INITIAL : PV_LOADING_NORMAL;
+  pv->loading = true;
 
   work->async = async;
   work->preview = pv;
