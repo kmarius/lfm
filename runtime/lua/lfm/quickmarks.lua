@@ -2,18 +2,18 @@ local M = { _NAME = ... }
 
 local lfm = lfm
 
----@alias Lfm.Char string
----@alias Lfm.Path string
+---@alias Lapi.fm_Char string
+---@alias Lapi.fm_Path string
 
 local eval = lfm.eval
 local map = lfm.map
 local getpwd = lfm.fn.getpwd
-local cmd_clear = lfm.cmd.clear
-local line_get = lfm.cmd.line_get
+local cmd_clear = lfm.api.cmdline_clear
+local line_get = lfm.api.cmdline_line_get
 
 local open = io.open
 
-local marks_path = lfm.config.statedir .. "/quickmarks.lua"
+local marks_path = lfm.paths.state_dir .. "/quickmarks.lua"
 
 local marks = {}
 
@@ -23,8 +23,8 @@ local marks = {}
 ---    lfm.quickmarks.mark_set("a", lfm.fn.getpwd())
 ---    lfm.quickmarks.mark_set("a") -- same as above
 ---```
----@param m Lfm.Char
----@param loc? Lfm.Path Defaults to the current location
+---@param m Lapi.fm_Char
+---@param loc? Lapi.fm_Path Defaults to the current location
 local function mark_set(m, loc)
 	loc = loc or getpwd()
 	local cmd = "cd " .. loc
@@ -67,7 +67,7 @@ end
 ---```lua
 ---    lfm.quickmarks.save("a")
 ---```
----@param m Lfm.Char
+---@param m Lapi.fm_Char
 function M.save(m)
 	load_from_file()
 	mark_set(m, getpwd())
@@ -82,7 +82,7 @@ end
 ---      t = "/tmp",
 ---    })
 ---```
----@param t table<Lfm.Char, Lfm.Path>
+---@param t table<Lapi.fm_Char, Lapi.fm_Path>
 function M.add(t)
 	t = t or {}
 	load_from_file()
@@ -96,7 +96,7 @@ end
 ---```lua
 ---    lfm.quickmarks.delete("a")
 ---```
----@param m Lfm.Char
+---@param m Lapi.fm_Char
 function M.delete(m)
 	if marks[m] then
 		load_from_file()

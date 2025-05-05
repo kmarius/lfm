@@ -28,7 +28,7 @@
 ---@field normal Lfm.ColorPair
 ---@field current Lfm.ColorPair
 
----@class Lfm.Config
+---@class Lfm.Options
 ---@field timefmt string Time format used to print dates for file info (default: "%Y-%m-%d %H:%M")
 ---@field loading_indicator_delay integer Delay in ms after which an indicator will be shown that the current directory is being reloaded/checked (default: 250)
 ---@field map_clear_delay integer Delay in ms after which the current key input will be cleared, must be non-negative, 0 disables (default: 10000)
@@ -48,16 +48,8 @@
 ---@field preview_delay integer delay in milliseconds after which previews are loaded (default: 0)
 ---@field icons boolean assignable (default: `false`)
 ---@field icon_map table<string, string> assignable
----@field configpath string
----@field configdir string
----@field luadir string
----@field datadir string
----@field statedir string
----@field runtime_dir string
----@field logpath string
----@field fifopath string
 ---@field colors Lfm.Colors
 ---@field inotify_blacklist string[] No inotify watchers will be installed if the path begins with any of these strings.
 ---@field inotify_timeout number Minimum time in milliseconds between reloads triggered by inotify. Must larger or equal to 100.
 ---@field inotify_delay number Small delay in milliseconds before reloads are triggered by inotify.
-lfm.config = {}
+lfm.o = {}

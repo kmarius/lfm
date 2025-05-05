@@ -88,7 +88,7 @@ end
 
 ---Create a function that calls all functions given as the argument.
 ---```lua
----    lfm.util.c(lfm.fm.load_clear, lfm.ui.redraw)()
+---    lfm.util.c(lfm.api.fm_load_clear, lfm.api.ui_redraw)()
 ---```
 ---@param ... function
 ---@return function

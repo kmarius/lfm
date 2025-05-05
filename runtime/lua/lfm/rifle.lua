@@ -3,9 +3,7 @@ M._NAME = ...
 
 local lfm = lfm
 
-local fm = lfm.fm
-local ui = lfm.ui
-local shell = require("lfm.shell")
+local api = lfm.api
 
 local config
 
@@ -21,10 +19,10 @@ local config
 function M.open(...)
 	local t = { ... }
 	local pick = t[1]
-	local file = fm.open()
+	local file = api.fm_open()
 	if file then
 		-- selection takes priority
-		local files = fm.selection_get()
+		local files = api.fm_selection_get()
 		if #files == 0 then
 			files = { file }
 		end
@@ -32,7 +30,7 @@ function M.open(...)
 		if match then
 			if match.command == "ask" then
 				lfm.mode("command")
-				lfm.cmd.line_set("shell ", ' "${files[@]}"')
+				lfm.api.cmdline_line_set("shell ", ' "${files[@]}"')
 			elseif match.lfm then
 				local f, err = loadstring(match.command)
 				if not f then
@@ -81,22 +79,22 @@ end
 ---    lfm.rifle.ask()
 ---```
 function M.ask()
-	local file = fm.sel_or_cur()[1]
+	local file = api.fm_sel_or_cur()[1]
 	if file then
 		local menu = {}
 		for _, rule in pairs(M.query(file)) do
 			table.insert(menu, rule.number .. " " .. rule.command)
 		end
 		lfm.mode("command")
-		lfm.cmd.line_set("open ")
-		ui.menu(menu)
+		lfm.api.cmdline_line_set("open ")
+		api.ui_menu(menu)
 	end
 end
 
 -- overwrite the builtin setup
 local setup_internal = M.setup
 
----@class Lfm.Rifle.SetupOpts
+---@class Lapi.fm_Rifle.SetupOpts
 ---@field config? string path to configuration file e.g. a rifle.conf
 ---@field rules? string[] a table of rules as defined in rifle.conf, will take precedence
 
@@ -110,7 +108,7 @@ local setup_internal = M.setup
 ---      },
 ---    })
 ---```
----@param opts Lfm.Rifle.SetupOpts
+---@param opts Lapi.fm_Rifle.SetupOpts
 function M.setup(opts)
 	opts = opts or {}
 	config = opts.config

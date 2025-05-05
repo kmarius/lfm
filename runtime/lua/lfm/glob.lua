@@ -2,9 +2,10 @@ local M = { _NAME = ... }
 
 local lfm = lfm
 
-local fm = lfm.fm
+local api = lfm.api
+
 local find = require("lfm.util").find
-local selection_set = fm.selection_set
+local selection_set = api.fm_selection_set
 local basename = require("lfm.util").basename
 
 -- TODO: should probably escape some special chars (on 2022-02-12)
@@ -34,7 +35,7 @@ function M.glob_select(glob)
 	local match = string.match
 	local insert = table.insert
 	local basename = basename
-	for _, file in ipairs(fm.current_dir().files) do
+	for _, file in ipairs(api.fm_current_dir().files) do
 		if
 			match(basename(file) --[[@as string]], pat)
 		then
@@ -78,10 +79,10 @@ function M._setup()
 			lfm.mode("normal")
 		end,
 		on_esc = function()
-			fm.selection_set({})
+			api.fm_selection_set({})
 		end,
 		on_change = function()
-			require("lfm.glob").glob_select(cmd.line_get())
+			require("lfm.glob").glob_select(api.cmdline_line_get())
 		end,
 	}
 

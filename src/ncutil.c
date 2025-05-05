@@ -246,3 +246,42 @@ int print_shortened_w(struct ncplane *n, const wchar_t *name, int name_len,
 
   return x;
 }
+
+// for ffi purposes
+
+int ncplane_putchar_yx_(struct ncplane *n, int y, int x, char c) {
+  nccell ce =
+      NCCELL_INITIALIZER((uint32_t)c, ncplane_styles(n), ncplane_channels(n));
+  return ncplane_putc_yx(n, y, x, &ce);
+}
+
+int ncplane_putstr_yx_(struct ncplane *n, int y, int x, const char *gclusters) {
+  int ret = 0;
+  while (*gclusters) {
+    size_t wcs;
+    int cols = ncplane_putegc_yx(n, y, x, gclusters, &wcs);
+    // fprintf(stderr, "wrote %.*s %d cols %zu bytes\n", (int)wcs, gclusters,
+    // cols, wcs);
+    if (cols < 0) {
+      return -ret;
+    }
+    if (wcs == 0) {
+      break;
+    }
+    // after the first iteration, just let the cursor code control where we
+    // print, so that scrolling is taken into account
+    y = -1;
+    x = -1;
+    gclusters += wcs;
+    ret += cols;
+  }
+  return ret;
+}
+
+int notcurses_render_(struct notcurses *nc) {
+  struct ncplane *stdn = notcurses_stdplane(nc);
+  if (ncpile_render(stdn)) {
+    return -1;
+  }
+  return ncpile_rasterize(stdn);
+}

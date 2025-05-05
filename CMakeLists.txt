@@ -188,6 +188,8 @@ target_link_libraries(lfm
  ${EV_LIBRARY}
  ${FFMPEG_LIBRARIES}
  ${LUAJIT_LIBRARY}
+ -Wl,--undefined=ncpile_top
+ -Wl,--undefined=ncplane_putstr_yx
  ${NOTCURSES_LIBRARY}
  ${NOTCURSES_CORE_LIBRARY}
  ${NOTCURSES_DEPS}

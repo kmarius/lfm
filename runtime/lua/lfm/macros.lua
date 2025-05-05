@@ -1,11 +1,11 @@
 local M = { _NAME = ... }
 
 local lfm = lfm
-local is_recording = lfm.ui.macro_recording
-local macro_record = lfm.ui.macro_record
-local macro_stop_record = lfm.ui.macro_stop_record
-local macro_play = lfm.ui.macro_play
-local line_get = lfm.cmd.line_get
+local is_recording = lfm.api.ui_macro_recording
+local macro_record = lfm.api.ui_macro_record
+local macro_stop_record = lfm.api.ui_macro_stop_record
+local macro_play = lfm.api.ui_macro_play
+local line_get = lfm.api.cmdline_line_get
 
 local record_mode = {
 	name = "macro-record",

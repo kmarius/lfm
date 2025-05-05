@@ -1,17 +1,207 @@
-#include "../fm.h"
+#include "../cmdline.h"
 #include "../config.h"
+#include "../containers.h"
+#include "../fm.h"
+#include "../history.h"
 #include "../hooks.h"
+#include "../log.h"
 #include "../macros.h"
 #include "../path.h"
 #include "../search.h"
 #include "../ui.h"
+
 #include "private.h"
 
-#include "../log.h"
+#include <ev.h>
 #include <lauxlib.h>
 #include <lua.h>
 
 #include <linux/limits.h>
+#include <stdint.h>
+#include <wchar.h>
+
+static int l_cmd_line_get(lua_State *L) {
+  lua_pushstring(L, cmdline_get(&ui->cmdline));
+  return 1;
+}
+
+static int l_cmd_line_set(lua_State *L) {
+  ui->show_message = false;
+
+  if (lua_gettop(L) > 2) {
+    luaL_error(L, "line_set takes only up to two arguments");
+  }
+
+  cmdline_set(&ui->cmdline, lua_tostring(L, 1), lua_tostring(L, 2));
+  ui_redraw(ui, REDRAW_CMDLINE);
+
+  return 0;
+}
+
+static int l_cmd_toggle_overwrite(lua_State *L) {
+  (void)L;
+  if (cmdline_toggle_overwrite(&ui->cmdline)) {
+    ui_redraw(ui, REDRAW_CMDLINE);
+  }
+  return 0;
+}
+
+static int l_cmd_clear(lua_State *L) {
+  (void)L;
+  cmdline_clear(&ui->cmdline);
+  return 0;
+}
+
+static int l_cmd_delete(lua_State *L) {
+  (void)L;
+  if (ui->cmdline.left.len == 0 && ui->cmdline.right.len == 0) {
+    lfm_mode_enter(lfm, "normal");
+  } else {
+    cmdline_delete(&ui->cmdline);
+    mode_on_change(lfm->current_mode, lfm);
+  }
+  ui_redraw(ui, REDRAW_CMDLINE);
+  return 0;
+}
+
+static int l_cmd_delete_right(lua_State *L) {
+  (void)L;
+  if (cmdline_delete_right(&ui->cmdline)) {
+    ui_redraw(ui, REDRAW_CMDLINE);
+    mode_on_change(lfm->current_mode, lfm);
+  }
+  return 0;
+}
+
+static int l_cmd_delete_word(lua_State *L) {
+  (void)L;
+  if (cmdline_delete_word(&ui->cmdline)) {
+    ui_redraw(ui, REDRAW_CMDLINE);
+    mode_on_change(lfm->current_mode, lfm);
+  }
+  return 0;
+}
+
+static int l_cmd_insert(lua_State *L) {
+  if (cmdline_insert(&ui->cmdline, lua_tostring(L, 1))) {
+    ui_redraw(ui, REDRAW_CMDLINE);
+    mode_on_change(lfm->current_mode, lfm);
+  }
+  return 0;
+}
+
+static int l_cmd_left(lua_State *L) {
+  (void)L;
+  if (cmdline_left(&ui->cmdline)) {
+    ui_redraw(ui, REDRAW_CMDLINE);
+  }
+  return 0;
+}
+
+static int l_cmd_right(lua_State *L) {
+  (void)L;
+  if (cmdline_right(&ui->cmdline)) {
+    ui_redraw(ui, REDRAW_CMDLINE);
+  }
+  return 0;
+}
+
+static int l_cmd_word_left(lua_State *L) {
+  (void)L;
+  if (cmdline_word_left(&ui->cmdline)) {
+    ui_redraw(ui, REDRAW_CMDLINE);
+  }
+  return 0;
+}
+
+static int l_cmd_word_right(lua_State *L) {
+  (void)L;
+  if (cmdline_word_right(&ui->cmdline)) {
+    ui_redraw(ui, REDRAW_CMDLINE);
+  }
+  return 0;
+}
+
+static int l_cmd_delete_line_left(lua_State *L) {
+  (void)L;
+  if (cmdline_delete_line_left(&ui->cmdline)) {
+    ui_redraw(ui, REDRAW_CMDLINE);
+    mode_on_change(lfm->current_mode, lfm);
+  }
+  return 0;
+}
+
+static int l_cmd_home(lua_State *L) {
+  (void)L;
+  if (cmdline_home(&ui->cmdline)) {
+    ui_redraw(ui, REDRAW_CMDLINE);
+  }
+  return 0;
+}
+
+static int l_cmd_end(lua_State *L) {
+  (void)L;
+  if (cmdline_end(&ui->cmdline)) {
+    ui_redraw(ui, REDRAW_CMDLINE);
+  }
+  return 0;
+}
+
+static int l_cmd_history_append(lua_State *L) {
+  history_append(&ui->cmdline.history, luaL_checkstring(L, 1),
+                 luaL_checkstring(L, 2));
+  return 0;
+}
+
+static int l_cmd_history_prev(lua_State *L) {
+  const char *line = history_prev(&ui->cmdline.history);
+  if (!line) {
+    return 0;
+  }
+  lua_pushstring(L, line);
+  return 1;
+}
+
+static int l_cmd_history_next(lua_State *L) {
+  const char *line = history_next_entry(&ui->cmdline.history);
+  if (!line) {
+    return 0;
+  }
+  lua_pushstring(L, line);
+  return 1;
+}
+
+static int l_cmd_get_history(lua_State *L) {
+  int i = history_size(&ui->cmdline.history);
+  lua_createtable(L, i, 0);
+  c_foreach(it, history, lfm->ui.cmdline.history) {
+    lua_pushstring(L, it.ref->line);
+    lua_rawseti(L, -2, i--);
+  }
+  return 1;
+}
+
+static const struct luaL_Reg cmdline_funcs[] = {
+    {"cmdline_clear", l_cmd_clear},
+    {"cmdline_delete", l_cmd_delete},
+    {"cmdline_delete_right", l_cmd_delete_right},
+    {"cmdline_delete_word", l_cmd_delete_word},
+    {"cmdline__end", l_cmd_end},
+    {"cmdline_line_get", l_cmd_line_get},
+    {"cmdline_line_set", l_cmd_line_set},
+    {"cmdline_home", l_cmd_home},
+    {"cmdline_insert", l_cmd_insert},
+    {"cmdline_toggle_overwrite", l_cmd_toggle_overwrite},
+    {"cmdline_left", l_cmd_left},
+    {"cmdline_word_left", l_cmd_word_left},
+    {"cmdline_word_right", l_cmd_word_right},
+    {"cmdline_delete_line_left", l_cmd_delete_line_left},
+    {"cmdline_right", l_cmd_right},
+    {"cmdline_history_append", l_cmd_history_append},
+    {"cmdline_history_next", l_cmd_history_next},
+    {"cmdline_history_prev", l_cmd_history_prev},
+    {"cmdline_get_history", l_cmd_get_history},
+    {NULL, NULL}};
 
 static int l_fm_get_height(lua_State *L) {
   lua_pushnumber(L, fm->height);
@@ -485,48 +675,201 @@ static int l_fm_flatten(lua_State *L) {
   return 0;
 }
 
-static const struct luaL_Reg fm_lib[] = {
-    {"set_info", l_fm_set_info},
-    {"get_info", l_fm_get_info},
-    {"flatten", l_fm_flatten},
-    {"flatten_level", l_fm_flatten_level},
-    {"bottom", l_fm_bot},
-    {"chdir", l_fm_chdir},
-    {"down", l_fm_down},
-    {"filter", l_fm_filter},
-    {"getfilter", l_fm_filter_get},
-    {"jump_automark", l_fm_jump_automark},
-    {"open", l_fm_open},
-    {"current_dir", l_fm_current_dir},
-    {"current_file", l_fm_current_file},
-    {"selection_reverse", l_fm_selection_reverse},
-    {"selection_toggle", l_fm_selection_toggle_current},
-    {"selection_add", l_fm_selection_add},
-    {"selection_set", l_fm_selection_set},
-    {"selection_get", l_fm_selection_get},
-    {"selection_restore", l_fm_selection_restore},
-    {"sort", l_fm_sort},
-    {"top", l_fm_top},
-    {"updir", l_fm_updir},
-    {"up", l_fm_up},
-    {"scroll_down", l_fm_scroll_down},
-    {"scroll_up", l_fm_scroll_up},
-    {"paste_buffer_get", l_fm_paste_buffer_get},
-    {"paste_buffer_set", l_fm_paste_buffer_set},
-    {"paste_mode_get", l_fm_paste_mode_get},
-    {"paste_mode_set", l_fm_paste_mode_set},
-    {"cut", l_fm_cut},
-    {"copy", l_fm_copy},
-    {"check", l_fm_check},
-    {"load", l_fm_load},
-    {"drop_cache", l_fm_drop_cache},
-    {"reload", l_fm_reload},
-    {"sel", l_fm_sel},
-    {"get_height", l_fm_get_height},
+static const struct luaL_Reg fm_funcs[] = {
+    {"fm_set_info", l_fm_set_info},
+    {"fm_get_info", l_fm_get_info},
+    {"fm_flatten", l_fm_flatten},
+    {"fm_flatten_level", l_fm_flatten_level},
+    {"fm_bottom", l_fm_bot},
+    {"fm_chdir", l_fm_chdir},
+    {"fm_down", l_fm_down},
+    {"fm_filter", l_fm_filter},
+    {"fm_getfilter", l_fm_filter_get},
+    {"fm_jump_automark", l_fm_jump_automark},
+    {"fm_open", l_fm_open},
+    {"fm_current_dir", l_fm_current_dir},
+    {"fm_current_file", l_fm_current_file},
+    {"fm_selection_reverse", l_fm_selection_reverse},
+    {"fm_selection_toggle", l_fm_selection_toggle_current},
+    {"fm_selection_add", l_fm_selection_add},
+    {"fm_selection_set", l_fm_selection_set},
+    {"fm_selection_get", l_fm_selection_get},
+    {"fm_selection_restore", l_fm_selection_restore},
+    {"fm_sort", l_fm_sort},
+    {"fm_top", l_fm_top},
+    {"fm_updir", l_fm_updir},
+    {"fm_up", l_fm_up},
+    {"fm_scroll_down", l_fm_scroll_down},
+    {"fm_scroll_up", l_fm_scroll_up},
+    {"fm_paste_buffer_get", l_fm_paste_buffer_get},
+    {"fm_paste_buffer_set", l_fm_paste_buffer_set},
+    {"fm_paste_mode_get", l_fm_paste_mode_get},
+    {"fm_paste_mode_set", l_fm_paste_mode_set},
+    {"fm_cut", l_fm_cut},
+    {"fm_copy", l_fm_copy},
+    {"fm_check", l_fm_check},
+    {"fm_load", l_fm_load},
+    {"fm_drop_cache", l_fm_drop_cache},
+    {"fm_reload", l_fm_reload},
+    {"fm_sel", l_fm_sel},
+    {"fm_get_height", l_fm_get_height},
     {NULL, NULL}};
 
-int luaopen_fm(lua_State *L) {
-  lua_newtable(L);
-  luaL_register(L, NULL, fm_lib);
+struct notcurses **get_notcurses() {
+  return &ui->nc;
+}
+
+static int l_ui_messages(lua_State *L) {
+  lua_createtable(L, vec_message_size(&ui->messages), 0);
+  int i = 1;
+  c_foreach(it, vec_message, ui->messages) {
+    lua_pushstring(L, it.ref->text);
+    lua_rawseti(L, -2, i);
+    i++;
+  }
+  return 1;
+}
+
+static int l_ui_clear(lua_State *L) {
+  (void)L;
+  ui_clear(ui);
   return 0;
+}
+
+static int l_ui_get_width(lua_State *L) {
+  lua_pushnumber(L, ui->x);
+  return 1;
+}
+
+static int l_ui_get_height(lua_State *L) {
+  lua_pushnumber(L, ui->y);
+  return 1;
+}
+
+static int l_ui_menu(lua_State *L) {
+  vec_str menu = vec_str_init();
+  uint32_t delay = 0;
+  if (lua_type(L, 1) == LUA_TTABLE) {
+    const int n = lua_objlen(L, 1);
+    for (int i = 1; i <= n; i++) {
+      lua_rawgeti(L, 1, i);
+      vec_str_emplace(&menu, lua_tostring(L, -1));
+      lua_pop(L, 1);
+    }
+    if (lua_gettop(L) == 2) {
+      luaL_checktype(L, 2, LUA_TNUMBER);
+      int d = lua_tonumber(L, 2);
+      luaL_argcheck(L, d >= 0, 2, "delay must be non-negative");
+      delay = d;
+    }
+  } else if (lua_type(L, -1) == LUA_TSTRING) {
+    const char *str = lua_tostring(L, 1);
+    for (const char *nl; (nl = strchr(str, '\n')); str = nl + 1) {
+      vec_str_push(&menu, strndup(str, nl - str));
+    }
+    vec_str_emplace(&menu, str);
+  }
+  ui_menu_show(ui, &menu, delay);
+  return 0;
+}
+
+static int l_ui_redraw(lua_State *L) {
+  if (lua_gettop(L) > 0 && lua_toboolean(L, 1)) {
+    ui_redraw(ui, REDRAW_FULL);
+  }
+  ev_idle_start(lfm->loop, &ui->redraw_watcher);
+  return 0;
+}
+
+static int l_notcurses_canopen_images(lua_State *L) {
+  lua_pushboolean(L, notcurses_canopen_images(ui->nc));
+  return 1;
+}
+
+static int l_notcurses_canbraille(lua_State *L) {
+  lua_pushboolean(L, notcurses_canbraille(ui->nc));
+  return 1;
+}
+
+static int l_notcurses_canpixel(lua_State *L) {
+  lua_pushboolean(L, notcurses_canpixel(ui->nc));
+  return 1;
+}
+
+static int l_notcurses_canquadrant(lua_State *L) {
+  lua_pushboolean(L, notcurses_canquadrant(ui->nc));
+  return 1;
+}
+
+static int l_notcurses_cansextant(lua_State *L) {
+  lua_pushboolean(L, notcurses_cansextant(ui->nc));
+  return 1;
+}
+
+static int l_notcurses_canhalfblock(lua_State *L) {
+  lua_pushboolean(L, notcurses_canhalfblock(ui->nc));
+  return 1;
+}
+
+static int l_macro_recording(lua_State *L) {
+  lua_pushboolean(L, macro_recording);
+  return 1;
+}
+
+static int l_macro_record(lua_State *L) {
+  const char *str = luaL_checkstring(L, 1);
+  wchar_t w;
+  if (mbtowc(&w, str, MB_LEN_MAX) == -1) {
+    return luaL_error(L, "converting to wchar_t");
+  }
+  if (macro_record(w)) {
+    return luaL_error(L, "already recording recording");
+  }
+  return 1;
+}
+
+static int l_macro_stop_record(lua_State *L) {
+  if (macro_stop_record()) {
+    return luaL_error(L, "currently not recording");
+  }
+  return 0;
+}
+
+static int l_macro_play(lua_State *L) {
+  const char *str = luaL_checkstring(L, 1);
+  wchar_t w;
+  if (mbtowc(&w, str, MB_LEN_MAX) == -1) {
+    return luaL_error(L, "converting to wchar_t");
+  }
+  if (macro_play(w, lfm)) {
+    return luaL_error(L, "no such macro");
+  }
+  return 0;
+}
+
+static const struct luaL_Reg ui_funcs[] = {
+    {"ui_macro_recording", l_macro_recording},
+    {"ui_macro_record", l_macro_record},
+    {"ui_macro_stop_record", l_macro_stop_record},
+    {"ui_macro_play", l_macro_play},
+    {"ui_notcurses_canopen_images", l_notcurses_canopen_images},
+    {"ui_notcurses_canhalfblock", l_notcurses_canhalfblock},
+    {"ui_notcurses_canquadrant", l_notcurses_canquadrant},
+    {"ui_notcurses_cansextant", l_notcurses_cansextant},
+    {"ui_notcurses_canbraille", l_notcurses_canbraille},
+    {"ui_notcurses_canpixel", l_notcurses_canpixel},
+    {"ui_get_width", l_ui_get_width},
+    {"ui_get_height", l_ui_get_height},
+    {"ui_clear", l_ui_clear},
+    {"ui_redraw", l_ui_redraw},
+    {"ui_menu", l_ui_menu},
+    {"ui_messages", l_ui_messages},
+    {NULL, NULL}};
+
+int luaopen_api(lua_State *L) {
+  lua_newtable(L);
+  luaL_register(L, NULL, cmdline_funcs);
+  luaL_register(L, NULL, fm_funcs);
+  luaL_register(L, NULL, ui_funcs);
+  return 1;
 }

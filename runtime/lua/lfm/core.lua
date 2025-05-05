@@ -1,14 +1,13 @@
 -- Set up package.path to include ~/.config/lfm/lua and remove ./
-local config = lfm.config
+local paths = lfm.paths
+
 package.path = string.gsub(package.path, "%./%?.lua;", "")
-package.path = package.path .. ";" .. config.configdir .. "/lua/?.lua;" .. config.configdir .. "/lua/?/init.lua"
+package.path = package.path .. ";" .. paths.config_dir .. "/lua/?.lua;" .. paths.config_dir .. "/lua/?/init.lua"
 package.cpath = string.gsub(package.cpath, "%./%?.so;", "")
 
-local cmd = lfm.cmd
-local fm = lfm.fm
 local fn = lfm.fn
+local api = lfm.api
 local log = lfm.log
-local ui = lfm.ui
 
 local cmap = lfm.cmap
 local execute = lfm.execute
@@ -84,15 +83,15 @@ end
 
 ---Get the current selection or file under the cursor.
 ---```lua
----    local files = lfm.fm.sel_or_cur()
+---    local files = lfm.api.fm_sel_or_cur()
 ---    for i, file in ipairs(files) do
 ---      print(i, file)
 ---    end
 ---```
 ---@return string[] selection
 local function sel_or_cur()
-	local sel = fm.selection_get()
-	return #sel > 0 and sel or { fm.current_file() }
+	local sel = api.fm_selection_get()
+	return #sel > 0 and sel or { api.fm_current_file() }
 end
 
 ---Feed keys into the key handler.
@@ -106,17 +105,21 @@ local function feedkeys(...)
 	end
 end
 
----@class Lfm.CommandOpts
+---@class Lapi.fm_CommandOpts
 ---@field tokenize? boolean tokenize arguments (default: true)
----@field compl? Lfm.ComplFun completion function
+---@field compl? Lapi.fm_ComplFun completion function
 ---@field desc? string Description
 
----@class Lfm.Command : Lfm.CommandOpts
+---@class Lapi.fm_Command : Lapi.fm_CommandOpts
 ---@field f function corresponding function
 ---@overload fun(t: string[]): boolean
 
----@type table<string, Lfm.Command>
-local commands = {}
+---@type table<string, Lapi.fm_Command>
+local commands = setmetatable({}, {
+	__call = function(_, line)
+		lfm.eval(line)
+	end,
+})
 lfm.commands = commands
 
 local command_mt = {
@@ -155,7 +158,7 @@ local reserved = {
 
 ---Register a function as a lfm command or unregister a command. Supported options
 ---```lua
----    lfm.register_command("updir", fm.updir, { desc = "Go to parent directory" })
+---    lfm.register_command("updir", api.fm_updir, { desc = "Go to parent directory" })
 ---```
 ---Handling arguments:
 ---```lua
@@ -177,7 +180,7 @@ local reserved = {
 ---```
 ---@param name string Command name, can not contain whitespace.
 ---@param f function The function to execute or `nil` to unregister
----@param opts? Lfm.CommandOpts Additional options.
+---@param opts? Lapi.fm_CommandOpts Additional options.
 local function register_command(name, f, opts)
 	if reserved[name] then
 		error("reserved command name: " .. name)
@@ -190,7 +193,7 @@ local function register_command(name, f, opts)
 		opts.f = f
 		opts.tokenize = opts.tokenize == nil and true or opts.tokenize
 		opts = setmetatable(opts, command_mt)
-		lfm.commands[name] = opts --[[@as Lfm.Command]]
+		lfm.commands[name] = opts --[[@as Lapi.fm_Command]]
 	else
 		lfm.commands[name] = nil
 	end
@@ -238,7 +241,7 @@ lfm.errorf = errorf
 lfm.feedkeys = feedkeys
 lfm.eval = eval
 lfm.register_command = register_command
-lfm.fm.sel_or_cur = sel_or_cur
+lfm.api.fm_sel_or_cur = sel_or_cur
 
 -- lazily load submodules in the lfm namespace, make sure to add them to doc/EmmyLua/lfm.lua
 local submodules = {
@@ -291,15 +294,15 @@ require("lfm.quickmarks")._setup()
 require("lfm.macros")._setup()
 require("lfm.glob")._setup()
 
-register_command("quit", quit, { desc = "Quit Lfm." })
-register_command("q", quit, { desc = "Quit Lfm." })
+register_command("quit", quit, { desc = "Quit Lapi.fm_" })
+register_command("q", quit, { desc = "Quit Lapi.fm_" })
 register_command(
 	"rename",
 	require("lfm.functions").rename,
 	{ tokenize = false, compl = compl.limit(1, compl.files), desc = "Rename the current file." }
 )
 
-register_command("cd", fm.chdir, { tokenize = true, compl = compl.dirs })
+register_command("cd", api.fm_chdir, { tokenize = true, compl = compl.dirs })
 
 local c = util.c
 local a = util.a
@@ -366,24 +369,24 @@ register_command("delete", function(args)
 		error("command takes no arguments")
 	end
 	spawn({ "rm", "-rf", "--", unpack(sel_or_cur()) })
-	fm.selection_set()
+	api.fm_selection_set()
 end, { desc = "Delete current selection without asking for confirmation." })
 
 -- Keymaps
 
-cmap("<Insert>", cmd.toggle_overwrite, { desc = "Toggle insert/overwrite" })
-cmap("<Left>", cmd.left, { desc = "Left" })
-cmap("<Right>", cmd.right, { desc = "Right" })
-cmap("<Home>", cmd.home, { desc = "Home" })
-cmap("<End>", cmd._end, { desc = "End" })
-cmap("<c-Left>", cmd.word_left, { desc = "Jump word left" })
-cmap("<c-Right>", cmd.word_right, { desc = "Jump word right" })
-cmap("<Delete>", cmd.delete_right, { desc = "Delete right" })
-cmap("<Backspace>", cmd.delete, { desc = "Delete left" })
-cmap("<c-h>", cmd.delete, { desc = "Delete left" })
-cmap("<c-w>", cmd.delete_word, { desc = "Delete word left" })
-cmap("<c-Backspace>", cmd.delete_word, { desc = "Delete word left" })
-cmap("<c-u>", cmd.delete_line_left, { desc = "Delete line left" })
+cmap("<Insert>", api.cmdline_toggle_overwrite, { desc = "Toggle insert/overwrite" })
+cmap("<Left>", api.cmdline_left, { desc = "Left" })
+cmap("<Right>", api.cmdline_right, { desc = "Right" })
+cmap("<Home>", api.cmdline_home, { desc = "Home" })
+cmap("<End>", api.cmdline__end, { desc = "End" })
+cmap("<c-Left>", api.cmdline_word_left, { desc = "Jump word left" })
+cmap("<c-Right>", api.cmdline_word_right, { desc = "Jump word right" })
+cmap("<Delete>", api.cmdline_delete_right, { desc = "Delete right" })
+cmap("<Backspace>", api.cmdline_delete, { desc = "Delete left" })
+cmap("<c-h>", api.cmdline_delete, { desc = "Delete left" })
+cmap("<c-w>", api.cmdline_delete_word, { desc = "Delete word left" })
+cmap("<c-Backspace>", api.cmdline_delete_word, { desc = "Delete word left" })
+cmap("<c-u>", api.cmdline_delete_line_left, { desc = "Delete line left" })
 cmap("<Tab>", compl.next, { desc = "Next completion item" })
 cmap("<s-Tab>", compl.prev, { desc = "Previous completion item" })
 
@@ -395,66 +398,66 @@ map("<c-q>", quit, { desc = "Quit" })
 map("<c-c>", function()
 	print("Type :q <Enter> or <Ctrl>q to exit")
 end, { desc = "ctrl-c" })
-map("<c-l>", ui.clear, { desc = "Clear screen and redraw" })
-map("<a-r>", fm.drop_cache, { desc = "Drop direcory/preview caches" })
+map("<c-l>", api.ui_clear, { desc = "Clear screen and redraw" })
+map("<a-r>", api.fm_drop_cache, { desc = "Drop direcory/preview caches" })
 map("cd", a(feedkeys, ":cd "), { desc = ":cd " })
-map("<a-c>", fm.check, { desc = "Check directories and reload" })
+map("<a-c>", api.fm_check, { desc = "Check directories and reload" })
 
 map("&", a(feedkeys, ":shell-bg "), { desc = ":shell-bg " })
 map("s", a(feedkeys, ":shell "), { desc = ":shell " })
 map("S", a(execute, { "sh", "-c", "LFM_LEVEL=1 " .. os.getenv("SHELL") }), { desc = "Open a $SHELL" })
 
 -- Visual/selection
-map("<Space>", c(fm.selection_toggle, fm.down), { desc = "Select current file" })
-map("v", fm.selection_reverse, { desc = "Reverse selection" })
+map("<Space>", c(api.fm_selection_toggle, api.fm_down), { desc = "Select current file" })
+map("v", api.fm_selection_reverse, { desc = "Reverse selection" })
 map("V", function()
 	local mode = lfm.current_mode()
 	lfm.mode(mode ~= "visual" and "visual" or "normal")
 end, { desc = "Toggle visual selection mode" })
-map("uv", c(fm.paste_buffer_set, fm.selection_set), { desc = "Clear selection" })
-map("gu", fm.selection_restore, { desc = "Restore previous selection" })
+map("uv", c(api.fm_paste_buffer_set, api.fm_selection_set), { desc = "Clear selection" })
+map("gu", api.fm_selection_restore, { desc = "Restore previous selection" })
 
 -- Navigation
 map("<Enter>", open, { desc = "Open file or directory" })
-map("<Left>", fm.updir, { desc = "Go to parent directory" })
+map("<Left>", api.fm_updir, { desc = "Go to parent directory" })
 map("<Right>", open, { desc = "Open file/directory" })
-map("j", fm.down, { desc = "Move cursor down" })
-map("k", fm.up, { desc = "Move cursor up" })
-map("h", fm.updir, { desc = "Go to parent directory" })
+map("j", api.fm_down, { desc = "Move cursor down" })
+map("k", api.fm_up, { desc = "Move cursor up" })
+map("h", api.fm_updir, { desc = "Go to parent directory" })
 map("l", open, { desc = "Open file/directory" })
 map("L", require("lfm.functions").follow_link, { desc = "Follow symlink under cursor" })
 map("H", a(feedkeys, "''")) -- complementary to "L"
-map("gg", fm.top, { desc = "Go to top" })
-map("G", fm.bottom, { desc = "Go to bottom" })
-map("''", fm.jump_automark, { desc = "Jump to previous directory" })
+map("gg", api.fm_top, { desc = "Go to top" })
+map("G", api.fm_bottom, { desc = "Go to bottom" })
+map("''", api.fm_jump_automark, { desc = "Jump to previous directory" })
 map("cd", a(feedkeys, ":cd "), { desc = ":cd " })
-map("<Up>", fm.up, { desc = "Move cursor up" })
-map("<Down>", fm.down, { desc = "Move cursor down" })
-map("<c-y>", fm.scroll_up, { desc = "Scroll directory up" })
-map("<c-e>", fm.scroll_down, { desc = "Scroll directory down" })
+map("<Up>", api.fm_up, { desc = "Move cursor up" })
+map("<Down>", api.fm_down, { desc = "Move cursor down" })
+map("<c-y>", api.fm_scroll_up, { desc = "Scroll directory up" })
+map("<c-e>", api.fm_scroll_down, { desc = "Scroll directory down" })
 map("<c-u>", function()
-	fm.up(fm.get_height() / 2)
+	api.fm_up(api.fm_get_height() / 2)
 end, { desc = "Move cursor half a page up" })
 map("<c-d>", function()
-	fm.down(fm.get_height() / 2)
+	api.fm_down(api.fm_get_height() / 2)
 end, { desc = "Move cursor half a page down" })
 map("<c-b>", function()
-	fm.up(fm.get_height())
+	api.fm_up(api.fm_get_height())
 end, { desc = "Move cursor half a page up" })
 map("<c-f>", function()
-	fm.down(fm.get_height())
+	api.fm_down(api.fm_get_height())
 end, { desc = "Move cursor half a page down" })
 map("<PageUp>", function()
-	fm.up(fm.get_height())
+	api.fm_up(api.fm_get_height())
 end, { desc = "Move cursor half a page up" })
 map("<PageDown>", function()
-	fm.down(fm.get_height())
+	api.fm_down(api.fm_get_height())
 end, { desc = "Move cursor half a page down" })
-map("<Home>", fm.top, { desc = "Go to top" })
-map("<End>", fm.bottom, { desc = "Go to bottom" })
+map("<Home>", api.fm_top, { desc = "Go to top" })
+map("<End>", api.fm_bottom, { desc = "Go to bottom" })
 
 map("zh", function()
-	config.hidden = not config.hidden
+	lfm.o.hidden = not lfm.o.hidden
 end, { desc = "Toggle hidden files" })
 
 -- Flatten
@@ -469,9 +472,11 @@ map("<a-->", require("lfm.flatten").decrement, { desc = "Decrease flatten level"
 -- Copy/pasting
 map("yn", require("lfm.functions").yank_name, { desc = "Yank name" })
 map("yp", require("lfm.functions").yank_path, { desc = "Yank path" })
-map("yy", fm.copy, { desc = "copy" })
-map("dd", fm.cut, { desc = "cut" })
-map("ud", fm.paste_buffer_clear, { desc = "Clear paste buffer" })
+map("yy", api.fm_copy, { desc = "copy" })
+map("dd", api.fm_cut, { desc = "cut" })
+map("ud", function()
+	api.fm_paste_buffer_set({})
+end, { desc = "Clear paste buffer" })
 map("pp", require("lfm.functions").paste, { desc = "Paste files" })
 map("pt", require("lfm.functions").toggle_paste, { desc = "Toggle paste mode" })
 map("po", require("lfm.functions").paste_overwrite, { desc = "Paste files with overwrite" })
@@ -487,8 +492,8 @@ map("A", require("lfm.functions").rename_after, { desc = "Rename at the end" })
 map("I", require("lfm.functions").rename_before, { desc = "Rename at the start" })
 
 -- TODO: change these when more file info values are implemented
-local sort = fm.sort
-local set_info = fm.set_info
+local sort = api.fm_sort
+local set_info = api.fm_set_info
 map("on", function()
 	sort({ type = "natural", reverse = false })
 	set_info("size")
@@ -535,7 +540,7 @@ map("or", function()
 end, { desc = "Sort: random" })
 
 local function gmap(key, location)
-	local chdir = fm.chdir
+	local chdir = api.fm_chdir
 	map("g" .. key, function()
 		chdir(location)
 	end, { desc = "Go to " .. location })

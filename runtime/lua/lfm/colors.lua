@@ -4,7 +4,7 @@ local lfm = lfm
 
 -- TODO: needs work and should probably be merged with the ansi module
 
-local config = lfm.config
+local o = lfm.o
 
 M.palette = {
 	black = "0",
@@ -78,7 +78,7 @@ end
 function M.add(t)
 	t = t or {}
 	for k, v in pairs(t) do
-		config.colors[k] = v
+		o.colors[k] = v
 	end
 end
 
@@ -87,7 +87,7 @@ function M.set(t)
 	-- lfm.colors_clear()
 	t = t or {}
 	for k, v in pairs(t) do
-		config.colors[k] = v
+		o.colors[k] = v
 	end
 end
 

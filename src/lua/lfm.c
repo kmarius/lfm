@@ -533,19 +533,19 @@ int luaopen_lfm(lua_State *L) {
 
   luaL_openlib(L, "lfm", lfm_lib, 0); // [lfm]
 
-  luaopen_fm(L);
-  lua_setfield(L, -2, "fm");
+  luaopen_options(L);
+  lua_setfield(L, -2, "o");
 
-  luaopen_config(L);
-  lua_setfield(L, -2, "config");
+  luaopen_api(L);
+  lua_setfield(L, -2, "api");
+
+  luaopen_paths(L);
+  lua_setfield(L, -2, "paths");
 
   luaopen_log(L);
   lua_setfield(L, -2, "log");
 
-  luaopen_ui(L);
-  lua_setfield(L, -2, "ui");
-
-  luaopen_cmd(L);
+  luaopen_api(L);
   lua_setfield(L, -2, "cmd");
 
   luaopen_fn(L);

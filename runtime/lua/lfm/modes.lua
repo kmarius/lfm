@@ -2,10 +2,9 @@ local M = { _NAME = ... }
 
 local lfm = lfm
 
-local cmd = lfm.cmd
-local config = lfm.config
+local options = lfm.o
+local api = lfm.api
 local map = lfm.map
-local fm = lfm.fm
 local compl = require("lfm.compl")
 local util = require("lfm.util")
 local basename = util.basename
@@ -23,7 +22,7 @@ function M._setup()
 			prefix = ":",
 			on_return = function(line)
 				lfm.mode("normal")
-				cmd.history_append(":", line)
+				api.cmdline_history_append(":", line)
 				lfm.eval(line)
 			end,
 			on_change = function()
@@ -35,16 +34,16 @@ function M._setup()
 		map(":", a(lfm.mode, "command"), { desc = "enter COMMAND mode" })
 		map("<Up>", function()
 			if not prev_line then
-				prev_line = cmd.line_get()
+				prev_line = api.cmdline_line_get()
 			end
-			local line = cmd.history_prev()
+			local line = api.cmdline_history_prev()
 			if line then
-				cmd.line_set(line)
+				api.cmdline_line_set(line)
 			end
 		end, { mode = "command", desc = "Previous history item" })
 		map("<Down>", function()
-			local line = cmd.history_next()
-			cmd.line_set(line or prev_line)
+			local line = api.cmdline_history_next()
+			api.cmdline_line_set(line or prev_line)
 		end, { mode = "command", desc = "Next history item" })
 	end
 
@@ -55,20 +54,20 @@ function M._setup()
 			input = true,
 			prefix = "filter: ",
 			on_enter = function()
-				local filter, type = fm.getfilter()
+				local filter, type = api.fm_getfilter()
 				if type ~= "substring" then
-					fm.filter(filter)
+					api.fm_filter(filter)
 				end
-				cmd.line_set(filter)
+				api.cmdline_line_set(filter)
 			end,
 			on_change = function()
-				fm.filter(cmd.line_get())
+				api.fm_filter(api.cmdline_line_get())
 			end,
 			on_return = function()
 				lfm.mode("normal")
 			end,
 			on_esc = function()
-				fm.filter("")
+				api.fm_filter("")
 			end,
 		}
 		lfm.register_mode(mode)
@@ -83,28 +82,28 @@ function M._setup()
 			input = true,
 			prefix = "fuzzy: ",
 			on_enter = function()
-				local filter, type = fm.getfilter()
+				local filter, type = api.fm_getfilter()
 				if type ~= "fuzzy" then
-					fm.filter(filter, "fuzzy")
+					api.fm_filter(filter, "fuzzy")
 				end
-				cmd.line_set(filter)
+				api.cmdline_line_set(filter)
 			end,
 			on_change = function()
-				local filter = cmd.line_get()
-				fm.filter(filter, "fuzzy")
-				fm.top()
+				local filter = api.cmdline_line_get()
+				api.fm_filter(filter, "fuzzy")
+				api.fm_top()
 			end,
 			on_return = function()
 				lfm.mode("normal")
 			end,
 			on_esc = function()
-				fm.filter()
+				api.fm_filter()
 			end,
 		}
 		lfm.register_mode(mode)
 		map("zF", a(lfm.mode, "fuzzy"), { desc = "Enter FUZZY mode" })
-		map("<c-n>", fm.down, { mode = "fuzzy", desc = "down" })
-		map("<c-p>", fm.up, { mode = "fuzzy", desc = "up" })
+		map("<c-n>", api.fm_down, { mode = "fuzzy", desc = "down" })
+		map("<c-p>", api.fm_up, { mode = "fuzzy", desc = "up" })
 	end
 
 	-- TRAVEL mode
@@ -115,56 +114,56 @@ function M._setup()
 			input = true,
 			prefix = "travel: ",
 			on_enter = function()
-				hidden = config.hidden
+				hidden = options.hidden
 			end,
 			on_return = function()
-				local file = fm.current_file()
+				local file = api.fm_current_file()
 				if file then
-					fm.filter("")
-					if fm.open() then
+					api.fm_filter("")
+					if api.fm_open() then
 						lfm.mode("normal")
 						lfm.eval("open")
 					else
-						cmd.clear()
+						api.cmdline_clear()
 					end
 				end
 				if not hidden then
-					config.hidden = false
+					options.hidden = false
 				end
 			end,
 			on_change = function()
-				local line = cmd.line_get()
+				local line = api.cmdline_line_get()
 				if not hidden then
 					if line == "." then
-						config.hidden = true
+						options.hidden = true
 					elseif line == "" then
-						config.hidden = false
+						options.hidden = false
 					end
 				end
-				fm.filter(line)
+				api.fm_filter(line)
 			end,
 			on_exit = function()
-				fm.filter("")
+				api.fm_filter("")
 				if not hidden then
-					config.hidden = false
+					options.hidden = false
 				end
 			end,
 			on_escape = function()
 				if not hidden then
-					config.hidden = false
+					options.hidden = false
 				end
 			end,
 		}
 		lfm.register_mode(mode)
 		map("f", a(lfm.mode, "travel"), { desc = "Enter TRAVEL mode" })
-		map("<c-n>", fm.down, { mode = "travel" })
-		map("<c-p>", fm.up, { mode = "travel" })
-		map("<Up>", fm.up, { mode = "travel" })
-		map("<Down>", fm.down, { mode = "travel" })
+		map("<c-n>", api.fm_down, { mode = "travel" })
+		map("<c-p>", api.fm_up, { mode = "travel" })
+		map("<Up>", api.fm_up, { mode = "travel" })
+		map("<Down>", api.fm_down, { mode = "travel" })
 		map("<a-h>", function()
-			fm.filter("")
-			fm.updir()
-			cmd.clear()
+			api.fm_filter("")
+			api.fm_updir()
+			api.cmdline_clear()
 		end, { mode = "travel", desc = "Move to parent directory" })
 	end
 
@@ -176,57 +175,57 @@ function M._setup()
 			input = true,
 			prefix = "travel-fuzzy: ",
 			on_enter = function()
-				hidden = config.hidden
+				hidden = options.hidden
 			end,
 			on_return = function()
-				local file = fm.current_file()
+				local file = api.fm_current_file()
 				if file then
-					fm.filter()
-					if fm.open() then
+					api.fm_filter()
+					if api.fm_open() then
 						lfm.mode("normal")
 						lfm.eval("open")
 					else
-						cmd.clear()
+						api.cmdline_clear()
 					end
 				end
 				if not hidden then
-					config.hidden = false
+					options.hidden = false
 				end
 			end,
 			on_change = function()
-				local line = cmd.line_get()
+				local line = api.cmdline_line_get()
 				if not hidden then
 					if line == "." then
-						config.hidden = true
+						options.hidden = true
 					elseif line == "" then
-						config.hidden = false
+						options.hidden = false
 					end
 				end
-				fm.filter(line, "fuzzy")
-				fm.top()
+				api.fm_filter(line, "fuzzy")
+				api.fm_top()
 			end,
 			on_exit = function()
-				fm.filter()
+				api.fm_filter()
 				if not hidden then
-					config.hidden = false
+					options.hidden = false
 				end
 			end,
 			on_escape = function()
 				if not hidden then
-					config.hidden = false
+					options.hidden = false
 				end
 			end,
 		}
 		lfm.register_mode(mode)
 		map("F", a(lfm.mode, "travel-fuzzy"), { desc = "Enter travel-fuzzy mode" })
-		map("<c-n>", fm.down, { mode = "travel-fuzzy" })
-		map("<c-p>", fm.up, { mode = "travel-fuzzy" })
-		map("<Up>", fm.up, { mode = "travel-fuzzy" })
-		map("<Down>", fm.down, { mode = "travel-fuzzy" })
+		map("<c-n>", api.fm_down, { mode = "travel-fuzzy" })
+		map("<c-p>", api.fm_up, { mode = "travel-fuzzy" })
+		map("<Up>", api.fm_up, { mode = "travel-fuzzy" })
+		map("<Down>", api.fm_down, { mode = "travel-fuzzy" })
 		map("<a-h>", function()
-			fm.filter("")
-			fm.updir()
-			cmd.clear()
+			api.fm_filter("")
+			api.fm_updir()
+			api.cmdline_clear()
 		end, { mode = "travel-fuzzy", desc = "Move to parent directory" })
 	end
 
@@ -242,17 +241,17 @@ function M._setup()
 				lfm.mode("normal")
 			end,
 			on_change = function()
-				local line = cmd.line_get()
+				local line = api.cmdline_line_get()
 				lfm.mode("normal")
 				if line == "y" then
 					-- TODO: use -- again when an updated version of trash-cli lands
 					-- local command = { "trash-put", "--" }
 					local command = { "trash-put" }
-					for _, file in ipairs(fm.sel_or_cur()) do
+					for _, file in ipairs(api.fm_sel_or_cur()) do
 						command[#command + 1] = file
 					end
 					lfm.spawn(command)
-					fm.selection_set()
+					api.fm_selection_set()
 				end
 			end,
 		}
@@ -272,10 +271,10 @@ function M._setup()
 			prefix = "/",
 			on_enter = function()
 				lfm.nohighlight()
-				file = fm.current_file()
+				file = api.fm_current_file()
 			end,
 			on_change = function()
-				lfm.search(cmd.line_get())
+				lfm.search(api.cmdline_line_get())
 				lfm.search_next(true)
 			end,
 			on_return = function()
@@ -285,7 +284,7 @@ function M._setup()
 			on_esc = function()
 				lfm.nohighlight()
 				if file then
-					fm.sel(basename(file) --[[@as string]])
+					api.fm_sel(basename(file) --[[@as string]])
 				end
 			end,
 		}
@@ -296,10 +295,10 @@ function M._setup()
 			prefix = "?",
 			on_enter = function()
 				lfm.nohighlight()
-				file = lfm.fm.current_file()
+				file = lfm.api.fm_current_file()
 			end,
 			on_change = function()
-				lfm.search_back(cmd.line_get())
+				lfm.search_back(api.cmdline_line_get())
 				lfm.search_next(true)
 			end,
 			on_return = function()
@@ -309,7 +308,7 @@ function M._setup()
 			on_esc = function()
 				lfm.nohighlight()
 				if file then
-					lfm.fm.sel(basename(file) --[[@as string]])
+					api.fm_sel(basename(file) --[[@as string]])
 				end
 			end,
 		}

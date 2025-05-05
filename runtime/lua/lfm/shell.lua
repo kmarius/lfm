@@ -2,12 +2,12 @@ local M = { _NAME = ... }
 
 local lfm = lfm
 
-local sel_or_cur = lfm.fm.sel_or_cur
+local sel_or_cur = lfm.api.fm_sel_or_cur
 local lfm_execute = lfm.execute
 local lfm_spawn = lfm.spawn
 local table_insert = table.insert
 
----@enum Lfm.Shell.FilesVia
+---@enum Lapi.fm_Shell.FilesVia
 local FilesVia = {
 	ARGV = 0,
 	ARRAY = 1,
@@ -68,13 +68,13 @@ function M.popen(command)
 end
 
 do
-	---@class Lfm.Shell.Sh.SpawnOpts : Lfm.SpawnOpts
-	---@field files_via? Lfm.Shell.FilesVia
+	---@class Lapi.fm_Shell.Sh.SpawnOpts : Lapi.fm_SpawnOpts
+	---@field files_via? Lapi.fm_Shell.FilesVia
 
-	---@class Lfm.Shell.Sh.ExecOpts
-	---@field files_via? Lfm.Shell.FilesVia
+	---@class Lapi.fm_Shell.Sh.ExecOpts
+	---@field files_via? Lapi.fm_Shell.FilesVia
 
-	---@class Lfm.Shell.Sh.BuildOpts: Lfm.Shell.Sh.ExecOpts, Lfm.Shell.Sh.SpawnOpts
+	---@class Lapi.fm_Shell.Sh.BuildOpts: Lapi.fm_Shell.Sh.ExecOpts, Lapi.fm_Shell.Sh.SpawnOpts
 	---@field fg? true
 
 	---Spawn a shell process in the background.
@@ -84,7 +84,7 @@ do
 	---    lfm.shell.sh.spawn('mv "$@" somedir', { files_via = lfm.shell.ARGV })
 	---```
 	---@param command string
-	---@param opts? Lfm.Shell.Sh.SpawnOpts
+	---@param opts? Lapi.fm_Shell.Sh.SpawnOpts
 	---@param ... string Extra arguments will be passed to the command (unless opts.files_via == ARGV)
 	local function spawn(command, opts, ...)
 		opts = opts or {}
@@ -116,7 +116,7 @@ do
 	---    lfm.shell.sh.execute('nvim "$@"', { files_via = lfm.shell.ARGV })
 	---```
 	---@param command string
-	---@param opts? Lfm.Shell.Sh.ExecOpts
+	---@param opts? Lapi.fm_Shell.Sh.ExecOpts
 	---@param ... string Extra arguments will be passed to the command (unless opts.files_via == ARGV)
 	local function execute(command, opts, ...)
 		opts = opts or {}
@@ -147,17 +147,17 @@ do
 	---    f()
 	---```
 	---@param command string
-	---@param opts? Lfm.Shell.Sh.BuildOpts
+	---@param opts? Lapi.fm_Shell.Sh.BuildOpts
 	---@return function
 	local function build(command, opts)
 		opts = opts or {}
 		if opts.fg then
 			return function(...)
-				execute(command, opts --[[@as Lfm.Shell.Sh.BuildOpts]], ...)
+				execute(command, opts --[[@as Lapi.fm_Shell.Sh.BuildOpts]], ...)
 			end
 		else
 			return function(...)
-				spawn(command, opts --[[@as Lfm.Shell.Sh.BuildOpts]], ...)
+				spawn(command, opts --[[@as Lapi.fm_Shell.Sh.BuildOpts]], ...)
 			end
 		end
 	end
@@ -166,13 +166,13 @@ do
 end
 
 do
-	---@class Lfm.Shell.Bash.SpawnOpts : Lfm.SpawnOpts
-	---@field files_via? Lfm.Shell.FilesVia
+	---@class Lapi.fm_Shell.Bash.SpawnOpts : Lapi.fm_SpawnOpts
+	---@field files_via? Lapi.fm_Shell.FilesVia
 
-	---@class Lfm.Shell.Bash.ExecOpts
-	---@field files_via? Lfm.Shell.FilesVia
+	---@class Lapi.fm_Shell.Bash.ExecOpts
+	---@field files_via? Lapi.fm_Shell.FilesVia
 
-	---@class Lfm.Shell.Bash.BuildOpts : Lfm.Shell.Bash.ExecOpts, Lfm.Shell.Bash.SpawnOpts
+	---@class Lapi.fm_Shell.Bash.BuildOpts : Lapi.fm_Shell.Bash.ExecOpts, Lapi.fm_Shell.Bash.SpawnOpts
 	---@field fg? true
 
 	---Spawn a shell process in the background.
@@ -182,7 +182,7 @@ do
 	---    lfm.shell.bash.spawn('mv "$@" somedir', { files_via = lfm.shell.ARGV })
 	---```
 	---@param command string
-	---@param opts? Lfm.Shell.Bash.SpawnOpts
+	---@param opts? Lapi.fm_Shell.Bash.SpawnOpts
 	---@param ... string Extra arguments will be passed to the command (unless opts.files_via == ARGV)
 	local function spawn(command, opts, ...)
 		opts = opts or {}
@@ -215,7 +215,7 @@ do
 	---    lfm.shell.bash.execute('nvim "$@"', { files_via = lfm.shell.ARGV })
 	---```
 	---@param command string
-	---@param opts? Lfm.Shell.Bash.ExecOpts
+	---@param opts? Lapi.fm_Shell.Bash.ExecOpts
 	---@param ... string Extra arguments will be passed to the command (unless opts.files_via == ARGV)
 	local function execute(command, opts, ...)
 		opts = opts or {}
@@ -247,7 +247,7 @@ do
 	---    f()
 	---```
 	---@param command string
-	---@param opts? Lfm.Shell.Bash.BuildOpts
+	---@param opts? Lapi.fm_Shell.Bash.BuildOpts
 	---@return function
 	local function build(command, opts)
 		opts = opts or {}
@@ -265,13 +265,13 @@ do
 end
 
 do
-	---@class Lfm.Shell.Fish.SpawnOpts : Lfm.SpawnOpts
-	---@field files_via? Lfm.Shell.FilesVia
+	---@class Lapi.fm_Shell.Fish.SpawnOpts : Lapi.fm_SpawnOpts
+	---@field files_via? Lapi.fm_Shell.FilesVia
 
-	---@class Lfm.Shell.Fish.ExecOpts
-	---@field files_via? Lfm.Shell.FilesVia
+	---@class Lapi.fm_Shell.Fish.ExecOpts
+	---@field files_via? Lapi.fm_Shell.FilesVia
 
-	---@class Lfm.Shell.Fish.BuildOpts : Lfm.Shell.Fish.ExecOpts ,Lfm.Shell.Fish.SpawnOpts
+	---@class Lapi.fm_Shell.Fish.BuildOpts : Lapi.fm_Shell.Fish.ExecOpts ,Lapi.fm_Shell.Fish.SpawnOpts
 	---@field fg? true
 
 	---Spawn a shell process in the background.
@@ -281,7 +281,7 @@ do
 	---    lfm.shell.fish.spawn('mv "$@" somedir', { files_via = lfm.shell.ARGV })
 	---```
 	---@param command string
-	---@param opts? Lfm.Shell.Fish.SpawnOpts
+	---@param opts? Lapi.fm_Shell.Fish.SpawnOpts
 	---@param ... string Extra arguments will be passed to the command (unless opts.files_via == ARGV)
 	local function spawn(command, opts, ...)
 		opts = opts or {}
@@ -315,7 +315,7 @@ do
 	---    lfm.shell.fish.execute('nvim "$@"', { files_via = lfm.shell.ARGV })
 	---```
 	---@param command string
-	---@param opts? Lfm.Shell.Fish.ExecOpts
+	---@param opts? Lapi.fm_Shell.Fish.ExecOpts
 	---@param ... string Extra arguments will be passed to the command (unless opts.files_via == ARGV)
 	local function execute(command, opts, ...)
 		opts = opts or {}
@@ -348,17 +348,17 @@ do
 	---    f()
 	---```
 	---@param command string
-	---@param opts? Lfm.Shell.Fish.BuildOpts
+	---@param opts? Lapi.fm_Shell.Fish.BuildOpts
 	---@return function
 	local function build(command, opts)
 		opts = opts or {}
 		if opts.fg then
 			return function(...)
-				execute(command, opts --[[@as Lfm.Shell.Fish.BuildOpts]], ...)
+				execute(command, opts --[[@as Lapi.fm_Shell.Fish.BuildOpts]], ...)
 			end
 		else
 			return function(...)
-				spawn(command, opts --[[@as Lfm.Shell.Fish.BuildOpts]], ...)
+				spawn(command, opts --[[@as Lapi.fm_Shell.Fish.BuildOpts]], ...)
 			end
 		end
 	end

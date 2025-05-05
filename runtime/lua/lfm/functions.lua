@@ -2,7 +2,7 @@ local M = { _NAME = ... }
 
 local lfm = lfm
 
-local fm = lfm.fm
+local api = lfm.api
 
 local util = require("lfm.util")
 local stat = require("posix.sys.stat")
@@ -38,7 +38,7 @@ end
 ---    M.yank_path()
 ---```
 function M.yank_path()
-	local files = fm.sel_or_cur()
+	local files = api.fm_sel_or_cur()
 	if #files > 0 then
 		wl_copy(files, true)
 	end
@@ -49,7 +49,7 @@ end
 ---    M.yank_name()
 ---```
 function M.yank_name()
-	local files = fm.sel_or_cur()
+	local files = api.fm_sel_or_cur()
 	if #files > 0 then
 		for i, file in pairs(files) do
 			files[i] = basename(file)
@@ -64,7 +64,7 @@ end
 ---```
 ---@param name string
 function M.rename(name)
-	local file = fm.current_file()
+	local file = api.fm_current_file()
 	if file then
 		if not file_exists(name) then
 			lfm.spawn({ "mv", "--", file, name })
@@ -79,15 +79,15 @@ end
 ---    M.rename_until_ext()
 ---```
 function M.rename_until_ext()
-	local file = basename(fm.current_file())
+	local file = basename(api.fm_current_file())
 	if file then
 		local _, ext = file_split(file)
 		if not ext then
 			lfm.mode("command")
-			lfm.cmd.line_set("rename ", "")
+			lfm.api.cmdline_line_set("rename ", "")
 		else
 			lfm.mode("command")
-			lfm.cmd.line_set("rename ", "." .. ext)
+			lfm.api.cmdline_line_set("rename ", "." .. ext)
 		end
 	end
 end
@@ -97,15 +97,15 @@ end
 ---    M.rename_before_ext()
 ---```
 function M.rename_before_ext()
-	local file = basename(fm.current_file())
+	local file = basename(api.fm_current_file())
 	if file then
 		local name, ext = file_split(file)
 		if not ext then
 			lfm.mode("command")
-			lfm.cmd.line_set("rename " .. file, "")
+			lfm.api.cmdline_line_set("rename " .. file, "")
 		else
 			lfm.mode("command")
-			lfm.cmd.line_set("rename " .. name, "." .. ext)
+			lfm.api.cmdline_line_set("rename " .. name, "." .. ext)
 		end
 	end
 end
@@ -116,7 +116,7 @@ end
 ---```
 function M.rename_before()
 	lfm.mode("command")
-	lfm.cmd.line_set("rename ", basename(fm.current_file()))
+	lfm.api.cmdline_line_set("rename ", basename(api.fm_current_file()))
 end
 
 ---Populate the prompt to rename at the end of the file name.
@@ -125,7 +125,7 @@ end
 ---```
 function M.rename_after()
 	lfm.mode("command")
-	lfm.cmd.line_set("rename " .. basename(fm.current_file()), "")
+	lfm.api.cmdline_line_set("rename " .. basename(api.fm_current_file()), "")
 end
 
 ---Create absolute symbolic links of the current load at the current location.
@@ -134,13 +134,13 @@ end
 ---    M.symlink()
 ---```
 function M.symlink()
-	local files, mode = fm.paste_buffer_get()
+	local files, mode = api.fm_paste_buffer_get()
 	if mode == "copy" then
 		for _, f in pairs(files) do
 			lfm.spawn({ "ln", "-s", "--", f })
 		end
 	end
-	fm.paste_buffer_set({})
+	api.fm_paste_buffer_set({})
 end
 
 ---Create relative symbolic links of the current load at the current location.
@@ -149,13 +149,13 @@ end
 ---    M.symlink_relative()
 ---```
 function M.symlink_relative()
-	local files, mode = fm.paste_buffer_get()
+	local files, mode = api.fm_paste_buffer_get()
 	if mode == "copy" then
 		for _, f in pairs(files) do
 			lfm.spawn({ "ln", "-s", "--relative", "--", f })
 		end
 	end
-	fm.paste_buffer_set({})
+	api.fm_paste_buffer_set({})
 end
 
 ---Go to the location pointed at by the symlink at the cursor position.
@@ -163,12 +163,12 @@ end
 ---    M.follow_link()
 ---```
 function M.follow_link()
-	local file = fm.current_file()
+	local file = api.fm_current_file()
 	local target = lfm.shell.popen({ "readlink", "--", file })[1]
 	if target then
 		-- TODO: do these things even work with spaces in filenames? (on 2022-02-12)
 		lfm.eval("cd " .. dirname(target))
-		fm.sel(basename(target) --[[@as string]])
+		api.fm_sel(basename(target) --[[@as string]])
 	end
 end
 
@@ -213,7 +213,7 @@ local clear = c27 .. "[0m"
 ---    M.paste()
 ---```
 function M.paste()
-	local files, mode = fm.paste_buffer_get()
+	local files, mode = api.fm_paste_buffer_get()
 	if #files == 0 then
 		return
 	end
@@ -229,7 +229,7 @@ function M.paste()
 	end
 	local cb = function(ret)
 		for dir, _ in pairs(reload_dirs) do
-			fm.load(dir)
+			api.fm_load(dir)
 		end
 		if ret ~= 0 then
 			return
@@ -253,7 +253,7 @@ function M.paste()
 			return { "cp", "-r", "--", file, target }
 		end
 	end, files, { errexit = true, out = false, callback = cb })
-	fm.paste_buffer_set({})
+	api.fm_paste_buffer_set({})
 end
 
 ---Toggle paste mode from "copy" to "move" and reverse.
@@ -261,8 +261,8 @@ end
 ---    M.toggle_paste()
 ---```
 function M.toggle_paste()
-	local mode = lfm.fm.paste_mode_get()
-	lfm.fm.paste_mode_set(mode == "copy" and "move" or "copy")
+	local mode = lfm.api.fm_paste_mode_get()
+	lfm.api.fm_paste_mode_set(mode == "copy" and "move" or "copy")
 end
 
 ---Paste the load in the current directory, overwriting existing files.
@@ -270,7 +270,7 @@ end
 ---    M.paste_overwrite()
 ---```
 function M.paste_overwrite()
-	local files, mode = fm.paste_buffer_get()
+	local files, mode = api.fm_paste_buffer_get()
 	if #files == 0 then
 		return
 	end
@@ -282,7 +282,7 @@ function M.paste_overwrite()
 	end
 	local cb = function(ret)
 		for dir, _ in pairs(reload_dirs) do
-			fm.load(dir)
+			api.fm_load(dir)
 		end
 		if ret ~= 0 then
 			return
@@ -303,7 +303,7 @@ function M.paste_overwrite()
 	end
 	table.insert(cmd, "./")
 	lfm.spawn(cmd, { callback = cb })
-	fm.paste_buffer_set({})
+	api.fm_paste_buffer_set({})
 end
 
 return M

@@ -5,6 +5,43 @@
 ---@field input boolean True, if the modes takes input form the command line.
 ---@field prefix string Prefix shown in the command line for an input mode.
 
+---@class Lfm.Dir
+---@field path string
+---@field name string
+---@field files table[string] table of filenames
+---@field sortopts Lfm.SortOpts
+
+---@alias Lfm.SortType
+---| '"name"'
+---| '"natural"'
+---| '"ctime"'
+---| '"mtime"'
+---| '"atime"'
+---| '"size"'
+---| '"random"'
+
+---@class Lfm.SortOpts
+---@field type? Lfm.SortType
+---@field dirfirst? boolean
+---@field reverse? boolean
+
+---@alias Lfm.PasteMode
+---| '"copy"'
+---| '"move"'
+
+---@alias Lfm.Info
+---| '"size"'
+---| '"atime"'
+---| '"ctime"'
+---| '"mtime"'
+
+---@alias Lfm.FilterType
+---| '"filter"'
+---| '"fuzzy"'
+---| '"lua"'
+
+---@alias Lfm.FilterFunction fun(name: string):any
+
 ---@class Lfm
 ---@field modes table<string, Lfm.Mode>
 lfm = {}

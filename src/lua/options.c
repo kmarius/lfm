@@ -13,7 +13,7 @@
 #include <stdlib.h>
 
 #define DIRSETTINGS_META "Lfm.Dirsettings.Meta"
-#define CONFIG_META "Lfm.Config.Meta"
+#define OPTIONS_META "Lfm.Config.Meta"
 #define COLORS_META "Lfm.Colors.Meta"
 
 static inline int llua_dir_settings_set(lua_State *L, const char *path,
@@ -170,32 +170,6 @@ static int l_config_index(lua_State *L) {
       lua_pushstring(L, it.ref->second);
       lua_setfield(L, -2, it.ref->first);
     }
-    return 1;
-  } else if (streq(key, "fifopath")) {
-    lua_pushstring(L, cfg.fifopath);
-    return 1;
-  } else if (streq(key, "logpath")) {
-    lua_pushstring(L, cfg.logpath);
-    return 1;
-  } else if (streq(key, "configpath")) {
-    const char *path =
-        cfg.user_configpath ? cfg.user_configpath : cfg.configpath;
-    lua_pushstring(L, path);
-    return 1;
-  } else if (streq(key, "configdir")) {
-    lua_pushstring(L, cfg.configdir);
-    return 1;
-  } else if (streq(key, "luadir")) {
-    lua_pushstring(L, cfg.luadir);
-    return 1;
-  } else if (streq(key, "datadir")) {
-    lua_pushstring(L, cfg.datadir);
-    return 1;
-  } else if (streq(key, "statedir")) {
-    lua_pushstring(L, cfg.statedir);
-    return 1;
-  } else if (streq(key, "runtime_dir")) {
-    lua_pushstring(L, cfg.rundir);
     return 1;
   } else if (streq(key, "dir_settings")) {
     lua_newtable(L);
@@ -392,9 +366,9 @@ static int l_config_newindex(lua_State *L) {
   return 0;
 }
 
-static const struct luaL_Reg config_mt[] = {{"__index", l_config_index},
-                                            {"__newindex", l_config_newindex},
-                                            {NULL, NULL}};
+static const struct luaL_Reg options_mt[] = {{"__index", l_config_index},
+                                             {"__newindex", l_config_newindex},
+                                             {NULL, NULL}};
 
 static inline uint32_t read_channel(lua_State *L, int idx) {
   switch (lua_type(L, idx)) {
@@ -485,7 +459,7 @@ static int l_colors_newindex(lua_State *L) {
 static const struct luaL_Reg colors_mt[] = {{"__newindex", l_colors_newindex},
                                             {NULL, NULL}};
 
-int luaopen_config(lua_State *L) {
+int luaopen_options(lua_State *L) {
   luaL_newmetatable(L, DIRSETTINGS_META);
   luaL_register(L, NULL, dir_settings_mt);
   lua_pop(L, 1);
@@ -499,8 +473,8 @@ int luaopen_config(lua_State *L) {
 
   lua_setfield(L, -2, "colors");
 
-  luaL_newmetatable(L, CONFIG_META);
-  luaL_register(L, NULL, config_mt);
+  luaL_newmetatable(L, OPTIONS_META);
+  luaL_register(L, NULL, options_mt);
   lua_setmetatable(L, -2);
 
   return 1;
