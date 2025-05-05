@@ -143,6 +143,7 @@ void ui_resume(Ui *ui) {
   ui->menu_delay_timer.data = to_lfm(ui);
 
   input_resume(to_lfm(ui));
+  ui_update_file_preview(ui);
   ui_redraw(ui, REDRAW_FM);
   ui->running = true;
 }
