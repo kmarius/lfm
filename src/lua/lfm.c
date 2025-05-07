@@ -545,9 +545,6 @@ int luaopen_lfm(lua_State *L) {
   luaopen_log(L);
   lua_setfield(L, -2, "log");
 
-  luaopen_api(L);
-  lua_setfield(L, -2, "cmd");
-
   luaopen_fn(L);
   lua_setfield(L, -2, "fn");
 
