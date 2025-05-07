@@ -465,7 +465,6 @@ static const struct luaL_Reg lfm_lib[] = {
     {"search_next", l_search_next},
     {"search_prev", l_search_prev},
     {"crash", l_crash},
-    {"print", l_print},
     {"error", l_error},
     {"message_clear", l_message_clear},
     {"quit", l_quit},

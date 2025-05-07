@@ -239,13 +239,6 @@ function lfm.search_prev(inclusive) end
 ---```
 function lfm.nohighlight() end
 
----Show a message in the UI.
----```lua
----    lfm.print("Hello", "World")
----```
----@param ... any[]
-function lfm.print(...) end
-
 ---Show an error in the UI.
 ---```lua
 ---    lfm.error("Oh, no!", "Something went wrong")

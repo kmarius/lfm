@@ -61,6 +61,18 @@ do
 	})
 end
 
+---Pretty print on the UI. Returns the parameter as is
+---```lua
+---    lfm.print({ "Hello", "World" })
+---```
+---@param ... any
+function lfm.print(...)
+	for _, e in ipairs({ ... }) do
+		print(lfm.inspect(e))
+	end
+	return ...
+end
+
 ---Print a formatted string.
 ---```lua
 ---    lfm.printf("Hello %s", "World")

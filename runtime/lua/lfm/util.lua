@@ -19,16 +19,16 @@ function M.dirname(path)
 	if not path then
 		return nil
 	end
-  if path == "/" then
-    return "/"
-  end
+	if path == "/" then
+		return "/"
+	end
 	if string.sub(path, 1, 1) ~= "/" then
 		path = "./" .. path
 	end
-  local dirname = string.gsub(path, "/[^/]*$", "")
-  if dirname == "" then
-    return "/"
-  end
+	local dirname = string.gsub(path, "/[^/]*$", "")
+	if dirname == "" then
+		return "/"
+	end
 	return dirname
 end
 
