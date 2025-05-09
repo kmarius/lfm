@@ -10,6 +10,6 @@
   "Lua.workspace.checkThirdParty": false,
   "Lua.workspace.library": [
     "runtime/lua/",
-    "doc/EmmyLua/"
+    "doc/LuaCATS/"
   ]
 }
