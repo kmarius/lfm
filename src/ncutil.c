@@ -8,6 +8,7 @@
 #include <assert.h>
 #include <ctype.h>
 #include <limits.h>
+#include <notcurses/notcurses.h>
 
 static inline void normal(struct ncplane *n) {
   ncplane_set_styles(n, NCSTYLE_NONE);
@@ -83,6 +84,12 @@ const char *ncplane_set_ansi_attrs(struct ncplane *n, const char *s) {
         break;
       case 9: /* strikethrough */
         ncplane_on_styles(n, NCSTYLE_STRUCK);
+        break;
+      case 22:
+        ncplane_off_styles(n, NCSTYLE_BOLD);
+        break;
+      case 24:
+        ncplane_off_styles(n, NCSTYLE_UNDERLINE);
         break;
       case 38: {
         int op;
