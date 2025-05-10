@@ -250,7 +250,7 @@ function M._setup()
 					for _, file in ipairs(api.fm_sel_or_cur()) do
 						command[#command + 1] = file
 					end
-					lfm.spawn(command)
+					lfm.spawn(command, { stderr = true })
 					api.fm_selection_set()
 				end
 			end,

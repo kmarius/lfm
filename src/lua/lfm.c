@@ -136,8 +136,8 @@ static int l_message_clear(lua_State *L) {
 
 static int l_spawn(lua_State *L) {
   vec_str stdin = {0};
-  bool out = true;
-  bool err = true;
+  bool stdout = false;
+  bool stderr = false;
   int stdout_ref = 0;
   int stderr_ref = 0;
   int exit_ref = 0;
@@ -178,19 +178,19 @@ static int l_spawn(lua_State *L) {
     }
     lua_pop(L, 1); // [cmd, opts]
 
-    lua_getfield(L, 2, "out"); // [cmd, opts, opts.out]
+    lua_getfield(L, 2, "stdout"); // [cmd, opts, opts.out]
     if (lua_isfunction(L, -1)) {
       stdout_ref = lua_set_callback(L); // [cmd, opts]
     } else {
-      out = lua_toboolean(L, -1);
+      stdout = lua_toboolean(L, -1);
       lua_pop(L, 1); // [cmd, opts]
     }
 
-    lua_getfield(L, 2, "err"); // [cmd, opts, opts.err]
+    lua_getfield(L, 2, "stderr"); // [cmd, opts, opts.err]
     if (lua_isfunction(L, -1)) {
       stderr_ref = lua_set_callback(L); // [cmd, opts]
     } else {
-      err = lua_toboolean(L, -1);
+      stderr = lua_toboolean(L, -1);
       lua_pop(L, 1); // [cmd, opts]
     }
 
@@ -202,7 +202,7 @@ static int l_spawn(lua_State *L) {
     }
   }
 
-  int pid = lfm_spawn(lfm, args.data[0], args.data, &stdin, out, err,
+  int pid = lfm_spawn(lfm, args.data[0], args.data, &stdin, stdout, stderr,
                       stdout_ref, stderr_ref, exit_ref);
 
   vec_str_drop(&stdin);

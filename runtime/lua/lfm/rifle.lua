@@ -48,13 +48,10 @@ function M.open(...)
 				if not term then
 					error("rifle: no terminal configured" .. (config and " in " .. config or ""))
 				end
-				lfm.spawn(
-					{ "sh", "-c", term.command, "_", "sh", "-c", match.command, unpack(files) },
-					{ out = false, err = false }
-				)
+				lfm.spawn({ "sh", "-c", term.command, "_", "sh", "-c", match.command, unpack(files) })
 			else
 				if match.fork then
-					lfm.spawn({ "sh", "-c", match.command, "_", unpack(files) }, { out = false, err = false })
+					lfm.spawn({ "sh", "-c", match.command, "_", unpack(files) })
 				else
 					lfm.execute({ "sh", "-c", match.command, "_", unpack(files) })
 				end

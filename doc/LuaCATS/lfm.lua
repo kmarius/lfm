@@ -64,7 +64,7 @@ lfm.util = require("lfm.util")
 ---| '"Release"'
 ---| '"RelWithDebInfo"'
 
----@class Lfm.Version
+---@class (exact) Lfm.Version
 ---@field info string version information string
 ---@field branch string branch
 ---@field commit string commit hash
@@ -87,15 +87,18 @@ lfm.version = {}
 function lfm.execute(command) end
 
 ---@class Lfm.SpawnOpts
----@field stdin? string|string[] Will be sent to the processe's stdin
----@field out? boolean|function Function to capture stdout, or a boolean to decide if output is shown in the UI (default: true)
----@field err? boolean|function Function to capture stderr, or a boolean to decide if output is shown in the UI (default: true)
+---@field stdin? string|string[] Will be sent to the process' stdin
+---@field stdout? fun(line: string)|true Function to capture stdout, or `true` to show output in the UI
+---@field stderr? fun(line: string)|true Function to capture stderr, or `true` to show output in the UI
 ---@field callback? function Function to capture the return value
 
 ---Spawn a background command. Returns the pid on success, nil otherwise.
+---
+---Example:
 ---```lua
 ---    lfm.spawn({"notify-send", "Hello", "from lfm"})
 ---```
+---
 ---Capture exit status:
 ---```lua
 ---    local function callback(ret)
@@ -103,27 +106,23 @@ function lfm.execute(command) end
 ---    end
 ---    lfm.spawn({"true"}, { callback = callback })
 ---```
+---
 ---Capture stdout:
 ---```lua
 ---    -- Prints directly to lfm:
----    lfm.spawn({"echo", "hello"})
----
----    -- Prints nothing
----    lfm.spawn({"echo", "hello"}, { out = false })
+---    lfm.spawn({"echo", "hello"}, { stdout = true })
 ---
 ---    -- Capture output with a function:
 ---    local function callback(line)
 ---      print("received: " .. line)
 ---    end
----    lfm.spawn({"echo", "hello"}, { out = callback })
+---    lfm.spawn({"echo", "hello"}, { stdout = callback })
 ---```
+---
 ---Capture stderr:
 ---```lua
----    -- Prints directly to lfm:
----    lfm.spawn({"sh", "-c", "echo hello >&2"})
----
 ---    -- Prints nothing
----    lfm.spawn({"sh", "-c", "echo hello >&2"}, { err = false })
+---    lfm.spawn({"sh", "-c", "echo hello >&2"}, { stderr = true })
 ---
 ---    -- Capture stderr with a function:
 ---    local function callback(line)
@@ -131,13 +130,16 @@ function lfm.execute(command) end
 ---    end
 ---    lfm.spawn({"echo", "hello"}, { err = callback })
 ---```
+---
 ---Sending input:
 ---```lua
 ---    -- Send stdin to command (which is then output by "cat" and sent to lfm)
----    lfm.spawn({"cat"}, { stdin = "Hello" })
+---    lfm.spawn({"cat"}, { stdin = "Hello", stdout = true })
 ---
 ---    -- Or as a table
----    lfm.spawn({"cat"}, { stdin = { "Hello,", "Mike" } })
+---    lfm.spawn({"cat"}, { stdin = { "Hello,", "Mike" }, stdout = true })
+---````
+---
 ---@param command string[]
 ---@param opts? Lfm.SpawnOpts
 ---@return integer? pid

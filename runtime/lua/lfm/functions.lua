@@ -27,9 +27,9 @@ end
 ---@param primary boolean
 local function wl_copy(text, primary)
 	if primary then
-		lfm.spawn({ "wl-copy", "-n", "--primary" }, { stdin = text })
+		lfm.spawn({ "wl-copy", "-n", "--primary" }, { stdin = text, stderr = true })
 	else
-		lfm.spawn({ "wl-copy", "-n" }, { stdin = text })
+		lfm.spawn({ "wl-copy", "-n" }, { stdin = text, stderr = true })
 	end
 end
 
@@ -67,7 +67,7 @@ function M.rename(name)
 	local file = api.fm_current_file()
 	if file then
 		if not file_exists(name) then
-			lfm.spawn({ "mv", "--", file, name })
+			lfm.spawn({ "mv", "--", file, name }, { stderr = true })
 		else
 			lfm.error("file exists")
 		end
@@ -137,7 +137,7 @@ function M.symlink()
 	local files, mode = api.fm_paste_buffer_get()
 	if mode == "copy" then
 		for _, f in pairs(files) do
-			lfm.spawn({ "ln", "-s", "--", f })
+			lfm.spawn({ "ln", "-s", "--", f }, { stderr = true })
 		end
 	end
 	api.fm_paste_buffer_set({})
@@ -152,7 +152,7 @@ function M.symlink_relative()
 	local files, mode = api.fm_paste_buffer_get()
 	if mode == "copy" then
 		for _, f in pairs(files) do
-			lfm.spawn({ "ln", "-s", "--relative", "--", f })
+			lfm.spawn({ "ln", "-s", "--relative", "--", f }, { stderr = true })
 		end
 	end
 	api.fm_paste_buffer_set({})
@@ -252,7 +252,7 @@ function M.paste()
 		else
 			return { "cp", "-r", "--", file, target }
 		end
-	end, files, { errexit = true, out = false, callback = cb })
+	end, files, { errexit = true, stderr = true, callback = cb })
 	api.fm_paste_buffer_set({})
 end
 
@@ -302,7 +302,7 @@ function M.paste_overwrite()
 		-- not reached
 	end
 	table.insert(cmd, "./")
-	lfm.spawn(cmd, { callback = cb })
+	lfm.spawn(cmd, { callback = cb, stderr = true })
 	api.fm_paste_buffer_set({})
 end
 

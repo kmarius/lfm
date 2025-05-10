@@ -298,7 +298,7 @@ register_command("shell", function(arg)
 end, { tokenize = false, compl = compl.files, desc = "Run a shell command." })
 
 register_command("shell-bg", function(arg)
-	shell.bash.spawn(arg, { files_via = shell.ARGV })
+	shell.bash.spawn(arg, { files_via = shell.ARGV, stdout = true, stderr = true })
 end, { tokenize = false, compl = compl.files, desc = "Run a shell command in the background." })
 
 require("lfm.jumplist")._setup()
@@ -380,7 +380,7 @@ register_command("delete", function(args)
 	if args then
 		error("command takes no arguments")
 	end
-	spawn({ "rm", "-rf", "--", unpack(sel_or_cur()) })
+	spawn({ "rm", "-rf", "--", unpack(sel_or_cur()) }, { stderr = true })
 	api.fm_selection_set()
 end, { desc = "Delete current selection without asking for confirmation." })
 
