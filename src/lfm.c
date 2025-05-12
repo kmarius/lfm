@@ -125,10 +125,6 @@ static void child_cb(EV_P_ ev_child *w, int revents) {
   struct child_watcher *watcher = (struct child_watcher *)w;
   Lfm *lfm = watcher->lfm;
 
-  if (watcher->ref) {
-    llua_run_child_callback(lfm->L, watcher->ref, WEXITSTATUS(w->rstatus));
-  }
-
   if (watcher->stdout_watcher) {
     ev_invoke(EV_A_ watcher->stdout_watcher, 0);
     ev_io_stop(EV_A_ watcher->stdout_watcher);
@@ -137,6 +133,10 @@ static void child_cb(EV_P_ ev_child *w, int revents) {
   if (watcher->stderr_watcher) {
     ev_invoke(EV_A_ watcher->stderr_watcher, 0);
     ev_io_stop(EV_A_ watcher->stderr_watcher);
+  }
+
+  if (watcher->ref) {
+    llua_run_child_callback(lfm->L, watcher->ref, WEXITSTATUS(w->rstatus));
   }
 
   ev_child_stop(EV_A_ w);
