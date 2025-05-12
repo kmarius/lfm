@@ -4,6 +4,7 @@
 
 #include <lauxlib.h>
 
+#include <linux/limits.h>
 #include <unistd.h>
 
 static int l_fn_normalize(lua_State *L) {
@@ -98,7 +99,8 @@ static int l_fn_getpid(lua_State *L) {
 }
 
 static int l_fn_getcwd(lua_State *L) {
-  const char *cwd = getcwd(NULL, 0);
+  const char buf[PATH_MAX];
+  const char *cwd = getcwd((char *)buf, sizeof buf);
   lua_pushstring(L, cwd ? cwd : "");
   return 1;
 }
