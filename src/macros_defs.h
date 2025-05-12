@@ -15,3 +15,6 @@
       Notify *: container_of((Notify *)ptr, Lfm, notify),                      \
       Loader *: container_of((Loader *)ptr, Lfm, loader),                      \
       default: NULL)
+
+#define likely(x) __builtin_expect(!!(x), 1)
+#define unlikely(x) __builtin_expect(!!(x), 0)

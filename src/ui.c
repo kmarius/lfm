@@ -18,6 +18,7 @@
 #include "mode.h"
 #include "ncutil.h"
 #include "preview.h"
+#include "spinner.h"
 #include "statusline.h"
 #include "util.h"
 
@@ -35,6 +36,8 @@
 #include <fcntl.h>
 #include <libgen.h>
 #include <unistd.h>
+
+#include "stc/common.h"
 
 #define i_declared
 #define i_type vec_ncplane, struct ncplane *
@@ -126,9 +129,12 @@ void ui_resume(Ui *ui) {
       .userptr = ui,
   };
 
+  // this plane is responsible for resizing, only put the callback here
   opts.resizecb = resize_cb;
   ui->planes.info = ncplane_create(ncstd, &opts);
   opts.resizecb = NULL;
+
+  spinner_init(&ui->spinner, spinner_chars, to_lfm(ui)->loop, ui->planes.info);
 
   opts.y = ui->y - 1;
   ui->planes.cmdline = ncplane_create(ncstd, &opts);
@@ -151,6 +157,9 @@ void ui_resume(Ui *ui) {
 void ui_suspend(Ui *ui) {
   log_debug("suspending ui");
   ui->running = false;
+  // this breaks if called after ev_break, for now, ensure that the spinner is
+  // re-initialized in ui_resume before the event-loop calls its callback with
+  // invalid notcurses spinner_off(&ui->spinner);
   input_suspend(to_lfm(ui));
   vec_ncplane_clear(&ui->planes.dirs);
   ncplane_destroy(ui->planes.cmdline);

@@ -2,50 +2,360 @@
 
 #include "config.h"
 #include "lfm.h"
+#include "log.h"
 #include "macros_defs.h"
 #include "memory.h"
 #include "ncutil.h"
+#include "spinner.h"
 #include "ui.h"
 
 #include <curses.h>
 
+#include <linux/limits.h>
+#include <notcurses/notcurses.h>
+#include <string.h>
 #include <unistd.h>
+#include <wchar.h>
 
-static inline void draw_custom_info(Ui *ui, const char *user, const char *host,
-                                    const char *home);
+// some placeholders don't change (user, host) and are not counted here
+#define PLACEHOLDERS_MAX 16
+
+// holds any static text including ansi sequences etc.
+#define STATIC_BUF_SZ 1024
+
+// static data we only set once
+static int uid = -1;
+static char user[64 + 1] = {0};
+static char host[HOST_NAME_MAX + 1] = {0};
+static char home[64 + 1];
+static uint32_t home_len; // printed length of home
+
+// this buffer holds any static text including ansi sequences etc.
+static char static_buf[STATIC_BUF_SZ];
+static char *static_buf_ptr;
+// this includes size of elements not in the static buf, e.g. 1 for the spinner
+static int static_len = 0;
+
+static int num_placeholders = 0;
+static struct {
+  char *next; // points into buf, to print whatever follows this placeholder
+  char c;     // placeholder type
+  int16_t next_len;        // printed length of whatever follows
+  int16_t replacement_len; // printed length of the replaced placeholder, if
+                           // known, or 0
+  void *ptr; // data belonging to the placeholder, possibly a char* or wchar_t*
+} placeholders[PLACEHOLDERS_MAX] = {0};
+
+// index positions of some placeholders
+static struct {
+  int file, path, spinner, spacer, mode;
+} idx;
+
+static inline void infoline_parse(const char *infoline);
+static inline void draw_custom(Ui *ui);
+static inline void draw_default(Ui *ui);
 static inline int shorten_file_name(wchar_t *name, int name_len, int max_len,
                                     bool has_ext);
 static inline int shorten_path(wchar_t *path, int path_len, int max_len);
 
 void infoline_set(Ui *ui, const char *line) {
-  xfree(ui->infoline);
-  ui->infoline = line ? strdup(line) : NULL;
-  ui_redraw(ui, REDRAW_INFO);
-}
-
-void infoline_draw(Ui *ui) {
-  static int uid = -1;
-  static char user[32] = {0};
-  static char host[HOST_NAME_MAX + 1] = {0};
-  static char *home;
-  static uint32_t home_len;
-
-  if (user[0] == 0) {
+  if (unlikely(user[0] == 0)) {
+    // initialize once
     strncpy(user, getenv("USER"), sizeof user - 1);
     gethostname(host, sizeof host);
-    home = getenv("HOME");
+    const char *env_home = getenv("HOME");
+    if (env_home) {
+      strncpy(home, env_home, sizeof home - 1);
+      home[sizeof home - 1] = 0;
+    }
     home_len = mbstowcs(NULL, home, 0);
     uid = getuid();
   }
 
-  struct ncplane *n = ui->planes.info;
+  xfree(ui->infoline);
+  ui->infoline = line ? strdup(line) : NULL;
+  if (line) {
+    infoline_parse(ui->infoline);
+  }
 
+  ui_redraw(ui, REDRAW_INFO);
+}
+
+static inline void infoline_parse(const char *infoline) {
+  memset(&idx, 0, sizeof idx);
+  memset(placeholders, 0, sizeof placeholders);
+  static_buf_ptr = static_buf;
+  num_placeholders = 0;
+  placeholders[num_placeholders].next = static_buf_ptr;
+  placeholders[num_placeholders].c = 0;
+  num_placeholders++;
+  static_len = 0;
+
+  // we check for idx != 0 later, since index 0 is already used
+
+  char const *buf_end = static_buf + sizeof static_buf - 1;
+  for (const char *ptr = infoline; *ptr && static_buf_ptr < buf_end; ptr++) {
+    if (*ptr != '%') {
+      *static_buf_ptr++ = *ptr;
+    } else {
+      if (num_placeholders == PLACEHOLDERS_MAX) {
+        log_error("too many placeholders");
+        break;
+      }
+      ptr++;
+      switch (*ptr) {
+      case 0:
+        // malformed
+        break;
+      case 'u':
+        static_buf_ptr += snprintf(
+            static_buf_ptr,
+            sizeof(static_buf) - 1 - (static_buf_ptr - static_buf), "%s", user);
+        break;
+      case 'h':
+        static_buf_ptr += snprintf(
+            static_buf_ptr,
+            sizeof(static_buf) - 1 - (static_buf_ptr - static_buf), "%s", host);
+        break;
+      case 'p':
+        if (idx.path != 0) {
+          log_info("ignoring duplicate path placeholder");
+          continue;
+        }
+        placeholders[num_placeholders].next = static_buf_ptr + 1;
+        placeholders[num_placeholders].c = 'p';
+        idx.path = num_placeholders;
+        num_placeholders++;
+        *static_buf_ptr++ = 0;
+        break;
+      case 'f':
+        if (idx.file != 0) {
+          log_info("ignoring duplicate file placeholder");
+          continue;
+        }
+        placeholders[num_placeholders].next = static_buf_ptr + 1;
+        placeholders[num_placeholders].c = 'f';
+        idx.file = num_placeholders;
+        num_placeholders++;
+        *static_buf_ptr++ = 0;
+        break;
+      case 's':
+        if (idx.spacer != 0) {
+          log_info("ignoring duplicate spacer");
+          continue;
+        }
+        placeholders[num_placeholders].next = static_buf_ptr + 1;
+        placeholders[num_placeholders].c = 's';
+        idx.spacer = num_placeholders;
+        num_placeholders++;
+        *static_buf_ptr++ = 0;
+        break;
+      case 'S':
+        if (idx.spinner != 0) {
+          log_info("ignoring duplicate spinner placeholder");
+          continue;
+        }
+        placeholders[num_placeholders].next = static_buf_ptr + 1;
+        placeholders[num_placeholders].c = 'S';
+        placeholders[num_placeholders].replacement_len = 1;
+        idx.spinner = num_placeholders;
+        num_placeholders++;
+        *static_buf_ptr++ = 0;
+        break;
+      case 'M':
+        if (idx.mode != 0) {
+          log_info("ignoring duplicate mode placeholder");
+          continue;
+        }
+        placeholders[num_placeholders].next = static_buf_ptr + 1;
+        placeholders[num_placeholders].c = 'M';
+        idx.mode = num_placeholders;
+        num_placeholders++;
+        *static_buf_ptr++ = 0;
+        break;
+      case '%':
+        *static_buf_ptr++ = '%';
+        break;
+      default:
+        *static_buf_ptr++ = '%';
+        *static_buf_ptr++ = *ptr;
+      }
+    }
+  }
+
+  *static_buf_ptr = 0;
+
+  // length of all static tokens
+  for (int i = 0; i < num_placeholders; i++) {
+    size_t len = ansi_mblen(placeholders[i].next);
+    placeholders[i].next_len = len;
+    static_len += len;
+    static_len += placeholders[i].replacement_len;
+  }
+}
+
+void infoline_draw(Ui *ui) {
+  struct ncplane *n = ui->planes.info;
   ncplane_erase(n);
 
+  ncplane_set_styles(n, NCSTYLE_NONE);
+  ncplane_set_bg_default(n);
+  ncplane_set_fg_default(n);
+
   if (ui->infoline) {
-    draw_custom_info(ui, user, host, home);
-    return;
+    draw_custom(ui);
+  } else {
+    draw_default(ui);
   }
+}
+
+static inline void draw_custom(Ui *ui) {
+  struct ncplane *n = ui->planes.info;
+
+  // longer file names/paths are truncated safely
+  wchar_t file_buf[128] = {0};
+  int file_len = 0;
+  bool file_is_dir = false;
+  const int file_buf_len = sizeof file_buf / sizeof file_buf[0];
+
+  wchar_t path_buf[PATH_MAX] = {0};
+  const int path_buf_len = sizeof path_buf / sizeof path_buf[0];
+
+  // start of the string we are printing, points into path_buf
+  wchar_t *path = path_buf;
+
+  // we need to fit file/path placeholders into this
+  // make sure to deduct any other dynamic placeholders from this
+  int remaining = ui->x - static_len;
+
+  if (idx.mode) {
+    char *mode = to_lfm(ui)->current_mode->name;
+    int len = strlen(mode);
+    placeholders[idx.mode].replacement_len = len;
+    placeholders[idx.mode].ptr = mode;
+    remaining -= len;
+  }
+
+  if (idx.file != 0) {
+    file_buf[0] = 0;
+    File *file = fm_current_file(&to_lfm(ui)->fm);
+    if (file) {
+      file_len = mbstowcs(file_buf, file_name(file), file_buf_len - 1);
+      file_is_dir = file_isdir(file);
+    }
+  }
+
+  if (idx.path != 0) {
+    const Dir *dir = fm_current_dir(&to_lfm(ui)->fm);
+    const wchar_t *path_buf_end = path_buf + path_buf_len;
+
+    mbstowcs(path_buf, dir->path, path_buf_len - 1);
+
+    int path_remaining = remaining - file_len;
+
+    // replace $HOME with ~
+    if (hasprefix(dir->path, home)) {
+      path += mbslen(home) - 1;
+      // make sure we don't jump past the end of the buffer
+      if (path < path_buf_end - 1) {
+        *path = '~';
+        path_remaining--;
+      } else {
+        // abort!
+        path_remaining = 0;
+        path = (wchar_t *)path_buf_end - 1;
+      }
+    }
+
+    if (!dir_isroot(dir) && path_remaining > 0) {
+      path_remaining--; // extra trailing '/', later
+    }
+
+    int len = wcslen(path);
+    if (path_remaining < len) {
+      wchar_t *path_begin = path;
+      if (path[0] == '~') {
+        path_begin++;
+        len--;
+      }
+      shorten_path(path_begin, len, path_remaining);
+      len = wcslen(path);
+    }
+    assert(path + len < path_buf_end);
+
+    // trailing slash
+    if (!dir_isroot(dir)) {
+      if (path + len < path_buf_end - 1) {
+        path[len] = '/';
+        path[len + 1] = 0;
+        len++;
+      }
+    }
+
+    placeholders[idx.path].replacement_len = len;
+    placeholders[idx.path].ptr = path;
+    remaining -= len;
+
+    assert(path < path_buf_end);
+  }
+
+  if (idx.file != 0) {
+    if (remaining < file_len) {
+      shorten_file_name(file_buf, file_len, remaining, !file_is_dir);
+    }
+    // TODO: could be returned by shorten_file_name
+    placeholders[idx.file].replacement_len = wcslen(file_buf);
+    placeholders[idx.file].ptr = file_buf;
+  }
+
+  for (int i = 0; i < num_placeholders; i++) {
+    switch (placeholders[i].c) {
+    case 0:
+      break;
+    case 'f':
+      ncplane_putwstr(n, placeholders[i].ptr);
+      break;
+    case 'p':
+      ncplane_putwstr(n, placeholders[i].ptr);
+      break;
+    case 's': {
+      unsigned int x;
+      ncplane_cursor_yx(n, NULL, &x);
+      int remaining = ui->x - x;
+      int l = 0;
+      for (int j = i; j < num_placeholders; j++) {
+        l += placeholders[j].next_len;
+        l += placeholders[j].replacement_len;
+      }
+      if (remaining >= l) {
+        ncplane_cursor_move_yx(n, 0, ui->x - l);
+      }
+    } break;
+    case 'M':
+      ncplane_putstr(n, placeholders[i].ptr);
+      break;
+    case 'S': {
+      // store style/colors and initialize the spinner
+      unsigned int x;
+      ncplane_cursor_yx(n, NULL, &x);
+      uint64_t channels = ncplane_channels(n);
+      uint16_t style = ncplane_styles(n);
+
+      spinner_on(&ui->spinner, 0, x, channels, style);
+      // draw the current char immediately
+      spinner_draw_char(&ui->spinner);
+    } break;
+    }
+    ncplane_addastr(n, placeholders[i].next);
+  }
+
+  if (idx.spinner == 0) {
+    spinner_off(&ui->spinner);
+  }
+}
+
+static inline void draw_default(Ui *ui) {
+  struct ncplane *n = ui->planes.info;
 
   ncplane_set_styles(n, NCSTYLE_BOLD);
   if (uid == 0) {
@@ -64,7 +374,8 @@ void infoline_draw(Ui *ui) {
 
   const Dir *dir = fm_current_dir(&to_lfm(ui)->fm);
   const File *file = dir_current_file(dir);
-  int path_len, name_len;
+  int path_len = 0;
+  int name_len = 0;
   wchar_t *path_ = ambstowcs(dir->path, &path_len);
   wchar_t *path = path_;
   wchar_t *name = NULL;
@@ -79,7 +390,7 @@ void infoline_draw(Ui *ui) {
     remaining -= name_len;
   }
   ncplane_set_fg_palindex(n, COLOR_BLUE);
-  if (home && hasprefix(dir->path, home)) {
+  if (hasprefix(dir->path, home)) {
     ncplane_putchar(n, '~');
     remaining--;
     path += home_len;
@@ -144,189 +455,12 @@ void infoline_draw(Ui *ui) {
   xfree(name);
 }
 
-// default: %u@%h:%p/%f
-static inline void draw_custom_info(Ui *ui, const char *user, const char *host,
-                                    const char *home) {
-  char buf[1024];
-  char *buf_ptr = buf;
-  char const *buf_end = buf + sizeof buf - 1;
-
-  // path will be truncated first, then file
-  char *path_ptr = NULL;
-  char *file_ptr = NULL;
-  char *spacer_ptr = NULL;
-
-  for (const char *ptr = ui->infoline; *ptr && buf_ptr < buf_end; ptr++) {
-    if (*ptr != '%') {
-      *buf_ptr++ = *ptr;
-    } else {
-      ptr++;
-      switch (*ptr) {
-      case 0:
-        // malformed
-        break;
-      case 'u':
-        buf_ptr +=
-            snprintf(buf_ptr, sizeof(buf) - 1 - (buf_ptr - buf), "%s", user);
-        break;
-      case 'h':
-        buf_ptr +=
-            snprintf(buf_ptr, sizeof(buf) - 1 - (buf_ptr - buf), "%s", host);
-        break;
-      case 'p':
-        path_ptr = buf_ptr;
-        *buf_ptr++ = 0;
-        break;
-      case 'f':
-        file_ptr = buf_ptr;
-        *buf_ptr++ = 0;
-        break;
-      case 's':
-        spacer_ptr = buf_ptr;
-        *buf_ptr++ = 0;
-        break;
-      case 'M':
-        buf_ptr += snprintf(buf_ptr, sizeof(buf) - 1 - (buf_ptr - buf), "%s",
-                            to_lfm(ui)->current_mode->name);
-        break;
-      case '%':
-        *buf_ptr++ = '%';
-        break;
-      default:
-        *buf_ptr++ = '%';
-        *buf_ptr++ = *ptr;
-      }
-    }
-  }
-
-  *buf_ptr = 0;
-
-  // length of all static tokens
-  int static_len = ansi_mblen(buf);
-
-  if (path_ptr) {
-    static_len += ansi_mblen(path_ptr + 1);
-  }
-  if (file_ptr) {
-    static_len += ansi_mblen(file_ptr + 1);
-  }
-  if (spacer_ptr) {
-    static_len += ansi_mblen(spacer_ptr + 1);
-  }
-
-  int remaining = ui->x - static_len;
-
-  wchar_t *file = NULL;
-  int file_len = 0;
-  bool file_is_dir = false;
-  if (file_ptr) {
-    const File *f = fm_current_file(&to_lfm(ui)->fm);
-    file = ambstowcs(f ? file_name(f) : "", &file_len);
-    file_is_dir = f ? file_isdir(f) : false;
-  }
-
-  int path_len = 0;
-  wchar_t *path_buf = NULL; // to xfree later
-  wchar_t *path =
-      NULL; // passed to drawing function, possibly points into path_buf
-
-  if (path_ptr) {
-    // prepare path string: replace HOME with ~ and shorten if necessary
-
-    const Dir *dir = fm_current_dir(&to_lfm(ui)->fm);
-
-    path_len = mbstowcs(NULL, dir->path, 0);
-    path_buf = xmalloc((path_len + 2) *
-                       sizeof *path_buf); // extra space for trailing '/'
-    path_len = mbstowcs(path_buf, dir->path, path_len + 1);
-    path = path_buf;
-
-    wchar_t *path_buf_ptr = path;
-    int path_remaining = remaining - file_len;
-
-    if (hasprefix(dir->path, home)) {
-      const int n = mbslen(home);
-      path += n - 1;
-      path_buf_ptr += n - 1;
-      *path_buf_ptr++ = '~';
-      path_remaining--;
-    }
-
-    if (!dir_isroot(dir)) {
-      path_remaining--; // extra trailing '/'
-    }
-
-    const int l = wcslen(path_buf_ptr);
-    if (path_remaining < l) {
-      shorten_path(path_buf_ptr, l, path_remaining);
-    }
-
-    if (!dir_isroot(dir)) {
-      path_buf_ptr += wcslen(path_buf_ptr);
-      *path_buf_ptr++ = '/';
-      *path_buf_ptr = 0;
-    }
-    path_len = path_buf_ptr - path;
-    remaining -= path_buf_ptr - path;
-  }
-
-  if (file_ptr) {
-    if (remaining < file_len) {
-      shorten_file_name(file, file_len, remaining, !file_is_dir);
-    }
-  }
-
-  struct ncplane *n = ui->planes.info;
-  ncplane_set_styles(n, NCSTYLE_NONE);
-  ncplane_set_bg_default(n);
-  ncplane_set_fg_default(n);
-
-  ncplane_addastr(n, buf);
-  if (path_ptr && file_ptr) {
-    if (path_ptr < file_ptr) {
-      ncplane_putwstr(n, path);
-      ncplane_addastr(n, path_ptr + 1);
-
-      ncplane_putwstr(n, file);
-      ncplane_addastr(n, file_ptr + 1);
-    } else {
-      ncplane_putwstr(n, file);
-      ncplane_addastr(n, file_ptr + 1);
-
-      ncplane_putwstr(n, path);
-      ncplane_addastr(n, path_ptr + 1);
-    }
-  } else if (path_ptr) {
-    ncplane_putwstr(n, path);
-    ncplane_addastr(n, path_ptr + 1);
-  } else if (file_ptr) {
-    ncplane_putwstr(n, file);
-    ncplane_addastr(n, file_ptr + 1);
-  }
-
-  if (spacer_ptr) {
-    unsigned int r;
-    ncplane_cursor_yx(n, NULL, &r);
-    r = ui->x - r;
-    while (ncplane_putchar(n, ' ') > 0)
-      ;
-    size_t l = ansi_mblen(spacer_ptr + 1);
-    if (r >= l) {
-      ncplane_cursor_move_yx(n, 0, ui->x - l);
-      ncplane_addastr(n, spacer_ptr + 1);
-    }
-  }
-
-  xfree(path_buf);
-  xfree(file);
-}
-
 /* TODO: make the following two functions return the length of the output
  * (and make the callers use it) (on 2022-10-29) */
 /* TODO: use these in the default infoline drawer (on 2022-10-29) */
 
 // max_len is not a strict upper bound, but we try to make path as short as
-// possible path probably shouldn't end with /
+// possible. path probably shouldn't end with /
 static inline int shorten_path(wchar_t *path, int path_len, int max_len) {
   wchar_t *ptr = path;
   wchar_t *end = path + path_len;
