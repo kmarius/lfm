@@ -58,20 +58,20 @@ static inline int shorten_file_name(wchar_t *name, int name_len, int max_len,
                                     bool has_ext);
 static inline int shorten_path(wchar_t *path, int path_len, int max_len);
 
-void infoline_set(Ui *ui, const char *line) {
-  if (unlikely(user[0] == 0)) {
-    // initialize once
-    strncpy(user, getenv("USER"), sizeof user - 1);
-    gethostname(host, sizeof host);
-    const char *env_home = getenv("HOME");
-    if (env_home) {
-      strncpy(home, env_home, sizeof home - 1);
-      home[sizeof home - 1] = 0;
-    }
-    home_len = mbstowcs(NULL, home, 0);
-    uid = getuid();
+void infoline_init(Ui *ui) {
+  (void)ui;
+  strncpy(user, getenv("USER"), sizeof user - 1);
+  gethostname(host, sizeof host);
+  const char *env_home = getenv("HOME");
+  if (env_home) {
+    strncpy(home, env_home, sizeof home - 1);
+    home[sizeof home - 1] = 0;
   }
+  home_len = mbstowcs(NULL, home, 0);
+  uid = getuid();
+}
 
+void infoline_set(Ui *ui, const char *line) {
   xfree(ui->infoline);
   ui->infoline = line ? strdup(line) : NULL;
   if (line) {

@@ -74,6 +74,7 @@ void ui_init(Ui *ui) {
   ui->preview_load_timer.data = to_lfm(ui);
 
   cmdline_init(&ui->cmdline);
+  infoline_init(ui);
   input_init(to_lfm(ui));
   ui_resume(ui);
 }
