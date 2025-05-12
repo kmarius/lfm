@@ -5,7 +5,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # Point CMake at any custom modules we may ship
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 
-set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_STANDARD 17)
 add_compile_definitions(_XOPEN_SOURCE=700)
 
 set(CMAKE_C_FLAGS "-Wall -Wextra -Wvla -Werror=implicit -pthread -rdynamic")
