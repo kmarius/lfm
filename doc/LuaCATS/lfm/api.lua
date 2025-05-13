@@ -564,6 +564,30 @@ function lfm.api.ui_notcurses_canbraille() end
 ---@nodiscard
 function lfm.api.ui_notcurses_canpixel() end
 
+---
+---Can notcurses draw truecolor?
+---
+---Example:
+---```lua
+---  local can = lfm.api.notcurses_cantruecolor()
+---```
+---
+---@return boolean
+---@nodiscard
+function lfm.api.notcurses_cantruecolor() end
+
+---
+---Size of the color palette as detected by notcurses.
+---
+---Example:
+---```lua
+---  local n = lfm.api.notcurses_palette_size()
+---```
+---
+---@return integer
+---@nodiscard
+function lfm.api.notcurses_palette_size() end
+
 ---Check if a macro is currently being recorded.
 ---```lua
 ---    local recording = lfm.api.ui_macro_recording()

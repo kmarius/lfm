@@ -17,6 +17,7 @@
 #include <lua.h>
 
 #include <linux/limits.h>
+#include <notcurses/notcurses.h>
 #include <stdint.h>
 #include <wchar.h>
 
@@ -811,6 +812,16 @@ static int l_notcurses_canhalfblock(lua_State *L) {
   return 1;
 }
 
+static int l_notcurses_palette_size(lua_State *L) {
+  lua_pushnumber(L, notcurses_palette_size(ui->nc));
+  return 1;
+}
+
+static int l_notcurses_cantruecolor(lua_State *L) {
+  lua_pushboolean(L, notcurses_cantruecolor(ui->nc));
+  return 1;
+}
+
 static int l_macro_recording(lua_State *L) {
   lua_pushboolean(L, macro_recording);
   return 1;
@@ -858,6 +869,8 @@ static const struct luaL_Reg ui_funcs[] = {
     {"ui_notcurses_cansextant", l_notcurses_cansextant},
     {"ui_notcurses_canbraille", l_notcurses_canbraille},
     {"ui_notcurses_canpixel", l_notcurses_canpixel},
+    {"notcurses_palette_size", l_notcurses_palette_size},
+    {"notcurses_cantruecolor", l_notcurses_cantruecolor},
     {"ui_get_width", l_ui_get_width},
     {"ui_get_height", l_ui_get_height},
     {"ui_clear", l_ui_clear},
