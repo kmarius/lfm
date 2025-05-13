@@ -16,6 +16,7 @@
 
 #include <ev.h>
 #include <lauxlib.h>
+#include <limits.h>
 #include <notcurses/notcurses.h>
 
 #include <errno.h>
@@ -469,14 +470,26 @@ int lfm_spawn(Lfm *lfm, const char *prog, char *const *args,
 }
 
 // execute a foreground program
-bool lfm_execute(Lfm *lfm, const char *prog, char *const *args) {
+int lfm_execute(Lfm *lfm, const char *prog, char *const *args,
+                vec_str *stdout) {
   int pid, status, rc;
   lfm_run_hook(lfm, LFM_HOOK_EXECPRE);
   ev_signal_stop(lfm->loop, &lfm->sigint_watcher);
   ev_signal_stop(lfm->loop, &lfm->sigtstp_watcher);
   ui_suspend(&lfm->ui);
+
+  bool capture_stdout = stdout != NULL;
+
+  int fds[2];
+  FILE *file = NULL;
+
+  if (capture_stdout) {
+    pipe(fds);
+  }
+
   if ((pid = fork()) < 0) {
-    status = -1;
+    // should we close fds?
+    return -1;
   } else if (pid == 0) {
     // child
     signal(SIGINT, SIG_DFL);
@@ -484,11 +497,24 @@ bool lfm_execute(Lfm *lfm, const char *prog, char *const *args) {
       fprintf(stderr, "chdir: %s\n", strerror(errno));
       _exit(1);
     }
+    close(fds[0]);
+
+    if (capture_stdout) {
+      dup2(fds[1], 1);
+      close(fds[1]);
+    }
+
     execvp(prog, (char *const *)args);
     _exit(127); // execl error
   } else {
     // parent
     signal(SIGINT, SIG_IGN);
+
+    if (capture_stdout) {
+      close(fds[1]);
+      file = fdopen(fds[0], "r");
+    }
+
     do {
       rc = waitpid(pid, &status, 0);
     } while ((rc == -1) && (errno == EINTR));
@@ -498,7 +524,29 @@ bool lfm_execute(Lfm *lfm, const char *prog, char *const *args) {
   ev_signal_start(lfm->loop, &lfm->sigint_watcher);
   ev_signal_start(lfm->loop, &lfm->sigtstp_watcher);
   lfm_run_hook(lfm, LFM_HOOK_EXECPOST);
-  return status == 0;
+
+  if (capture_stdout && file != NULL) {
+    char *line = NULL;
+    int read;
+    size_t n;
+
+    while ((read = getline(&line, &n, file)) != -1) {
+      if (line[read - 1] == '\n') {
+        line[read - 1] = 0;
+      }
+      vec_str_emplace(stdout, (const char *)line);
+    }
+    xfree(line);
+
+    fclose(file);
+  }
+
+  if (status == -1) {
+    // if commands return this, we need different error signalling
+    lfm_error(lfm, "command returned -1");
+  }
+
+  return status;
 }
 
 void lfm_print(Lfm *lfm, const char *format, ...) {

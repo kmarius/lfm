@@ -220,11 +220,19 @@ static int l_spawn(lua_State *L) {
 }
 
 static int l_execute(lua_State *L) {
-  if (lua_gettop(L) > 1) {
+  if (lua_gettop(L) > 2) {
     return luaL_error(L, "too many arguments");
   }
 
   luaL_checktype(L, 1, LUA_TTABLE);
+
+  bool capture_stdout = false;
+  if (lua_gettop(L) == 2) {
+    luaL_checktype(L, 2, LUA_TTABLE);
+    lua_getfield(L, 2, "stdout");
+    capture_stdout = lua_toboolean(L, -1);
+    lua_pop(L, 1);
+  }
 
   const int n = lua_objlen(L, 1);
   luaL_argcheck(L, n > 0, 1, "no command given");
@@ -237,18 +245,36 @@ static int l_execute(lua_State *L) {
   }
   vec_str_push(&args, NULL);
 
-  bool ret = lfm_execute(lfm, args.data[0], args.data);
+  vec_str stdout = vec_str_init();
+
+  int status = lfm_execute(lfm, args.data[0], args.data,
+                           capture_stdout ? &stdout : NULL);
 
   vec_str_drop(&args);
 
-  if (ret) {
-    lua_pushboolean(L, true);
-    return 1;
-  } else {
+  if (status < 0) {
+    vec_str_drop(&stdout);
     lua_pushnil(L);
     // not sure if something even sets errno
     lua_pushstring(L, strerror(errno));
     return 2;
+  } else {
+    lua_createtable(L, 0, 2);
+    lua_pushnumber(L, status);
+    lua_setfield(L, -2, "status");
+
+    if (capture_stdout) {
+      lua_createtable(L, vec_str_size(&stdout), 0);
+      size_t i = 1;
+      c_foreach(it, vec_str, stdout) {
+        lua_pushstring(L, *it.ref);
+        lua_rawseti(L, -2, i++);
+      }
+      lua_setfield(L, -2, "stdout");
+    }
+    vec_str_drop(&stdout);
+
+    return 1;
   }
 }
 

@@ -72,19 +72,32 @@ lfm.util = require("lfm.util")
 ---@field build_type Lfm.Version.BuildType build type
 lfm.version = {}
 
+---@class Lfm.ExecuteOpts
+---@field stdout? true Capture stdout and return it in the `stdout` field of the execution result
+
+-- TODO: ---@field stdin? string|string[] Will be sent to the process' stdin
+-- TODO: ---@field stderr? fun(line: string)|true Function to capture stderr, or `true` to show output in the UI
+
+---@class Lfm.ExecuteResult
+---@field status integer exit status
+---@field stdout? string[] standard output, if requested
+
 ---Execute a foreground command. The hooks `ExecPre` and `ExecPost` are run
----before and after a command executes. The pid only indicates success: when
----the call to `lfm.execute` returns, the command has already exited.
+---before and after a command executes.
+---
+---Example:
 ---```lua
----    local pid, err = lfm.execute({"nvim", some_file})
----    if not pid then
+---    local res, err = lfm.execute({"nvim", some_file})
+---    if not res then
 ---      print(err)
 ---    end
 ---```
+---
 ---@param command string[]
----@return integer? pid
+---@param opts Lfm.ExecuteOpts
+---@return Lfm.ExecuteResult result
 ---@return string? error
-function lfm.execute(command) end
+function lfm.execute(command, opts) end
 
 ---@class Lfm.SpawnOpts
 ---@field stdin? string|string[] Will be sent to the process' stdin

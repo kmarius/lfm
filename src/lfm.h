@@ -75,8 +75,10 @@ int lfm_spawn(Lfm *lfm, const char *prog, char *const *args,
               const struct vec_str *stdin_lines, bool out, bool err,
               int stdout_ref, int stderr_ref, int exit_ref);
 
-// Execute a foreground program. Uses execvp semantics.
-bool lfm_execute(Lfm *lfm, const char *prog, char *const *args);
+// Execute a foreground program. Uses execvp semantics. If stdout is passed,
+// lines from stdout are captured in the vector. Returns the exit status of the
+// process, or -1 if fork() fails.
+int lfm_execute(Lfm *lfm, const char *prog, char *const *args, vec_str *stdout);
 
 // Schedule callback of the function given by `ref` in `delay` milliseconds.
 void lfm_schedule(Lfm *lfm, int ref, uint32_t delay);
