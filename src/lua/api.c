@@ -863,12 +863,6 @@ static const struct luaL_Reg ui_funcs[] = {
     {"ui_macro_record", l_macro_record},
     {"ui_macro_stop_record", l_macro_stop_record},
     {"ui_macro_play", l_macro_play},
-    {"ui_notcurses_canopen_images", l_notcurses_canopen_images},
-    {"ui_notcurses_canhalfblock", l_notcurses_canhalfblock},
-    {"ui_notcurses_canquadrant", l_notcurses_canquadrant},
-    {"ui_notcurses_cansextant", l_notcurses_cansextant},
-    {"ui_notcurses_canbraille", l_notcurses_canbraille},
-    {"ui_notcurses_canpixel", l_notcurses_canpixel},
     {"notcurses_palette_size", l_notcurses_palette_size},
     {"notcurses_cantruecolor", l_notcurses_cantruecolor},
     {"ui_get_width", l_ui_get_width},
@@ -877,6 +871,12 @@ static const struct luaL_Reg ui_funcs[] = {
     {"ui_redraw", l_ui_redraw},
     {"ui_menu", l_ui_menu},
     {"ui_messages", l_ui_messages},
+    {"notcurses_canopen_images", l_notcurses_canopen_images},
+    {"notcurses_canhalfblock", l_notcurses_canhalfblock},
+    {"notcurses_canquadrant", l_notcurses_canquadrant},
+    {"notcurses_cansextant", l_notcurses_cansextant},
+    {"notcurses_canbraille", l_notcurses_canbraille},
+    {"notcurses_canpixel", l_notcurses_canpixel},
     {NULL, NULL}};
 
 int luaopen_api(lua_State *L) {

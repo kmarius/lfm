@@ -516,53 +516,77 @@ function lfm.api.ui_menu(menu) end
 ---@nodiscard
 function lfm.api.ui_messages() end
 
+---
 ---Con notcurses open images?
+---
+---Example:
 ---```lua
----    local can = lfm.api.ui_notcurses_canopen_images()
+---    local can = lfm.api.notcurses_canopen_images()
 ---```
+---
 ---@return boolean
 ---@nodiscard
-function lfm.api.ui_notcurses_canopen_images() end
+function lfm.api.notcurses_canopen_images() end
 
+---
 ---Con notcurses draw images with halfblocks?
+---
+---Example:
 ---```lua
----    local can = lfm.api.ui_notcurses_canhalfblock()
+---    local can = lfm.api.notcurses_canhalfblock()
 ---```
+---
 ---@return boolean
 ---@nodiscard
-function lfm.api.ui_notcurses_canhalfblock() end
+function lfm.api.notcurses_canhalfblock() end
 
----Con notcurses draw images with quadrants?
+---
+---Can notcurses draw images with quadrants?
+---
+---Example:
 ---```lua
----    local can = lfm.api.ui_notcurses_canquadrant()
+---    local can = lfm.api.notcurses_canquadrant()
 ---```
+---
 ---@return boolean
 ---@nodiscard
-function lfm.api.ui_notcurses_canquadrant() end
+function lfm.api.notcurses_canquadrant() end
 
----Con notcurses draw images with sextants?
+---
+---Can notcurses draw images with sextants?
+---
+---Example:
 ---```lua
----    local can = lfm.api.ui_notcurses_cansextant()
+---    local can = lfm.api.notcurses_cansextant()
 ---```
+---
 ---@return boolean
 ---@nodiscard
-function lfm.api.ui_notcurses_cansextant() end
+function lfm.api.notcurses_cansextant() end
 
----Con notcurses draw images with braille?
+---
+---Can notcurses draw images with braille?
+---
+---Example:
 ---```lua
----    local can = lfm.api.ui_notcurses_canbraille()
+---    local can = lfm.api.notcurses_canbraille()
 ---```
+---
 ---@return boolean
 ---@nodiscard
-function lfm.api.ui_notcurses_canbraille() end
+function lfm.api.notcurses_canbraille() end
 
----Con notcurses draw pixel perfect bitmaps?
+---
+---Can notcurses draw pixel perfect bitmaps?
+---
+---Example:
 ---```lua
----    local can = lfm.api.ui_notcurses_canpixel()
+---    local can = lfm.api.notcurses_canpixel()
 ---```
+---
 ---@return boolean
 ---@nodiscard
-function lfm.api.ui_notcurses_canpixel() end
+function lfm.api.notcurses_canpixel() end
 
 ---
 ---Can notcurses draw truecolor?
