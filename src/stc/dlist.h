@@ -56,8 +56,8 @@
 */
 #include "priv/linkage.h"
 
-#ifndef STC_LIST_H_INCLUDED
-#define STC_LIST_H_INCLUDED
+#ifndef STC_DLIST_H_INCLUDED
+#define STC_DLIST_H_INCLUDED
 #include "common.h"
 #include "types.h"
 #include <stdlib.h>
@@ -79,7 +79,7 @@
     else     entry->next = entry, entry->prev = entry
     // +: set self->last based on node
 
-#endif // STC_LIST_H_INCLUDED
+#endif // STC_DLIST_H_INCLUDED
 
 #ifndef _i_prefix
   #define _i_prefix list_
