@@ -117,6 +117,12 @@ void ui_resume(Ui *ui) {
     exit(EXIT_FAILURE);
   }
 
+  if (notcurses_palette_size(ui->nc) == 8) {
+    if (cfg.current_char == 0) {
+      cfg.current_char = '>';
+    }
+  }
+
   struct ncplane *ncstd = notcurses_stdplane(ui->nc);
 
   ncplane_dim_yx(ncstd, &ui->y, &ui->x);
@@ -725,6 +731,21 @@ static void draw_file(struct ncplane *n, const File *file, bool iscurrent,
     }
   }
 
+  if (cfg.current_char) {
+    if (iscurrent) {
+      uint64_t channels = ncplane_channels(n);
+      uint16_t styles = ncplane_styles(n);
+      ncplane_set_styles(n, NCSTYLE_NONE);
+      ncplane_set_fg_default(n);
+      ncplane_set_bg_default(n);
+      ncplane_putchar(n, cfg.current_char);
+      ncplane_set_styles(n, styles);
+      ncplane_set_channels(n, channels);
+    } else {
+      ncplane_putchar(n, ' ');
+    }
+  }
+
   if (iscurrent) {
     ncplane_set_bchannel(n, cfg.colors.current);
   }
@@ -933,8 +954,9 @@ static inline void on_cursor_moved(Ui *ui, bool delay_action) {
   }
 
   if (is_file_preview) {
-    // gives us the existing preview or a dummy and, depending on delay_action,
-    // loads the preview in the background (or checks and reloads it)
+    // gives us the existing preview or a dummy and, depending on
+    // delay_action, loads the preview in the background (or checks and
+    // reloads it)
     ui->preview.preview = loader_preview_from_path(
         &to_lfm(ui)->loader, file_path(file), !delay_action);
   }

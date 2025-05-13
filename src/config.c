@@ -10,7 +10,6 @@
 #include <ncurses.h> // COLOR_ constants
 #include <notcurses/notcurses.h>
 
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -30,10 +29,11 @@ Config cfg = {
     .map_suggestion_delay = MAP_SUGGESTION_DELAY,
     .map_clear_delay = MAP_CLEAR_DELAY,
     .loading_indicator_delay = LOADING_INDICATOR_DELAY,
+    .current_char = 0,
     .colors = {
         .normal = NCCHANNELS_INITIALIZER_PALINDEX(-1, -1),
         .copy = NCCHANNELS_INITIALIZER_PALINDEX(COLOR_BLACK, COLOR_YELLOW),
-        .current = NCCHANNEL_INITIALIZER_PALINDEX(237),
+        .current = NCCHANNEL_INITIALIZER_PALINDEX(237), // doesn't exist in tty
         .delete = NCCHANNELS_INITIALIZER_PALINDEX(COLOR_BLACK, COLOR_RED),
         .dir = NCCHANNELS_INITIALIZER_PALINDEX(COLOR_BLUE, -1),
         .broken = NCCHANNELS_INITIALIZER_PALINDEX(COLOR_RED, -1),

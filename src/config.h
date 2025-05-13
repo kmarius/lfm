@@ -64,6 +64,7 @@ typedef struct config {
   int histsize;         // 100
   wchar_t truncatechar; // '~'
   char linkchars[16];   // "->"
+  char current_char;    // \0, unless 8 color terminal
   int linkchars_len;
   char *lastdir;
   char *selfile;
