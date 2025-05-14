@@ -72,13 +72,13 @@ lfm.util = require("lfm.util")
 ---@field build_type Lfm.Version.BuildType build type
 lfm.version = {}
 
+-- TODO: make it possible to print stdout/stderr to the ui, e.g. by passing print to stdout/err
+
 ---@class Lfm.ExecuteOpts
+---@field stdin? string|string[] Send data to stdin
 ---@field stdout? true Capture stdout and return it in the `stdout` field of the execution result
 ---@field stderr? true Capture stderr and return it in the `stderr` field of the execution result
 ---@field env? table<string, string> Additional environment variables to set.
-
--- TODO: ---@field stdin? string|string[] Will be sent to the process' stdin
--- TODO: ---@field stderr? fun(line: string)|true Function to capture stderr, or `true` to show output in the UI
 
 ---@class Lfm.ExecuteResult
 ---@field status integer exit status
@@ -111,6 +111,11 @@ lfm.version = {}
 ---  print(res.stderr[1])
 ---```
 ---
+---Send stdin.
+---```lua
+---  local res, err = lfm.execute({ "less" }, { stdin = { "line1", "line2" } })
+---```
+---
 ---Modify environment:
 ---```lua
 ---  local res, err = lfm.execute({ cmd, args }, { env = { SOME_VAR = "value" } })
@@ -126,8 +131,8 @@ function lfm.execute(command, opts) end
 ---@field stdin? string|string[] Will be sent to the process' stdin
 ---@field stdout? fun(line: string)|true Function to capture stdout, or `true` to show output in the UI
 ---@field stderr? fun(line: string)|true Function to capture stderr, or `true` to show output in the UI
----@field callback? function Function to capture the return value
 ---@field env? table<string, string> Additional environment variables to set.
+---@field callback? function Function to capture the return value
 
 ---
 ---Spawn a background command. Returns the pid on success, nil otherwise.

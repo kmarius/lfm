@@ -80,7 +80,8 @@ int lfm_spawn(Lfm *lfm, const char *prog, char *const *args, env_list *env,
 // lines from stdout are captured in the vector. Returns the exit status of the
 // process, or -1 if fork() fails.
 int lfm_execute(Lfm *lfm, const char *prog, char *const *args, env_list *env,
-                vec_str *stdout_lines, vec_str *stderr_lines);
+                vec_str *stdin_lines, vec_str *stdout_lines,
+                vec_str *stderr_lines);
 
 // Schedule callback of the function given by `ref` in `delay` milliseconds.
 void lfm_schedule(Lfm *lfm, int ref, uint32_t delay);

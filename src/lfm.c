@@ -471,7 +471,8 @@ int lfm_spawn(Lfm *lfm, const char *prog, char *const *args, env_list *env,
 
 // execute a foreground program
 int lfm_execute(Lfm *lfm, const char *prog, char *const *args, env_list *env,
-                vec_str *stdout_lines, vec_str *stderr_lines) {
+                vec_str *stdin_lines, vec_str *stdout_lines,
+                vec_str *stderr_lines) {
   int pid, status, rc;
   lfm_run_hook(lfm, LFM_HOOK_EXECPRE);
   ev_signal_stop(lfm->loop, &lfm->sigint_watcher);
@@ -480,9 +481,11 @@ int lfm_execute(Lfm *lfm, const char *prog, char *const *args, env_list *env,
 
   bool capture_stdout = stdout_lines != NULL;
   bool capture_stderr = stderr_lines != NULL;
+  bool send_stdin = stdin_lines != NULL;
 
   int fd_stdout[2];
   int fd_stderr[2];
+  int fd_stdin[2];
   FILE *file_stdout = NULL;
   FILE *file_stderr = NULL;
 
@@ -491,6 +494,9 @@ int lfm_execute(Lfm *lfm, const char *prog, char *const *args, env_list *env,
   }
   if (capture_stderr) {
     pipe(fd_stderr);
+  }
+  if (send_stdin) {
+    pipe(fd_stdin);
   }
 
   if ((pid = fork()) < 0) {
@@ -512,6 +518,12 @@ int lfm_execute(Lfm *lfm, const char *prog, char *const *args, env_list *env,
       _exit(1);
     }
 
+    if (send_stdin) {
+      close(fd_stdin[1]);
+      dup2(fd_stdin[0], 0);
+      close(fd_stdin[0]);
+    }
+
     if (capture_stdout) {
       close(fd_stdout[0]);
       dup2(fd_stdout[1], 1);
@@ -529,6 +541,17 @@ int lfm_execute(Lfm *lfm, const char *prog, char *const *args, env_list *env,
   } else {
     // parent
     signal(SIGINT, SIG_IGN);
+
+    if (send_stdin) {
+      close(fd_stdin[0]);
+      // TODO: we can't pass nul-bytes currently - 2025-05-14
+      // maybe it works if we use STC cstr
+      c_foreach(it, vec_str, *stdin_lines) {
+        write(fd_stdin[1], *it.ref, strlen(*it.ref));
+        write(fd_stdin[1], "\n", 1);
+      }
+      close(fd_stdin[1]);
+    }
 
     if (capture_stdout) {
       close(fd_stdout[1]);
@@ -557,11 +580,11 @@ int lfm_execute(Lfm *lfm, const char *prog, char *const *args, env_list *env,
 
     while ((read = getline(&line, &n, file_stdout)) != -1) {
       if (line[read - 1] == '\n') {
-        line[read - 1] = 0;
+        read--;
       }
-      vec_str_emplace(stdout_lines, (const char *)line);
+      vec_str_push_back(stdout_lines, strndup(line, read));
     }
-    xfree(line);
+    free(line);
 
     fclose(file_stdout);
   }
@@ -573,11 +596,11 @@ int lfm_execute(Lfm *lfm, const char *prog, char *const *args, env_list *env,
 
     while ((read = getline(&line, &n, file_stderr)) != -1) {
       if (line[read - 1] == '\n') {
-        line[read - 1] = 0;
+        read--;
       }
-      vec_str_emplace(stderr_lines, (const char *)line);
+      vec_str_push_back(stderr_lines, strndup(line, read));
     }
-    xfree(line);
+    free(line);
 
     fclose(file_stderr);
   }

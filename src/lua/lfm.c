@@ -179,7 +179,7 @@ static int l_spawn(lua_State *L) {
   if (lua_gettop(L) == 2) {
     lua_getfield(L, 2, "stdin"); // [cmd, opts, opts.stdin]
     if (lua_isstring(L, -1)) {
-      vec_str_emplace(&stdin_lines, lua_tostring(L, -1));
+      vec_str_emplace(&stdin_lines, lua_tostrdup(L, -1));
     } else if (lua_istable(L, -1)) {
       const size_t m = lua_objlen(L, -1);
       for (uint32_t i = 1; i <= m; i++) {
@@ -249,9 +249,14 @@ static int l_spawn(lua_State *L) {
 
 static int l_execute(lua_State *L) {
   vec_str args = vec_str_init();
+  vec_str stdout_lines = vec_str_init();
+  vec_str stderr_lines = vec_str_init();
+  vec_str stdin_lines = vec_str_init();
   env_list env = env_list_init();
+
   bool capture_stdout = false;
   bool capture_stderr = false;
+  bool send_stdin = false;
 
   if (lua_gettop(L) > 2) {
     return luaL_error(L, "too many arguments");
@@ -274,11 +279,24 @@ static int l_execute(lua_State *L) {
 
   if (lua_gettop(L) == 2) {
     // [cmd, opts]
+    lua_getfield(L, 2, "stdin"); // [cmd, opts, opts.stdin]
+    send_stdin = lua_toboolean(L, -1);
+    if (lua_isstring(L, -1)) {
+      vec_str_emplace(&stdin_lines, lua_tostrdup(L, -1));
+    } else if (lua_istable(L, -1)) {
+      const size_t m = lua_objlen(L, -1);
+      for (uint32_t i = 1; i <= m; i++) {
+        lua_rawgeti(L, -1, i); // [cmd, opts, opts.stdin, str]
+        vec_str_push_back(&stdin_lines, lua_tostrdup(L, -1));
+        lua_pop(L, 1); // [cmd, otps, opts.stdin]
+      }
+    }
+    lua_pop(L, 1); // [cmd, opts]
 
     lua_getfield(L, 2, "stdout"); //[cmd, opts, opts.stdout]
     capture_stdout = lua_toboolean(L, -1);
     lua_pop(L, 1); //[cmd, opts]
-    //
+
     lua_getfield(L, 2, "stderr"); //[cmd, opts, opts.err]
     capture_stderr = lua_toboolean(L, -1);
     lua_pop(L, 1); //[cmd, opts]
@@ -294,10 +312,8 @@ static int l_execute(lua_State *L) {
     lua_pop(L, 1); // [cmd, opts]
   }
 
-  vec_str stdout_lines = vec_str_init();
-  vec_str stderr_lines = vec_str_init();
-
   int status = lfm_execute(lfm, args.data[0], args.data, &env,
+                           send_stdin ? &stdin_lines : NULL,
                            capture_stdout ? &stdout_lines : NULL,
                            capture_stderr ? &stderr_lines : NULL);
 
