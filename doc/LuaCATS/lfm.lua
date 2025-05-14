@@ -74,6 +74,7 @@ lfm.version = {}
 
 ---@class Lfm.ExecuteOpts
 ---@field stdout? true Capture stdout and return it in the `stdout` field of the execution result
+---@field stderr? true Capture stderr and return it in the `stderr` field of the execution result
 ---@field env? table<string, string> Additional environment variables to set.
 
 -- TODO: ---@field stdin? string|string[] Will be sent to the process' stdin
@@ -82,6 +83,7 @@ lfm.version = {}
 ---@class Lfm.ExecuteResult
 ---@field status integer exit status
 ---@field stdout? string[] standard output, if requested
+---@field stderr? string[] standard error, if requested
 
 ---
 ---Execute a foreground command. The hooks `ExecPre` and `ExecPost` are run
@@ -89,10 +91,29 @@ lfm.version = {}
 ---
 ---Example:
 ---```lua
----    local res, err = lfm.execute({"nvim", some_file})
----    if not res then
----      print(err)
----    end
+---  local res, err = lfm.execute({ "nvim", some_file })
+---  if not res then
+---    print(err)
+---  else
+---    print("status:", res.status)
+---  end
+---```
+---
+---Capture stdout. Really only works if supported by the executable.
+---```lua
+---  local res, err = lfm.execute({ "fzf" }, { stdout = true })
+---  print(res.stdout[1])
+---```
+---
+---Capture stderr.
+---```lua
+---  local res, err = lfm.execute({ "nvim", some_file }, { stderr = true })
+---  print(res.stderr[1])
+---```
+---
+---Modify environment:
+---```lua
+---  local res, err = lfm.execute({ cmd, args }, { env = { SOME_VAR = "value" } })
 ---```
 ---
 ---@param command string[]
@@ -113,49 +134,54 @@ function lfm.execute(command, opts) end
 ---
 ---Example:
 ---```lua
----    lfm.spawn({"notify-send", "Hello", "from lfm"})
+---  lfm.spawn({"notify-send", "Hello", "from lfm"})
 ---```
 ---
 ---Capture exit status:
 ---```lua
----    local function callback(ret)
----      print("command exited with status " .. ret)
----    end
----    lfm.spawn({"true"}, { callback = callback })
+---  local function callback(ret)
+---    print("command exited with status " .. ret)
+---  end
+---  lfm.spawn({"true"}, { callback = callback })
 ---```
 ---
 ---Capture stdout:
 ---```lua
----    -- Prints directly to lfm:
----    lfm.spawn({"echo", "hello"}, { stdout = true })
+---  -- Prints directly to lfm:
+---  lfm.spawn({"echo", "hello"}, { stdout = true })
 ---
----    -- Capture output with a function:
----    local function callback(line)
----      print("received: " .. line)
----    end
----    lfm.spawn({"echo", "hello"}, { stdout = callback })
+---  -- Capture output with a function:
+---  local function callback(line)
+---    print("received: " .. line)
+---  end
+---  lfm.spawn({"echo", "hello"}, { stdout = callback })
 ---```
 ---
 ---Capture stderr:
 ---```lua
----    -- Prints nothing
----    lfm.spawn({"sh", "-c", "echo hello >&2"}, { stderr = true })
+---  -- Prints nothing
+---  lfm.spawn({"sh", "-c", "echo hello >&2"}, { stderr = true })
 ---
----    -- Capture stderr with a function:
----    local function callback(line)
----      print("received: " .. line) .. " on stderr"
----    end
----    lfm.spawn({"echo", "hello"}, { err = callback })
+---  -- Capture stderr with a function:
+---  local function callback(line)
+---    print("received: " .. line) .. " on stderr"
+---  end
+---  lfm.spawn({"echo", "hello"}, { err = callback })
 ---```
 ---
 ---Sending input:
 ---```lua
----    -- Send stdin to command (which is then output by "cat" and sent to lfm)
----    lfm.spawn({"cat"}, { stdin = "Hello", stdout = true })
+---  -- Send stdin to command (which is then output by "cat" and sent to lfm)
+---  lfm.spawn({"cat"}, { stdin = "Hello", stdout = true })
 ---
----    -- Or as a table
----    lfm.spawn({"cat"}, { stdin = { "Hello,", "Mike" }, stdout = true })
+---  -- Or as a table
+---  lfm.spawn({"cat"}, { stdin = { "Hello,", "Mike" }, stdout = true })
 ---````
+---
+---Modify environment:
+---```lua
+---  local res, err = lfm.spawn({ cmd, args }, { env = { SOME_VAR = "value" } })
+---```
 ---
 ---@param command string[]
 ---@param opts? Lfm.SpawnOpts
