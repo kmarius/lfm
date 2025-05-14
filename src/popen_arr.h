@@ -20,6 +20,8 @@
 
 #pragma once
 
+#include "containers.h"
+
 #include <stdio.h>
 
 /**
@@ -39,12 +41,12 @@
  * @return PID of the program or -1 if failed
  */
 int popen2_arr(FILE **in, FILE **out, FILE **err, const char *program,
-               char *const argv[], const char *pwd);
+               char *const argv[], env_list *env, const char *pwd);
 
 /** like popen2_arr, but uses execvp/execvpe instead of execve/execv, so looks
  * up $PATH */
 int popen2_arr_p(FILE **in, FILE **out, FILE **err, const char *program,
-                 char *const argv[], const char *pwd);
+                 char *const argv[], env_list *env, const char *pwd);
 
 /**
  * Simplified interface to popen2_arr.

@@ -24,16 +24,19 @@
  */
 
 #include "popen_arr.h"
+#include "log.h"
 
 #include <errno.h>
 #include <signal.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include <fcntl.h>
 #include <unistd.h>
 
 static int popen2_impl(FILE **in, FILE **out, FILE **err, const char *program,
-                       char *const argv[], const char *pwd, int lookup_path) {
+                       char *const argv[], env_list *env, const char *pwd,
+                       int lookup_path) {
   int child_stdout = -1;
   int child_stdin = -1;
   int child_stderr = -1;
@@ -97,6 +100,14 @@ static int popen2_impl(FILE **in, FILE **out, FILE **err, const char *program,
   int childpid = fork();
 
   if (childpid == 0) {
+
+    if (env) {
+      c_foreach(n, env_list, *env) {
+        env_list_raw v = env_list_value_toraw(n.ref);
+        setenv(v.key, v.val, 1);
+      }
+    }
+
     if (child_stdin != -1) {
       close(to_be_written);
       dup2(child_stdin, 0);
@@ -149,24 +160,24 @@ static int popen2_impl(FILE **in, FILE **out, FILE **err, const char *program,
 }
 
 int popen2_arr(FILE **in, FILE **out, FILE **err, const char *program,
-               char *const argv[], const char *pwd) {
+               char *const argv[], env_list *env, const char *pwd) {
   signal(SIGPIPE, SIG_IGN);
-  return popen2_impl(in, out, err, program, argv, pwd, 0);
+  return popen2_impl(in, out, err, program, argv, env, pwd, 0);
 }
 
 int popen2_arr_p(FILE **in, FILE **out, FILE **err, const char *program,
-                 char *const argv[], char const *pwd) {
+                 char *const argv[], env_list *env, char const *pwd) {
   signal(SIGPIPE, SIG_IGN);
-  return popen2_impl(in, out, err, program, argv, pwd, 1);
+  return popen2_impl(in, out, err, program, argv, env, pwd, 1);
 }
 
 FILE *popen_arr(const char *program, char *const argv[],
                 int pipe_into_program) {
   FILE *f = NULL;
   if (pipe_into_program) {
-    popen2_arr_p(&f, NULL, NULL, program, argv, NULL);
+    popen2_arr_p(&f, NULL, NULL, program, argv, NULL, NULL);
   } else {
-    popen2_arr_p(NULL, &f, NULL, program, argv, NULL);
+    popen2_arr_p(NULL, &f, NULL, program, argv, NULL, NULL);
   }
   return f;
 }

@@ -423,7 +423,7 @@ static ev_io *add_io_watcher(Lfm *lfm, FILE *f, int ref) {
 }
 
 // spawn a background program
-int lfm_spawn(Lfm *lfm, const char *prog, char *const *args,
+int lfm_spawn(Lfm *lfm, const char *prog, char *const *args, env_list *env,
               const vec_str *stdin_lines, bool out, bool err, int stdout_ref,
               int stderr_ref, int exit_ref) {
   FILE *stdin_stream, *stdout_stream, *stderr_stream;
@@ -435,7 +435,7 @@ int lfm_spawn(Lfm *lfm, const char *prog, char *const *args,
   int pid = popen2_arr_p(stdin_lines ? &stdin_stream : NULL,
                          capture_stdout ? &stdout_stream : NULL,
                          capture_stderr ? &stderr_stream : NULL, prog, args,
-                         lfm->fm.pwd);
+                         env, lfm->fm.pwd);
 
   if (pid == -1) {
     lfm_error(lfm, "popen2_arr_p: %s", strerror(errno)); // not sure if set
@@ -470,7 +470,7 @@ int lfm_spawn(Lfm *lfm, const char *prog, char *const *args,
 }
 
 // execute a foreground program
-int lfm_execute(Lfm *lfm, const char *prog, char *const *args,
+int lfm_execute(Lfm *lfm, const char *prog, char *const *args, env_list *env,
                 vec_str *stdout) {
   int pid, status, rc;
   lfm_run_hook(lfm, LFM_HOOK_EXECPRE);
@@ -492,6 +492,14 @@ int lfm_execute(Lfm *lfm, const char *prog, char *const *args,
     return -1;
   } else if (pid == 0) {
     // child
+
+    if (env) {
+      c_foreach(n, env_list, *env) {
+        env_list_raw v = env_list_value_toraw(n.ref);
+        setenv(v.key, v.val, 1);
+      }
+    }
+
     signal(SIGINT, SIG_DFL);
     if (chdir(lfm->fm.pwd) != 0) {
       fprintf(stderr, "chdir: %s\n", strerror(errno));
@@ -546,7 +554,7 @@ int lfm_execute(Lfm *lfm, const char *prog, char *const *args,
     lfm_error(lfm, "command returned -1");
   }
 
-  return status;
+  return WEXITSTATUS(status);
 }
 
 void lfm_print(Lfm *lfm, const char *format, ...) {

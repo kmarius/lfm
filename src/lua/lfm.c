@@ -1,8 +1,10 @@
 #include "lfm.h"
 
 #include "../config.h"
+#include "../containers.h"
 #include "../hooks.h"
 #include "../input.h"
+#include "../log.h"
 #include "../mode.h"
 #include "../search.h"
 #include "auto/versiondef.h"
@@ -14,9 +16,16 @@
 #include <errno.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <string.h>
 
 #define MODES_META "Lfm.Modes.Meta"
 #define MODE_META "Lfm.Mode.Meta"
+
+static inline char *lua_tostrdup(lua_State *L, int idx) {
+  size_t len;
+  const char *s = lua_tolstring(L, idx, &len);
+  return strndup(s, len);
+}
 
 static int l_schedule(lua_State *L) {
   luaL_checktype(L, 1, LUA_TFUNCTION);
@@ -135,9 +144,13 @@ static int l_message_clear(lua_State *L) {
 }
 
 static int l_spawn(lua_State *L) {
-  vec_str stdin = {0};
-  bool stdout = false;
-  bool stderr = false;
+  // init just nulls these, we can exit without dropping, if nothing is added
+  vec_str args = vec_str_init();
+  env_list env = env_list_init();
+  vec_str stdin_lines = vec_str_init();
+
+  bool capture_stdout = false;
+  bool capture_stderr = false;
   int stdout_ref = 0;
   int stderr_ref = 0;
   int exit_ref = 0;
@@ -155,7 +168,6 @@ static int l_spawn(lua_State *L) {
   const int n = lua_objlen(L, 1);
   luaL_argcheck(L, n > 0, 1, "no command given");
 
-  vec_str args = vec_str_init();
   vec_str_reserve(&args, n + 1);
   for (int i = 1; i <= n; i++) {
     lua_rawgeti(L, 1, i); // [cmd, opts?, arg]
@@ -167,12 +179,12 @@ static int l_spawn(lua_State *L) {
   if (lua_gettop(L) == 2) {
     lua_getfield(L, 2, "stdin"); // [cmd, opts, opts.stdin]
     if (lua_isstring(L, -1)) {
-      vec_str_emplace(&stdin, lua_tostring(L, -1));
+      vec_str_emplace(&stdin_lines, lua_tostring(L, -1));
     } else if (lua_istable(L, -1)) {
       const size_t m = lua_objlen(L, -1);
       for (uint32_t i = 1; i <= m; i++) {
         lua_rawgeti(L, -1, i); // [cmd, opts, opts.stdin, str]
-        vec_str_emplace(&stdin, lua_tostring(L, -1));
+        vec_str_push_back(&stdin_lines, lua_tostrdup(L, -1));
         lua_pop(L, 1); // [cmd, otps, opts.stdin]
       }
     }
@@ -182,7 +194,7 @@ static int l_spawn(lua_State *L) {
     if (lua_isfunction(L, -1)) {
       stdout_ref = lua_set_callback(L); // [cmd, opts]
     } else {
-      stdout = lua_toboolean(L, -1);
+      capture_stdout = lua_toboolean(L, -1);
       lua_pop(L, 1); // [cmd, opts]
     }
 
@@ -190,7 +202,7 @@ static int l_spawn(lua_State *L) {
     if (lua_isfunction(L, -1)) {
       stderr_ref = lua_set_callback(L); // [cmd, opts]
     } else {
-      stderr = lua_toboolean(L, -1);
+      capture_stderr = lua_toboolean(L, -1);
       lua_pop(L, 1); // [cmd, opts]
     }
 
@@ -200,13 +212,29 @@ static int l_spawn(lua_State *L) {
     } else {
       lua_pop(L, 1); // [cmd, opts]
     }
+
+    lua_getfield(L, 2, "env"); // [cmd, opts, opts.env]
+    if (lua_istable(L, -1)) {
+      for (lua_pushnil(L); lua_next(L, -2) != 0; lua_pop(L, 1)) {
+        // [cmd, opts, opts.env, key, val]
+
+        // we make copies of these values because the luajit source code
+        // suggests that, if value is not a string, gc may run and invalidate
+        // other values that have been stored
+        env_list_push_back(
+            &env, (struct env_entry){lua_tostrdup(L, -2), lua_tostrdup(L, -1)});
+      }
+    }
+    lua_pop(L, 1); // [cmd, opts]
   }
 
-  int pid = lfm_spawn(lfm, args.data[0], args.data, &stdin, stdout, stderr,
-                      stdout_ref, stderr_ref, exit_ref);
+  int pid = lfm_spawn(lfm, args.data[0], args.data, &env, &stdin_lines,
+                      capture_stdout, capture_stderr, stdout_ref, stderr_ref,
+                      exit_ref);
 
-  vec_str_drop(&stdin);
   vec_str_drop(&args);
+  env_list_drop(&env);
+  vec_str_drop(&stdin_lines);
 
   if (pid != -1) {
     lua_pushnumber(L, pid);
@@ -220,36 +248,53 @@ static int l_spawn(lua_State *L) {
 }
 
 static int l_execute(lua_State *L) {
+  vec_str args = vec_str_init();
+  env_list env = env_list_init();
+  bool capture_stdout = false;
+
   if (lua_gettop(L) > 2) {
     return luaL_error(L, "too many arguments");
   }
 
   luaL_checktype(L, 1, LUA_TTABLE);
-
-  bool capture_stdout = false;
   if (lua_gettop(L) == 2) {
     luaL_checktype(L, 2, LUA_TTABLE);
-    lua_getfield(L, 2, "stdout");
-    capture_stdout = lua_toboolean(L, -1);
-    lua_pop(L, 1);
   }
 
   const int n = lua_objlen(L, 1);
   luaL_argcheck(L, n > 0, 1, "no command given");
 
-  vec_str args = vec_str_init();
   for (int i = 1; i <= n; i++) {
     lua_rawgeti(L, 1, i);
-    vec_str_emplace(&args, lua_tostring(L, -1));
+    vec_str_push_back(&args, lua_tostrdup(L, -1));
     lua_pop(L, 1);
   }
   vec_str_push(&args, NULL);
 
+  if (lua_gettop(L) == 2) {
+    // [cmd, opts]
+
+    lua_getfield(L, 2, "stdout"); //[cmd, opts, opts.stdout]
+    capture_stdout = lua_toboolean(L, -1);
+    lua_pop(L, 1); //[cmd, opts]
+
+    lua_getfield(L, 2, "env"); // [cmd, opts, opts.env]
+    if (lua_istable(L, -1)) {
+      for (lua_pushnil(L); lua_next(L, -2) != 0; lua_pop(L, 1)) {
+        // [cmd, opts, opts.env, key, val]
+        env_list_push_back(
+            &env, (struct env_entry){lua_tostrdup(L, -2), lua_tostrdup(L, -1)});
+      }
+    }
+    lua_pop(L, 1); // [cmd, opts]
+  }
+
   vec_str stdout = vec_str_init();
 
-  int status = lfm_execute(lfm, args.data[0], args.data,
+  int status = lfm_execute(lfm, args.data[0], args.data, &env,
                            capture_stdout ? &stdout : NULL);
 
+  env_list_drop(&env);
   vec_str_drop(&args);
 
   if (status < 0) {

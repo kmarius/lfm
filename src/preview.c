@@ -180,7 +180,8 @@ Preview *preview_create_from_file(const char *path, uint32_t width,
                          NULL};
 
   FILE *fp = NULL;
-  int pid = popen2_arr_p(NULL, &fp, NULL, args[0], (char *const *)args, NULL);
+  int pid =
+      popen2_arr_p(NULL, &fp, NULL, args[0], (char *const *)args, NULL, NULL);
   if (!fp) {
     vec_str_emplace(&p->lines, strerror(errno));
     log_error("popen2_arr_p: %s", strerror(errno));
