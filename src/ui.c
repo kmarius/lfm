@@ -26,6 +26,10 @@
 #include <ncurses.h>
 #include <notcurses/notcurses.h>
 
+#include <stdio.h>
+#include <sys/ioctl.h>
+#include <unistd.h>
+
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -77,6 +81,10 @@ void ui_init(Ui *ui) {
   infoline_init(ui);
   input_init(to_lfm(ui));
   ui_resume(ui);
+
+  ioctl(STDOUT_FILENO, TIOCGWINSZ, &ui->winsize);
+  log_trace("winsize rows=%u cols=%u ypixel=%u, xpixel=u", ui->winsize.ws_col,
+            ui->winsize.ws_row, ui->winsize.ws_ypixel, ui->winsize.ws_xpixel);
 }
 
 void ui_deinit(Ui *ui) {
@@ -194,6 +202,17 @@ void kbblocking(bool blocking) {
 }
 
 void ui_recol(Ui *ui) {
+  // get the terminal geometry here, this function is called on startup and
+  // resize
+  ioctl(STDOUT_FILENO, TIOCGWINSZ, &ui->winsize);
+  ui->ypixel_cell = ui->winsize.ws_ypixel / ui->winsize.ws_row;
+  ui->xpixel_cell = ui->winsize.ws_xpixel / ui->winsize.ws_col;
+
+  log_debug(
+      "winsize row=%u col=%u ypixel=%u xpixel=%u ypixel_cell=%u xpixel_cell=%u",
+      ui->winsize.ws_col, ui->winsize.ws_row, ui->winsize.ws_ypixel,
+      ui->winsize.ws_xpixel, ui->ypixel_cell, ui->xpixel_cell);
+
   struct ncplane *ncstd = notcurses_stdplane(ui->nc);
 
   vec_ncplane_clear(&ui->planes.dirs);

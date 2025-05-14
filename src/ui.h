@@ -11,6 +11,7 @@
 
 #include <stdarg.h>
 #include <stdint.h>
+#include <sys/ioctl.h>
 
 #include "stc/types.h"
 declare_vec(vec_ncplane, struct ncplane *);
@@ -42,6 +43,9 @@ typedef struct Ui {
 
   // Current terminal dimensions.
   uint32_t y, x;
+
+  struct winsize winsize;
+  uint16_t ypixel_cell, xpixel_cell;
 
   // Number of ncplanes, including the preview.
   uint32_t num_columns;
