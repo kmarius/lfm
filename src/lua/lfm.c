@@ -251,6 +251,7 @@ static int l_execute(lua_State *L) {
   vec_str args = vec_str_init();
   env_list env = env_list_init();
   bool capture_stdout = false;
+  bool capture_stderr = false;
 
   if (lua_gettop(L) > 2) {
     return luaL_error(L, "too many arguments");
@@ -277,6 +278,10 @@ static int l_execute(lua_State *L) {
     lua_getfield(L, 2, "stdout"); //[cmd, opts, opts.stdout]
     capture_stdout = lua_toboolean(L, -1);
     lua_pop(L, 1); //[cmd, opts]
+    //
+    lua_getfield(L, 2, "stderr"); //[cmd, opts, opts.err]
+    capture_stderr = lua_toboolean(L, -1);
+    lua_pop(L, 1); //[cmd, opts]
 
     lua_getfield(L, 2, "env"); // [cmd, opts, opts.env]
     if (lua_istable(L, -1)) {
@@ -289,35 +294,50 @@ static int l_execute(lua_State *L) {
     lua_pop(L, 1); // [cmd, opts]
   }
 
-  vec_str stdout = vec_str_init();
+  vec_str stdout_lines = vec_str_init();
+  vec_str stderr_lines = vec_str_init();
 
   int status = lfm_execute(lfm, args.data[0], args.data, &env,
-                           capture_stdout ? &stdout : NULL);
+                           capture_stdout ? &stdout_lines : NULL,
+                           capture_stderr ? &stderr_lines : NULL);
 
   env_list_drop(&env);
   vec_str_drop(&args);
 
   if (status < 0) {
-    vec_str_drop(&stdout);
+    vec_str_drop(&stdout_lines);
+    vec_str_drop(&stderr_lines);
     lua_pushnil(L);
     // not sure if something even sets errno
     lua_pushstring(L, strerror(errno));
     return 2;
   } else {
-    lua_createtable(L, 0, 2);
+    lua_createtable(L, 0, 4);
     lua_pushnumber(L, status);
     lua_setfield(L, -2, "status");
 
     if (capture_stdout) {
-      lua_createtable(L, vec_str_size(&stdout), 0);
+      lua_createtable(L, vec_str_size(&stdout_lines), 0);
       size_t i = 1;
-      c_foreach(it, vec_str, stdout) {
+      c_foreach(it, vec_str, stdout_lines) {
         lua_pushstring(L, *it.ref);
         lua_rawseti(L, -2, i++);
       }
       lua_setfield(L, -2, "stdout");
     }
-    vec_str_drop(&stdout);
+
+    if (capture_stderr) {
+      lua_createtable(L, vec_str_size(&stderr_lines), 0);
+      size_t i = 1;
+      c_foreach(it, vec_str, stderr_lines) {
+        lua_pushstring(L, *it.ref);
+        lua_rawseti(L, -2, i++);
+      }
+      lua_setfield(L, -2, "stderr");
+    }
+
+    vec_str_drop(&stdout_lines);
+    vec_str_drop(&stderr_lines);
 
     return 1;
   }

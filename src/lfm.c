@@ -471,20 +471,26 @@ int lfm_spawn(Lfm *lfm, const char *prog, char *const *args, env_list *env,
 
 // execute a foreground program
 int lfm_execute(Lfm *lfm, const char *prog, char *const *args, env_list *env,
-                vec_str *stdout) {
+                vec_str *stdout_lines, vec_str *stderr_lines) {
   int pid, status, rc;
   lfm_run_hook(lfm, LFM_HOOK_EXECPRE);
   ev_signal_stop(lfm->loop, &lfm->sigint_watcher);
   ev_signal_stop(lfm->loop, &lfm->sigtstp_watcher);
   ui_suspend(&lfm->ui);
 
-  bool capture_stdout = stdout != NULL;
+  bool capture_stdout = stdout_lines != NULL;
+  bool capture_stderr = stderr_lines != NULL;
 
-  int fds[2];
-  FILE *file = NULL;
+  int fd_stdout[2];
+  int fd_stderr[2];
+  FILE *file_stdout = NULL;
+  FILE *file_stderr = NULL;
 
   if (capture_stdout) {
-    pipe(fds);
+    pipe(fd_stdout);
+  }
+  if (capture_stderr) {
+    pipe(fd_stderr);
   }
 
   if ((pid = fork()) < 0) {
@@ -505,11 +511,17 @@ int lfm_execute(Lfm *lfm, const char *prog, char *const *args, env_list *env,
       fprintf(stderr, "chdir: %s\n", strerror(errno));
       _exit(1);
     }
-    close(fds[0]);
 
     if (capture_stdout) {
-      dup2(fds[1], 1);
-      close(fds[1]);
+      close(fd_stdout[0]);
+      dup2(fd_stdout[1], 1);
+      close(fd_stdout[1]);
+    }
+
+    if (capture_stderr) {
+      close(fd_stderr[0]);
+      dup2(fd_stderr[1], 2);
+      close(fd_stderr[1]);
     }
 
     execvp(prog, (char *const *)args);
@@ -519,8 +531,13 @@ int lfm_execute(Lfm *lfm, const char *prog, char *const *args, env_list *env,
     signal(SIGINT, SIG_IGN);
 
     if (capture_stdout) {
-      close(fds[1]);
-      file = fdopen(fds[0], "r");
+      close(fd_stdout[1]);
+      file_stdout = fdopen(fd_stdout[0], "r");
+    }
+
+    if (capture_stderr) {
+      close(fd_stderr[1]);
+      file_stderr = fdopen(fd_stderr[0], "r");
     }
 
     do {
@@ -533,20 +550,36 @@ int lfm_execute(Lfm *lfm, const char *prog, char *const *args, env_list *env,
   ev_signal_start(lfm->loop, &lfm->sigtstp_watcher);
   lfm_run_hook(lfm, LFM_HOOK_EXECPOST);
 
-  if (capture_stdout && file != NULL) {
+  if (capture_stdout && file_stdout != NULL) {
     char *line = NULL;
     int read;
     size_t n;
 
-    while ((read = getline(&line, &n, file)) != -1) {
+    while ((read = getline(&line, &n, file_stdout)) != -1) {
       if (line[read - 1] == '\n') {
         line[read - 1] = 0;
       }
-      vec_str_emplace(stdout, (const char *)line);
+      vec_str_emplace(stdout_lines, (const char *)line);
     }
     xfree(line);
 
-    fclose(file);
+    fclose(file_stdout);
+  }
+
+  if (capture_stderr && file_stderr != NULL) {
+    char *line = NULL;
+    int read;
+    size_t n;
+
+    while ((read = getline(&line, &n, file_stderr)) != -1) {
+      if (line[read - 1] == '\n') {
+        line[read - 1] = 0;
+      }
+      vec_str_emplace(stderr_lines, (const char *)line);
+    }
+    xfree(line);
+
+    fclose(file_stderr);
   }
 
   if (status == -1) {
