@@ -4,7 +4,7 @@
 #include "../containers.h"
 #include "../hooks.h"
 #include "../input.h"
-#include "../log.h"
+#include "../macros_defs.h"
 #include "../mode.h"
 #include "../search.h"
 #include "auto/versiondef.h"
@@ -20,6 +20,7 @@
 
 #define MODES_META "Lfm.Modes.Meta"
 #define MODE_META "Lfm.Mode.Meta"
+#define PROC_META "Lfm.Proc.Meta"
 
 static inline char *lua_tostrdup(lua_State *L, int idx) {
   size_t len;
@@ -143,6 +144,89 @@ static int l_message_clear(lua_State *L) {
   return 0;
 }
 
+// TODO: should we use a FILE* instead of fd?
+struct proc {
+  int pid;
+  int fd;
+};
+
+static int l_proc_write(lua_State *L) {
+  struct proc *proc = (struct proc *)lua_touserdata(L, 1);
+  if (proc->fd == -1) {
+    return luaL_error(L, "trying to write to closed stdin of process %d",
+                      proc->pid);
+  }
+
+  size_t len;
+  const char *buf = lua_tolstring(L, 2, &len);
+  ssize_t n = write(proc->fd, buf, len);
+
+  if (n == -1) {
+    close(proc->fd);
+    proc->fd = -1;
+    return luaL_error(L, "write: %s", strerror(errno));
+  }
+
+  lua_pushnumber(L, n);
+  return 1;
+}
+
+// proc:close and __gc
+static int l_proc_close(lua_State *L) {
+  struct proc *proc = (struct proc *)lua_touserdata(L, 1);
+  if (proc->fd != -1) {
+    close(proc->fd);
+    proc->fd = -1;
+  }
+  return 0;
+}
+
+static int l_proc_index(lua_State *L) {
+  struct proc *proc = (struct proc *)lua_touserdata(L, 1);
+  const char *key = luaL_checkstring(L, 2);
+
+  // only field is "pid"
+  if (strcmp(key, "pid") == 0) {
+    lua_pushinteger(L, proc->pid);
+    return 1;
+  }
+
+  // refer everything else to the method table
+  luaL_getmetatable(L, PROC_META);
+  lua_getfield(L, -1, "__methods");
+  lua_getfield(L, -1, key);
+
+  return 1;
+}
+
+static int lua_proc_create(lua_State *L, int pid, int fd) {
+  struct proc *proc = (struct proc *)lua_newuserdata(L, sizeof *proc);
+  proc->pid = pid;
+  proc->fd = fd;
+
+  if (unlikely(luaL_newmetatable(L, PROC_META))) {
+    lua_pushcfunction(L, l_proc_close);
+    lua_setfield(L, -2, "__gc");
+
+    lua_pushcfunction(L, l_proc_index);
+    lua_setfield(L, -2, "__index");
+
+    lua_newtable(L);
+
+    lua_pushcfunction(L, l_proc_write);
+    lua_setfield(L, -2, "write");
+
+    lua_pushcfunction(L, l_proc_close);
+    lua_setfield(L, -2, "close");
+
+    lua_setfield(L, -2, "__methods");
+  }
+
+  lua_setmetatable(L, -2);
+
+  return 1;
+}
+
 static int l_spawn(lua_State *L) {
   // init just nulls these, we can exit without dropping, if nothing is added
   vec_str args = vec_str_init();
@@ -151,6 +235,8 @@ static int l_spawn(lua_State *L) {
 
   bool capture_stdout = false;
   bool capture_stderr = false;
+  bool stdin_is_function = false;
+  int stdin_fd = -1;
   int stdout_ref = 0;
   int stderr_ref = 0;
   int exit_ref = 0;
@@ -178,7 +264,9 @@ static int l_spawn(lua_State *L) {
 
   if (lua_gettop(L) == 2) {
     lua_getfield(L, 2, "stdin"); // [cmd, opts, opts.stdin]
-    if (lua_isstring(L, -1)) {
+    if (lua_isboolean(L, -1)) {
+      stdin_is_function = lua_toboolean(L, -1);
+    } else if (lua_isstring(L, -1)) {
       vec_str_emplace(&stdin_lines, lua_tostrdup(L, -1));
     } else if (lua_istable(L, -1)) {
       const size_t m = lua_objlen(L, -1);
@@ -229,20 +317,19 @@ static int l_spawn(lua_State *L) {
   }
 
   int pid = lfm_spawn(lfm, args.data[0], args.data, &env, &stdin_lines,
-                      capture_stdout, capture_stderr, stdout_ref, stderr_ref,
-                      exit_ref);
+                      stdin_is_function ? &stdin_fd : NULL, capture_stdout,
+                      capture_stderr, stdout_ref, stderr_ref, exit_ref);
 
   vec_str_drop(&args);
   env_list_drop(&env);
   vec_str_drop(&stdin_lines);
 
   if (pid != -1) {
-    lua_pushnumber(L, pid);
+    lua_proc_create(L, pid, stdin_fd);
     return 1;
   } else {
     lua_pushnil(L);
-    lua_pushstring(L,
-                   strerror(errno)); // not sure if something even sets errno
+    lua_pushstring(L, strerror(errno)); // not sure if something even sets errno
     return 2;
   }
 }

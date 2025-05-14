@@ -128,11 +128,46 @@ lfm.version = {}
 function lfm.execute(command, opts) end
 
 ---@class Lfm.SpawnOpts
----@field stdin? string|string[] Will be sent to the process' stdin
+---@field stdin? string|string[]|true Will be sent to the process' stdin. If `true`, input can be sent to the process via `proc:write`.
 ---@field stdout? fun(line: string)|true Function to capture stdout, or `true` to show output in the UI
 ---@field stderr? fun(line: string)|true Function to capture stderr, or `true` to show output in the UI
 ---@field env? table<string, string> Additional environment variables to set.
 ---@field callback? function Function to capture the return value
+
+---
+---Process handle.
+---
+---@class Lfm.SpawnProc
+---@field pid integer pid
+local proc = {}
+
+---
+---Send data to stdin. No newlines are added. Throws an error if stdin is closed, or `write` fails.
+---In particular, `lfm.spawn` must be called with `opts.stdin = true`.
+---
+---Example:
+---```lua
+---  local proc, err = lfm.spawn({ "cat" }, { stdin = true, stdout = true })
+---  proc:write("hello") -- prints "hello" to the UI
+---  proc:close()
+---```
+---
+---@param line string
+function proc:write(line) end
+
+---
+---Close stdin. Also called, when the object is garbage collected. Safe to call multiple times.
+---
+---Example:
+---```lua
+---  local proc, err = lfm.spawn({ "cat" }, { stdin = true, stdout = true })
+---  -- ...
+---  -- use send and receive data to and from proc
+---  -- ...
+---  proc:close()
+---```
+---
+function proc:close() end
 
 ---
 ---Spawn a background command. Returns the pid on success, nil otherwise.
@@ -181,16 +216,21 @@ function lfm.execute(command, opts) end
 ---
 ---  -- Or as a table
 ---  lfm.spawn({"cat"}, { stdin = { "Hello,", "Mike" }, stdout = true })
+---
+---  -- Or via a function
+---  local proc, err = lfm.spawn({"cat"}, { stdin = true, stdout = true })
+---  proc:write("Hello")
+---  proc:close() -- close stdin so that cat exits
 ---````
 ---
 ---Modify environment:
 ---```lua
----  local res, err = lfm.spawn({ cmd, args }, { env = { SOME_VAR = "value" } })
+---  local proc, err = lfm.spawn({ cmd, args }, { env = { SOME_VAR = "value" } })
 ---```
 ---
 ---@param command string[]
 ---@param opts? Lfm.SpawnOpts
----@return integer? pid
+---@return Lfm.SpawnProc? proc
 ---@return string? error
 function lfm.spawn(command, opts) end
 

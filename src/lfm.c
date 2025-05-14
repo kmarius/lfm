@@ -424,15 +424,17 @@ static ev_io *add_io_watcher(Lfm *lfm, FILE *f, int ref) {
 
 // spawn a background program
 int lfm_spawn(Lfm *lfm, const char *prog, char *const *args, env_list *env,
-              const vec_str *stdin_lines, bool out, bool err, int stdout_ref,
-              int stderr_ref, int exit_ref) {
+              const vec_str *stdin_lines, int *stdin_fd, bool capture_stdout,
+              bool capture_stderr, int stdout_ref, int stderr_ref,
+              int exit_ref) {
+
   FILE *stdin_stream, *stdout_stream, *stderr_stream;
 
-  bool capture_stdout = out || stdout_ref;
-  bool capture_stderr = err || stderr_ref;
+  capture_stdout |= stdout_ref != 0;
+  capture_stderr |= stderr_ref != 0;
 
   // always pass out and err because popen2_arr_p doesnt close the fds
-  int pid = popen2_arr_p(stdin_lines ? &stdin_stream : NULL,
+  int pid = popen2_arr_p((stdin_lines || stdin_fd != 0) ? &stdin_stream : NULL,
                          capture_stdout ? &stdout_stream : NULL,
                          capture_stderr ? &stderr_stream : NULL, prog, args,
                          env, lfm->fm.pwd);
@@ -448,7 +450,11 @@ int lfm_spawn(Lfm *lfm, const char *prog, char *const *args, env_list *env,
   ev_io *stderr_watcher =
       capture_stderr ? add_io_watcher(lfm, stderr_stream, stderr_ref) : NULL;
 
-  if (stdin_lines) {
+  // currently either one is supported, not both
+  if (stdin_fd) {
+    *stdin_fd = dup(fileno(stdin_stream));
+    fclose(stdin_stream);
+  } else if (stdin_lines) {
     c_foreach(it, vec_str, *stdin_lines) {
       fputs(*it.ref, stdin_stream);
       fputc('\n', stdin_stream);

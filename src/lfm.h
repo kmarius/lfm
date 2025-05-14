@@ -73,8 +73,9 @@ void lfm_quit(Lfm *lfm, int ret);
 // will be printed on the ui. `exit_ref` will be called with the return code
 // once the command finishes.
 int lfm_spawn(Lfm *lfm, const char *prog, char *const *args, env_list *env,
-              const struct vec_str *stdin_lines, bool out, bool err,
-              int stdout_ref, int stderr_ref, int exit_ref);
+              const vec_str *stdin_lines, int *stdin_fd, bool capture_stdout,
+              bool capture_stderr, int stdout_ref, int stderr_ref,
+              int exit_ref);
 
 // Execute a foreground program. Uses execvp semantics. If stdout is passed,
 // lines from stdout are captured in the vector. Returns the exit status of the
