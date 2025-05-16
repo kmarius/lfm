@@ -7,13 +7,14 @@
 #include "loader.h"
 #include "log.h"
 #include "lua/lfmlua.h"
+#include "macros_defs.h"
 #include "mode.h"
 #include "notify.h"
-#include "popen_arr.h"
 #include "stc/common.h"
 #include "ui.h"
 #include "util.h"
 
+#include <asm-generic/errno.h>
 #include <ev.h>
 #include <lauxlib.h>
 #include <limits.h>
@@ -428,38 +429,94 @@ int lfm_spawn(Lfm *lfm, const char *prog, char *const *args, env_list *env,
               bool capture_stderr, int stdout_ref, int stderr_ref,
               int exit_ref) {
 
-  FILE *stdin_stream, *stdout_stream, *stderr_stream;
-
+  bool send_stdin = stdin_lines || stdin_fd != 0;
   capture_stdout |= stdout_ref != 0;
   capture_stderr |= stderr_ref != 0;
 
-  // always pass out and err because popen2_arr_p doesnt close the fds
-  int pid = popen2_arr_p((stdin_lines || stdin_fd != 0) ? &stdin_stream : NULL,
-                         capture_stdout ? &stdout_stream : NULL,
-                         capture_stderr ? &stderr_stream : NULL, prog, args,
-                         env, lfm->fm.pwd);
+  int pipe_stdin[2];
+  int pipe_stdout[2];
+  int pipe_stderr[2];
 
-  if (pid == -1) {
-    lfm_error(lfm, "popen2_arr_p: %s", strerror(errno)); // not sure if set
+  if (send_stdin) {
+    pipe(pipe_stdin);
+  }
+  if (capture_stdout) {
+    pipe(pipe_stdout);
+  }
+  if (capture_stderr) {
+    pipe(pipe_stderr);
+  }
+
+  int pid = fork();
+  if (unlikely(pid < 0)) {
+    if (send_stdin) {
+      close(pipe_stdin[0]);
+      close(pipe_stdin[1]);
+    }
+    if (capture_stdout) {
+      close(pipe_stdout[0]);
+      close(pipe_stdout[1]);
+    }
+    if (capture_stderr) {
+      close(pipe_stderr[0]);
+      close(pipe_stderr[1]);
+    }
+    lfm_error(lfm, "fork: %s", strerror(errno));
     return -1;
   }
 
-  ev_io *stdout_watcher =
-      capture_stdout ? add_io_watcher(lfm, stdout_stream, stdout_ref) : NULL;
+  if (pid == 0) {
+    // child
 
-  ev_io *stderr_watcher =
-      capture_stderr ? add_io_watcher(lfm, stderr_stream, stderr_ref) : NULL;
-
-  // currently either one is supported, not both
-  if (stdin_fd) {
-    *stdin_fd = dup(fileno(stdin_stream));
-    fclose(stdin_stream);
-  } else if (stdin_lines) {
-    c_foreach(it, vec_str, *stdin_lines) {
-      fputs(*it.ref, stdin_stream);
-      fputc('\n', stdin_stream);
+    if (env) {
+      c_foreach(n, env_list, *env) {
+        env_list_raw v = env_list_value_toraw(n.ref);
+        setenv(v.key, v.val, 1);
+      }
     }
-    fclose(stdin_stream);
+
+    if (send_stdin) {
+      close(pipe_stdin[1]);
+      dup2(pipe_stdin[0], 0);
+      close(pipe_stdin[0]);
+    }
+
+    if (capture_stdout) {
+      close(pipe_stdout[0]);
+      dup2(pipe_stdout[1], 1);
+      close(pipe_stdout[1]);
+    } else {
+      int devnull = open("/dev/null", O_WRONLY | O_CREAT, 0666);
+      dup2(devnull, 1);
+      close(devnull);
+    }
+
+    if (capture_stderr) {
+      close(pipe_stderr[0]);
+      dup2(pipe_stderr[1], 2);
+      close(pipe_stderr[1]);
+    } else {
+      int devnull = open("/dev/null", O_WRONLY | O_CREAT, 0666);
+      dup2(devnull, 2);
+      close(devnull);
+    }
+
+    execvp(prog, (char **)args);
+    _exit(ENOSYS);
+  }
+
+  ev_io *stdout_watcher = NULL;
+  ev_io *stderr_watcher = NULL;
+
+  if (capture_stdout) {
+    close(pipe_stdout[1]);
+    FILE *stdout_stream = fdopen(pipe_stdout[0], "r");
+    stdout_watcher = add_io_watcher(lfm, stdout_stream, stdout_ref);
+  }
+  if (capture_stderr) {
+    close(pipe_stderr[1]);
+    FILE *stderr_stream = fdopen(pipe_stderr[0], "r");
+    stderr_watcher = add_io_watcher(lfm, stderr_stream, stderr_ref);
   }
 
   struct child_watcher *data = list_child_push(
@@ -472,6 +529,21 @@ int lfm_spawn(Lfm *lfm, const char *prog, char *const *args, env_list *env,
   ev_child_init(&data->watcher, child_cb, pid, 0);
   ev_child_start(lfm->loop, &data->watcher);
 
+  if (send_stdin) {
+    close(pipe_stdin[0]);
+    if (stdin_lines) {
+      c_foreach(it, vec_str, *stdin_lines) {
+        write(pipe_stdin[1], *it.ref, strlen(*it.ref));
+        write(pipe_stdin[1], "\n", 1);
+      }
+    }
+    if (stdin_fd) {
+      *stdin_fd = pipe_stdin[1];
+    } else {
+      close(pipe_stdin[1]);
+    }
+  }
+
   return pid;
 }
 
@@ -479,7 +551,7 @@ int lfm_spawn(Lfm *lfm, const char *prog, char *const *args, env_list *env,
 int lfm_execute(Lfm *lfm, const char *prog, char *const *args, env_list *env,
                 vec_str *stdin_lines, vec_str *stdout_lines,
                 vec_str *stderr_lines) {
-  int pid, status, rc;
+  int status, rc;
   lfm_run_hook(lfm, LFM_HOOK_EXECPRE);
   ev_signal_stop(lfm->loop, &lfm->sigint_watcher);
   ev_signal_stop(lfm->loop, &lfm->sigtstp_watcher);
@@ -489,26 +561,39 @@ int lfm_execute(Lfm *lfm, const char *prog, char *const *args, env_list *env,
   bool capture_stderr = stderr_lines != NULL;
   bool send_stdin = stdin_lines != NULL;
 
-  int fd_stdout[2];
-  int fd_stderr[2];
-  int fd_stdin[2];
-  FILE *file_stdout = NULL;
-  FILE *file_stderr = NULL;
+  int pipe_stdout[2];
+  int pipe_stderr[2];
+  int pipe_stdin[2];
 
+  if (send_stdin) {
+    pipe(pipe_stdin);
+  }
   if (capture_stdout) {
-    pipe(fd_stdout);
+    pipe(pipe_stdout);
   }
   if (capture_stderr) {
-    pipe(fd_stderr);
-  }
-  if (send_stdin) {
-    pipe(fd_stdin);
+    pipe(pipe_stderr);
   }
 
-  if ((pid = fork()) < 0) {
-    // should we close fds?
+  int pid = fork();
+  if (unlikely(pid < 0)) {
+    if (send_stdin) {
+      close(pipe_stdin[0]);
+      close(pipe_stdin[1]);
+    }
+    if (capture_stdout) {
+      close(pipe_stdout[0]);
+      close(pipe_stdout[1]);
+    }
+    if (capture_stderr) {
+      close(pipe_stderr[0]);
+      close(pipe_stderr[1]);
+    }
+    lfm_error(lfm, "fork: %s", strerror(errno));
     return -1;
-  } else if (pid == 0) {
+  }
+
+  if (pid == 0) {
     // child
 
     if (env) {
@@ -525,54 +610,55 @@ int lfm_execute(Lfm *lfm, const char *prog, char *const *args, env_list *env,
     }
 
     if (send_stdin) {
-      close(fd_stdin[1]);
-      dup2(fd_stdin[0], 0);
-      close(fd_stdin[0]);
+      close(pipe_stdin[1]);
+      dup2(pipe_stdin[0], 0);
+      close(pipe_stdin[0]);
     }
 
     if (capture_stdout) {
-      close(fd_stdout[0]);
-      dup2(fd_stdout[1], 1);
-      close(fd_stdout[1]);
+      close(pipe_stdout[0]);
+      dup2(pipe_stdout[1], 1);
+      close(pipe_stdout[1]);
     }
 
     if (capture_stderr) {
-      close(fd_stderr[0]);
-      dup2(fd_stderr[1], 2);
-      close(fd_stderr[1]);
+      close(pipe_stderr[0]);
+      dup2(pipe_stderr[1], 2);
+      close(pipe_stderr[1]);
     }
 
     execvp(prog, (char *const *)args);
     _exit(127); // execl error
-  } else {
-    // parent
-    signal(SIGINT, SIG_IGN);
-
-    if (send_stdin) {
-      close(fd_stdin[0]);
-      // TODO: we can't pass nul-bytes currently - 2025-05-14
-      // maybe it works if we use STC cstr
-      c_foreach(it, vec_str, *stdin_lines) {
-        write(fd_stdin[1], *it.ref, strlen(*it.ref));
-        write(fd_stdin[1], "\n", 1);
-      }
-      close(fd_stdin[1]);
-    }
-
-    if (capture_stdout) {
-      close(fd_stdout[1]);
-      file_stdout = fdopen(fd_stdout[0], "r");
-    }
-
-    if (capture_stderr) {
-      close(fd_stderr[1]);
-      file_stderr = fdopen(fd_stderr[0], "r");
-    }
-
-    do {
-      rc = waitpid(pid, &status, 0);
-    } while ((rc == -1) && (errno == EINTR));
   }
+
+  signal(SIGINT, SIG_IGN);
+  FILE *file_stderr = NULL;
+  FILE *file_stdout = NULL;
+
+  if (capture_stdout) {
+    close(pipe_stdout[1]);
+    file_stdout = fdopen(pipe_stdout[0], "r");
+  }
+
+  if (capture_stderr) {
+    close(pipe_stderr[1]);
+    file_stderr = fdopen(pipe_stderr[0], "r");
+  }
+
+  if (send_stdin) {
+    close(pipe_stdin[0]);
+    // TODO: we can't pass nul-bytes currently - 2025-05-14
+    // maybe it works if we use STC cstr
+    c_foreach(it, vec_str, *stdin_lines) {
+      write(pipe_stdin[1], *it.ref, strlen(*it.ref));
+      write(pipe_stdin[1], "\n", 1);
+    }
+    close(pipe_stdin[1]);
+  }
+
+  do {
+    rc = waitpid(pid, &status, 0);
+  } while ((rc == -1) && (errno == EINTR));
 
   ui_resume(&lfm->ui);
   ev_signal_start(lfm->loop, &lfm->sigint_watcher);
