@@ -127,20 +127,24 @@ static inline char *fgets_seek(char *dest, int n, FILE *fp) {
 }
 
 // caller must should probably just pass a buffer of size PATH_MAX
-static inline void gen_cache_path(char *cache_path, const char *path) {
-  uint8_t buf[32];
+static inline int gen_cache_path(const char *path, char *buf, size_t buflen) {
+  uint8_t hash[32];
   SHA256_CTX ctx;
   sha256_init(&ctx);
   sha256_update(&ctx, (uint8_t *)path, strlen(path));
-  sha256_final(&ctx, buf);
-  cache_path += sprintf(cache_path, "%s/", cfg.cachedir);
-  for (size_t i = 0; i < 32; i++) {
-    const char upper = buf[i] >> 4;
-    const char lower = buf[i] & 0x0f;
-    cache_path[2 * i] = lower < 10 ? '0' + lower : 'a' + lower - 10;
-    cache_path[2 * i + 1] = upper < 10 ? '0' + upper : 'a' + upper - 10;
+  sha256_final(&ctx, hash);
+  unsigned int j = snprintf(buf, buflen - 1, "%s/", cfg.cachedir);
+  if (j + 32 >= buflen) {
+    return -1;
   }
-  cache_path[2 * 32] = 0;
+  for (size_t i = 0; i < 32; i++) {
+    const char upper = hash[i] >> 4;
+    const char lower = hash[i] & 0x0f;
+    buf[j++] = lower < 10 ? '0' + lower : 'a' + lower - 10;
+    buf[j++] = upper < 10 ? '0' + upper : 'a' + upper - 10;
+  }
+  buf[j] = 0;
+  return 0;
 }
 
 Preview *preview_create_from_file(const char *path, uint32_t width,
@@ -161,7 +165,11 @@ Preview *preview_create_from_file(const char *path, uint32_t width,
   /* we currently only use it as a place for the previewer to write to */
   char cache_path[PATH_MAX];
   if (cfg.preview_images) {
-    gen_cache_path(cache_path, path);
+    if (gen_cache_path(path, cache_path, sizeof cache_path) != 0) {
+      log_error("gen_cache_path");
+      vec_str_emplace(&p->lines, "gen_cache_path");
+      return p;
+    };
   } else {
     cache_path[0] = 0;
   }
