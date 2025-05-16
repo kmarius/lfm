@@ -1,14 +1,16 @@
 #include "preview.h"
 
 #include "config.h"
+#include "containers.h"
 #include "log.h"
+#include "macros_defs.h"
 #include "memory.h"
 #include "ncutil.h"
-#include "popen_arr.h"
 #include "sha256.h"
 #include "util.h"
 
 #include <errno.h>
+#include <fcntl.h>
 #include <limits.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -161,6 +163,19 @@ static inline int gen_cache_path(const char *path, char *buf, size_t buflen) {
   return 0;
 }
 
+// Set preview contents to an error message and log it
+static inline Preview *preview_error(Preview *p, const char *fmt, ...) {
+  va_list args;
+  va_start(args, fmt);
+  vec_str_clear(&p->lines);
+  char buf[128];
+  int len = vsnprintf(buf, sizeof buf - 1, fmt, args);
+  vec_str_push_back(&p->lines, strndup(buf, len));
+  log_error("%s", buf);
+  va_end(args);
+  return p;
+}
+
 Preview *preview_create_from_file(const char *path, uint32_t width,
                                   uint32_t height) {
 
@@ -179,10 +194,8 @@ Preview *preview_create_from_file(const char *path, uint32_t width,
   char cache_path[PATH_MAX];
   if (cfg.preview_images) {
     if (gen_cache_path(path, cache_path, sizeof cache_path) != 0) {
-      log_error("gen_cache_path");
-      vec_str_emplace(&p->lines, "gen_cache_path");
-      return p;
-    };
+      return preview_error(p, "gen_cache_path");
+    }
   } else {
     cache_path[0] = 0;
   }
@@ -200,95 +213,112 @@ Preview *preview_create_from_file(const char *path, uint32_t width,
                          cfg.preview_images ? "True" : "False",
                          NULL};
 
-  FILE *fp_stdout = NULL;
+  int fd[2];
+  if (unlikely(pipe(fd) == -1)) {
+    return preview_error(p, "pipe: ", strerror(errno));
+  }
 
-  int pid = popen2_arr_p(NULL, &fp_stdout, NULL, args[0], (char *const *)args,
-                         NULL, NULL);
+  int pid = fork();
 
-  if (pid == -1 || fp_stdout == NULL) {
-    if (fp_stdout != NULL) {
-      fclose(fp_stdout);
-    }
-    vec_str_emplace(&p->lines, strerror(errno));
-    log_error("popen2_arr_p: %s", strerror(errno));
-    return p;
+  if (pid == 0) {
+    // child
+
+    // stdout
+    close(fd[0]);
+    dup2(fd[1], 1);
+    close(fd[1]);
+
+    // stderr (some program I can't remember didn't like closed stderr)
+    int devnull = open("/dev/null", O_WRONLY | O_CREAT, 0666);
+    dup2(devnull, 2);
+    close(devnull);
+
+    execv(args[0], (char **)args);
+    _exit(ENOSYS);
+  }
+
+  close(fd[1]);
+
+  if (unlikely(pid < 0)) {
+    close(fd[0]);
+    return preview_error(p, "fork: ", strerror(errno));
+  }
+
+  FILE *fp_stdout = fdopen(fd[0], "r");
+  if (unlikely(fp_stdout == NULL)) {
+    return preview_error(p, "fdopen: %s", strerror(errno));
   }
 
   // waitpid immediately, otherwise libev might reap the child before us
 
   int status;
-  if (waitpid(pid, &status, 0) == -1) {
-    char buf[128];
-    snprintf(buf, sizeof buf - 1, "waitpid: %s", strerror(errno));
-    vec_str_emplace(&p->lines, buf);
-    log_error("waitpid: %s", strerror(errno));
-  } else {
-    if (WIFEXITED(status)) {
-      int rc = WEXITSTATUS(status);
+  if (unlikely(waitpid(pid, &status, 0) == -1)) {
+    fclose(fp_stdout);
+    return preview_error(p, "waitpid: %s", strerror(errno));
+  }
 
-      switch (rc) {
-      case PREVIEW_DISPLAY_STDOUT:
-        lines_from_stream(&p->lines, fp_stdout, height);
-        break;
-      case PREVIEW_NONE:
-        break; // no preview
-      case PREVIEW_FILE_CONTENTS:
-        FILE *fp_file = fopen(path, "r");
-        if (fp_file == NULL) {
-          vec_str_emplace(&p->lines, strerror(errno));
-          log_error("fopen: %s", strerror(errno));
-        } else {
-          lines_from_stream(&p->lines, fp_file, height);
-          fclose(fp_file);
-        }
-        break;
-      case PREVIEW_FIX_WIDTH:
-        p->reload_width = INT_MAX;
-        lines_from_stream(&p->lines, fp_stdout, height);
-        break;
-      case PREVIEW_FIX_HEIGHT:
-        p->reload_height = INT_MAX;
-        lines_from_stream(&p->lines, fp_stdout, height);
-        break;
-      case PREVIEW_FIX_WIDTH_AND_HEIGHT:
-        p->reload_width = INT_MAX;
-        p->reload_height = INT_MAX;
-        lines_from_stream(&p->lines, fp_stdout, height);
-        break;
-      case PREVIEW_CACHE_AS_IMAGE:
-        if (cfg.preview_images) {
-          struct ncvisual *ncv = ncvisual_from_file(cache_path);
-          if (ncv == NULL) {
-            vec_str_emplace(&p->lines, "error (ncvisual_from_file)");
-            log_error("ncvisual_from_file %s", cache_path);
-          } else {
-            vec_str_drop(&p->lines);
-            p->ncv = ncv;
-            p->draw = draw_image_preview;
-            p->update = update_image_preview;
-            p->destroy = destroy_image_preview;
-          }
-        }
-        break;
-      case PREVIEW_AS_IMAGE:
-        if (cfg.preview_images) {
-          struct ncvisual *ncv = ncvisual_from_file(path);
-          if (ncv == NULL) {
-            vec_str_emplace(&p->lines, "error (ncvisual_from_file)");
-            log_error("ncvisual_from_file %s", path);
-          } else {
-            vec_str_drop(&p->lines);
-            p->ncv = ncv;
-            p->draw = draw_image_preview;
-            p->update = update_image_preview;
-            p->destroy = destroy_image_preview;
-          }
-        }
-        break;
-      default:
-        log_error("unexpected return code %d from previewer for file %s", rc,
-                  path);
+  // TODO: check other statuses?
+  if (likely(WIFEXITED(status))) {
+    int rc = WEXITSTATUS(status);
+
+    switch (rc) {
+    case PREVIEW_DISPLAY_STDOUT:
+      lines_from_stream(&p->lines, fp_stdout, height);
+      break;
+    case PREVIEW_NONE:
+      break; // no preview
+    case PREVIEW_FILE_CONTENTS: {
+      FILE *fp_file = fopen(path, "r");
+      if (fp_file == NULL) {
+        preview_error(p, "fopen: ", strerror(errno));
+      } else {
+        lines_from_stream(&p->lines, fp_file, height);
+        fclose(fp_file);
       }
+    } break;
+    case PREVIEW_FIX_WIDTH:
+      p->reload_width = INT_MAX;
+      lines_from_stream(&p->lines, fp_stdout, height);
+      break;
+    case PREVIEW_FIX_HEIGHT:
+      p->reload_height = INT_MAX;
+      lines_from_stream(&p->lines, fp_stdout, height);
+      break;
+    case PREVIEW_FIX_WIDTH_AND_HEIGHT:
+      p->reload_width = INT_MAX;
+      p->reload_height = INT_MAX;
+      lines_from_stream(&p->lines, fp_stdout, height);
+      break;
+    case PREVIEW_CACHE_AS_IMAGE:
+      if (cfg.preview_images) {
+        struct ncvisual *ncv = ncvisual_from_file(cache_path);
+        if (unlikely(ncv == NULL)) {
+          preview_error(p, "ncvisual_from_file: ", strerror(errno));
+        } else {
+          vec_str_drop(&p->lines);
+          p->ncv = ncv;
+          p->draw = draw_image_preview;
+          p->update = update_image_preview;
+          p->destroy = destroy_image_preview;
+        }
+      }
+      break;
+    case PREVIEW_AS_IMAGE:
+      if (cfg.preview_images) {
+        struct ncvisual *ncv = ncvisual_from_file(path);
+        if (unlikely(ncv == NULL)) {
+          preview_error(p, "ncvisual_from_file: ", strerror(errno));
+        } else {
+          vec_str_drop(&p->lines);
+          p->ncv = ncv;
+          p->draw = draw_image_preview;
+          p->update = update_image_preview;
+          p->destroy = destroy_image_preview;
+        }
+      }
+      break;
+    default:
+      preview_error(p, "previewer returned %d", rc);
     }
   }
 
