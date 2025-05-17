@@ -33,8 +33,10 @@ static inline char *lua_tostrdup(lua_State *L, int idx) {
 static inline struct bytes lua_to_bytes(lua_State *L, int idx) {
   size_t len;
   const char *s = lua_tolstring(L, idx, &len);
-  char *buf = memdup(s, len);
-  return (struct bytes){buf, len};
+  char *data = memdup(s, len);
+  if (data == NULL)
+    len = 0;
+  return (struct bytes){data, len};
 }
 
 static int l_schedule(lua_State *L) {
