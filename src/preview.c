@@ -109,19 +109,19 @@ static void update_image_preview(Preview *p, Preview *u) {
 }
 
 // Like fgets, but seeks to the next '\n' after n characters have been read
-// Returns -1 on EOF
+// Returns -1 on EOF. FILE must be locked by the calling thread
 static inline ssize_t fgets_seek(char *dest, int n, FILE *fp) {
   int c = 0;
   char *ptr = dest;
 
-  while (--n > 0 && (c = getc(fp)) != EOF) {
+  while (--n > 0 && (c = getc_unlocked(fp)) != EOF) {
     if ((*ptr++ = c) == '\n') {
       break;
     }
   }
 
   if (c != EOF && c != '\n') {
-    while ((c = getc(fp)) != EOF && c != '\n')
+    while ((c = getc_unlocked(fp)) != EOF && c != '\n')
       ;
   }
 
@@ -132,6 +132,7 @@ static inline ssize_t fgets_seek(char *dest, int n, FILE *fp) {
 // Read up to max_lines lines from a stream into a vector. Stops reading a line
 // after MAX_LINE_LENGTH bytes.
 static inline void lines_from_stream(vec_str *vec, FILE *file, int max_lines) {
+  flockfile(file);
   char buf[MAX_LINE_LENGTH];
   for (int i = 0; i < max_lines; i++) {
     ssize_t len = fgets_seek(buf, sizeof buf, file);
@@ -140,6 +141,7 @@ static inline void lines_from_stream(vec_str *vec, FILE *file, int max_lines) {
     }
     vec_str_push_back(vec, strndup(buf, len));
   }
+  funlockfile(file);
 }
 
 // caller must should probably just pass a buffer of size PATH_MAX
@@ -249,13 +251,22 @@ Preview *preview_create_from_file(const char *path, uint32_t width,
     return preview_error(p, "fdopen: %s", strerror(errno));
   }
 
-  // waitpid immediately, otherwise libev might reap the child before us
+  // we have to drain the entire input, otherwise the buffer might fill up
+  // and the child process never exits
+  lines_from_stream(&p->lines, fp_stdout, height);
+  char buf[512];
+  while (fread(buf, 1, sizeof buf, fp_stdout) > 0)
+    ;
 
+  // timing seems to be critical here, otherwise libev might reap the child
+  // before the call to waitpid. Ideally, we would just close fp_stdout after
+  // reading enough lines from it, but that is too slow (?)
   int status;
   if (unlikely(waitpid(pid, &status, 0) == -1)) {
     fclose(fp_stdout);
     return preview_error(p, "waitpid: %s", strerror(errno));
   }
+  fclose(fp_stdout);
 
   // TODO: check other statuses?
   if (likely(WIFEXITED(status))) {
@@ -263,66 +274,59 @@ Preview *preview_create_from_file(const char *path, uint32_t width,
 
     switch (rc) {
     case PREVIEW_DISPLAY_STDOUT:
-      lines_from_stream(&p->lines, fp_stdout, height);
       break;
     case PREVIEW_NONE:
       break; // no preview
     case PREVIEW_FILE_CONTENTS: {
       FILE *fp_file = fopen(path, "r");
       if (fp_file == NULL) {
-        preview_error(p, "fopen: ", strerror(errno));
-      } else {
-        lines_from_stream(&p->lines, fp_file, height);
-        fclose(fp_file);
+        return preview_error(p, "fopen: ", strerror(errno));
       }
+      vec_str_clear(&p->lines);
+      lines_from_stream(&p->lines, fp_file, height);
+      fclose(fp_file);
     } break;
     case PREVIEW_FIX_WIDTH:
       p->reload_width = INT_MAX;
-      lines_from_stream(&p->lines, fp_stdout, height);
       break;
     case PREVIEW_FIX_HEIGHT:
       p->reload_height = INT_MAX;
-      lines_from_stream(&p->lines, fp_stdout, height);
       break;
     case PREVIEW_FIX_WIDTH_AND_HEIGHT:
       p->reload_width = INT_MAX;
       p->reload_height = INT_MAX;
-      lines_from_stream(&p->lines, fp_stdout, height);
       break;
     case PREVIEW_CACHE_AS_IMAGE:
       if (cfg.preview_images) {
         struct ncvisual *ncv = ncvisual_from_file(cache_path);
         if (unlikely(ncv == NULL)) {
-          preview_error(p, "ncvisual_from_file: ", strerror(errno));
-        } else {
-          vec_str_drop(&p->lines);
-          p->ncv = ncv;
-          p->draw = draw_image_preview;
-          p->update = update_image_preview;
-          p->destroy = destroy_image_preview;
+          return preview_error(p, "ncvisual_from_file: ", strerror(errno));
         }
+        vec_str_drop(&p->lines);
+        p->ncv = ncv;
+        p->draw = draw_image_preview;
+        p->update = update_image_preview;
+        p->destroy = destroy_image_preview;
       }
       break;
     case PREVIEW_AS_IMAGE:
       if (cfg.preview_images) {
         struct ncvisual *ncv = ncvisual_from_file(path);
         if (unlikely(ncv == NULL)) {
-          preview_error(p, "ncvisual_from_file: ", strerror(errno));
-        } else {
-          vec_str_drop(&p->lines);
-          p->ncv = ncv;
-          p->draw = draw_image_preview;
-          p->update = update_image_preview;
-          p->destroy = destroy_image_preview;
+          return preview_error(p, "ncvisual_from_file: ", strerror(errno));
         }
+        vec_str_drop(&p->lines);
+        p->ncv = ncv;
+        p->draw = draw_image_preview;
+        p->update = update_image_preview;
+        p->destroy = destroy_image_preview;
       }
       break;
     default:
-      preview_error(p, "previewer returned %d", rc);
+      return preview_error(p, "previewer returned %d", rc);
     }
   }
 
-  fclose(fp_stdout);
   return p;
 }
 
