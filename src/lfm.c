@@ -2,6 +2,7 @@
 
 #include "async.h"
 #include "config.h"
+#include "containers.h"
 #include "hooks.h"
 #include "input.h"
 #include "loader.h"
@@ -79,7 +80,7 @@ static inline void destroy_io_watcher(ev_io *w) {
   }
   struct stdout_watcher_data *data = (struct stdout_watcher_data *)w;
   if (data->ref) {
-    llua_run_stdout_callback(data->lfm->L, data->ref, NULL);
+    llua_run_stdout_callback(data->lfm->L, data->ref, NULL, 0);
   }
   fclose(data->stream);
   xfree(data);
@@ -175,11 +176,11 @@ static void command_stdout_cb(EV_P_ ev_io *w, int revents) {
 
   while ((read = getline(&line, &n, data->stream)) != -1) {
     if (line[read - 1] == '\n') {
-      line[read - 1] = 0;
+      read--;
     }
 
     if (data->ref) {
-      llua_run_stdout_callback(lfm->L, data->ref, line);
+      llua_run_stdout_callback(lfm->L, data->ref, line, read);
     } else {
       ui_echom(&lfm->ui, "%s", line);
     }
@@ -425,7 +426,7 @@ static ev_io *add_io_watcher(Lfm *lfm, FILE *f, int ref) {
 
 // spawn a background program
 int lfm_spawn(Lfm *lfm, const char *prog, char *const *args, env_list *env,
-              const vec_str *stdin_lines, int *stdin_fd, bool capture_stdout,
+              const vec_bytes *stdin_lines, int *stdin_fd, bool capture_stdout,
               bool capture_stderr, int stdout_ref, int stderr_ref,
               int exit_ref) {
 
@@ -532,8 +533,8 @@ int lfm_spawn(Lfm *lfm, const char *prog, char *const *args, env_list *env,
   if (send_stdin) {
     close(pipe_stdin[0]);
     if (stdin_lines) {
-      c_foreach(it, vec_str, *stdin_lines) {
-        write(pipe_stdin[1], *it.ref, strlen(*it.ref));
+      c_foreach(it, vec_bytes, *stdin_lines) {
+        write(pipe_stdin[1], it.ref->data, it.ref->len);
         write(pipe_stdin[1], "\n", 1);
       }
     }
@@ -549,8 +550,8 @@ int lfm_spawn(Lfm *lfm, const char *prog, char *const *args, env_list *env,
 
 // execute a foreground program
 int lfm_execute(Lfm *lfm, const char *prog, char *const *args, env_list *env,
-                vec_str *stdin_lines, vec_str *stdout_lines,
-                vec_str *stderr_lines) {
+                vec_bytes *stdin_lines, vec_bytes *stdout_lines,
+                vec_bytes *stderr_lines) {
   int status, rc;
   lfm_run_hook(lfm, LFM_HOOK_EXECPRE);
   ev_signal_stop(lfm->loop, &lfm->sigint_watcher);
@@ -647,10 +648,8 @@ int lfm_execute(Lfm *lfm, const char *prog, char *const *args, env_list *env,
 
   if (send_stdin) {
     close(pipe_stdin[0]);
-    // TODO: we can't pass nul-bytes currently - 2025-05-14
-    // maybe it works if we use STC cstr
-    c_foreach(it, vec_str, *stdin_lines) {
-      write(pipe_stdin[1], *it.ref, strlen(*it.ref));
+    c_foreach(it, vec_bytes, *stdin_lines) {
+      write(pipe_stdin[1], it.ref->data, it.ref->len);
       write(pipe_stdin[1], "\n", 1);
     }
     close(pipe_stdin[1]);
@@ -674,7 +673,8 @@ int lfm_execute(Lfm *lfm, const char *prog, char *const *args, env_list *env,
       if (line[read - 1] == '\n') {
         read--;
       }
-      vec_str_push_back(stdout_lines, strndup(line, read));
+      vec_bytes_push_back(stdout_lines,
+                          (struct bytes){memdup(line, read), read});
     }
     free(line);
 
@@ -690,7 +690,8 @@ int lfm_execute(Lfm *lfm, const char *prog, char *const *args, env_list *env,
       if (line[read - 1] == '\n') {
         read--;
       }
-      vec_str_push_back(stderr_lines, strndup(line, read));
+      vec_bytes_push_back(stderr_lines,
+                          (struct bytes){memdup(line, read), read});
     }
     free(line);
 

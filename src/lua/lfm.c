@@ -22,10 +22,19 @@
 #define MODE_META "Lfm.Mode.Meta"
 #define PROC_META "Lfm.Proc.Meta"
 
+// efficiently create a copy of the string repr of the value at position idx
 static inline char *lua_tostrdup(lua_State *L, int idx) {
   size_t len;
   const char *s = lua_tolstring(L, idx, &len);
   return strndup(s, len);
+}
+
+// convert value at position idx to a string and then into a struct bytes
+static inline struct bytes lua_to_bytes(lua_State *L, int idx) {
+  size_t len;
+  const char *s = lua_tolstring(L, idx, &len);
+  char *buf = memdup(s, len);
+  return (struct bytes){buf, len};
 }
 
 static int l_schedule(lua_State *L) {
@@ -231,7 +240,7 @@ static int l_spawn(lua_State *L) {
   // init just nulls these, we can exit without dropping, if nothing is added
   vec_str args = vec_str_init();
   env_list env = env_list_init();
-  vec_str stdin_lines = vec_str_init();
+  vec_bytes stdin_lines = vec_bytes_init();
 
   bool capture_stdout = false;
   bool capture_stderr = false;
@@ -267,12 +276,12 @@ static int l_spawn(lua_State *L) {
     if (lua_isboolean(L, -1)) {
       stdin_is_function = lua_toboolean(L, -1);
     } else if (lua_isstring(L, -1)) {
-      vec_str_emplace(&stdin_lines, lua_tostrdup(L, -1));
+      vec_bytes_push_back(&stdin_lines, lua_to_bytes(L, -1));
     } else if (lua_istable(L, -1)) {
       const size_t m = lua_objlen(L, -1);
       for (uint32_t i = 1; i <= m; i++) {
         lua_rawgeti(L, -1, i); // [cmd, opts, opts.stdin, str]
-        vec_str_push_back(&stdin_lines, lua_tostrdup(L, -1));
+        vec_bytes_push_back(&stdin_lines, lua_to_bytes(L, -1));
         lua_pop(L, 1); // [cmd, otps, opts.stdin]
       }
     }
@@ -322,7 +331,7 @@ static int l_spawn(lua_State *L) {
 
   vec_str_drop(&args);
   env_list_drop(&env);
-  vec_str_drop(&stdin_lines);
+  vec_bytes_drop(&stdin_lines);
 
   if (pid != -1) {
     lua_proc_create(L, pid, stdin_fd);
@@ -336,9 +345,9 @@ static int l_spawn(lua_State *L) {
 
 static int l_execute(lua_State *L) {
   vec_str args = vec_str_init();
-  vec_str stdout_lines = vec_str_init();
-  vec_str stderr_lines = vec_str_init();
-  vec_str stdin_lines = vec_str_init();
+  vec_bytes stdout_lines = vec_bytes_init();
+  vec_bytes stderr_lines = vec_bytes_init();
+  vec_bytes stdin_lines = vec_bytes_init();
   env_list env = env_list_init();
 
   bool capture_stdout = false;
@@ -369,12 +378,12 @@ static int l_execute(lua_State *L) {
     lua_getfield(L, 2, "stdin"); // [cmd, opts, opts.stdin]
     send_stdin = lua_toboolean(L, -1);
     if (lua_isstring(L, -1)) {
-      vec_str_emplace(&stdin_lines, lua_tostrdup(L, -1));
+      vec_bytes_push_back(&stdin_lines, lua_to_bytes(L, -1));
     } else if (lua_istable(L, -1)) {
       const size_t m = lua_objlen(L, -1);
       for (uint32_t i = 1; i <= m; i++) {
         lua_rawgeti(L, -1, i); // [cmd, opts, opts.stdin, str]
-        vec_str_push_back(&stdin_lines, lua_tostrdup(L, -1));
+        vec_bytes_push_back(&stdin_lines, lua_to_bytes(L, -1));
         lua_pop(L, 1); // [cmd, otps, opts.stdin]
       }
     }
@@ -406,10 +415,11 @@ static int l_execute(lua_State *L) {
 
   env_list_drop(&env);
   vec_str_drop(&args);
+  vec_bytes_drop(&stdin_lines);
 
   if (status < 0) {
-    vec_str_drop(&stdout_lines);
-    vec_str_drop(&stderr_lines);
+    vec_bytes_drop(&stdout_lines);
+    vec_bytes_drop(&stderr_lines);
     lua_pushnil(L);
     // not sure if something even sets errno
     lua_pushstring(L, strerror(errno));
@@ -420,27 +430,27 @@ static int l_execute(lua_State *L) {
     lua_setfield(L, -2, "status");
 
     if (capture_stdout) {
-      lua_createtable(L, vec_str_size(&stdout_lines), 0);
+      lua_createtable(L, vec_bytes_size(&stdout_lines), 0);
       size_t i = 1;
-      c_foreach(it, vec_str, stdout_lines) {
-        lua_pushstring(L, *it.ref);
+      c_foreach(it, vec_bytes, stdout_lines) {
+        lua_pushlstring(L, it.ref->data, it.ref->len);
         lua_rawseti(L, -2, i++);
       }
       lua_setfield(L, -2, "stdout");
     }
 
     if (capture_stderr) {
-      lua_createtable(L, vec_str_size(&stderr_lines), 0);
+      lua_createtable(L, vec_bytes_size(&stderr_lines), 0);
       size_t i = 1;
-      c_foreach(it, vec_str, stderr_lines) {
-        lua_pushstring(L, *it.ref);
+      c_foreach(it, vec_bytes, stderr_lines) {
+        lua_pushlstring(L, it.ref->data, it.ref->len);
         lua_rawseti(L, -2, i++);
       }
       lua_setfield(L, -2, "stderr");
     }
 
-    vec_str_drop(&stdout_lines);
-    vec_str_drop(&stderr_lines);
+    vec_bytes_drop(&stdout_lines);
+    vec_bytes_drop(&stderr_lines);
 
     return 1;
   }

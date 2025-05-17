@@ -117,7 +117,10 @@ void llua_run_child_callback(lua_State *L, int ref, int rstatus) {
   }
 }
 
-void llua_run_stdout_callback(lua_State *L, int ref, const char *line) {
+// line does not have to be nul terminated, in this case, len hase to be passed;
+// len is negative, strlen(line) is used
+void llua_run_stdout_callback(lua_State *L, int ref, const char *line,
+                              ssize_t len) {
   // always call this, if line is NULL, we remove the callback from the
   // registry
   lua_get_callback(L, ref, line == NULL); // [f]
@@ -125,7 +128,11 @@ void llua_run_stdout_callback(lua_State *L, int ref, const char *line) {
     lua_pop(L, 1); // []
     return;
   }
-  lua_pushstring(L, line);                   // [f, line]
+
+  if (len < 0)
+    len = strlen(line);
+
+  lua_pushlstring(L, line, len);             // [f, line]
   if (llua_pcall(L, 1, 00)) {                // []
     ui_error(ui, "%s", lua_tostring(L, -1)); // [err]
     lua_pop(L, 1);                           // []

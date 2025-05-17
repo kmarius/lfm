@@ -2,6 +2,8 @@
 
 #include "memory.h"
 
+#include "stc/cstr.h"
+
 #define i_header
 #define i_type vec_int, int
 #include "stc/vec.h"
@@ -11,6 +13,19 @@
 #define i_keyraw const char *
 #define i_keyfrom(p) (strdup(p))
 #define i_keytoraw(p) (*(p))
+#include "stc/vec.h"
+
+#define i_keypro cstr
+#include "stc/vec.h"
+
+struct bytes {
+  char *data;
+  size_t len;
+};
+
+#define i_type vec_bytes, struct bytes
+#define i_keyclone(p) ((struct bytes){memdup(p.data, p.len), p.len})
+#define i_keydrop(p) (xfree(p->data))
 #include "stc/vec.h"
 
 struct env_entry_raw {
