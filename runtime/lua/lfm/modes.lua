@@ -231,7 +231,7 @@ function M._setup()
 
 	-- DELETE mode
 	do
-		local has_trash = os.execute("command -v trash-put >/dev/null") == 0
+		local has_gtrash = os.execute("command -v gtrash >/dev/null") == 0
 
 		local mode = {
 			name = "delete",
@@ -244,19 +244,17 @@ function M._setup()
 				local line = api.cmdline_line_get()
 				lfm.mode("normal")
 				if line == "y" then
-					-- TODO: use -- again when an updated version of trash-cli lands
-					-- local command = { "trash-put", "--" }
-					local command = { "trash-put" }
-					for _, file in ipairs(api.fm_sel_or_cur()) do
-						command[#command + 1] = file
+					local command = { "gtrash", "put" }
+					for i, file in ipairs(api.fm_sel_or_cur()) do
+						command[i + 2] = file
 					end
 					lfm.spawn(command, { stderr = true })
-					api.fm_selection_set()
+					api.fm_selection_set({})
 				end
 			end,
 		}
 		lfm.register_mode(mode)
-		if has_trash then
+		if has_gtrash then
 			map("df", a(lfm.mode, "delete"), { desc = "Trash file/selection" })
 		end
 	end
