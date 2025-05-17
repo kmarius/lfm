@@ -39,6 +39,35 @@ static inline struct bytes lua_to_bytes(lua_State *L, int idx) {
   return (struct bytes){data, len};
 }
 
+static inline void lua_push_vec_bytes(lua_State *L, vec_bytes *vec) {
+  lua_createtable(L, vec_bytes_size(vec), 0);
+  size_t i = 1;
+  c_foreach(it, vec_bytes, *vec) {
+    lua_pushlstring(L, it.ref->data, it.ref->len);
+    lua_rawseti(L, -2, i++);
+  }
+}
+
+static inline void lua_read_vec_bytes(lua_State *L, int idx, vec_bytes *vec) {
+  int n = lua_objlen(L, idx);
+  vec_bytes_reserve(vec, n);
+  for (int i = 1; i <= n; i++) {
+    lua_rawgeti(L, idx, i);
+    vec_bytes_push_back(vec, lua_to_bytes(L, -1));
+    lua_pop(L, 1);
+  }
+}
+
+static inline void lua_read_vec_str(lua_State *L, int idx, vec_str *vec) {
+  int n = lua_objlen(L, idx);
+  vec_str_reserve(vec, n);
+  for (int i = 1; i <= n; i++) {
+    lua_rawgeti(L, idx, i);
+    vec_str_push_back(vec, lua_tostrdup(L, -1));
+    lua_pop(L, 1);
+  }
+}
+
 static int l_schedule(lua_State *L) {
   luaL_checktype(L, 1, LUA_TFUNCTION);
   int delay = 0;
@@ -257,7 +286,6 @@ static int l_spawn(lua_State *L) {
   }
 
   luaL_checktype(L, 1, LUA_TTABLE); // [cmd, opts?]
-
   if (lua_gettop(L) == 2) {
     luaL_checktype(L, 2, LUA_TTABLE);
   }
@@ -266,11 +294,7 @@ static int l_spawn(lua_State *L) {
   luaL_argcheck(L, n > 0, 1, "no command given");
 
   vec_str_reserve(&args, n + 1);
-  for (int i = 1; i <= n; i++) {
-    lua_rawgeti(L, 1, i); // [cmd, opts?, arg]
-    vec_str_emplace(&args, lua_tostring(L, -1));
-    lua_pop(L, 1); // [cmd, opts?]
-  }
+  lua_read_vec_str(L, 1, &args);
   vec_str_push(&args, NULL);
 
   if (lua_gettop(L) == 2) {
@@ -280,12 +304,7 @@ static int l_spawn(lua_State *L) {
     } else if (lua_isstring(L, -1)) {
       vec_bytes_push_back(&stdin_lines, lua_to_bytes(L, -1));
     } else if (lua_istable(L, -1)) {
-      const size_t m = lua_objlen(L, -1);
-      for (uint32_t i = 1; i <= m; i++) {
-        lua_rawgeti(L, -1, i); // [cmd, opts, opts.stdin, str]
-        vec_bytes_push_back(&stdin_lines, lua_to_bytes(L, -1));
-        lua_pop(L, 1); // [cmd, otps, opts.stdin]
-      }
+      lua_read_vec_bytes(L, -1, &stdin_lines);
     }
     lua_pop(L, 1); // [cmd, opts]
 
@@ -368,11 +387,8 @@ static int l_execute(lua_State *L) {
   const int n = lua_objlen(L, 1);
   luaL_argcheck(L, n > 0, 1, "no command given");
 
-  for (int i = 1; i <= n; i++) {
-    lua_rawgeti(L, 1, i);
-    vec_str_push_back(&args, lua_tostrdup(L, -1));
-    lua_pop(L, 1);
-  }
+  vec_str_reserve(&args, n + 1);
+  lua_read_vec_str(L, 1, &args);
   vec_str_push(&args, NULL);
 
   if (lua_gettop(L) == 2) {
@@ -382,12 +398,7 @@ static int l_execute(lua_State *L) {
     if (lua_isstring(L, -1)) {
       vec_bytes_push_back(&stdin_lines, lua_to_bytes(L, -1));
     } else if (lua_istable(L, -1)) {
-      const size_t m = lua_objlen(L, -1);
-      for (uint32_t i = 1; i <= m; i++) {
-        lua_rawgeti(L, -1, i); // [cmd, opts, opts.stdin, str]
-        vec_bytes_push_back(&stdin_lines, lua_to_bytes(L, -1));
-        lua_pop(L, 1); // [cmd, otps, opts.stdin]
-      }
+      lua_read_vec_bytes(L, -1, &stdin_lines);
     }
     lua_pop(L, 1); // [cmd, opts]
 
@@ -432,27 +443,16 @@ static int l_execute(lua_State *L) {
     lua_setfield(L, -2, "status");
 
     if (capture_stdout) {
-      lua_createtable(L, vec_bytes_size(&stdout_lines), 0);
-      size_t i = 1;
-      c_foreach(it, vec_bytes, stdout_lines) {
-        lua_pushlstring(L, it.ref->data, it.ref->len);
-        lua_rawseti(L, -2, i++);
-      }
+      lua_push_vec_bytes(L, &stdout_lines);
       lua_setfield(L, -2, "stdout");
+      vec_bytes_drop(&stdout_lines);
     }
 
     if (capture_stderr) {
-      lua_createtable(L, vec_bytes_size(&stderr_lines), 0);
-      size_t i = 1;
-      c_foreach(it, vec_bytes, stderr_lines) {
-        lua_pushlstring(L, it.ref->data, it.ref->len);
-        lua_rawseti(L, -2, i++);
-      }
+      lua_push_vec_bytes(L, &stderr_lines);
       lua_setfield(L, -2, "stderr");
+      vec_bytes_drop(&stderr_lines);
     }
-
-    vec_bytes_drop(&stdout_lines);
-    vec_bytes_drop(&stderr_lines);
 
     return 1;
   }
