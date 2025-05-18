@@ -236,6 +236,7 @@ Preview *preview_create_from_file(const char *path, uint32_t width,
     close(devnull);
 
     execv(args[0], (char **)args);
+    log_error("execv: %s", strerror(errno));
     _exit(ENOSYS);
   }
 

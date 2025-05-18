@@ -503,6 +503,12 @@ int lfm_spawn(Lfm *lfm, const char *prog, char *const *args, env_list *env,
     }
 
     execvp(prog, (char **)args);
+    log_error("execvp: %s", strerror(errno));
+    if (capture_stderr) {
+      char buf[128];
+      int len = snprintf(buf, sizeof buf - 1, "execvp: %s", strerror(errno));
+      write(2, buf, len);
+    }
     _exit(ENOSYS);
   }
 
@@ -629,7 +635,13 @@ int lfm_execute(Lfm *lfm, const char *prog, char *const *args, env_list *env,
     }
 
     execvp(prog, (char *const *)args);
-    _exit(127); // execl error
+    log_error("execvp: %s", strerror(errno));
+    if (capture_stderr) {
+      char buf[128];
+      int len = snprintf(buf, sizeof buf - 1, "execvp: %s", strerror(errno));
+      write(2, buf, len);
+    }
+    _exit(127);
   }
 
   signal(SIGINT, SIG_IGN);
@@ -639,11 +651,19 @@ int lfm_execute(Lfm *lfm, const char *prog, char *const *args, env_list *env,
   if (capture_stdout) {
     close(pipe_stdout[1]);
     file_stdout = fdopen(pipe_stdout[0], "r");
+    if (file_stdout == NULL) {
+      log_error("fdopen: %s", strerror(errno));
+      close(pipe_stdout[0]);
+    }
   }
 
   if (capture_stderr) {
     close(pipe_stderr[1]);
     file_stderr = fdopen(pipe_stderr[0], "r");
+    if (file_stderr == NULL) {
+      log_error("fdopen: %s", strerror(errno));
+      close(pipe_stderr[0]);
+    }
   }
 
   if (send_stdin) {
@@ -654,6 +674,9 @@ int lfm_execute(Lfm *lfm, const char *prog, char *const *args, env_list *env,
     }
     close(pipe_stdin[1]);
   }
+
+  // as is the case with previews, we probably have to drain stdout/stderr or
+  // the process might not finish
 
   do {
     rc = waitpid(pid, &status, 0);
