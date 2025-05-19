@@ -229,36 +229,6 @@ function M._setup()
 		end, { mode = "travel-fuzzy", desc = "Move to parent directory" })
 	end
 
-	-- DELETE mode
-	do
-		local has_gtrash = os.execute("command -v gtrash >/dev/null") == 0
-
-		local mode = {
-			name = "delete",
-			input = true,
-			prefix = "delete [y/N]: ",
-			on_return = function()
-				lfm.mode("normal")
-			end,
-			on_change = function()
-				local line = api.cmdline_line_get()
-				lfm.mode("normal")
-				if line == "y" then
-					local command = { "gtrash", "put" }
-					for i, file in ipairs(api.fm_sel_or_cur()) do
-						command[i + 2] = file
-					end
-					lfm.spawn(command, { stderr = true })
-					api.fm_selection_set({})
-				end
-			end,
-		}
-		lfm.register_mode(mode)
-		if has_gtrash then
-			map("df", a(lfm.mode, "delete"), { desc = "Trash file/selection" })
-		end
-	end
-
 	-- SEARCH mode
 	do
 		local file = nil

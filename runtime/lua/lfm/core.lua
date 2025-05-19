@@ -255,18 +255,19 @@ lfm.eval = eval
 lfm.register_command = register_command
 lfm.api.fm_sel_or_cur = sel_or_cur
 
--- lazily load submodules in the lfm namespace, make sure to add them to doc/EmmyLua/lfm.lua
+-- lazily load submodules in the lfm namespace, make sure to add them to doc/LuaCATS/lfm.lua
 local submodules = {
 	compl = true,
 	functions = true,
 	inspect = true,
 	jumplist = true,
+	macros = true,
 	mode = true,
 	quickmarks = true,
-	macros = true,
 	rifle = true,
 	search = true,
 	shell = true,
+	trash = true,
 	util = true,
 }
 

@@ -57,6 +57,7 @@ lfm.quickmarks = require("lfm.quickmarks")
 lfm.rifle = require("lfm.rifle")
 lfm.search = require("lfm.search")
 lfm.shell = require("lfm.shell")
+lfm.trash = require("lfm.trash")
 lfm.util = require("lfm.util")
 
 ---@alias Lfm.Version.BuildType
