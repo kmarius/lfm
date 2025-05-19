@@ -275,7 +275,8 @@ static void fileinfo_callback(void *p, Lfm *lfm) {
       File *file = dir_current_file(res->dir);
       dir_sort(res->dir);
       if (file && dir_current_file(res->dir) != file) {
-        dir_cursor_move_to(res->dir, file->name, lfm->fm.height, cfg.scrolloff);
+        dir_cursor_move_to(res->dir, file_name(file), lfm->fm.height,
+                           cfg.scrolloff);
       }
     } else {
       dir_sort(res->dir);
@@ -443,7 +444,7 @@ static void async_dir_load_worker(void *arg) {
     File *file = work->update->files_all[i];
     if (S_ISLNK(file->lstat.st_mode) || S_ISDIR(file->lstat.st_mode)) {
       files[j].file = file;
-      files[j].path = strdup(file->path);
+      files[j].path = strdup(file_path(file));
       files[j].mode = file->lstat.st_mode;
       j++;
     }

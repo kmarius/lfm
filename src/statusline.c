@@ -1,6 +1,7 @@
 #include "statusline.h"
 
 #include "config.h"
+#include "file.h"
 #include "keys.h"
 #include "lfm.h"
 #include "macros.h"
@@ -38,11 +39,11 @@ void statusline_draw(Ui *ui) {
         char buf[512];
         buf[0] = 0;
         if (file_islink(file)) {
+          const char *link_target = cstr_str(file_link_target(file));
           if (cfg.linkchars_len > 0) {
-            snprintf(buf, sizeof buf - 1, " %s %s", cfg.linkchars,
-                     file_link_target(file));
+            snprintf(buf, sizeof buf - 1, " %s %s", cfg.linkchars, link_target);
           } else {
-            snprintf(buf, sizeof buf - 1, " %s", file_link_target(file));
+            snprintf(buf, sizeof buf - 1, " %s", link_target);
           }
         }
         lhs_sz = ncplane_printf(

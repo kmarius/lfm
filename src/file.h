@@ -3,23 +3,25 @@
 #include "fuzzy.h"
 #include "util.h"
 
+#include "stc/cstr.h"
+
 #include <stdbool.h>
 #include <stdint.h>
 
 #include <sys/stat.h>
 
 typedef struct File {
-  char *path;
-  char *name;
-  char *ext;
+  cstr path;
+  zsview name;
+  zsview ext;
   struct stat lstat;
   struct stat stat;
-  char *link_target;
-  bool isbroken;
-  bool hidden;
+  cstr link_target; // symlink target
+  bool isbroken;    // broken symlink
+  bool hidden;      // name starts with a dot
   int32_t dircount; // in case of a directory, < 0 if not loaded yet
-  int error;
-  score_t score;
+  int error;        // errorno of the error that prevented loading
+  score_t score;    // for convenience, used in fzy
 } File;
 
 File *file_create(const char *dir, const char *name, bool load_info);
@@ -28,22 +30,22 @@ void file_destroy(File *file);
 
 // Returns the full path of the file.
 static inline const char *file_path(const File *file) {
-  return file->path;
+  return cstr_str(&file->path);
 }
 
 // Returns the name of the file.
 static inline const char *file_name(const File *file) {
-  return file->name;
+  return file->name.str;
 }
 
 // Returns the extension of the file, `NULL` if it does not have one.
 static inline const char *file_ext(const File *file) {
-  return file->ext;
+  return file->ext.str;
 }
 
 // Returns the target of a (non-broken) symbolic link, `NULL` otherwise.
-static inline const char *file_link_target(const File *file) {
-  return file->link_target;
+static inline const cstr *file_link_target(const File *file) {
+  return &file->link_target;
 }
 
 // Returns `true` if the file is a directory or, if it is a link, if the link
@@ -74,13 +76,8 @@ static inline int32_t file_dircount(const File *file) {
   return file->dircount;
 }
 
-// Loads the number of files in a directory and saves it to `file`.
+// count the number of entries of the directory with the given path
 uint32_t path_dircount(const char *path);
-
-// Loads the number of files in a directory and saves it to `file`.
-static inline int32_t file_dircount_load(File *file) {
-  return path_dircount(file->path);
-}
 
 // Set `file->dircount` to `count`.
 static inline void file_dircount_set(File *file, int32_t ct) {

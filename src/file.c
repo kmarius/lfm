@@ -1,12 +1,12 @@
 #include "file.h"
 
 #include "memory.h"
-#include "util.h" // asprintf
+#include "stc/cstr.h"
+#include "stc/zsview.h"
 
 #include <errno.h>
 #include <limits.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include <bits/types.h>
@@ -16,8 +16,26 @@
 #include <pwd.h>
 #include <unistd.h> // readlink
 
+static inline zsview name_from_path(cstr *path) {
+  const char *last_slash = strrchr(cstr_str(path), '/') + 1;
+  int pos = last_slash - cstr_str(path);
+  return zsview_from_pos(cstr_zv(path), pos);
+}
+
+static inline zsview ext_from_name(zsview *name) {
+  const char *last_dot = strrchr(name->str, '.');
+  if (last_dot) {
+    int pos = last_dot - name->str;
+    if (pos > 0) {
+      return zsview_from_pos(*name, pos);
+    }
+  }
+  // no extension
+  return c_zv("");
+}
+
 File *file_create(const char *dir, const char *name, bool load_info) {
-  char buf[PATH_MAX] = {0};
+  char buf[PATH_MAX + 1] = {0};
 
   File *f = xcalloc(1, sizeof *f);
   memset(f, 0, sizeof *f);
@@ -25,18 +43,16 @@ File *file_create(const char *dir, const char *name, bool load_info) {
   f->dircount = -1;
 
   const bool isroot = dir[1] == 0 && dir[0] == '/';
-  asprintf(&f->path, "%s/%s", isroot ? "" : dir, name);
+  // neet to build stc to use cstr_from_fmt
+  int len = snprintf(buf, sizeof buf - 1, "%s/%s", isroot ? "" : dir, name);
+  f->path = cstr_with_n(buf, len);
+  f->name = name_from_path(&f->path);
+  f->ext = ext_from_name(&f->name);
+  f->hidden = *file_name(f) == '.';
 
-  f->name = strrchr(f->path, '/') + 1;
-  f->hidden = *f->name == '.';
-  f->ext = strrchr(f->name, '.');
-  if (f->ext == f->name) {
-    f->ext = NULL;
-  }
-
-  if (lstat(f->path, &f->lstat) == -1) {
+  if (lstat(file_path(f), &f->lstat) == -1) {
     if (errno == ENOENT) {
-      xfree(f->path);
+      cstr_drop(&f->path);
       xfree(f);
       return NULL;
     } else {
@@ -47,15 +63,16 @@ File *file_create(const char *dir, const char *name, bool load_info) {
 
   if (S_ISLNK(f->lstat.st_mode)) {
     if (load_info) {
-      if (stat(f->path, &f->stat) == -1) {
+      if (stat(file_path(f), &f->stat) == -1) {
         f->isbroken = true;
         f->stat = f->lstat;
       }
     }
-    if (readlink(f->path, buf, sizeof buf) == -1) {
+    ssize_t len = readlink(file_path(f), buf, sizeof buf);
+    if (len == -1) {
       f->isbroken = true;
     } else {
-      f->link_target = strdup(buf);
+      f->link_target = cstr_with_n(buf, len);
     }
   } else {
     // for non-symlinks stat == lstat
@@ -63,9 +80,9 @@ File *file_create(const char *dir, const char *name, bool load_info) {
   }
 
   if (file_isdir(f)) {
-    f->ext = NULL;
+    f->ext = c_zv("");
     if (load_info) {
-      f->dircount = file_dircount_load(f);
+      f->dircount = path_dircount(file_path(f));
     }
   }
 
@@ -77,8 +94,8 @@ void file_destroy(File *f) {
     return;
   }
 
-  xfree(f->path);
-  xfree(f->link_target);
+  cstr_drop(&f->path);
+  cstr_drop(&f->link_target);
   xfree(f);
 }
 

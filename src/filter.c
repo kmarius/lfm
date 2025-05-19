@@ -71,7 +71,7 @@ struct filter_atom {
 };
 
 static bool pred_substr(const struct filter_atom *atom, const File *file) {
-  return (strcasestr(file->name, atom->string) != NULL);
+  return (strcasestr(file_name(file), atom->string) != NULL);
 }
 
 static bool pred_size_lt(const struct filter_atom *atom, const File *file) {
@@ -267,9 +267,9 @@ Filter *filter_create_fuzzy(const char *filter) {
 }
 
 bool fuzzy_match(const Filter *filter, const File *file) {
-  if (fzy_has_match(filter->string, file->name)) {
+  if (fzy_has_match(filter->string, file_name(file))) {
     File *f = (File *)file;
-    f->score = fzy_match(filter->string, file->name);
+    f->score = fzy_match(filter->string, file_name(file));
     return true;
   }
   return false;
@@ -327,7 +327,7 @@ Filter *filter_create_lua(int ref, void *L) {
 
 bool lua_match(const Filter *filter, const File *file) {
   LuaFilter *f = (LuaFilter *)filter;
-  return llua_filter(f->L, f->ref, file->name);
+  return llua_filter(f->L, f->ref, file_name(file));
 }
 
 void lua_destroy(Filter *filter) {

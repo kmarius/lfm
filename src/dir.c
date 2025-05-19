@@ -350,10 +350,10 @@ Dir *dir_load_flat(const char *path, uint32_t level, bool load_fileinfo) {
           }
         }
         for (uint32_t i = 0; i < head->level; i++) {
-          file->name -= 2;
-          while (*(file->name - 1) != '/') {
-            file->name--;
-          }
+          // file->name -= 2;
+          // while (*(file->name - 1) != '/') {
+          //   file->name--;
+          // }
         }
 
         vec_file_push(&files, file);
