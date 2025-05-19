@@ -346,7 +346,7 @@ static inline void draw_custom(Ui *ui) {
       spinner_draw_char(&ui->spinner);
     } break;
     }
-    ncplane_addastr(n, placeholders[i].next);
+    ncplane_put_str_ansi(n, placeholders[i].next);
   }
 
   if (idx.spinner == 0) {

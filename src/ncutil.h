@@ -2,6 +2,8 @@
 
 #include <notcurses/notcurses.h>
 
+#include "stc/cstr.h"
+
 #define NCCHANNEL_INITIALIZER_PALINDEX(ind)                                    \
   (ind < 0 ? ~NC_BGDEFAULT_MASK & 0xff000000lu                                 \
            : (((NC_BGDEFAULT_MASK | NC_BG_PALETTE) & 0xff000000lu) |           \
@@ -21,10 +23,18 @@ const char *ncplane_set_ansi_attrs(struct ncplane *n, const char *s);
 
 // Adds a string to n, interpreting ansi escape sequences and setting the
 // attributes to n.
-int ncplane_addastr_yx(struct ncplane *n, int y, int x, const char *s);
+int ncplane_put_str_ansi_yx(struct ncplane *n, int y, int x, const char *s);
 
-static inline int ncplane_addastr(struct ncplane *n, const char *s) {
-  return ncplane_addastr_yx(n, -1, -1, s);
+static inline int ncplane_put_str_ansi(struct ncplane *n, const char *s) {
+  return ncplane_put_str_ansi_yx(n, -1, -1, s);
+}
+
+// Adds a cstr to n, interpreting ansi escape sequences and setting the
+// attributes to n.
+int ncplane_put_cstr_ansi_yx(struct ncplane *n, int y, int x, const cstr s);
+
+static inline int ncplane_put_cstr_ansi(struct ncplane *n, const cstr s) {
+  return ncplane_put_cstr_ansi_yx(n, -1, -1, s);
 }
 
 // Returns the size of the string in wide chars with ansi codes removed.

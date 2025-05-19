@@ -63,7 +63,7 @@ static inline Preview *preview_create(const char *path, int height, int width) {
 }
 
 static void destroy_text_preview(Preview *p) {
-  vec_str_drop(&p->lines);
+  vec_cstr_drop(&p->lines);
   xfree(p->path);
   xfree(p);
 }
@@ -75,7 +75,7 @@ Preview *preview_create_loading(const char *path, int height, int width) {
 }
 
 static void update_text_preview(Preview *p, Preview *u) {
-  vec_str_drop(&p->lines);
+  vec_cstr_drop(&p->lines);
   p->lines = u->lines;
   p->mtime = u->mtime;
   p->reload_width = u->reload_width;
@@ -131,7 +131,7 @@ static inline ssize_t fgets_seek(char *dest, int n, FILE *fp) {
 
 // Read up to max_lines lines from a stream into a vector. Stops reading a line
 // after MAX_LINE_LENGTH bytes.
-static inline void lines_from_stream(vec_str *vec, FILE *file, int max_lines) {
+static inline void lines_from_stream(vec_cstr *vec, FILE *file, int max_lines) {
   flockfile(file);
   char buf[MAX_LINE_LENGTH];
   for (int i = 0; i < max_lines; i++) {
@@ -139,7 +139,7 @@ static inline void lines_from_stream(vec_str *vec, FILE *file, int max_lines) {
     if (len < 0) {
       return;
     }
-    vec_str_push_back(vec, strndup(buf, len));
+    vec_cstr_push_back(vec, cstr_with_n(buf, len));
   }
   funlockfile(file);
 }
@@ -169,10 +169,10 @@ static inline int gen_cache_path(const char *path, char *buf, size_t buflen) {
 static inline Preview *preview_error(Preview *p, const char *fmt, ...) {
   va_list args;
   va_start(args, fmt);
-  vec_str_clear(&p->lines);
+  vec_cstr_clear(&p->lines);
   char buf[128];
   int len = vsnprintf(buf, sizeof buf - 1, fmt, args);
-  vec_str_push_back(&p->lines, strndup(buf, len));
+  vec_cstr_push_back(&p->lines, cstr_with_n(buf, len));
   log_error("%s", buf);
   va_end(args);
   return p;
@@ -283,7 +283,7 @@ Preview *preview_create_from_file(const char *path, uint32_t width,
       if (fp_file == NULL) {
         return preview_error(p, "fopen: ", strerror(errno));
       }
-      vec_str_clear(&p->lines);
+      vec_cstr_clear(&p->lines);
       lines_from_stream(&p->lines, fp_file, height);
       fclose(fp_file);
     } break;
@@ -303,7 +303,7 @@ Preview *preview_create_from_file(const char *path, uint32_t width,
         if (unlikely(ncv == NULL)) {
           return preview_error(p, "ncvisual_from_file: ", strerror(errno));
         }
-        vec_str_drop(&p->lines);
+        vec_cstr_drop(&p->lines);
         p->ncv = ncv;
         p->draw = draw_image_preview;
         p->update = update_image_preview;
@@ -316,7 +316,7 @@ Preview *preview_create_from_file(const char *path, uint32_t width,
         if (unlikely(ncv == NULL)) {
           return preview_error(p, "ncvisual_from_file: ", strerror(errno));
         }
-        vec_str_drop(&p->lines);
+        vec_cstr_drop(&p->lines);
         p->ncv = ncv;
         p->draw = draw_image_preview;
         p->update = update_image_preview;
@@ -340,12 +340,12 @@ static void draw_text_preview(const Preview *p, struct ncplane *n) {
   ncplane_set_fg_default(n);
   ncplane_set_bg_default(n);
 
-  for (int i = 0; i < vec_str_size(&p->lines) && i < (int)nrow; i++) {
+  for (int i = 0; i < vec_cstr_size(&p->lines) && i < (int)nrow; i++) {
     ncplane_cursor_move_yx(n, i, 0);
     ncplane_set_fg_default(n);
     ncplane_set_bg_default(n);
     ncplane_set_styles(n, NCSTYLE_NONE);
-    ncplane_addastr(n, *vec_str_at(&p->lines, i));
+    ncplane_put_cstr_ansi(n, *vec_cstr_at(&p->lines, i));
   }
 }
 

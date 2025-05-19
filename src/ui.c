@@ -1010,7 +1010,7 @@ static inline void print_message(Ui *ui, const char *msg, bool error) {
   } else {
     ncplane_set_fg_default(n);
     ncplane_cursor_move_yx(n, 0, 0);
-    ncplane_addastr(n, msg);
+    ncplane_put_str_ansi(n, msg);
   }
   notcurses_render(ui->nc);
   ncplane_set_fg_default(n);

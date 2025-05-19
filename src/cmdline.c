@@ -330,7 +330,7 @@ uint32_t cmdline_draw(Cmdline *c, struct ncplane *n) {
   ncplane_dim_yx(n, NULL, &ncol);
 
   uint32_t ret = 0;
-  ret += ncplane_addastr_yx(n, 0, 0, c->prefix.str);
+  ret += ncplane_put_str_ansi_yx(n, 0, 0, c->prefix.str);
   ncol -= ret;
 
   if (c->right.len == 0) {

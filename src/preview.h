@@ -22,7 +22,7 @@ typedef void (*preview_destroy_fun)(struct Preview *);
 typedef struct Preview {
   char *path;
   union {
-    vec_str lines;
+    vec_cstr lines;
     struct ncvisual *ncv;
   };
   uint64_t next;

@@ -2,6 +2,7 @@
 
 #include "config.h"
 #include "log.h"
+#include "stc/cstr.h"
 
 #include <curses.h>
 
@@ -165,7 +166,7 @@ err:
   goto ret;
 }
 
-int ncplane_addastr_yx(struct ncplane *n, int y, int x, const char *s) {
+int ncplane_put_str_ansi_yx(struct ncplane *n, int y, int x, const char *s) {
   int ret = 0;
   ncplane_cursor_move_yx(n, y, x);
   while (*s) {
@@ -174,6 +175,30 @@ int ncplane_addastr_yx(struct ncplane *n, int y, int x, const char *s) {
     } else {
       const char *c;
       for (c = s; *s != 0 && *s != '\033'; s++)
+        ;
+      int m = ncplane_putnstr(n, s - c, c);
+      if (m < 0) {
+        // EOL/error
+        ret -= m;
+        break;
+      }
+      ret += m;
+    }
+  }
+  return ret;
+}
+
+int ncplane_put_cstr_ansi_yx(struct ncplane *n, int y, int x, cstr str) {
+  int ret = 0;
+  ncplane_cursor_move_yx(n, y, x);
+  const char *s = cstr_str(&str);
+  const char *end = cstr_str(&str) + cstr_size(&str);
+  while (s < end) {
+    if (*s == '\033') {
+      s = ncplane_set_ansi_attrs(n, s);
+    } else {
+      const char *c;
+      for (c = s; s < end && *s != '\033'; s++)
         ;
       int m = ncplane_putnstr(n, s - c, c);
       if (m < 0) {
