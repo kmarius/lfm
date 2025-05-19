@@ -78,7 +78,7 @@ typedef struct config {
   hmap_icon icon_map;
   uint32_t scrolloff;
   char *timefmt;
-  vec_str commands;
+  vec_cstr commands;
   vec_int ratios;
 
   vec_str inotify_blacklist;

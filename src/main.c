@@ -66,7 +66,7 @@ int main(int argc, char **argv) {
   while ((opt = getopt(argc, argv, ":c:hl:L:s:u:v")) != -1) {
     switch (opt) {
     case 'c':
-      vec_str_emplace(&cfg.commands, optarg);
+      vec_cstr_emplace(&cfg.commands, optarg);
       break;
     case 'h':
       usage(argv[0]);

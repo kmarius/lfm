@@ -152,12 +152,12 @@ void llua_call_from_ref(lua_State *L, int ref, int count) {
   }
 }
 
-void llua_eval(lua_State *L, const char *expr) {
+void llua_evaln(lua_State *L, const char *expr, int len) {
   log_debug("lua_eval %s", expr);
-  lua_getglobal(L, "lfm");     // [lfm]
-  lua_getfield(L, -1, "eval"); // [lfm, lfm.eval]
-  lua_pushstring(L, expr);     // [lfm, lfm.eval, expr]
-  if (llua_pcall(L, 1, 0)) {   // [lfm]
+  lua_getglobal(L, "lfm");       // [lfm]
+  lua_getfield(L, -1, "eval");   // [lfm, lfm.eval]
+  lua_pushlstring(L, expr, len); // [lfm, lfm.eval, expr]
+  if (llua_pcall(L, 1, 0)) {     // [lfm]
     ui_error(ui, "%s", lua_tostring(L, -1));
     lua_pop(L, 1);
   }

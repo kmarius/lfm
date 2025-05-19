@@ -19,7 +19,7 @@ typedef struct Filter {
   bool (*match)(const Filter *, const File *file);
   void (*destroy)(Filter *);
   char *string;
-  char *type;
+  const char *type;
   __compar_fn_t cmp;
 } Filter;
 

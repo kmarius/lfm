@@ -5,10 +5,13 @@
  * callbacks etc.
  */
 
+#include "../stc/cstr.h"
+
 #include <lua.h>
 
 #include <stdbool.h>
 #include <stdio.h>
+#include <string.h>
 
 struct Lfm;
 
@@ -21,7 +24,15 @@ int llua_pcall(lua_State *L, int nargs, int nresults);
 
 // Evaluate an expr, which is either a chunk of lua code or a registered command
 // (with arguments) as if typed in the command line.
-void llua_eval(lua_State *L, const char *expr);
+void llua_evaln(lua_State *L, const char *expr, int len);
+
+static inline void llua_eval(lua_State *L, const char *expr) {
+  llua_evaln(L, expr, strlen(expr));
+}
+
+static inline void llua_eval_cstr(lua_State *L, const cstr expr) {
+  llua_evaln(L, cstr_str(&expr), cstr_size(&expr));
+}
 
 //  Run callback for finished child.
 void llua_run_child_callback(lua_State *L, int ref, int rstatus);

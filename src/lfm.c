@@ -201,11 +201,10 @@ static void prepare_cb(EV_P_ ev_prepare *w, int revents) {
   (void)revents;
   Lfm *lfm = w->data;
 
-  c_foreach(it, vec_str, cfg.commands) {
-    llua_eval(lfm->L, *it.ref);
+  c_foreach(it, vec_cstr, cfg.commands) {
+    llua_eval_cstr(lfm->L, *it.ref);
   }
-  vec_str_drop(&cfg.commands);
-  cfg.commands = vec_str_init();
+  vec_cstr_drop(&cfg.commands);
 
   c_foreach(it, vec_message, lfm->messages) {
     if (it.ref->error) {
