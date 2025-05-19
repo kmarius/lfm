@@ -29,6 +29,7 @@
 
 #include <stdio.h>
 #include <sys/ioctl.h>
+#include <sys/types.h>
 #include <unistd.h>
 
 #include <stdint.h>
@@ -261,6 +262,8 @@ static void redraw_cb(EV_P_ ev_idle *w, int revents) {
 }
 
 void ui_draw(Ui *ui) {
+  uint64_t t0 = current_micros();
+
   if (ui->redraw & REDRAW_FM) {
     draw_dirs(ui);
   }
@@ -279,6 +282,11 @@ void ui_draw(Ui *ui) {
   if (ui->redraw) {
     notcurses_render(ui->nc);
   }
+
+  uint64_t t1 = current_micros();
+  if (ui->redraw)
+    log_trace("ui_draw completed in %.3fms", (t1 - t0) / 1000.0);
+
   ui->redraw = 0;
 }
 
