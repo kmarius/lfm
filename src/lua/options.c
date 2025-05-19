@@ -6,6 +6,7 @@
 #include "../tpool.h"
 #include "lua.h"
 #include "private.h"
+#include "util.h"
 
 #include <lauxlib.h>
 
@@ -136,12 +137,7 @@ static int l_config_index(lua_State *L) {
     }
     return 1;
   } else if (streq(key, "inotify_blacklist")) {
-    const size_t l = vec_str_size(&cfg.inotify_blacklist);
-    lua_createtable(L, l, 0);
-    for (size_t i = 0; i < l; i++) {
-      lua_pushstring(L, *vec_str_at(&cfg.inotify_blacklist, i));
-      lua_rawseti(L, -2, i + 1);
-    }
+    lua_push_vec_cstr(L, &cfg.inotify_blacklist);
     return 1;
   } else if (streq(key, "inotify_timeout")) {
     lua_pushinteger(L, cfg.inotify_timeout);
@@ -244,13 +240,7 @@ static int l_config_newindex(lua_State *L) {
     ui_redraw(ui, REDRAW_FM);
   } else if (streq(key, "inotify_blacklist")) {
     luaL_checktype(L, 3, LUA_TTABLE);
-    const size_t l = lua_objlen(L, 3);
-    vec_str_clear(&cfg.inotify_blacklist);
-    for (size_t i = 1; i <= l; i++) {
-      lua_rawgeti(L, 3, i);
-      vec_str_emplace(&cfg.inotify_blacklist, lua_tostring(L, -1));
-      lua_pop(L, 1);
-    }
+    lua_read_vec_cstr(L, 3, &cfg.inotify_blacklist);
   } else if (streq(key, "inotify_timeout")) {
     int n = luaL_checkinteger(L, 3);
     if (n < 100) {

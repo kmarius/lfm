@@ -81,7 +81,7 @@ typedef struct config {
   vec_cstr commands;
   vec_int ratios;
 
-  vec_str inotify_blacklist;
+  vec_cstr inotify_blacklist;
   uint32_t inotify_timeout;
   uint32_t inotify_delay;
 

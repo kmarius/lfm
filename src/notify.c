@@ -97,8 +97,8 @@ static void inotify_cb(EV_P_ ev_io *w, int revents) {
 }
 
 void notify_add_watcher(Notify *notify, Dir *dir) {
-  c_foreach(it, vec_str, cfg.inotify_blacklist) {
-    if (hasprefix(dir->path, *it.ref)) {
+  c_foreach(it, vec_cstr, cfg.inotify_blacklist) {
+    if (hasprefix(dir->path, cstr_str(it.ref))) {
       return;
     }
   }

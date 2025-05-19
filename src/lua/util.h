@@ -27,6 +27,15 @@ static inline struct bytes lua_to_bytes(lua_State *L, int idx) {
   return (struct bytes){data, len};
 }
 
+static inline void lua_push_vec_cstr(lua_State *L, const vec_cstr *vec) {
+  lua_createtable(L, vec_cstr_size(vec), 0);
+  int i = 1;
+  c_foreach(it, vec_cstr, *vec) {
+    lua_pushlstring(L, cstr_str(it.ref), cstr_size(it.ref));
+    lua_rawseti(L, -2, i++);
+  }
+}
+
 static inline void lua_push_vec_bytes(lua_State *L, vec_bytes *vec) {
   lua_createtable(L, vec_bytes_size(vec), 0);
   size_t i = 1;

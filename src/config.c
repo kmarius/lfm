@@ -128,7 +128,7 @@ void config_deinit(void) {
   hmap_icon_drop(&cfg.icon_map);
   hmap_dirsetting_drop(&cfg.dir_settings_map);
   vec_int_drop(&cfg.ratios);
-  vec_str_drop(&cfg.inotify_blacklist);
+  vec_cstr_drop(&cfg.inotify_blacklist);
   xfree(cfg.configdir);
   xfree(cfg.configpath);
   xfree(cfg.user_configpath);
