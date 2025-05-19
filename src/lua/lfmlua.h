@@ -17,6 +17,8 @@ void lfm_lua_init(struct Lfm *lfm);
 
 void lfm_lua_deinit(struct Lfm *lfm);
 
+int llua_pcall(lua_State *L, int nargs, int nresults);
+
 // Evaluate an expr, which is either a chunk of lua code or a registered command
 // (with arguments) as if typed in the command line.
 void llua_eval(lua_State *L, const char *expr);

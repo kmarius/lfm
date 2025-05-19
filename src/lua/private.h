@@ -25,14 +25,3 @@ static inline int lua_set_callback(lua_State *L) {
   assert(ref > 0);
   return ref;
 }
-
-// Gets the previously stored (via lua_set_callback) element with reference ref
-// from the registry and leaves it at the top of the stack.
-static inline void lua_get_callback(lua_State *L, int ref, bool unref) {
-  assert(ref > 0);
-  lua_rawgeti(L, LUA_REGISTRYINDEX, ref); // [elem]
-  if (unref) {
-    luaL_unref(L, LUA_REGISTRYINDEX, ref);
-  }
-  assert(!lua_isnoneornil(L, -1));
-}

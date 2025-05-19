@@ -64,17 +64,3 @@ int lfm_remove_hook(Lfm *lfm, int id) {
   // no hook
   return 0;
 }
-
-void lfm_run_hook(Lfm *lfm, lfm_hook_id hook) {
-  log_trace("running hook: %s", hook_str[hook]);
-  c_foreach(it, vec_int, lfm->hook_refs[hook]) {
-    llua_call_ref(lfm->L, *it.ref);
-  }
-}
-
-void lfm_run_hook1(Lfm *lfm, lfm_hook_id hook, const char *arg1) {
-  log_trace("running hook: %s %s", hook_str[hook], arg1);
-  c_foreach(it, vec_int, lfm->hook_refs[hook]) {
-    llua_call_ref1(lfm->L, *it.ref, arg1);
-  }
-}

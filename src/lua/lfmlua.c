@@ -26,10 +26,7 @@ Lfm *lfm = NULL;
 Ui *ui = NULL;
 Fm *fm = NULL;
 
-static int llua_pcall(lua_State *L, int nargs, int nresults) {
-  static int pcall_depth = 0;
-  pcall_depth++;
-
+int llua_pcall(lua_State *L, int nargs, int nresults) {
   lua_getglobal(L, "debug");
   lua_getfield(L, -1, "traceback");
   lua_remove(L, -2);
@@ -37,20 +34,10 @@ static int llua_pcall(lua_State *L, int nargs, int nresults) {
 
   int status = lua_pcall(L, nargs, nresults, -2 - nargs);
 
-  if (status) {
+  if (status != LUA_OK) {
     lua_remove(L, -2);
   } else {
     lua_remove(L, -1 - nresults);
-  }
-
-  if (--pcall_depth == 0) {
-    // check that we are not leaking stack elements, but only in the outermost
-    // pcall
-    int stack_size = lua_gettop(lfm->L);
-    if (lfm->lua_stack_size != stack_size) {
-      log_error("stack size mismatch, should be %d, is %d. Are we leaking?",
-                lfm->lua_stack_size, stack_size);
-    }
   }
   return status;
 }
@@ -216,8 +203,6 @@ void lfm_lua_init(Lfm *lfm_) {
   }
   log_info("user configuration loaded in %.2fms",
            (current_micros() - t0) / 1000.0);
-
-  lfm->lua_stack_size = lua_gettop(L);
 }
 
 void lfm_lua_deinit(Lfm *lfm) {

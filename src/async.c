@@ -406,7 +406,7 @@ static void dir_update_callback(void *p, Lfm *lfm) {
     }
     loader_dir_load_callback(&lfm->loader, res->dir);
     dir_update_with(res->dir, res->update, lfm->fm.height, cfg.scrolloff);
-    lfm_run_hook1(lfm, LFM_HOOK_DIRUPDATED, res->dir->path);
+    lfm_run_hook(lfm, LFM_HOOK_DIRUPDATED, res->dir->path);
     if (res->dir->visible) {
       fm_update_preview(&lfm->fm);
       if (fm_current_dir(&lfm->fm) == res->dir) {

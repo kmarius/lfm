@@ -92,7 +92,7 @@ int lfm_mode_enter(Lfm *lfm, const char *name) {
     cmdline_prefix_set(&lfm->ui.cmdline, mode->prefix);
   }
   lfm->ui.maps.cur_input = NULL;
-  lfm_run_hook1(lfm, LFM_HOOK_MODECHANGED, mode->name);
+  lfm_run_hook(lfm, LFM_HOOK_MODECHANGED, mode->name);
 
   ui_redraw(&lfm->ui, REDRAW_INFO);
   return 0;

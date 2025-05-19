@@ -214,7 +214,7 @@ Dir *loader_dir_from_path(Loader *loader, const char *path, bool do_load) {
       dir->loading = true;
     }
     if (to_lfm(loader)->L) {
-      lfm_run_hook1(to_lfm(loader), LFM_HOOK_DIRLOADED, path);
+      lfm_run_hook(to_lfm(loader), LFM_HOOK_DIRLOADED, path);
     }
   }
   return dir;

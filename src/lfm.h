@@ -29,8 +29,6 @@ typedef struct Lfm {
   struct ev_loop *loop;
 
   lua_State *L;
-  int lua_stack_size; // for debugging purposes to ensure we are not leaking
-                      // stack elements
 
   hmap_modes modes;
   struct mode *current_mode;
