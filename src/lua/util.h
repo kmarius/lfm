@@ -47,6 +47,7 @@ static inline void lua_push_vec_bytes(lua_State *L, vec_bytes *vec) {
 
 static inline void lua_read_vec_bytes(lua_State *L, int idx, vec_bytes *vec) {
   int n = lua_objlen(L, idx);
+  vec_bytes_clear(vec);
   vec_bytes_reserve(vec, n);
   for (int i = 1; i <= n; i++) {
     lua_rawgeti(L, idx, i);
@@ -57,6 +58,7 @@ static inline void lua_read_vec_bytes(lua_State *L, int idx, vec_bytes *vec) {
 
 static inline void lua_read_vec_str(lua_State *L, int idx, vec_str *vec) {
   int n = lua_objlen(L, idx);
+  vec_str_clear(vec);
   vec_str_reserve(vec, n);
   for (int i = 1; i <= n; i++) {
     lua_rawgeti(L, idx, i);
@@ -67,6 +69,7 @@ static inline void lua_read_vec_str(lua_State *L, int idx, vec_str *vec) {
 
 static inline void lua_read_vec_cstr(lua_State *L, int idx, vec_cstr *vec) {
   int n = lua_objlen(L, idx);
+  vec_cstr_clear(vec);
   vec_cstr_reserve(vec, n);
   for (int i = 1; i <= n; i++) {
     lua_rawgeti(L, idx, i);
