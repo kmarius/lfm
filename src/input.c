@@ -103,8 +103,10 @@ static inline void input_clear(Lfm *lfm) {
   Ui *ui = &lfm->ui;
   ui->maps.cur = NULL;
   ui_menu_hide(ui);
-  vec_input_clear(&ui->maps.seq);
-  ui_redraw(ui, REDRAW_CMDLINE);
+  if (vec_input_size(&ui->maps.seq) > 0) {
+    ui_redraw(ui, REDRAW_CMDLINE);
+    vec_input_clear(&ui->maps.seq);
+  }
 }
 
 void input_handle_key(Lfm *lfm, input_t in) {
