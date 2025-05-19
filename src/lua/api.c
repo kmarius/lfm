@@ -347,10 +347,10 @@ static int l_fm_current_dir(lua_State *L) {
   const Dir *dir = fm_current_dir(fm);
   lua_createtable(L, 0, 3);
 
-  lua_pushstring(L, dir->path);
+  lua_pushstring(L, dir_path(dir));
   lua_setfield(L, -2, "path");
 
-  lua_pushstring(L, dir->name);
+  lua_pushstring(L, dir_name(dir));
   lua_setfield(L, -2, "name");
 
   lua_createtable(L, 0, 3);

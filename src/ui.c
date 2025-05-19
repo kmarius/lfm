@@ -285,7 +285,8 @@ void ui_draw(Ui *ui) {
 
   uint64_t t1 = current_micros();
   if (ui->redraw)
-    log_trace("ui_draw completed in %.3fms", (t1 - t0) / 1000.0);
+    log_trace("ui_draw completed in %.3fms (%d)", (t1 - t0) / 1000.0,
+              ui->redraw);
 
   ui->redraw = 0;
 }
@@ -438,7 +439,9 @@ void ui_menu_show(Ui *ui, vec_cstr *vec, uint32_t delay) {
       ev_invoke(EV_A_ & ui->menu_delay_timer, 0);
     }
   }
-  ui_redraw(ui, REDRAW_MENU);
+  if (vec_cstr_size(&ui->menubuf) > 0) {
+    ui_redraw(ui, REDRAW_MENU);
+  }
 }
 
 static void menu_delay_timer_cb(EV_P_ ev_timer *w, int revents) {

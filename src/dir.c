@@ -58,8 +58,8 @@ File *dir_current_file(const Dir *d) {
   return d->files[d->ind];
 }
 
-const char *dir_parent_path(const Dir *d) {
-  return path_parent_s(d->path);
+const char *dir_parent_path(const Dir *dir) {
+  return path_parent_s(dir_path(dir));
 }
 
 static void apply_filters(Dir *d) {
@@ -198,33 +198,34 @@ void dir_filter(Dir *d, Filter *filter) {
   apply_filters(d);
 }
 
-bool dir_check(const Dir *d) {
+bool dir_check(const Dir *dir) {
   struct stat statbuf;
-  if (stat(d->path, &statbuf) == -1) {
+  if (stat(dir_path(dir), &statbuf) == -1) {
     log_error("stat: %s", strerror(errno));
     return false;
   }
-  return statbuf.st_mtime <= d->load_time;
+  return statbuf.st_mtime <= dir->load_time;
 }
 
 Dir *dir_create(const char *path) {
-  Dir *d = xcalloc(1, sizeof *d);
+  Dir *dir = xcalloc(1, sizeof *dir);
 
   if (path[0] != '/') {
     char buf[PATH_MAX + 1];
     if (realpath(path, buf) == NULL) {
-      asprintf(&d->path, "error: %s\n", strerror(errno));
+      snprintf(buf, sizeof buf - 1, "error: %s\n", strerror(errno));
     } else {
-      d->path = strdup(buf);
+      dir->path = cstr_from(buf);
     }
   } else {
-    d->path = strdup(path);
+    dir->path = cstr_from(path);
   }
 
-  d->load_time = time(NULL);
-  d->name = basename(d->path);
+  dir->load_time = time(NULL);
+  int pos = basename(cstr_data(&dir->path)) - cstr_str(&dir->path);
+  dir->name = zsview_from_pos(cstr_zv(&dir->path), pos);
 
-  return d;
+  return dir;
 }
 
 Dir *dir_load(const char *path, bool load_fileinfo) {
@@ -455,7 +456,7 @@ void dir_update_with(Dir *d, Dir *update, uint32_t height, uint32_t scrolloff) {
   d->status = DIR_LOADING_FULLY;
 
   xfree(update->sel);
-  xfree(update->path);
+  cstr_drop(&update->path);
   xfree(update);
 
   d->sorted = false;
@@ -480,6 +481,6 @@ void dir_destroy(Dir *d) {
   xfree(d->files_sorted);
   xfree(d->files);
   xfree(d->sel);
-  xfree(d->path);
+  cstr_drop(&d->path);
   xfree(d);
 }

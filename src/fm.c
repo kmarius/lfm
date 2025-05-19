@@ -96,14 +96,14 @@ static void fm_populate(Fm *fm) {
   fm->dirs.visible.data[0]->visible = true;
   Dir *dir = fm_current_dir(fm);
   for (uint32_t i = 1; i < fm->dirs.length; i++) {
-    const char *parent = path_parent_s(dir->path);
+    const char *parent = path_parent_s(dir_path(dir));
     if (parent) {
       dir = loader_dir_from_path(&to_lfm(fm)->loader, parent, true);
       dir->visible = true;
       fm->dirs.visible.data[i] = dir;
       if (dir_loading(dir)) {
-        dir_cursor_move_to(dir, fm->dirs.visible.data[i - 1]->name, fm->height,
-                           cfg.scrolloff);
+        dir_cursor_move_to(dir, dir_name(fm->dirs.visible.data[i - 1]),
+                           fm->height, cfg.scrolloff);
       }
     } else {
       fm->dirs.visible.data[i] = NULL;
@@ -155,7 +155,7 @@ static inline bool fm_chdir_impl(Fm *fm, const char *path, bool save, bool hook,
   if (save) {
     xfree(fm->automark);
     fm->automark =
-        fm_current_dir(fm)->error ? NULL : strdup(fm_current_dir(fm)->path);
+        fm_current_dir(fm)->error ? NULL : strdup(dir_path(fm_current_dir(fm)));
   }
 
   fm_remove_preview(fm);
@@ -261,7 +261,7 @@ void fm_reload(Fm *fm) {
 
 static inline void fm_remove_preview(Fm *fm) {
   if (fm->dirs.preview) {
-    log_trace("removing preview %s", fm->dirs.preview->path);
+    log_trace("removing preview %s", dir_path(fm->dirs.preview));
     notify_remove_watcher(&to_lfm(fm)->notify, fm->dirs.preview);
     fm->dirs.preview->visible = false;
     fm->dirs.preview = NULL;
@@ -308,7 +308,7 @@ static inline void on_cursor_moved(Fm *fm, bool delay_action) {
   const File *file = fm_current_file(fm);
   bool is_directory_preview = file != NULL && file_isdir(file);
   bool is_same_preview = file != NULL && fm->dirs.preview != NULL &&
-                         streq(fm->dirs.preview->path, file_path(file));
+                         streq(dir_path(fm->dirs.preview), file_path(file));
 
   if (!is_same_preview) {
     fm_remove_preview(fm);
@@ -558,7 +558,7 @@ bool fm_updir(Fm *fm) {
     return false;
   }
 
-  fm_async_chdir(fm, path_parent_s(fm_current_dir(fm)->path), false, false);
+  fm_async_chdir(fm, path_parent_s(dir_path(fm_current_dir(fm))), false, false);
   on_cursor_moved(fm, false);
   return true;
 }

@@ -209,13 +209,13 @@ void async_dir_check(Async *async, Dir *dir) {
   }
 
   work->async = async;
-  work->path = strdup(dir->path);
+  work->path = strdup(dir_path(dir));
   work->dir = dir;
   work->loadtime = dir->load_time;
   work->ino = dir->stat.st_ino;
   CHECK_INIT(work->check, to_lfm(async)->loader.dir_cache_version);
 
-  log_trace("checking directory %s", dir->path);
+  log_trace("checking directory %s", dir_path(dir));
   tpool_add_work(async->tpool, async_dir_check_worker, work, true);
 }
 
@@ -375,14 +375,14 @@ struct dir_update_data {
 };
 
 static inline void update_parent_dircount(Lfm *lfm, Dir *dir, uint32_t length) {
-  const char *parent_path = path_parent_s(dir->path);
+  const char *parent_path = path_parent_s(dir_path(dir));
   if (parent_path) {
     dircache_value *v = dircache_get_mut(&lfm->loader.dc, parent_path);
     Dir *parent = v ? v->second : NULL;
     if (parent) {
       for (uint32_t i = 0; i < parent->length_all; i++) {
         File *file = parent->files_all[i];
-        if (streq(file_name(file), dir->name)) {
+        if (streq(file_name(file), dir_name(dir))) {
           file_dircount_set(file, length);
           return;
         }
@@ -407,7 +407,7 @@ static void dir_update_callback(void *p, Lfm *lfm) {
     }
     loader_dir_load_callback(&lfm->loader, res->dir);
     dir_update_with(res->dir, res->update, lfm->fm.height, cfg.scrolloff);
-    lfm_run_hook(lfm, LFM_HOOK_DIRUPDATED, res->dir->path);
+    lfm_run_hook(lfm, LFM_HOOK_DIRUPDATED, dir_path(res->dir));
     if (res->dir->visible) {
       fm_update_preview(&lfm->fm);
       if (fm_current_dir(&lfm->fm) == res->dir) {
@@ -477,12 +477,12 @@ void async_dir_load(Async *async, Dir *dir, bool load_fileinfo) {
 
   work->async = async;
   work->dir = dir;
-  work->path = strdup(dir->path);
+  work->path = strdup(dir_path(dir));
   work->load_fileinfo = load_fileinfo;
   work->level = dir->flatten_level;
   CHECK_INIT(work->check, to_lfm(async)->loader.dir_cache_version);
 
-  log_trace("loading directory %s", dir->path);
+  log_trace("loading directory %s", dir_path(dir));
   tpool_add_work(async->tpool, async_dir_load_worker, work, true);
 }
 
@@ -726,12 +726,12 @@ void async_notify_add(Async *async, Dir *dir) {
   work->super.destroy = &notify_add_result_destroy;
 
   work->async = async;
-  work->path = strdup(dir->path);
+  work->path = strdup(dir_path(dir));
   work->dir = dir;
   CHECK_INIT(work->check0, to_lfm(async)->notify.version);
   CHECK_INIT(work->check1, to_lfm(async)->loader.dir_cache_version);
 
-  log_trace("watching %s", dir->path);
+  log_trace("watching %s", dir_path(dir));
   tpool_add_work(async->tpool, async_notify_add_worker, work, true);
 }
 
@@ -741,12 +741,12 @@ void async_notify_preview_add(Async *async, Dir *dir) {
   work->super.destroy = &notify_add_result_destroy;
 
   work->async = async;
-  work->path = strdup(dir->path);
+  work->path = strdup(dir_path(dir));
   work->dir = dir;
   CHECK_INIT(work->check0, to_lfm(async)->notify.version);
   CHECK_INIT(work->check1, to_lfm(async)->fm.dirs.preview);
 
-  log_trace("watching %s", dir->path);
+  log_trace("watching %s", dir_path(dir));
   tpool_add_work(async->tpool, async_notify_add_worker, work, true);
 }
 

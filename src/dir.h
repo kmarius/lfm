@@ -4,6 +4,9 @@
 #include "filter.h"
 #include "sort.h"
 
+#include "stc/cstr.h"
+#include "stc/zsview.h"
+
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -32,8 +35,8 @@ struct dir_settings {
 };
 
 typedef struct Dir {
-  char *path;
-  char *name; // substring of path
+  cstr path;
+  zsview name;
 
   struct stat stat;
 
@@ -89,6 +92,14 @@ static inline bool dir_loading(const Dir *dir) {
   return dir->status < DIR_LOADING_FULLY;
 }
 
+static inline const char *dir_path(const Dir *dir) {
+  return cstr_str(&dir->path);
+}
+
+static inline const char *dir_name(const Dir *dir) {
+  return dir->name.str;
+}
+
 // Current file of `dir`. Can be `NULL` if it is empty or not yet loaded, or
 // if files are filtered/hidden.
 File *dir_current_file(const Dir *dir);
@@ -120,7 +131,7 @@ void dir_update_with(Dir *dir, Dir *update, uint32_t height,
 
 // Returns true `d` is the root directory.
 static inline bool dir_isroot(const Dir *dir) {
-  return (dir->path[0] == '/' && dir->path[1] == 0);
+  return (dir_path(dir)[0] == '/' && dir_path(dir)[1] == 0);
 }
 
 // Load a flat directorie showing files up `level`s deep.

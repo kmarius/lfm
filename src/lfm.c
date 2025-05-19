@@ -378,7 +378,7 @@ void lfm_init(Lfm *lfm, FILE *log) {
   // fm initialization.
   lfm_lua_init(lfm);
   c_foreach(v, dircache, lfm->loader.dc) {
-    lfm_run_hook(lfm, LFM_HOOK_DIRLOADED, v.ref->second->path);
+    lfm_run_hook(lfm, LFM_HOOK_DIRLOADED, dir_path(v.ref->second));
   }
 }
 

@@ -249,12 +249,12 @@ static inline void draw_custom(Ui *ui) {
     const Dir *dir = fm_current_dir(&to_lfm(ui)->fm);
     const wchar_t *path_buf_end = path_buf + path_buf_len;
 
-    mbstowcs(path_buf, dir->path, path_buf_len - 1);
+    mbstowcs(path_buf, dir_path(dir), path_buf_len - 1);
 
     int path_remaining = remaining - file_len;
 
     // replace $HOME with ~
-    if (hasprefix(dir->path, home)) {
+    if (hasprefix(dir_path(dir), home)) {
       path += mbslen(home) - 1;
       // make sure we don't jump past the end of the buffer
       if (path < path_buf_end - 1) {
@@ -376,7 +376,7 @@ static inline void draw_default(Ui *ui) {
   const File *file = dir_current_file(dir);
   int path_len = 0;
   int name_len = 0;
-  wchar_t *path_ = ambstowcs(dir->path, &path_len);
+  wchar_t *path_ = ambstowcs(dir_path(dir), &path_len);
   wchar_t *path = path_;
   wchar_t *name = NULL;
 
@@ -390,7 +390,7 @@ static inline void draw_default(Ui *ui) {
     remaining -= name_len;
   }
   ncplane_set_fg_palindex(n, COLOR_BLUE);
-  if (hasprefix(dir->path, home)) {
+  if (hasprefix(dir_path(dir), home)) {
     ncplane_putchar(n, '~');
     remaining--;
     path += home_len;
