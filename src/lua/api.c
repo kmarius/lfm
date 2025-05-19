@@ -11,6 +11,7 @@
 #include "../ui.h"
 
 #include "private.h"
+#include "util.h"
 
 #include <ev.h>
 #include <lauxlib.h>
@@ -748,15 +749,11 @@ static int l_ui_get_height(lua_State *L) {
 }
 
 static int l_ui_menu(lua_State *L) {
-  vec_str menu = vec_str_init();
+  vec_cstr menu = vec_cstr_init();
   uint32_t delay = 0;
   if (lua_type(L, 1) == LUA_TTABLE) {
-    const int n = lua_objlen(L, 1);
-    for (int i = 1; i <= n; i++) {
-      lua_rawgeti(L, 1, i);
-      vec_str_emplace(&menu, lua_tostring(L, -1));
-      lua_pop(L, 1);
-    }
+    lua_read_vec_cstr(L, 1, &menu);
+
     if (lua_gettop(L) == 2) {
       luaL_checktype(L, 2, LUA_TNUMBER);
       int d = lua_tonumber(L, 2);
@@ -766,9 +763,9 @@ static int l_ui_menu(lua_State *L) {
   } else if (lua_type(L, -1) == LUA_TSTRING) {
     const char *str = lua_tostring(L, 1);
     for (const char *nl; (nl = strchr(str, '\n')); str = nl + 1) {
-      vec_str_push(&menu, strndup(str, nl - str));
+      vec_cstr_push(&menu, cstr_with_n(str, nl - str));
     }
-    vec_str_emplace(&menu, str);
+    vec_cstr_emplace(&menu, str);
   }
   ui_menu_show(ui, &menu, delay);
   return 0;
