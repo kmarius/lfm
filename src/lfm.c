@@ -264,6 +264,16 @@ static void sighup_cb(EV_P_ ev_signal *w, int revents) {
   lfm_quit(w->data, 0);
 }
 
+static void sigpipe_cb(EV_P_ ev_signal *w, int revents) {
+  (void)revents;
+  (void)loop;
+  (void)w;
+  // the only source of sigpipe that i have seen is the rpc server string
+  // to send a response to a disconnected peer (e.g. after exiting a foreground
+  // program)
+  log_error("received SIGHUP");
+}
+
 static inline void init_dirs(Lfm *lfm) {
   (void)lfm;
   if (mkdir_p(cfg.rundir, 0700) == -1 && errno != EEXIST) {
@@ -281,6 +291,8 @@ static inline void init_dirs(Lfm *lfm) {
 }
 
 static inline void init_fifo(Lfm *lfm) {
+  log_trace("setting up fifo");
+
   if ((mkfifo(cfg.fifopath, 0600) == -1 && errno != EEXIST)) {
     fprintf(stderr, "mkfifo: %s", strerror(errno));
     exit(EXIT_FAILURE);
@@ -297,7 +309,14 @@ static inline void init_fifo(Lfm *lfm) {
   ev_io_start(lfm->loop, &lfm->fifo_watcher);
 }
 
+static inline void deinit_fifo(Lfm *lfm) {
+  close(lfm->fifo_fd);
+  remove(cfg.fifopath);
+}
+
 static inline void setup_signal_handlers(Lfm *lfm) {
+  log_trace("installing signals handlers");
+
   // Runs only once, executes commands passed via command line, prints messages,
   // runs the LfmEnter hook
   ev_prepare_init(&lfm->prepare_watcher, prepare_cb);
@@ -324,6 +343,10 @@ static inline void setup_signal_handlers(Lfm *lfm) {
   ev_signal_init(&lfm->sighup_watcher, sighup_cb, SIGHUP);
   lfm->sighup_watcher.data = lfm;
   ev_signal_start(lfm->loop, &lfm->sighup_watcher);
+
+  ev_signal_init(&lfm->sigpipe_watcher, sigpipe_cb, SIGPIPE);
+  lfm->sigpipe_watcher.data = lfm;
+  ev_signal_start(lfm->loop, &lfm->sigpipe_watcher);
 
   ev_signal_init(&lfm->sigtstp_watcher, sigtstp_cb, SIGTSTP);
   lfm->sigtstp_watcher.data = lfm;
@@ -371,8 +394,7 @@ void lfm_deinit(Lfm *lfm) {
   loader_deinit(&lfm->loader);
   lfm_lua_deinit(lfm);
   async_deinit(&lfm->async);
-  close(lfm->fifo_fd);
-  remove(cfg.fifopath);
+  deinit_fifo(lfm);
 }
 
 int lfm_run(Lfm *lfm) {
@@ -596,6 +618,10 @@ int lfm_execute(Lfm *lfm, const char *prog, char *const *args, env_list *env,
       close(pipe_stderr[0]);
       close(pipe_stderr[1]);
     }
+    ui_resume(&lfm->ui);
+    ev_signal_start(lfm->loop, &lfm->sigint_watcher);
+    ev_signal_start(lfm->loop, &lfm->sigtstp_watcher);
+    lfm_run_hook(lfm, LFM_HOOK_EXECPOST);
     lfm_error(lfm, "fork: %s", strerror(errno));
     return -1;
   }
@@ -667,6 +693,7 @@ int lfm_execute(Lfm *lfm, const char *prog, char *const *args, env_list *env,
   }
 
   if (send_stdin) {
+    log_trace("sending stdin");
     close(pipe_stdin[0]);
     c_foreach(it, vec_bytes, *stdin_lines) {
       write(pipe_stdin[1], it.ref->data, it.ref->len);
@@ -678,9 +705,11 @@ int lfm_execute(Lfm *lfm, const char *prog, char *const *args, env_list *env,
   // as is the case with previews, we probably have to drain stdout/stderr or
   // the process might not finish
 
+  log_trace("waiting for process %d to finish", pid);
   do {
     rc = waitpid(pid, &status, 0);
   } while ((rc == -1) && (errno == EINTR));
+  log_trace("process %d finished with status %d", pid, WEXITSTATUS(status));
 
   ui_resume(&lfm->ui);
   ev_signal_start(lfm->loop, &lfm->sigint_watcher);
@@ -688,6 +717,8 @@ int lfm_execute(Lfm *lfm, const char *prog, char *const *args, env_list *env,
   lfm_run_hook(lfm, LFM_HOOK_EXECPOST);
 
   if (capture_stdout && file_stdout != NULL) {
+    log_trace("reading stdout");
+
     char *line = NULL;
     int read;
     size_t n;
@@ -705,6 +736,8 @@ int lfm_execute(Lfm *lfm, const char *prog, char *const *args, env_list *env,
   }
 
   if (capture_stderr && file_stderr != NULL) {
+    log_trace("reading stderr");
+
     char *line = NULL;
     int read;
     size_t n;

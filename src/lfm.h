@@ -39,6 +39,7 @@ typedef struct Lfm {
   ev_signal sigwinch_watcher;
   ev_signal sigterm_watcher;
   ev_signal sighup_watcher;
+  ev_signal sigpipe_watcher;
   ev_io fifo_watcher;
 
   list_timer schedule_timers;

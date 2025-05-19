@@ -119,7 +119,7 @@ void ui_resume(Ui *ui) {
       .flags = NCOPTION_NO_WINCH_SIGHANDLER | NCOPTION_SUPPRESS_BANNERS |
                NCOPTION_PRESERVE_CURSOR | NCOPTION_NO_QUIT_SIGHANDLERS,
   };
-  // ui->nc = notcurses_core_init(&ncopts, NULL);
+  log_debug("creating notcurses context");
   ui->nc = notcurses_init(&ncopts, NULL);
   if (!ui->nc) {
     exit(EXIT_FAILURE);
