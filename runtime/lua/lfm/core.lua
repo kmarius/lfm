@@ -93,6 +93,69 @@ local function errorf(fmt, ...)
 	lfm_error(string_format(fmt, ...))
 end
 
+do -- lfm.validate
+	---@param t string|string[]|function
+	---@return string
+	---@nodiscard
+	local function join_types(t)
+		if type(t) == "string" then
+			return t
+		end
+		if type(t) == "function" then
+			return "-validated by function-"
+		end
+		return table.concat(t, "|")
+	end
+
+	---@param t table
+	---@param value any
+	---@return boolean
+	---@nodiscard
+	local function table_contains(t, value)
+		for _, v in ipairs(t) do
+			if value == v then
+				return true
+			end
+		end
+		return false
+	end
+
+	---@param name string
+	---@param value any
+	---@param validator type|type[]|fun(val: any): boolean
+	---@param optional? boolean|string
+	---@param message? string
+	function lfm.validate(name, value, validator, optional, message)
+		if not message and type(optional) == "string" then
+			message = optional
+			optional = false
+		end
+		message = message or join_types(validator)
+		if not value then
+			if not optional then
+				error(name .. ": expected " .. message .. ", got nil")
+			else
+				return
+			end
+		end
+		local vtype = type(value)
+		if type(validator) == "string" then
+			if vtype ~= validator then
+				error(name .. ": expected " .. message .. ", got " .. vtype)
+			end
+		elseif type(validator) == "table" then
+			if not table_contains(validator, vtype) then
+				error(name .. ": expected " .. message .. ", got " .. vtype)
+			end
+		else
+			assert(type(validator) == "function")
+			if not validator(value) then
+				error(name .. ": expected " .. message .. ", got " .. tostring(value))
+			end
+		end
+	end
+end
+
 ---Get the current selection or file under the cursor.
 ---```lua
 ---    local files = lfm.api.fm_sel_or_cur()
