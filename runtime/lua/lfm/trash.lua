@@ -37,30 +37,21 @@ function M.put(files)
 	end
 end
 
-local trash_mode = {
-	name = "delete",
-	input = true,
-	prefix = "delete [y/N]: ",
-	on_return = function()
-		lfm.mode("normal")
-	end,
-	on_change = function()
-		local line = api.cmdline_line_get()
-		lfm.mode("normal")
-		if line == "y" then
-			M.put(api.fm_sel_or_cur())
-			api.fm_selection_set({})
-		end
-	end,
-}
-
-lfm.register_mode(trash_mode)
-
 lfm.map("df", function()
 	if not M.command then
 		error("lfm.trash.command not set")
 	end
-	lfm.mode("delete")
+	local files = api.fm_sel_or_cur()
+	if #files == 0 then
+		error("no files")
+	end
+	local prompt = ("Trash %d %s [y/N]: "):format(#files, (#files > 1) and "files" or "file")
+	lfm.util.input({ prompt = prompt, single_key = true }, function(input)
+		if input == "y" then
+			M.put(files)
+			api.fm_selection_set({})
+		end
+	end)
 end, { desc = "Trash file/selection" })
 
 return M
