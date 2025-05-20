@@ -9,8 +9,8 @@ local M = { _NAME = ... }
 local lfm = lfm
 
 local api = lfm.api
+local fs = lfm.fs
 
-local find = require("lfm.util").find
 local dirent = require("posix.dirent")
 
 ---Match files against a single glob
@@ -65,7 +65,7 @@ end
 
 ---Convert a glob into a pattern. Can not contain "/". Second return value indicates wether it should match dot files.
 ---```lua
----   local pat = glob_to_pattern("*.txt")
+---   local pat = glob.to_pattern("*.txt")
 ---   string.match("/some/file.txt", pat)
 ---```
 ---@param glob string
@@ -125,31 +125,36 @@ function M.files(path, glob, opts)
 	end
 end
 
+---
 ---Select all files in the current directory matching a glob.
+---
+---Example:
 ---```lua
----    glob_select("*.txt")
+---  glob_select("*.txt")
 ---```
+---
 ---@param glob string
 function M.glob_select(glob)
 	local files = glob_files_single(".", glob, { full_paths = true })
 	api.fm_selection_set(files)
 end
 
+---
 ---Recursiv select all files matching a glob in the current directory and subdirectories.
 ---(probably breaks on symlink loops)
+---
+---Example:
 ---```lua
----    glob_select_recursive("*.txt")
+---  glob_select_recursive("*.txt")
 ---```
+---
 ---@param glob string
 function M.glob_select_recursive(glob)
-	local pattern, match_dot = M.glob_to_pattern(glob)
-	local files = {}
+	local pattern, match_dot = M.to_pattern(glob)
 	local function filter(file)
 		return M.matches(file, pattern, match_dot)
 	end
-	for f in find(lfm.fn.getpwd(), filter) do
-		table.insert(files, f)
-	end
+	local files = fs.find(filter, { path = lfm.fn.getpwd(), limit = 1000000, follow = true })
 	api.fm_selection_set(files)
 end
 

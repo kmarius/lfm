@@ -2,6 +2,7 @@
 
 local dirent = require("posix.dirent")
 local stat = require("posix.sys.stat")
+local stdlib = require("posix.stdlib")
 
 local M = {}
 
@@ -200,6 +201,7 @@ function M.find(names, opts)
 			end
 		end
 	else
+		-- I forgot, why depth 10? Should it be an option?
 		for file, type in M.dir(path, { follow = opts.follow, depth = 10 }) do
 			if not wanted_type or type == wanted_type then
 				file = M.normalize(M.joinpath(path, file), { expand_env = false })
@@ -406,8 +408,24 @@ end
 ---@return string
 ---@return string? err
 function M.realpath(path)
-	local res, err = require("posix.stdlib").realpath(path)
+	local res, err = stdlib.realpath(path)
 	return res, err
+end
+
+---@param file string
+---@return string name
+---@return string? extension
+---@overload fun(path: nil): nil
+function M.split_ext(file)
+	if not file then
+		return nil
+	end
+	local i, j = file:find("%.[^.]*$")
+	if not i or i == 1 then
+		return file
+	else
+		return file:sub(1, i - 1), file:sub(i + 1, j)
+	end
 end
 
 return M

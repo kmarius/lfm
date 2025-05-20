@@ -4,12 +4,8 @@ local lfm = lfm
 
 local api = lfm.api
 
-local util = require("lfm.util")
 local stat = require("posix.sys.stat")
-
-local basename = util.basename
-local dirname = util.dirname
-local file_split = util.file_split
+local fs = require("lfm.fs")
 
 local function file_exists(path)
 	return stat.stat(path) ~= nil
@@ -52,7 +48,7 @@ function M.yank_name()
 	local files = api.fm_sel_or_cur()
 	if #files > 0 then
 		for i, file in pairs(files) do
-			files[i] = basename(file)
+			files[i] = fs.basename(file)
 		end
 		wl_copy(files, true)
 	end
@@ -79,9 +75,9 @@ end
 ---    M.rename_until_ext()
 ---```
 function M.rename_until_ext()
-	local file = basename(api.fm_current_file())
+	local file = fs.basename(api.fm_current_file())
 	if file then
-		local _, ext = file_split(file)
+		local _, ext = fs.split_ext(file)
 		if not ext then
 			lfm.mode("command")
 			lfm.api.cmdline_line_set("rename ", "")
@@ -97,9 +93,9 @@ end
 ---    M.rename_before_ext()
 ---```
 function M.rename_before_ext()
-	local file = basename(api.fm_current_file())
+	local file = fs.basename(api.fm_current_file())
 	if file then
-		local name, ext = file_split(file)
+		local name, ext = fs.split_ext(file)
 		if not ext then
 			lfm.mode("command")
 			lfm.api.cmdline_line_set("rename " .. file, "")
@@ -116,7 +112,7 @@ end
 ---```
 function M.rename_before()
 	lfm.mode("command")
-	lfm.api.cmdline_line_set("rename ", basename(api.fm_current_file()))
+	api.cmdline_line_set("rename ", fs.basename(api.fm_current_file()))
 end
 
 ---Populate the prompt to rename at the end of the file name.
@@ -125,7 +121,7 @@ end
 ---```
 function M.rename_after()
 	lfm.mode("command")
-	lfm.api.cmdline_line_set("rename " .. basename(api.fm_current_file()), "")
+	api.cmdline_line_set("rename " .. fs.basename(api.fm_current_file()), "")
 end
 
 ---Create absolute symbolic links of the current load at the current location.
@@ -167,8 +163,8 @@ function M.follow_link()
 	local target = lfm.shell.popen({ "readlink", "--", file })[1]
 	if target then
 		-- TODO: do these things even work with spaces in filenames? (on 2022-02-12)
-		lfm.eval("cd " .. dirname(target))
-		api.fm_sel(basename(target) --[[@as string]])
+		lfm.eval("cd " .. fs.dirname(target))
+		api.fm_sel(fs.basename(target) --[[@as string]])
 	end
 end
 
@@ -219,12 +215,10 @@ function M.paste()
 	end
 	local pwd = lfm.fn.getpwd()
 	--- spawning all these shells is fine with a sane amount of files
-	local stat_stat = stat.stat
-	local format = string.format
 	local reload_dirs = { [pwd] = true }
 	if mode == "move" then
 		for _, file in ipairs(files) do
-			reload_dirs[dirname(file)] = true
+			reload_dirs[fs.dirname(file)] = true
 		end
 	end
 	local cb = function(ret)
@@ -240,11 +234,11 @@ function M.paste()
 		print(msg)
 	end
 	chain(function(file)
-		local base = basename(file)
+		local base = fs.basename(file)
 		local target = pwd .. "/" .. base
 		local num = 1
-		while stat_stat(target) do
-			target = format("%s/%s.~%d~", pwd, base, num)
+		while stat.stat(target) do
+			target = string.format("%s/%s.~%d~", pwd, base, num)
 			num = num + 1
 		end
 		if mode == "move" then
@@ -277,7 +271,7 @@ function M.paste_overwrite()
 	local reload_dirs = { [lfm.fn.getpwd()] = true }
 	if mode == "move" then
 		for _, file in ipairs(files) do
-			reload_dirs[dirname(file)] = true
+			reload_dirs[fs.dirname(file)] = true
 		end
 	end
 	local cb = function(ret)
