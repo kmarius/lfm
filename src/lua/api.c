@@ -16,6 +16,7 @@
 
 #include <ev.h>
 #include <lauxlib.h>
+#include <locale.h>
 #include <lua.h>
 
 #include <linux/limits.h>
@@ -235,13 +236,14 @@ static int l_fm_check(lua_State *L) {
 }
 
 static int l_fm_load(lua_State *L) {
-  char buf[PATH_MAX];
+  char buf[PATH_MAX + 1];
   size_t len;
   const char *path = luaL_checklstring(L, 1, &len);
-  if (len > PATH_MAX) {
+  const char *normalized = path_normalize(path, fm->pwd, buf, len, NULL);
+  if (normalized == NULL) {
     return luaL_error(L, "path too long");
   }
-  loader_dir_from_path(&lfm->loader, path_normalize(path, fm->pwd, buf), true);
+  loader_dir_from_path(&lfm->loader, normalized, true);
   return 0;
 }
 
@@ -463,12 +465,12 @@ static int l_fm_selection_add(lua_State *L) {
 
     size_t len;
     const char *path = lua_tolstring(L, -1, &len);
-    if (len > PATH_MAX) {
+    const char *normalized = path_normalize(path, fm->pwd, buf, len, &len);
+    if (normalized == NULL) {
       cstr_drop(&cs);
       return luaL_error(L, "path too long");
     }
-    path_normalize(path, fm->pwd, buf);
-    cstr_assign_n(&cs, buf, strlen(buf));
+    cstr_assign_n(&cs, buf, len);
     fm_selection_add(fm, &cs, false);
 
     lua_pop(L, 1);
@@ -489,14 +491,16 @@ static int l_fm_selection_set(lua_State *L) {
   fm_selection_clear(fm);
   lfm_mode_exit(lfm, "visual");
   if (lua_istable(L, 1)) {
-    // TODO: we can avoid allocations because another copy is made when adding
-    // to the selection
     cstr cs = cstr_init();
     for (lua_pushnil(L); lua_next(L, -2); lua_pop(L, 1)) {
-      // TODO: make use of the string length in these functions
-      const char *str = lua_tostring(L, -1);
-      path_normalize(str, fm->pwd, buf);
-      cstr_assign_n(&cs, buf, strlen(buf));
+      size_t len;
+      const char *str = lua_tolstring(L, -1, &len);
+      const char *normalized = path_normalize(str, fm->pwd, buf, len, &len);
+      if (normalized == NULL) {
+        cstr_drop(&cs);
+        return luaL_error(L, "path too long");
+      }
+      cstr_assign_n(&cs, buf, len);
       fm_selection_add(fm, &cs, false);
     }
     cstr_drop(&cs);
@@ -534,11 +538,18 @@ static int l_fm_selection_restore(lua_State *L) {
 }
 
 static int l_fm_chdir(lua_State *L) {
-  const char *arg = luaL_optstring(L, 1, "~");
+  char buf[PATH_MAX + 1];
+  size_t len;
+  const char *arg = luaL_optlstring(L, 1, "~", &len);
   const char *last_slash = strchr(arg, '/');
   bool should_save = (arg[0] == '/' || arg[0] == '~' ||
                       (last_slash != NULL && last_slash[1] != 0));
-  char *path = path_normalize_a(arg, fm->pwd);
+
+  char *path = path_normalize(arg, fm->pwd, buf, len, NULL);
+  if (path == NULL) {
+    return luaL_error(L, "path too long");
+  }
+
   search_nohighlight(lfm);
   lfm_mode_exit(lfm, "visual");
   lfm_run_hook(lfm, LFM_HOOK_CHDIRPRE, fm->pwd);
@@ -548,7 +559,6 @@ static int l_fm_chdir(lua_State *L) {
     fm_async_chdir(fm, path, should_save, true);
   }
   ui_redraw(ui, REDRAW_FM);
-  xfree(path);
   return 0;
 }
 

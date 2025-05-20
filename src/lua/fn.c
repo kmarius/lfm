@@ -8,9 +8,14 @@
 #include <unistd.h>
 
 static int l_fn_normalize(lua_State *L) {
-  char *path = path_normalize_a(luaL_checkstring(L, 1), fm->pwd);
-  lua_pushstring(L, path);
-  xfree(path);
+  char buf[PATH_MAX + 1];
+  size_t len;
+  const char *str = luaL_checklstring(L, 1, &len);
+  const char *path = path_normalize(str, fm->pwd, buf, len, &len);
+  if (path == NULL) {
+    return luaL_error(L, "path too long");
+  }
+  lua_pushlstring(L, path, len);
   return 1;
 }
 

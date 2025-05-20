@@ -30,11 +30,15 @@ static inline char *dirname_a(const char *p) {
 char *path_replace_tilde(const char *path);
 
 // Allocates a new absolute path with all ~, ., .., // replaced
-char *path_normalize_a(const char *path, const char *pwd);
+// This function only fails if the buffer size is exceeded, returning NULL
+char *path_normalize_a(const char *path, const char *pwd, size_t path_len,
+                       size_t *len_out);
 
-// Allocates a new absolute path with all ~, ., .., // replaced, byob (bring
-// your own buffer) version.
-char *path_normalize(const char *path, const char *pwd, char *buf);
+// Allocates a new absolute path with all ~, ., .., // replaced, byob (buffer)
+// version. Buffer MUST be of size PATH_MAX+1
+// This function only fails if the buffer size is exceeded, returning NULL
+char *path_normalize(const char *path, const char *pwd, char *buf,
+                     size_t path_len, size_t *len_out);
 
 static inline bool path_is_relative(const char *path) {
   return path[0] != '/';
