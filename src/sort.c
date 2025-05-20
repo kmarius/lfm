@@ -11,7 +11,7 @@ const char *sorttype_str[NUM_SORTTYPE] = {
 };
 
 int compare_name(const void *a, const void *b) {
-  return strcasecmp(file_name(*(File **)a), file_name(*(File **)b));
+  return strcasecmp(file_name_str(*(File **)a), file_name_str(*(File **)b));
 }
 
 int compare_size(const void *a, const void *b) {
@@ -28,7 +28,7 @@ int compare_size(const void *a, const void *b) {
 int compare_natural(const void *a, const void *b) {
   const File *aa = *(File **)a;
   const File *bb = *(File **)b;
-  int cmp = strnatcasecmp(file_name(aa), file_name(bb));
+  int cmp = strnatcasecmp(file_name_str(aa), file_name_str(bb));
   if (cmp) {
     return cmp;
   }

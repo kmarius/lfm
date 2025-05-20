@@ -240,7 +240,7 @@ static inline void draw_custom(Ui *ui) {
     file_buf[0] = 0;
     File *file = fm_current_file(&to_lfm(ui)->fm);
     if (file) {
-      file_len = mbstowcs(file_buf, file_name(file), file_buf_len - 1);
+      file_len = mbstowcs(file_buf, file_name_str(file), file_buf_len - 1);
       file_is_dir = file_isdir(file);
     }
   }
@@ -386,7 +386,7 @@ static inline void draw_default(Ui *ui) {
   ncplane_cursor_yx(n, NULL, &remaining);
   remaining = ui->x - remaining;
   if (file) {
-    name = ambstowcs(file_name(file), &name_len);
+    name = ambstowcs(file_name_str(file), &name_len);
     remaining -= name_len;
   }
   ncplane_set_fg_palindex(n, COLOR_BLUE);

@@ -382,7 +382,7 @@ static inline void update_parent_dircount(Lfm *lfm, Dir *dir, uint32_t length) {
     if (parent) {
       for (uint32_t i = 0; i < parent->length_all; i++) {
         File *file = parent->files_all[i];
-        if (streq(file_name(file), dir_name(dir))) {
+        if (zsview_eq(file_name(file), dir_name(dir))) {
           file_dircount_set(file, length);
           return;
         }

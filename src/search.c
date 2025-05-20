@@ -41,7 +41,7 @@ static void search_next_forward(Lfm *lfm, bool inclusive) {
   search_highlight(lfm, NULL);
   for (uint32_t i = inclusive ? 0 : 1; i < dir->length; i++) {
     const uint32_t ind = (dir->ind + i) % dir->length;
-    if (strcasestr(file_name(dir->files[ind]), lfm->ui.search_string)) {
+    if (strcasestr(file_name_str(dir->files[ind]), lfm->ui.search_string)) {
       fm_cursor_move_to_ind(&lfm->fm, ind);
       return;
     }
@@ -57,7 +57,7 @@ static void search_next_backwards(Lfm *lfm, bool inclusive) {
   search_highlight(lfm, NULL);
   for (uint32_t i = inclusive ? 0 : 1; i < dir->length; i++) {
     const uint32_t ind = (dir->ind - i + dir->length) % dir->length;
-    if (strcasestr(file_name(dir->files[ind]), lfm->ui.search_string)) {
+    if (strcasestr(file_name_str(dir->files[ind]), lfm->ui.search_string)) {
       fm_cursor_move_to_ind(&lfm->fm, ind);
       return;
     }

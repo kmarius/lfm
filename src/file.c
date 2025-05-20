@@ -48,7 +48,7 @@ File *file_create(const char *dir, const char *name, bool load_info) {
   f->path = cstr_with_n(buf, len);
   f->name = name_from_path(&f->path);
   f->ext = ext_from_name(&f->name);
-  f->hidden = *file_name(f) == '.';
+  f->hidden = *file_name_str(f) == '.';
 
   if (lstat(file_path(f), &f->lstat) == -1) {
     if (errno == ENOENT) {

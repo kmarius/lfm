@@ -244,7 +244,9 @@ static int l_fm_load(lua_State *L) {
 }
 
 static int l_fm_sel(lua_State *L) {
-  fm_move_cursor_to(fm, luaL_checkstring(L, 1));
+  luaL_checktype(L, 1, LUA_TSTRING);
+  zsview zsview = lua_tozsview(L, 1);
+  fm_move_cursor_to(fm, &zsview);
   ui_update_file_preview(ui);
   ui_redraw(ui, REDRAW_FM);
   return 0;
@@ -350,7 +352,7 @@ static int l_fm_current_dir(lua_State *L) {
   lua_pushstring(L, dir_path(dir));
   lua_setfield(L, -2, "path");
 
-  lua_pushstring(L, dir_name(dir));
+  lua_pushzsview(L, dir_name(dir));
   lua_setfield(L, -2, "name");
 
   lua_createtable(L, 0, 3);

@@ -838,15 +838,17 @@ static void draw_file(struct ncplane *n, const File *file, bool iscurrent,
     }
   }
 
-  const char *hlsubstr =
-      highlight && highlight[0] ? strcasestr(file_name(file), highlight) : NULL;
+  const char *hlsubstr = highlight && highlight[0]
+                             ? strcasestr(file_name_str(file), highlight)
+                             : NULL;
   const int left_space = ncol - 3 - rightmargin - (cfg.icons ? 2 : 0);
   if (left_space > 0) {
     if (hlsubstr) {
-      x += print_highlighted_and_shortened(n, file_name(file), highlight,
+      x += print_highlighted_and_shortened(n, file_name_str(file), highlight,
                                            left_space, !file_isdir(file));
     } else {
-      x += print_shortened(n, file_name(file), left_space, !file_isdir(file));
+      x += print_shortened(n, file_name_str(file), left_space,
+                           !file_isdir(file));
     }
 
     for (; x < ncol - rightmargin - 1; x++) {

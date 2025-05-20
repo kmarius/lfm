@@ -8,9 +8,6 @@
 #include "trie.h"
 #include "ui.h"
 
-#include <stdlib.h>
-#include <string.h>
-
 static void normal_on_enter(Lfm *lfm);
 
 static void visual_on_enter(Lfm *lfm);
@@ -94,7 +91,7 @@ int lfm_mode_enter(Lfm *lfm, const char *name) {
   lfm->ui.maps.cur_input = NULL;
   lfm_run_hook(lfm, LFM_HOOK_MODECHANGED, mode->name);
 
-  ui_redraw(&lfm->ui, REDRAW_INFO);
+  ui_redraw(&lfm->ui, REDRAW_INFO | REDRAW_CMDLINE);
   return 0;
 }
 

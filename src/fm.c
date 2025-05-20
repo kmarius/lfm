@@ -73,7 +73,8 @@ void fm_init(Fm *fm) {
 
   fm_populate(fm);
   if (cfg.startfile) {
-    fm_move_cursor_to(fm, cfg.startfile);
+    zsview zs = zsview_from(cfg.startfile);
+    fm_move_cursor_to(fm, &zs);
   }
 
   fm_update_watchers(fm);
@@ -496,7 +497,7 @@ bool fm_cursor_move(Fm *fm, int32_t ct) {
   return dir->ind != cur;
 }
 
-void fm_move_cursor_to(Fm *fm, const char *name) {
+void fm_move_cursor_to(Fm *fm, const zsview *name) {
   dir_cursor_move_to(fm_current_dir(fm), name, fm->height, cfg.scrolloff);
   on_cursor_moved(fm, false);
 }

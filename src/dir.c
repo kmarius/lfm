@@ -5,6 +5,8 @@
 #include "memory.h"
 #include "path.h"
 #include "sort.h"
+#include "stc/cstr.h"
+#include "stcutil.h"
 #include "util.h"
 
 #include <errno.h>
@@ -394,12 +396,12 @@ void dir_cursor_move(Dir *d, int32_t ct, uint32_t height, uint32_t scrolloff) {
 
 static inline void dir_cursor_move_to_sel(Dir *d, uint32_t height,
                                           uint32_t scrolloff) {
-  if (!d->sel || !d->files) {
+  if (cstr_is_empty(&d->sel) || !d->files) {
     return;
   }
 
   for (uint32_t i = 0; i < d->length; i++) {
-    if (streq(file_name(d->files[i]), d->sel)) {
+    if (cstr_equals_zv(&d->sel, file_name(d->files[i]))) {
       dir_cursor_move(d, i - d->ind, height, scrolloff);
       goto cleanup;
     }
@@ -407,23 +409,23 @@ static inline void dir_cursor_move_to_sel(Dir *d, uint32_t height,
   d->ind = min(d->ind, d->length);
 
 cleanup:
-  XFREE_CLEAR(d->sel);
+  cstr_drop(&d->sel);
 }
 
-void dir_cursor_move_to(Dir *d, const char *name, uint32_t height,
+void dir_cursor_move_to(Dir *d, const zsview *name, uint32_t height,
                         uint32_t scrolloff) {
   if (!name) {
     return;
   }
 
   if (!d->files) {
-    xfree(d->sel);
-    d->sel = strdup(name);
+    cstr_reserve(&d->sel, name->size);
+    cstr_assign_n(&d->sel, name->str, name->size);
     return;
   }
 
   for (uint32_t i = 0; i < d->length; i++) {
-    if (streq(file_name(d->files[i]), name)) {
+    if (zsview_eq(file_name(d->files[i]), name)) {
       dir_cursor_move(d, i - d->ind, height, scrolloff);
       return;
     }
@@ -432,8 +434,9 @@ void dir_cursor_move_to(Dir *d, const char *name, uint32_t height,
 }
 
 void dir_update_with(Dir *d, Dir *update, uint32_t height, uint32_t scrolloff) {
-  if (!d->sel && d->ind < d->length) {
-    d->sel = strdup(file_name(d->files[d->ind]));
+  if (cstr_is_empty(&d->sel) && d->ind < d->length) {
+    const zsview *name = file_name(d->files[d->ind]);
+    cstr_assign_n(&d->sel, name->str, name->size);
   }
 
   for (uint32_t i = 0; i < d->length_all; i++) {
@@ -455,14 +458,14 @@ void dir_update_with(Dir *d, Dir *update, uint32_t height, uint32_t scrolloff) {
   d->stat = update->stat;
   d->status = DIR_LOADING_FULLY;
 
-  xfree(update->sel);
   cstr_drop(&update->path);
+  cstr_drop(&update->sel);
   xfree(update);
 
   d->sorted = false;
   dir_sort(d);
 
-  if (d->sel) {
+  if (!cstr_is_empty(&d->sel)) {
     dir_cursor_move_to_sel(d, height, scrolloff);
   }
   d->loading = false;
@@ -480,7 +483,7 @@ void dir_destroy(Dir *d) {
   filter_destroy(d->filter);
   xfree(d->files_sorted);
   xfree(d->files);
-  xfree(d->sel);
+  cstr_drop(&d->sel);
   cstr_drop(&d->path);
   xfree(d);
 }

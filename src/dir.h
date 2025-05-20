@@ -67,7 +67,7 @@ typedef struct Dir {
 
   uint32_t ind; // cursor position in files[]
   uint32_t pos; // cursor position in the ui, offset from the top row
-  char *sel;
+  cstr sel;
 
   Filter *filter;
 
@@ -96,8 +96,8 @@ static inline const char *dir_path(const Dir *dir) {
   return cstr_str(&dir->path);
 }
 
-static inline const char *dir_name(const Dir *dir) {
-  return dir->name.str;
+static inline const zsview *dir_name(const Dir *dir) {
+  return &dir->name;
 }
 
 // Current file of `dir`. Can be `NULL` if it is empty or not yet loaded, or
@@ -122,7 +122,7 @@ void dir_cursor_move(Dir *dir, int32_t ct, uint32_t height, uint32_t scrolloff);
 
 // Move the cursor in the current dir to the file `name`, respecting the
 // `scrolloff` setting by passing it and the current `height` of the viewport.
-void dir_cursor_move_to(Dir *dir, const char *name, uint32_t height,
+void dir_cursor_move_to(Dir *dir, const zsview *name, uint32_t height,
                         uint32_t scrolloff);
 
 // Replace files and metadata of `dir` with those of `update`. Frees `update`.

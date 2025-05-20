@@ -138,7 +138,7 @@ bool fm_updir(Fm *fm);
 // Move the cursor the file with `name` if it exists. Otherwise leaves the
 // cursor at the closest valid position (i.e. after the number of files
 // decreases)
-void fm_move_cursor_to(Fm *fm, const char *name);
+void fm_move_cursor_to(Fm *fm, const zsview *name);
 
 // Apply the filter string given by `filter` to the current directory.
 void fm_filter(Fm *fm, Filter *filter);

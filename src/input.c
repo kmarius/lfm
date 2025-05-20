@@ -13,7 +13,6 @@
 #include "search.h"
 #include "trie.h"
 #include "ui.h"
-#include "util.h"
 
 #include <notcurses/nckeys.h>
 #include <notcurses/notcurses.h>
