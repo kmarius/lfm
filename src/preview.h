@@ -1,6 +1,7 @@
 #pragma once
 
 #include "containers.h"
+#include "stc/cstr.h"
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -20,7 +21,7 @@ typedef void (*preview_update_fun)(struct Preview *, struct Preview *);
 typedef void (*preview_destroy_fun)(struct Preview *);
 
 typedef struct Preview {
-  char *path;
+  cstr path;
   union {
     vec_cstr lines;
     struct ncvisual *ncv;
@@ -43,6 +44,14 @@ Preview *preview_create_loading(const char *path, int height, int width);
 
 Preview *preview_create_from_file(const char *path, uint32_t width,
                                   uint32_t height);
+
+static inline const cstr *preview_path(const Preview *pv) {
+  return &pv->path;
+}
+
+static inline const char *preview_path_str(const Preview *pv) {
+  return cstr_str(&pv->path);
+}
 
 static inline void preview_update(Preview *pv, Preview *u) {
   pv->update(pv, u);

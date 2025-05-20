@@ -45,7 +45,7 @@ static void destroy_image_preview(Preview *p);
 static inline Preview *preview_init(Preview *p, const char *path, int height,
                                     int width) {
   memset(p, 0, sizeof *p);
-  p->path = strdup(path);
+  p->path = cstr_from(path);
   p->reload_height = height;
   p->reload_width = width;
   p->next = current_millis();
@@ -64,7 +64,7 @@ static inline Preview *preview_create(const char *path, int height, int width) {
 
 static void destroy_text_preview(Preview *p) {
   vec_cstr_drop(&p->lines);
-  xfree(p->path);
+  cstr_drop(&p->path);
   xfree(p);
 }
 
@@ -88,7 +88,7 @@ static void update_text_preview(Preview *p, Preview *u) {
   p->update = u->update;
   p->destroy = u->destroy;
 
-  xfree(u->path);
+  cstr_drop(&u->path);
   xfree(u);
 }
 
@@ -104,7 +104,7 @@ static void update_image_preview(Preview *p, Preview *u) {
   p->reload_height = u->reload_height;
   p->status = PV_LOADING_NORMAL;
 
-  xfree(u->path);
+  cstr_drop(&u->path);
   xfree(u);
 }
 
@@ -208,7 +208,7 @@ Preview *preview_create_from_file(const char *path, uint32_t width,
   snprintf(h, sizeof h, "%u", height);
 
   const char *args[7] = {cfg.previewer,
-                         p->path,
+                         preview_path_str(p),
                          w,
                          h,
                          cache_path,
@@ -370,6 +370,6 @@ static void destroy_image_preview(Preview *p) {
     ncvisual_destroy(p->ncv);
     p->ncv = NULL;
   }
-  xfree(p->path);
+  cstr_drop(&p->path);
   xfree(p);
 }

@@ -975,7 +975,7 @@ static inline void on_cursor_moved(Ui *ui, bool delay_action) {
   Preview *preview = ui->preview.preview;
   bool is_file_preview = file && !file_isdir(file);
   bool is_same_preview = file != NULL && preview != NULL &&
-                         streq(preview->path, file_path_str(file));
+                         cstr_eq(preview_path(preview), file_path(file));
 
   unsigned int ncol, nrow;
   ncplane_dim_yx(ui->planes.preview, &nrow, &ncol);

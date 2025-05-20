@@ -537,13 +537,13 @@ void async_preview_check(Async *async, Preview *pv) {
   work->super.next = NULL;
 
   work->async = async;
-  work->path = strdup(pv->path);
+  work->path = cstr_strdup(preview_path(pv));
   work->height = pv->reload_height;
   work->width = pv->reload_width;
   work->mtime = pv->mtime;
   work->loadtime = pv->loadtime;
 
-  log_trace("checking preview %s", pv->path);
+  log_trace("checking preview %s", preview_path_str(pv));
   tpool_add_work(async->tpool, async_preview_check_worker, work, true);
 }
 
@@ -598,12 +598,12 @@ void async_preview_load(Async *async, Preview *pv) {
 
   work->async = async;
   work->preview = pv;
-  work->path = strdup(pv->path);
+  work->path = cstr_strdup(preview_path(pv));
   work->width = to_lfm(async)->ui.preview.x;
   work->height = to_lfm(async)->ui.preview.y;
   CHECK_INIT(work->check, to_lfm(async)->loader.preview_cache_version);
 
-  log_trace("loading preview for %s", pv->path);
+  log_trace("loading preview for %s", preview_path_str(pv));
   tpool_add_work(async->tpool, async_preview_load_worker, work, true);
 }
 
