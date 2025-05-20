@@ -50,7 +50,7 @@ File *file_create(const char *dir, const char *name, bool load_info) {
   f->ext = ext_from_name(&f->name);
   f->hidden = file_name(f)->str[0] == '.';
 
-  if (lstat(file_path(f), &f->lstat) == -1) {
+  if (lstat(file_path_str(f), &f->lstat) == -1) {
     if (errno == ENOENT) {
       cstr_drop(&f->path);
       xfree(f);
@@ -63,12 +63,12 @@ File *file_create(const char *dir, const char *name, bool load_info) {
 
   if (S_ISLNK(f->lstat.st_mode)) {
     if (load_info) {
-      if (stat(file_path(f), &f->stat) == -1) {
+      if (stat(file_path_str(f), &f->stat) == -1) {
         f->isbroken = true;
         f->stat = f->lstat;
       }
     }
-    ssize_t len = readlink(file_path(f), buf, sizeof buf);
+    ssize_t len = readlink(file_path_str(f), buf, sizeof buf);
     if (len == -1) {
       f->isbroken = true;
     } else {
@@ -82,7 +82,7 @@ File *file_create(const char *dir, const char *name, bool load_info) {
   if (file_isdir(f)) {
     f->ext = c_zv("");
     if (load_info) {
-      f->dircount = path_dircount(file_path(f));
+      f->dircount = path_dircount(file_path_str(f));
     }
   }
 

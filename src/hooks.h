@@ -2,6 +2,7 @@
 
 #include "log.h"
 #include "lua/lfmlua.h"
+#include "lua/util.h"
 
 #include <assert.h>
 #include <lauxlib.h>
@@ -51,6 +52,8 @@ int lfm_remove_hook(struct Lfm *lfm, int id);
   _Generic((ARG),                                                              \
       const char *: lua_pushstring,                                            \
       char *: lua_pushstring,                                                  \
+      cstr *: lua_pushcstr,                                                    \
+      const cstr *: lua_pushcstr,                                              \
       float: lua_pushnumber,                                                   \
       int: lua_pushnumber)((L), (ARG))
 

@@ -97,7 +97,7 @@ static void fm_populate(Fm *fm) {
   fm->dirs.visible.data[0]->visible = true;
   Dir *dir = fm_current_dir(fm);
   for (uint32_t i = 1; i < fm->dirs.length; i++) {
-    const char *parent = path_parent_s(dir_path(dir));
+    const char *parent = path_parent_s(dir_path_str(dir));
     if (parent) {
       dir = loader_dir_from_path(&to_lfm(fm)->loader, parent, true);
       dir->visible = true;
@@ -155,8 +155,9 @@ static inline bool fm_chdir_impl(Fm *fm, const char *path, bool save, bool hook,
 
   if (save) {
     xfree(fm->automark);
-    fm->automark =
-        fm_current_dir(fm)->error ? NULL : strdup(dir_path(fm_current_dir(fm)));
+    fm->automark = fm_current_dir(fm)->error
+                       ? NULL
+                       : cstr_strdup(dir_path(fm_current_dir(fm)));
   }
 
   fm_remove_preview(fm);
@@ -262,7 +263,7 @@ void fm_reload(Fm *fm) {
 
 static inline void fm_remove_preview(Fm *fm) {
   if (fm->dirs.preview) {
-    log_trace("removing preview %s", dir_path(fm->dirs.preview));
+    log_trace("removing preview %s", dir_path_str(fm->dirs.preview));
     notify_remove_watcher(&to_lfm(fm)->notify, fm->dirs.preview);
     fm->dirs.preview->visible = false;
     fm->dirs.preview = NULL;
@@ -309,7 +310,7 @@ static inline void on_cursor_moved(Fm *fm, bool delay_action) {
   const File *file = fm_current_file(fm);
   bool is_directory_preview = file != NULL && file_isdir(file);
   bool is_same_preview = file != NULL && fm->dirs.preview != NULL &&
-                         streq(dir_path(fm->dirs.preview), file_path(file));
+                         cstr_eq(dir_path(fm->dirs.preview), file_path(file));
 
   if (!is_same_preview) {
     fm_remove_preview(fm);
@@ -317,7 +318,7 @@ static inline void on_cursor_moved(Fm *fm, bool delay_action) {
 
   if (is_directory_preview && !is_same_preview) {
     fm->dirs.preview = loader_dir_from_path(&to_lfm(fm)->loader,
-                                            file_path(file), !delay_action);
+                                            file_path_str(file), !delay_action);
     fm->dirs.preview->visible = true;
   }
 
@@ -349,7 +350,7 @@ void fm_selection_toggle_current(Fm *fm) {
   }
   File *file = fm_current_file(fm);
   if (file) {
-    fm_selection_toggle(fm, &file->path, true);
+    fm_selection_toggle(fm, file_path(file), true);
   }
 }
 
@@ -374,7 +375,7 @@ void fm_selection_clear(Fm *fm) {
 void fm_selection_reverse(Fm *fm) {
   const Dir *dir = fm_current_dir(fm);
   for (uint32_t i = 0; i < dir->length; i++) {
-    fm_selection_toggle(fm, &dir->files[i]->path, false);
+    fm_selection_toggle(fm, file_path(dir->files[i]), false);
   }
   lfm_run_hook(to_lfm(fm), LFM_HOOK_SELECTION);
 }
@@ -391,7 +392,7 @@ void fm_on_visual_enter(Fm *fm) {
 
   fm->visual.active = true;
   fm->visual.anchor = dir->ind;
-  fm_selection_add(fm, &dir->files[dir->ind]->path, false);
+  fm_selection_add(fm, file_path(dir->files[dir->ind]), false);
   pathlist_clear(&fm->selection.keep_in_visual);
   c_foreach(it, pathlist, fm->selection.current) {
     pathlist_add(&fm->selection.keep_in_visual, it.ref);
@@ -439,8 +440,8 @@ static void selection_visual_update(Fm *fm, uint32_t origin, uint32_t from,
   for (; lo <= hi; lo++) {
     // never unselect the old selection
     if (!pathlist_contains(&fm->selection.keep_in_visual,
-                           &dir->files[lo]->path)) {
-      fm_selection_toggle(fm, &dir->files[lo]->path, false);
+                           file_path(dir->files[lo]))) {
+      fm_selection_toggle(fm, file_path(dir->files[lo]), false);
     }
   }
   lfm_run_hook(to_lfm(fm), LFM_HOOK_SELECTION);
@@ -467,7 +468,7 @@ void fm_selection_write(const Fm *fm, const char *path) {
   } else {
     const File *file = fm_current_file(fm);
     if (file) {
-      fputs(file_path(file), fp);
+      fputs(file_path_str(file), fp);
       fputc('\n', fp);
     }
   }
@@ -548,7 +549,7 @@ File *fm_open(Fm *fm) {
     return file;
   }
 
-  fm_async_chdir(fm, file_path(file), false, false);
+  fm_async_chdir(fm, file_path_str(file), false, false);
   return NULL;
 }
 
@@ -559,7 +560,8 @@ bool fm_updir(Fm *fm) {
     return false;
   }
 
-  fm_async_chdir(fm, path_parent_s(dir_path(fm_current_dir(fm))), false, false);
+  fm_async_chdir(fm, path_parent_s(dir_path_str(fm_current_dir(fm))), false,
+                 false);
   on_cursor_moved(fm, false);
   return true;
 }

@@ -61,7 +61,7 @@ File *dir_current_file(const Dir *d) {
 }
 
 const char *dir_parent_path(const Dir *dir) {
-  return path_parent_s(dir_path(dir));
+  return path_parent_s(dir_path_str(dir));
 }
 
 static void apply_filters(Dir *d) {
@@ -202,7 +202,7 @@ void dir_filter(Dir *d, Filter *filter) {
 
 bool dir_check(const Dir *dir) {
   struct stat statbuf;
-  if (stat(dir_path(dir), &statbuf) == -1) {
+  if (stat(dir_path_str(dir), &statbuf) == -1) {
     log_error("stat: %s", strerror(errno));
     return false;
   }
@@ -339,7 +339,7 @@ Dir *dir_load_flat(const char *path, uint32_t level, bool load_fileinfo) {
         if (file_isdir(file)) {
           if (head->level + 1 <= level) {
             struct queue_dirs_node *n = xmalloc(sizeof *n);
-            n->path = file_path(file);
+            n->path = file_path_str(file);
             n->level = head->level + 1;
             n->next = NULL;
             n->hidden = file_hidden(file);

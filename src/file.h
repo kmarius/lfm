@@ -29,7 +29,12 @@ File *file_create(const char *dir, const char *name, bool load_info);
 void file_destroy(File *file);
 
 // Returns the full path of the file.
-static inline const char *file_path(const File *file) {
+static inline const cstr *file_path(const File *file) {
+  return &file->path;
+}
+
+// Returns the full path of the file as const char*
+static inline const char *file_path_str(const File *file) {
   return cstr_str(&file->path);
 }
 

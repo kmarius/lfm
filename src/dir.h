@@ -87,17 +87,21 @@ Dir *dir_load(const char *path, bool load_dircount);
 // Free all resources belonging to `dir`.
 void dir_destroy(Dir *dir);
 
-// Is the directory in the process of being loaded?
-static inline bool dir_loading(const Dir *dir) {
-  return dir->status < DIR_LOADING_FULLY;
+static inline const cstr *dir_path(const Dir *dir) {
+  return &dir->path;
 }
 
-static inline const char *dir_path(const Dir *dir) {
+static inline const char *dir_path_str(const Dir *dir) {
   return cstr_str(&dir->path);
 }
 
 static inline const zsview *dir_name(const Dir *dir) {
   return &dir->name;
+}
+
+// Is the directory in the process of being loaded?
+static inline bool dir_loading(const Dir *dir) {
+  return dir->status < DIR_LOADING_FULLY;
 }
 
 // Current file of `dir`. Can be `NULL` if it is empty or not yet loaded, or
@@ -131,7 +135,7 @@ void dir_update_with(Dir *dir, Dir *update, uint32_t height,
 
 // Returns true `d` is the root directory.
 static inline bool dir_isroot(const Dir *dir) {
-  return (dir_path(dir)[0] == '/' && dir_path(dir)[1] == 0);
+  return (dir_path_str(dir)[0] == '/' && dir_path_str(dir)[1] == 0);
 }
 
 // Load a flat directorie showing files up `level`s deep.

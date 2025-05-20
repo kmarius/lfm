@@ -98,7 +98,7 @@ static void inotify_cb(EV_P_ ev_io *w, int revents) {
 
 void notify_add_watcher(Notify *notify, Dir *dir) {
   c_foreach(it, vec_cstr, cfg.inotify_blacklist) {
-    if (hasprefix(dir_path(dir), cstr_str(it.ref))) {
+    if (cstr_starts_with_sv(dir_path(dir), cstr_sv(it.ref))) {
       return;
     }
   }
@@ -108,7 +108,8 @@ void notify_add_watcher(Notify *notify, Dir *dir) {
   }
 
   const uint64_t t0 = current_millis();
-  int wd = inotify_add_watch(notify->inotify_fd, dir_path(dir), NOTIFY_EVENTS);
+  int wd =
+      inotify_add_watch(notify->inotify_fd, dir_path_str(dir), NOTIFY_EVENTS);
   if (wd == -1) {
     log_error("inotify: %s", strerror(errno));
     return;
@@ -119,7 +120,7 @@ void notify_add_watcher(Notify *notify, Dir *dir) {
    * the only way to work around it is to add notify watches asnc. (on
    * 2021-11-15) */
   if (t1 - t0 > 10) {
-    log_warn("inotify_add_watch(fd, \"%s\", ...) took %ums", dir_path(dir),
+    log_warn("inotify_add_watch(fd, \"%s\", ...) took %ums", dir_path_str(dir),
              t1 - t0);
   }
 

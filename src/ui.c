@@ -729,11 +729,13 @@ static void draw_file(struct ncplane *n, const File *file, bool iscurrent,
 
   ncplane_set_bg_default(n);
 
-  if (pathlist_contains(sel, &file->path)) {
+  if (pathlist_contains(sel, file_path(file))) {
     ncplane_set_channels(n, cfg.colors.selection);
-  } else if (mode == PASTE_MODE_MOVE && pathlist_contains(load, &file->path)) {
+  } else if (mode == PASTE_MODE_MOVE &&
+             pathlist_contains(load, file_path(file))) {
     ncplane_set_channels(n, cfg.colors.delete);
-  } else if (mode == PASTE_MODE_COPY && pathlist_contains(load, &file->path)) {
+  } else if (mode == PASTE_MODE_COPY &&
+             pathlist_contains(load, file_path(file))) {
     ncplane_set_channels(n, cfg.colors.copy);
   }
 
@@ -972,8 +974,8 @@ static inline void on_cursor_moved(Ui *ui, bool delay_action) {
   File *file = fm_current_file(&to_lfm(ui)->fm);
   Preview *preview = ui->preview.preview;
   bool is_file_preview = file && !file_isdir(file);
-  bool is_same_preview =
-      file != NULL && preview != NULL && streq(preview->path, file_path(file));
+  bool is_same_preview = file != NULL && preview != NULL &&
+                         streq(preview->path, file_path_str(file));
 
   unsigned int ncol, nrow;
   ncplane_dim_yx(ui->planes.preview, &nrow, &ncol);
@@ -992,7 +994,7 @@ static inline void on_cursor_moved(Ui *ui, bool delay_action) {
     // delay_action, loads the preview in the background (or checks and
     // reloads it)
     ui->preview.preview = loader_preview_from_path(
-        &to_lfm(ui)->loader, file_path(file), !delay_action);
+        &to_lfm(ui)->loader, file_path_str(file), !delay_action);
   }
 
   if (delay_action) {

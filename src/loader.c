@@ -4,7 +4,6 @@
 #include "dir.h"
 #include "hooks.h"
 #include "lfm.h"
-#include "log.h"
 #include "macros_defs.h"
 #include "path.h"
 #include "preview.h"
