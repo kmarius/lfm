@@ -35,11 +35,11 @@ void cmdline_init(Cmdline *t);
 void cmdline_deinit(Cmdline *t);
 
 // Set the `prefix` of the cmdline.
-bool cmdline_prefix_set(Cmdline *t, const char *prefix);
+bool cmdline_prefix_set(Cmdline *t, zsview zv);
 
 // Insert the first multibyte char encountered in `key`. Returns `true` if a
 // redraw is necessary.
-bool cmdline_insert(Cmdline *t, const char *key);
+bool cmdline_insert(Cmdline *t, zsview zv);
 
 // Toggle insert/overwrite.
 bool cmdline_toggle_overwrite(Cmdline *t);
@@ -83,10 +83,10 @@ bool cmdline_clear(Cmdline *t);
 
 // Set the command line. `left` and `right` are the strings left and right of
 // the cursor, respectively. NULL is accepted.
-bool cmdline_set(Cmdline *t, const char *left, const char *right);
+bool cmdline_set(Cmdline *t, zsview left, zsview right);
 
 // Returns the currend command line.
-const char *cmdline_get(Cmdline *t);
+zsview cmdline_get(Cmdline *t);
 
 // Draw the command line into an ncplane. Returns the number of printed
 // characters of prefix, left so that the cursor can be positioned.

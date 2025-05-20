@@ -11,6 +11,7 @@
 #include "macros.h"
 #include "mode.h"
 #include "search.h"
+#include "stcutil.h"
 #include "trie.h"
 #include "ui.h"
 
@@ -137,9 +138,9 @@ void input_handle_key(Lfm *lfm, input_t in) {
       lfm_mode_enter(lfm, "normal");
     } else if (in == NCKEY_ENTER) {
       // return key pressed, call the callback in the mode
-      const char *line = cmdline_get(&ui->cmdline);
+      zsview line = cmdline_get(&ui->cmdline);
       input_clear(lfm);
-      mode_on_return(lfm->current_mode, lfm, line);
+      mode_on_return(lfm->current_mode, lfm, line.str);
     } else if (lfm->ui.maps.cur) {
       // current key sequence is a prefix/full match of a mode mapping, always
       // taking precedence
@@ -177,7 +178,7 @@ void input_handle_key(Lfm *lfm, input_t in) {
           n = 0;
         }
         buf[n] = '\0';
-        if (cmdline_insert(&ui->cmdline, buf)) {
+        if (cmdline_insert(&ui->cmdline, zsview_from_n(buf, n))) {
           ui_redraw(ui, REDRAW_CMDLINE);
         }
         mode_on_change(lfm->current_mode, lfm);

@@ -5,6 +5,7 @@
 #include "hooks.h"
 #include "lfm.h"
 #include "lua/lfmlua.h"
+#include "stcutil.h"
 #include "trie.h"
 #include "ui.h"
 
@@ -48,7 +49,7 @@ void lfm_modes_deinit(Lfm *lfm) {
 
 static void normal_on_enter(Lfm *lfm) {
   cmdline_clear(&lfm->ui.cmdline);
-  cmdline_prefix_set(&lfm->ui.cmdline, "");
+  cmdline_prefix_set(&lfm->ui.cmdline, c_zv(""));
 }
 
 static void visual_on_enter(Lfm *lfm) {
@@ -86,7 +87,7 @@ int lfm_mode_enter(Lfm *lfm, const char *name) {
   mode_on_enter(mode, lfm);
 
   if (mode->input && mode->prefix) {
-    cmdline_prefix_set(&lfm->ui.cmdline, mode->prefix);
+    cmdline_prefix_set(&lfm->ui.cmdline, zsview_from(mode->prefix));
   }
   lfm->ui.maps.cur_input = NULL;
   lfm_run_hook(lfm, LFM_HOOK_MODECHANGED, mode->name);

@@ -3,6 +3,7 @@
 #include "lfm.h"
 #include "log.h"
 #include "path.h"
+#include "stcutil.h"
 #include "util.h"
 
 #include <ev.h>

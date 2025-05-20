@@ -24,7 +24,8 @@
 #include <wchar.h>
 
 static int l_cmd_line_get(lua_State *L) {
-  lua_pushstring(L, cmdline_get(&ui->cmdline));
+  zsview zv = cmdline_get(&ui->cmdline);
+  lua_pushzsview(L, &zv);
   return 1;
 }
 
@@ -35,7 +36,7 @@ static int l_cmd_line_set(lua_State *L) {
     luaL_error(L, "line_set takes only up to two arguments");
   }
 
-  cmdline_set(&ui->cmdline, lua_tostring(L, 1), lua_tostring(L, 2));
+  cmdline_set(&ui->cmdline, lua_tozsview(L, 1), lua_tozsview(L, 2));
   ui_redraw(ui, REDRAW_CMDLINE);
 
   return 0;
@@ -86,7 +87,7 @@ static int l_cmd_delete_word(lua_State *L) {
 }
 
 static int l_cmd_insert(lua_State *L) {
-  if (cmdline_insert(&ui->cmdline, lua_tostring(L, 1))) {
+  if (cmdline_insert(&ui->cmdline, lua_tozsview(L, 1))) {
     ui_redraw(ui, REDRAW_CMDLINE);
     mode_on_change(lfm->current_mode, lfm);
   }

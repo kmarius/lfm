@@ -4,7 +4,10 @@
 #include "macros_defs.h"
 #include "memory.h"
 #include "ncutil.h"
+#include "stcutil.h"
 #include "ui.h"
+
+#include "stc/zsview.h"
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -84,15 +87,11 @@ void cmdline_deinit(Cmdline *c) {
   xfree(c->buf.str);
 }
 
-bool cmdline_prefix_set(Cmdline *c, const char *prefix) {
-  if (!prefix) {
-    return false;
-  }
-
-  const unsigned long l = strlen(prefix);
-  ENSURE_CAPACITY(c->prefix, l);
-  strcpy(c->prefix.str, prefix);
-  c->prefix.len = l;
+bool cmdline_prefix_set(Cmdline *c, zsview zv) {
+  ENSURE_CAPACITY(c->prefix, zv.size);
+  // copy trailing nul, extra space is reserved
+  memcpy(c->prefix.str, zv.str, zv.size + 1);
+  c->prefix.len = zv.size;
   return true;
 }
 
@@ -100,13 +99,13 @@ const char *cmdline_prefix_get(Cmdline *c) {
   return c->prefix.len == 0 ? NULL : c->prefix.str;
 }
 
-bool cmdline_insert(Cmdline *c, const char *key) {
+bool cmdline_insert(Cmdline *c, zsview zv) {
   if (c->prefix.len == 0) {
     return false;
   }
 
   ENSURE_SPACE(c->left, 1);
-  mbtowc(c->left.str + c->left.len, key, strlen(key));
+  mbtowc(c->left.str + c->left.len, zv.str, zv.size);
   c->left.len++;
   c->left.str[c->left.len] = 0;
   if (c->overwrite && c->right.len > 0) {
@@ -269,10 +268,10 @@ bool cmdline_clear(Cmdline *c) {
   return true;
 }
 
-bool cmdline_set(Cmdline *c, const char *left, const char *right) {
-  if (left && left[0]) {
-    ENSURE_SPACE(c->left, strlen(left));
-    size_t n = mbstowcs(c->left.str, left, c->left.cap + 1);
+bool cmdline_set(Cmdline *c, zsview left, zsview right) {
+  if (!zsview_is_empty(left)) {
+    ENSURE_SPACE(c->left, left.size);
+    size_t n = mbstowcs(c->left.str, left.str, c->left.cap + 1);
     if (n == (size_t)-1) {
       c->left.len = 0;
       c->left.str[0] = 0;
@@ -283,9 +282,9 @@ bool cmdline_set(Cmdline *c, const char *left, const char *right) {
     c->left.len = 0;
     c->left.str[0] = 0;
   }
-  if (right && right[0]) {
-    ENSURE_SPACE(c->right, strlen(right));
-    size_t n = mbstowcs(c->right.str, right, c->right.cap + 1);
+  if (!zsview_is_empty(right)) {
+    ENSURE_SPACE(c->right, right.size);
+    size_t n = mbstowcs(c->right.str, right.str, c->right.cap + 1);
     if (n == (size_t)-1) {
       c->right.len = 0;
       c->right.str[0] = 0;
@@ -299,24 +298,25 @@ bool cmdline_set(Cmdline *c, const char *left, const char *right) {
   return true;
 }
 
-const char *cmdline_get(Cmdline *c) {
+zsview cmdline_get(Cmdline *c) {
   c->buf.str[0] = 0;
   if (c->prefix.len != 0) {
     ENSURE_SPACE(c->buf, (size_t)(c->left.len + c->right.len) * MB_CUR_MAX);
     size_t n = wcstombs(c->buf.str, c->left.str, c->left.len * MB_CUR_MAX);
     if (n == (size_t)-1) {
-      return "";
+      return c_zv("");
     }
 
     size_t m =
         wcstombs(c->buf.str + n, c->right.str, c->right.len * MB_CUR_MAX);
     if (m == (size_t)-1) {
-      return "";
+      return c_zv("");
     }
 
     c->buf.str[n + m] = 0;
+    c->buf.len = n + m;
   }
-  return c->buf.str;
+  return zsview_from_n(c->buf.str, c->buf.len);
 }
 
 uint32_t cmdline_draw(Cmdline *c, struct ncplane *n) {
