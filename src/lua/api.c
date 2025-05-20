@@ -325,7 +325,7 @@ static int l_fm_open(lua_State *L) {
       return lua_quit(L, lfm);
     }
 
-    lua_pushstring(L, file_path_str(file));
+    lua_pushcstr(L, file_path(file));
     return 1;
   } else {
     /* changed directory */
@@ -340,7 +340,7 @@ static int l_fm_open(lua_State *L) {
 static int l_fm_current_file(lua_State *L) {
   File *file = fm_current_file(fm);
   if (file) {
-    lua_pushstring(L, file_path_str(file));
+    lua_pushcstr(L, file_path(file));
     return 1;
   }
   return 0;
@@ -367,7 +367,7 @@ static int l_fm_current_dir(lua_State *L) {
 
   lua_createtable(L, dir->length, 0);
   for (uint32_t i = 0; i < dir->length; i++) {
-    lua_pushstring(L, file_path_str(dir->files[i]));
+    lua_pushcstr(L, file_path(dir->files[i]));
     lua_rawseti(L, -2, i + 1);
   }
   lua_setfield(L, -2, "files");
