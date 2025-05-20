@@ -3,6 +3,8 @@
 #include "../path.h"
 #include "../util.h"
 
+#include "../stc/zsview.h"
+
 #include <lauxlib.h>
 #include <lua.h>
 #include <lualib.h>
@@ -82,9 +84,9 @@ static inline void rule_drop(Rule *self) {
 #include "../stc/vec.h"
 
 typedef struct FileInfo {
-  const char *file;
-  const char *path;
-  const char *mime;
+  zsview file;
+  zsview path;
+  zsview mime;
 } FileInfo;
 
 typedef struct {
@@ -136,16 +138,15 @@ static inline void rule_set_flags(Rule *r, const char *flags) {
   }
 }
 
-static inline bool re_match(pcre *re, pcre_extra *re_extra,
-                            const char *string) {
+static inline bool re_match(pcre *re, pcre_extra *re_extra, zsview string) {
   int substr_vec[32];
-  return pcre_exec(re, re_extra, string, strlen(string), 0, 0, substr_vec,
+  return pcre_exec(re, re_extra, string.str, string.size, 0, 0, substr_vec,
                    30) >= 0;
 }
 
 static bool check_fn_file(Condition *cond, const FileInfo *info) {
   struct stat path_stat;
-  if (stat(info->file, &path_stat) == -1) {
+  if (stat(info->file.str, &path_stat) == -1) {
     return cond->negate;
   }
   return S_ISREG(path_stat.st_mode) != cond->negate;
@@ -153,7 +154,7 @@ static bool check_fn_file(Condition *cond, const FileInfo *info) {
 
 static bool check_fn_dir(Condition *cond, const FileInfo *info) {
   struct stat statbuf;
-  if (stat(info->file, &statbuf) != 0) {
+  if (stat(info->file.str, &statbuf) != 0) {
     return cond->negate;
   }
   return S_ISDIR(statbuf.st_mode) != cond->negate;
@@ -203,9 +204,14 @@ static bool check_fn_mime(Condition *cond, const FileInfo *info) {
 }
 
 static bool check_fn_name(Condition *cond, const FileInfo *info) {
-  const char *ptr = strrchr(info->file, '/');
-  return re_match(cond->pcre, cond->pcre_extra, ptr ? ptr : info->file) !=
-         cond->negate;
+  const char *ptr = strrchr(info->file.str, '/');
+  if (ptr) {
+    int pos = ptr - info->file.str;
+    return re_match(cond->pcre, cond->pcre_extra,
+                    zsview_from_pos(info->file, pos)) != cond->negate;
+  } else {
+    return re_match(cond->pcre, cond->pcre_extra, info->file) != cond->negate;
+  }
 }
 
 static bool check_fn_match(Condition *cond, const FileInfo *info) {
@@ -424,7 +430,8 @@ static int l_rifle_query_mime(lua_State *L) {
     lua_pop(L, 1);
   }
 
-  const FileInfo info = {.file = "", .path = "", .mime = mime};
+  const FileInfo info = {
+      .file = c_zv(""), .path = c_zv(""), .mime = zsview_from(mime)};
 
   lua_newtable(L);
 
@@ -487,7 +494,9 @@ static int l_rifle_query(lua_State *L) {
   char mime[256];
   get_mimetype(path, mime, sizeof mime);
 
-  const FileInfo info = {.file = file, .path = path, .mime = mime};
+  const FileInfo info = {.file = zsview_from(file),
+                         .path = zsview_from(path),
+                         .mime = zsview_from(mime)};
 
   lua_newtable(L); /* {} */
 
