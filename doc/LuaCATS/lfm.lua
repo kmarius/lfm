@@ -49,6 +49,7 @@ lfm = {}
 -- Preloaded modules:
 
 lfm.compl = require("lfm.compl")
+lfm.fs = require("lfm.fs")
 lfm.functions = require("lfm.functions")
 lfm.inspect = require("lfm.inspect")
 lfm.jumplist = require("lfm.jumplist")

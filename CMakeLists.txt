@@ -113,6 +113,7 @@ set(LUA_COMPL_MODULE_SOURCE ${PROJECT_SOURCE_DIR}/runtime/lua/lfm/compl.lua)
 set(LUA_CORE_MODULE_SOURCE ${PROJECT_SOURCE_DIR}/runtime/lua/lfm/core.lua)
 set(LUA_FLATTEN_MODULE_SOURCE ${PROJECT_SOURCE_DIR}/runtime/lua/lfm/flatten.lua)
 set(LUA_FUNCTIONS_MODULE_SOURCE ${PROJECT_SOURCE_DIR}/runtime/lua/lfm/functions.lua)
+set(LUA_FS_MODULE_SOURCE ${PROJECT_SOURCE_DIR}/runtime/lua/lfm/fs.lua)
 set(LUA_GLOB_MODULE_SOURCE ${PROJECT_SOURCE_DIR}/runtime/lua/lfm/glob.lua)
 set(LUA_INSPECT_MODULE_SOURCE ${PROJECT_SOURCE_DIR}/runtime/lua/lfm/inspect.lua)
 set(LUA_JUMPLIST_MODULE_SOURCE ${PROJECT_SOURCE_DIR}/runtime/lua/lfm/jumplist.lua)
@@ -134,6 +135,7 @@ add_custom_command(
  ${LUA_COMPL_MODULE_SOURCE} "lfm.compl"
  ${LUA_CORE_MODULE_SOURCE} "lfm._core"
  ${LUA_FLATTEN_MODULE_SOURCE} "lfm.flatten"
+ ${LUA_FS_MODULE_SOURCE} "lfm.fs"
  ${LUA_FUNCTIONS_MODULE_SOURCE} "lfm.functions"
  ${LUA_GLOB_MODULE_SOURCE} "lfm.glob"
  ${LUA_INSPECT_MODULE_SOURCE} "lfm.inspect"
@@ -151,6 +153,7 @@ add_custom_command(
  ${LUA_COMPL_MODULE_SOURCE}
  ${LUA_CORE_MODULE_SOURCE}
  ${LUA_FLATTEN_MODULE_SOURCE}
+ ${LUA_FS_MODULE_SOURCE}
  ${LUA_FUNCTIONS_MODULE_SOURCE}
  ${LUA_GLOB_MODULE_SOURCE}
  ${LUA_INSPECT_MODULE_SOURCE}

@@ -321,6 +321,7 @@ lfm.api.fm_sel_or_cur = sel_or_cur
 -- lazily load submodules in the lfm namespace, make sure to add them to doc/LuaCATS/lfm.lua
 local submodules = {
 	compl = true,
+	fs = true,
 	functions = true,
 	inspect = true,
 	jumplist = true,
