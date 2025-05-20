@@ -27,8 +27,8 @@
 static int uid = -1;
 static char user[64 + 1] = {0};
 static char host[HOST_NAME_MAX + 1] = {0};
-static char home[64 + 1];
-static uint32_t home_len; // printed length of home
+static char home[64 + 1] = {0};
+static int home_len = 0; // printed length of home
 
 // this buffer holds any static text including ansi sequences etc.
 static char static_buf[STATIC_BUF_SZ];
@@ -60,15 +60,20 @@ static inline int shorten_path(wchar_t *path, int path_len, int max_len);
 
 void infoline_init(Ui *ui) {
   (void)ui;
-  strncpy(user, getenv("USER"), sizeof user - 1);
   gethostname(host, sizeof host);
-  const char *env_home = getenv("HOME");
-  if (env_home) {
-    strncpy(home, env_home, sizeof home - 1);
-    home[sizeof home - 1] = 0;
-  }
-  home_len = mbstowcs(NULL, home, 0);
   uid = getuid();
+  strncpy(user, getenv("USER"), sizeof user - 1);
+  if (uid == 0) {
+    // not a prefix of any absolute path, so never replacing /root with ~
+    home_len = sprintf(home, "-");
+  } else {
+    const char *env_home = getenv("HOME");
+    if (env_home) {
+      strncpy(home, env_home, sizeof home - 1);
+      home[sizeof home - 1] = 0;
+    }
+    home_len = mbstowcs(NULL, home, 0);
+  }
 }
 
 void infoline_set(Ui *ui, const char *line) {
