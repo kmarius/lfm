@@ -402,7 +402,7 @@ int lfm_run(Lfm *lfm) {
 }
 
 void lfm_quit(Lfm *lfm, int ret) {
-  lfm_run_hook(lfm, LFM_HOOK_EXITPRE);
+  lfm_run_hook(lfm, LFM_HOOK_EXITPRE, ret);
   ev_break(lfm->loop, EVBREAK_ALL);
   // prevent lua error from flashing in the UI, we use it to immediately give
   // back control to the host program.

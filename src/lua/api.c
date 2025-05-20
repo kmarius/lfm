@@ -308,7 +308,9 @@ static int l_fm_bot(lua_State *L) {
 static int l_fm_updir(lua_State *L) {
   (void)L;
   if (fm_updir(fm)) {
-    lfm_run_hook(lfm, LFM_HOOK_CHDIRPOST);
+    // I don't remember why we run th chdir post hook here,
+    // since we are also not running the pre hook
+    lfm_run_hook(lfm, LFM_HOOK_CHDIRPOST, fm->pwd);
     search_nohighlight(lfm);
     ui_update_file_preview(ui);
     ui_redraw(ui, REDRAW_FM);
@@ -329,7 +331,7 @@ static int l_fm_open(lua_State *L) {
     return 1;
   } else {
     /* changed directory */
-    lfm_run_hook(lfm, LFM_HOOK_CHDIRPOST);
+    lfm_run_hook(lfm, LFM_HOOK_CHDIRPOST, fm->pwd);
     ui_update_file_preview(ui);
     ui_redraw(ui, REDRAW_FM);
     search_nohighlight(lfm);
@@ -538,7 +540,7 @@ static int l_fm_chdir(lua_State *L) {
   char *path = path_normalize_a(arg, fm->pwd);
   search_nohighlight(lfm);
   lfm_mode_exit(lfm, "visual");
-  lfm_run_hook(lfm, LFM_HOOK_CHDIRPRE);
+  lfm_run_hook(lfm, LFM_HOOK_CHDIRPRE, fm->pwd);
   if (macro_playing) {
     fm_sync_chdir(fm, path, should_save, true);
   } else {
@@ -675,7 +677,7 @@ static int l_fm_filter(lua_State *L) {
 
 static int l_fm_jump_automark(lua_State *L) {
   (void)L;
-  lfm_run_hook(lfm, LFM_HOOK_CHDIRPRE);
+  lfm_run_hook(lfm, LFM_HOOK_CHDIRPRE, fm->pwd);
   lfm_mode_exit(lfm, "visual");
   fm_jump_automark(fm);
   ui_update_file_preview(ui);

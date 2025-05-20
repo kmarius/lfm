@@ -8,8 +8,7 @@ local chdir = lfm.api.fm_chdir
 local list = { getpwd() }
 local ind = 1
 
-local function on_chdir()
-	local dir = getpwd()
+local function on_chdir(dir)
 	if list[ind] ~= dir then
 		ind = ind + 1
 		if ind <= #list then
