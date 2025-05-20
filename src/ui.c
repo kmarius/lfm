@@ -729,13 +729,11 @@ static void draw_file(struct ncplane *n, const File *file, bool iscurrent,
 
   ncplane_set_bg_default(n);
 
-  if (pathlist_contains(sel, file_path(file))) {
+  if (pathlist_contains(sel, &file->path)) {
     ncplane_set_channels(n, cfg.colors.selection);
-  } else if (mode == PASTE_MODE_MOVE &&
-             pathlist_contains(load, file_path(file))) {
+  } else if (mode == PASTE_MODE_MOVE && pathlist_contains(load, &file->path)) {
     ncplane_set_channels(n, cfg.colors.delete);
-  } else if (mode == PASTE_MODE_COPY &&
-             pathlist_contains(load, file_path(file))) {
+  } else if (mode == PASTE_MODE_COPY && pathlist_contains(load, &file->path)) {
     ncplane_set_channels(n, cfg.colors.copy);
   }
 

@@ -8,6 +8,7 @@
 #include "../macros.h"
 #include "../path.h"
 #include "../search.h"
+#include "../stc/cstr.h"
 #include "../ui.h"
 
 #include "private.h"
@@ -453,17 +454,23 @@ static int l_fm_selection_add(lua_State *L) {
   char buf[PATH_MAX];
   luaL_checktype(L, 1, LUA_TTABLE);
   int n = lua_objlen(L, 1);
+  cstr cs = cstr_init();
   for (int i = 1; i <= n; i++) {
     lua_rawgeti(L, 1, i);
-    luaL_checktype(L, -1, LUA_TSTRING);
+
     size_t len;
-    const char *path = luaL_checklstring(L, -1, &len);
+    const char *path = lua_tolstring(L, -1, &len);
     if (len > PATH_MAX) {
-      luaL_error(L, "path too long");
+      cstr_drop(&cs);
+      return luaL_error(L, "path too long");
     }
-    fm_selection_add(fm, path_normalize(path, fm->pwd, buf), false);
+    path_normalize(path, fm->pwd, buf);
+    cstr_assign_n(&cs, buf, strlen(buf));
+    fm_selection_add(fm, &cs, false);
+
     lua_pop(L, 1);
   }
+  cstr_drop(&cs);
   if (n > 0) {
     lfm_run_hook(lfm, LFM_HOOK_SELECTION);
     ui_redraw(ui, REDRAW_FM);
@@ -479,10 +486,17 @@ static int l_fm_selection_set(lua_State *L) {
   fm_selection_clear(fm);
   lfm_mode_exit(lfm, "visual");
   if (lua_istable(L, 1)) {
+    // TODO: we can avoid allocations because another copy is made when adding
+    // to the selection
+    cstr cs = cstr_init();
     for (lua_pushnil(L); lua_next(L, -2); lua_pop(L, 1)) {
-      fm_selection_add(
-          fm, path_normalize(luaL_checkstring(L, -1), fm->pwd, buf), false);
+      // TODO: make use of the string length in these functions
+      const char *str = lua_tostring(L, -1);
+      path_normalize(str, fm->pwd, buf);
+      cstr_assign_n(&cs, buf, strlen(buf));
+      fm_selection_add(fm, &cs, false);
     }
+    cstr_drop(&cs);
   }
   lfm_run_hook(lfm, LFM_HOOK_SELECTION);
   ui_redraw(ui, REDRAW_FM);
@@ -493,7 +507,7 @@ static int l_fm_selection_get(lua_State *L) {
   lua_createtable(L, pathlist_size(&fm->selection.current), 0);
   int i = 1;
   c_foreach(it, pathlist, fm->selection.current) {
-    lua_pushstring(L, *it.ref);
+    lua_pushcstr(L, it.ref);
     lua_rawseti(L, -2, i++);
   }
   return 1;
@@ -562,7 +576,7 @@ static int l_fm_paste_buffer_get(lua_State *L) {
   lua_createtable(L, pathlist_size(&fm->paste.buffer), 0);
   int i = 1;
   c_foreach(it, pathlist, fm->paste.buffer) {
-    lua_pushstring(L, *it.ref);
+    lua_pushcstr(L, it.ref);
     lua_rawseti(L, -2, i++);
   }
   lua_pushstring(L, fm->paste.mode == PASTE_MODE_MOVE ? "move" : "copy");
@@ -585,11 +599,16 @@ static int l_fm_paste_buffer_set(lua_State *L) {
 
   if (lua_type(L, 1) == LUA_TTABLE) {
     const size_t l = lua_objlen(L, 1);
+    cstr cs = cstr_init();
+    size_t len;
     for (size_t i = 0; i < l; i++) {
       lua_rawgeti(L, 1, i + 1);
-      fm_paste_buffer_add(fm, lua_tostring(L, -1));
+      const char *str = lua_tolstring(L, -1, &len);
+      cstr_assign_n(&cs, str, len);
+      fm_paste_buffer_add(fm, &cs);
       lua_pop(L, 1);
     }
+    cstr_drop(&cs);
   }
 
   if (luaL_optbool(L, 3, true) &&

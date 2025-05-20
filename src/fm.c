@@ -83,10 +83,10 @@ void fm_init(Fm *fm) {
 
 void fm_deinit(Fm *fm) {
   vec_dir_drop(&fm->dirs.visible);
-  pathlist_deinit(&fm->selection.current);
-  pathlist_deinit(&fm->selection.keep_in_visual);
-  pathlist_deinit(&fm->selection.previous);
-  pathlist_deinit(&fm->paste.buffer);
+  pathlist_drop(&fm->selection.current);
+  pathlist_drop(&fm->selection.keep_in_visual);
+  pathlist_drop(&fm->selection.previous);
+  pathlist_drop(&fm->paste.buffer);
   xfree(fm->automark);
   xfree(fm->pwd);
 }
@@ -333,7 +333,7 @@ static inline void on_cursor_moved(Fm *fm, bool delay_action) {
   }
 }
 
-static inline void fm_selection_toggle(Fm *fm, const char *path,
+static inline void fm_selection_toggle(Fm *fm, const cstr *path,
                                        bool run_hook) {
   if (!pathlist_remove(&fm->selection.current, path)) {
     fm_selection_add(fm, path, false);
@@ -349,11 +349,11 @@ void fm_selection_toggle_current(Fm *fm) {
   }
   File *file = fm_current_file(fm);
   if (file) {
-    fm_selection_toggle(fm, file_path(file), true);
+    fm_selection_toggle(fm, &file->path, true);
   }
 }
 
-void fm_selection_add(Fm *fm, const char *path, bool run_hook) {
+void fm_selection_add(Fm *fm, const cstr *path, bool run_hook) {
   pathlist_add(&fm->selection.current, path);
   if (run_hook) {
     lfm_run_hook(to_lfm(fm), LFM_HOOK_SELECTION);
@@ -374,7 +374,7 @@ void fm_selection_clear(Fm *fm) {
 void fm_selection_reverse(Fm *fm) {
   const Dir *dir = fm_current_dir(fm);
   for (uint32_t i = 0; i < dir->length; i++) {
-    fm_selection_toggle(fm, file_path(dir->files[i]), false);
+    fm_selection_toggle(fm, &dir->files[i]->path, false);
   }
   lfm_run_hook(to_lfm(fm), LFM_HOOK_SELECTION);
 }
@@ -391,10 +391,10 @@ void fm_on_visual_enter(Fm *fm) {
 
   fm->visual.active = true;
   fm->visual.anchor = dir->ind;
-  fm_selection_add(fm, file_path(dir->files[dir->ind]), false);
+  fm_selection_add(fm, &dir->files[dir->ind]->path, false);
   pathlist_clear(&fm->selection.keep_in_visual);
   c_foreach(it, pathlist, fm->selection.current) {
-    pathlist_add(&fm->selection.keep_in_visual, *it.ref);
+    pathlist_add(&fm->selection.keep_in_visual, it.ref);
   }
   lfm_run_hook(to_lfm(fm), LFM_HOOK_SELECTION);
 }
@@ -439,8 +439,8 @@ static void selection_visual_update(Fm *fm, uint32_t origin, uint32_t from,
   for (; lo <= hi; lo++) {
     // never unselect the old selection
     if (!pathlist_contains(&fm->selection.keep_in_visual,
-                           file_path(dir->files[lo]))) {
-      fm_selection_toggle(fm, file_path(dir->files[lo]), false);
+                           &dir->files[lo]->path)) {
+      fm_selection_toggle(fm, &dir->files[lo]->path, false);
     }
   }
   lfm_run_hook(to_lfm(fm), LFM_HOOK_SELECTION);
@@ -461,7 +461,7 @@ void fm_selection_write(const Fm *fm, const char *path) {
   if (pathlist_size(&fm->selection.current) > 0) {
     for (pathlist_iter it = pathlist_begin(&fm->selection.current); it.ref;
          pathlist_next(&it)) {
-      fputs(*it.ref, fp);
+      fwrite(cstr_str(it.ref), 1, cstr_size(it.ref), fp);
       fputc('\n', fp);
     }
   } else {
@@ -479,7 +479,7 @@ void fm_paste_mode_set(Fm *fm, paste_mode mode) {
   if (pathlist_size(&fm->selection.current) == 0) {
     fm_selection_toggle_current(fm);
   }
-  pathlist_deinit(&fm->paste.buffer);
+  pathlist_drop(&fm->paste.buffer);
   fm->paste.buffer = fm->selection.current;
   pathlist_init(&fm->selection.current);
 }

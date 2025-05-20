@@ -52,8 +52,6 @@ char *path_replace_tilde(const char *path) {
   return ret;
 }
 
-#include <stdio.h>
-
 // replace //
 // replace /./
 // replace /../ and kill one component to the left

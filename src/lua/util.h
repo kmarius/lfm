@@ -5,6 +5,10 @@
 
 #include <lua.h>
 
+static inline void lua_pushcstr(lua_State *L, const cstr *cstr) {
+  lua_pushlstring(L, cstr_str(cstr), cstr_size(cstr));
+}
+
 static inline void lua_pushzsview(lua_State *L, const zsview *zv) {
   lua_pushlstring(L, zv->str, zv->size);
 }

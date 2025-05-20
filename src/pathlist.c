@@ -3,22 +3,19 @@
 #include <assert.h>
 
 #define i_declared
-#define i_type _pathlist_list, char *
-#define i_keyraw const char *
-#define i_keytoraw(p) (*p)
-#define i_keyfrom(p) strdup(p)
-#define i_keyclone(p) strdup(p)
-#define i_keydrop(p) free(*(p))
-#define i_eq(p, q) ((*p) == (*q))
-#define i_noclone
+#define i_type _pathlist_list
+#define i_keypro cstr
 #include "stc/dlist.h"
 
+// we don't use keypro here because keys are owned by the list
+// using i_keypro cstr makes it impossible to look up cstr, only const char*
+// work
 #define i_declared
 #define i_type _pathlist_hmap
-#define i_key const char *
+#define i_key cstr
 #define i_val _pathlist_list_node *
-#define i_hash cstr_raw_hash
-#define i_eq(p, q) (!strcmp(*(p), *(q)))
+#define i_eq cstr_eq
+#define i_hash cstr_hash
 #include "stc/hmap.h"
 
 void pathlist_init(pathlist *self) {
@@ -26,7 +23,7 @@ void pathlist_init(pathlist *self) {
   self->list = _pathlist_list_init();
 }
 
-void pathlist_deinit(pathlist *self) {
+void pathlist_drop(pathlist *self) {
   _pathlist_list_drop(&self->list);
   _pathlist_hmap_drop(&self->map);
 }
@@ -36,19 +33,19 @@ void pathlist_clear(pathlist *self) {
   _pathlist_hmap_clear(&self->map);
 }
 
-bool pathlist_contains(const pathlist *self, const char *path) {
-  return _pathlist_hmap_contains(&self->map, path);
+bool pathlist_contains(const pathlist *self, const cstr *path) {
+  return _pathlist_hmap_contains(&self->map, *path);
 }
 
-void pathlist_add(pathlist *self, const char *path) {
+void pathlist_add(pathlist *self, const cstr *path) {
   if (!pathlist_contains(self, path)) {
-    char **val = _pathlist_list_emplace_back(&self->list, path);
+    cstr *val = _pathlist_list_push_back(&self->list, cstr_clone(*path));
     _pathlist_hmap_insert(&self->map, *val, _pathlist_list_get_node(val));
   }
 }
 
-bool pathlist_remove(pathlist *self, const char *path) {
-  const _pathlist_hmap_iter val = _pathlist_hmap_find(&self->map, path);
+bool pathlist_remove(pathlist *self, const cstr *path) {
+  const _pathlist_hmap_iter val = _pathlist_hmap_find(&self->map, *path);
   if (val.ref) {
     _pathlist_list_erase_node(&self->list, val.ref->second);
     _pathlist_hmap_erase_at(&self->map, val);

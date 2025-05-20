@@ -5,12 +5,13 @@
 
 #pragma once
 
+#include "stc/cstr.h"
 #include "stc/types.h"
 
 #include <stdbool.h>
 
-declare_dlist(_pathlist_list, char *);
-declare_hmap(_pathlist_hmap, const char *, _pathlist_list_node *);
+declare_dlist(_pathlist_list, cstr);
+declare_hmap(_pathlist_hmap, cstr, _pathlist_list_node *);
 
 typedef struct pathlist {
   _pathlist_hmap map;
@@ -20,10 +21,10 @@ typedef struct pathlist {
 typedef _pathlist_list_iter pathlist_iter;
 
 void pathlist_init(pathlist *self);
-void pathlist_deinit(pathlist *self);
-bool pathlist_contains(const pathlist *self, const char *path);
-void pathlist_add(pathlist *self, const char *path);
-bool pathlist_remove(pathlist *self, const char *path);
+void pathlist_drop(pathlist *self);
+bool pathlist_contains(const pathlist *self, const cstr *path);
+void pathlist_add(pathlist *self, const cstr *path);
+bool pathlist_remove(pathlist *self, const cstr *path);
 void pathlist_clear(pathlist *self);
 size_t pathlist_size(const pathlist *self);
 pathlist_iter pathlist_begin(const pathlist *self);
