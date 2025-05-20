@@ -1,5 +1,8 @@
 #pragma once
 
+// pass no arguments to indicate everything nonnull
+#define __lfm_nonnull(...) __attribute__((nonnull(__VA_ARGS__)))
+
 #define container_of(ptr, type, member)                                        \
   ({                                                                           \
     const typeof(((type *)0)->member) *__mptr = (ptr);                         \

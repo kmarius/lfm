@@ -1,10 +1,12 @@
 #pragma once
 
 #include "containers.h"
+#include "macros_defs.h"
 #include "stc/cstr.h"
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <sys/types.h>
 #include <time.h>
 
 struct ncplane;
@@ -40,27 +42,30 @@ typedef struct Preview {
                      // disabled.
 } Preview;
 
+__lfm_nonnull()
 Preview *preview_create_loading(const char *path, int height, int width);
 
+__lfm_nonnull()
 Preview *preview_create_from_file(const char *path, uint32_t width,
                                   uint32_t height);
 
+__lfm_nonnull()
 static inline const cstr *preview_path(const Preview *pv) {
   return &pv->path;
 }
 
+__lfm_nonnull()
 static inline const char *preview_path_str(const Preview *pv) {
   return cstr_str(&pv->path);
 }
 
+__lfm_nonnull()
 static inline void preview_update(Preview *pv, Preview *u) {
   pv->update(pv, u);
 }
 
+__lfm_nonnull(1, 2)
 static inline void preview_draw(const Preview *pv, struct ncplane *n) {
-  if (!pv) {
-    return;
-  }
   pv->draw(pv, n);
 }
 

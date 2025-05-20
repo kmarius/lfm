@@ -48,6 +48,10 @@ AlwaysBreakBeforeMultilineStrings: false
 AlwaysBreakTemplateDeclarations: MultiLine
 AttributeMacros:
   - __capability
+Macros:
+  - __lfm_nonnull(x)=[[maybe_unused]]
+  - __lfm_nonnull(x, y)=[[maybe_unused]]
+  - __lfm_nonnull(x, y, z)=[[maybe_unused]]
 BinPackArguments: true
 BinPackParameters: true
 BitFieldColonSpacing: Both
@@ -70,7 +74,7 @@ BraceWrapping:
   SplitEmptyFunction: true
   SplitEmptyRecord: true
   SplitEmptyNamespace: true
-BreakAfterAttributes: Never
+BreakAfterAttributes: Always
 BreakAfterJavaFieldAnnotations: false
 BreakArrays:     true
 BreakBeforeBinaryOperators: None
