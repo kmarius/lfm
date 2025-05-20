@@ -15,7 +15,7 @@ arch=$(dpkg --print-architecture)
 generator=
 
 if command -v ninja >/dev/null; then
-	generator=-GNinja
+  generator=-GNinja
 fi
 
 ### compile
@@ -33,7 +33,7 @@ Version: ${pkgver}-${pkgrel}
 Section: base
 Priority: optional
 Architecture: $arch
-Depends: lua-posix, libpcre3-dev, libmagic-dev, luajit, libluajit-5.1-dev, libreadline-dev, zlib1g-dev, libunistring-dev, libev-dev, gcc, g++, pkg-config, libavformat-dev, libswscale-dev, libavcodec-dev, libdeflate-dev
+Depends: lua-posix, libpcre3-dev, libmagic-dev, luajit, libluajit-5.1-dev, libreadline-dev, zlib1g-dev, libunistring-dev, libev-dev, gcc, g++, pkg-config, libavformat-dev, libswscale-dev, libavcodec-dev, libdeflate-dev, libavdevice-dev
 Maintainer: kmarius
 Homepage: https://github.com/kmarius/lfm
 Description: terminal file manager
