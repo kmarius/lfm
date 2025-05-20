@@ -62,10 +62,14 @@ static inline Preview *preview_create(const char *path, int height, int width) {
   return preview_init(xmalloc(sizeof(Preview)), path, height, width);
 }
 
-static void destroy_text_preview(Preview *p) {
-  vec_cstr_drop(&p->lines);
+static inline void destroy_preview(Preview *p) {
   cstr_drop(&p->path);
   xfree(p);
+}
+
+static void destroy_text_preview(Preview *p) {
+  vec_cstr_drop(&p->lines);
+  destroy_preview(p);
 }
 
 Preview *preview_create_loading(const char *path, int height, int width) {
@@ -88,8 +92,7 @@ static void update_text_preview(Preview *p, Preview *u) {
   p->update = u->update;
   p->destroy = u->destroy;
 
-  cstr_drop(&u->path);
-  xfree(u);
+  destroy_preview(u);
 }
 
 static void update_image_preview(Preview *p, Preview *u) {
@@ -104,8 +107,7 @@ static void update_image_preview(Preview *p, Preview *u) {
   p->reload_height = u->reload_height;
   p->status = PV_LOADING_NORMAL;
 
-  cstr_drop(&u->path);
-  xfree(u);
+  destroy_preview(u);
 }
 
 // Like fgets, but seeks to the next '\n' after n characters have been read
@@ -370,6 +372,5 @@ static void destroy_image_preview(Preview *p) {
     ncvisual_destroy(p->ncv);
     p->ncv = NULL;
   }
-  cstr_drop(&p->path);
-  xfree(p);
+  destroy_preview(p);
 }
