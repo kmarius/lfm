@@ -3,8 +3,8 @@
 #include "../path.h"
 #include "../util.h"
 
-#include "../stc/zsview.h"
 #include "../stc/cstr.h"
+#include "../stc/zsview.h"
 #include "util.h"
 
 #include <lauxlib.h>

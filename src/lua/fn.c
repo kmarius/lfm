@@ -1,5 +1,6 @@
 #include "../path.h"
 #include "../tokenize.h"
+#include "lua.h"
 #include "private.h"
 
 #include <lauxlib.h>
@@ -49,21 +50,25 @@ static int l_fn_tokenize(lua_State *L) {
 }
 
 static int l_fn_split_last(lua_State *L) {
-  const char *s, *string = luaL_checkstring(L, 1);
-  const char *last = string; /* beginning of last token */
+  size_t len;
+  const char *string = luaL_checklstring(L, 1, &len);
+  if (len == 0) {
+    return luaL_error(L, "empty string");
+  }
   bool esc = false;
-  for (s = string; *s != 0; s++) {
-    if (*s == '\\') {
+  unsigned last = 0;
+  for (unsigned i = 0; i < len; i++) {
+    if (string[i] == '\\') {
       esc = !esc;
     } else {
-      if (*s == ' ' && !esc) {
-        last = s + 1;
+      if (string[i] == ' ' && !esc) {
+        last = i + 1;
       }
       esc = false;
     }
   }
-  lua_pushlstring(L, string, last - string);
-  lua_pushstring(L, last);
+  lua_pushlstring(L, string, last);
+  lua_pushlstring(L, string + last, len - last);
   return 2;
 }
 
@@ -111,7 +116,7 @@ static int l_fn_getcwd(lua_State *L) {
 }
 
 static int l_fn_getpwd(lua_State *L) {
-  lua_pushstring(L, fm_getpwd_str(fm));
+  lua_pushcstr(L, fm_getpwd(fm));
   return 1;
 }
 

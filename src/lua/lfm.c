@@ -433,7 +433,7 @@ static inline int map_key(lua_State *L, Trie *trie, bool allow_mode) {
       if (!allow_mode) {
         return luaL_error(L, "mode not allowed here");
       }
-      hmap_modes_iter it = hmap_modes_find(&lfm->modes, lua_tostring(L, -1));
+      hmap_modes_iter it = hmap_modes_find(&lfm->modes, lua_tozsview(L, -1));
       if (!it.ref) {
         return luaL_error(L, "no such mode: %s", lua_tostring(L, -1));
       }
@@ -465,7 +465,8 @@ static int l_cmap_key(lua_State *L) {
 }
 
 static int l_get_maps(lua_State *L) {
-  const char *name = luaL_checkstring(L, 1);
+  luaL_checktype(L, 1, LUA_TSTRING);
+  zsview name = lua_tozsview(L, 1);
   const struct mode *mode = hmap_modes_at(&lfm->modes, name);
   if (!mode) {
     return luaL_error(L, "no such mode: %s", name);
@@ -491,7 +492,7 @@ static int l_get_maps(lua_State *L) {
 }
 
 static int l_current_mode(lua_State *L) {
-  lua_pushstring(L, lfm->current_mode->name);
+  lua_pushcstr(L, &lfm->current_mode->name);
   return 1;
 }
 
@@ -499,14 +500,15 @@ static int l_get_modes(lua_State *L) {
   lua_createtable(L, lfm->modes.size, 0);
   int i = 1;
   c_foreach(it, hmap_modes, lfm->modes) {
-    lua_pushstring(L, (*it.ref).second.name);
+    lua_pushcstr(L, &(*it.ref).second.name);
     lua_rawseti(L, -2, i++);
   }
   return 1;
 }
 
 static int l_mode(lua_State *L) {
-  if (lfm_mode_enter(lfm, luaL_checkstring(L, 1)) != 0) {
+  luaL_checktype(L, 1, LUA_TSTRING);
+  if (lfm_mode_enter(lfm, lua_tozsview(L, 1)) != 0) {
     return luaL_error(L, "no such mode: %s", lua_tostring(L, -1));
   }
   return 0;
@@ -521,7 +523,7 @@ static int l_register_mode(lua_State *L) {
   if (lua_isnoneornil(L, -1)) {
     return luaL_error(L, "register_mode: missing field 'name'");
   }
-  mode.name = (char *)lua_tostring(L, -1);
+  mode.name = cstr_from_zv(lua_tozsview(L, -1));
   lua_pop(L, 1);
 
   lua_getfield(L, 1, "input");
@@ -529,7 +531,7 @@ static int l_register_mode(lua_State *L) {
   lua_pop(L, 1);
 
   lua_getfield(L, 1, "prefix");
-  mode.prefix = lua_isnoneornil(L, -1) ? NULL : (char *)lua_tostring(L, -1);
+  mode.prefix = cstr_from_zv(lua_tozsview(L, -1));
   lua_pop(L, 1);
 
   lua_getfield(L, 1, "on_enter");
@@ -632,7 +634,8 @@ static const struct luaL_Reg lfm_lib[] = {
     {NULL, NULL}};
 
 static int l_modes_index(lua_State *L) {
-  const char *key = luaL_checkstring(L, 2);
+  luaL_checktype(L, 2, LUA_TSTRING);
+  zsview key = lua_tozsview(L, 2);
   struct mode *mode = hmap_modes_at_mut(&lfm->modes, key);
   if (!mode) {
     return 0;
@@ -651,10 +654,10 @@ static int l_mode_index(lua_State *L) {
   struct mode *mode = *(struct mode **)luaL_checkudata(L, 1, MODE_META);
   const char *key = luaL_checkstring(L, 2);
   if (streq(key, "name")) {
-    lua_pushstring(L, mode->name);
+    lua_pushcstr(L, &mode->name);
     return 1;
   } else if (streq(key, "prefix")) {
-    lua_pushstring(L, mode->prefix);
+    lua_pushcstr(L, &mode->prefix);
     return 1;
   } else if (streq(key, "input")) {
     lua_pushboolean(L, mode->input);
@@ -672,9 +675,8 @@ static int l_mode_newindex(lua_State *L) {
     if (!mode->input) {
       return luaL_error(L, "can only set prefix for input modes");
     }
-    const char *prefix = lua_isnoneornil(L, 3) ? "" : lua_tostring(L, 3);
-    free(mode->prefix);
-    mode->prefix = strdup(prefix);
+    zsview prefix = lua_tozsview(L, 3);
+    cstr_assign_zv(&mode->prefix, prefix);
   } else {
     return luaL_error(L, "no such field: %s", key);
   }
@@ -722,19 +724,19 @@ int luaopen_lfm(lua_State *L) {
   lua_setfield(L, -2, "modes");
 
   lua_newtable(L);
-  lua_pushstring(L, LFM_VERSION);
+  lua_pushzsview(L, c_zv(LFM_VERSION));
   lua_setfield(L, -2, "info");
 
-  lua_pushstring(L, LFM_REVCOUNT);
+  lua_pushzsview(L, c_zv(LFM_REVCOUNT));
   lua_setfield(L, -2, "revcount");
 
-  lua_pushstring(L, LFM_COMMIT);
+  lua_pushzsview(L, c_zv(LFM_COMMIT));
   lua_setfield(L, -2, "commit");
 
-  lua_pushstring(L, LFM_BUILD_TYPE);
+  lua_pushzsview(L, c_zv(LFM_BUILD_TYPE));
   lua_setfield(L, -2, "build_type");
 
-  lua_pushstring(L, LFM_BRANCH);
+  lua_pushzsview(L, c_zv(LFM_BRANCH));
   lua_setfield(L, -2, "branch");
   lua_setfield(L, -2, "version");
 

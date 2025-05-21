@@ -33,7 +33,7 @@ function lfm.fn.tokenize(str) end
 function lfm.fn.normalize(path) end
 
 ---Split a string into prefix, rest, where rest is the last space delimited token.
----Respects escaped spaces. Useful for completion command line tokens
+---Respects escaped spaces. Useful for completion command line tokens. Doesn't strip white space
 ---```lua
 ---    local prefix, last = lfm.fn.split_last("command arg1 arg2")
 ---    assert(prefix == "command arg1")

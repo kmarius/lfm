@@ -79,6 +79,10 @@ void fm_init(Fm *fm, struct lfm_opts *opts);
 // Unloads directories and frees all resources.
 void fm_deinit(Fm *fm);
 
+static inline const cstr *fm_getpwd(const Fm *fm) {
+  return &fm->pwd;
+}
+
 static inline const char *fm_getpwd_str(const Fm *fm) {
   return cstr_str(&fm->pwd);
 }

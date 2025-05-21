@@ -632,7 +632,7 @@ static void chdir_destroy(void *p) {
 static void chdir_callback(void *p, Lfm *lfm) {
   struct chdir_data *res = p;
   if (cstr_equals(&lfm->fm.pwd, res->path)) {
-    lfm_mode_exit(lfm, "visual");
+    lfm_mode_exit(lfm, c_zv("visual"));
     if (res->err) {
       lfm_error(lfm, "stat: %s", strerror(res->err));
       fm_sync_chdir(&lfm->fm, zsview_from(res->origin), false, false);

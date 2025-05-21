@@ -57,7 +57,7 @@ static int l_cmd_clear(lua_State *L) {
 static int l_cmd_delete(lua_State *L) {
   (void)L;
   if (ui->cmdline.left.len == 0 && ui->cmdline.right.len == 0) {
-    lfm_mode_enter(lfm, "normal");
+    lfm_mode_enter(lfm, c_zv("normal"));
   } else {
     cmdline_delete(&ui->cmdline);
     mode_on_change(lfm->current_mode, lfm);
@@ -320,7 +320,7 @@ static int l_fm_updir(lua_State *L) {
 }
 
 static int l_fm_open(lua_State *L) {
-  lfm_mode_exit(lfm, "visual");
+  lfm_mode_exit(lfm, c_zv("visual"));
   File *file = fm_open(fm);
   if (file) {
     if (lfm->opts.selection_path) {
@@ -398,7 +398,7 @@ static int l_fm_set_info(lua_State *L) {
 }
 
 static int l_fm_sort(lua_State *L) {
-  lfm_mode_exit(lfm, "visual");
+  lfm_mode_exit(lfm, c_zv("visual"));
   luaL_checktype(L, 1, LUA_TTABLE);
   Dir *dir = fm_current_dir(fm);
 
@@ -486,7 +486,7 @@ static int l_fm_selection_set(lua_State *L) {
   }
   char buf[PATH_MAX];
   fm_selection_clear(fm);
-  lfm_mode_exit(lfm, "visual");
+  lfm_mode_exit(lfm, c_zv("visual"));
   if (lua_istable(L, 1)) {
     cstr cs = cstr_init();
     for (lua_pushnil(L); lua_next(L, -2); lua_pop(L, 1)) {
@@ -550,7 +550,7 @@ static int l_fm_chdir(lua_State *L) {
   zsview path = zsview_from_n(normalized, len);
 
   search_nohighlight(lfm);
-  lfm_mode_exit(lfm, "visual");
+  lfm_mode_exit(lfm, c_zv("visual"));
   lfm_run_hook(lfm, LFM_HOOK_CHDIRPRE, &fm->pwd);
   if (macro_playing) {
     fm_sync_chdir(fm, path, should_save, true);
@@ -562,7 +562,7 @@ static int l_fm_chdir(lua_State *L) {
 }
 
 static int l_fm_paste_mode_get(lua_State *L) {
-  lua_pushstring(L, fm->paste.mode == PASTE_MODE_MOVE ? "move" : "copy");
+  lua_pushlstring(L, fm->paste.mode == PASTE_MODE_MOVE ? "move" : "copy", 4);
   return 1;
 }
 
@@ -591,7 +591,7 @@ static int l_fm_paste_buffer_get(lua_State *L) {
     lua_pushcstr(L, it.ref);
     lua_rawseti(L, -2, i++);
   }
-  lua_pushstring(L, fm->paste.mode == PASTE_MODE_MOVE ? "move" : "copy");
+  lua_pushlstring(L, fm->paste.mode == PASTE_MODE_MOVE ? "move" : "copy", 4);
   return 2;
 }
 
@@ -636,7 +636,7 @@ static int l_fm_paste_buffer_set(lua_State *L) {
 
 static int l_fm_copy(lua_State *L) {
   (void)L;
-  lfm_mode_exit(lfm, "visual");
+  lfm_mode_exit(lfm, c_zv("visual"));
   fm_paste_mode_set(fm, PASTE_MODE_COPY);
   lfm_run_hook(lfm, LFM_HOOK_PASTEBUF);
   ui_redraw(ui, REDRAW_FM);
@@ -645,7 +645,7 @@ static int l_fm_copy(lua_State *L) {
 
 static int l_fm_cut(lua_State *L) {
   (void)L;
-  lfm_mode_exit(lfm, "visual");
+  lfm_mode_exit(lfm, c_zv("visual"));
   fm_paste_mode_set(fm, PASTE_MODE_MOVE);
   lfm_run_hook(lfm, LFM_HOOK_PASTEBUF);
   ui_redraw(ui, REDRAW_FM);
@@ -656,7 +656,7 @@ static int l_fm_filter_get(lua_State *L) {
   Filter *filter = fm_current_dir(fm)->filter;
   if (filter) {
     lua_pushzsview(L, filter_string(filter));
-    lua_pushstring(L, filter_type(filter));
+    lua_pushzsview(L, filter_type(filter));
     return 2;
   }
   return 0;
@@ -688,7 +688,7 @@ static int l_fm_filter(lua_State *L) {
 static int l_fm_jump_automark(lua_State *L) {
   (void)L;
   lfm_run_hook(lfm, LFM_HOOK_CHDIRPRE, &fm->pwd);
-  lfm_mode_exit(lfm, "visual");
+  lfm_mode_exit(lfm, c_zv("visual"));
   fm_jump_automark(fm);
   ui_update_file_preview(ui);
   ui_redraw(ui, REDRAW_FM);

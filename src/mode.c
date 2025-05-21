@@ -5,7 +5,7 @@
 #include "hooks.h"
 #include "lfm.h"
 #include "lua/lfmlua.h"
-#include "stcutil.h"
+#include "stc/cstr.h"
 #include "trie.h"
 #include "ui.h"
 
@@ -17,33 +17,33 @@ static void visual_on_exit(Lfm *lfm);
 void lfm_modes_init(Lfm *lfm) {
   lfm->modes = hmap_modes_init();
   lfm_mode_register(lfm, &(struct mode){
-                             .name = (char *)"normal",
+                             .name = cstr_lit("normal"),
                              .on_enter = normal_on_enter,
                          });
   lfm_mode_register(lfm, &(struct mode){
-                             .name = (char *)"input",
+                             .name = cstr_lit("input"),
                              .input = true,
                          });
   lfm_mode_register(lfm, &(struct mode){
-                             .name = (char *)"visual",
+                             .name = cstr_lit("visual"),
                              .input = false,
                              .on_enter = visual_on_enter,
                              .on_exit = visual_on_exit,
                          });
-  const struct mode *input = hmap_modes_at(&lfm->modes, "input");
+  const struct mode *input = hmap_modes_at(&lfm->modes, c_zv("input"));
   lfm->ui.maps.input = input->maps;
-  lfm->current_mode = hmap_modes_at_mut(&lfm->modes, "normal");
+  lfm->current_mode = hmap_modes_at_mut(&lfm->modes, c_zv("normal"));
   lfm->ui.maps.normal = lfm->current_mode->maps;
 
   // TODO: should be done properly eventually, like we do with input modes
-  struct mode *visual = hmap_modes_at_mut(&lfm->modes, "visual");
+  struct mode *visual = hmap_modes_at_mut(&lfm->modes, c_zv("visual"));
   trie_destroy(visual->maps);
   visual->maps = lfm->ui.maps.normal;
 }
 
 void lfm_modes_deinit(Lfm *lfm) {
   // these maps belong to normal mode, don't double free
-  hmap_modes_at_mut(&lfm->modes, "visual")->maps = NULL;
+  hmap_modes_at_mut(&lfm->modes, c_zv("visual"))->maps = NULL;
   hmap_modes_drop(&lfm->modes);
 }
 
@@ -61,21 +61,23 @@ static void visual_on_exit(Lfm *lfm) {
   fm_on_visual_exit(&lfm->fm);
 }
 
-int lfm_mode_register(Lfm *lfm, const struct mode *mode) {
-  if (hmap_modes_contains(&lfm->modes, mode->name)) {
+int lfm_mode_register(Lfm *lfm, struct mode *mode) {
+  if (hmap_modes_contains(&lfm->modes, cstr_zv(&mode->name))) {
     return 1;
   }
-  // modes might change when if the table is resized
-  char *current = lfm->current_mode ? lfm->current_mode->name : NULL;
-  hmap_modes_result res = hmap_modes_emplace(&lfm->modes, mode->name, *mode);
+  // TODO: modes might change when if the table is resized, this dangerous, we
+  // hand out references to lua
+  cstr current = lfm->current_mode ? lfm->current_mode->name : cstr_init();
+  hmap_modes_result res =
+      hmap_modes_emplace(&lfm->modes, cstr_zv(&mode->name), *mode);
   res.ref->first = res.ref->second.name;
-  if (current) {
-    lfm->current_mode = hmap_modes_at_mut(&lfm->modes, current);
+  if (!cstr_is_empty(&current)) {
+    lfm->current_mode = hmap_modes_at_mut(&lfm->modes, cstr_zv(&current));
   }
   return 0;
 }
 
-int lfm_mode_enter(Lfm *lfm, const char *name) {
+int lfm_mode_enter(Lfm *lfm, zsview name) {
   hmap_modes_iter it = hmap_modes_find(&lfm->modes, name);
   if (!it.ref || &it.ref->second == lfm->current_mode) {
     return 1;
@@ -86,19 +88,19 @@ int lfm_mode_enter(Lfm *lfm, const char *name) {
   lfm->current_mode = mode;
   mode_on_enter(mode, lfm);
 
-  if (mode->input && mode->prefix) {
-    cmdline_prefix_set(&lfm->ui.cmdline, zsview_from(mode->prefix));
+  if (mode->input && !cstr_is_empty(&mode->prefix)) {
+    cmdline_prefix_set(&lfm->ui.cmdline, cstr_zv(&mode->prefix));
   }
   lfm->ui.maps.cur_input = NULL;
-  lfm_run_hook(lfm, LFM_HOOK_MODECHANGED, mode->name);
+  lfm_run_hook(lfm, LFM_HOOK_MODECHANGED, &mode->name);
 
   ui_redraw(&lfm->ui, REDRAW_INFO | REDRAW_CMDLINE);
   return 0;
 }
 
-int lfm_mode_exit(Lfm *lfm, const char *name) {
-  if (streq(lfm->current_mode->name, name)) {
-    return lfm_mode_enter(lfm, "normal");
+int lfm_mode_exit(Lfm *lfm, zsview name) {
+  if (cstr_equals_zv(&lfm->current_mode->name, &name)) {
+    return lfm_mode_enter(lfm, c_zv("normal"));
   }
   return 1;
 }
@@ -111,7 +113,7 @@ void mode_on_enter(struct mode *mode, Lfm *lfm) {
   }
 }
 
-void mode_on_return(struct mode *mode, struct Lfm *lfm, const char *line) {
+void mode_on_return(struct mode *mode, struct Lfm *lfm, zsview line) {
   if (mode->on_return) {
     mode->on_return(lfm, line);
   } else if (mode->on_return_ref) {

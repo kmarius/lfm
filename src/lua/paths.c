@@ -24,9 +24,11 @@ int luaopen_paths(lua_State *L) {
   lua_pushcstr(L, &cfg.logpath);
   lua_setfield(L, -2, "log");
 
-  const char *path =
-      lfm->opts.config ? lfm->opts.config : cstr_str(&cfg.configpath);
-  lua_pushstring(L, path);
+  if (lfm->opts.config) {
+    lua_pushstring(L, lfm->opts.config);
+  } else {
+    lua_pushcstr(L, &cfg.configpath);
+  }
   lua_setfield(L, -2, "config");
 
   lua_pushcstr(L, &cfg.configdir);

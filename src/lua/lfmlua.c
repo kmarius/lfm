@@ -101,9 +101,9 @@ void llua_call_ref(lua_State *L, int ref) {
   }
 }
 
-void llua_call_ref1(lua_State *L, int ref, const char *line) {
+void llua_call_ref1(lua_State *L, int ref, zsview line) {
   lua_get_callback(L, ref, false); // [f]
-  lua_pushstring(L, line);
+  lua_pushzsview(L, line);
   if (llua_pcall(L, 1, 0)) { // []
     ui_error(ui, "%s", lua_tostring(L, -1));
     lua_pop(L, 1);

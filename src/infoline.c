@@ -234,11 +234,10 @@ static inline void draw_custom(Ui *ui) {
   int remaining = ui->x - static_len;
 
   if (idx.mode) {
-    char *mode = to_lfm(ui)->current_mode->name;
-    int len = strlen(mode);
-    placeholders[idx.mode].replacement_len = len;
-    placeholders[idx.mode].ptr = mode;
-    remaining -= len;
+    zsview mode = cstr_zv(&to_lfm(ui)->current_mode->name);
+    placeholders[idx.mode].replacement_len = mode.size;
+    placeholders[idx.mode].ptr = (void *)mode.str;
+    remaining -= mode.size;
   }
 
   if (idx.file != 0) {

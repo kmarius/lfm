@@ -135,12 +135,12 @@ void input_handle_key(Lfm *lfm, input_t in) {
       // escape key pressed, switch to normal
       mode_on_esc(lfm->current_mode, lfm);
       input_clear(lfm);
-      lfm_mode_enter(lfm, "normal");
+      lfm_mode_enter(lfm, c_zv("normal"));
     } else if (in == NCKEY_ENTER) {
       // return key pressed, call the callback in the mode
       zsview line = cmdline_get(&ui->cmdline);
       input_clear(lfm);
-      mode_on_return(lfm->current_mode, lfm, line.str);
+      mode_on_return(lfm->current_mode, lfm, line);
     } else if (lfm->ui.maps.cur) {
       // current key sequence is a prefix/full match of a mode mapping, always
       // taking precedence
@@ -216,7 +216,7 @@ void input_handle_key(Lfm *lfm, input_t in) {
           lfm_run_hook(lfm, LFM_HOOK_PASTEBUF);
         }
         mode_on_esc(lfm->current_mode, lfm);
-        lfm_mode_enter(lfm, "normal");
+        lfm_mode_enter(lfm, c_zv("normal"));
       }
       ui->show_message = false;
       ui_redraw(ui, REDRAW_FM);

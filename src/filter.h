@@ -48,7 +48,7 @@ zsview filter_string(const Filter *filter);
  * Get a string representing the type of the filter, currently either
  * "filter", "fuzzy", or "lua".
  */
-const char *filter_type(const Filter *filter);
+zsview filter_type(const Filter *filter);
 
 /*
  * Get the compare function of a filter, if it has one. Returns NULL otherwise.

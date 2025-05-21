@@ -41,7 +41,7 @@ void llua_run_callback(lua_State *L, int ref);
 
 void llua_call_ref(lua_State *L, int ref);
 
-void llua_call_ref1(lua_State *L, int ref, const char *line);
+void llua_call_ref1(lua_State *L, int ref, zsview line);
 
 // `line==NULL` removes callback from the registry.
 void llua_run_stdout_callback(lua_State *L, int ref, const char *line,

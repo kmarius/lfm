@@ -20,7 +20,7 @@ typedef struct Filter {
   bool (*match)(const Filter *, const File *file);
   void (*destroy)(Filter *);
   cstr string;
-  const char *type;
+  zsview type;
   __compar_fn_t cmp;
 } Filter;
 
@@ -40,8 +40,8 @@ zsview filter_string(const Filter *filter) {
   return filter ? cstr_zv(&filter->string) : c_zv("");
 }
 
-const char *filter_type(const Filter *filter) {
-  return filter ? filter->type : NULL;
+zsview filter_type(const Filter *filter) {
+  return filter ? filter->type : c_zv("");
 }
 
 __compar_fn_t filter_cmp(const Filter *filter) {
@@ -200,7 +200,7 @@ Filter *filter_create_sub(zsview filter) {
   f->super.match = &sub_match;
   f->super.destroy = &sub_destroy;
   f->super.string = cstr_from_zv(filter);
-  f->super.type = FILTER_TYPE_GENERAL;
+  f->super.type = c_zv(FILTER_TYPE_GENERAL);
 
   f->length = 0;
 
@@ -263,7 +263,7 @@ Filter *filter_create_fuzzy(zsview filter) {
   f->super.destroy = &fuzzy_destroy;
   f->super.cmp = cmpchoice;
   f->super.string = cstr_from_zv(filter);
-  f->super.type = FILTER_TYPE_FUZZY;
+  f->super.type = c_zv(FILTER_TYPE_FUZZY);
   return (Filter *)f;
 }
 
@@ -319,7 +319,7 @@ Filter *filter_create_lua(int ref, void *L) {
   f->super.match = &lua_match;
   f->super.destroy = &lua_destroy;
   f->super.string = cstr_lit(FILTER_TYPE_LUA);
-  f->super.type = FILTER_TYPE_LUA;
+  f->super.type = c_zv(FILTER_TYPE_LUA);
 
   f->L = L;
   f->ref = ref;
