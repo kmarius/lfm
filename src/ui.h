@@ -99,8 +99,8 @@ typedef struct Ui {
   bool show_message; // if true, the latest message is drawn over the statusline
                      // at the bottom
 
-  const char *highlight; /* pointer to search_string, or NULL */
-  char *search_string;
+  zsview highlight; /* pointer to search_string, or empty */
+  cstr search_string;
   bool search_forward;
 } Ui;
 

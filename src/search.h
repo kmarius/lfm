@@ -1,12 +1,14 @@
 #pragma once
 
+#include "stc/zsview.h"
+
 #include <stdbool.h>
 
 struct Lfm;
 
 // Start a search for `string`. `NULL` or an empty string disables
 // highlighting. Does not move the cursor.
-void search(struct Lfm *lfm, const char *string, bool forward);
+void search(struct Lfm *lfm, zsview string, bool forward);
 
 // Go to next search result in the direction of the current search.
 void search_next(struct Lfm *lfm, bool inclusive);

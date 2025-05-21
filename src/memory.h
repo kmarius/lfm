@@ -25,19 +25,6 @@ static inline void xfree(void *p) {
   free(p);
 }
 
-#define CLEAR(ptr)                                                             \
-  do {                                                                         \
-    ptr = NULL;                                                                \
-  } while (0)
-
-#define XFREE_CLEAR(ptr)                                                       \
-  do {                                                                         \
-    void **ptr_ = (void **)&(ptr);                                             \
-    xfree(*ptr_);                                                              \
-    CLEAR(*ptr_);                                                              \
-    (void)(*ptr_);                                                             \
-  } while (0)
-
 size_t xstrlcpy(char *restrict dst, const char *restrict src, size_t dsize);
 
 void strchrsub(char *str, char c, char x);

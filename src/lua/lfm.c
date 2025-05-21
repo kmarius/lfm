@@ -57,12 +57,12 @@ static int l_handle_key(lua_State *L) {
 }
 
 static int l_search(lua_State *L) {
-  search(lfm, luaL_optstring(L, 1, NULL), true);
+  search(lfm, lua_tozsview(L, 1), true);
   return 0;
 }
 
 static int l_search_backwards(lua_State *L) {
-  search(lfm, luaL_optstring(L, 1, NULL), false);
+  search(lfm, lua_tozsview(L, 1), false);
   return 0;
 }
 

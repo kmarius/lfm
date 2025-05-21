@@ -56,8 +56,8 @@
 static void menu_delay_timer_cb(EV_P_ ev_timer *w, int revents);
 static void draw_dirs(Ui *ui);
 static void plane_draw_dir(struct ncplane *n, Dir *dir, pathlist *sel,
-                           pathlist *load, paste_mode mode,
-                           const char *highlight, bool print_info);
+                           pathlist *load, paste_mode mode, zsview highlight,
+                           bool print_info);
 static void draw_preview(Ui *ui);
 static void draw_menu(Ui *ui, const vec_cstr *menu);
 static void menu_resize(Ui *ui);
@@ -95,7 +95,7 @@ void ui_deinit(Ui *ui) {
   vec_cstr_drop(&ui->menubuf);
   vec_ncplane_drop(&ui->planes.dirs);
   cmdline_deinit(&ui->cmdline);
-  xfree(ui->search_string);
+  cstr_drop(&ui->search_string);
   xfree(ui->infoline);
 }
 
@@ -307,7 +307,7 @@ static void draw_dirs(Ui *ui) {
     plane_draw_dir(*vec_ncplane_at(&ui->planes.dirs, l - i - 1),
                    fm->dirs.visible.data[i], &fm->selection.current,
                    &fm->paste.buffer, fm->paste.mode,
-                   i == 0 ? ui->highlight : NULL, i == 0);
+                   i == 0 ? ui->highlight : zsview_init(), i == 0);
   }
 }
 
@@ -317,7 +317,7 @@ static void draw_preview(Ui *ui) {
     if (fm->dirs.preview) {
       plane_draw_dir(ui->planes.preview, fm->dirs.preview,
                      &fm->selection.current, &fm->paste.buffer, fm->paste.mode,
-                     NULL, false);
+                     zsview_init(), false);
     } else {
       if (ui->preview.preview) {
         preview_draw(ui->preview.preview, ui->planes.preview);
@@ -671,8 +671,7 @@ static int print_highlighted_and_shortened(struct ncplane *n, const char *name,
 
 static void draw_file(struct ncplane *n, const File *file, bool iscurrent,
                       pathlist *sel, pathlist *load, paste_mode mode,
-                      const char *highlight, bool print_info,
-                      fileinfo fileinfo) {
+                      zsview highlight, bool print_info, fileinfo fileinfo) {
   unsigned int ncol, y0;
   unsigned int x = 0;
   char info[32];
@@ -837,14 +836,14 @@ static void draw_file(struct ncplane *n, const File *file, bool iscurrent,
     }
   }
 
-  const char *hlsubstr = highlight && highlight[0]
-                             ? strcasestr(file_name_str(file), highlight)
+  const char *hlsubstr = !zsview_is_empty(highlight) && highlight.str[0]
+                             ? strcasestr(file_name_str(file), highlight.str)
                              : NULL;
   const int left_space = ncol - 3 - rightmargin - (cfg.icons ? 2 : 0);
   if (left_space > 0) {
     if (hlsubstr) {
-      x += print_highlighted_and_shortened(n, file_name_str(file), highlight,
-                                           left_space, !file_isdir(file));
+      x += print_highlighted_and_shortened(
+          n, file_name_str(file), highlight.str, left_space, !file_isdir(file));
     } else {
       x += print_shortened(n, file_name_str(file), left_space,
                            !file_isdir(file));
@@ -869,9 +868,10 @@ static void draw_file(struct ncplane *n, const File *file, bool iscurrent,
   ncplane_set_styles(n, NCSTYLE_NONE);
 }
 
+// TODO: plane_draw_dir and draw_file could really use some work
 static void plane_draw_dir(struct ncplane *n, Dir *dir, pathlist *sel,
-                           pathlist *load, paste_mode mode,
-                           const char *highlight, bool print_info) {
+                           pathlist *load, paste_mode mode, zsview highlight,
+                           bool print_info) {
   unsigned int nrow;
 
   // log_info("erasing %s", dir->name);
