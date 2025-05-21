@@ -43,11 +43,10 @@ typedef struct Preview {
 } Preview;
 
 __lfm_nonnull()
-Preview *preview_create_loading(const char *path, int height, int width);
+Preview *preview_create_loading(zsview path, int height, int width);
 
 __lfm_nonnull()
-Preview *preview_create_from_file(const char *path, uint32_t width,
-                                  uint32_t height);
+Preview *preview_create_from_file(zsview path, uint32_t width, uint32_t height);
 
 __lfm_nonnull()
 static inline const cstr *preview_path(const Preview *pv) {

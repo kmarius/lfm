@@ -13,6 +13,9 @@
 #include "pathlist.h"
 #include "util.h"
 
+#include "stc/cstr.h"
+#include "stc/zsview.h"
+
 #include <errno.h>
 #include <ev.h>
 #include <stdint.h>
@@ -73,8 +76,7 @@ void fm_init(Fm *fm) {
 
   fm_populate(fm);
   if (cfg.startfile) {
-    zsview zs = zsview_from(cfg.startfile);
-    fm_move_cursor_to(fm, &zs);
+    fm_move_cursor_to(fm, zsview_from(cfg.startfile));
   }
 
   fm_update_watchers(fm);
@@ -92,18 +94,19 @@ void fm_deinit(Fm *fm) {
 }
 
 static void fm_populate(Fm *fm) {
-  fm->dirs.visible.data[0] = loader_dir_from_path(&to_lfm(fm)->loader, fm->pwd,
-                                                  true); /* current dir */
+  fm->dirs.visible.data[0] = loader_dir_from_path(
+      &to_lfm(fm)->loader, zsview_from(fm->pwd), true); /* current dir */
   fm->dirs.visible.data[0]->visible = true;
   Dir *dir = fm_current_dir(fm);
   for (uint32_t i = 1; i < fm->dirs.length; i++) {
     const char *parent = path_parent_s(dir_path_str(dir));
     if (parent) {
-      dir = loader_dir_from_path(&to_lfm(fm)->loader, parent, true);
+      dir =
+          loader_dir_from_path(&to_lfm(fm)->loader, zsview_from(parent), true);
       dir->visible = true;
       fm->dirs.visible.data[i] = dir;
       if (dir_loading(dir)) {
-        dir_cursor_move_to(dir, dir_name(fm->dirs.visible.data[i - 1]),
+        dir_cursor_move_to(dir, *dir_name(fm->dirs.visible.data[i - 1]),
                            fm->height, cfg.scrolloff);
       }
     } else {
@@ -208,7 +211,7 @@ static inline void fm_sort_and_reselect(Fm *fm, Dir *dir) {
   const File *file = dir_current_file(dir);
   dir_sort(dir);
   if (file) {
-    dir_cursor_move_to(dir, file_name(file), fm->height, cfg.scrolloff);
+    dir_cursor_move_to(dir, *file_name(file), fm->height, cfg.scrolloff);
   }
 }
 
@@ -317,8 +320,8 @@ static inline void on_cursor_moved(Fm *fm, bool delay_action) {
   }
 
   if (is_directory_preview && !is_same_preview) {
-    fm->dirs.preview = loader_dir_from_path(&to_lfm(fm)->loader,
-                                            file_path_str(file), !delay_action);
+    fm->dirs.preview = loader_dir_from_path(
+        &to_lfm(fm)->loader, cstr_zv(file_path(file)), !delay_action);
     fm->dirs.preview->visible = true;
   }
 
@@ -498,7 +501,7 @@ bool fm_cursor_move(Fm *fm, int32_t ct) {
   return dir->ind != cur;
 }
 
-void fm_move_cursor_to(Fm *fm, const zsview *name) {
+void fm_move_cursor_to(Fm *fm, zsview name) {
   dir_cursor_move_to(fm_current_dir(fm), name, fm->height, cfg.scrolloff);
   on_cursor_moved(fm, false);
 }
@@ -570,7 +573,7 @@ void fm_filter(Fm *fm, Filter *filter) {
   Dir *dir = fm_current_dir(fm);
   File *file = dir_current_file(dir);
   dir_filter(dir, filter);
-  dir_cursor_move_to(dir, file ? file_name(file) : NULL, fm->height,
+  dir_cursor_move_to(dir, file ? *file_name(file) : c_zv(""), fm->height,
                      cfg.scrolloff);
   on_cursor_moved(fm, false);
 }

@@ -13,15 +13,19 @@
 
 #include <ev.h>
 
+#include <stddef.h>
 #include <stdint.h>
 
 #include "stc/cstr.h"
+#include "stc/zsview.h"
 
 #define i_declared
 #define i_type previewcache
-#define i_key_str
+#define i_key zsview
 #define i_val Preview *
 #define i_valdrop(p) preview_destroy(*(p))
+#define i_eq zsview_eq
+#define i_hash zsview_hash
 #define i_no_clone
 #include "stc/hmap.h"
 
@@ -161,23 +165,22 @@ void loader_preview_reload(Loader *loader, Preview *pv) {
   pv->next = next;
 }
 
-Dir *loader_dir_from_path(Loader *loader, const char *path, bool do_load) {
-  char fullpath[PATH_MAX];
+// path must be absolute
+Dir *loader_dir_from_path(Loader *loader, zsview path, bool do_load) {
+  char buf[PATH_MAX + 1];
 
   // make sure there is no trailing / in path
-  if (path_is_relative(path)) {
-    int len = snprintf(fullpath, sizeof fullpath, "%s/%s", getenv("PWD"), path);
-    if (fullpath[len - 1] == '/') {
-      fullpath[len - 1] = 0;
+  // truncates, in the unlikely case we got passed something longer than
+  // PATH_MAX
+  if (path.size > 1 && path.str[path.size - 1] == '/') {
+    if (path.size + 1 > (ptrdiff_t)sizeof buf) {
+      path.size = sizeof buf - 1;
     }
-    path = fullpath;
-  } else {
-    unsigned long len = strlen(path);
-    if (len > 1 && path[len - 1] == '/') {
-      strncpy(fullpath, path, sizeof fullpath);
-      fullpath[len - 1] = 0;
-      path = fullpath;
-    }
+    // copy into into our buffer and remove trailing slash
+    path.size--;
+    memcpy(buf, path.str, path.size);
+    buf[path.size] = 0;
+    path.str = buf;
   }
 
   dircache_value *v = dircache_get_mut(&loader->dc, path);
@@ -202,10 +205,11 @@ Dir *loader_dir_from_path(Loader *loader, const char *path, bool do_load) {
     }
   } else {
     dir = dir_create(path);
-    hmap_dirsetting_iter it = hmap_dirsetting_find(&cfg.dir_settings_map, path);
+    hmap_dirsetting_iter it =
+        hmap_dirsetting_find(&cfg.dir_settings_map, path.str);
     struct dir_settings *s = it.ref ? &it.ref->second : &cfg.dir_settings;
     memcpy(&dir->settings, s, sizeof *s);
-    dircache_insert(&loader->dc, cstr_from(path), dir);
+    dircache_insert(&loader->dc, cstr_zv(&dir->path), dir);
     if (do_load) {
       async_dir_load(&to_lfm(loader)->async, dir, false);
       dir->last_loading_action = current_millis();
@@ -219,12 +223,13 @@ Dir *loader_dir_from_path(Loader *loader, const char *path, bool do_load) {
   return dir;
 }
 
-Preview *loader_preview_from_path(Loader *loader, const char *path,
-                                  bool do_load) {
-  char fullpath[PATH_MAX];
-  if (path_is_relative(path)) {
-    snprintf(fullpath, sizeof fullpath, "%s/%s", getenv("PWD"), path);
-    path = fullpath;
+Preview *loader_preview_from_path(Loader *loader, zsview path, bool do_load) {
+  char fullpath[PATH_MAX + 1];
+  if (path_is_relative(path.str)) {
+    int len =
+        snprintf(fullpath, sizeof fullpath, "%s/%s", getenv("PWD"), path.str);
+    path.str = fullpath;
+    path.size = len;
   }
 
   previewcache_value *v = previewcache_get_mut(&loader->pc, path);
@@ -250,7 +255,7 @@ Preview *loader_preview_from_path(Loader *loader, const char *path,
   } else {
     pv = preview_create_loading(path, to_lfm(loader)->ui.y,
                                 to_lfm(loader)->ui.x);
-    previewcache_insert(&loader->pc, cstr_from(path), pv);
+    previewcache_insert(&loader->pc, cstr_zv(&pv->path), pv);
     if (do_load) {
       async_preview_load(&to_lfm(loader)->async, pv);
     }
@@ -304,7 +309,7 @@ void loader_reschedule(Loader *loader) {
   set_preview_clear(&previews);
 }
 
-Preview *loader_preview_get(Loader *loader, const char *path) {
+Preview *loader_preview_get(Loader *loader, zsview path) {
   previewcache_value *v = previewcache_get_mut(&loader->pc, path);
   return v ? v->second : NULL;
 }

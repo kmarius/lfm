@@ -52,8 +52,9 @@ int lfm_remove_hook(struct Lfm *lfm, int id);
   _Generic((ARG),                                                              \
       const char *: lua_pushstring,                                            \
       char *: lua_pushstring,                                                  \
-      cstr *: lua_pushcstr,                                                    \
       const cstr *: lua_pushcstr,                                              \
+      cstr *: lua_pushcstr,                                                    \
+      zsview: lua_pushzsview,                                                  \
       float: lua_pushnumber,                                                   \
       int: lua_pushnumber)((L), (ARG))
 

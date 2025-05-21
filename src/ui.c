@@ -994,7 +994,7 @@ static inline void on_cursor_moved(Ui *ui, bool delay_action) {
     // delay_action, loads the preview in the background (or checks and
     // reloads it)
     ui->preview.preview = loader_preview_from_path(
-        &to_lfm(ui)->loader, file_path_str(file), !delay_action);
+        &to_lfm(ui)->loader, cstr_zv(file_path(file)), !delay_action);
   }
 
   if (delay_action) {

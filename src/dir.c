@@ -220,18 +220,18 @@ bool dir_check(const Dir *dir) {
   return statbuf.st_mtime <= dir->load_time;
 }
 
-Dir *dir_create(const char *path) {
+Dir *dir_create(zsview path) {
   Dir *dir = xcalloc(1, sizeof *dir);
 
-  if (path[0] != '/') {
+  if (path.str[0] != '/') {
     char buf[PATH_MAX + 1];
-    if (realpath(path, buf) == NULL) {
+    if (realpath(path.str, buf) == NULL) {
       snprintf(buf, sizeof buf - 1, "error: %s\n", strerror(errno));
     } else {
       dir->path = cstr_from(buf);
     }
   } else {
-    dir->path = cstr_from(path);
+    dir->path = cstr_from_zv(path);
   }
 
   dir->load_time = time(NULL);
@@ -241,11 +241,11 @@ Dir *dir_create(const char *path) {
   return dir;
 }
 
-Dir *dir_load(const char *path, bool load_fileinfo) {
+Dir *dir_load(zsview path, bool load_fileinfo) {
   Dir *dir = dir_create(path);
   dir->has_fileinfo = load_fileinfo;
 
-  if (stat(path, &dir->stat) == -1) {
+  if (stat(path.str, &dir->stat) == -1) {
     // TODO: figure out if/how we should handle errors here, we currently
     // only use the inode to check if we should reload
     //
@@ -253,7 +253,7 @@ Dir *dir_load(const char *path, bool load_fileinfo) {
     log_debug("lstat: %s", strerror(errno));
   }
 
-  DIR *dirp = opendir(path);
+  DIR *dirp = opendir(path.str);
   if (!dirp) {
     log_error("opendir: %s", strerror(errno));
     dir->error = errno;
@@ -268,7 +268,7 @@ Dir *dir_load(const char *path, bool load_fileinfo) {
       continue;
     }
 
-    File *file = file_create(path, entry->d_name, load_fileinfo);
+    File *file = file_create(path.str, entry->d_name, load_fileinfo);
     if (file != NULL) {
       vec_file_push(&files, file);
     }
@@ -293,14 +293,14 @@ Dir *dir_load(const char *path, bool load_fileinfo) {
   return dir;
 }
 
-Dir *dir_load_flat(const char *path, int level, bool load_fileinfo) {
+Dir *dir_load_flat(zsview path, int level, bool load_fileinfo) {
   Dir *dir = dir_create(path);
   dir->has_fileinfo = load_fileinfo;
   if (level < 0)
     level = 0;
   dir->flatten_level = level;
 
-  if (lstat(path, &dir->stat) == -1) {
+  if (lstat(path.str, &dir->stat) == -1) {
     // TODO: currently not saving an error if we can't read the root
     log_debug("lstat: %s", strerror(errno));
   }
@@ -308,7 +308,7 @@ Dir *dir_load_flat(const char *path, int level, bool load_fileinfo) {
   vec_file files = vec_file_init();
 
   struct queue_dirs queue = queue_dirs_init();
-  queue_dirs_push(&queue, (node){path, 0, false});
+  queue_dirs_push(&queue, (node){path.str, 0, false});
 
   while (!queue_dirs_is_empty(&queue)) {
     node head = *queue_dirs_front(&queue);
@@ -398,20 +398,19 @@ cleanup:
   d->sel = cstr_init();
 }
 
-void dir_cursor_move_to(Dir *d, const zsview *name, uint32_t height,
+void dir_cursor_move_to(Dir *d, zsview name, uint32_t height,
                         uint32_t scrolloff) {
-  if (!name) {
+  if (zsview_is_empty(name)) {
     return;
   }
 
   if (!d->files) {
-    cstr_reserve(&d->sel, name->size);
-    cstr_assign_n(&d->sel, name->str, name->size);
+    cstr_assign_n(&d->sel, name.str, name.size);
     return;
   }
 
   for (uint32_t i = 0; i < d->length; i++) {
-    if (zsview_eq(file_name(d->files[i]), name)) {
+    if (zsview_eq(file_name(d->files[i]), &name)) {
       dir_cursor_move(d, i - d->ind, height, scrolloff);
       return;
     }

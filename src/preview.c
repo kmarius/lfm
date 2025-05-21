@@ -42,10 +42,10 @@ static void draw_image_preview(const Preview *p, struct ncplane *n);
 static void update_image_preview(Preview *p, Preview *u);
 static void destroy_image_preview(Preview *p);
 
-static inline Preview *preview_init(Preview *p, const char *path, int height,
+static inline Preview *preview_init(Preview *p, zsview path, int height,
                                     int width) {
   memset(p, 0, sizeof *p);
-  p->path = cstr_from(path);
+  p->path = cstr_from_zv(path);
   p->reload_height = height;
   p->reload_width = width;
   p->next = current_millis();
@@ -58,7 +58,7 @@ static inline Preview *preview_init(Preview *p, const char *path, int height,
   return p;
 }
 
-static inline Preview *preview_create(const char *path, int height, int width) {
+static inline Preview *preview_create(zsview path, int height, int width) {
   return preview_init(xmalloc(sizeof(Preview)), path, height, width);
 }
 
@@ -72,7 +72,7 @@ static void destroy_text_preview(Preview *p) {
   destroy_preview(p);
 }
 
-Preview *preview_create_loading(const char *path, int height, int width) {
+Preview *preview_create_loading(zsview path, int height, int width) {
   Preview *p = preview_create(path, height, width);
   p->loading = true;
   return p;
@@ -147,11 +147,11 @@ static inline void lines_from_stream(vec_cstr *vec, FILE *file, int max_lines) {
 }
 
 // caller must should probably just pass a buffer of size PATH_MAX
-static inline int gen_cache_path(const char *path, char *buf, size_t buflen) {
+static inline int gen_cache_path(zsview path, char *buf, size_t buflen) {
   uint8_t hash[32];
   SHA256_CTX ctx;
   sha256_init(&ctx);
-  sha256_update(&ctx, (uint8_t *)path, strlen(path));
+  sha256_update(&ctx, (uint8_t *)path.str, path.size);
   sha256_final(&ctx, hash);
   unsigned int j = snprintf(buf, buflen - 1, "%s/", cfg.cachedir);
   if (j + 32 >= buflen) {
@@ -180,14 +180,14 @@ static inline Preview *preview_error(Preview *p, const char *fmt, ...) {
   return p;
 }
 
-Preview *preview_create_from_file(const char *path, uint32_t width,
+Preview *preview_create_from_file(zsview path, uint32_t width,
                                   uint32_t height) {
 
   Preview *p = preview_create(path, height, width);
   p->loadtime = current_millis();
 
   struct stat statbuf;
-  p->mtime = stat(path, &statbuf) != -1 ? statbuf.st_mtime : 0;
+  p->mtime = stat(path.str, &statbuf) != -1 ? statbuf.st_mtime : 0;
 
   if (!cfg.previewer) {
     return p;
@@ -281,7 +281,7 @@ Preview *preview_create_from_file(const char *path, uint32_t width,
     case PREVIEW_NONE:
       break; // no preview
     case PREVIEW_FILE_CONTENTS: {
-      FILE *fp_file = fopen(path, "r");
+      FILE *fp_file = fopen(path.str, "r");
       if (fp_file == NULL) {
         return preview_error(p, "fopen: ", strerror(errno));
       }
@@ -314,7 +314,7 @@ Preview *preview_create_from_file(const char *path, uint32_t width,
       break;
     case PREVIEW_AS_IMAGE:
       if (cfg.preview_images) {
-        struct ncvisual *ncv = ncvisual_from_file(path);
+        struct ncvisual *ncv = ncvisual_from_file(path.str);
         if (unlikely(ncv == NULL)) {
           return preview_error(p, "ncvisual_from_file: ", strerror(errno));
         }

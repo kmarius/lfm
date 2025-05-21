@@ -17,10 +17,12 @@
 #define OPTIONS_META "Lfm.Config.Meta"
 #define COLORS_META "Lfm.Colors.Meta"
 
-static inline int llua_dir_settings_set(lua_State *L, const char *path,
+static inline int llua_dir_settings_set(lua_State *L, const char *path_,
                                         int ind) {
+  zsview path = zsview_from(path_);
+
   if (lua_isnil(L, ind)) {
-    hmap_dirsetting_erase(&cfg.dir_settings_map, path);
+    hmap_dirsetting_erase(&cfg.dir_settings_map, path_);
     dircache_value *v = dircache_get_mut(&lfm->loader.dc, path);
     if (v) {
       memcpy(&v->second->settings, &cfg.dir_settings,
@@ -70,7 +72,7 @@ static inline int llua_dir_settings_set(lua_State *L, const char *path,
   }
   lua_pop(L, 1);
 
-  hmap_dirsetting_emplace_or_assign(&cfg.dir_settings_map, path, s);
+  hmap_dirsetting_emplace_or_assign(&cfg.dir_settings_map, path_, s);
 
   dircache_value *v = dircache_get_mut(&lfm->loader.dc, path);
   if (v) {

@@ -275,7 +275,7 @@ static void fileinfo_callback(void *p, Lfm *lfm) {
       File *file = dir_current_file(res->dir);
       dir_sort(res->dir);
       if (file && dir_current_file(res->dir) != file) {
-        dir_cursor_move_to(res->dir, file_name(file), lfm->fm.height,
+        dir_cursor_move_to(res->dir, *file_name(file), lfm->fm.height,
                            cfg.scrolloff);
       }
     } else {
@@ -377,7 +377,8 @@ struct dir_update_data {
 static inline void update_parent_dircount(Lfm *lfm, Dir *dir, uint32_t length) {
   const char *parent_path = path_parent_s(dir_path_str(dir));
   if (parent_path) {
-    dircache_value *v = dircache_get_mut(&lfm->loader.dc, parent_path);
+    dircache_value *v =
+        dircache_get_mut(&lfm->loader.dc, zsview_from(parent_path));
     Dir *parent = v ? v->second : NULL;
     if (parent) {
       for (uint32_t i = 0; i < parent->length_all; i++) {
@@ -425,9 +426,10 @@ static void async_dir_load_worker(void *arg) {
   struct dir_update_data *work = arg;
 
   if (work->level > 0) {
-    work->update = dir_load_flat(work->path, work->level, work->load_fileinfo);
+    work->update = dir_load_flat(zsview_from(work->path), work->level,
+                                 work->load_fileinfo);
   } else {
-    work->update = dir_load(work->path, work->load_fileinfo);
+    work->update = dir_load(zsview_from(work->path), work->load_fileinfo);
   }
 
   const uint32_t num_files = work->update->length_all;
@@ -508,7 +510,7 @@ static void preview_check_destroy(void *p) {
 
 static void preview_check_callback(void *p, Lfm *lfm) {
   struct preview_check_data *res = p;
-  Preview *pv = loader_preview_get(&lfm->loader, res->path);
+  Preview *pv = loader_preview_get(&lfm->loader, zsview_from(res->path));
   if (pv) {
     loader_preview_reload(&lfm->loader, pv);
   }
@@ -582,8 +584,8 @@ static void preview_load_callback(void *p, Lfm *lfm) {
 static void async_preview_load_worker(void *arg) {
   struct preview_load_data *work = arg;
 
-  work->update =
-      preview_create_from_file(work->path, work->width, work->height);
+  work->update = preview_create_from_file(zsview_from(work->path), work->width,
+                                          work->height);
   enqueue_and_signal(work->async, (struct result *)work);
 }
 

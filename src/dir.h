@@ -78,11 +78,11 @@ typedef struct Dir {
 } Dir;
 
 // Creates a directory, no files are loaded.
-Dir *dir_create(const char *path);
+Dir *dir_create(zsview path);
 
 // Loads the directory at `path` from disk. Additionally count the files in each
 // subdirectory if `load_filecount` is `true`.
-Dir *dir_load(const char *path, bool load_dircount);
+Dir *dir_load(zsview path, bool load_dircount);
 
 // Free all resources belonging to `dir`.
 void dir_destroy(Dir *dir);
@@ -126,7 +126,7 @@ void dir_cursor_move(Dir *dir, int32_t ct, uint32_t height, uint32_t scrolloff);
 
 // Move the cursor in the current dir to the file `name`, respecting the
 // `scrolloff` setting by passing it and the current `height` of the viewport.
-void dir_cursor_move_to(Dir *dir, const zsview *name, uint32_t height,
+void dir_cursor_move_to(Dir *dir, zsview name, uint32_t height,
                         uint32_t scrolloff);
 
 // Replace files and metadata of `dir` with those of `update`. Frees `update`.
@@ -139,4 +139,4 @@ static inline bool dir_isroot(const Dir *dir) {
 }
 
 // Load a flat directorie showing files up `level`s deep.
-Dir *dir_load_flat(const char *path, int level, bool load_dircount);
+Dir *dir_load_flat(zsview path, int level, bool load_dircount);

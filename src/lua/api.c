@@ -4,7 +4,6 @@
 #include "../fm.h"
 #include "../history.h"
 #include "../hooks.h"
-#include "../log.h"
 #include "../macros.h"
 #include "../path.h"
 #include "../search.h"
@@ -25,8 +24,7 @@
 #include <wchar.h>
 
 static int l_cmd_line_get(lua_State *L) {
-  zsview zv = cmdline_get(&ui->cmdline);
-  lua_pushzsview(L, &zv);
+  lua_pushzsview(L, cmdline_get(&ui->cmdline));
   return 1;
 }
 
@@ -239,18 +237,17 @@ static int l_fm_load(lua_State *L) {
   char buf[PATH_MAX + 1];
   size_t len;
   const char *path = luaL_checklstring(L, 1, &len);
-  const char *normalized = path_normalize(path, fm->pwd, buf, len, NULL);
+  const char *normalized = path_normalize(path, fm->pwd, buf, len, &len);
   if (normalized == NULL) {
     return luaL_error(L, "path too long");
   }
-  loader_dir_from_path(&lfm->loader, normalized, true);
+  loader_dir_from_path(&lfm->loader, zsview_from_n(normalized, len), true);
   return 0;
 }
 
 static int l_fm_sel(lua_State *L) {
   luaL_checktype(L, 1, LUA_TSTRING);
-  zsview zsview = lua_tozsview(L, 1);
-  fm_move_cursor_to(fm, &zsview);
+  fm_move_cursor_to(fm, lua_tozsview(L, 1));
   ui_update_file_preview(ui);
   ui_redraw(ui, REDRAW_FM);
   return 0;
@@ -358,7 +355,7 @@ static int l_fm_current_dir(lua_State *L) {
   lua_pushcstr(L, dir_path(dir));
   lua_setfield(L, -2, "path");
 
-  lua_pushzsview(L, dir_name(dir));
+  lua_pushzsview(L, *dir_name(dir));
   lua_setfield(L, -2, "name");
 
   lua_createtable(L, 0, 3);
@@ -439,7 +436,7 @@ static int l_fm_sort(lua_State *L) {
   dir->sorted = false;
   dir_sort(dir);
   if (file && dir->dirty) {
-    fm_move_cursor_to(fm, file_name(file));
+    fm_move_cursor_to(fm, *file_name(file));
   }
   ui_update_file_preview(ui);
   ui_redraw(ui, REDRAW_FM);
