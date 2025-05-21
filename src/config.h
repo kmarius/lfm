@@ -23,17 +23,9 @@
 #define i_hash cstr_raw_hash
 #include "stc/hmap.h"
 
-#define i_type hmap_icon, char *, char *
-#define i_keyraw const char *
-#define i_keyfrom(p) strdup((p))
-#define i_keytoraw(p) (*p)
-#define i_keydrop(p) free(*(p))
-#define i_valraw const char *
-#define i_valfrom(p) strdup((p))
-#define i_valtoraw(p) (*p)
-#define i_valdrop(p) free(*(p))
-#define i_eq(p, q) (!strcmp(*(p), *(q)))
-#define i_hash cstr_raw_hash
+#define i_type hmap_icon
+#define i_keypro cstr
+#define i_valpro cstr
 #define i_no_clone
 #include "stc/hmap.h"
 

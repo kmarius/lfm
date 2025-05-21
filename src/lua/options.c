@@ -165,8 +165,8 @@ static int l_config_index(lua_State *L) {
   } else if (streq(key, "icon_map")) {
     lua_createtable(L, 0, hmap_icon_size(&cfg.icon_map));
     c_foreach(it, hmap_icon, cfg.icon_map) {
-      lua_pushstring(L, it.ref->second);
-      lua_setfield(L, -2, it.ref->first);
+      lua_pushcstr(L, &it.ref->second);
+      lua_setfield(L, -2, cstr_str(&it.ref->first));
     }
     return 1;
   } else if (streq(key, "dir_settings")) {

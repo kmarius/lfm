@@ -830,8 +830,7 @@ static void draw_file(struct ncplane *n, const File *file, bool iscurrent,
 
     if (it.ref) {
       // move the corsor to make sure we only print one char
-      // log_error("%p %s", it.ref->second, it.ref->second);
-      ncplane_putstr(n, it.ref->second);
+      ncplane_putnstr(n, cstr_size(&it.ref->second), cstr_str(&it.ref->second));
       ncplane_putstr_yx(n, y0, 3, " ");
     } else {
       ncplane_putstr(n, "  ");
