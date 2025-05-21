@@ -410,6 +410,7 @@ static inline void dir_cursor_move_to_sel(Dir *d, uint32_t height,
 
 cleanup:
   cstr_drop(&d->sel);
+  d->sel = cstr_init();
 }
 
 void dir_cursor_move_to(Dir *d, const zsview *name, uint32_t height,
