@@ -3,6 +3,7 @@
 #include "fuzzy.h"
 #include "lua/lfmlua.h"
 #include "memory.h"
+#include "stcutil.h"
 #include "util.h"
 
 #include <lauxlib.h>
@@ -18,7 +19,7 @@
 typedef struct Filter {
   bool (*match)(const Filter *, const File *file);
   void (*destroy)(Filter *);
-  char *string;
+  cstr string;
   const char *type;
   __compar_fn_t cmp;
 } Filter;
@@ -29,14 +30,14 @@ bool filter_match(const Filter *filter, const File *file) {
 
 void filter_destroy(Filter *filter) {
   if (filter) {
-    xfree(filter->string);
+    cstr_drop(&filter->string);
     filter->destroy(filter);
     xfree(filter);
   }
 }
 
-const char *filter_string(const Filter *filter) {
-  return filter ? filter->string : NULL;
+zsview filter_string(const Filter *filter) {
+  return filter ? cstr_zv(&filter->string) : c_zv("");
 }
 
 const char *filter_type(const Filter *filter) {
@@ -187,23 +188,23 @@ static void subfilter_init(struct subfilter *s, char *filter) {
 bool sub_match(const Filter *filter, const File *file);
 void sub_destroy(Filter *filter);
 
-Filter *filter_create_sub(const char *filter) {
-  if (filter[0] == 0) {
+Filter *filter_create_sub(zsview filter) {
+  if (filter.str[0] == 0) {
     return NULL;
   }
 
-  int num_subfilters = (charcnt(filter, ' ') + 1);
+  int num_subfilters = (charcnt(filter.str, ' ') + 1);
 
   SubstringFilter *f =
       xcalloc(1, num_subfilters * sizeof(struct subfilter) + sizeof *f);
   f->super.match = &sub_match;
   f->super.destroy = &sub_destroy;
-  f->super.string = strdup(filter);
+  f->super.string = cstr_from_zv(filter);
   f->super.type = FILTER_TYPE_GENERAL;
 
   f->length = 0;
 
-  f->buf = strdup(filter);
+  f->buf = cstr_strdup(&f->super.string);
   for (char *tok = strtok(f->buf, " "); tok != NULL; tok = strtok(NULL, " ")) {
     subfilter_init(&f->filters[f->length], tok);
     if (f->filters[f->length].length) {
@@ -256,20 +257,20 @@ bool fuzzy_match(const Filter *filter, const File *file);
 void fuzzy_destroy(Filter *filter);
 static int cmpchoice(const void *_idx1, const void *_idx2);
 
-Filter *filter_create_fuzzy(const char *filter) {
+Filter *filter_create_fuzzy(zsview filter) {
   FuzzyFilter *f = xcalloc(1, sizeof *f);
   f->super.match = &fuzzy_match;
   f->super.destroy = &fuzzy_destroy;
   f->super.cmp = cmpchoice;
-  f->super.string = strdup(filter);
+  f->super.string = cstr_from_zv(filter);
   f->super.type = FILTER_TYPE_FUZZY;
   return (Filter *)f;
 }
 
 bool fuzzy_match(const Filter *filter, const File *file) {
-  if (fzy_has_match(filter->string, file_name_str(file))) {
+  if (fzy_has_match(cstr_str(&filter->string), file_name_str(file))) {
     File *f = (File *)file;
-    f->score = fzy_match(filter->string, file_name_str(file));
+    f->score = fzy_match(cstr_str(&filter->string), file_name_str(file));
     return true;
   }
   return false;
@@ -317,7 +318,7 @@ Filter *filter_create_lua(int ref, void *L) {
   LuaFilter *f = xcalloc(1, sizeof *f);
   f->super.match = &lua_match;
   f->super.destroy = &lua_destroy;
-  f->super.string = strdup(FILTER_TYPE_LUA);
+  f->super.string = cstr_lit(FILTER_TYPE_LUA);
   f->super.type = FILTER_TYPE_LUA;
 
   f->L = L;

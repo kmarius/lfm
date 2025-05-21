@@ -149,7 +149,7 @@ void fm_move_cursor_to(Fm *fm, zsview name);
 void fm_filter(Fm *fm, Filter *filter);
 
 // Return the filter string of the currently selected directory.
-static inline const char *fm_filter_get(const Fm *fm) {
+static inline zsview fm_filter_get(const Fm *fm) {
   return filter_string(fm_current_dir(fm)->filter);
 }
 

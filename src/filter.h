@@ -14,14 +14,14 @@ typedef struct Filter Filter;
  * `!`, ` ` (space) works as a logical `and`, `|` as logical `or`.
  * Additionally, files can be filtered by size with "s>1M", "s<4k" etc.
  */
-Filter *filter_create_sub(const char *filter);
+Filter *filter_create_sub(zsview filter);
 
 /*
  * Creates a filter fuzzy matches against the filter pattern.
  * Additionally sets the score on a file upon match so that files
  * can be sorted with the `filter_cmp` compare function.
  */
-Filter *filter_create_fuzzy(const char *filter);
+Filter *filter_create_fuzzy(zsview filter);
 
 /*
  * Creates a filter that calls the lua function with reference `ref` with the
@@ -42,7 +42,7 @@ bool filter_match(const Filter *filter, const File *file);
 /*
  * Get the pattern string used to create the filter.
  */
-const char *filter_string(const Filter *filter);
+zsview filter_string(const Filter *filter);
 
 /*
  * Get a string representing the type of the filter, currently either

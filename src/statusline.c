@@ -59,11 +59,11 @@ void statusline_draw(Ui *ui) {
 
     // these are drawn right to left
     if (dir->filter) {
-      rhs_sz += mbstowcs(NULL, filter_string(dir->filter), 0) + 2 + 1;
+      rhs_sz += mbstowcs(NULL, filter_string(dir->filter).str, 0) + 2 + 1;
       ncplane_set_bg_palindex(n, COLOR_GREEN);
       ncplane_set_fg_palindex(n, COLOR_BLACK);
       ncplane_putchar_yx(n, 0, ui->x - rhs_sz, ' ');
-      ncplane_putstr(n, filter_string(dir->filter));
+      ncplane_putstr(n, filter_string(dir->filter).str);
       ncplane_putchar(n, ' ');
       ncplane_set_bg_default(n);
       ncplane_set_fg_default(n);

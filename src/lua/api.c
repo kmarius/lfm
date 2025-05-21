@@ -654,7 +654,7 @@ static int l_fm_cut(lua_State *L) {
 static int l_fm_filter_get(lua_State *L) {
   Filter *filter = fm_current_dir(fm)->filter;
   if (filter) {
-    lua_pushstring(L, filter_string(filter));
+    lua_pushzsview(L, filter_string(filter));
     lua_pushstring(L, filter_type(filter));
     return 2;
   }
@@ -665,9 +665,9 @@ static int l_fm_filter(lua_State *L) {
   if (!lua_isnoneornil(L, 1)) {
     const char *type = lua_tostring(L, 2);
     if (!type || streq(type, "substring")) {
-      fm_filter(fm, filter_create_sub(lua_tostring(L, 1)));
+      fm_filter(fm, filter_create_sub(lua_tozsview(L, 1)));
     } else if (streq(type, "fuzzy")) {
-      fm_filter(fm, filter_create_fuzzy(lua_tostring(L, 1)));
+      fm_filter(fm, filter_create_fuzzy(lua_tozsview(L, 1)));
     } else if (streq(type, "lua")) {
       luaL_checktype(L, 1, LUA_TFUNCTION);
       lua_settop(L, 1);
