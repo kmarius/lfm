@@ -59,6 +59,7 @@ void input_suspend(Lfm *lfm) {
 int input_map(Trie *trie, zsview keys, int ref, zsview desc) {
   input_t buf[MAP_MAX_LENGTH + 1];
   key_names_to_input(keys.str, buf);
+  log_trace("input_map %s %d %s", keys.str, ref, desc.str);
   if (ref) {
     return trie_insert(trie, buf, ref, keys, desc);
   } else {
