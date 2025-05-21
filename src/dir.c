@@ -71,10 +71,6 @@ File *dir_current_file(const Dir *d) {
   return d->files[d->ind];
 }
 
-const char *dir_parent_path(const Dir *dir) {
-  return path_parent_s(dir_path_str(dir));
-}
-
 static void apply_filters(Dir *d) {
   if (d->filter) {
     uint32_t j = 0;

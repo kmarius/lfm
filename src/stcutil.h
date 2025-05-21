@@ -4,8 +4,12 @@
 #include "stc/zsview.h"
 #include <string.h>
 
-static inline char *cstr_assign_zv(cstr *self, zsview other) {
-  return cstr_assign_n(self, other.str, other.size);
+static inline char *cstr_assign_zv(cstr *self, zsview zv) {
+  return cstr_assign_n(self, zv.str, zv.size);
+}
+
+static inline char *cstr_append_zv(cstr *self, zsview zv) {
+  return cstr_append_n(self, zv.str, zv.size);
 }
 
 static inline char *cstr_strdup(const cstr *self) {

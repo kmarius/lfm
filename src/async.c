@@ -376,10 +376,9 @@ struct dir_update_data {
 };
 
 static inline void update_parent_dircount(Lfm *lfm, Dir *dir, uint32_t length) {
-  const char *parent_path = path_parent_s(dir_path_str(dir));
-  if (parent_path) {
-    dircache_value *v =
-        dircache_get_mut(&lfm->loader.dc, zsview_from(parent_path));
+  zsview parent_path = path_parent_s(cstr_zv(dir_path(dir)));
+  if (!zsview_is_empty(parent_path)) {
+    dircache_value *v = dircache_get_mut(&lfm->loader.dc, parent_path);
     Dir *parent = v ? v->second : NULL;
     if (parent) {
       for (uint32_t i = 0; i < parent->length_all; i++) {

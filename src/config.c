@@ -4,6 +4,7 @@
 #include "memory.h"
 #include "ncutil.h"
 #include "notify.h"
+#include "stc/cstr.h"
 #include "util.h"
 
 #include <ncurses.h> // COLOR_ constants
@@ -103,7 +104,7 @@ void config_init(void) {
   asprintf(&cfg.logpath, "/tmp/lfm.%d.log", getpid());
 #endif
 
-  asprintf(&cfg.previewer, "%s/runtime/preview.sh", default_data_dir);
+  cstr_printf(&cfg.previewer,"%s/runtime/preview.sh", default_data_dir);
   cfg.preview = true;
 
   vec_int_reserve(&cfg.ratios, 3);
@@ -143,7 +144,7 @@ void config_deinit(void) {
   xfree(cfg.fifopath);
   xfree(cfg.historypath);
   xfree(cfg.logpath);
-  xfree(cfg.previewer);
+  cstr_drop(&cfg.previewer);
   xfree(cfg.luadir);
   xfree(cfg.timefmt);
 }

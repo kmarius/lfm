@@ -3,6 +3,7 @@
 #include "../log.h"
 #include "../ncutil.h"
 #include "../path.h"
+#include "../stc/cstr.h"
 #include "../tpool.h"
 #include "lua.h"
 #include "private.h"
@@ -157,7 +158,7 @@ static int l_config_index(lua_State *L) {
     lua_pushboolean(L, cfg.preview_images);
     return 1;
   } else if (streq(key, "previewer")) {
-    lua_pushstring(L, cfg.previewer ? cfg.previewer : "");
+    lua_pushcstr(L, &cfg.previewer);
     return 1;
   } else if (streq(key, "icons")) {
     lua_pushboolean(L, cfg.icons);
@@ -295,12 +296,17 @@ static int l_config_newindex(lua_State *L) {
       llua_dir_settings_set(L, luaL_checkstring(L, -2), -1);
     }
   } else if (streq(key, "previewer")) {
-    xfree(cfg.previewer);
     if (lua_isnoneornil(L, 3)) {
-      cfg.preview_images = NULL;
+      cstr_clear(&cfg.previewer);
     } else {
-      const char *str = luaL_checkstring(L, 3);
-      cfg.previewer = str[0] == 0 ? NULL : path_replace_tilde(str);
+      luaL_checktype(L, 3, LUA_TSTRING);
+      zsview str = lua_tozsview(L, 3);
+      if (zsview_is_empty(str)) {
+        cstr_clear(&cfg.previewer);
+      } else {
+        cstr path = path_replace_tilde(str);
+        cstr_take(&cfg.previewer, path);
+      }
     }
     ui_drop_cache(ui);
   } else if (streq(key, "threads")) {

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "stc/zsview.h"
+
 #include <stdbool.h>
 #include <string.h>
 
@@ -10,9 +12,9 @@ char *basename_s(const char *p);
 
 char *dirname_s(const char *p);
 
-char *path_parent_s(const char *path);
+zsview path_parent_s(zsview path);
 
-bool path_isroot(const char *path);
+bool path_isroot(zsview path);
 
 static inline bool path_is_dot_or_dotdot(const char *name) {
   return name[0] == '.' && (name[1] == 0 || (name[1] == '.' && name[2] == 0));
@@ -31,7 +33,7 @@ static inline char *dirname_a(const char *p) {
 }
 
 // Allocates a new path with a beginning ~/ replaced, otherwise a copy of path.
-char *path_replace_tilde(const char *path);
+cstr path_replace_tilde(zsview path);
 
 // Allocates a new absolute path with all ~, ., .., // replaced
 // This function only fails if the buffer size is exceeded, returning NULL

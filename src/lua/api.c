@@ -323,7 +323,7 @@ static int l_fm_open(lua_State *L) {
   File *file = fm_open(fm);
   if (file) {
     if (lfm->opts.selection_path) {
-      fm_selection_write(&lfm->fm, lfm->opts.selection_path);
+      fm_selection_write(&lfm->fm, zsview_from(lfm->opts.selection_path));
       return lua_quit(L, lfm);
     }
 

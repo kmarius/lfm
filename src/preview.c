@@ -9,6 +9,9 @@
 #include "sha256.h"
 #include "util.h"
 
+#define STC_CSTR_IO
+#include "stc/cstr.h"
+
 #include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
@@ -189,7 +192,7 @@ Preview *preview_create_from_file(zsview path, uint32_t width,
   struct stat statbuf;
   p->mtime = stat(path.str, &statbuf) != -1 ? statbuf.st_mtime : 0;
 
-  if (!cfg.previewer) {
+  if (cstr_is_empty(&cfg.previewer)) {
     return p;
   }
 
@@ -209,7 +212,7 @@ Preview *preview_create_from_file(zsview path, uint32_t width,
   snprintf(w, sizeof w, "%u", width);
   snprintf(h, sizeof h, "%u", height);
 
-  const char *args[7] = {cfg.previewer,
+  const char *args[7] = {cstr_str(&cfg.previewer),
                          preview_path_str(p),
                          w,
                          h,

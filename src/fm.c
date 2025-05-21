@@ -100,18 +100,17 @@ static void fm_populate(Fm *fm) {
   fm->dirs.visible.data[0]->visible = true;
   Dir *dir = fm_current_dir(fm);
   for (uint32_t i = 1; i < fm->dirs.length; i++) {
-    const char *parent = path_parent_s(dir_path_str(dir));
-    if (parent) {
-      dir =
-          loader_dir_from_path(&to_lfm(fm)->loader, zsview_from(parent), true);
+    zsview parent = path_parent_s(cstr_zv(dir_path(dir)));
+    if (zsview_is_empty(parent)) {
+      fm->dirs.visible.data[i] = NULL;
+    } else {
+      dir = loader_dir_from_path(&to_lfm(fm)->loader, parent, true);
       dir->visible = true;
       fm->dirs.visible.data[i] = dir;
       if (dir_loading(dir)) {
         dir_cursor_move_to(dir, *dir_name(fm->dirs.visible.data[i - 1]),
                            fm->height, cfg.scrolloff);
       }
-    } else {
-      fm->dirs.visible.data[i] = NULL;
     }
   }
 }
@@ -452,13 +451,19 @@ static void selection_visual_update(Fm *fm, uint32_t origin, uint32_t from,
   lfm_run_hook(to_lfm(fm), LFM_HOOK_SELECTION);
 }
 
-void fm_selection_write(const Fm *fm, const char *path) {
-  char *dir, *buf = strdup(path);
-  dir = dirname(buf);
-  mkdir_p(dir, 755);
-  xfree(buf);
+void fm_selection_write(const Fm *fm, zsview path) {
+  char buf[PATH_MAX + 1];
+  if (path.size > PATH_MAX) {
+    log_error("fm_selection_write: path too long");
+    return;
+  }
 
-  FILE *fp = fopen(path, "w");
+  memcpy(buf, path.str, path.size);
+  buf[path.size] = 0;
+  char *dir = dirname(buf);
+  mkdir_p(dir, 755);
+
+  FILE *fp = fopen(path.str, "w");
   if (!fp) {
     lfm_error(to_lfm(fm), "selfile: %s", strerror(errno));
     return;
@@ -565,7 +570,7 @@ bool fm_updir(Fm *fm) {
     return false;
   }
 
-  zsview path = zsview_from(path_parent_s(dir_path_str(fm_current_dir(fm))));
+  zsview path = path_parent_s(cstr_zv(dir_path(fm_current_dir(fm))));
   fm_async_chdir(fm, path, false, false);
   on_cursor_moved(fm, false);
   return true;

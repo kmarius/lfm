@@ -4,6 +4,8 @@
 #include "../util.h"
 
 #include "../stc/zsview.h"
+#include "../stc/cstr.h"
+#include "util.h"
 
 #include <lauxlib.h>
 #include <lua.h>
@@ -90,7 +92,7 @@ typedef struct FileInfo {
 } FileInfo;
 
 typedef struct {
-  char *config_file;
+  cstr config_file;
   rules rules;
 } Rifle;
 
@@ -534,11 +536,11 @@ static int l_rifle_query(lua_State *L) {
 
 // loads rules from the configuration file
 static void load_rules(Rifle *rifle) {
-  if (!rifle->config_file) {
+  if (cstr_is_empty(&rifle->config_file)) {
     return;
   }
 
-  FILE *fp = fopen(rifle->config_file, "r");
+  FILE *fp = fopen(cstr_str(&rifle->config_file), "r");
   if (!fp) {
     return;
   }
@@ -601,8 +603,8 @@ static int l_rifle_setup(lua_State *L) {
 
     lua_getfield(L, 1, "config");
     if (!lua_isnoneornil(L, -1)) {
-      xfree(rifle->config_file);
-      rifle->config_file = path_replace_tilde(lua_tostring(L, -1));
+      cstr_drop(&rifle->config_file);
+      rifle->config_file = path_replace_tilde(lua_tozsview(L, -1));
     }
     lua_pop(L, 1);
   }
@@ -621,7 +623,7 @@ static int l_rifle_nrules(lua_State *L) {
 static int l_rifle_gc(lua_State *L) {
   Rifle *rifle = luaL_checkudata(L, 1, RIFLE_META);
   rules_drop(&rifle->rules);
-  xfree(rifle->config_file);
+  cstr_drop(&rifle->config_file);
   return 0;
 }
 

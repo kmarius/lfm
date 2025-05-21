@@ -1,24 +1,28 @@
 #include "path.h"
 
 #include "memory.h"
+#include "stc/cstr.h"
+#include "stcutil.h"
+#include "util.h"
 
 #include <assert.h>
 
 #include <libgen.h>
 #include <linux/limits.h>
+#include <string.h>
 
-bool path_isroot(const char *path) {
-  return *path == '/' && *(path + 1) == 0;
+bool path_isroot(zsview path) {
+  return !zsview_is_empty(path) && path.str[0] == '/' && path.str[1] == 0;
 }
 
-char *path_parent_s(const char *path) {
-  if (path_isroot(path)) {
-    return NULL;
+zsview path_parent_s(zsview path) {
+  if (zsview_is_empty(path) || path_isroot(path)) {
+    return c_zv("");
   }
 
   static char tmp[PATH_MAX + 1];
-  strncpy(tmp, path, sizeof tmp - 1);
-  return dirname(tmp);
+  memcpy(tmp, path.str, path.size + 1);
+  return zsview_from(dirname(tmp));
 }
 
 char *realpath_s(const char *p) {
@@ -38,18 +42,17 @@ char *dirname_s(const char *p) {
   return dirname(buf);
 }
 
-char *path_replace_tilde(const char *path) {
-  if (path[0] != '~' || path[1] != '/') {
-    return strdup(path);
+cstr path_replace_tilde(zsview path) {
+  if (zsview_is_empty(path) || path.str[0] != '~' || path.str[1] != '/') {
+    return cstr_from_zv(path);
   }
 
-  const char *home = getenv("HOME");
-  const int l1 = strlen(path);
-  const int l2 = strlen(home);
-  char *ret = xmalloc(l1 - 1 + l2 + 1);
-  strcpy(ret, home);
-  strcpy(ret + l2, path + 1);
-  return ret;
+  zsview home = getenv_zv("HOME");
+  cstr res = cstr_with_capacity(path.size + home.size);
+  path.str++; // skip ~
+  cstr_append_zv(&res, home);
+  cstr_append_zv(&res, path);
+  return res;
 }
 
 // This works in-place and only decreases the length.

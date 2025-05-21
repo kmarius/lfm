@@ -188,7 +188,7 @@ void fm_selection_reverse(Fm *fm);
 
 // Write the current celection to the file given as `path`.
 // Directories are created as needed.
-void fm_selection_write(const Fm *fm, const char *path);
+void fm_selection_write(const Fm *fm, zsview path);
 
 // Set the current selection into the load buffer with mode `mode`.
 void fm_paste_mode_set(Fm *fm, paste_mode mode);
