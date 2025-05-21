@@ -145,7 +145,7 @@ cleanup:
   fclose(log);
 
 #ifndef DEBUG
-  remove(cfg.logpath);
+  remove(cstr_str(&cfg.logpath));
 #endif
 
   config_deinit();

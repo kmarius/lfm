@@ -97,7 +97,7 @@ void config_init(void) {
   cfg.logpath = cstr_lit("/tmp/lfm.debug.log");
   cstr_printf(&cfg.fifopath, "%s/debug.fifo", cstr_str(&cfg.rundir));
 #else
-  cstr_printf(&cfg.fifopath, "%s/%d.fifo", cfg.rundir, getpid());
+  cstr_printf(&cfg.fifopath, "%s/%d.fifo", cstr_str(&cfg.rundir), getpid());
   cstr_printf(&cfg.logpath, "/tmp/lfm.%d.log", getpid());
 #endif
 
