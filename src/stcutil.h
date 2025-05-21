@@ -4,6 +4,10 @@
 #include "stc/zsview.h"
 #include <string.h>
 
+static inline char *cstr_assign_zv(cstr *self, zsview other) {
+  return cstr_assign_n(self, other.str, other.size);
+}
+
 static inline char *cstr_strdup(const cstr *self) {
   return strndup(cstr_str(self), cstr_size(self));
 }

@@ -11,6 +11,7 @@
 #include "notify.h"
 #include "path.h"
 #include "pathlist.h"
+#include "stcutil.h"
 #include "util.h"
 
 #include "stc/cstr.h"
@@ -132,19 +133,20 @@ void fm_recol(Fm *fm) {
   on_cursor_moved(fm, false);
 }
 
-static inline bool fm_chdir_impl(Fm *fm, const char *path, bool save, bool hook,
+static inline bool fm_chdir_impl(Fm *fm, zsview path, bool save, bool hook,
                                  bool async) {
-  char fullpath[PATH_MAX];
-  if (path_is_relative(path)) {
-    snprintf(fullpath, sizeof fullpath, "%s/%s", getenv("PWD"), path);
-    path = fullpath;
+  char buf[PATH_MAX + 1];
+  if (path_is_relative(path.str)) {
+    // TODO: is there a reason why we don't use fm->pwd? 2025-05-21
+    int len = snprintf(buf, sizeof buf, "%s/%s", getenv("PWD"), path.str);
+    path = zsview_from_n(buf, len);
   }
 
   if (async) {
-    async_chdir(&to_lfm(fm)->async, path, hook);
+    async_chdir(&to_lfm(fm)->async, path.str, hook);
   } else {
-    if (chdir(path) == 0) {
-      setenv("PWD", path, true);
+    if (chdir(path.str) == 0) {
+      setenv("PWD", path.str, true);
     } else {
       lfm_error(to_lfm(fm), "chdir: %s", strerror(errno));
       return false;
@@ -153,7 +155,7 @@ static inline bool fm_chdir_impl(Fm *fm, const char *path, bool save, bool hook,
 
   notify_remove_watchers(&to_lfm(fm)->notify);
 
-  cstr_assign(&fm->pwd, path);
+  cstr_assign_zv(&fm->pwd, path);
 
   if (save) {
     if (fm_current_dir(fm)->error) {
@@ -181,11 +183,11 @@ static inline bool fm_chdir_impl(Fm *fm, const char *path, bool save, bool hook,
   return true;
 }
 
-bool fm_sync_chdir(Fm *fm, const char *path, bool save, bool hook) {
+bool fm_sync_chdir(Fm *fm, zsview path, bool save, bool hook) {
   return fm_chdir_impl(fm, path, save, hook, false);
 }
 
-bool fm_async_chdir(Fm *fm, const char *path, bool save, bool hook) {
+bool fm_async_chdir(Fm *fm, zsview path, bool save, bool hook) {
   return fm_chdir_impl(fm, path, save, hook, true);
 }
 
@@ -552,7 +554,7 @@ File *fm_open(Fm *fm) {
     return file;
   }
 
-  fm_async_chdir(fm, file_path_str(file), false, false);
+  fm_async_chdir(fm, cstr_zv(file_path(file)), false, false);
   return NULL;
 }
 
@@ -563,8 +565,8 @@ bool fm_updir(Fm *fm) {
     return false;
   }
 
-  fm_async_chdir(fm, path_parent_s(dir_path_str(fm_current_dir(fm))), false,
-                 false);
+  zsview path = zsview_from(path_parent_s(dir_path_str(fm_current_dir(fm))));
+  fm_async_chdir(fm, path, false, false);
   on_cursor_moved(fm, false);
   return true;
 }

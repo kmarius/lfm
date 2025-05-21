@@ -636,10 +636,10 @@ static void chdir_callback(void *p, Lfm *lfm) {
     lfm_mode_exit(lfm, "visual");
     if (res->err) {
       lfm_error(lfm, "stat: %s", strerror(res->err));
-      fm_sync_chdir(&lfm->fm, res->origin, false, false);
+      fm_sync_chdir(&lfm->fm, zsview_from(res->origin), false, false);
     } else if (chdir(res->path) != 0) {
       lfm_error(lfm, "chdir: %s", strerror(errno));
-      fm_sync_chdir(&lfm->fm, res->origin, false, false);
+      fm_sync_chdir(&lfm->fm, zsview_from(res->origin), false, false);
     } else {
       setenv("PWD", res->path, true);
       if (res->run_hook) {

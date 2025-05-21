@@ -542,10 +542,11 @@ static int l_fm_chdir(lua_State *L) {
   bool should_save = (arg[0] == '/' || arg[0] == '~' ||
                       (last_slash != NULL && last_slash[1] != 0));
 
-  char *path = path_normalize(arg, fm_getpwd_str(fm), buf, len, NULL);
-  if (path == NULL) {
+  char *normalized = path_normalize(arg, fm_getpwd_str(fm), buf, len, &len);
+  if (normalized == NULL) {
     return luaL_error(L, "path too long");
   }
+  zsview path = zsview_from_n(normalized, len);
 
   search_nohighlight(lfm);
   lfm_mode_exit(lfm, "visual");
