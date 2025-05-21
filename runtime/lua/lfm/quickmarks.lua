@@ -2,41 +2,43 @@ local M = { _NAME = ... }
 
 local lfm = lfm
 
----@alias Lapi.fm_Char string
----@alias Lapi.fm_Path string
+---@alias Char string
+---@alias Path string
 
-local eval = lfm.eval
-local map = lfm.map
-local getpwd = lfm.fn.getpwd
-local cmd_clear = lfm.api.cmdline_clear
-local line_get = lfm.api.cmdline_line_get
+local fn = lfm.fn
 
-local open = io.open
-
-local marks_path = lfm.paths.state_dir .. "/quickmarks.lua"
+---Path to quickmarks file
+M.path = lfm.paths.state_dir .. "/quickmarks.lua"
 
 local marks = {}
 
+---
 ---Add a quickmark (essentially just setting a keybind).
+---
+---Example:
 ---```lua
----    lfm.quickmarks.mark_set("h", "/home/john")
----    lfm.quickmarks.mark_set("a", lfm.fn.getpwd())
----    lfm.quickmarks.mark_set("a") -- same as above
+---  lfm.quickmarks.mark_set("h", "/home/john")
+---  lfm.quickmarks.mark_set("a", lfm.fn.getpwd())
+---  lfm.quickmarks.mark_set("a") -- same as above
 ---```
----@param m Lapi.fm_Char
----@param loc? Lapi.fm_Path Defaults to the current location
+---
+---@param m Char
+---@param loc? Path Defaults to the current location
 local function mark_set(m, loc)
-	loc = loc or getpwd()
+	if #m == 0 then
+		lfm.log.errorf("ignoring quickmark without key")
+	end
+	loc = loc or fn.getpwd()
 	local cmd = "cd " .. loc
-	map("'" .. m, function()
-		eval(cmd)
+	lfm.map("'" .. m, function()
+		lfm.eval(cmd)
 	end, { desc = cmd })
 	marks[m] = loc
 end
 
 ---Loads marks from disk, overwriting those currently set.
 local function load_from_file()
-	local f = loadfile(marks_path)
+	local f = loadfile(M.path)
 	if f then
 		for m, loc in pairs(f()) do
 			mark_set(m, loc)
@@ -51,38 +53,40 @@ local escape = {
 
 ---Writes currently set quickmarks to disk.
 local function write_to_file()
-	local file = open(marks_path, "w")
-	if file then
-		file:write("return {\n")
-		for m, loc in pairs(marks) do
-			m = escape[m] or m
-			file:write(string.format('\t["%s"] = "%s",\n', m, loc))
-		end
-		file:write("}\n")
-		file:close()
+	local file = assert(io.open(M.path, "w"))
+	file:write("return {\n")
+	for m, loc in pairs(marks) do
+		m = escape[m] or m
+		file:write(string.format('\t["%s"] = "%s",\n', m, loc))
 	end
+	file:write("}\n")
+	file:close()
 end
 
 ---Add a quick mark for the current directory with character `m`.
 ---```lua
 ---    lfm.quickmarks.save("a")
 ---```
----@param m Lapi.fm_Char
+---@param m Char
 function M.save(m)
 	load_from_file()
-	mark_set(m, getpwd())
+	mark_set(m, fn.getpwd())
 	write_to_file()
 end
 
+---
 ---Add multiple quick marks. Loads quick marks from disk, sets the marks passed
 ---in `t` and writes them back.
+---
+---Example:
 ---```lua
----    lfm.quickmarks.add({
----      a = "/home/john",
----      t = "/tmp",
----    })
+---  lfm.quickmarks.add({
+---    a = "/home/john",
+---    t = "/tmp",
+---  })
 ---```
----@param t table<Lapi.fm_Char, Lapi.fm_Path>
+---
+---@param t table<Char, Path>
 function M.add(t)
 	t = t or {}
 	load_from_file()
@@ -92,11 +96,15 @@ function M.add(t)
 	write_to_file()
 end
 
+---
 ---Deletes the mark for character `m` and persists the change to disk.
+---
+---Example:
 ---```lua
----    lfm.quickmarks.delete("a")
+---  lfm.quickmarks.delete("a")
 ---```
----@param m Lapi.fm_Char
+---
+---@param m Char
 function M.delete(m)
 	if marks[m] then
 		load_from_file()
@@ -106,52 +114,35 @@ function M.delete(m)
 	end
 end
 
-local mode_mark_save = {
-	name = "mark-save",
-	input = true,
-	prefix = "mark-save: ",
-	on_return = function()
-		cmd_clear()
-		lfm.mode("normal")
-	end,
-	on_esc = cmd_clear,
-	on_change = function()
-		M.save(line_get())
-		cmd_clear()
-		lfm.mode("normal")
-	end,
-}
+---Prompt to save a quickmark of the current location
+function M.prompt_save()
+	lfm.util.input({ prompt = "mark-save: ", single_key = true }, function(m)
+		if m and #m > 0 then
+			M.save(m)
+		end
+	end)
+end
 
-local mode_mark_delete = {
-	name = "mark-delete",
-	input = true,
-	prefix = "mark-delete: ",
-	on_return = function()
-		cmd_clear()
-		lfm.mode("normal")
-	end,
-	on_esc = cmd_clear,
-	on_change = function()
-		M.delete(line_get())
-		cmd_clear()
-		lfm.mode("normal")
-	end,
-}
+---Prompt to delete a quickmark
+function M.prompt_delete()
+	local lines = {}
+	for k, v in pairs(marks) do
+		table.insert(lines, k .. "\t" .. v)
+	end
+	lfm.api.ui_menu(lines)
+	lfm.util.input({ prompt = "mark-delete: ", single_key = true }, function(m)
+		if m and #m > 0 then
+			M.delete(m)
+		end
+	end)
+end
 
-function M._setup(t)
-	lfm.register_command("mark-save", M.mark_save)
-	lfm.register_command("mark-delete", M.mark_delete)
+function M._setup(opts)
+	lfm.validate("opts", opts, "table", true)
+	opts = opts or {}
 
-	lfm.register_mode(mode_mark_save)
-	lfm.register_mode(mode_mark_delete)
-
-	lfm.map("m", function()
-		lfm.mode(mode_mark_save.name)
-	end, { desc = "Save quickmark" })
-
-	lfm.map("dm", function()
-		lfm.mode(mode_mark_delete.name)
-	end, { desc = "Delete quickmark" })
+	lfm.map("m", M.prompt_save, { desc = "Save quickmark" })
+	lfm.map("dm", M.prompt_delete, { desc = "Save quickmark" })
 end
 
 return M
