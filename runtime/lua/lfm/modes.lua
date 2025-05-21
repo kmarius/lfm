@@ -4,10 +4,9 @@ local lfm = lfm
 
 local options = lfm.o
 local api = lfm.api
-local map = lfm.map
+local fs = lfm.fs
 local compl = require("lfm.compl")
 local util = require("lfm.util")
-local basename = util.basename
 
 local a = util.a
 
@@ -31,8 +30,8 @@ function M._setup()
 			end,
 		}
 		lfm.register_mode(mode)
-		map(":", a(lfm.mode, "command"), { desc = "enter COMMAND mode" })
-		map("<Up>", function()
+		lfm.map(":", a(lfm.mode, "command"), { desc = "enter COMMAND mode" })
+		lfm.map("<Up>", function()
 			if not prev_line then
 				prev_line = api.cmdline_line_get()
 			end
@@ -41,7 +40,7 @@ function M._setup()
 				api.cmdline_line_set(line)
 			end
 		end, { mode = "command", desc = "Previous history item" })
-		map("<Down>", function()
+		lfm.map("<Down>", function()
 			local line = api.cmdline_history_next()
 			api.cmdline_line_set(line or prev_line)
 		end, { mode = "command", desc = "Next history item" })
@@ -71,8 +70,8 @@ function M._setup()
 			end,
 		}
 		lfm.register_mode(mode)
-		map("zf", a(lfm.mode, "filter"), { desc = "Enter FILTER mode" })
-		map("zF", a(lfm.feedkeys, "zf<esc>"), { desc = "Remove current filter" })
+		lfm.map("zf", a(lfm.mode, "filter"), { desc = "Enter FILTER mode" })
+		lfm.map("zF", a(lfm.feedkeys, "zf<esc>"), { desc = "Remove current filter" })
 	end
 
 	-- FUZZY mode
@@ -101,9 +100,9 @@ function M._setup()
 			end,
 		}
 		lfm.register_mode(mode)
-		map("zF", a(lfm.mode, "fuzzy"), { desc = "Enter FUZZY mode" })
-		map("<c-n>", api.fm_down, { mode = "fuzzy", desc = "down" })
-		map("<c-p>", api.fm_up, { mode = "fuzzy", desc = "up" })
+		lfm.map("zF", a(lfm.mode, "fuzzy"), { desc = "Enter FUZZY mode" })
+		lfm.map("<c-n>", api.fm_down, { mode = "fuzzy", desc = "down" })
+		lfm.map("<c-p>", api.fm_up, { mode = "fuzzy", desc = "up" })
 	end
 
 	-- TRAVEL mode
@@ -155,12 +154,12 @@ function M._setup()
 			end,
 		}
 		lfm.register_mode(mode)
-		map("f", a(lfm.mode, "travel"), { desc = "Enter TRAVEL mode" })
-		map("<c-n>", api.fm_down, { mode = "travel" })
-		map("<c-p>", api.fm_up, { mode = "travel" })
-		map("<Up>", api.fm_up, { mode = "travel" })
-		map("<Down>", api.fm_down, { mode = "travel" })
-		map("<a-h>", function()
+		lfm.map("f", a(lfm.mode, "travel"), { desc = "Enter TRAVEL mode" })
+		lfm.map("<c-n>", api.fm_down, { mode = "travel" })
+		lfm.map("<c-p>", api.fm_up, { mode = "travel" })
+		lfm.map("<Up>", api.fm_up, { mode = "travel" })
+		lfm.map("<Down>", api.fm_down, { mode = "travel" })
+		lfm.map("<a-h>", function()
 			api.fm_filter("")
 			api.fm_updir()
 			api.cmdline_clear()
@@ -217,12 +216,12 @@ function M._setup()
 			end,
 		}
 		lfm.register_mode(mode)
-		map("F", a(lfm.mode, "travel-fuzzy"), { desc = "Enter travel-fuzzy mode" })
-		map("<c-n>", api.fm_down, { mode = "travel-fuzzy" })
-		map("<c-p>", api.fm_up, { mode = "travel-fuzzy" })
-		map("<Up>", api.fm_up, { mode = "travel-fuzzy" })
-		map("<Down>", api.fm_down, { mode = "travel-fuzzy" })
-		map("<a-h>", function()
+		lfm.map("F", a(lfm.mode, "travel-fuzzy"), { desc = "Enter travel-fuzzy mode" })
+		lfm.map("<c-n>", api.fm_down, { mode = "travel-fuzzy" })
+		lfm.map("<c-p>", api.fm_up, { mode = "travel-fuzzy" })
+		lfm.map("<Up>", api.fm_up, { mode = "travel-fuzzy" })
+		lfm.map("<Down>", api.fm_down, { mode = "travel-fuzzy" })
+		lfm.map("<a-h>", function()
 			api.fm_filter("")
 			api.fm_updir()
 			api.cmdline_clear()
@@ -252,7 +251,7 @@ function M._setup()
 			on_esc = function()
 				lfm.nohighlight()
 				if file then
-					api.fm_sel(basename(file) --[[@as string]])
+					api.fm_sel(fs.basename(file) --[[@as string]])
 				end
 			end,
 		}
@@ -276,17 +275,17 @@ function M._setup()
 			on_esc = function()
 				lfm.nohighlight()
 				if file then
-					api.fm_sel(basename(file) --[[@as string]])
+					api.fm_sel(fs.basename(file) --[[@as string]])
 				end
 			end,
 		}
 		lfm.register_mode(mode)
 		lfm.register_mode(mode_back)
 
-		map("/", a(lfm.mode, "search"), { desc = "Search" })
-		map("?", a(lfm.mode, "search-back"), { desc = "Search backwards" })
-		map("n", lfm.search_next, { desc = "Go to next search result" })
-		map("N", lfm.search_prev, { desc = "Go to previous search result" })
+		lfm.map("/", a(lfm.mode, "search"), { desc = "Search" })
+		lfm.map("?", a(lfm.mode, "search-back"), { desc = "Search backwards" })
+		lfm.map("n", lfm.search_next, { desc = "Go to next search result" })
+		lfm.map("N", lfm.search_prev, { desc = "Go to previous search result" })
 	end
 end
 
