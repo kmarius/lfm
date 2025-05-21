@@ -1,7 +1,6 @@
 #include "config.h"
 
 #include "containers.h"
-#include "dir.h"
 #include "memory.h"
 #include "ncutil.h"
 #include "notify.h"
@@ -19,7 +18,9 @@
 extern char *default_data_dir;
 extern char *default_lua_dir;
 
+// fields not listed deliberately initialized to 0
 Config cfg = {
+    .histsize = 100,
     .truncatechar = L'~',
     .scrolloff = 4,
     .linkchars = "->",
@@ -29,47 +30,31 @@ Config cfg = {
     .map_suggestion_delay = MAP_SUGGESTION_DELAY,
     .map_clear_delay = MAP_CLEAR_DELAY,
     .loading_indicator_delay = LOADING_INDICATOR_DELAY,
-    .current_char = 0,
-    .colors = {
-        .normal = NCCHANNELS_INITIALIZER_PALINDEX(-1, -1),
-        .copy = NCCHANNELS_INITIALIZER_PALINDEX(COLOR_BLACK, COLOR_YELLOW),
-        .current = NCCHANNEL_INITIALIZER_PALINDEX(237), // doesn't exist in tty
-        .delete = NCCHANNELS_INITIALIZER_PALINDEX(COLOR_BLACK, COLOR_RED),
-        .dir = NCCHANNELS_INITIALIZER_PALINDEX(COLOR_BLUE, -1),
-        .broken = NCCHANNELS_INITIALIZER_PALINDEX(COLOR_RED, -1),
-        .exec = NCCHANNELS_INITIALIZER_PALINDEX(COLOR_GREEN, -1),
-        .search = NCCHANNELS_INITIALIZER_PALINDEX(COLOR_BLACK, COLOR_YELLOW),
-        .selection =
-            NCCHANNELS_INITIALIZER_PALINDEX(COLOR_BLACK, COLOR_MAGENTA),
-    }};
+    .colors =
+        {
+            .normal = NCCHANNELS_INITIALIZER_PALINDEX(-1, -1),
+            .copy = NCCHANNELS_INITIALIZER_PALINDEX(COLOR_BLACK, COLOR_YELLOW),
+            .current =
+                NCCHANNEL_INITIALIZER_PALINDEX(237), // doesn't exist in tty
+            .delete = NCCHANNELS_INITIALIZER_PALINDEX(COLOR_BLACK, COLOR_RED),
+            .dir = NCCHANNELS_INITIALIZER_PALINDEX(COLOR_BLUE, -1),
+            .broken = NCCHANNELS_INITIALIZER_PALINDEX(COLOR_RED, -1),
+            .exec = NCCHANNELS_INITIALIZER_PALINDEX(COLOR_GREEN, -1),
+            .search =
+                NCCHANNELS_INITIALIZER_PALINDEX(COLOR_BLACK, COLOR_YELLOW),
+            .selection =
+                NCCHANNELS_INITIALIZER_PALINDEX(COLOR_BLACK, COLOR_MAGENTA),
+        },
+    .dir_settings =
+        {
+            .dirfirst = true,
+            .reverse = false,
+            .sorttype = SORT_NATURAL,
+            .hidden = false,
+        },
+};
 
 void config_init(void) {
-  vec_int_push(&cfg.ratios, 1);
-  vec_int_push(&cfg.ratios, 2);
-  vec_int_push(&cfg.ratios, 3);
-
-  hmap_icon_emplace_or_assign(&cfg.icon_map, "ln", "l");
-  hmap_icon_emplace_or_assign(&cfg.icon_map, "or", "l");
-  hmap_icon_emplace_or_assign(&cfg.icon_map, "tw", "t");
-  hmap_icon_emplace_or_assign(&cfg.icon_map, "ow", "d");
-  hmap_icon_emplace_or_assign(&cfg.icon_map, "st", "t");
-  hmap_icon_emplace_or_assign(&cfg.icon_map, "di", "d");
-  hmap_icon_emplace_or_assign(&cfg.icon_map, "pi", "p");
-  hmap_icon_emplace_or_assign(&cfg.icon_map, "so", "s");
-  hmap_icon_emplace_or_assign(&cfg.icon_map, "bd", "b");
-  hmap_icon_emplace_or_assign(&cfg.icon_map, "cd", "c");
-  hmap_icon_emplace_or_assign(&cfg.icon_map, "su", "u");
-  hmap_icon_emplace_or_assign(&cfg.icon_map, "sg", "g");
-  hmap_icon_emplace_or_assign(&cfg.icon_map, "ex", "x");
-  hmap_icon_emplace_or_assign(&cfg.icon_map, "fi", "-");
-
-  cfg.dir_settings.dirfirst = true;
-  cfg.dir_settings.reverse = false;
-  cfg.dir_settings.sorttype = SORT_NATURAL;
-  cfg.dir_settings.hidden = false;
-
-  cfg.histsize = 100;
-
   const char *xdg_runtime = getenv("XDG_RUNTIME_DIR");
   if (!xdg_runtime || *xdg_runtime == 0) {
     asprintf(&cfg.rundir, "/tmp/runtime-%s/lfm", getenv("USER"));
@@ -120,6 +105,26 @@ void config_init(void) {
 
   asprintf(&cfg.previewer, "%s/runtime/preview.sh", default_data_dir);
   cfg.preview = true;
+
+  vec_int_reserve(&cfg.ratios, 3);
+  vec_int_push(&cfg.ratios, 1);
+  vec_int_push(&cfg.ratios, 2);
+  vec_int_push(&cfg.ratios, 3);
+
+  hmap_icon_emplace_or_assign(&cfg.icon_map, "ln", "l");
+  hmap_icon_emplace_or_assign(&cfg.icon_map, "or", "l");
+  hmap_icon_emplace_or_assign(&cfg.icon_map, "tw", "t");
+  hmap_icon_emplace_or_assign(&cfg.icon_map, "ow", "d");
+  hmap_icon_emplace_or_assign(&cfg.icon_map, "st", "t");
+  hmap_icon_emplace_or_assign(&cfg.icon_map, "di", "d");
+  hmap_icon_emplace_or_assign(&cfg.icon_map, "pi", "p");
+  hmap_icon_emplace_or_assign(&cfg.icon_map, "so", "s");
+  hmap_icon_emplace_or_assign(&cfg.icon_map, "bd", "b");
+  hmap_icon_emplace_or_assign(&cfg.icon_map, "cd", "c");
+  hmap_icon_emplace_or_assign(&cfg.icon_map, "su", "u");
+  hmap_icon_emplace_or_assign(&cfg.icon_map, "sg", "g");
+  hmap_icon_emplace_or_assign(&cfg.icon_map, "ex", "x");
+  hmap_icon_emplace_or_assign(&cfg.icon_map, "fi", "-");
 }
 
 void config_deinit(void) {
