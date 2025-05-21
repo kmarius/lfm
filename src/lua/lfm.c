@@ -637,14 +637,13 @@ static const struct luaL_Reg lfm_lib[] = {
 static int l_modes_index(lua_State *L) {
   luaL_checktype(L, 2, LUA_TSTRING);
   zsview key = lua_tozsview(L, 2);
-  struct mode *mode = hmap_modes_at_mut(&lfm->modes, key);
-  if (!mode) {
+  hmap_modes_iter it = hmap_modes_find(&lfm->modes, key);
+  if (it.ref == NULL) {
     return 0;
   }
 
-  lua_newtable(L);
-  struct mode **ud = lua_newuserdata(L, sizeof mode);
-  *ud = mode;
+  struct mode **mode = lua_newuserdata(L, sizeof *mode);
+  *mode = &it.ref->second;
   luaL_newmetatable(L, MODE_META);
   lua_setmetatable(L, -2);
 
