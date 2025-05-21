@@ -13,14 +13,11 @@
 #define MAP_CLEAR_DELAY 10000
 #define LOADING_INDICATOR_DELAY 250
 
-#define i_type hmap_channel, char *, uint64_t
-#define i_keyraw const char *
-#define i_keyfrom(p) strdup(p)
-#define i_keytoraw(p) (*p)
-#define i_keydrop(p) free(*(p))
+// maps file extensions to fg/bg channel
+#define i_type hmap_channel
+#define i_keypro cstr
+#define i_val uint64_t
 #define i_no_clone
-#define i_eq(p, q) (!strcmp(*(p), *(q)))
-#define i_hash cstr_raw_hash
 #include "stc/hmap.h"
 
 #define i_type hmap_icon
