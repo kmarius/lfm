@@ -11,6 +11,7 @@
 #include <stdint.h>
 
 declare_vec(vec_dir, Dir *);
+struct lfm_opts;
 
 typedef enum paste_mode_e {
   PASTE_MODE_MOVE,
@@ -73,7 +74,7 @@ typedef struct Fm {
 
 // Moves to the correct starting directory, loads initial dirs and sets up
 // previews and inotify watchers.
-void fm_init(Fm *fm);
+void fm_init(Fm *fm, struct lfm_opts *opts);
 
 // Unloads directories and frees all resources.
 void fm_deinit(Fm *fm);

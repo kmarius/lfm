@@ -20,6 +20,17 @@ declare_dlist(list_timer, struct sched_timer);
 declare_dlist(list_child, struct child_watcher);
 struct vec_str; // defined in config.h
 
+// we will free startpath/startfile and commands in lfm
+struct lfm_opts {
+  FILE *log;
+  vec_cstr commands;          // lua commands to run after start
+  const char *lastdir_path;   // output current pwd on exit
+  const char *selection_path; // output selection on open
+  char *startpath;            // override pwd
+  char *startfile;            // move cursor to this file
+  const char *config;         // override config path
+};
+
 typedef struct Lfm {
   Ui ui;
   Fm fm;
@@ -50,13 +61,14 @@ typedef struct Lfm {
 
   vec_message messages;
 
+  struct lfm_opts opts;
+
   int fifo_fd;
-  FILE *log_fp;
   int ret; /* set in lfm_quit and returned in main.c */
 } Lfm;
 
 // Initialize lfm and all its components.
-void lfm_init(Lfm *lfm, FILE *log);
+void lfm_init(Lfm *lfm, struct lfm_opts *opts);
 
 // Deinitialize lfm.
 void lfm_deinit(Lfm *lfm);

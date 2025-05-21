@@ -62,17 +62,19 @@ int main(int argc, char **argv) {
   log_level = LOG_DEBUG;
 #endif
 
+  struct lfm_opts opts = {.log = log};
+
   int opt;
   while ((opt = getopt(argc, argv, ":c:hl:L:s:u:v")) != -1) {
     switch (opt) {
     case 'c':
-      vec_cstr_emplace(&cfg.commands, optarg);
+      vec_cstr_emplace(&opts.commands, optarg);
       break;
     case 'h':
       usage(argv[0]);
       goto cleanup;
     case 'l':
-      cfg.lastdir = optarg;
+      opts.lastdir_path = optarg;
       break;
     case 'L':
       log_level = atoi(optarg);
@@ -84,11 +86,11 @@ int main(int argc, char **argv) {
       }
       break;
     case 's':
-      cfg.selfile = optarg;
+      opts.selection_path = optarg;
       break;
     case 'u':
       // we should print an error if a config is provided here and not found
-      cfg.user_configpath = strdup(optarg);
+      opts.config = optarg;
       break;
     case 'v':
       version(argv[0]);
@@ -112,15 +114,15 @@ int main(int argc, char **argv) {
     struct stat statbuf;
     if (stat(path, &statbuf) == -1) {
       // can't print to Ui yet, maybe pass something to init?
-      log_error("%s: %s", strerror(errno), cfg.startpath);
+      log_error("%s: %s", strerror(errno), opts.startpath);
       xfree(path);
     } else {
       if (!S_ISDIR(statbuf.st_mode)) {
-        cfg.startfile = basename_a(path);
-        cfg.startpath = dirname_a(path);
+        opts.startfile = basename_a(path);
+        opts.startpath = dirname_a(path);
         xfree(path);
       } else {
-        cfg.startpath = path;
+        opts.startpath = path;
       }
     }
   }
@@ -129,7 +131,7 @@ int main(int argc, char **argv) {
 
   srand(time(NULL));
 
-  lfm_init(&lfm, log);
+  lfm_init(&lfm, &opts);
 
   log_info("starting main loop after %.2f ms",
            (current_micros() - t0) / 1000.0);

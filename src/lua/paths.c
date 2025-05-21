@@ -1,4 +1,5 @@
 #include "../config.h"
+#include "private.h"
 
 #include <lauxlib.h>
 #include <lua.h>
@@ -23,7 +24,7 @@ int luaopen_paths(lua_State *L) {
   lua_pushstring(L, cfg.logpath);
   lua_setfield(L, -2, "log");
 
-  const char *path = cfg.user_configpath ? cfg.user_configpath : cfg.configpath;
+  const char *path = lfm->opts.config ? lfm->opts.config : cfg.configpath;
   lua_pushstring(L, path);
   lua_setfield(L, -2, "config");
 

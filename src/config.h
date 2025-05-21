@@ -48,28 +48,23 @@
 #include "stc/hmap.h"
 
 typedef struct config {
-  char *configdir;       // ~/.config/lfm
-  char *configpath;      // ~/.config/lfm/init.lua
-  char *user_configpath; // NULL unless set via commandline
-  char *statedir;        // ~/.local/state/lfm
-  char *historypath;     // ~/.local/state/lfm/history
-  char *datadir;         // /usr/share/lfm
-  char *luadir;          // /usr/share/lfm/lua
-  char *corepath;        // /usr/share/lfm/lua/core.lua
-  char *rundir;          // $XDG_RUNTIME_DIR or /tmp/runtime-$USER
-  char *cachedir;        // $XDG_CACHE_HOME/lfm or ~/.cache/lfm
-  char *fifopath;        // rundir/$PID.fifo
-  char *logpath;         // /tmp/lfm.$PID.log
+  char *configdir;   // ~/.config/lfm
+  char *configpath;  // ~/.config/lfm/init.lua
+  char *statedir;    // ~/.local/state/lfm
+  char *historypath; // ~/.local/state/lfm/history
+  char *datadir;     // /usr/share/lfm
+  char *luadir;      // /usr/share/lfm/lua
+  char *corepath;    // /usr/share/lfm/lua/core.lua
+  char *rundir;      // $XDG_RUNTIME_DIR or /tmp/runtime-$USER
+  char *cachedir;    // $XDG_CACHE_HOME/lfm or ~/.cache/lfm
+  char *fifopath;    // rundir/$PID.fifo
+  char *logpath;     // /tmp/lfm.$PID.log
 
   int histsize;         // 100
   wchar_t truncatechar; // '~'
   char linkchars[16];   // "->"
   char current_char;    // \0, unless 8 color terminal
   int linkchars_len;
-  char *lastdir;
-  char *selfile;
-  char *startpath;
-  char *startfile;
   bool preview;
   bool preview_images;
   char *previewer;
@@ -78,7 +73,6 @@ typedef struct config {
   hmap_icon icon_map;
   uint32_t scrolloff;
   char *timefmt;
-  vec_cstr commands;
   vec_int ratios;
 
   vec_cstr inotify_blacklist;

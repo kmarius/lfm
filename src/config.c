@@ -131,7 +131,6 @@ void config_deinit(void) {
   vec_cstr_drop(&cfg.inotify_blacklist);
   xfree(cfg.configdir);
   xfree(cfg.configpath);
-  xfree(cfg.user_configpath);
   xfree(cfg.corepath);
   xfree(cfg.statedir);
   xfree(cfg.datadir);
@@ -140,8 +139,6 @@ void config_deinit(void) {
   xfree(cfg.historypath);
   xfree(cfg.logpath);
   xfree(cfg.previewer);
-  xfree(cfg.startfile);
-  xfree(cfg.startpath);
   xfree(cfg.luadir);
   xfree(cfg.timefmt);
 }

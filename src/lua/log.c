@@ -56,7 +56,7 @@ static int l_log_fatal(lua_State *L) {
 }
 
 static int l_log_get_level(lua_State *L) {
-  int level = log_get_level_fp(lfm->log_fp);
+  int level = log_get_level_fp(lfm->opts.log);
   lua_pushinteger(L, level);
   return 1;
 }
@@ -65,7 +65,7 @@ static int l_log_set_level(lua_State *L) {
   long level = luaL_checkinteger(L, 1);
   luaL_argcheck(L, level >= LOG_TRACE && level <= LOG_FATAL, 1,
                 "level must be between " STR(LOG_TRACE) " and " STR(LOG_FATAL));
-  log_set_level_fp(lfm->log_fp, level);
+  log_set_level_fp(lfm->opts.log, level);
   log_info("log level set to %d", level);
   return 0;
 }

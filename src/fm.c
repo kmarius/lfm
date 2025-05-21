@@ -39,18 +39,18 @@ static void fm_update_watchers(Fm *fm);
 static void fm_remove_preview(Fm *fm);
 static void fm_populate(Fm *fm);
 
-void fm_init(Fm *fm) {
+void fm_init(Fm *fm, struct lfm_opts *opts) {
   fm->paste.mode = PASTE_MODE_COPY;
 
   ev_timer_init(&fm->cursor_resting_timer, on_cursor_resting, 0,
                 cfg.preview_delay / 1000.0);
   fm->cursor_resting_timer.data = to_lfm(fm);
 
-  if (cfg.startpath) {
-    if (chdir(cfg.startpath) != 0) {
+  if (opts->startpath) {
+    if (chdir(opts->startpath) != 0) {
       lfm_error(to_lfm(fm), "chdir: %s", strerror(errno));
     } else {
-      fm->pwd = strdup(cfg.startpath);
+      fm->pwd = strdup(opts->startpath);
     }
   } else {
     const char *s = getenv("PWD");
@@ -75,8 +75,8 @@ void fm_init(Fm *fm) {
   pathlist_init(&fm->paste.buffer);
 
   fm_populate(fm);
-  if (cfg.startfile) {
-    fm_move_cursor_to(fm, zsview_from(cfg.startfile));
+  if (opts->startfile) {
+    fm_move_cursor_to(fm, zsview_from(opts->startfile));
   }
 
   fm_update_watchers(fm);

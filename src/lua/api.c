@@ -1,5 +1,4 @@
 #include "../cmdline.h"
-#include "../config.h"
 #include "../containers.h"
 #include "../fm.h"
 #include "../history.h"
@@ -322,8 +321,8 @@ static int l_fm_open(lua_State *L) {
   lfm_mode_exit(lfm, "visual");
   File *file = fm_open(fm);
   if (file) {
-    if (cfg.selfile) {
-      fm_selection_write(&lfm->fm, cfg.selfile);
+    if (lfm->opts.selection_path) {
+      fm_selection_write(&lfm->fm, lfm->opts.selection_path);
       return lua_quit(L, lfm);
     }
 

@@ -201,19 +201,21 @@ static void prepare_cb(EV_P_ ev_prepare *w, int revents) {
   (void)revents;
   Lfm *lfm = w->data;
 
-  c_foreach(it, vec_cstr, cfg.commands) {
+  vec_cstr commands = vec_cstr_move(&lfm->opts.commands);
+  c_foreach(it, vec_cstr, commands) {
     llua_eval_cstr(lfm->L, *it.ref);
   }
-  vec_cstr_drop(&cfg.commands);
+  vec_cstr_drop(&commands);
 
-  c_foreach(it, vec_message, lfm->messages) {
+  vec_message messages = vec_message_move(&lfm->messages);
+  c_foreach(it, vec_message, messages) {
     if (it.ref->error) {
       lfm_error(lfm, "%s", it.ref->text);
     } else {
       lfm_print(lfm, "%s", it.ref->text);
     }
   }
-  vec_message_drop(&lfm->messages);
+  vec_message_drop(&messages);
 
   lfm_run_hook(lfm, LFM_HOOK_ENTER);
   ev_prepare_stop(EV_A_ w);
@@ -356,9 +358,9 @@ static inline void init_loop(Lfm *lfm) {
   lfm->loop = ev_default_loop(EVFLAG_NOENV);
 }
 
-void lfm_init(Lfm *lfm, FILE *log) {
+void lfm_init(Lfm *lfm, struct lfm_opts *opts) {
   memset(lfm, 0, sizeof *lfm);
-  lfm->log_fp = log;
+  lfm->opts = *opts;
 
   init_loop(lfm);
   init_dirs(lfm);
@@ -368,7 +370,7 @@ void lfm_init(Lfm *lfm, FILE *log) {
   notify_init(&lfm->notify);
   loader_init(&lfm->loader);
   async_init(&lfm->async);
-  fm_init(&lfm->fm);
+  fm_init(&lfm->fm, &lfm->opts);
   ui_init(&lfm->ui);
   setup_signal_handlers(lfm);
   lfm_hooks_init(lfm);
@@ -394,6 +396,9 @@ void lfm_deinit(Lfm *lfm) {
   lfm_lua_deinit(lfm);
   async_deinit(&lfm->async);
   deinit_fifo(lfm);
+
+  xfree(lfm->opts.startfile);
+  xfree(lfm->opts.startpath);
 }
 
 int lfm_run(Lfm *lfm) {
@@ -409,8 +414,8 @@ void lfm_quit(Lfm *lfm, int ret) {
   lfm->ui.running = false;
   lfm->ret = ret;
 
-  if (cfg.lastdir) {
-    FILE *fp = fopen(cfg.lastdir, "w");
+  if (lfm->opts.lastdir_path) {
+    FILE *fp = fopen(lfm->opts.lastdir_path, "w");
     if (!fp) {
       log_error("lastdir: %s", strerror(errno));
     } else {

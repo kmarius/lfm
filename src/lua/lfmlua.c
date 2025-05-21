@@ -196,8 +196,8 @@ void lfm_lua_init(Lfm *lfm_) {
   llua_init_packages(L);
 
   uint64_t t0 = current_micros();
-  if (cfg.user_configpath) {
-    llua_load_file(L, cfg.user_configpath, true);
+  if (lfm->opts.config) {
+    llua_load_file(L, lfm->opts.config, true);
   } else {
     llua_load_file(L, cfg.configpath, false);
   }
