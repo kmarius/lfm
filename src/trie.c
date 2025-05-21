@@ -52,8 +52,8 @@ int trie_remove(Trie *t, const input_t *trie_keys) {
     return 0;
   }
   if (*trie_keys == 0) {
-    XFREE_CLEAR(t->keys);
-    XFREE_CLEAR(t->desc);
+    cstr_clear(&t->keys);
+    cstr_clear(&t->desc);
     int oldref = t->ref;
     t->ref = 0;
     return oldref;
