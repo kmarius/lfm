@@ -3,9 +3,11 @@
 #include "log.h"
 #include "memory.h"
 #include "path.h"
+#include "stc/cstr.h"
 #include "util.h"
 
 #include <errno.h>
+#include <linux/limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -15,16 +17,19 @@
 #define i_type _history_list
 #define i_key struct history_entry
 #define i_no_clone
-#define i_keydrop(p) free(p->prefix)
+#define i_keydrop(p) (cstr_drop(&p->line), cstr_drop(&p->prefix))
 #define i_noclone
 #include "stc/dlist.h"
 
 #define i_declared
 #define i_type _history_hmap
-#define i_key const char *
+#define i_key cstr
+#define i_keyraw zsview
+#define i_keyfrom cstr_from_zv
+#define i_keytoraw cstr_zv
 #define i_val _history_list_node *
-#define i_hash cstr_raw_hash
-#define i_eq(p, q) (!strcmp(*(p), *(q)))
+#define i_hash zsview_hash
+#define i_eq zsview_eq
 #include "stc/hmap.h"
 
 /* TODO: signal errors on load/write (on 2021-10-23) */
@@ -33,74 +38,69 @@
 // returns true on append, false on move to back
 static inline bool append_or_move(History *self, struct history_entry e) {
   struct history_entry *entry = _history_list_push_back(&self->list, e);
-  _history_hmap_iter it = _history_hmap_find(&self->map, e.line);
+  _history_hmap_iter it = _history_hmap_find(&self->map, cstr_zv(&e.line));
   if (it.ref) {
     _history_list_erase_node(&self->list, it.ref->second);
-    it.ref->first = (char *)entry->line;
+    it.ref->first = entry->line;
     it.ref->second = _history_list_get_node(entry);
   } else {
-    _history_hmap_insert(&self->map, (char *)entry->line,
+    _history_hmap_insert(&self->map, entry->line,
                          _history_list_get_node(entry));
   }
   return it.ref == NULL;
 }
 
 // don't call this on loaded history.
-void history_load(History *h, const char *path) {
+void history_load(History *h, zsview path) {
   memset(h, 0, sizeof *h);
 
-  FILE *fp = fopen(path, "r");
-  if (!fp) {
+  FILE *fp = fopen(path.str, "r");
+  if (fp == NULL) {
     return;
   }
 
   ssize_t read;
   size_t n;
-  char *line = NULL;
+  char *buf = NULL;
 
-  while ((read = getline(&line, &n, fp)) != -1) {
-    if (line[read - 1] == '\n') {
-      line[read - 1] = 0;
+  while ((read = getline(&buf, &n, fp)) != -1) {
+    if (buf[read - 1] == '\n') {
+      buf[--read] = 0;
     }
-    char *tab = strchr(line, '\t');
-    if (!tab) {
-      log_error("missing tab in history item: %s", line);
-      xfree(line);
-      line = NULL;
+    char *sep = strchr(buf, '\t');
+    if (sep == NULL) {
+      log_error("missing tab in history item: %s", buf);
       continue;
     }
-    *tab = 0;
+    int pos = sep - buf;
 
-    append_or_move(h, (struct history_entry){
-                          .prefix = line,
-                          .line = tab + 1,
-                      });
+    cstr prefix = cstr_with_n(buf, pos);
+    cstr line = cstr_with_n(sep + 1, read - pos - 1);
 
-    line = NULL;
+    append_or_move(h, (struct history_entry){.prefix = prefix, .line = line});
   }
-  xfree(line);
+  xfree(buf);
 
   fclose(fp);
   log_trace("%d history entries loaded", _history_hmap_size(&h->map));
   assert(_history_list_count(&h->list) == _history_hmap_size(&h->map));
 }
 
-void history_write(History *h, const char *path, int histsize) {
-  char *dir = dirname_a(path);
+void history_write(History *h, zsview path, int histsize) {
+  char *dir = dirname_s(path.str);
   mkdir_p(dir, 755);
-  xfree(dir);
 
-  char *path_new;
-  asprintf(&path_new, "%s.XXXXXX", path);
+  char path_new[PATH_MAX + 1];
+  snprintf(path_new, sizeof path_new - 1, "%s.XXXXXX", path.str);
   int fd = mkstemp(path_new);
   if (fd < 0) {
     log_error("mkstemp: %s", strerror(errno));
-    goto cleanup;
+    return;
   }
   FILE *fp_new = fdopen(fd, "w");
-  if (!fp_new) {
+  if (fp_new == NULL) {
     log_error("fdopen: %s", strerror(errno));
-    goto cleanup;
+    return;
   }
 
   // We we read the history again here because another instace might have saved
@@ -111,7 +111,7 @@ void history_write(History *h, const char *path, int histsize) {
   int num_lines_written = 0;
 
   if (num_keep_old > 0) {
-    FILE *fp_old = fopen(path, "r");
+    FILE *fp_old = fopen(path.str, "r");
     if (fp_old) {
       int num_old_lines = 0;
       int c;
@@ -162,18 +162,15 @@ void history_write(History *h, const char *path, int histsize) {
       if (!e->is_new) {
         continue;
       }
-      fputs(e->prefix, fp_new);
+      fwrite(cstr_str(&e->prefix), 1, cstr_size(&e->prefix), fp_new);
       fputc('\t', fp_new);
-      fputs(e->line, fp_new);
+      fwrite(cstr_str(&e->line), 1, cstr_size(&e->line), fp_new);
       fputc('\n', fp_new);
     }
   }
   fclose(fp_new);
 
-  rename(path_new, path);
-
-cleanup:
-  xfree(path_new);
+  rename(path_new, path.str);
 }
 
 void history_deinit(History *h) {
@@ -181,34 +178,31 @@ void history_deinit(History *h) {
   _history_hmap_drop(&h->map);
 }
 
-void history_append(History *h, const char *prefix, const char *line) {
-  _history_hmap_iter it = _history_hmap_find(&h->map, line);
-  if (it.ref) {
-    if (it.ref->second->value.is_new) {
-      // existing value that was already counted as new, will be re-inserted as
-      // new
-      h->num_new_entries--;
+void history_append(History *h, zsview prefix, zsview line) {
+  {
+    _history_hmap_iter it = _history_hmap_find(&h->map, line);
+    if (it.ref) {
+      if (it.ref->second->value.is_new) {
+        // existing value that was already counted as new, will be re-inserted
+        // as new
+        h->num_new_entries--;
+      }
+      _history_list_erase_node(&h->list, it.ref->second);
+      _history_hmap_erase_at(&h->map, it);
     }
-    _history_list_erase_node(&h->list, it.ref->second);
-    _history_hmap_erase_at(&h->map, it);
   }
 
   h->num_new_entries++;
 
-  int prefix_len = strlen(prefix);
-  char *prefix_ = xmalloc(prefix_len + strlen(line) + 2);
-  char *line_ = prefix_ + prefix_len + 1;
-  strcpy(prefix_, prefix);
-  strcpy(prefix_ + prefix_len + 1, line);
+  cstr line2 = cstr_from_zv(line);
 
   struct history_entry *entry =
       _history_list_push_back(&h->list, (struct history_entry){
                                             .is_new = true,
-                                            .prefix = prefix_,
-                                            .line = line_,
+                                            .prefix = cstr_from_zv(prefix),
+                                            .line = line2,
                                         });
-  _history_hmap_insert(&h->map, (const char *)line,
-                       _history_list_get_node(entry));
+  _history_hmap_insert(&h->map, line2, _history_list_get_node(entry));
 
   history_reset(h);
 }
@@ -217,7 +211,7 @@ void history_reset(History *h) {
   h->cur.ref = NULL;
 }
 
-const char *history_prev(History *h) {
+zsview history_prev(History *h) {
   if (!h->cur.ref) {
     h->cur = _history_list_last(&h->list);
   } else {
@@ -227,24 +221,24 @@ const char *history_prev(History *h) {
   }
 
   if (!h->cur.ref) {
-    return NULL;
+    return c_zv("");
   }
 
-  return h->cur.ref->line;
+  return cstr_zv(&h->cur.ref->line);
 }
 
-const char *history_next_entry(History *h) {
+zsview history_next_entry(History *h) {
   if (!h->cur.ref) {
-    return NULL;
+    return c_zv("");
   }
 
   _history_list_next(&h->cur);
 
   if (!h->cur.ref) {
-    return NULL;
+    return c_zv("");
   }
 
-  return h->cur.ref->line;
+  return cstr_zv(&h->cur.ref->line);
 }
 
 size_t history_size(History *self) {

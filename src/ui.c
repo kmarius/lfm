@@ -696,15 +696,15 @@ static void draw_file(struct ncplane *n, const File *file, bool iscurrent,
       break;
     case INFO_ATIME: {
       struct tm *tm = localtime(&file->stat.st_atim.tv_sec);
-      strftime(info, sizeof info, cfg.timefmt, tm);
+      strftime(info, sizeof info, cstr_str(&cfg.timefmt), tm);
     } break;
     case INFO_CTIME: {
       struct tm *tm = localtime(&file->stat.st_ctim.tv_sec);
-      strftime(info, sizeof info, cfg.timefmt, tm);
+      strftime(info, sizeof info, cstr_str(&cfg.timefmt), tm);
     } break;
     case INFO_MTIME: {
       struct tm *tm = localtime(&file->stat.st_mtim.tv_sec);
-      strftime(info, sizeof info, cfg.timefmt, tm);
+      strftime(info, sizeof info, cstr_str(&cfg.timefmt), tm);
     } break;
     case NUM_FILEINFO:
     default: {

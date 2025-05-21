@@ -54,7 +54,7 @@ int main(int argc, char **argv) {
 
   config_init();
 
-  FILE *log = fopen(cfg.logpath, "w");
+  FILE *log = fopen(cstr_str(&cfg.logpath), "w");
   log_set_quiet(true);
   int log_level = LOG_INFO;
 

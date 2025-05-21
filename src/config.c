@@ -1,17 +1,14 @@
 #include "config.h"
 
 #include "containers.h"
-#include "memory.h"
 #include "ncutil.h"
 #include "notify.h"
 #include "stc/cstr.h"
-#include "util.h"
 
 #include <ncurses.h> // COLOR_ constants
 #include <notcurses/notcurses.h>
 
 #include <stdlib.h>
-#include <string.h>
 
 #include <linux/limits.h>
 
@@ -58,53 +55,53 @@ Config cfg = {
 void config_init(void) {
   const char *xdg_runtime = getenv("XDG_RUNTIME_DIR");
   if (!xdg_runtime || *xdg_runtime == 0) {
-    asprintf(&cfg.rundir, "/tmp/runtime-%s/lfm", getenv("USER"));
+    cstr_printf(&cfg.rundir, "/tmp/runtime-%s/lfm", getenv("USER"));
   } else {
-    asprintf(&cfg.rundir, "%s/lfm", xdg_runtime);
+    cstr_printf(&cfg.rundir, "%s/lfm", xdg_runtime);
   }
 
   const char *xdg_cache = getenv("XDG_CACHE_HOME");
   if (!xdg_cache || *xdg_cache == 0) {
-    asprintf(&cfg.cachedir, "%s/.cache/lfm", getenv("HOME"));
+    cstr_printf(&cfg.cachedir, "%s/.cache/lfm", getenv("HOME"));
   } else {
-    asprintf(&cfg.cachedir, "%s/lfm", xdg_cache);
+    cstr_printf(&cfg.cachedir, "%s/lfm", xdg_cache);
   }
 
   const char *xdg_config = getenv("XDG_CONFIG_HOME");
   if (!xdg_config || *xdg_config == 0) {
-    asprintf(&cfg.configdir, "%s/.config/lfm", getenv("HOME"));
+    cstr_printf(&cfg.configdir, "%s/.config/lfm", getenv("HOME"));
   } else {
-    asprintf(&cfg.configdir, "%s/lfm", xdg_config);
+    cstr_printf(&cfg.configdir, "%s/lfm", xdg_config);
   }
 
   const char *xdg_state = getenv("XDG_STATE_HOME");
   if (!xdg_state || *xdg_state == 0) {
-    asprintf(&cfg.statedir, "%s/.local/state/lfm", getenv("HOME"));
+    cstr_printf(&cfg.statedir, "%s/.local/state/lfm", getenv("HOME"));
   } else {
-    asprintf(&cfg.statedir, "%s/lfm", xdg_state);
+    cstr_printf(&cfg.statedir, "%s/lfm", xdg_state);
   }
 
-  cfg.datadir = strdup(default_data_dir);
+  cfg.datadir = cstr_from(default_data_dir);
 
-  asprintf(&cfg.configpath, "%s/init.lua", cfg.configdir);
+  cstr_printf(&cfg.configpath, "%s/init.lua", cstr_str(&cfg.configdir));
 
-  asprintf(&cfg.historypath, "%s/history", cfg.statedir);
+  cstr_printf(&cfg.historypath, "%s/history", cstr_str(&cfg.statedir));
 
-  cfg.luadir = strdup(default_lua_dir);
+  cfg.luadir = cstr_from(default_lua_dir);
 
-  asprintf(&cfg.corepath, "%s/lfm/core.lua", cfg.luadir);
+  cstr_printf(&cfg.corepath, "%s/lfm/core.lua", cstr_str(&cfg.luadir));
 
-  cfg.timefmt = strdup("%Y-%m-%d %H:%M");
+  cfg.timefmt = cstr_lit("%Y-%m-%d %H:%M");
 
 #ifdef DEBUG
-  cfg.logpath = strdup("/tmp/lfm.debug.log");
-  asprintf(&cfg.fifopath, "%s/debug.fifo", cfg.rundir);
+  cfg.logpath = cstr_lit("/tmp/lfm.debug.log");
+  cstr_printf(&cfg.fifopath, "%s/debug.fifo", cstr_str(&cfg.rundir));
 #else
-  asprintf(&cfg.fifopath, "%s/%d.fifo", cfg.rundir, getpid());
-  asprintf(&cfg.logpath, "/tmp/lfm.%d.log", getpid());
+  cstr_printf(&cfg.fifopath, "%s/%d.fifo", cfg.rundir, getpid());
+  cstr_printf(&cfg.logpath, "/tmp/lfm.%d.log", getpid());
 #endif
 
-  cstr_printf(&cfg.previewer,"%s/runtime/preview.sh", default_data_dir);
+  cstr_printf(&cfg.previewer, "%s/runtime/preview.sh", default_data_dir);
   cfg.preview = true;
 
   vec_int_reserve(&cfg.ratios, 3);
@@ -135,18 +132,18 @@ void config_deinit(void) {
   hmap_dirsetting_drop(&cfg.dir_settings_map);
   vec_int_drop(&cfg.ratios);
   vec_cstr_drop(&cfg.inotify_blacklist);
-  xfree(cfg.configdir);
-  xfree(cfg.configpath);
-  xfree(cfg.corepath);
-  xfree(cfg.statedir);
-  xfree(cfg.datadir);
-  xfree(cfg.cachedir);
-  xfree(cfg.fifopath);
-  xfree(cfg.historypath);
-  xfree(cfg.logpath);
+  cstr_drop(&cfg.configdir);
+  cstr_drop(&cfg.configpath);
+  cstr_drop(&cfg.corepath);
+  cstr_drop(&cfg.statedir);
+  cstr_drop(&cfg.datadir);
+  cstr_drop(&cfg.cachedir);
+  cstr_drop(&cfg.fifopath);
+  cstr_drop(&cfg.historypath);
+  cstr_drop(&cfg.logpath);
   cstr_drop(&cfg.previewer);
-  xfree(cfg.luadir);
-  xfree(cfg.timefmt);
+  cstr_drop(&cfg.luadir);
+  cstr_drop(&cfg.timefmt);
 }
 
 void config_colors_clear(void) {

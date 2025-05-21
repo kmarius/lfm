@@ -6,15 +6,14 @@
 #include <stddef.h>
 
 struct history_entry {
-  char *prefix;     // .prefix contains an allocated string including the actual
-                    // line
-  const char *line; // points to right after the first nul byte of .prefix
-  bool is_new;      // true if this item is new and not previously read from the
-                    // history file
+  cstr prefix; // small string optimized, this is fine
+  cstr line;
+  bool is_new; // true if this item is new and not previously read from the
+               // history file
 };
 
 declare_dlist(_history_list, struct history_entry);
-declare_hmap(_history_hmap, const char *, _history_list_node *);
+declare_hmap(_history_hmap, cstr, _history_list_node *);
 typedef _history_list_iter history_iter;
 
 typedef struct History {
@@ -29,18 +28,18 @@ typedef struct History {
 /*
  * Initialize a history object and load history from file `path`.
  */
-void history_load(History *h, const char *path);
+void history_load(History *h, zsview path);
 
 /*
  * Write history to file `path`.
  */
-void history_write(History *h, const char *path, int histsize);
+void history_write(History *h, zsview path, int histsize);
 
 /*
  * Append a line to the history. Duplicates are eliminated and only the newest
  * item is kept. Invalidates all iterators.
  */
-void history_append(History *h, const char *prefix, const char *line);
+void history_append(History *h, zsview prefix, zsview line);
 
 /*
  * Reset the `cur` pointer into the history.
@@ -55,12 +54,12 @@ void history_deinit(History *h);
 /*
  * Get the next history item relative to the `cur` pointer and increment it.
  */
-const char *history_next_entry(History *h);
+zsview history_next_entry(History *h);
 
 /*
  * Get the previous history item relative to the `cur` pointer and decrement it.
  */
-const char *history_prev(History *h);
+zsview history_prev(History *h);
 
 /*
  * Get the number of lines in the history object.

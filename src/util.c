@@ -1,6 +1,7 @@
 #include "util.h"
 
 #include "memory.h"
+#include "stc/cstr.h"
 
 #include <magic.h>
 

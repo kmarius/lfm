@@ -199,7 +199,7 @@ void lfm_lua_init(Lfm *lfm_) {
   if (lfm->opts.config) {
     llua_load_file(L, lfm->opts.config, true);
   } else {
-    llua_load_file(L, cfg.configpath, false);
+    llua_load_file(L, cstr_str(&cfg.configpath), false);
   }
   log_info("user configuration loaded in %.2fms",
            (current_micros() - t0) / 1000.0);

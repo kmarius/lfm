@@ -68,7 +68,7 @@ void cmdline_init(Cmdline *c) {
   VSTR_INIT(c->right, 8);
   VSTR_INIT(c->buf, 8);
   c->overwrite = false;
-  history_load(&c->history, cfg.historypath);
+  history_load(&c->history, cstr_zv(&cfg.historypath));
 }
 
 void cmdline_deinit(Cmdline *c) {
@@ -76,7 +76,7 @@ void cmdline_deinit(Cmdline *c) {
     return;
   }
 
-  history_write(&c->history, cfg.historypath, cfg.histsize);
+  history_write(&c->history, cstr_zv(&cfg.historypath), cfg.histsize);
   history_deinit(&c->history);
 
   fputs("\033[2 q", stdout);

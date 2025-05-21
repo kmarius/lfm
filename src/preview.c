@@ -149,24 +149,28 @@ static inline void lines_from_stream(vec_cstr *vec, FILE *file, int max_lines) {
   funlockfile(file);
 }
 
-// caller must should probably just pass a buffer of size PATH_MAX
+// caller must pass a buffer of size PATH_MAX
 static inline int gen_cache_path(zsview path, char *buf, size_t buflen) {
   uint8_t hash[32];
   SHA256_CTX ctx;
   sha256_init(&ctx);
   sha256_update(&ctx, (uint8_t *)path.str, path.size);
   sha256_final(&ctx, hash);
-  unsigned int j = snprintf(buf, buflen - 1, "%s/", cfg.cachedir);
-  if (j + 32 >= buflen) {
+
+  size_t len = cstr_size(&cfg.cachedir);
+  memcpy(buf, cstr_str(&cfg.cachedir), len);
+  buf[len++] = '/';
+
+  if (len + 32 >= buflen) {
     return -1;
   }
   for (size_t i = 0; i < 32; i++) {
     const char upper = hash[i] >> 4;
     const char lower = hash[i] & 0x0f;
-    buf[j++] = lower < 10 ? '0' + lower : 'a' + lower - 10;
-    buf[j++] = upper < 10 ? '0' + upper : 'a' + upper - 10;
+    buf[len++] = lower < 10 ? '0' + lower : 'a' + lower - 10;
+    buf[len++] = upper < 10 ? '0' + upper : 'a' + upper - 10;
   }
-  buf[j] = 0;
+  buf[len] = 0;
   return 0;
 }
 

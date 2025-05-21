@@ -33,17 +33,17 @@
 #include "stc/hmap.h"
 
 typedef struct config {
-  char *configdir;   // ~/.config/lfm
-  char *configpath;  // ~/.config/lfm/init.lua
-  char *statedir;    // ~/.local/state/lfm
-  char *historypath; // ~/.local/state/lfm/history
-  char *datadir;     // /usr/share/lfm
-  char *luadir;      // /usr/share/lfm/lua
-  char *corepath;    // /usr/share/lfm/lua/core.lua
-  char *rundir;      // $XDG_RUNTIME_DIR or /tmp/runtime-$USER
-  char *cachedir;    // $XDG_CACHE_HOME/lfm or ~/.cache/lfm
-  char *fifopath;    // rundir/$PID.fifo
-  char *logpath;     // /tmp/lfm.$PID.log
+  cstr configdir;   // ~/.config/lfm
+  cstr configpath;  // ~/.config/lfm/init.lua
+  cstr statedir;    // ~/.local/state/lfm
+  cstr historypath; // ~/.local/state/lfm/history
+  cstr datadir;     // /usr/share/lfm
+  cstr luadir;      // /usr/share/lfm/lua
+  cstr corepath;    // /usr/share/lfm/lua/core.lua
+  cstr rundir;      // $XDG_RUNTIME_DIR or /tmp/runtime-$USER
+  cstr cachedir;    // $XDG_CACHE_HOME/lfm or ~/.cache/lfm
+  cstr fifopath;    // rundir/$PID.fifo
+  cstr logpath;     // /tmp/lfm.$PID.log
 
   int histsize;         // 100
   wchar_t truncatechar; // '~'
@@ -57,7 +57,7 @@ typedef struct config {
   bool icons;
   hmap_icon icon_map;
   uint32_t scrolloff;
-  char *timefmt;
+  cstr timefmt;
   vec_int ratios;
 
   vec_cstr inotify_blacklist;

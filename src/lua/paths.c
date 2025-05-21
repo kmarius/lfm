@@ -18,29 +18,30 @@ static const struct luaL_Reg paths_mt[] = {{"__newindex", l_paths_newindex},
 int luaopen_paths(lua_State *L) {
   lua_newtable(L);
 
-  lua_pushstring(L, cfg.fifopath);
+  lua_pushcstr(L, &cfg.fifopath);
   lua_setfield(L, -2, "fifo");
 
-  lua_pushstring(L, cfg.logpath);
+  lua_pushcstr(L, &cfg.logpath);
   lua_setfield(L, -2, "log");
 
-  const char *path = lfm->opts.config ? lfm->opts.config : cfg.configpath;
+  const char *path =
+      lfm->opts.config ? lfm->opts.config : cstr_str(&cfg.configpath);
   lua_pushstring(L, path);
   lua_setfield(L, -2, "config");
 
-  lua_pushstring(L, cfg.configdir);
+  lua_pushcstr(L, &cfg.configdir);
   lua_setfield(L, -2, "config_dir");
 
-  lua_pushstring(L, cfg.luadir);
+  lua_pushcstr(L, &cfg.luadir);
   lua_setfield(L, -2, "lua_dir");
 
-  lua_pushstring(L, cfg.datadir);
+  lua_pushcstr(L, &cfg.datadir);
   lua_setfield(L, -2, "data_dir");
 
-  lua_pushstring(L, cfg.statedir);
+  lua_pushcstr(L, &cfg.statedir);
   lua_setfield(L, -2, "state_dir");
 
-  lua_pushstring(L, cfg.rundir);
+  lua_pushcstr(L, &cfg.rundir);
   lua_setfield(L, -2, "runtime_dir");
 
   luaL_newmetatable(L, PATHS_META);

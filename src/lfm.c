@@ -277,15 +277,15 @@ static void sigpipe_cb(EV_P_ ev_signal *w, int revents) {
 
 static inline void init_dirs(Lfm *lfm) {
   (void)lfm;
-  if (mkdir_p(cfg.rundir, 0700) == -1 && errno != EEXIST) {
+  if (mkdir_p(cstr_data(&cfg.rundir), 0700) == -1 && errno != EEXIST) {
     fprintf(stderr, "mkdir: %s", strerror(errno));
     exit(EXIT_FAILURE);
   }
-  if (mkdir_p(cfg.statedir, 0700) == -1 && errno != EEXIST) {
+  if (mkdir_p(cstr_data(&cfg.statedir), 0700) == -1 && errno != EEXIST) {
     fprintf(stderr, "mkdir: %s", strerror(errno));
     exit(EXIT_FAILURE);
   }
-  if (mkdir_p(cfg.cachedir, 0700) == -1 && errno != EEXIST) {
+  if (mkdir_p(cstr_data(&cfg.cachedir), 0700) == -1 && errno != EEXIST) {
     fprintf(stderr, "mkdir: %s", strerror(errno));
     exit(EXIT_FAILURE);
   }
@@ -294,16 +294,17 @@ static inline void init_dirs(Lfm *lfm) {
 static inline void init_fifo(Lfm *lfm) {
   log_trace("setting up fifo");
 
-  if ((mkfifo(cfg.fifopath, 0600) == -1 && errno != EEXIST)) {
+  if ((mkfifo(cstr_str(&cfg.fifopath), 0600) == -1 && errno != EEXIST)) {
     fprintf(stderr, "mkfifo: %s", strerror(errno));
     exit(EXIT_FAILURE);
   }
-  if ((lfm->fifo_fd = open(cfg.fifopath, O_RDWR | O_NONBLOCK, 0)) == -1) {
+  if ((lfm->fifo_fd = open(cstr_str(&cfg.fifopath), O_RDWR | O_NONBLOCK, 0)) ==
+      -1) {
     fprintf(stderr, "open: %s", strerror(errno));
     exit(EXIT_FAILURE);
   }
 
-  setenv("LFMFIFO", cfg.fifopath, 1);
+  setenv("LFMFIFO", cstr_str(&cfg.fifopath), 1);
 
   ev_io_init(&lfm->fifo_watcher, fifo_cb, lfm->fifo_fd, EV_READ);
   lfm->fifo_watcher.data = lfm;
@@ -312,7 +313,7 @@ static inline void init_fifo(Lfm *lfm) {
 
 static inline void deinit_fifo(Lfm *lfm) {
   close(lfm->fifo_fd);
-  remove(cfg.fifopath);
+  remove(cstr_str(&cfg.fifopath));
 }
 
 static inline void setup_signal_handlers(Lfm *lfm) {

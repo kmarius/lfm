@@ -194,7 +194,7 @@ static int l_config_index(lua_State *L) {
     lua_pushstring(L, cfg.linkchars);
     return 1;
   } else if (streq(key, "timefmt")) {
-    lua_pushstring(L, cfg.timefmt);
+    lua_pushcstr(L, &cfg.timefmt);
     return 1;
   } else if (streq(key, "preview_delay")) {
     lua_pushnumber(L, cfg.preview_delay);
@@ -347,9 +347,9 @@ static int l_config_newindex(lua_State *L) {
     cfg.linkchars_len = ansi_mblen(val);
     ui_redraw(ui, REDRAW_FM);
   } else if (streq(key, "timefmt")) {
-    const char *val = luaL_checkstring(L, 3);
-    xfree(cfg.timefmt);
-    cfg.timefmt = strdup(val);
+    luaL_checktype(L, 3, LUA_TSTRING);
+    zsview fmt = lua_tozsview(L, 3);
+    cstr_assign_zv(&cfg.timefmt, fmt);
     ui_redraw(ui, REDRAW_FM);
   } else if (streq(key, "preview_delay")) {
     int delay = luaL_checkinteger(L, 3);

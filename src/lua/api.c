@@ -150,26 +150,27 @@ static int l_cmd_end(lua_State *L) {
 }
 
 static int l_cmd_history_append(lua_State *L) {
-  history_append(&ui->cmdline.history, luaL_checkstring(L, 1),
-                 luaL_checkstring(L, 2));
+  luaL_checktype(L, 1, LUA_TSTRING);
+  luaL_checktype(L, 2, LUA_TSTRING);
+  history_append(&ui->cmdline.history, lua_tozsview(L, 1), lua_tozsview(L, 2));
   return 0;
 }
 
 static int l_cmd_history_prev(lua_State *L) {
-  const char *line = history_prev(&ui->cmdline.history);
-  if (!line) {
+  zsview line = history_prev(&ui->cmdline.history);
+  if (zsview_is_empty(line)) {
     return 0;
   }
-  lua_pushstring(L, line);
+  lua_pushzsview(L, line);
   return 1;
 }
 
 static int l_cmd_history_next(lua_State *L) {
-  const char *line = history_next_entry(&ui->cmdline.history);
-  if (!line) {
+  zsview line = history_next_entry(&ui->cmdline.history);
+  if (zsview_is_empty(line)) {
     return 0;
   }
-  lua_pushstring(L, line);
+  lua_pushzsview(L, line);
   return 1;
 }
 
@@ -177,7 +178,7 @@ static int l_cmd_get_history(lua_State *L) {
   int i = history_size(&ui->cmdline.history);
   lua_createtable(L, i, 0);
   c_foreach(it, history, lfm->ui.cmdline.history) {
-    lua_pushstring(L, it.ref->line);
+    lua_pushcstr(L, &it.ref->line);
     lua_rawseti(L, -2, i--);
   }
   return 1;
