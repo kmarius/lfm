@@ -1,7 +1,6 @@
 #pragma once
 
 #include "cmdline.h"
-#include "memory.h"
 #include "preview.h"
 #include "spinner.h"
 #include "trie.h"
@@ -92,6 +91,7 @@ typedef struct Ui {
   bool menu_visible;
   ev_timer menu_delay_timer;
   ev_timer map_clear_timer;
+  ev_timer map_suggestion_timer;
   ev_timer preview_load_timer;
   struct spinner spinner;
 
@@ -131,6 +131,7 @@ void ui_verror(Ui *ui, const char *format, va_list args);
 
 void ui_vechom(Ui *ui, const char *format, va_list args);
 
+// takes ownership ov vec, if passed
 void ui_menu_show(Ui *ui, vec_cstr *vec, uint32_t delay);
 
 static inline void ui_menu_hide(Ui *ui) {

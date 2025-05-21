@@ -231,3 +231,31 @@ bool valgrind_active(void) {
   }
   return (strstr(preload, "/valgrind/") || strstr(preload, "/vgpreload"));
 }
+
+int strcasecmp_strict(const char *s1, const char *s2) {
+  while (*s1 && *s2) {
+    char c1 = *s1;
+    char c2 = *s2;
+
+    char lower1 = tolower((unsigned char)c1);
+    char lower2 = tolower((unsigned char)c2);
+
+    if (lower1 != lower2) {
+      return (unsigned char)lower1 - (unsigned char)lower2;
+    }
+
+    if (c1 != c2) {
+      if (isupper((unsigned char)c1) && islower((unsigned char)c2)) {
+        return 1;
+      } else if (islower((unsigned char)c1) && isupper((unsigned char)c2)) {
+        return -1;
+      }
+    }
+
+    s1++;
+    s2++;
+  }
+
+  // End of one or both strings
+  return (unsigned char)*s1 - (unsigned char)*s2;
+}

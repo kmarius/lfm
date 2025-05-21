@@ -2,6 +2,9 @@
 
 #include "keys.h"
 #include "stc/cstr.h"
+#include "util.h"
+
+#include <strings.h>
 
 // Stores key-values of input_t* -> int. Can't store 0 because it signals that a
 // node is empty.
@@ -18,7 +21,10 @@ typedef struct Trie {
   };
 } Trie;
 
+// we can sort the vector before showing suggestions on the ui
 #define i_type vec_trie, Trie *
+#define i_cmp(l, r)                                                            \
+  (strcasecmp_strict(cstr_str(&(*l)->keys), cstr_str(&(*r)->keys)))
 #include "stc/vec.h"
 
 // Allocate a new trie root.

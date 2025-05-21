@@ -2,6 +2,7 @@
 
 #include "cmdline.h"
 #include "config.h"
+#include "containers.h"
 #include "fm.h"
 #include "hooks.h"
 #include "keys.h"
@@ -22,13 +23,18 @@
 #include <wctype.h>
 
 static void map_clear_timer_cb(EV_P_ ev_timer *w, int revents);
+static void map_suggestion_timer_cb(EV_P_ ev_timer *w, int revents);
 static void stdin_cb(EV_P_ ev_io *w, int revents);
-void input_resume(Lfm *lfm);
 
 void input_init(Lfm *lfm) {
+  lfm->ui.input_watcher.data = lfm;
+
   ev_timer_init(&lfm->ui.map_clear_timer, map_clear_timer_cb, 0, 0);
   lfm->ui.map_clear_timer.data = lfm;
-  lfm->ui.input_watcher.data = lfm;
+
+  ev_timer_init(&lfm->ui.map_suggestion_timer, map_suggestion_timer_cb, 0, 0);
+  lfm->ui.map_suggestion_timer.data = lfm;
+
   macros_init();
 }
 
@@ -124,6 +130,7 @@ void input_handle_key(Lfm *lfm, input_t in) {
   }
 
   ev_timer_stop(lfm->loop, &lfm->ui.map_clear_timer);
+  ev_timer_stop(lfm->loop, &lfm->ui.map_suggestion_timer);
   if (lfm->current_mode->input) {
     if (!lfm->ui.maps.cur && !lfm->ui.maps.cur_input) {
       // reset the buffer/trie only if no mode map and no input map are possible
@@ -251,26 +258,12 @@ void input_handle_key(Lfm *lfm, input_t in) {
       ui_redraw(ui, REDRAW_CMDLINE);
       lfm->ui.maps.accept_count = false;
 
-      vec_trie maps = trie_collect_leaves(lfm->ui.maps.cur, true);
-
-      vec_cstr menu = vec_cstr_init();
-
-      // bold header
-      vec_cstr_emplace(&menu, "\033[1mkeys\tcommand\033[0m");
-      c_foreach(it, vec_trie, maps) {
-        Trie *map = *it.ref;
-        zsview keys = cstr_zv(&map->keys);
-        zsview desc = cstr_zv(&map->desc);
-        cstr line = cstr_with_capacity(keys.size + desc.size + 1);
-        cstr_append_zv(&line, keys);
-        cstr_append_n(&line, "\t", 1);
-        cstr_append_zv(&line, desc);
-        vec_cstr_push(&menu, line);
-      }
-      vec_trie_drop(&maps);
-      ui_menu_show(ui, &menu, cfg.map_suggestion_delay);
       lfm->ui.map_clear_timer.repeat = (float)cfg.map_clear_delay / 1000.0;
       ev_timer_again(lfm->loop, &lfm->ui.map_clear_timer);
+
+      lfm->ui.map_suggestion_timer.repeat =
+          (float)cfg.map_suggestion_delay / 1000.0;
+      ev_timer_again(lfm->loop, &lfm->ui.map_suggestion_timer);
     }
   }
 }
@@ -279,7 +272,30 @@ static void map_clear_timer_cb(EV_P_ ev_timer *w, int revents) {
   (void)revents;
   Lfm *lfm = w->data;
   input_clear(lfm);
-  ui_redraw(&lfm->ui, REDRAW_MENU);
   ev_timer_stop(EV_A_ w);
   ev_idle_start(EV_A_ & lfm->ui.redraw_watcher);
+}
+
+static void map_suggestion_timer_cb(EV_P_ ev_timer *w, int revents) {
+  (void)revents;
+  Lfm *lfm = w->data;
+
+  vec_trie maps = trie_collect_leaves(lfm->ui.maps.cur, true);
+  vec_trie_sort(&maps);
+  vec_cstr lines = vec_cstr_init();
+  // bold header
+  vec_cstr_emplace(&lines, "\033[1mkeys\tcommand\033[0m");
+  c_foreach(it, vec_trie, maps) {
+    Trie *map = *it.ref;
+    zsview keys = cstr_zv(&map->keys);
+    zsview desc = cstr_zv(&map->desc);
+    cstr line = cstr_with_capacity(keys.size + desc.size + 1);
+    cstr_append_zv(&line, keys);
+    cstr_append_n(&line, "\t", 1);
+    cstr_append_zv(&line, desc);
+    vec_cstr_push_back(&lines, line);
+  }
+  vec_trie_drop(&maps);
+  ui_menu_show(&lfm->ui, &lines, 0);
+  ev_timer_stop(EV_A_ w);
 }

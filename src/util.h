@@ -4,9 +4,11 @@
 
 #include "stc/zsview.h"
 
+#include <ctype.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
@@ -92,3 +94,6 @@ static inline zsview getenv_zv(const char *name) {
   }
   return zsview_from(val);
 }
+
+// case insensitive cmp, but 'a' < 'A'
+int strcasecmp_strict(const char *s1, const char *s2);
