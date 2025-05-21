@@ -11,7 +11,7 @@ static int l_fn_normalize(lua_State *L) {
   char buf[PATH_MAX + 1];
   size_t len;
   const char *str = luaL_checklstring(L, 1, &len);
-  const char *path = path_normalize(str, fm->pwd, buf, len, &len);
+  const char *path = path_normalize(str, fm_getpwd_str(fm), buf, len, &len);
   if (path == NULL) {
     return luaL_error(L, "path too long");
   }
@@ -111,7 +111,7 @@ static int l_fn_getcwd(lua_State *L) {
 }
 
 static int l_fn_getpwd(lua_State *L) {
-  lua_pushstring(L, fm->pwd);
+  lua_pushstring(L, fm_getpwd_str(fm));
   return 1;
 }
 

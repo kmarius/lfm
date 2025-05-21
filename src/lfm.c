@@ -416,12 +416,12 @@ void lfm_quit(Lfm *lfm, int ret) {
 
   if (lfm->opts.lastdir_path) {
     FILE *fp = fopen(lfm->opts.lastdir_path, "w");
-    if (!fp) {
+    if (fp == NULL) {
       log_error("lastdir: %s", strerror(errno));
-    } else {
-      fputs(lfm->fm.pwd, fp);
-      fclose(fp);
+      return;
     }
+    fwrite(cstr_str(&lfm->fm.pwd), 1, cstr_size(&lfm->fm.pwd), fp);
+    fclose(fp);
   }
 }
 
@@ -641,7 +641,7 @@ int lfm_execute(Lfm *lfm, const char *prog, char *const *args, env_list *env,
     }
 
     signal(SIGINT, SIG_DFL);
-    if (chdir(lfm->fm.pwd) != 0) {
+    if (chdir(cstr_str(&lfm->fm.pwd)) != 0) {
       fprintf(stderr, "chdir: %s\n", strerror(errno));
       _exit(1);
     }

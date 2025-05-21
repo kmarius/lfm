@@ -25,7 +25,7 @@ typedef struct Fm {
 
   // Not guaranteed to coincide with PWD or this processe's working directory,
   // which is only set once we know the destination is reachable.
-  char *pwd;
+  cstr pwd;
 
   struct {
     // Visible directories excluding preview.
@@ -69,7 +69,7 @@ typedef struct Fm {
   ev_timer cursor_resting_timer;
 
   // Previous directory, not changed on updir/open.
-  char *automark;
+  cstr automark;
 } Fm;
 
 // Moves to the correct starting directory, loads initial dirs and sets up
@@ -78,6 +78,10 @@ void fm_init(Fm *fm, struct lfm_opts *opts);
 
 // Unloads directories and frees all resources.
 void fm_deinit(Fm *fm);
+
+static inline const char *fm_getpwd_str(const Fm *fm) {
+  return cstr_str(&fm->pwd);
+}
 
 // Updates the number of loaded directories, called after the number of columns
 // changes.
@@ -158,10 +162,10 @@ void fm_check_dirs(const Fm *fm);
 
 // jump to previous directory
 static inline bool fm_jump_automark(Fm *fm) {
-  if (fm->automark) {
-    return fm_async_chdir(fm, fm->automark, true, true);
+  if (cstr_is_empty(&fm->automark)) {
+    return false;
   }
-  return false;
+  return fm_async_chdir(fm, cstr_str(&fm->automark), true, true);
 }
 
 // Begin visual selection mode.

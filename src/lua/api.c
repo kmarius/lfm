@@ -236,7 +236,8 @@ static int l_fm_load(lua_State *L) {
   char buf[PATH_MAX + 1];
   size_t len;
   const char *path = luaL_checklstring(L, 1, &len);
-  const char *normalized = path_normalize(path, fm->pwd, buf, len, &len);
+  const char *normalized =
+      path_normalize(path, fm_getpwd_str(fm), buf, len, &len);
   if (normalized == NULL) {
     return luaL_error(L, "path too long");
   }
@@ -309,7 +310,7 @@ static int l_fm_updir(lua_State *L) {
   if (fm_updir(fm)) {
     // I don't remember why we run th chdir post hook here,
     // since we are also not running the pre hook
-    lfm_run_hook(lfm, LFM_HOOK_CHDIRPOST, fm->pwd);
+    lfm_run_hook(lfm, LFM_HOOK_CHDIRPOST, &fm->pwd);
     search_nohighlight(lfm);
     ui_update_file_preview(ui);
     ui_redraw(ui, REDRAW_FM);
@@ -330,7 +331,7 @@ static int l_fm_open(lua_State *L) {
     return 1;
   } else {
     /* changed directory */
-    lfm_run_hook(lfm, LFM_HOOK_CHDIRPOST, fm->pwd);
+    lfm_run_hook(lfm, LFM_HOOK_CHDIRPOST, &fm->pwd);
     ui_update_file_preview(ui);
     ui_redraw(ui, REDRAW_FM);
     search_nohighlight(lfm);
@@ -459,7 +460,8 @@ static int l_fm_selection_add(lua_State *L) {
 
     size_t len;
     const char *path = lua_tolstring(L, -1, &len);
-    const char *normalized = path_normalize(path, fm->pwd, buf, len, &len);
+    const char *normalized =
+        path_normalize(path, fm_getpwd_str(fm), buf, len, &len);
     if (normalized == NULL) {
       cstr_drop(&cs);
       return luaL_error(L, "path too long");
@@ -489,7 +491,8 @@ static int l_fm_selection_set(lua_State *L) {
     for (lua_pushnil(L); lua_next(L, -2); lua_pop(L, 1)) {
       size_t len;
       const char *str = lua_tolstring(L, -1, &len);
-      const char *normalized = path_normalize(str, fm->pwd, buf, len, &len);
+      const char *normalized =
+          path_normalize(str, fm_getpwd_str(fm), buf, len, &len);
       if (normalized == NULL) {
         cstr_drop(&cs);
         return luaL_error(L, "path too long");
@@ -539,14 +542,14 @@ static int l_fm_chdir(lua_State *L) {
   bool should_save = (arg[0] == '/' || arg[0] == '~' ||
                       (last_slash != NULL && last_slash[1] != 0));
 
-  char *path = path_normalize(arg, fm->pwd, buf, len, NULL);
+  char *path = path_normalize(arg, fm_getpwd_str(fm), buf, len, NULL);
   if (path == NULL) {
     return luaL_error(L, "path too long");
   }
 
   search_nohighlight(lfm);
   lfm_mode_exit(lfm, "visual");
-  lfm_run_hook(lfm, LFM_HOOK_CHDIRPRE, fm->pwd);
+  lfm_run_hook(lfm, LFM_HOOK_CHDIRPRE, &fm->pwd);
   if (macro_playing) {
     fm_sync_chdir(fm, path, should_save, true);
   } else {
@@ -682,7 +685,7 @@ static int l_fm_filter(lua_State *L) {
 
 static int l_fm_jump_automark(lua_State *L) {
   (void)L;
-  lfm_run_hook(lfm, LFM_HOOK_CHDIRPRE, fm->pwd);
+  lfm_run_hook(lfm, LFM_HOOK_CHDIRPRE, &fm->pwd);
   lfm_mode_exit(lfm, "visual");
   fm_jump_automark(fm);
   ui_update_file_preview(ui);

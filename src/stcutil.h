@@ -8,6 +8,10 @@ static inline char *cstr_strdup(const cstr *self) {
   return strndup(cstr_str(self), cstr_size(self));
 }
 
+static inline char *zsview_strdup(zsview str) {
+  return strndup(str.str, str.size);
+}
+
 static inline bool cstr_equals_zv(const cstr *self, const zsview *zv) {
   return cstr_size(self) == zv->size &&
          (memcmp(cstr_str(self), zv->str, zv->size) == 0);

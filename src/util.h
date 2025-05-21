@@ -1,5 +1,9 @@
 #pragma once
 
+#include "macros_defs.h"
+
+#include "stc/zsview.h"
+
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -80,3 +84,11 @@ static inline size_t mbslen(const char *s) {
 bool get_mimetype(const char *path, char *dest, size_t sz);
 
 bool valgrind_active(void);
+
+static inline zsview getenv_zv(const char *name) {
+  char *val = getenv(name);
+  if (unlikely(val == NULL)) {
+    return c_zv("");
+  }
+  return zsview_from(val);
+}

@@ -50,19 +50,19 @@ void fm_init(Fm *fm, struct lfm_opts *opts) {
     if (chdir(opts->startpath) != 0) {
       lfm_error(to_lfm(fm), "chdir: %s", strerror(errno));
     } else {
-      fm->pwd = strdup(opts->startpath);
+      fm->pwd = cstr_from(opts->startpath);
     }
   } else {
-    const char *s = getenv("PWD");
-    if (s) {
-      fm->pwd = strdup(s);
-    } else {
-      char pwd[PATH_MAX];
-      if (getcwd(pwd, sizeof pwd) == NULL) {
+    zsview pwd = getenv_zv("PWD");
+    if (zsview_is_empty(pwd)) {
+      char cwd[PATH_MAX + 1];
+      if (getcwd(cwd, sizeof cwd) == NULL) {
         perror("getcwd");
         _exit(1);
       }
-      fm->pwd = strdup(pwd);
+      fm->pwd = cstr_from(cwd);
+    } else {
+      fm->pwd = cstr_from_zv(pwd);
     }
   }
 
@@ -89,13 +89,13 @@ void fm_deinit(Fm *fm) {
   pathlist_drop(&fm->selection.keep_in_visual);
   pathlist_drop(&fm->selection.previous);
   pathlist_drop(&fm->paste.buffer);
-  xfree(fm->automark);
-  xfree(fm->pwd);
+  cstr_drop(&fm->automark);
+  cstr_drop(&fm->pwd);
 }
 
 static void fm_populate(Fm *fm) {
   fm->dirs.visible.data[0] = loader_dir_from_path(
-      &to_lfm(fm)->loader, zsview_from(fm->pwd), true); /* current dir */
+      &to_lfm(fm)->loader, cstr_zv(&fm->pwd), true); /* current dir */
   fm->dirs.visible.data[0]->visible = true;
   Dir *dir = fm_current_dir(fm);
   for (uint32_t i = 1; i < fm->dirs.length; i++) {
@@ -153,14 +153,14 @@ static inline bool fm_chdir_impl(Fm *fm, const char *path, bool save, bool hook,
 
   notify_remove_watchers(&to_lfm(fm)->notify);
 
-  xfree(fm->pwd);
-  fm->pwd = strdup(path);
+  cstr_assign(&fm->pwd, path);
 
   if (save) {
-    xfree(fm->automark);
-    fm->automark = fm_current_dir(fm)->error
-                       ? NULL
-                       : cstr_strdup(dir_path(fm_current_dir(fm)));
+    if (fm_current_dir(fm)->error) {
+      cstr_clear(&fm->automark);
+    } else {
+      cstr_copy(&fm->automark, *dir_path(fm_current_dir(fm)));
+    }
   }
 
   fm_remove_preview(fm);
@@ -175,7 +175,7 @@ static inline bool fm_chdir_impl(Fm *fm, const char *path, bool save, bool hook,
   on_cursor_moved(fm, false);
 
   if (!async && hook) {
-    lfm_run_hook(to_lfm(fm), LFM_HOOK_CHDIRPOST, fm->pwd);
+    lfm_run_hook(to_lfm(fm), LFM_HOOK_CHDIRPOST, &fm->pwd);
   }
 
   return true;

@@ -14,6 +14,7 @@
 #include "notify.h"
 #include "path.h"
 #include "preview.h"
+#include "stc/cstr.h"
 #include "tpool.h"
 #include "ui.h"
 #include "util.h"
@@ -631,7 +632,7 @@ static void chdir_destroy(void *p) {
 
 static void chdir_callback(void *p, Lfm *lfm) {
   struct chdir_data *res = p;
-  if (streq(res->path, lfm->fm.pwd)) {
+  if (cstr_equals(&lfm->fm.pwd, res->path)) {
     lfm_mode_exit(lfm, "visual");
     if (res->err) {
       lfm_error(lfm, "stat: %s", strerror(res->err));
@@ -668,7 +669,7 @@ void async_chdir(Async *async, const char *path, bool hook) {
   work->super.destroy = &chdir_destroy;
 
   work->path = strdup(path);
-  work->origin = strdup(to_lfm(async)->fm.pwd);
+  work->origin = cstr_strdup(&to_lfm(async)->fm.pwd);
   work->async = async;
   work->run_hook = hook;
 
