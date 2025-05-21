@@ -414,17 +414,18 @@ static int l_execute(lua_State *L) {
 }
 
 static inline int map_key(lua_State *L, Trie *trie, bool allow_mode) {
-  const char *keys = luaL_checkstring(L, 1);
+  luaL_checktype(L, 1, LUA_TSTRING);
+  zsview keys = lua_tozsview(L, 1);
 
   if (!(lua_type(L, 2) == LUA_TFUNCTION || lua_isnil(L, 2))) {
     return luaL_argerror(L, 2, "expected function or nil");
   }
 
-  const char *desc = NULL;
+  zsview desc = {0};
   if (lua_type(L, 3) == LUA_TTABLE) {
     lua_getfield(L, 3, "desc");
     if (!lua_isnoneornil(L, -1)) {
-      desc = lua_tostring(L, -1);
+      desc = lua_tozsview(L, -1);
     }
     lua_pop(L, 1);
 
@@ -478,9 +479,9 @@ static int l_get_maps(lua_State *L) {
   c_foreach(it, vec_trie, maps) {
     Trie *map = *it.ref;
     lua_createtable(L, 0, 3);
-    lua_pushstring(L, map->desc ? map->desc : "");
+    lua_pushcstr(L, &map->desc);
     lua_setfield(L, -2, "desc");
-    lua_pushstring(L, map->keys);
+    lua_pushcstr(L, &map->keys);
     lua_setfield(L, -2, "keys");
     lua_rawgeti(L, LUA_REGISTRYINDEX, map->ref);
     lua_setfield(L, -2, "f");

@@ -24,9 +24,9 @@ void input_timeout_set(struct Lfm *lfm, uint32_t duration);
 // Maps a key sequence to a lua function (i.e. a reference to the registry).
 // Pass `ref == 0` to unmap. Returns the previous reference/reference that was
 // removed.
-int input_map(Trie *trie, const char *keys, int ref, const char *desc);
+int input_map(Trie *trie, zsview keys, int ref, zsview desc);
 
 // Unmap a key sequence.
-static inline int input_unmap(Trie *trie, const char *keys) {
-  return input_map(trie, keys, 0, NULL);
+static inline int input_unmap(Trie *trie, zsview keys) {
+  return input_map(trie, keys, 0, c_zv(""));
 }

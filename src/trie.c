@@ -1,9 +1,7 @@
 #include "trie.h"
 
 #include "memory.h"
-
-#include <stdio.h>
-#include <stdlib.h>
+#include "stcutil.h"
 
 static inline Trie *trie_node_create(input_t key, Trie *next) {
   Trie *n = xcalloc(1, sizeof *n);
@@ -28,8 +26,8 @@ Trie *trie_find_child(const Trie *t, input_t key) {
   return NULL;
 }
 
-int trie_insert(Trie *t, const input_t *trie_keys, int ref, const char *keys,
-                const char *desc) {
+int trie_insert(Trie *t, const input_t *trie_keys, int ref, zsview keys,
+                zsview desc) {
   if (!t) {
     return 0;
   }
@@ -41,10 +39,9 @@ int trie_insert(Trie *t, const input_t *trie_keys, int ref, const char *keys,
     }
     t = n;
   }
-  xfree(t->desc);
-  xfree(t->keys);
-  t->desc = desc ? strdup(desc) : NULL;
-  t->keys = keys ? strdup(keys) : NULL;
+  cstr_assign_zv(&t->keys, keys);
+  cstr_assign_zv(&t->desc, desc);
+  t->is_leaf = !cstr_is_empty(&t->keys);
   int oldref = t->ref;
   t->ref = ref;
   return oldref;
@@ -106,7 +103,7 @@ void trie_destroy(Trie *t) {
     next = n->next;
     trie_destroy(n);
   }
-  xfree(t->desc);
-  xfree(t->keys);
+  cstr_drop(&t->desc);
+  cstr_drop(&t->keys);
   xfree(t);
 }

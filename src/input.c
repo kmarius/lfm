@@ -11,6 +11,7 @@
 #include "macros.h"
 #include "mode.h"
 #include "search.h"
+#include "stc/cstr.h"
 #include "stcutil.h"
 #include "trie.h"
 #include "ui.h"
@@ -47,13 +48,16 @@ void input_suspend(Lfm *lfm) {
   ev_io_stop(lfm->loop, &lfm->ui.input_watcher);
 }
 
-int input_map(Trie *trie, const char *keys, int ref, const char *desc) {
-  input_t *buf = xmalloc((strlen(keys) + 1) * sizeof *buf);
-  key_names_to_input(keys, buf);
-  int ret =
-      ref ? trie_insert(trie, buf, ref, keys, desc) : trie_remove(trie, buf);
-  xfree(buf);
-  return ret;
+#define MAP_MAX_LENGTH 128
+
+int input_map(Trie *trie, zsview keys, int ref, zsview desc) {
+  input_t buf[MAP_MAX_LENGTH + 1];
+  key_names_to_input(keys.str, buf);
+  if (ref) {
+    return trie_insert(trie, buf, ref, keys, desc);
+  } else {
+    return trie_remove(trie, buf);
+  }
 }
 
 static void stdin_cb(EV_P_ ev_io *w, int revents) {
@@ -237,7 +241,7 @@ void input_handle_key(Lfm *lfm, input_t in) {
       log_debug("unmapped key sequence: %s (id=%d shift=%d ctrl=%d alt=%d)",
                 buf, ID(in), ISSHIFT(in), ISCTRL(in), ISALT(in));
       input_clear(lfm);
-    } else if (lfm->ui.maps.cur->keys) {
+    } else if (lfm->ui.maps.cur->is_leaf) {
       // A command is mapped to the current keysequence. Execute it and reset.
       int ref = lfm->ui.maps.cur->ref;
       input_clear(lfm);
@@ -251,13 +255,17 @@ void input_handle_key(Lfm *lfm, input_t in) {
 
       vec_cstr menu = vec_cstr_init();
 
+      // bold header
       vec_cstr_emplace(&menu, "\033[1mkeys\tcommand\033[0m");
-      char buf[128];
       c_foreach(it, vec_trie, maps) {
         Trie *map = *it.ref;
-        int len = snprintf(buf, sizeof buf - 1, "%s\t%s", map->keys,
-                           map->desc ? map->desc : "");
-        vec_cstr_push(&menu, cstr_with_n(buf, len));
+        zsview keys = cstr_zv(&map->keys);
+        zsview desc = cstr_zv(&map->desc);
+        cstr line = cstr_with_capacity(keys.size + desc.size + 1);
+        cstr_append_zv(&line, keys);
+        cstr_append_n(&line, "\t", 1);
+        cstr_append_zv(&line, desc);
+        vec_cstr_push(&menu, line);
       }
       vec_trie_drop(&maps);
       ui_menu_show(ui, &menu, cfg.map_suggestion_delay);

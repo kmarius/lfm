@@ -1,6 +1,7 @@
 #pragma once
 
 #include "keys.h"
+#include "stc/cstr.h"
 
 // Stores key-values of input_t* -> int. Can't store 0 because it signals that a
 // node is empty.
@@ -10,9 +11,10 @@ typedef struct Trie {
   struct Trie *child; // can be NULL
   struct Trie *next;  // next sibling, can be NULL
   struct {
-    int ref;    // reference to a function in the registry, or 0
-    char *keys; // full key sequence (used for menu), NULL for non-leaves
-    char *desc; // description of the command, can be NULL
+    bool is_leaf; // true for mapped key sequence
+    int ref;      // reference to a function in the registry, or 0
+    cstr keys;    // full key sequence (used for menu), empty for non-leaves
+    cstr desc;    // description of the command
   };
 } Trie;
 
@@ -28,8 +30,8 @@ void trie_destroy(Trie *trie);
 // Insert a new key/val tuple into the tree. `keys` should be the (printable)
 // key sequence, `desc` an optional description of the command.
 // Returns the value that was replaced (or 0 if none was).
-int trie_insert(Trie *trie, const input_t *trie_keys, int ref, const char *keys,
-                const char *desc);
+int trie_insert(Trie *trie, const input_t *trie_keys, int ref, zsview keys,
+                zsview desc);
 
 // Remove a key/val from the trie and returns the value.
 int trie_remove(Trie *trie, const input_t *trie_keys);
