@@ -139,4 +139,4 @@ static inline bool dir_isroot(const Dir *dir) {
 }
 
 // Load a flat directorie showing files up `level`s deep.
-Dir *dir_load_flat(const char *path, uint32_t level, bool load_dircount);
+Dir *dir_load_flat(const char *path, int level, bool load_dircount);

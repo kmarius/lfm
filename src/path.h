@@ -14,6 +14,10 @@ char *path_parent_s(const char *path);
 
 bool path_isroot(const char *path);
 
+static inline bool path_is_dot_or_dotdot(const char *name) {
+  return name[0] == '.' && (name[1] == 0 || (name[1] == '.' && name[2] == 0));
+}
+
 static inline char *realpath_a(const char *p) {
   return strdup(realpath_s(p));
 }

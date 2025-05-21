@@ -24,6 +24,17 @@
 #define i_type vec_file, File *
 #include "stc/vec.h"
 
+// queue to load flattened dirs
+typedef struct flat_dir_node {
+  const char *path; // path to load
+  int level;        // depth from the root
+  bool hidden;      // true if any cmponent of path began with .
+} node;
+
+#define i_type queue_dirs
+#define i_key struct flat_dir_node
+#include "stc/queue.h"
+
 // define templated sorting functions
 
 #define i_type files_natural, File *
@@ -231,7 +242,6 @@ Dir *dir_create(const char *path) {
 }
 
 Dir *dir_load(const char *path, bool load_fileinfo) {
-  struct dirent *dp;
   Dir *dir = dir_create(path);
   dir->has_fileinfo = load_fileinfo;
 
@@ -252,14 +262,14 @@ Dir *dir_load(const char *path, bool load_fileinfo) {
 
   vec_file files = vec_file_init();
 
-  while ((dp = readdir(dirp))) {
-    if (dp->d_name[0] == '.' &&
-        (dp->d_name[1] == 0 || (dp->d_name[1] == '.' && dp->d_name[2] == 0))) {
+  struct dirent *entry;
+  while ((entry = readdir(dirp))) {
+    if (path_is_dot_or_dotdot(entry->d_name)) {
       continue;
     }
 
-    File *file = file_create(path, dp->d_name, load_fileinfo);
-    if (file) {
+    File *file = file_create(path, entry->d_name, load_fileinfo);
+    if (file != NULL) {
       vec_file_push(&files, file);
     }
   }
@@ -283,89 +293,64 @@ Dir *dir_load(const char *path, bool load_fileinfo) {
   return dir;
 }
 
-struct queue_dirs_node {
-  const char *path;
-  uint32_t level;
-  bool hidden;
-  struct queue_dirs_node *next;
-};
-
-struct queue_dirs {
-  struct queue_dirs_node *head;
-  struct queue_dirs_node *tail;
-};
-
-Dir *dir_load_flat(const char *path, uint32_t level, bool load_fileinfo) {
+Dir *dir_load_flat(const char *path, int level, bool load_fileinfo) {
   Dir *dir = dir_create(path);
   dir->has_fileinfo = load_fileinfo;
+  if (level < 0)
+    level = 0;
   dir->flatten_level = level;
 
   if (lstat(path, &dir->stat) == -1) {
+    // TODO: currently not saving an error if we can't read the root
     log_debug("lstat: %s", strerror(errno));
   }
 
-  struct queue_dirs queue = {0};
-  queue.head = xmalloc(sizeof *queue.head);
-  queue.head->path = path;
-  queue.head->level = 0;
-  queue.head->next = NULL;
-  queue.head->hidden = false;
-
   vec_file files = vec_file_init();
 
-  while (queue.head) {
-    struct queue_dirs_node *head = queue.head;
-    queue.head = head->next;
-    if (!queue.head) {
-      queue.tail = NULL;
-    }
+  struct queue_dirs queue = queue_dirs_init();
+  queue_dirs_push(&queue, (node){path, 0, false});
 
-    DIR *dirp = opendir(head->path);
+  while (!queue_dirs_is_empty(&queue)) {
+    node head = *queue_dirs_front(&queue);
+    queue_dirs_pop(&queue);
+
+    DIR *dirp = opendir(head.path);
     if (!dirp) {
-      goto cont;
+      continue;
     }
 
-    struct dirent *dp;
-    while ((dp = readdir(dirp))) {
-      if (dp->d_name[0] == '.' &&
-          (dp->d_name[1] == 0 ||
-           (dp->d_name[1] == '.' && dp->d_name[2] == 0))) {
+    struct dirent *entry;
+    while ((entry = readdir(dirp)) != NULL) {
+      if (path_is_dot_or_dotdot(entry->d_name)) {
         continue;
       }
 
-      File *file = file_create(head->path, dp->d_name, load_fileinfo);
-      if (file) {
-        file->hidden |= head->hidden;
+      File *file = file_create(head.path, entry->d_name, load_fileinfo);
+      if (file != NULL) {
+        file->hidden |= head.hidden;
         if (file_isdir(file)) {
-          if (head->level + 1 <= level) {
-            struct queue_dirs_node *n = xmalloc(sizeof *n);
-            n->path = file_path_str(file);
-            n->level = head->level + 1;
-            n->next = NULL;
-            n->hidden = file_hidden(file);
-            if (!queue.head) {
-              queue.head = n;
-              queue.tail = n;
-            } else {
-              queue.tail->next = n;
-              queue.tail = n;
-            }
+          if (head.level + 1 <= level) {
+            queue_dirs_push(&queue, (node){
+                                        file_path_str(file),
+                                        head.level + 1,
+                                        file_hidden(file),
+                                    });
           }
         }
-        for (uint32_t i = 0; i < head->level; i++) {
-          // file->name -= 2;
-          // while (*(file->name - 1) != '/') {
-          //   file->name--;
-          // }
+        // name is a pointer into path, we can simply move it back
+        for (int i = 0; i < head.level; i++) {
+          file->name.str -= 2;
+          while (*(file->name.str - 1) != '/') {
+            file->name.str--;
+          }
         }
 
         vec_file_push(&files, file);
       }
     }
     closedir(dirp);
-  cont:
-    xfree(head);
   }
+  queue_dirs_drop(&queue);
 
   dir->length_all = vec_file_size(&files);
   dir->length_sorted = dir->length_all;
