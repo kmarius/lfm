@@ -21,6 +21,7 @@
 #include "spinner.h"
 #include "statusline.h"
 #include "stc/cstr.h"
+#include "stcutil.h"
 #include "util.h"
 
 #include <ev.h>
@@ -61,7 +62,7 @@ static void plane_draw_dir(struct ncplane *n, Dir *dir, pathlist *sel,
 static void draw_preview(Ui *ui);
 static void draw_menu(Ui *ui, const vec_cstr *menu);
 static void menu_resize(Ui *ui);
-static inline void print_message(Ui *ui, const char *msg, bool error);
+static inline void print_message(Ui *ui, zsview msg, bool error);
 static inline void draw_cmdline(Ui *ui);
 static void redraw_cb(EV_P_ ev_idle *w, int revents);
 static int resize_cb(struct ncplane *n);
@@ -345,20 +346,20 @@ void ui_error(Ui *ui, const char *format, ...) {
   ui_redraw(ui, REDRAW_CMDLINE);
 }
 
-void ui_verror(Ui *ui, const char *format, va_list args) {
-  struct message msg = {NULL, true};
-  vasprintf(&msg.text, format, args);
+void ui_verror(Ui *ui, const char *fmt, va_list args) {
+  struct message msg = {.error = true};
+  cstr_vfmt(&msg.text, 0, fmt, args);
 
-  log_error("%s", msg.text);
+  log_error("%s", cstr_str(&msg.text));
 
   vec_message_push(&ui->messages, msg);
 
   ui->show_message = true;
 }
 
-void ui_vechom(Ui *ui, const char *format, va_list args) {
-  struct message msg = {NULL, false};
-  vasprintf(&msg.text, format, args);
+void ui_vechom(Ui *ui, const char *fmt, va_list args) {
+  struct message msg = {};
+  cstr_vfmt(&msg.text, 0, fmt, args);
 
   vec_message_push(&ui->messages, msg);
 
@@ -1015,18 +1016,21 @@ void ui_drop_cache(Ui *ui) {
 
 /* }}} */
 
-static inline void print_message(Ui *ui, const char *msg, bool error) {
+static inline void print_message(Ui *ui, zsview msg, bool error) {
   struct ncplane *n = ui->planes.cmdline;
   ncplane_erase(n);
   ncplane_set_bg_default(n);
   ncplane_set_styles(n, NCSTYLE_NONE);
+  if (zsview_is_empty(msg)) {
+    return;
+  }
   if (error) {
     ncplane_set_fg_palindex(ui->planes.cmdline, COLOR_RED);
-    ncplane_putstr_yx(ui->planes.cmdline, 0, 0, msg);
+    ncplane_putnstr_yx(ui->planes.cmdline, 0, 0, msg.size, msg.str);
   } else {
     ncplane_set_fg_default(n);
     ncplane_cursor_move_yx(n, 0, 0);
-    ncplane_put_str_ansi(n, msg);
+    ncplane_put_str_ansi(n, msg.str);
   }
   notcurses_render(ui->nc);
   ncplane_set_fg_default(n);
@@ -1041,7 +1045,7 @@ static inline void draw_cmdline(Ui *ui) {
   } else {
     if (ui->running && ui->show_message) {
       const struct message *msg = vec_message_back(&ui->messages);
-      print_message(ui, msg->text, msg->error);
+      print_message(ui, cstr_zv(&msg->text), msg->error);
     } else {
       statusline_draw(ui);
     }

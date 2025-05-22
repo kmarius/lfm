@@ -13,6 +13,7 @@
 #include "notify.h"
 #include "profiling.h"
 #include "stc/common.h"
+#include "stc/cstr.h"
 #include "ui.h"
 #include "util.h"
 
@@ -399,8 +400,8 @@ void lfm_deinit(Lfm *lfm) {
   async_deinit(&lfm->async);
   deinit_fifo(lfm);
 
-  xfree(lfm->opts.startfile);
-  xfree(lfm->opts.startpath);
+  cstr_drop(&lfm->opts.startfile);
+  cstr_drop(&lfm->opts.startpath);
 }
 
 int lfm_run(Lfm *lfm) {
@@ -768,31 +769,31 @@ int lfm_execute(Lfm *lfm, const char *prog, char *const *args, env_list *env,
   return WEXITSTATUS(status);
 }
 
-void lfm_print(Lfm *lfm, const char *format, ...) {
+void lfm_print(Lfm *lfm, const char *fmt, ...) {
   va_list args;
-  va_start(args, format);
+  va_start(args, fmt);
 
   if (!lfm->ui.running) {
-    struct message msg = {NULL, false};
-    vasprintf(&msg.text, format, args);
+    struct message msg = {};
+    cstr_vfmt(&msg.text, 0, fmt, args);
     vec_message_push(&lfm->messages, msg);
   } else {
-    ui_vechom(&lfm->ui, format, args);
+    ui_vechom(&lfm->ui, fmt, args);
   }
 
   va_end(args);
 }
 
-void lfm_error(Lfm *lfm, const char *format, ...) {
+void lfm_error(Lfm *lfm, const char *fmt, ...) {
   va_list args;
-  va_start(args, format);
+  va_start(args, fmt);
 
   if (!lfm->ui.running) {
-    struct message msg = {NULL, true};
-    vasprintf(&msg.text, format, args);
+    struct message msg = {.error = true};
+    cstr_vfmt(&msg.text, 0, fmt, args);
     vec_message_push(&lfm->messages, msg);
   } else {
-    ui_verror(&lfm->ui, format, args);
+    ui_verror(&lfm->ui, fmt, args);
   }
 
   va_end(args);

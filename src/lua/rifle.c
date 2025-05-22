@@ -1,5 +1,4 @@
 #include "../log.h"
-#include "../memory.h"
 #include "../path.h"
 #include "../util.h"
 
@@ -38,13 +37,9 @@ typedef bool(check_fn)(struct Condition *, const struct FileInfo *);
 
 typedef struct Condition {
   bool negate;
-  union {
-    char *arg;
-    struct {
-      pcre *pcre;
-      pcre_extra *pcre_extra;
-    };
-  };
+  cstr arg;
+  pcre *pcre;
+  pcre_extra *pcre_extra;
   check_fn *check;
 } Condition;
 
@@ -53,7 +48,7 @@ static inline void condition_drop(Condition *self) {
     pcre_free(self->pcre);
     pcre_free(self->pcre_extra);
   } else {
-    xfree(self->arg);
+    cstr_drop(&self->arg);
   }
 }
 
@@ -64,8 +59,8 @@ static inline void condition_drop(Condition *self) {
 
 typedef struct Rule {
   conditions conditions;
-  char *command;
-  char *label;
+  cstr command;
+  cstr label;
   int number;
   bool has_mime;
   bool flag_fork;
@@ -76,8 +71,8 @@ typedef struct Rule {
 
 static inline void rule_drop(Rule *self) {
   conditions_drop(&self->conditions);
-  xfree(self->label);
-  xfree(self->command);
+  cstr_drop(&self->label);
+  cstr_drop(&self->command);
 }
 
 #define i_TYPE rules, Rule
@@ -100,7 +95,7 @@ static inline Condition condition_create(check_fn *f, const char *arg,
                                          bool negate) {
   Condition cond = {0};
   cond.check = f;
-  cond.arg = arg ? strdup(arg) : NULL;
+  cond.arg = arg ? cstr_from(arg) : cstr_init();
   cond.negate = negate;
   return cond;
 }
@@ -170,7 +165,7 @@ static bool check_fn_term(Condition *cond, const FileInfo *info) {
 
 static bool check_fn_env(Condition *cond, const FileInfo *info) {
   (void)info;
-  const char *val = getenv(cond->arg);
+  const char *val = getenv(cstr_str(&cond->arg));
   return (val && *val) != cond->negate;
 }
 
@@ -223,7 +218,8 @@ static bool check_fn_match(Condition *cond, const FileInfo *info) {
 static bool check_fn_has(Condition *cond, const FileInfo *info) {
   (void)info;
   char cmd[EXECUTABLE_MAX];
-  snprintf(cmd, sizeof cmd, "command -v \"%s\" >/dev/null 2>&1", cond->arg);
+  snprintf(cmd, sizeof cmd, "command -v \"%s\" >/dev/null 2>&1",
+           cstr_str(&cond->arg));
   return !system(cmd) != cond->negate;
 }
 
@@ -236,10 +232,9 @@ static inline Condition condition_create_re_path(const char *arg, bool negate) {
 }
 
 static inline Condition condition_create_re_ext(const char *arg, bool negate) {
-  char *regex_str = xmalloc(strlen(arg) + 8);
-  sprintf(regex_str, "\\.(%s)$", arg);
-  Condition cond = condition_create_re(check_fn_name, regex_str, negate);
-  xfree(regex_str);
+  char buf[512];
+  snprintf(buf, sizeof buf - 1, "\\.(%s)$", arg);
+  Condition cond = condition_create_re(check_fn_name, buf, negate);
   return cond;
 }
 
@@ -301,7 +296,7 @@ static inline bool rule_add_condition(Rule *self, char *cond_str) {
     }
 
     if (streq(func, "label")) {
-      self->label = strdup(arg);
+      self->label = cstr_from(arg);
     } else if (streq(func, "number")) {
       /* TODO: cant distringuish between 0 and invalid number
        * (on 2021-07-27) */
@@ -339,8 +334,12 @@ static inline bool rule_add_condition(Rule *self, char *cond_str) {
 }
 
 static inline int rule_init(Rule *self, char *str, const char *command) {
+  if (command == NULL) {
+    rule_drop(self);
+    return -1;
+  }
   memset(self, 0, sizeof *self);
-  self->command = command ? strdup(command) : NULL;
+  self->command = cstr_from(command);
   self->number = -1;
 
   char *cond;
@@ -392,7 +391,7 @@ static int l_rifle_fileinfo(lua_State *L) {
 static inline int llua_push_rule(lua_State *L, const Rule *r, int num) {
   lua_createtable(L, 0, 5);
 
-  lua_pushstring(L, r->command);
+  lua_pushcstr(L, &r->command);
   lua_setfield(L, -2, "command");
 
   lua_pushboolean(L, r->flag_fork);
@@ -418,7 +417,7 @@ static int l_rifle_query_mime(lua_State *L) {
   const char *mime = luaL_checkstring(L, 1);
 
   int limit = 0;
-  const char *pick = NULL;
+  zsview pick = zsview_init();
 
   if (lua_istable(L, 2)) {
     lua_getfield(L, 2, "limit");
@@ -427,7 +426,7 @@ static int l_rifle_query_mime(lua_State *L) {
 
     lua_getfield(L, 2, "pick");
     if (!lua_isnoneornil(L, -1)) {
-      pick = luaL_optstring(L, -1, NULL);
+      pick = lua_tozsview(L, -1);
     }
     lua_pop(L, 1);
   }
@@ -448,11 +447,11 @@ static int l_rifle_query_mime(lua_State *L) {
       }
       ct_match++;
 
-      if (pick && *pick) {
-        const int ind = atoi(pick);
-        const bool ok = (ind != 0 || pick[0] == '0');
+      if (!zsview_is_empty(pick)) {
+        const int ind = atoi(pick.str);
+        const bool ok = (ind != 0 || pick.str[0] == '0');
         if ((ok && ind != ct_match - 1) ||
-            (!ok && ((r)->label == NULL || strcmp(pick, r->label) != 0))) {
+            (!ok && (cstr_equals_zv(&r->label, &pick) != 0))) {
           continue;
         }
       }
@@ -471,10 +470,12 @@ static int l_rifle_query_mime(lua_State *L) {
 
 static int l_rifle_query(lua_State *L) {
   Rifle *rifle = lua_touserdata(L, lua_upvalueindex(1));
-  const char *file = luaL_checkstring(L, 1);
+
+  luaL_checktype(L, 1, LUA_TSTRING);
+  zsview file = lua_tozsview(L, 1);
 
   int limit = 0;
-  const char *pick = NULL;
+  zsview pick = zsview_init();
 
   if (lua_istable(L, 2)) {
     lua_getfield(L, 2, "limit");
@@ -483,22 +484,21 @@ static int l_rifle_query(lua_State *L) {
 
     lua_getfield(L, 2, "pick");
     if (!lua_isnoneornil(L, -1)) {
-      pick = luaL_optstring(L, -1, NULL);
+      pick = lua_tozsview(L, -1);
     }
     lua_pop(L, 1);
   }
 
   char path[PATH_MAX + 1];
-  if (realpath(file, path) == NULL) {
+  if (realpath(file.str, path) == NULL) {
     path[0] = 0;
   }
 
   char mime[256];
   get_mimetype(path, mime, sizeof mime);
 
-  const FileInfo info = {.file = zsview_from(file),
-                         .path = zsview_from(path),
-                         .mime = zsview_from(mime)};
+  const FileInfo info = {
+      .file = file, .path = zsview_from(path), .mime = zsview_from(mime)};
 
   lua_newtable(L); /* {} */
 
@@ -513,11 +513,11 @@ static int l_rifle_query(lua_State *L) {
       }
       ct_match++;
 
-      if (pick != NULL && pick[0] != '\0') {
-        const int ind = atoi(pick);
-        const bool ok = (ind != 0 || pick[0] == '0');
+      if (!zsview_is_empty(pick)) {
+        const int ind = atoi(pick.str);
+        const bool ok = (ind != 0 || pick.str[0] == '0');
         if ((ok && ind != ct_match - 1) ||
-            (!ok && (r->label == NULL || strcmp(pick, r->label) != 0))) {
+            (!ok && (cstr_equals_zv(&r->label, &pick) != 0))) {
           continue;
         }
       }

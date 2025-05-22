@@ -103,25 +103,24 @@ int main(int argc, char **argv) {
       goto cleanup;
     }
   }
-  log_add_fp(log, log_level);
 
+  log_add_fp(log, log_level);
   log_info("starting lfm " LFM_VERSION);
 
   // TODO: make it possible to move the cursor to a directory instead
   // of cd'ing into it
   if (optind < argc) {
-    char *path =
-        path_normalize_a(argv[optind], NULL, strlen(argv[optind]), NULL);
+    cstr path = path_normalize_cstr(argv[optind], NULL, strlen(argv[optind]));
     struct stat statbuf;
-    if (stat(path, &statbuf) == -1) {
+    if (stat(cstr_str(&path), &statbuf) == -1) {
       // can't print to Ui yet, maybe pass something to init?
       log_error("%s: %s", strerror(errno), opts.startpath);
-      xfree(path);
+      cstr_drop(&path);
     } else {
       if (!S_ISDIR(statbuf.st_mode)) {
-        opts.startfile = basename_a(path);
-        opts.startpath = dirname_a(path);
-        xfree(path);
+        opts.startfile = cstr_from_zv(basename_zv(cstr_zv(&path)));
+        dirname_cstr(&path);
+        opts.startpath = path;
       } else {
         opts.startpath = path;
       }

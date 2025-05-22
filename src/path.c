@@ -1,6 +1,5 @@
 #include "path.h"
 
-#include "memory.h"
 #include "stc/cstr.h"
 #include "stcutil.h"
 #include "util.h"
@@ -15,7 +14,13 @@ bool path_isroot(zsview path) {
   return !zsview_is_empty(path) && path.str[0] == '/' && path.str[1] == 0;
 }
 
-zsview path_parent_s(zsview path) {
+char *dirname_s(const char *path) {
+  static char buf[PATH_MAX + 1];
+  strncpy(buf, path, sizeof buf - 1);
+  return dirname(buf);
+}
+
+zsview path_parent_zv(zsview path) {
   if (zsview_is_empty(path) || path_isroot(path)) {
     return c_zv("");
   }
@@ -36,10 +41,39 @@ char *basename_s(const char *p) {
   return basename(buf);
 }
 
-char *dirname_s(const char *p) {
-  static char buf[PATH_MAX + 1];
-  strncpy(buf, p, sizeof buf - 1);
-  return dirname(buf);
+zsview basename_zv(zsview path) {
+  if (zsview_is_empty(path)) {
+    return c_zv(".");
+  }
+
+  char *base = strrchr(path.str, '/');
+
+  if (base == NULL) {
+    return path;
+  }
+  int len = base - path.str;
+
+  return zsview_tail(path, path.size - len - 1);
+}
+
+void dirname_cstr(cstr *path) {
+  if (cstr_is_empty(path)) {
+    cstr_assign_n(path, ".", 1);
+    return;
+  }
+
+  char *base = strrchr(cstr_str(path), '/');
+  if (base == NULL) {
+    cstr_assign_n(path, ".", 1);
+    return;
+  }
+  size_t len = base - cstr_str(path);
+  if (len == 0) {
+    // root keeps trailing slash
+    cstr_resize(path, 1, 0);
+  } else {
+    cstr_resize(path, len, 0);
+  }
 }
 
 cstr path_replace_tilde(zsview path) {
@@ -145,18 +179,4 @@ char *path_normalize(const char *path, const char *pwd, char *buf,
   }
   remove_slashes_and_dots(buf, len_in, len_out);
   return buf;
-}
-
-// could be done without strncopying first
-char *path_normalize_a(const char *path, const char *pwd, size_t len_in,
-                       size_t *len_out) {
-  char buf[PATH_MAX + 1];
-  size_t len;
-  if (path_normalize(path, pwd, buf, len_in, &len) == NULL) {
-    // input too long
-    return NULL;
-  }
-  if (len_out)
-    *len_out = len;
-  return strndup(buf, len);
 }

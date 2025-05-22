@@ -758,7 +758,7 @@ static int l_ui_messages(lua_State *L) {
   lua_createtable(L, vec_message_size(&ui->messages), 0);
   int i = 1;
   c_foreach(it, vec_message, ui->messages) {
-    lua_pushstring(L, it.ref->text);
+    lua_pushcstr(L, &it.ref->text);
     lua_rawseti(L, -2, i);
     i++;
   }

@@ -26,8 +26,8 @@ struct lfm_opts {
   vec_cstr commands;          // lua commands to run after start
   const char *lastdir_path;   // output current pwd on exit
   const char *selection_path; // output selection on open
-  char *startpath;            // override pwd
-  char *startfile;            // move cursor to this file
+  cstr startpath;             // override pwd
+  cstr startfile;             // move cursor to this file
   const char *config;         // override config path
 };
 

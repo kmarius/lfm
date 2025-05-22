@@ -16,12 +16,12 @@
 declare_vec(vec_ncplane, struct ncplane *);
 
 struct message {
-  char *text;
+  cstr text;
   bool error;
 };
 
 #define i_type vec_message, struct message
-#define i_keydrop(p) (xfree(p->text))
+#define i_keydrop(p) (cstr_drop(&p->text))
 #define i_no_clone
 #include "stc/vec.h"
 

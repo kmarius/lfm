@@ -2,7 +2,6 @@
 
 #include "config.h"
 #include "dir.h"
-#include "dircache.h"
 #include "file.h"
 #include "fm.h"
 #include "hooks.h"
@@ -12,7 +11,6 @@
 #include "macros_defs.h"
 #include "memory.h"
 #include "notify.h"
-#include "path.h"
 #include "preview.h"
 #include "stc/cstr.h"
 #include "tpool.h"
@@ -375,23 +373,6 @@ struct dir_update_data {
   struct validity_check64 check; // lfm.loader.dir_cache_version
 };
 
-static inline void update_parent_dircount(Lfm *lfm, Dir *dir, uint32_t length) {
-  zsview parent_path = path_parent_s(cstr_zv(dir_path(dir)));
-  if (!zsview_is_empty(parent_path)) {
-    dircache_value *v = dircache_get_mut(&lfm->loader.dc, parent_path);
-    Dir *parent = v ? v->second : NULL;
-    if (parent) {
-      for (uint32_t i = 0; i < parent->length_all; i++) {
-        File *file = parent->files_all[i];
-        if (zsview_eq(file_name(file), dir_name(dir))) {
-          file_dircount_set(file, length);
-          return;
-        }
-      }
-    }
-  }
-}
-
 static void dir_update_destroy(void *p) {
   struct dir_update_data *res = p;
   dir_destroy(res->update);
@@ -403,9 +384,6 @@ static void dir_update_callback(void *p, Lfm *lfm) {
   struct dir_update_data *res = p;
   if (CHECK_PASSES(res->check) &&
       res->dir->flatten_level == res->update->flatten_level) {
-    if (res->update->length_all != res->dir->length_all) {
-      update_parent_dircount(lfm, res->dir, res->update->length_all);
-    }
     loader_dir_load_callback(&lfm->loader, res->dir);
     dir_update_with(res->dir, res->update, lfm->fm.height, cfg.scrolloff);
     lfm_run_hook(lfm, LFM_HOOK_DIRUPDATED, dir_path(res->dir));

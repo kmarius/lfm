@@ -16,7 +16,7 @@ static inline void lua_pushzsview(lua_State *L, zsview zv) {
 static inline zsview lua_tozsview(lua_State *L, int idx) {
   size_t len;
   const char *str = lua_tolstring(L, idx, &len);
-  return zsview_from_n(str, len);
+  return zsview_from_n(str ? str : "", len);
 }
 
 // efficiently create a copy of the string repr of the value at position idx
