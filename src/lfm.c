@@ -11,6 +11,7 @@
 #include "macros_defs.h"
 #include "mode.h"
 #include "notify.h"
+#include "profiling.h"
 #include "stc/common.h"
 #include "ui.h"
 #include "util.h"
@@ -371,15 +372,15 @@ void lfm_init(Lfm *lfm, struct lfm_opts *opts) {
   notify_init(&lfm->notify);
   loader_init(&lfm->loader);
   async_init(&lfm->async);
-  fm_init(&lfm->fm, &lfm->opts);
-  ui_init(&lfm->ui);
+  PROFILE(fm_init, fm_init(&lfm->fm, &lfm->opts););
+  PROFILE(ui_init, ui_init(&lfm->ui););
   setup_signal_handlers(lfm);
   lfm_hooks_init(lfm);
   lfm_modes_init(lfm);
 
   // Initialize lua state, we need to run some hooks that could not run during
   // fm initialization.
-  lfm_lua_init(lfm);
+  PROFILE(lua_init, lfm_lua_init(lfm););
   c_foreach(v, dircache, lfm->loader.dc) {
     lfm_run_hook(lfm, LFM_HOOK_DIRLOADED, dir_path(v.ref->second));
   }

@@ -2,6 +2,7 @@
 
 #include "../config.h"
 #include "../log.h"
+#include "../profiling.h"
 #include "lfm.h"
 #include "private.h"
 
@@ -74,13 +75,13 @@ static inline bool llua_init_packages(lua_State *L) {
 
   lua_pop(L, 2); // []
 
-  lua_getglobal(L, "require");
-  lua_pushstring(L, "lfm._core");
-  if (llua_pcall(L, 1, 0)) {
-    ui_error(ui, "%s", lua_tostring(L, -1));
-    lua_pop(L, 1);
-    false;
-  }
+  PROFILE(
+      lua_core, lua_getglobal(L, "require"); lua_pushstring(L, "lfm._core");
+      if (llua_pcall(L, 1, 0)) {
+        ui_error(ui, "%s", lua_tostring(L, -1));
+        lua_pop(L, 1);
+        false;
+      })
 
   return true;
 }
@@ -195,14 +196,11 @@ void lfm_lua_init(Lfm *lfm_) {
 
   llua_init_packages(L);
 
-  uint64_t t0 = current_micros();
-  if (lfm->opts.config) {
-    llua_load_file(L, lfm->opts.config, true);
-  } else {
-    llua_load_file(L, cstr_str(&cfg.configpath), false);
-  }
-  log_info("user configuration loaded in %.2fms",
-           (current_micros() - t0) / 1000.0);
+  PROFILE(
+      user_config,
+      if (lfm->opts.config) {
+        llua_load_file(L, lfm->opts.config, true);
+      } else { llua_load_file(L, cstr_str(&cfg.configpath), false); });
 }
 
 void lfm_lua_deinit(Lfm *lfm) {

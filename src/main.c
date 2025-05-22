@@ -3,6 +3,7 @@
 #include "lfm.h"
 #include "log.h"
 #include "path.h"
+#include "profiling.h"
 #include "util.h"
 
 #include <ev.h>
@@ -43,7 +44,7 @@ static Lfm lfm;
 int main(int argc, char **argv) {
   int ret = EXIT_SUCCESS;
 
-  const uint64_t t0 = current_micros();
+  PROFILING_INIT();
 
   if (!isatty(0) || !isatty(1) || !isatty(2)) {
     fprintf(stderr, "Error: %s must be run in a terminal\n", argv[0]);
@@ -131,10 +132,8 @@ int main(int argc, char **argv) {
 
   srand(time(NULL));
 
-  lfm_init(&lfm, &opts);
+  PROFILE(lfm_init, lfm_init(&lfm, &opts);)
 
-  log_info("starting main loop after %.2f ms",
-           (current_micros() - t0) / 1000.0);
   ret = lfm_run(&lfm);
 
   lfm_deinit(&lfm);
