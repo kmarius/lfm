@@ -414,8 +414,7 @@ static int l_execute(lua_State *L) {
 }
 
 static inline int map_key(lua_State *L, Trie *trie, bool allow_mode) {
-  luaL_checktype(L, 1, LUA_TSTRING);
-  zsview keys = lua_tozsview(L, 1);
+  zsview keys = luaL_checkzsview(L, 1);
 
   if (!(lua_type(L, 2) == LUA_TFUNCTION || lua_isnil(L, 2))) {
     return luaL_argerror(L, 2, "expected function or nil");
@@ -466,8 +465,7 @@ static int l_cmap_key(lua_State *L) {
 }
 
 static int l_get_maps(lua_State *L) {
-  luaL_checktype(L, 1, LUA_TSTRING);
-  zsview name = lua_tozsview(L, 1);
+  zsview name = luaL_checkzsview(L, 1);
   const struct mode *mode = hmap_modes_at(&lfm->modes, name);
   if (!mode) {
     return luaL_error(L, "no such mode: %s", name);
@@ -508,8 +506,7 @@ static int l_get_modes(lua_State *L) {
 }
 
 static int l_mode(lua_State *L) {
-  luaL_checktype(L, 1, LUA_TSTRING);
-  if (lfm_mode_enter(lfm, lua_tozsview(L, 1)) != 0) {
+  if (lfm_mode_enter(lfm, luaL_checkzsview(L, 1)) != 0) {
     return luaL_error(L, "no such mode: %s", lua_tostring(L, -1));
   }
   return 0;
@@ -635,8 +632,7 @@ static const struct luaL_Reg lfm_lib[] = {
     {NULL, NULL}};
 
 static int l_modes_index(lua_State *L) {
-  luaL_checktype(L, 2, LUA_TSTRING);
-  zsview key = lua_tozsview(L, 2);
+  zsview key = luaL_checkzsview(L, 2);
   hmap_modes_iter it = hmap_modes_find(&lfm->modes, key);
   if (it.ref == NULL) {
     return 0;

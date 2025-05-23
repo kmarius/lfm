@@ -150,9 +150,8 @@ static int l_cmd_end(lua_State *L) {
 }
 
 static int l_cmd_history_append(lua_State *L) {
-  luaL_checktype(L, 1, LUA_TSTRING);
-  luaL_checktype(L, 2, LUA_TSTRING);
-  history_append(&ui->cmdline.history, lua_tozsview(L, 1), lua_tozsview(L, 2));
+  history_append(&ui->cmdline.history, luaL_checkzsview(L, 1),
+                 luaL_checkzsview(L, 2));
   return 0;
 }
 
@@ -235,8 +234,7 @@ static int l_fm_check(lua_State *L) {
 
 static int l_fm_load(lua_State *L) {
   char buf[PATH_MAX + 1];
-  luaL_checktype(L, 1, LUA_TSTRING);
-  zsview path = lua_tozsview(L, 1);
+  zsview path = luaL_checkzsview(L, 1);
   zsview normalized = path_normalize3(path, fm_getpwd_str(fm), buf, sizeof buf);
   if (zsview_is_empty(normalized)) {
     return luaL_error(L, "path too long");
@@ -246,8 +244,7 @@ static int l_fm_load(lua_State *L) {
 }
 
 static int l_fm_sel(lua_State *L) {
-  luaL_checktype(L, 1, LUA_TSTRING);
-  fm_move_cursor_to(fm, lua_tozsview(L, 1));
+  fm_move_cursor_to(fm, luaL_checkzsview(L, 1));
   ui_update_file_preview(ui);
   ui_redraw(ui, REDRAW_FM);
   return 0;

@@ -2,8 +2,11 @@
 
 #include "../containers.h"
 #include "../stcutil.h"
+#include "lauxlib.h"
 
 #include <lua.h>
+
+// common idioms mostly for conversion from lua types to stc types
 
 static inline void lua_pushcstr(lua_State *L, const cstr *cstr) {
   lua_pushlstring(L, cstr_str(cstr), cstr_size(cstr));
@@ -17,6 +20,11 @@ static inline zsview lua_tozsview(lua_State *L, int idx) {
   size_t len;
   const char *str = lua_tolstring(L, idx, &len);
   return zsview_from_n(str ? str : "", len);
+}
+
+static inline zsview luaL_checkzsview(lua_State *L, int idx) {
+  luaL_checktype(L, idx, LUA_TSTRING);
+  return lua_tozsview(L, idx);
 }
 
 static inline zsview luaL_optzsview(lua_State *L, int idx, zsview def) {

@@ -299,8 +299,7 @@ static int l_config_newindex(lua_State *L) {
     if (lua_isnoneornil(L, 3)) {
       cstr_clear(&cfg.previewer);
     } else {
-      luaL_checktype(L, 3, LUA_TSTRING);
-      zsview str = lua_tozsview(L, 3);
+      zsview str = luaL_checkzsview(L, 3);
       if (zsview_is_empty(str)) {
         cstr_clear(&cfg.previewer);
       } else {
@@ -347,8 +346,7 @@ static int l_config_newindex(lua_State *L) {
     cfg.linkchars_len = ansi_mblen(val);
     ui_redraw(ui, REDRAW_FM);
   } else if (streq(key, "timefmt")) {
-    luaL_checktype(L, 3, LUA_TSTRING);
-    zsview fmt = lua_tozsview(L, 3);
+    zsview fmt = luaL_checkzsview(L, 3);
     cstr_assign_zv(&cfg.timefmt, fmt);
     ui_redraw(ui, REDRAW_FM);
   } else if (streq(key, "preview_delay")) {

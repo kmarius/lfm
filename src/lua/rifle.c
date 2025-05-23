@@ -471,8 +471,7 @@ static int l_rifle_query_mime(lua_State *L) {
 static int l_rifle_query(lua_State *L) {
   Rifle *rifle = lua_touserdata(L, lua_upvalueindex(1));
 
-  luaL_checktype(L, 1, LUA_TSTRING);
-  zsview file = lua_tozsview(L, 1);
+  zsview file = luaL_checkzsview(L, 1);
 
   int limit = 0;
   zsview pick = zsview_init();
