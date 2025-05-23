@@ -7,51 +7,72 @@
 #define LFM_LOG_META "Lfm.Log.Meta"
 #define STR(x) #x
 
+// lua_getstack fails if the stack is smaller, e.g. if called directly as a
+// callback. We just log @callback:0 for file/line
+
 static int l_log_trace(lua_State *L) {
   lua_Debug ar;
-  lua_getstack(L, 2, &ar);
-  lua_getinfo(L, "Sl", &ar);
-  log_log(LOG_TRACE, ar.source, ar.currentline, "%s", luaL_checkstring(L, 1));
+  if (lua_getstack(L, 2, &ar) == 0) {
+    log_log(LOG_TRACE, "@callback", 0, "%s", luaL_checkstring(L, 1));
+  } else {
+    lua_getinfo(L, "Sl", &ar);
+    log_log(LOG_TRACE, ar.source, ar.currentline, "%s", luaL_checkstring(L, 1));
+  }
   return 0;
 }
 
 static int l_log_debug(lua_State *L) {
   lua_Debug ar;
-  lua_getstack(L, 2, &ar);
-  lua_getinfo(L, "Sl", &ar);
-  log_log(LOG_DEBUG, ar.source, ar.currentline, "%s", luaL_checkstring(L, 1));
+  if (lua_getstack(L, 2, &ar) == 0) {
+    log_log(LOG_DEBUG, "@callback", 0, "%s", luaL_checkstring(L, 1));
+  } else {
+    lua_getinfo(L, "Sl", &ar);
+    log_log(LOG_DEBUG, ar.source, ar.currentline, "%s", luaL_checkstring(L, 1));
+  }
   return 0;
 }
 
 static int l_log_info(lua_State *L) {
   lua_Debug ar;
-  lua_getstack(L, 2, &ar);
-  lua_getinfo(L, "Sl", &ar);
-  log_log(LOG_INFO, ar.source, ar.currentline, "%s", luaL_checkstring(L, 1));
+  if (lua_getstack(L, 2, &ar) == 0) {
+    log_log(LOG_INFO, "@callback", 0, "%s", luaL_checkstring(L, 1));
+  } else {
+    lua_getinfo(L, "Sl", &ar);
+    log_log(LOG_INFO, ar.source, ar.currentline, "%s", luaL_checkstring(L, 1));
+  }
   return 0;
 }
 
 static int l_log_warn(lua_State *L) {
   lua_Debug ar;
-  lua_getstack(L, 2, &ar);
-  lua_getinfo(L, "Sl", &ar);
-  log_log(LOG_WARN, ar.source, ar.currentline, "%s", luaL_checkstring(L, 1));
+  if (lua_getstack(L, 2, &ar) == 0) {
+    log_log(LOG_WARN, "@callback", 0, "%s", luaL_checkstring(L, 1));
+  } else {
+    lua_getinfo(L, "Sl", &ar);
+    log_log(LOG_WARN, ar.source, ar.currentline, "%s", luaL_checkstring(L, 1));
+  }
   return 0;
 }
 
 static int l_log_error(lua_State *L) {
   lua_Debug ar;
-  lua_getstack(L, 2, &ar);
-  lua_getinfo(L, "Sl", &ar);
-  log_log(LOG_ERROR, ar.source, ar.currentline, "%s", luaL_checkstring(L, 1));
+  if (lua_getstack(L, 2, &ar) == 0) {
+    log_log(LOG_ERROR, "@callback", 0, "%s", luaL_checkstring(L, 1));
+  } else {
+    lua_getinfo(L, "Sl", &ar);
+    log_log(LOG_ERROR, ar.source, ar.currentline, "%s", luaL_checkstring(L, 1));
+  }
   return 0;
 }
 
 static int l_log_fatal(lua_State *L) {
   lua_Debug ar;
-  lua_getstack(L, 2, &ar);
-  lua_getinfo(L, "Sl", &ar);
-  log_log(LOG_FATAL, ar.source, ar.currentline, "%s", luaL_checkstring(L, 1));
+  if (lua_getstack(L, 2, &ar) == 0) {
+    log_log(LOG_FATAL, "@callback", 0, "%s", luaL_checkstring(L, 1));
+  } else {
+    lua_getinfo(L, "Sl", &ar);
+    log_log(LOG_FATAL, ar.source, ar.currentline, "%s", luaL_checkstring(L, 1));
+  }
   return 0;
 }
 
