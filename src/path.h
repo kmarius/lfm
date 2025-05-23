@@ -42,9 +42,8 @@ static inline bool path_is_dot_or_dotdot(const char *name) {
 // Allocates a new path with a beginning ~/ replaced, otherwise a copy of path.
 cstr path_replace_tilde(zsview path);
 
-// Allocates a new absolute path with all ~/, ., .., // replaced, byob (buffer)
-// version. Buffer MUST be of size PATH_MAX+1
-// This function only fails if the buffer size is exceeded, returning NULL
+// Normalizes path by replacing all ~/, ., .., //
+// This function only fails if the buffer size is exceeded, returning c_zv("")
 zsview path_normalize3(zsview path, const char *pwd, char *buf, size_t bufsz);
 
 static inline cstr path_normalize_cstr(zsview path, const char *pwd) {

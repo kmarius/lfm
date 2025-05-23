@@ -84,8 +84,8 @@ cstr path_replace_tilde(zsview path) {
 // replace //
 // replace /./
 // replace /../ and kill one component to the left
-static inline char *remove_slashes_and_dots(char *const path, size_t len_in,
-                                            size_t *len_out) {
+static inline char *path_clean(char *const path, size_t len_in,
+                               size_t *len_out) {
   char *p = path; // read position
   char *q = path; // write position
   const char *end = path + len_in;
@@ -123,11 +123,18 @@ static inline char *remove_slashes_and_dots(char *const path, size_t len_in,
   return path;
 }
 
-// buf is required to be of size PATH_MAX + 1
 zsview path_normalize3(zsview path, const char *pwd, char *buf, size_t bufsz) {
   size_t len = 0;
 
-  if (zsview_starts_with(path, "~/")) {
+  if (zsview_eq(&path, &c_zv("~"))) {
+    zsview home = getenv_zv("HOME");
+    if ((size_t)home.size + path.size - 1 > bufsz) {
+      // too long, abort
+      return c_zv("");
+    }
+    memcpy(buf, home.str, home.size);
+    len = home.size;
+  } else if (zsview_starts_with(path, "~/")) {
     // this increases the length
 
     zsview home = getenv_zv("HOME");
@@ -163,7 +170,8 @@ zsview path_normalize3(zsview path, const char *pwd, char *buf, size_t bufsz) {
     }
 
     memcpy(buf, path.str, path.size + 1); // includes nul
+    len = path.size;
   }
-  remove_slashes_and_dots(buf, len, &len);
+  path_clean(buf, len, &len);
   return zsview_from_n(buf, len);
 }
