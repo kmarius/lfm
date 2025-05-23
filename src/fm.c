@@ -303,7 +303,19 @@ void fm_update_preview(Fm *fm) {
 }
 
 static inline void on_cursor_moved(Fm *fm, bool delay_action) {
+
   delay_action &= cfg.preview_delay > 0;
+
+  static uint64_t last_time_called = 0;
+  uint64_t now = current_millis();
+  if (delay_action) {
+    // cursor was resting, don't delay
+    if (now - last_time_called > cfg.preview_delay) {
+      delay_action = false;
+    }
+  }
+  last_time_called = now;
+
   log_trace("on_cursor_moved delay_action=%d", delay_action);
 
   if (!cfg.preview) {
