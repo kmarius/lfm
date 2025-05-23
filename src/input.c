@@ -16,6 +16,7 @@
 #include "stcutil.h"
 #include "trie.h"
 #include "ui.h"
+#include "util.h"
 
 #include <notcurses/nckeys.h>
 #include <notcurses/notcurses.h>
@@ -253,7 +254,10 @@ void input_handle_key(Lfm *lfm, input_t in) {
       // A command is mapped to the current keysequence. Execute it and reset.
       int ref = lfm->ui.maps.cur->ref;
       input_clear(lfm);
+      uint64_t t0 = current_micros();
       llua_call_from_ref(lfm->L, ref, lfm->ui.maps.count);
+      uint64_t t1 = current_micros();
+      log_trace("llua_call_from_ref %luus", t1 - t0);
     } else {
       vec_input_push(&lfm->ui.maps.seq, in);
       ui_redraw(ui, REDRAW_CMDLINE);
