@@ -19,6 +19,13 @@ static inline zsview lua_tozsview(lua_State *L, int idx) {
   return zsview_from_n(str ? str : "", len);
 }
 
+static inline zsview luaL_optzsview(lua_State *L, int idx, zsview def) {
+  if (lua_isnoneornil(L, idx)) {
+    return def;
+  }
+  return lua_tozsview(L, idx);
+}
+
 // efficiently create a copy of the string repr of the value at position idx
 static inline char *lua_tostrdup(lua_State *L, int idx) {
   size_t len;

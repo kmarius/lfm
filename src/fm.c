@@ -100,7 +100,7 @@ static void fm_populate(Fm *fm) {
   fm->dirs.visible.data[0]->visible = true;
   Dir *dir = fm_current_dir(fm);
   for (uint32_t i = 1; i < fm->dirs.length; i++) {
-    zsview parent = path_parent_zv(cstr_zv(dir_path(dir)));
+    zsview parent = path_parent(dir_path(dir));
     if (zsview_is_empty(parent)) {
       fm->dirs.visible.data[i] = NULL;
     } else {
@@ -570,7 +570,7 @@ bool fm_updir(Fm *fm) {
     return false;
   }
 
-  zsview path = path_parent_zv(cstr_zv(dir_path(fm_current_dir(fm))));
+  zsview path = path_parent(dir_path(fm_current_dir(fm)));
   fm_async_chdir(fm, path, false, false);
   on_cursor_moved(fm, false);
   return true;

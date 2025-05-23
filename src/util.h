@@ -69,6 +69,9 @@ uint64_t current_millis(void);
 // recursive mkdir
 int mkdir_p(char *path, __mode_t mode);
 
+// make all directory components of the file at path
+int make_dirs(zsview path, __mode_t mode);
+
 int asprintf(char **dst, const char *format, ...);
 
 int vasprintf(char **dst, const char *format, va_list args);

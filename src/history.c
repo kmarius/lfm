@@ -2,7 +2,6 @@
 
 #include "log.h"
 #include "memory.h"
-#include "path.h"
 #include "stc/cstr.h"
 #include "util.h"
 
@@ -87,8 +86,7 @@ void history_load(History *h, zsview path) {
 }
 
 void history_write(History *h, zsview path, int histsize) {
-  char *dir = dirname_s(path.str);
-  mkdir_p(dir, 755);
+  make_dirs(path, 755);
 
   char path_new[PATH_MAX + 1];
   snprintf(path_new, sizeof path_new - 1, "%s.XXXXXX", path.str);

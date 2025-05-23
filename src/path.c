@@ -10,18 +10,8 @@
 #include <linux/limits.h>
 #include <string.h>
 
-bool path_isroot(zsview path) {
-  return !zsview_is_empty(path) && path.str[0] == '/' && path.str[1] == 0;
-}
-
-char *dirname_s(const char *path) {
-  static char buf[PATH_MAX + 1];
-  strncpy(buf, path, sizeof buf - 1);
-  return dirname(buf);
-}
-
 zsview path_parent_zv(zsview path) {
-  if (zsview_is_empty(path) || path_isroot(path)) {
+  if (zsview_is_empty(path) || path_is_root_zv(path)) {
     return c_zv("");
   }
 
@@ -69,7 +59,7 @@ void dirname_cstr(cstr *path) {
   }
   size_t len = base - cstr_str(path);
   if (len == 0) {
-    // root keeps trailing slash
+    // root keeps its trailing slash
     cstr_resize(path, 1, 0);
   } else {
     cstr_resize(path, len, 0);
@@ -94,8 +84,8 @@ cstr path_replace_tilde(zsview path) {
 // replace //
 // replace /./
 // replace /../ and kill one component to the left
-static char *remove_slashes_and_dots(char *const path, size_t len_in,
-                                     size_t *len_out) {
+static inline char *remove_slashes_and_dots(char *const path, size_t len_in,
+                                            size_t *len_out) {
   char *p = path; // read position
   char *q = path; // write position
   const char *end = path + len_in;
@@ -134,49 +124,46 @@ static char *remove_slashes_and_dots(char *const path, size_t len_in,
 }
 
 // buf is required to be of size PATH_MAX + 1
-char *path_normalize(const char *path, const char *pwd, char *buf,
-                     size_t len_in, size_t *len_out) {
-  if (path[0] == '~' && (path[1] == 0 || path[1] == '/')) {
+zsview path_normalize3(zsview path, const char *pwd, char *buf, size_t bufsz) {
+  size_t len = 0;
+
+  if (zsview_starts_with(path, "~/")) {
     // this increases the length
 
-    const char *home = getenv("HOME");
-    int len = strlen(home);
-    if (len + len_in - 1 > PATH_MAX) {
+    zsview home = getenv_zv("HOME");
+    if ((size_t)home.size + path.size - 1 > bufsz) {
       // too long, abort
-      return NULL;
+      return c_zv("");
     }
-    memcpy(buf, home, len);
-    memcpy(buf + len, path + 1, len_in - 1);
-    len_in += len - 1;
-    buf[len_in] = 0;
-  } else if (path[0] != '/') {
+    memcpy(buf, home.str, home.size);
+    memcpy(buf + home.size, path.str + 1, path.size); // includes nul
+    len = home.size + path.size - 1;
+  } else if (!path_is_absolute_zv(path)) {
     // this increases the length
 
     if (!pwd) {
       pwd = getenv("PWD");
     }
-    int len = strlen(pwd);
-    if (len + len_in + 1 > PATH_MAX) {
+    len = strlen(pwd);
+    if ((size_t)len + path.size + 1 > bufsz) {
       // too long, abort
-      return NULL;
+      return c_zv("");
     }
 
     memcpy(buf, pwd, len);
     buf[len] = '/';
-    memcpy(buf + len + 1, path, len_in);
-    len_in += len + 1;
-    buf[len_in] = 0;
+    memcpy(buf + len + 1, path.str, path.size + 1); // includes nul
+    len += path.size;
   } else {
     // absolute path
 
-    if (len_in + 1 > PATH_MAX) {
+    if ((size_t)path.size + 1 > bufsz) {
       // too long, abort
-      return NULL;
+      return c_zv("");
     }
 
-    memcpy(buf, path, len_in);
-    buf[len_in] = 0;
+    memcpy(buf, path.str, path.size + 1); // includes nul
   }
-  remove_slashes_and_dots(buf, len_in, len_out);
-  return buf;
+  remove_slashes_and_dots(buf, len, &len);
+  return zsview_from_n(buf, len);
 }

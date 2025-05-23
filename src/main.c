@@ -110,7 +110,7 @@ int main(int argc, char **argv) {
   // TODO: make it possible to move the cursor to a directory instead
   // of cd'ing into it
   if (optind < argc) {
-    cstr path = path_normalize_cstr(argv[optind], NULL, strlen(argv[optind]));
+    cstr path = path_normalize_cstr(zsview_from(argv[optind]), NULL);
     struct stat statbuf;
     if (stat(cstr_str(&path), &statbuf) == -1) {
       // can't print to Ui yet, maybe pass something to init?
@@ -118,7 +118,7 @@ int main(int argc, char **argv) {
       cstr_drop(&path);
     } else {
       if (!S_ISDIR(statbuf.st_mode)) {
-        opts.startfile = cstr_from_zv(basename_zv(cstr_zv(&path)));
+        opts.startfile = cstr_from_zv(basename_cstr(&path));
         dirname_cstr(&path);
         opts.startpath = path;
       } else {

@@ -7,6 +7,7 @@
 
 #include <ctype.h>
 #include <errno.h>
+#include <libgen.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -14,7 +15,7 @@
 #include <time.h>
 #include <wctype.h>
 
-#include <libgen.h>
+#include <linux/limits.h>
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/types.h>
@@ -179,6 +180,16 @@ int mkdir_p(char *path, __mode_t mode) {
     *sep = '/';
   }
   return mkdir(path, mode);
+}
+
+int make_dirs(zsview path, __mode_t mode) {
+  static char buf[PATH_MAX + 1];
+  if (zsview_is_empty(path)) {
+    buf[0] = 0;
+  } else {
+    memcpy(buf, path.str, path.size + 1);
+  }
+  return mkdir_p(dirname(buf), mode);
 }
 
 int vasprintf(char **dst, const char *format, va_list args) {

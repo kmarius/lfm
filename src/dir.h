@@ -2,6 +2,7 @@
 
 #include "file.h"
 #include "filter.h"
+#include "path.h"
 #include "sort.h"
 
 #include "stc/cstr.h"
@@ -135,7 +136,7 @@ void dir_update_with(Dir *dir, Dir *update, uint32_t height,
 
 // Returns true `d` is the root directory.
 static inline bool dir_isroot(const Dir *dir) {
-  return (dir_path_str(dir)[0] == '/' && dir_path_str(dir)[1] == 0);
+  return path_is_root(dir_path(dir));
 }
 
 // Load a flat directorie showing files up `level`s deep.

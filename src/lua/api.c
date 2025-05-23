@@ -235,14 +235,13 @@ static int l_fm_check(lua_State *L) {
 
 static int l_fm_load(lua_State *L) {
   char buf[PATH_MAX + 1];
-  size_t len;
-  const char *path = luaL_checklstring(L, 1, &len);
-  const char *normalized =
-      path_normalize(path, fm_getpwd_str(fm), buf, len, &len);
-  if (normalized == NULL) {
+  luaL_checktype(L, 1, LUA_TSTRING);
+  zsview path = lua_tozsview(L, 1);
+  zsview normalized = path_normalize3(path, fm_getpwd_str(fm), buf, sizeof buf);
+  if (zsview_is_empty(normalized)) {
     return luaL_error(L, "path too long");
   }
-  loader_dir_from_path(&lfm->loader, zsview_from_n(normalized, len), true);
+  loader_dir_from_path(&lfm->loader, normalized, true);
   return 0;
 }
 
@@ -459,17 +458,15 @@ static int l_fm_selection_add(lua_State *L) {
   for (int i = 1; i <= n; i++) {
     lua_rawgeti(L, 1, i);
 
-    size_t len;
-    const char *path = lua_tolstring(L, -1, &len);
-    const char *normalized =
-        path_normalize(path, fm_getpwd_str(fm), buf, len, &len);
-    if (normalized == NULL) {
+    zsview path = lua_tozsview(L, -1);
+    zsview normalized =
+        path_normalize3(path, fm_getpwd_str(fm), buf, sizeof buf);
+    if (zsview_is_empty(normalized)) {
       cstr_drop(&cs);
       return luaL_error(L, "path too long");
     }
-    cstr_assign_n(&cs, buf, len);
+    cstr_assign_zv(&cs, normalized);
     fm_selection_add(fm, &cs, false);
-
     lua_pop(L, 1);
   }
   cstr_drop(&cs);
@@ -490,15 +487,14 @@ static int l_fm_selection_set(lua_State *L) {
   if (lua_istable(L, 1)) {
     cstr cs = cstr_init();
     for (lua_pushnil(L); lua_next(L, -2); lua_pop(L, 1)) {
-      size_t len;
-      const char *str = lua_tolstring(L, -1, &len);
-      const char *normalized =
-          path_normalize(str, fm_getpwd_str(fm), buf, len, &len);
-      if (normalized == NULL) {
+      zsview str = lua_tozsview(L, -1);
+      zsview normalized =
+          path_normalize3(str, fm_getpwd_str(fm), buf, sizeof buf);
+      if (zsview_is_empty(normalized)) {
         cstr_drop(&cs);
         return luaL_error(L, "path too long");
       }
-      cstr_assign_n(&cs, buf, len);
+      cstr_assign_zv(&cs, normalized);
       fm_selection_add(fm, &cs, false);
     }
     cstr_drop(&cs);
@@ -537,17 +533,18 @@ static int l_fm_selection_restore(lua_State *L) {
 
 static int l_fm_chdir(lua_State *L) {
   char buf[PATH_MAX + 1];
-  size_t len;
-  const char *arg = luaL_optlstring(L, 1, "~", &len);
-  const char *last_slash = strchr(arg, '/');
-  bool should_save = (arg[0] == '/' || arg[0] == '~' ||
+  zsview arg = luaL_optzsview(L, 1, c_zv("~"));
+
+  // TODO: can't remember why we are doing this, also this actually finds the
+  // first slash, not the last
+  const char *last_slash = strchr(arg.str, '/');
+  bool should_save = (arg.str[0] == '/' || arg.str[0] == '~' ||
                       (last_slash != NULL && last_slash[1] != 0));
 
-  char *normalized = path_normalize(arg, fm_getpwd_str(fm), buf, len, &len);
-  if (normalized == NULL) {
+  zsview path = path_normalize3(arg, fm_getpwd_str(fm), buf, sizeof buf);
+  if (zsview_is_empty(path)) {
     return luaL_error(L, "path too long");
   }
-  zsview path = zsview_from_n(normalized, len);
 
   search_nohighlight(lfm);
   lfm_mode_exit(lfm, c_zv("visual"));

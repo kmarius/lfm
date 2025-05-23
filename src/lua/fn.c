@@ -10,13 +10,13 @@
 
 static int l_fn_normalize(lua_State *L) {
   char buf[PATH_MAX + 1];
-  size_t len;
-  const char *str = luaL_checklstring(L, 1, &len);
-  const char *path = path_normalize(str, fm_getpwd_str(fm), buf, len, &len);
-  if (path == NULL) {
+  luaL_checktype(L, 1, LUA_TSTRING);
+  zsview path = lua_tozsview(L, 1);
+  zsview normalized = path_normalize3(path, fm_getpwd_str(fm), buf, sizeof buf);
+  if (zsview_is_empty(normalized)) {
     return luaL_error(L, "path too long");
   }
-  lua_pushlstring(L, path, len);
+  lua_pushzsview(L, normalized);
   return 1;
 }
 
@@ -109,8 +109,8 @@ static int l_fn_getpid(lua_State *L) {
 }
 
 static int l_fn_getcwd(lua_State *L) {
-  const char buf[PATH_MAX];
-  const char *cwd = getcwd((char *)buf, sizeof buf);
+  const char buf[PATH_MAX + 1];
+  const char *cwd = getcwd((char *)buf, sizeof buf - 1);
   lua_pushstring(L, cwd ? cwd : "");
   return 1;
 }
