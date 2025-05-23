@@ -267,7 +267,7 @@ function lfm.spawn(command, opts) end
 ---```
 ---
 ---@param chunk string Lua code to execute
----@param callback fun(res: any, err: string) Callback for the result/error
+---@param callback? fun(res: any, err: string) Callback for the result/error
 function lfm.thread(chunk, callback) end
 
 ---@alias Lfm.Hook

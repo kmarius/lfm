@@ -755,8 +755,8 @@ static void lua_result_destroy(void *p) {
 static void lua_result_callback(void *p, Lfm *lfm) {
   struct lua_data *res = p;
   lua_State *L = lfm->L;
-  if (L == NULL) {
-    // probably shut down
+  if (L == NULL || res->ref == 0) {
+    // lfm is shutting down; or no callback
     goto cleanup;
   }
 
@@ -859,10 +859,9 @@ void async_lua_worker(void *arg) {
     goto err;
   }
 
-  if (lua_isnoneornil(L, -1)) {
-    log_debug("result is nil");
+  if (lua_isnoneornil(L, -1) || work->ref == 0) {
+    // can not serialize nil, and wo don't serialize if there is no callback
     // [packer, packer, nil]
-    // can not serialize nil
     work->result = bytes_init();
     lua_pop(L, 2);
   } else {

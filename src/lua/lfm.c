@@ -416,10 +416,16 @@ static int l_execute(lua_State *L) {
 // TODO: maybe accept arguments as a third arg, serialize them and pass them
 // to the thread
 static int l_thread(lua_State *L) {
+  if (lua_gettop(L) > 2) {
+    return luaL_error(L, "too many arguments");
+  }
+  int ref = 0;
   luaL_checktype(L, 1, LUA_TSTRING);
-  luaL_checktype(L, 2, LUA_TFUNCTION);
+  if (lua_gettop(L) == 2) {
+    luaL_checktype(L, 2, LUA_TFUNCTION);
+    ref = lua_set_callback(L);
+  }
   bytes chunk = lua_tobytes(L, 1);
-  int ref = lua_set_callback(L);
   if (async_lua(&lfm->async, &chunk, ref) != 0) {
     bytes_drop(&chunk);
     luaL_unref(L, LUA_REGISTRYINDEX, ref);
