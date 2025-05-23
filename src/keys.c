@@ -119,7 +119,7 @@ static struct {
 static const uint32_t key_names_len =
     sizeof(key_names_map) / sizeof(key_names_map[0]);
 
-const char *input_to_key_name(input_t in) {
+const char *input_to_key_name(input_t in, size_t *len_out) {
   static char buf[MAX_KEY_NAME_LEN + 1];
   uint32_t j = 0;
   const char *name = NULL;
@@ -131,25 +131,28 @@ const char *input_to_key_name(input_t in) {
       }
     }
   }
-  if (ISSHIFT(in) | ISALT(in) | ISCTRL(in) || name) {
+
+  bool is_modified = ISSHIFT(in) | ISALT(in) | ISCTRL(in);
+  if (is_modified || name != NULL) {
     buf[j++] = '<';
   }
 
   if (ISSHIFT(in)) {
-    buf[j++] = 'S';
+    buf[j++] = 's';
     buf[j++] = '-';
   }
   if (ISCTRL(in)) {
-    buf[j++] = 'C';
+    buf[j++] = 'c';
     buf[j++] = '-';
   }
   if (ISALT(in)) {
-    buf[j++] = 'A';
+    buf[j++] = 'a';
     buf[j++] = '-';
   }
-  if (name) {
-    strcpy(buf + j, name);
-    j += strlen(name);
+  if (name != NULL) {
+    int len = strlen(name);
+    memcpy(buf + j, name, len);
+    j += len;
   } else {
     // not a special key
     // check if printable? otherwise notcurses won't print '>'
@@ -160,10 +163,12 @@ const char *input_to_key_name(input_t in) {
       j += n;
     }
   }
-  if (ISSHIFT(in) | ISALT(in) | ISCTRL(in) || name) {
+  if (is_modified || name != NULL) {
     buf[j++] = '>';
   }
-  buf[j++] = 0;
+  buf[j] = 0;
+  if (len_out)
+    *len_out = j;
   return buf;
 }
 

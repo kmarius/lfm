@@ -83,7 +83,7 @@ int macro_stop_record() {
 
 static inline int macro_play_impl(Lfm *lfm, struct macro *macro) {
   for (int j = 0; j < macro->length; j++) {
-    log_trace("%s", input_to_key_name(macro->inputs[j]));
+    log_trace("%s", input_to_key_name(macro->inputs[j], NULL));
   }
   for (int j = 0; j < macro->length; j++) {
     input_handle_key(lfm, macro->inputs[j]);

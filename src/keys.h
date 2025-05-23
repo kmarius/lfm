@@ -27,7 +27,7 @@ typedef uint32_t input_t;
 
 // Map an `input_t` to a statically allocated string containing its readable
 // representation. Not thread safe.
-const char *input_to_key_name(input_t in);
+const char *input_to_key_name(input_t in, size_t *len_out);
 
 // Map a string of inputs in its readable representation to a zero terminated
 // array of `input_t`s in the given buffer. `buf` should be of the size at

@@ -236,17 +236,17 @@ void input_handle_key(Lfm *lfm, input_t in) {
     } else if (!lfm->ui.maps.cur) {
       vec_input_push(&lfm->ui.maps.seq, in);
       char buf[256];
-      int i = 0;
+      size_t len;
+      int j = 0;
       c_foreach(it, vec_input, lfm->ui.maps.seq) {
-        const char *s = input_to_key_name(*it.ref);
-        size_t l = strlen(s);
-        if (i + l + 1 > sizeof buf) {
+        const char *str = input_to_key_name(*it.ref, &len);
+        if (j + len > sizeof buf - 1) {
           break;
         }
-        strcpy(buf + i, s);
-        i += l;
+        memcpy(buf + j, str, len);
+        j += len;
       }
-      buf[i] = 0;
+      buf[j] = 0;
       log_debug("unmapped key sequence: %s (id=%d shift=%d ctrl=%d alt=%d)",
                 buf, ID(in), ISSHIFT(in), ISCTRL(in), ISALT(in));
       input_clear(lfm);

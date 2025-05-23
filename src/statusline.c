@@ -107,7 +107,7 @@ void statusline_draw(Ui *ui) {
     if (macro_recording) {
       char buf[256];
       snprintf(buf, sizeof buf, "recording @%s",
-               input_to_key_name(macro_identifier));
+               input_to_key_name(macro_identifier, NULL));
       rhs_sz += mbstowcs(NULL, buf, 0) + 1;
       ncplane_putstr_yx(n, 0, ui->x - rhs_sz, buf);
       ncplane_putchar(n, ' ');
@@ -115,17 +115,17 @@ void statusline_draw(Ui *ui) {
     if (vec_input_size(&ui->maps.seq) > 0) {
       // unlikely we get to print this much anyway
       char buf[256];
-      int i = 0;
+      int j = 0;
+      size_t len;
       c_foreach(it, vec_input, ui->maps.seq) {
-        const char *s = input_to_key_name(*it.ref);
-        size_t l = strlen(s);
-        if (i + l + 1 > sizeof buf) {
+        const char *str = input_to_key_name(*it.ref, &len);
+        if (j + len > sizeof buf - 1) {
           break;
         }
-        strcpy(buf + i, s);
-        i += l;
+        strcpy(buf + j, str);
+        j += len;
       }
-      buf[i] = 0;
+      buf[j] = 0;
       rhs_sz += mbstowcs(NULL, buf, 0) + 1;
       ncplane_putstr_yx(n, 0, ui->x - rhs_sz, buf);
       ncplane_putchar(n, ' ');
