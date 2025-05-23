@@ -1,11 +1,11 @@
 #pragma once
 
-#include "containers.h"
+#include "bytes.h"
+
 #include <ev.h>
 
-#include <stdbool.h>
-
 #include <pthread.h>
+#include <stdbool.h>
 
 struct Dir;
 struct Preview;
@@ -49,4 +49,4 @@ void async_notify_preview_add(Async *async, struct Dir *dir);
 
 // Takes ownership of bytes, unless it fails. Returns -1 on failure,
 // indicating that the mpack lua library wasn't found
-int async_lua(Async *async, struct bytes *chunk, int ref);
+int async_lua(Async *async, bytes *chunk, int ref);

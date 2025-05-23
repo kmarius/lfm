@@ -418,7 +418,7 @@ static int l_execute(lua_State *L) {
 static int l_thread(lua_State *L) {
   luaL_checktype(L, 1, LUA_TSTRING);
   luaL_checktype(L, 2, LUA_TFUNCTION);
-  struct bytes chunk = lua_tobytes(L, 1);
+  bytes chunk = lua_tobytes(L, 1);
   int ref = lua_set_callback(L);
   if (async_lua(&lfm->async, &chunk, ref) != 0) {
     bytes_drop(&chunk);

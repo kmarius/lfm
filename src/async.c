@@ -740,11 +740,10 @@ void async_notify_preview_add(Async *async, Dir *dir) {
 struct lua_data {
   struct result super;
   Async *async;
-  struct bytes chunk; // lua code to execute
-  struct bytes
-      result; // error string if error == true, mpacked result, otherwise
-  bool error; // either loadstring or the code itself returned an error
-  int ref;    // ref to the callback
+  bytes chunk;  // lua code to execute
+  bytes result; // error string if error == true, mpacked result, otherwise
+  bool error;   // either loadstring or the code itself returned an error
+  int ref;      // ref to the callback
 };
 
 static void lua_result_destroy(void *p) {
@@ -844,7 +843,7 @@ void async_lua_worker(void *arg) {
 
   lua_pushvalue(L, -1); // [packer, packer]
 
-  struct bytes chunk = work->chunk;
+  bytes chunk = work->chunk;
   if (luaL_loadbuffer(L, chunk.data, chunk.len, chunk.data)) {
     // [packer, packer, err]
     work->result = bytes_from_str(lua_tostring(L, -1));
@@ -913,7 +912,7 @@ static inline bool check_msgpack(Async *async) {
   return true;
 }
 
-int async_lua(Async *async, struct bytes *chunk, int ref) {
+int async_lua(Async *async, bytes *chunk, int ref) {
   if (!have_msgpack) {
     // re-checking
     have_msgpack = check_msgpack(async);

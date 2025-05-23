@@ -42,7 +42,7 @@ static inline cstr lua_tocstr(lua_State *L, int idx) {
 }
 
 // convert value at position idx to a string and then into a struct bytes
-static inline struct bytes lua_tobytes(lua_State *L, int idx) {
+static inline bytes lua_tobytes(lua_State *L, int idx) {
   size_t len;
   const char *data = lua_tolstring(L, idx, &len);
   return bytes_from_n(data, len);
@@ -57,7 +57,7 @@ static inline void lua_push_vec_cstr(lua_State *L, const vec_cstr *vec) {
   }
 }
 
-static inline void lua_pushbytes(lua_State *L, struct bytes bytes) {
+static inline void lua_pushbytes(lua_State *L, bytes bytes) {
   lua_pushlstring(L, bytes.data, bytes.len);
 }
 
