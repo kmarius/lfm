@@ -839,6 +839,7 @@ void async_lua_worker(void *arg) {
 
     lua_remove(L_thread, -2); // [packer]
   }
+
   lua_State *L = L_thread;
 
   lua_pushvalue(L, -1); // [packer, packer]
@@ -878,12 +879,15 @@ void async_lua_worker(void *arg) {
     lua_pop(L, 1); // [packer]
   }
 
+end:
   enqueue_and_signal(work->async, (struct result *)work);
+  if (L_thread != NULL)
+    lua_gc(L_thread, LUA_GCCOLLECT, 0); // collectgarbage("collect")
   return;
 
 err:
   work->error = true;
-  enqueue_and_signal(work->async, (struct result *)work);
+  goto end;
 }
 
 static bool have_msgpack = false;
