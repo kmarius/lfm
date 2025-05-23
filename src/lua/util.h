@@ -42,13 +42,10 @@ static inline cstr lua_tocstr(lua_State *L, int idx) {
 }
 
 // convert value at position idx to a string and then into a struct bytes
-static inline struct bytes lua_to_bytes(lua_State *L, int idx) {
+static inline struct bytes lua_tobytes(lua_State *L, int idx) {
   size_t len;
-  const char *s = lua_tolstring(L, idx, &len);
-  char *data = memdup(s, len);
-  if (data == NULL)
-    len = 0;
-  return (struct bytes){data, len};
+  const char *data = lua_tolstring(L, idx, &len);
+  return bytes_from_n(data, len);
 }
 
 static inline void lua_push_vec_cstr(lua_State *L, const vec_cstr *vec) {
@@ -60,11 +57,15 @@ static inline void lua_push_vec_cstr(lua_State *L, const vec_cstr *vec) {
   }
 }
 
+static inline void lua_pushbytes(lua_State *L, struct bytes bytes) {
+  lua_pushlstring(L, bytes.data, bytes.len);
+}
+
 static inline void lua_push_vec_bytes(lua_State *L, vec_bytes *vec) {
   lua_createtable(L, vec_bytes_size(vec), 0);
   size_t i = 1;
   c_foreach(it, vec_bytes, *vec) {
-    lua_pushlstring(L, it.ref->data, it.ref->len);
+    lua_pushbytes(L, *it.ref);
     lua_rawseti(L, -2, i++);
   }
 }
@@ -75,7 +76,7 @@ static inline void lua_read_vec_bytes(lua_State *L, int idx, vec_bytes *vec) {
   vec_bytes_reserve(vec, n);
   for (int i = 1; i <= n; i++) {
     lua_rawgeti(L, idx, i);
-    vec_bytes_push_back(vec, lua_to_bytes(L, -1));
+    vec_bytes_push_back(vec, lua_tobytes(L, -1));
     lua_pop(L, 1);
   }
 }

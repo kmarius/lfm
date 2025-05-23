@@ -236,6 +236,40 @@ function proc:close() end
 ---@return string? error
 function lfm.spawn(command, opts) end
 
+---
+---Execute a chunk of lua code in a seperate thread. The chunk may return up one return value,
+---which is serialized with msgpack and passed to the callback function. On error, callback is called with nil, errmsg
+---This functions throws if the "mpack" library can not be loaded. Long running code will currently block exiting lua indefinitely.
+---
+---Example:
+---```lua
+---  lfm.thread([[
+---    return 2 + 2
+---  ]], function(val, err)
+---    if err then
+---      error(err)
+---    end
+---    print(val)
+---  end)
+---```
+---Functions can be converted into bytecode using `string.dump` and passed to `lfm.thread`. Note that any upvalue
+---will be `nil` when executed.
+---
+---Example:
+---```lua
+---  local function test()
+---    return 2 + 2
+---  end
+---
+---  local bc = string.dump(test)
+---
+---  lfm.thread(bc, print)
+---```
+---
+---@param chunk string Lua code to execute
+---@param callback fun(res: any, err: string) Callback for the result/error
+function lfm.thread(chunk, callback) end
+
 ---@alias Lfm.Hook
 ---| '"LfmEnter"'         # Lfm has started and read all configuration
 ---| '"ExitPre"'          # Lfm is about to exit, called with exit status

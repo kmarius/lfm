@@ -1,13 +1,17 @@
 #include "async.h"
 
 #include "config.h"
+#include "containers.h"
 #include "dir.h"
 #include "file.h"
 #include "fm.h"
 #include "hooks.h"
+#include "lauxlib.h"
 #include "lfm.h"
 #include "loader.h"
 #include "log.h"
+#include "lua/lfmlua.h"
+#include "lua/thread.h"
 #include "macros_defs.h"
 #include "memory.h"
 #include "notify.h"
@@ -18,12 +22,13 @@
 #include "util.h"
 
 #include <ev.h>
-
-#include <errno.h>
-#include <stdint.h>
+#include <lua.h>
+#include <lualib.h>
 
 #include <dirent.h>
+#include <errno.h>
 #include <pthread.h>
+#include <stdint.h>
 #include <sys/stat.h>
 #include <sys/sysinfo.h>
 #include <sys/types.h>
@@ -731,3 +736,200 @@ void async_notify_preview_add(Async *async, Dir *dir) {
 }
 
 /* }}}*/
+
+struct lua_data {
+  struct result super;
+  Async *async;
+  struct bytes chunk; // lua code to execute
+  struct bytes
+      result; // error string if error == true, mpacked result, otherwise
+  bool error; // either loadstring or the code itself returned an error
+  int ref;    // ref to the callback
+};
+
+static void lua_result_destroy(void *p) {
+  struct lua_data *res = p;
+  bytes_drop(&res->chunk);
+  bytes_drop(&res->result);
+}
+
+static void lua_result_callback(void *p, Lfm *lfm) {
+  struct lua_data *res = p;
+  lua_State *L = lfm->L;
+  if (L == NULL) {
+    // probably shut down
+    goto cleanup;
+  }
+
+  lua_get_callback(L, res->ref, true); // [cb]
+
+  if (res->error) {
+    // res->result is error message, nil inserted later
+    lua_pushbytes(L, res->result); // [cb, err]
+    goto err;
+  }
+
+  if (bytes_is_empty(res->result)) {
+    // result was nil
+    lua_pushnil(L);
+  } else {
+    lua_rawgeti(L, LUA_REGISTRYINDEX,
+                res->async->unpacker_ref); // [cb, unpacker]
+    lua_pushbytes(L, res->result);         // [cb, unpacker, data]
+    if (lua_pcall(L, 1, 1, 0)) {
+      // [cb, err]
+      goto err;
+    }
+  }
+
+  // [cb, res]
+
+  // everything went well
+
+  if (llua_pcall(L, 1, 0)) {
+    // [err]
+    ui_error(&lfm->ui, "%s", lua_tostring(L, -1));
+    lua_pop(L, 1);
+  }
+  // []
+
+cleanup:
+  lua_result_destroy(p);
+  return;
+
+err:
+  // [cb, err]
+  lua_pushnil(L);    // [cb, err, nil]
+  lua_insert(L, -2); // [cb, nil, err]
+  if (llua_pcall(L, 2, 0)) {
+    // [err]
+    ui_error(&lfm->ui, "%s", lua_tostring(L, -1));
+    lua_pop(L, 1); // []
+  }
+  goto cleanup;
+}
+
+void async_lua_worker(void *arg) {
+  struct lua_data *work = arg;
+
+  if (L_thread == NULL) {
+    // TODO: should we close these on exit, e.g. to force gc?
+    L_thread = luaL_newstate();
+    luaL_openlibs(L_thread);
+
+    // leave an mpack packer instance on the stack
+
+    lua_getglobal(L_thread, "require"); // [require]
+    lua_pushstring(L_thread, "mpack");  // [require, "mpack"]
+    if (lua_pcall(L_thread, 1, 1, 0)) {
+      // [err]
+      work->result = bytes_from_str(lua_tostring(L_thread, -1));
+      lua_pop(L_thread, 1); // []
+      goto err;
+    }
+    // [mpack]
+
+    lua_getfield(L_thread, -1, "Packer"); // [mpack, mpack.Packer]
+    if (lua_pcall(L_thread, 0, 1, 0)) {
+      // [mpack, err]
+      work->result = bytes_from_str(lua_tostring(L_thread, -1));
+      lua_pop(L_thread, 2);
+      goto err;
+    }
+    // [mpack, packer]
+
+    lua_remove(L_thread, -2); // [packer]
+  }
+  lua_State *L = L_thread;
+
+  lua_pushvalue(L, -1); // [packer, packer]
+
+  struct bytes chunk = work->chunk;
+  if (luaL_loadbuffer(L, chunk.data, chunk.len, chunk.data)) {
+    // [packer, packer, err]
+    work->result = bytes_from_str(lua_tostring(L, -1));
+    lua_pop(L, 2);
+    goto err;
+  }
+  // [packer, packer, chunk]
+
+  if (lua_pcall(L, 0, 1, 0)) {
+    // [packer, packer, err]
+    work->result = bytes_from_str(lua_tostring(L, -1));
+    lua_pop(L, 2);
+    goto err;
+  }
+
+  if (lua_isnoneornil(L, -1)) {
+    log_debug("result is nil");
+    // [packer, packer, nil]
+    // can not serialize nil
+    work->result = bytes_init();
+    lua_pop(L, 2);
+  } else {
+    // [packer, packer, res]
+    if (lua_pcall(L, 1, 1, 0)) {
+      // [packer, err]
+      work->result = bytes_from_str(lua_tostring(L, -1));
+      lua_pop(L, 1);
+      goto err;
+    }
+
+    // [packer, data]
+    work->result = lua_tobytes(L, -1);
+    lua_pop(L, 1); // [packer]
+  }
+
+  enqueue_and_signal(work->async, (struct result *)work);
+  return;
+
+err:
+  work->error = true;
+  enqueue_and_signal(work->async, (struct result *)work);
+}
+
+static bool have_msgpack = false;
+
+static inline bool check_msgpack(Async *async) {
+  lua_State *L = to_lfm(async)->L;
+  lua_getglobal(L, "require"); // [require]
+  lua_pushstring(L, "mpack");  // [require, "mpack"]
+  if (lua_pcall(L, 1, 1, 0) != LUA_OK) {
+    // [err]
+    lua_pop(L, 1);
+    return false;
+  }
+  // [mpack]
+  lua_getfield(L, -1, "Unpacker"); // [mpack, mpack.Unpacker]
+  if (lua_pcall(L, 0, 1, 0) != LUA_OK) {
+    // [mpack, err]
+    lua_pop(L, 2);
+    return false;
+  }
+  // [mpack, unpacker]
+  async->unpacker_ref = luaL_ref(L, LUA_REGISTRYINDEX); // [mpack]
+  lua_pop(L, 1);                                        // []
+
+  return true;
+}
+
+int async_lua(Async *async, struct bytes *chunk, int ref) {
+  if (!have_msgpack) {
+    // re-checking
+    have_msgpack = check_msgpack(async);
+    if (!have_msgpack)
+      return -1;
+  }
+
+  struct lua_data *work = xcalloc(1, sizeof *work);
+  work->super.callback = &lua_result_callback;
+  work->super.destroy = &lua_result_destroy;
+
+  work->async = async;
+  work->chunk = bytes_move(chunk);
+  work->ref = ref;
+
+  log_trace("async_lua");
+  tpool_add_work(async->tpool, async_lua_worker, work, true);
+  return 0;
+}

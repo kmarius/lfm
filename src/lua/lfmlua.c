@@ -205,6 +205,7 @@ void lfm_lua_init(Lfm *lfm_) {
 
 void lfm_lua_deinit(Lfm *lfm) {
   lua_close(lfm->L);
+  lfm->L = NULL;
 }
 
 bool llua_filter(lua_State *L, int ref, const char *name) {

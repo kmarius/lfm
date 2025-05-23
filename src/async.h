@@ -1,5 +1,6 @@
 #pragma once
 
+#include "containers.h"
 #include <ev.h>
 
 #include <stdbool.h>
@@ -19,6 +20,7 @@ typedef struct Async {
   struct tpool *tpool;
   struct result_queue queue;
   ev_async result_watcher;
+  int unpacker_ref; // ref to mpack.Unpacker instance
 } Async;
 
 void async_init(Async *async);
@@ -44,3 +46,7 @@ void async_chdir(Async *async, const char *path, bool hook);
 void async_notify_add(Async *async, struct Dir *dir);
 
 void async_notify_preview_add(Async *async, struct Dir *dir);
+
+// Takes ownership of bytes, unless it fails. Returns -1 on failure,
+// indicating that the mpack lua library wasn't found
+int async_lua(Async *async, struct bytes *chunk, int ref);

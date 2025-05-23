@@ -257,7 +257,7 @@ static int l_spawn(lua_State *L) {
     if (lua_isboolean(L, -1)) {
       stdin_is_function = lua_toboolean(L, -1);
     } else if (lua_isstring(L, -1)) {
-      vec_bytes_push_back(&stdin_lines, lua_to_bytes(L, -1));
+      vec_bytes_push_back(&stdin_lines, lua_tobytes(L, -1));
     } else if (lua_istable(L, -1)) {
       lua_read_vec_bytes(L, -1, &stdin_lines);
     }
@@ -351,7 +351,7 @@ static int l_execute(lua_State *L) {
     lua_getfield(L, 2, "stdin"); // [cmd, opts, opts.stdin]
     send_stdin = lua_toboolean(L, -1);
     if (lua_isstring(L, -1)) {
-      vec_bytes_push_back(&stdin_lines, lua_to_bytes(L, -1));
+      vec_bytes_push_back(&stdin_lines, lua_tobytes(L, -1));
     } else if (lua_istable(L, -1)) {
       lua_read_vec_bytes(L, -1, &stdin_lines);
     }
@@ -411,6 +411,21 @@ static int l_execute(lua_State *L) {
 
     return 1;
   }
+}
+
+// TODO: maybe accept arguments as a third arg, serialize them and pass them
+// to the thread
+static int l_thread(lua_State *L) {
+  luaL_checktype(L, 1, LUA_TSTRING);
+  luaL_checktype(L, 2, LUA_TFUNCTION);
+  struct bytes chunk = lua_tobytes(L, 1);
+  int ref = lua_set_callback(L);
+  if (async_lua(&lfm->async, &chunk, ref) != 0) {
+    bytes_drop(&chunk);
+    luaL_unref(L, LUA_REGISTRYINDEX, ref);
+    luaL_error(L, "mpack not found");
+  }
+  return 0;
 }
 
 static inline int map_key(lua_State *L, Trie *trie, bool allow_mode) {
@@ -616,6 +631,7 @@ static const struct luaL_Reg lfm_lib[] = {
     {"colors_clear", l_colors_clear},
     {"execute", l_execute},
     {"spawn", l_spawn},
+    {"thread", l_thread},
     {"map", l_map_key},
     {"cmap", l_cmap_key},
     {"get_maps", l_get_maps},

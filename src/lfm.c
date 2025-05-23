@@ -734,8 +734,7 @@ int lfm_execute(Lfm *lfm, const char *prog, char *const *args, env_list *env,
       if (line[read - 1] == '\n') {
         read--;
       }
-      vec_bytes_push_back(stdout_lines,
-                          (struct bytes){memdup(line, read), read});
+      vec_bytes_push_back(stdout_lines, bytes_from_n(line, read));
     }
     free(line);
 
@@ -753,8 +752,7 @@ int lfm_execute(Lfm *lfm, const char *prog, char *const *args, env_list *env,
       if (line[read - 1] == '\n') {
         read--;
       }
-      vec_bytes_push_back(stderr_lines,
-                          (struct bytes){memdup(line, read), read});
+      vec_bytes_push_back(stderr_lines, bytes_from_n(line, read));
     }
     free(line);
 
