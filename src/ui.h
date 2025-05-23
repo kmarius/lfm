@@ -80,7 +80,7 @@ typedef struct Ui {
   Cmdline cmdline;
 
   // Information bar at the top
-  char *infoline;
+  cstr infoline;
 
   struct {
     Preview *preview;

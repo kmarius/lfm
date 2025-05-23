@@ -18,12 +18,10 @@
 #define OPTIONS_META "Lfm.Config.Meta"
 #define COLORS_META "Lfm.Colors.Meta"
 
-static inline int llua_dir_settings_set(lua_State *L, const char *path_,
-                                        int ind) {
-  zsview path = zsview_from(path_);
+static inline int llua_dir_settings_set(lua_State *L, zsview path, int ind) {
 
   if (lua_isnil(L, ind)) {
-    hmap_dirsetting_erase(&cfg.dir_settings_map, path_);
+    hmap_dirsetting_erase(&cfg.dir_settings_map, path);
     dircache_value *v = dircache_get_mut(&lfm->loader.dc, path);
     if (v) {
       memcpy(&v->second->settings, &cfg.dir_settings,
@@ -73,7 +71,7 @@ static inline int llua_dir_settings_set(lua_State *L, const char *path_,
   }
   lua_pop(L, 1);
 
-  hmap_dirsetting_emplace_or_assign(&cfg.dir_settings_map, path_, s);
+  hmap_dirsetting_emplace_or_assign(&cfg.dir_settings_map, path, s);
 
   dircache_value *v = dircache_get_mut(&lfm->loader.dc, path);
   if (v) {
@@ -84,7 +82,7 @@ static inline int llua_dir_settings_set(lua_State *L, const char *path_,
 }
 
 static int l_dir_settings_index(lua_State *L) {
-  const char *key = luaL_checkstring(L, 2);
+  zsview key = luaL_checkzsview(L, 2);
   hmap_dirsetting_iter it = hmap_dirsetting_find(&cfg.dir_settings_map, key);
   if (!it.ref) {
     return 0;
@@ -107,7 +105,7 @@ static int l_dir_settings_index(lua_State *L) {
 }
 
 static int l_dir_settings_newindex(lua_State *L) {
-  llua_dir_settings_set(L, luaL_checkstring(L, 2), 3);
+  llua_dir_settings_set(L, luaL_checkzsview(L, 2), 3);
   return 0;
 }
 
@@ -293,7 +291,7 @@ static int l_config_newindex(lua_State *L) {
     luaL_checktype(L, 3, LUA_TTABLE);
     hmap_dirsetting_clear(&cfg.dir_settings_map);
     for (lua_pushnil(L); lua_next(L, -2) != 0; lua_pop(L, 1)) {
-      llua_dir_settings_set(L, luaL_checkstring(L, -2), -1);
+      llua_dir_settings_set(L, luaL_checkzsview(L, -2), -1);
     }
   } else if (streq(key, "previewer")) {
     if (lua_isnoneornil(L, 3)) {
@@ -314,9 +312,9 @@ static int l_config_newindex(lua_State *L) {
     tpool_resize(lfm->async.tpool, num);
   } else if (streq(key, "infoline")) {
     if (lua_isnil(L, 3)) {
-      infoline_set(&lfm->ui, NULL);
+      infoline_set(&lfm->ui, c_zv(""));
     } else {
-      infoline_set(&lfm->ui, luaL_checkstring(L, 3));
+      infoline_set(&lfm->ui, luaL_checkzsview(L, 3));
     }
   } else if (streq(key, "histsize")) {
     int sz = luaL_checkinteger(L, 3);

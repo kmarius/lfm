@@ -401,7 +401,7 @@ void dir_cursor_move_to(Dir *d, zsview name, uint32_t height,
   }
 
   if (!d->files) {
-    cstr_assign_n(&d->sel, name.str, name.size);
+    cstr_assign_zv(&d->sel, name);
     return;
   }
 
@@ -417,7 +417,7 @@ void dir_cursor_move_to(Dir *d, zsview name, uint32_t height,
 void dir_update_with(Dir *d, Dir *update, uint32_t height, uint32_t scrolloff) {
   if (cstr_is_empty(&d->sel) && d->ind < d->length) {
     const zsview *name = file_name(d->files[d->ind]);
-    cstr_assign_n(&d->sel, name->str, name->size);
+    cstr_assign_zv(&d->sel, *name);
   }
 
   for (uint32_t i = 0; i < d->length_all; i++) {

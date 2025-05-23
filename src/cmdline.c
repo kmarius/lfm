@@ -95,10 +95,6 @@ bool cmdline_prefix_set(Cmdline *c, zsview zv) {
   return true;
 }
 
-const char *cmdline_prefix_get(Cmdline *c) {
-  return c->prefix.len == 0 ? NULL : c->prefix.str;
-}
-
 bool cmdline_insert(Cmdline *c, zsview zv) {
   if (c->prefix.len == 0) {
     return false;

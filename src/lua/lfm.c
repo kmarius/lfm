@@ -181,7 +181,7 @@ static int l_proc_index(lua_State *L) {
   const char *key = luaL_checkstring(L, 2);
 
   // only field is "pid"
-  if (strcmp(key, "pid") == 0) {
+  if (streq(key, "pid")) {
     lua_pushinteger(L, proc->pid);
     return 1;
   }

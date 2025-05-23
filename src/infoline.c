@@ -8,6 +8,7 @@
 #include "ncutil.h"
 #include "spinner.h"
 #include "ui.h"
+#include "util.h"
 
 #include <curses.h>
 
@@ -51,12 +52,16 @@ static struct {
   int file, path, spinner, spacer, mode;
 } idx;
 
-static inline void infoline_parse(const char *infoline);
+static inline void infoline_parse(zsview infoline);
 static inline void draw_custom(Ui *ui);
 static inline void draw_default(Ui *ui);
 static inline int shorten_file_name(wchar_t *name, int name_len, int max_len,
                                     bool has_ext);
 static inline int shorten_path(wchar_t *path, int path_len, int max_len);
+
+static inline bool should_draw_default() {
+  return static_len == 0;
+}
 
 void infoline_init(Ui *ui) {
   (void)ui;
@@ -76,17 +81,13 @@ void infoline_init(Ui *ui) {
   }
 }
 
-void infoline_set(Ui *ui, const char *line) {
-  xfree(ui->infoline);
-  ui->infoline = line ? strdup(line) : NULL;
-  if (line) {
-    infoline_parse(ui->infoline);
-  }
-
+void infoline_set(Ui *ui, zsview line) {
+  cstr_assign_zv(&ui->infoline, line);
+  infoline_parse(line);
   ui_redraw(ui, REDRAW_INFO);
 }
 
-static inline void infoline_parse(const char *infoline) {
+static inline void infoline_parse(zsview infoline) {
   memset(&idx, 0, sizeof idx);
   memset(placeholders, 0, sizeof placeholders);
   static_buf_ptr = static_buf;
@@ -96,10 +97,15 @@ static inline void infoline_parse(const char *infoline) {
   num_placeholders++;
   static_len = 0;
 
-  // we check for idx != 0 later, since index 0 is already used
+  if (zsview_is_empty(infoline)) {
+    // this will draw the default line
+    return;
+  }
 
   char const *buf_end = static_buf + sizeof static_buf - 1;
-  for (const char *ptr = infoline; *ptr && static_buf_ptr < buf_end; ptr++) {
+  const char *line_end = infoline.str + infoline.size;
+  for (const char *ptr = infoline.str;
+       ptr < line_end && static_buf_ptr < buf_end; ptr++) {
     if (*ptr != '%') {
       *static_buf_ptr++ = *ptr;
     } else {
@@ -115,12 +121,12 @@ static inline void infoline_parse(const char *infoline) {
       case 'u':
         static_buf_ptr += snprintf(
             static_buf_ptr,
-            sizeof(static_buf) - 1 - (static_buf_ptr - static_buf), "%s", user);
+            sizeof static_buf - 1 - (static_buf_ptr - static_buf), "%s", user);
         break;
       case 'h':
         static_buf_ptr += snprintf(
             static_buf_ptr,
-            sizeof(static_buf) - 1 - (static_buf_ptr - static_buf), "%s", host);
+            sizeof static_buf - 1 - (static_buf_ptr - static_buf), "%s", host);
         break;
       case 'p':
         if (idx.path != 0) {
@@ -207,10 +213,10 @@ void infoline_draw(Ui *ui) {
   ncplane_set_bg_default(n);
   ncplane_set_fg_default(n);
 
-  if (ui->infoline) {
-    draw_custom(ui);
-  } else {
+  if (should_draw_default()) {
     draw_default(ui);
+  } else {
+    draw_custom(ui);
   }
 }
 

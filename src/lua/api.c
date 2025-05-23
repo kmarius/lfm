@@ -606,11 +606,10 @@ static int l_fm_paste_buffer_set(lua_State *L) {
   if (lua_type(L, 1) == LUA_TTABLE) {
     const size_t l = lua_objlen(L, 1);
     cstr cs = cstr_init();
-    size_t len;
     for (size_t i = 0; i < l; i++) {
       lua_rawgeti(L, 1, i + 1);
-      const char *str = lua_tolstring(L, -1, &len);
-      cstr_assign_n(&cs, str, len);
+      zsview str = lua_tozsview(L, -1);
+      cstr_assign_zv(&cs, str);
       fm_paste_buffer_add(fm, &cs);
       lua_pop(L, 1);
     }
@@ -858,7 +857,7 @@ static int l_macro_record(lua_State *L) {
     return luaL_error(L, "converting to wchar_t");
   }
   if (macro_record(w)) {
-    return luaL_error(L, "already recording recording");
+    return luaL_error(L, "already recording");
   }
   return 1;
 }
