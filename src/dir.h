@@ -1,5 +1,6 @@
 #pragma once
 
+#include "containers.h"
 #include "file.h"
 #include "filter.h"
 #include "path.h"
@@ -76,6 +77,12 @@ typedef struct Dir {
   bool has_fileinfo;
   bool sorted;
   struct dir_settings settings;
+
+  // maps name -> string; displays up to cols chars before the file, if enabled
+  struct tags {
+    hmap_cstr tags;
+    int cols;
+  } tags;
 } Dir;
 
 // Creates a directory, no files are loaded.

@@ -307,7 +307,7 @@ static int l_fm_updir(lua_State *L) {
   if (fm_updir(fm)) {
     // I don't remember why we run th chdir post hook here,
     // since we are also not running the pre hook
-    lfm_run_hook(lfm, LFM_HOOK_CHDIRPOST, &fm->pwd);
+    // lfm_run_hook(lfm, LFM_HOOK_CHDIRPOST, &fm->pwd);
     search_nohighlight(lfm);
     ui_update_file_preview(ui);
     ui_redraw(ui, REDRAW_FM);
@@ -328,7 +328,7 @@ static int l_fm_open(lua_State *L) {
     return 1;
   } else {
     /* changed directory */
-    lfm_run_hook(lfm, LFM_HOOK_CHDIRPOST, &fm->pwd);
+    // lfm_run_hook(lfm, LFM_HOOK_CHDIRPOST, &fm->pwd);
     ui_update_file_preview(ui);
     ui_redraw(ui, REDRAW_FM);
     search_nohighlight(lfm);
@@ -881,7 +881,72 @@ static int l_macro_play(lua_State *L) {
   return 0;
 }
 
+static int l_get_tags(lua_State *L) {
+  LUA_CHECK_ARGC(L, 1);
+  luaL_checktype(L, 1, LUA_TSTRING);
+  zsview path = lua_tozsview(L, 1);
+  dircache_value *v = dircache_get_mut(&lfm->loader.dc, path);
+  lua_newtable(L);
+  if (v == NULL) {
+    return 1;
+  }
+  Dir *dir = v->second;
+  c_foreach(it, hmap_cstr, dir->tags.tags) {
+    lua_pushcstr(L, &it.ref->second);
+    lua_setfield(L, -2, cstr_str(&it.ref->first));
+  }
+  lua_pushnumber(L, dir->tags.cols);
+  return 2;
+}
+
+static int l_set_tags(lua_State *L) {
+  if (lua_gettop(L) > 3) {
+    return luaL_error(L, "too many arguments");
+  }
+
+  luaL_checktype(L, 1, LUA_TSTRING);
+  zsview path = lua_tozsview(L, 1);
+
+  dircache_value *v = dircache_get_mut(&lfm->loader.dc, path);
+  if (v == NULL) {
+    // not loaded
+    lua_pushboolean(L, false);
+    return 1;
+  }
+
+  if (lua_isnil(L, 2)) {
+    hmap_cstr_clear(&v->second->tags.tags);
+    v->second->tags.cols = 0;
+    lua_pushboolean(L, true);
+    ui_redraw(ui, REDRAW_FM);
+    return 1;
+  }
+  luaL_checktype(L, 2, LUA_TTABLE);
+
+  int cols = -1;
+  if (lua_gettop(L) == 3) {
+    cols = luaL_checkinteger(L, 3);
+    lua_pop(L, 1);
+  }
+
+  hmap_cstr tags = hmap_cstr_init();
+  for (lua_pushnil(L); lua_next(L, -2); lua_pop(L, 1)) {
+    hmap_cstr_insert(&tags, lua_tocstr(L, -2), lua_tocstr(L, -1));
+  }
+  lua_pop(L, 1);
+
+  hmap_cstr_take(&v->second->tags.tags, tags);
+  if (cols > -1) {
+    v->second->tags.cols = cols;
+  }
+  ui_redraw(ui, REDRAW_FULL);
+
+  return 0;
+}
+
 static const struct luaL_Reg ui_funcs[] = {
+    {"set_tags", l_set_tags},
+    {"get_tags", l_get_tags},
     {"ui_macro_recording", l_macro_recording},
     {"ui_macro_record", l_macro_record},
     {"ui_macro_stop_record", l_macro_stop_record},

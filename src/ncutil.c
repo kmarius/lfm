@@ -188,6 +188,32 @@ int ncplane_put_str_ansi_yx(struct ncplane *n, int y, int x, const char *s) {
   return ret;
 }
 
+int ncplane_putnstr_ansi_yx(struct ncplane *n, int y, int x, size_t s,
+                            const char *ptr) {
+  int ret = 0;
+  ncplane_cursor_move_yx(n, y, x);
+  while (*ptr) {
+    if (*ptr == '\033') {
+      ptr = ncplane_set_ansi_attrs(n, ptr);
+    } else {
+      const char *c;
+      for (c = ptr; *ptr != 0 && *ptr != '\033'; ptr++)
+        ;
+      int m = ncplane_putnstr(n, ptr - c, c);
+      if (m < 0) {
+        // EOL/error
+        ret -= m;
+        break;
+      }
+      ret += m;
+      if (ret >= (int)s) {
+        break;
+      }
+    }
+  }
+  return ret;
+}
+
 int ncplane_put_cstr_ansi_yx(struct ncplane *n, int y, int x, cstr str) {
   int ret = 0;
   ncplane_cursor_move_yx(n, y, x);

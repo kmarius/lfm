@@ -61,6 +61,7 @@ typedef struct config {
   cstr previewer;
   uint32_t preview_delay;
   bool icons;
+  bool tags;
   hmap_icon icon_map;
   uint32_t scrolloff;
   cstr timefmt;

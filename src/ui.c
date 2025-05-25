@@ -670,9 +670,11 @@ static int print_highlighted_and_shortened(struct ncplane *n, const char *name,
   return x;
 }
 
+// TODO: this function could use some love
 static void draw_file(struct ncplane *n, const File *file, bool iscurrent,
                       pathlist *sel, pathlist *load, paste_mode mode,
-                      zsview highlight, bool print_info, fileinfo fileinfo) {
+                      zsview highlight, bool print_info, fileinfo fileinfo,
+                      const struct tags *tags) {
   unsigned int ncol, y0;
   unsigned int x = 0;
   char info[32];
@@ -744,6 +746,7 @@ static void draw_file(struct ncplane *n, const File *file, bool iscurrent,
   // 2021-08-21
   ncplane_set_fg_default(n);
 
+  // colored space for selection/copy/paste
   ncplane_putchar(n, ' ');
   ncplane_set_fg_default(n);
   ncplane_set_bg_default(n);
@@ -780,10 +783,35 @@ static void draw_file(struct ncplane *n, const File *file, bool iscurrent,
     }
   }
 
+  if (tags) {
+    hmap_cstr_iter it = hmap_cstr_find(&tags->tags, *file_name(file));
+    if (it.ref != NULL) {
+      uint64_t channels = ncplane_channels(n);
+      uint16_t styles = ncplane_styles(n);
+      ncplane_set_styles(n, NCSTYLE_NONE);
+      ncplane_set_fg_default(n);
+      ncplane_set_bg_default(n);
+
+      int len = ncplane_putnstr_ansi_yx(n, -1, -1, tags->cols,
+                                        cstr_str(&it.ref->second));
+      if (len < 0) {
+        ncplane_putchar_rep(n, ' ', tags->cols);
+      } else if (len < tags->cols) {
+        ncplane_putchar_rep(n, ' ', tags->cols - len);
+      }
+
+      ncplane_set_styles(n, styles);
+      ncplane_set_channels(n, channels);
+    } else {
+      ncplane_putchar_rep(n, ' ', tags->cols);
+    }
+  }
+
   if (iscurrent) {
     ncplane_set_bchannel(n, cfg.colors.current);
   }
 
+  // space before the filename
   ncplane_putchar(n, ' ');
 
   if (cfg.icons) {
@@ -831,8 +859,9 @@ static void draw_file(struct ncplane *n, const File *file, bool iscurrent,
     if (it.ref) {
       // move the corsor to make sure we only print one char
       ncplane_putnstr(n, cstr_size(&it.ref->second), cstr_str(&it.ref->second));
-      ncplane_putstr_yx(n, y0, 3, " ");
+      ncplane_putstr_yx(n, y0, 3 + (tags ? tags->cols : 0), " ");
     } else {
+      // no icon found
       ncplane_putstr(n, "  ");
     }
   }
@@ -840,7 +869,8 @@ static void draw_file(struct ncplane *n, const File *file, bool iscurrent,
   const char *hlsubstr = !zsview_is_empty(highlight) && highlight.str[0]
                              ? strcasestr(file_name_str(file), highlight.str)
                              : NULL;
-  const int left_space = ncol - 3 - rightmargin - (cfg.icons ? 2 : 0);
+  const int left_space =
+      ncol - 3 - rightmargin - (cfg.icons ? 2 : 0) - (tags ? tags->cols : 0);
   if (left_space > 0) {
     if (hlsubstr) {
       x += print_highlighted_and_shortened(
@@ -875,7 +905,6 @@ static void plane_draw_dir(struct ncplane *n, Dir *dir, pathlist *sel,
                            bool print_info) {
   unsigned int nrow;
 
-  // log_info("erasing %s", dir->name);
   ncplane_erase(n);
   ncplane_dim_yx(n, &nrow, NULL);
   ncplane_cursor_move_yx(n, 0, 0);
@@ -908,11 +937,12 @@ static void plane_draw_dir(struct ncplane *n, Dir *dir, pathlist *sel,
       offset = 0;
     }
 
+    struct tags *tags = cfg.tags && dir->tags.cols > 0 ? &dir->tags : NULL;
     const uint32_t l = min(dir->length - offset, nrow);
     for (uint32_t i = 0; i < l; i++) {
       ncplane_cursor_move_yx(n, i, 0);
       draw_file(n, dir->files[i + offset], i == dir->pos, sel, load, mode,
-                highlight, print_info, dir->settings.fileinfo);
+                highlight, print_info, dir->settings.fileinfo, tags);
     }
   }
 }

@@ -29,12 +29,21 @@ static inline int ncplane_put_str_ansi(struct ncplane *n, const char *s) {
   return ncplane_put_str_ansi_yx(n, -1, -1, s);
 }
 
+int ncplane_putnstr_ansi_yx(struct ncplane *n, int y, int x, size_t s,
+                            const char *ptr);
+
 // Adds a cstr to n, interpreting ansi escape sequences and setting the
 // attributes to n.
 int ncplane_put_cstr_ansi_yx(struct ncplane *n, int y, int x, const cstr s);
 
 static inline int ncplane_put_cstr_ansi(struct ncplane *n, const cstr s) {
   return ncplane_put_cstr_ansi_yx(n, -1, -1, s);
+}
+
+static inline void ncplane_putchar_rep(struct ncplane *n, char c, int rep) {
+  for (int i = 0; i < rep; i++) {
+    ncplane_putchar(n, c);
+  }
 }
 
 // Returns the size of the string in wide chars with ansi codes removed.

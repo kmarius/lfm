@@ -643,3 +643,34 @@ function lfm.api.ui_macro_stop_record() end
 ---@param id string First found wchar is used as an id.
 ---@return boolean
 function lfm.api.ui_macro_play(id) end
+
+---
+---Get tags of a directory.
+---
+---Example:
+---```lua
+---  local t, cols = lfm.api.get_tags("/home/john")
+---```
+---
+---@param path string
+---@return string[]
+---@return integer
+function lfm.api.get_tags(path) end
+
+---
+---Set tags for a directory. Only works for directories that have already been loaded.
+---
+---Example:
+---```lua
+---  local ok = lfm.api.set_tags("/home/john", { ["file.txt"] = "X" }, 1)
+---```
+---
+---```lua
+---  local ok = lfm.api.set_tags("/home/john", nil) -- nil is explicit here
+---```
+---
+---@param path string path to the directory
+---@param tags table<string,string>|nil a map of filenames -> tag, `nil` clears and sets cols to `0`
+---@param cols? integer number of columns (in characters) to print, if `nil`, leave as is
+---@return boolean ok `true` on success, `false` if the directory wasn't loaded
+function lfm.api.set_tags(path, tags, cols) end

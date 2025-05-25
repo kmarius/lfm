@@ -6,6 +6,14 @@
 
 #include <lua.h>
 
+#define LUA_CHECK_ARGC(L, expected)                                            \
+  do {                                                                         \
+    if (lua_gettop(L) != (expected))                                           \
+      return luaL_error(L, "Expected %d %s, got %d", (expected),               \
+                        expected == 1 ? "argument" : "arguments",              \
+                        lua_gettop(L));                                        \
+  } while (0)
+
 // common idioms mostly for conversion from lua types to stc types
 
 static inline void lua_pushcstr(lua_State *L, const cstr *cstr) {

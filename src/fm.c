@@ -571,7 +571,7 @@ File *fm_open(Fm *fm) {
     return file;
   }
 
-  fm_async_chdir(fm, cstr_zv(file_path(file)), false, false);
+  fm_async_chdir(fm, cstr_zv(file_path(file)), false, true);
   return NULL;
 }
 
@@ -583,7 +583,7 @@ bool fm_updir(Fm *fm) {
   }
 
   zsview path = path_parent(dir_path(fm_current_dir(fm)));
-  fm_async_chdir(fm, path, false, false);
+  fm_async_chdir(fm, path, false, true);
   on_cursor_moved(fm, false);
   return true;
 }

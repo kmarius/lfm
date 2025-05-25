@@ -466,5 +466,6 @@ void dir_destroy(Dir *d) {
   xfree(d->files);
   cstr_drop(&d->sel);
   cstr_drop(&d->path);
+  hmap_cstr_drop(&d->tags.tags);
   xfree(d);
 }

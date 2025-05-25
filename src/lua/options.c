@@ -197,6 +197,9 @@ static int l_config_index(lua_State *L) {
   } else if (streq(key, "preview_delay")) {
     lua_pushnumber(L, cfg.preview_delay);
     return 1;
+  } else if (streq(key, "tags")) {
+    lua_pushboolean(L, cfg.tags);
+    return 1;
   } else {
     luaL_error(L, "unexpected key %s", key);
   }
@@ -353,7 +356,13 @@ static int l_config_newindex(lua_State *L) {
     cfg.preview_delay = delay;
     lfm->fm.cursor_resting_timer.repeat = delay / 1000.0;
     lfm->ui.preview_load_timer.repeat = delay / 1000.0;
-    return 1;
+  } else if (streq(key, "tags")) {
+    luaL_checktype(L, 3, LUA_TBOOLEAN);
+    bool val = lua_toboolean(L, 3);
+    if (val != cfg.tags) {
+      cfg.tags = val;
+      ui_redraw(ui, REDRAW_FM);
+    }
   } else {
     return luaL_error(L, "unexpected key %s", key);
   }

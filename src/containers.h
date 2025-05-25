@@ -5,6 +5,7 @@
 #include "memory.h"
 
 #include "stc/cstr.h"
+#include "stc/zsview.h"
 
 #include <string.h>
 
@@ -44,3 +45,14 @@ struct env_entry {
 #define i_keydrop(p) (free((p)->key), free((p)->val))
 #define i_keyclone i_keyfrom
 #include "stc/vec.h"
+
+#define i_type hmap_cstr
+#define i_key cstr
+#define i_val cstr
+#define i_keyraw zsview
+#define i_keytoraw cstr_zv
+#define i_keyfrom cstr_from_zv
+#define i_eq zsview_eq
+#define i_hash zsview_hash
+#define i_noclone
+#include "stc/hmap.h"
