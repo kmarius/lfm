@@ -921,6 +921,7 @@ static int l_set_tags(lua_State *L) {
     v->second->tags.cols = 0;
     lua_pushboolean(L, true);
     ui_redraw(ui, REDRAW_FM);
+    lua_pushboolean(L, true);
     return 1;
   }
   luaL_checktype(L, 2, LUA_TTABLE);
@@ -943,7 +944,8 @@ static int l_set_tags(lua_State *L) {
   }
   ui_redraw(ui, REDRAW_FULL);
 
-  return 0;
+  lua_pushboolean(L, true);
+  return 1;
 }
 
 static const struct luaL_Reg ui_funcs[] = {
