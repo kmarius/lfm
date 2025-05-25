@@ -208,6 +208,7 @@ STC_INLINE _m_value* _c_MEMB(_at_mut)(Self* self, const isize idx) {
 
 STC_INLINE _m_iter _c_MEMB(_begin)(const Self* self) {
     _m_iter it = {(_m_value*)self->data, (_m_value*)self->data};
+    if (self->size == 0) it.ref = NULL;
     if (it.ref != NULL) it.end += self->size;
     return it;
 }
