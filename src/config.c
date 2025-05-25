@@ -17,6 +17,7 @@ extern char *default_data_dir;
 extern char *default_lua_dir;
 
 // fields not listed deliberately initialized to 0
+// clang-format off
 Config cfg = {
     .histsize = 100,
     .truncatechar = L'~',
@@ -28,29 +29,28 @@ Config cfg = {
     .map_suggestion_delay = MAP_SUGGESTION_DELAY,
     .map_clear_delay = MAP_CLEAR_DELAY,
     .loading_indicator_delay = LOADING_INDICATOR_DELAY,
-    .colors =
-        {
-            .normal = NCCHANNELS_INITIALIZER_PALINDEX(-1, -1),
-            .copy = NCCHANNELS_INITIALIZER_PALINDEX(COLOR_BLACK, COLOR_YELLOW),
-            .current =
-                NCCHANNEL_INITIALIZER_PALINDEX(237), // doesn't exist in tty
-            .delete = NCCHANNELS_INITIALIZER_PALINDEX(COLOR_BLACK, COLOR_RED),
-            .dir = NCCHANNELS_INITIALIZER_PALINDEX(COLOR_BLUE, -1),
-            .broken = NCCHANNELS_INITIALIZER_PALINDEX(COLOR_RED, -1),
-            .exec = NCCHANNELS_INITIALIZER_PALINDEX(COLOR_GREEN, -1),
-            .search =
-                NCCHANNELS_INITIALIZER_PALINDEX(COLOR_BLACK, COLOR_YELLOW),
-            .selection =
-                NCCHANNELS_INITIALIZER_PALINDEX(COLOR_BLACK, COLOR_MAGENTA),
-        },
-    .dir_settings =
-        {
-            .dirfirst = true,
-            .reverse = false,
-            .sorttype = SORT_NATURAL,
-            .hidden = false,
-        },
+    .colors = {
+        .normal = NCCHANNELS_INITIALIZER_PALINDEX(-1, -1),
+        .copy = NCCHANNELS_INITIALIZER_PALINDEX(COLOR_BLACK, COLOR_YELLOW),
+        .current =
+      NCCHANNEL_INITIALIZER_PALINDEX(237), // doesn't exist in tty
+        .delete = NCCHANNELS_INITIALIZER_PALINDEX(COLOR_BLACK, COLOR_RED),
+        .dir = NCCHANNELS_INITIALIZER_PALINDEX(COLOR_BLUE, -1),
+        .broken = NCCHANNELS_INITIALIZER_PALINDEX(COLOR_RED, -1),
+        .exec = NCCHANNELS_INITIALIZER_PALINDEX(COLOR_GREEN, -1),
+        .search =
+      NCCHANNELS_INITIALIZER_PALINDEX(COLOR_BLACK, COLOR_YELLOW),
+        .selection =
+      NCCHANNELS_INITIALIZER_PALINDEX(COLOR_BLACK, COLOR_MAGENTA),
+    },
+    .dir_settings = {
+        .dirfirst = true,
+        .reverse = false,
+        .sorttype = SORT_NATURAL,
+        .hidden = false,
+    },
 };
+// clang-format on
 
 void config_init(void) {
   const char *xdg_runtime = getenv("XDG_RUNTIME_DIR");

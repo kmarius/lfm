@@ -12,8 +12,10 @@ static int l_paths_newindex(lua_State *L) {
   return luaL_error(L, "can not modify lfm.paths");
 }
 
-static const struct luaL_Reg paths_mt[] = {{"__newindex", l_paths_newindex},
-                                           {NULL, NULL}};
+static const struct luaL_Reg paths_mt[] = {
+    {"__newindex", l_paths_newindex},
+    {NULL,         NULL            },
+};
 
 int luaopen_paths(lua_State *L) {
   lua_newtable(L);

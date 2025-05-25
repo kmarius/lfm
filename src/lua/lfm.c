@@ -620,31 +620,32 @@ int l_deregister_hook(lua_State *L) {
 }
 
 static const struct luaL_Reg lfm_lib[] = {
-    {"mode", l_mode},
-    {"current_mode", l_current_mode},
-    {"get_modes", l_get_modes},
-    {"register_mode", l_register_mode},
-    {"register_hook", l_register_hook},
-    {"deregister_hook", l_deregister_hook},
-    {"schedule", l_schedule},
-    {"colors_clear", l_colors_clear},
-    {"execute", l_execute},
-    {"spawn", l_spawn},
-    {"thread", l_thread},
-    {"map", l_map_key},
-    {"cmap", l_cmap_key},
-    {"get_maps", l_get_maps},
-    {"handle_key", l_handle_key},
-    {"nohighlight", l_nohighlight},
-    {"search", l_search},
-    {"search_back", l_search_backwards},
-    {"search_next", l_search_next},
-    {"search_prev", l_search_prev},
-    {"crash", l_crash},
-    {"error", l_error},
-    {"message_clear", l_message_clear},
-    {"quit", l_quit},
-    {NULL, NULL}};
+    {"mode",            l_mode            },
+    {"current_mode",    l_current_mode    },
+    {"get_modes",       l_get_modes       },
+    {"register_mode",   l_register_mode   },
+    {"register_hook",   l_register_hook   },
+    {"deregister_hook", l_deregister_hook },
+    {"schedule",        l_schedule        },
+    {"colors_clear",    l_colors_clear    },
+    {"execute",         l_execute         },
+    {"spawn",           l_spawn           },
+    {"thread",          l_thread          },
+    {"map",             l_map_key         },
+    {"cmap",            l_cmap_key        },
+    {"get_maps",        l_get_maps        },
+    {"handle_key",      l_handle_key      },
+    {"nohighlight",     l_nohighlight     },
+    {"search",          l_search          },
+    {"search_back",     l_search_backwards},
+    {"search_next",     l_search_next     },
+    {"search_prev",     l_search_prev     },
+    {"crash",           l_crash           },
+    {"error",           l_error           },
+    {"message_clear",   l_message_clear   },
+    {"quit",            l_quit            },
+    {NULL,              NULL              },
+};
 
 static int l_modes_index(lua_State *L) {
   zsview key = luaL_checkzsview(L, 2);
@@ -694,11 +695,16 @@ static int l_mode_newindex(lua_State *L) {
   return 0;
 }
 
-static const struct luaL_Reg lfm_modes_mt[] = {{"__index", l_modes_index},
-                                               {NULL, NULL}};
+static const struct luaL_Reg lfm_modes_mt[] = {
+    {"__index", l_modes_index},
+    {NULL,      NULL         }
+};
 
 static const struct luaL_Reg lfm_mode_mt[] = {
-    {"__index", l_mode_index}, {"__newindex", l_mode_newindex}, {NULL, NULL}};
+    {"__index",    l_mode_index   },
+    {"__newindex", l_mode_newindex},
+    {NULL,         NULL           }
+};
 
 int luaopen_lfm(lua_State *L) {
   lua_pushcfunction(L, l_print);

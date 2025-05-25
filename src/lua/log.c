@@ -91,15 +91,17 @@ static int l_log_set_level(lua_State *L) {
   return 0;
 }
 
-static const struct luaL_Reg log_lib[] = {{"trace", l_log_trace},
-                                          {"debug", l_log_debug},
-                                          {"info", l_log_info},
-                                          {"warn", l_log_warn},
-                                          {"error", l_log_error},
-                                          {"fatal", l_log_fatal},
-                                          {"set_level", l_log_set_level},
-                                          {"get_level", l_log_get_level},
-                                          {NULL, NULL}};
+static const struct luaL_Reg log_lib[] = {
+    {"trace",     l_log_trace    },
+    {"debug",     l_log_debug    },
+    {"info",      l_log_info     },
+    {"warn",      l_log_warn     },
+    {"error",     l_log_error    },
+    {"fatal",     l_log_fatal    },
+    {"set_level", l_log_set_level},
+    {"get_level", l_log_get_level},
+    {NULL,        NULL           },
+};
 
 int luaopen_log(lua_State *L) {
   lua_newtable(L);

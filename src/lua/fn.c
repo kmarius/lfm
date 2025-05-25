@@ -119,16 +119,18 @@ static int l_fn_getpwd(lua_State *L) {
   return 1;
 }
 
-static const struct luaL_Reg fn_lib[] = {{"split_last", l_fn_split_last},
-                                         {"quote_space", l_fn_quote_space},
-                                         {"unquote_space", l_fn_unquote_space},
-                                         {"tokenize", l_fn_tokenize},
-                                         {"mime", l_fn_mime},
-                                         {"normalize", l_fn_normalize},
-                                         {"getpid", l_fn_getpid},
-                                         {"getcwd", l_fn_getcwd},
-                                         {"getpwd", l_fn_getpwd},
-                                         {NULL, NULL}};
+static const struct luaL_Reg fn_lib[] = {
+    {"split_last",    l_fn_split_last   },
+    {"quote_space",   l_fn_quote_space  },
+    {"unquote_space", l_fn_unquote_space},
+    {"tokenize",      l_fn_tokenize     },
+    {"mime",          l_fn_mime         },
+    {"normalize",     l_fn_normalize    },
+    {"getpid",        l_fn_getpid       },
+    {"getcwd",        l_fn_getcwd       },
+    {"getpwd",        l_fn_getpwd       },
+    {NULL,            NULL              },
+};
 
 int luaopen_fn(lua_State *L) {
   lua_newtable(L);

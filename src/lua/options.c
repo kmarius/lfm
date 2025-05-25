@@ -111,9 +111,10 @@ static int l_dir_settings_newindex(lua_State *L) {
 }
 
 static const struct luaL_Reg dir_settings_mt[] = {
-    {"__index", l_dir_settings_index},
+    {"__index",    l_dir_settings_index   },
     {"__newindex", l_dir_settings_newindex},
-    {NULL, NULL}};
+    {NULL,         NULL                   },
+};
 
 static int l_config_index(lua_State *L) {
   const char *key = luaL_checkstring(L, 2);
@@ -370,9 +371,11 @@ static int l_config_newindex(lua_State *L) {
   return 0;
 }
 
-static const struct luaL_Reg options_mt[] = {{"__index", l_config_index},
-                                             {"__newindex", l_config_newindex},
-                                             {NULL, NULL}};
+static const struct luaL_Reg options_mt[] = {
+    {"__index",    l_config_index   },
+    {"__newindex", l_config_newindex},
+    {NULL,         NULL             },
+};
 
 static inline uint32_t read_channel(lua_State *L, int idx) {
   switch (lua_type(L, idx)) {
@@ -460,8 +463,10 @@ static int l_colors_newindex(lua_State *L) {
   return 0;
 }
 
-static const struct luaL_Reg colors_mt[] = {{"__newindex", l_colors_newindex},
-                                            {NULL, NULL}};
+static const struct luaL_Reg colors_mt[] = {
+    {"__newindex", l_colors_newindex},
+    {NULL,         NULL             },
+};
 
 int luaopen_options(lua_State *L) {
   luaL_newmetatable(L, DIRSETTINGS_META);
