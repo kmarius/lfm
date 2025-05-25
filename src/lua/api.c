@@ -929,13 +929,13 @@ static int l_set_tags(lua_State *L) {
     lua_pop(L, 1);
   }
 
-  hmap_cstr tags = hmap_cstr_init();
+  hmap_cstr *tags = &v->second->tags.tags;
+  hmap_cstr_clear(tags);
   for (lua_pushnil(L); lua_next(L, -2); lua_pop(L, 1)) {
-    hmap_cstr_insert(&tags, lua_tocstr(L, -2), lua_tocstr(L, -1));
+    hmap_cstr_insert(tags, lua_tocstr(L, -2), lua_tocstr(L, -1));
   }
   lua_pop(L, 1);
 
-  hmap_cstr_take(&v->second->tags.tags, tags);
   if (cols > -1) {
     v->second->tags.cols = cols;
   }
