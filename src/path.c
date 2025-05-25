@@ -160,7 +160,7 @@ zsview path_normalize3(zsview path, const char *pwd, char *buf, size_t bufsz) {
     memcpy(buf, pwd, len);
     buf[len] = '/';
     memcpy(buf + len + 1, path.str, path.size + 1); // includes nul
-    len += path.size;
+    len += path.size + 1;
   } else {
     // absolute path
 
