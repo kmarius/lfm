@@ -454,11 +454,12 @@ static inline int map_key(lua_State *L, Trie *trie, bool allow_mode) {
       if (!allow_mode) {
         return luaL_error(L, "mode not allowed here");
       }
-      hmap_modes_iter it = hmap_modes_find(&lfm->modes, lua_tozsview(L, -1));
-      if (!it.ref) {
+      const hmap_modes_value *mode =
+          hmap_modes_get(&lfm->modes, lua_tozsview(L, -1));
+      if (mode == NULL) {
         return luaL_error(L, "no such mode: %s", lua_tostring(L, -1));
       }
-      trie = (*it.ref).second.maps;
+      trie = mode->second.maps;
     }
     lua_pop(L, 1);
   }
@@ -647,13 +648,13 @@ static const struct luaL_Reg lfm_lib[] = {
 
 static int l_modes_index(lua_State *L) {
   zsview key = luaL_checkzsview(L, 2);
-  hmap_modes_iter it = hmap_modes_find(&lfm->modes, key);
-  if (it.ref == NULL) {
+  hmap_modes_value *md = hmap_modes_get_mut(&lfm->modes, key);
+  if (md == NULL) {
     return 0;
   }
 
   struct mode **mode = lua_newuserdata(L, sizeof *mode);
-  *mode = &it.ref->second;
+  *mode = &md->second;
   luaL_newmetatable(L, MODE_META);
   lua_setmetatable(L, -2);
 

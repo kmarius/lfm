@@ -473,9 +473,9 @@ static uint64_t ext_channel_get(const char *ext) {
       buf[i] = tolower(ext[i]);
     }
     buf[i] = 0;
-    hmap_channel_iter it = hmap_channel_find(&cfg.colors.color_map, buf);
-    if (it.ref) {
-      return it.ref->second;
+    const hmap_channel_value *v = hmap_channel_get(&cfg.colors.color_map, buf);
+    if (v != NULL) {
+      return v->second;
     }
   }
   return 0;
@@ -784,16 +784,16 @@ static void draw_file(struct ncplane *n, const File *file, bool iscurrent,
   }
 
   if (tags) {
-    hmap_cstr_iter it = hmap_cstr_find(&tags->tags, *file_name(file));
-    if (it.ref != NULL) {
+    const hmap_cstr_value *v = hmap_cstr_get(&tags->tags, *file_name(file));
+    if (v != NULL) {
       uint64_t channels = ncplane_channels(n);
       uint16_t styles = ncplane_styles(n);
       ncplane_set_styles(n, NCSTYLE_NONE);
       ncplane_set_fg_default(n);
       ncplane_set_bg_default(n);
 
-      int len = ncplane_putnstr_ansi_yx(n, -1, -1, tags->cols,
-                                        cstr_str(&it.ref->second));
+      int len =
+          ncplane_putnstr_ansi_yx(n, -1, -1, tags->cols, cstr_str(&v->second));
       if (len < 0) {
         ncplane_putchar_rep(n, ' ', tags->cols);
       } else if (len < tags->cols) {
@@ -843,22 +843,22 @@ static void draw_file(struct ncplane *n, const File *file, bool iscurrent,
       key = "ex";
     }
 
-    hmap_icon_iter it = hmap_icon_end(&cfg.icon_map);
-    if (key) {
-      it = hmap_icon_find(&cfg.icon_map, key);
+    const hmap_icon_value *v = NULL;
+    if (key != NULL) {
+      v = hmap_icon_get(&cfg.icon_map, key);
     }
 
-    if (!it.ref && file_ext(file)) {
-      it = hmap_icon_find(&cfg.icon_map, file_ext(file));
+    if (v == NULL && file_ext(file)) {
+      v = hmap_icon_get(&cfg.icon_map, file_ext(file));
     }
 
-    if (!it.ref) {
-      it = hmap_icon_find(&cfg.icon_map, "fi");
+    if (v == NULL) {
+      v = hmap_icon_get(&cfg.icon_map, "fi");
     }
 
-    if (it.ref) {
+    if (v != NULL) {
       // move the corsor to make sure we only print one char
-      ncplane_putnstr(n, cstr_size(&it.ref->second), cstr_str(&it.ref->second));
+      ncplane_putnstr(n, cstr_size(&v->second), cstr_str(&v->second));
       ncplane_putstr_yx(n, y0, 3 + (tags ? tags->cols : 0), " ");
     } else {
       // no icon found

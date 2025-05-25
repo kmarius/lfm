@@ -78,11 +78,11 @@ int lfm_mode_register(Lfm *lfm, struct mode *mode) {
 }
 
 int lfm_mode_enter(Lfm *lfm, zsview name) {
-  hmap_modes_iter it = hmap_modes_find(&lfm->modes, name);
-  if (!it.ref || &it.ref->second == lfm->current_mode) {
+  hmap_modes_value *v = hmap_modes_get_mut(&lfm->modes, name);
+  if (v == NULL || &v->second == lfm->current_mode) {
     return 1;
   }
-  struct mode *mode = &it.ref->second;
+  struct mode *mode = &v->second;
 
   mode_on_exit(lfm->current_mode, lfm);
   lfm->current_mode = mode;

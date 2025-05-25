@@ -205,8 +205,9 @@ Dir *loader_dir_from_path(Loader *loader, zsview path, bool do_load) {
     }
   } else {
     dir = dir_create(path);
-    hmap_dirsetting_iter it = hmap_dirsetting_find(&cfg.dir_settings_map, path);
-    struct dir_settings *s = it.ref ? &it.ref->second : &cfg.dir_settings;
+    hmap_dirsetting_value *v =
+        hmap_dirsetting_get_mut(&cfg.dir_settings_map, path);
+    struct dir_settings *s = v ? &v->second : &cfg.dir_settings;
     memcpy(&dir->settings, s, sizeof *s);
     dircache_insert(&loader->dc, cstr_zv(&dir->path), dir);
     if (do_load) {

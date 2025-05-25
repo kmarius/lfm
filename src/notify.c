@@ -88,9 +88,9 @@ static void inotify_cb(EV_P_ ev_io *w, int revents) {
         continue;
       }
 
-      map_wd_dir_iter it = map_wd_dir_find(&notify->dirs, event->wd);
-      if (it.ref) {
-        loader_dir_reload(&lfm->loader, it.ref->second);
+      const map_wd_dir_value *v = map_wd_dir_get(&notify->dirs, event->wd);
+      if (v != NULL) {
+        loader_dir_reload(&lfm->loader, v->second);
       }
     }
   }

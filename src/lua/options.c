@@ -83,11 +83,12 @@ static inline int llua_dir_settings_set(lua_State *L, zsview path, int ind) {
 
 static int l_dir_settings_index(lua_State *L) {
   zsview key = luaL_checkzsview(L, 2);
-  hmap_dirsetting_iter it = hmap_dirsetting_find(&cfg.dir_settings_map, key);
-  if (!it.ref) {
+  const hmap_dirsetting_value *v =
+      hmap_dirsetting_get(&cfg.dir_settings_map, key);
+  if (v == NULL) {
     return 0;
   }
-  struct dir_settings *s = &it.ref->second;
+  const struct dir_settings *s = &v->second;
 
   lua_createtable(L, 0, 5);
   lua_pushboolean(L, s->dirfirst);
