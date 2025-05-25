@@ -729,6 +729,30 @@ static void draw_file(struct ncplane *n, const File *file, bool iscurrent,
     }
   }
 
+  if (tags) {
+    const hmap_cstr_value *v = hmap_cstr_get(&tags->tags, *file_name(file));
+    if (v != NULL) {
+      uint64_t channels = ncplane_channels(n);
+      uint16_t styles = ncplane_styles(n);
+      ncplane_set_styles(n, NCSTYLE_NONE);
+      ncplane_set_fg_default(n);
+      ncplane_set_bg_default(n);
+
+      int len =
+          ncplane_putnstr_ansi_yx(n, -1, -1, tags->cols, cstr_str(&v->second));
+      if (len < 0) {
+        ncplane_putchar_rep(n, ' ', tags->cols);
+      } else if (len < tags->cols) {
+        ncplane_putchar_rep(n, ' ', tags->cols - len);
+      }
+
+      ncplane_set_styles(n, styles);
+      ncplane_set_channels(n, channels);
+    } else {
+      ncplane_putchar_rep(n, ' ', tags->cols);
+    }
+  }
+
   ncplane_set_bg_default(n);
 
   if (pathlist_contains(sel, file_path(file))) {
@@ -780,30 +804,6 @@ static void draw_file(struct ncplane *n, const File *file, bool iscurrent,
       ncplane_set_channels(n, channels);
     } else {
       ncplane_putchar(n, ' ');
-    }
-  }
-
-  if (tags) {
-    const hmap_cstr_value *v = hmap_cstr_get(&tags->tags, *file_name(file));
-    if (v != NULL) {
-      uint64_t channels = ncplane_channels(n);
-      uint16_t styles = ncplane_styles(n);
-      ncplane_set_styles(n, NCSTYLE_NONE);
-      ncplane_set_fg_default(n);
-      ncplane_set_bg_default(n);
-
-      int len =
-          ncplane_putnstr_ansi_yx(n, -1, -1, tags->cols, cstr_str(&v->second));
-      if (len < 0) {
-        ncplane_putchar_rep(n, ' ', tags->cols);
-      } else if (len < tags->cols) {
-        ncplane_putchar_rep(n, ' ', tags->cols - len);
-      }
-
-      ncplane_set_styles(n, styles);
-      ncplane_set_channels(n, channels);
-    } else {
-      ncplane_putchar_rep(n, ' ', tags->cols);
     }
   }
 
