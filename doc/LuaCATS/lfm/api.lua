@@ -674,3 +674,14 @@ function lfm.api.get_tags(path) end
 ---@param cols? integer number of columns (in characters) to print, if `nil`, leave as is
 ---@return boolean ok `true` on success, `false` if the directory wasn't loaded
 function lfm.api.set_tags(path, tags, cols) end
+
+---
+---Get the list of paths of cached directories.
+---
+---Example:
+---```lua
+---  local t = lfm.api.get_cached_dirs()
+---```
+---
+---@return string[]
+function lfm.api.get_cached_dirs() end

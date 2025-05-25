@@ -704,6 +704,17 @@ static int l_fm_flatten(lua_State *L) {
   return 0;
 }
 
+static int l_fm_get_cache(lua_State *L) {
+  size_t n = dircache_size(&lfm->loader.dc);
+  lua_createtable(L, n, 0);
+  int i = 1;
+  c_foreach(it, dircache, lfm->loader.dc) {
+    lua_pushcstr(L, dir_path(it.ref->second));
+    lua_rawseti(L, -2, i++);
+  }
+  return 1;
+}
+
 static const struct luaL_Reg fm_funcs[] = {
     {"fm_set_info",          l_fm_set_info                },
     {"fm_get_info",          l_fm_get_info                },
@@ -742,6 +753,7 @@ static const struct luaL_Reg fm_funcs[] = {
     {"fm_reload",            l_fm_reload                  },
     {"fm_sel",               l_fm_sel                     },
     {"fm_get_height",        l_fm_get_height              },
+    {"get_cached_dirs",      l_fm_get_cache               },
     {NULL,                   NULL                         },
 };
 
