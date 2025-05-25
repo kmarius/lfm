@@ -170,7 +170,6 @@ function M.find(names, opts)
 	local name_matches = names
 	if type(names) == "string" then
 		name_matches = function(name, _)
-			print(name)
 			return name == names
 		end
 	elseif type(names) == "table" then
