@@ -88,8 +88,8 @@ void lfm_quit(Lfm *lfm, int ret);
 // once the command finishes.
 int lfm_spawn(Lfm *lfm, const char *prog, char *const *args, env_list *env,
               const vec_bytes *stdin_lines, int *stdin_fd, bool capture_stdout,
-              bool capture_stderr, int stdout_ref, int stderr_ref,
-              int exit_ref);
+              bool capture_stderr, int stdout_ref, int stderr_ref, int exit_ref,
+              zsview working_directory);
 
 // Execute a foreground program. Uses execvp semantics. If stdout is passed,
 // lines from stdout are captured in the vector. Returns the exit status of the

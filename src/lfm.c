@@ -456,8 +456,8 @@ static ev_io *add_io_watcher(Lfm *lfm, FILE *f, int ref) {
 // spawn a background program
 int lfm_spawn(Lfm *lfm, const char *prog, char *const *args, env_list *env,
               const vec_bytes *stdin_lines, int *stdin_fd, bool capture_stdout,
-              bool capture_stderr, int stdout_ref, int stderr_ref,
-              int exit_ref) {
+              bool capture_stderr, int stdout_ref, int stderr_ref, int exit_ref,
+              zsview working_directory) {
 
   bool send_stdin = stdin_lines || stdin_fd != 0;
   capture_stdout |= stdout_ref != 0;
@@ -529,6 +529,17 @@ int lfm_spawn(Lfm *lfm, const char *prog, char *const *args, env_list *env,
       int devnull = open("/dev/null", O_WRONLY | O_CREAT, 0666);
       dup2(devnull, 2);
       close(devnull);
+    }
+
+    if (!zsview_is_empty(working_directory)) {
+      if (chdir(working_directory.str) != 0) {
+        if (capture_stderr) {
+          char buf[128];
+          int len = snprintf(buf, sizeof buf - 1, "chdir: %s", strerror(errno));
+          write(2, buf, len);
+        }
+        _exit(1);
+      }
     }
 
     execvp(prog, (char **)args);

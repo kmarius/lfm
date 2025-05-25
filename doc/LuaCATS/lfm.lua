@@ -135,6 +135,7 @@ function lfm.execute(command, opts) end
 ---@field stderr? fun(line: string)|true Function to capture stderr, or `true` to show output in the UI
 ---@field env? table<string, string> Additional environment variables to set.
 ---@field callback? function Function to capture the return value
+---@field dir? string Working directory for the process
 
 ---
 ---Process handle.

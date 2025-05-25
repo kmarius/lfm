@@ -227,6 +227,7 @@ static int l_spawn(lua_State *L) {
   vec_str args = vec_str_init();
   env_list env = env_list_init();
   vec_bytes stdin_lines = vec_bytes_init();
+  zsview working_directory = zsview_init();
 
   bool capture_stdout = false;
   bool capture_stderr = false;
@@ -299,11 +300,17 @@ static int l_spawn(lua_State *L) {
       }
     }
     lua_pop(L, 1); // [cmd, opts]
+    lua_getfield(L, 2, "dir");
+    if (!lua_isnil(L, -1)) {
+      working_directory = lua_tozsview(L, -1);
+    }
+    lua_pop(L, 1);
   }
 
   int pid = lfm_spawn(lfm, args.data[0], args.data, &env, &stdin_lines,
                       stdin_is_function ? &stdin_fd : NULL, capture_stdout,
-                      capture_stderr, stdout_ref, stderr_ref, exit_ref);
+                      capture_stderr, stdout_ref, stderr_ref, exit_ref,
+                      working_directory);
 
   vec_str_drop(&args);
   env_list_drop(&env);
