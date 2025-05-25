@@ -598,20 +598,12 @@ static int l_register_mode(lua_State *L) {
 int l_register_hook(lua_State *L) {
   const char *name = luaL_checkstring(L, 1);
   luaL_checktype(L, 2, LUA_TFUNCTION);
-  if (lua_gettop(L) != 2) {
-    return luaL_error(L, "function takes two only arguments");
-  }
-  int id = 0;
-  int i;
-  for (i = 0; i < LFM_NUM_HOOKS; i++) {
-    if (streq(name, hook_str[i])) {
-      id = lfm_add_hook(lfm, i, lua_set_callback(L));
-      break;
-    }
-  }
-  if (i == LFM_NUM_HOOKS) {
+  LUA_CHECK_ARGC(L, 2);
+  int id = hook_name_to_id(name);
+  if (id == -1) {
     return luaL_error(L, "no such hook: %s", name);
   }
+  id = lfm_add_hook(lfm, id, lua_set_callback(L));
   lua_pushnumber(L, id);
   return 1;
 }

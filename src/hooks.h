@@ -3,6 +3,7 @@
 #include "log.h"
 #include "lua/lfmlua.h"
 #include "lua/util.h"
+#include "macros_defs.h"
 
 #include <assert.h>
 #include <lauxlib.h>
@@ -32,6 +33,16 @@ extern const char *hook_str[LFM_NUM_HOOKS];
 void lfm_hooks_init(struct Lfm *lfm);
 
 void lfm_hooks_deinit(struct Lfm *lfm);
+
+// returns -1 for invalid hook name
+static inline lfm_hook_id hook_name_to_id(const char *name) {
+  for (int i = 0; i < LFM_NUM_HOOKS; i++) {
+    if (strcmp(name, hook_str[i]) == 0) {
+      return i;
+    }
+  }
+  return -1;
+}
 
 // Returns an id with which it can be removed later
 int lfm_add_hook(struct Lfm *lfm, lfm_hook_id hook, int ref);
