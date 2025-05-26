@@ -569,7 +569,7 @@ static inline int llua_parse_rules(lua_State *L, int idx, Rifle *rifle) {
   char buf[BUFSIZE];
   for (lua_pushnil(L); lua_next(L, idx - 1); lua_pop(L, 1)) {
     const char *str = lua_tostring(L, -1);
-    log_debug("parsing: %s", str);
+    log_trace("parsing: %s", str);
     strncpy(buf, str, sizeof buf - 1);
     buf[sizeof buf - 1] = 0;
 

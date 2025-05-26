@@ -102,7 +102,7 @@ void config_init(void) {
 #endif
 
   cstr_printf(&cfg.previewer, "%s/runtime/preview.sh", default_data_dir);
-  cfg.preview = false;
+  cfg.preview = true;
   cfg.ratios = c_make(vec_int, {1, 2, 3});
 
   hmap_icon_emplace_or_assign(&cfg.icon_map, "ln", "l");
