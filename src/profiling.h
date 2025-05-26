@@ -5,12 +5,15 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#define PROFILING_MAX_ENTRIES 16
+// is currently includes a handful of items from startup, and many "require"d
+// lua modules from startup and runtime
+#define PROFILING_MAX_ENTRIES 128
 
 struct profiling_entry {
   uint64_t ts, diff;
   const char *name;
   int depth;
+  bool is_complete;
 };
 
 struct profiling_data {
@@ -34,12 +37,20 @@ extern bool profiling_complete;
     profiling_complete = true;                                                 \
   } while (0)
 
-#define PROFILE(name_, BODY)                                                   \
+#define PROFILE_MAYBE(name_, BODY)                                             \
   do {                                                                         \
     if (profiling_complete) {                                                  \
       BODY;                                                                    \
     } else {                                                                   \
-      assert(profiling_data.num_entries < PROFILING_MAX_ENTRIES);              \
+      PROFILE((name_), BODY)                                                   \
+    }                                                                          \
+  } while (0);
+
+#define PROFILE(name_, BODY)                                                   \
+  do {                                                                         \
+    if (profiling_data.num_entries == PROFILING_MAX_ENTRIES) {                 \
+      BODY;                                                                    \
+    } else {                                                                   \
       struct profiling_entry *entry =                                          \
           &profiling_data.entries[profiling_data.num_entries++];               \
       entry->depth = profiling_depth++;                                        \
@@ -50,6 +61,7 @@ extern bool profiling_complete;
       entry->diff = current_micros() - entry->ts;                              \
       entry->ts -= profiling_data.startup;                                     \
       entry->name = (name_);                                                   \
+      entry->is_complete = 1;                                                  \
       profiling_depth--;                                                       \
     }                                                                          \
   } while (0);

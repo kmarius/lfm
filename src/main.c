@@ -131,7 +131,7 @@ int main(int argc, char **argv) {
 
   srand(time(NULL));
 
-  PROFILE("lfm_init", lfm_init(&lfm, &opts));
+  PROFILE("lfm_init", { lfm_init(&lfm, &opts); });
   PROFILING_COMPLETE();
 
   ret = lfm_run(&lfm);

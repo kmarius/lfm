@@ -69,7 +69,8 @@ void cmdline_init(Cmdline *c) {
   VSTR_INIT(c->right, 8);
   VSTR_INIT(c->buf, 8);
   c->overwrite = false;
-  PROFILE("history_load", history_load(&c->history, cstr_zv(&cfg.historypath));)
+  PROFILE("history_load",
+          { history_load(&c->history, cstr_zv(&cfg.historypath)); })
 }
 
 void cmdline_deinit(Cmdline *c) {

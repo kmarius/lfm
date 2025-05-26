@@ -124,7 +124,7 @@ void ui_resume(Ui *ui) {
                NCOPTION_PRESERVE_CURSOR | NCOPTION_NO_QUIT_SIGHANDLERS,
   };
   log_debug("creating notcurses context");
-  PROFILE("notcurses_init", ui->nc = notcurses_init(&ncopts, NULL););
+  PROFILE_MAYBE("notcurses_init", { ui->nc = notcurses_init(&ncopts, NULL); });
   if (!ui->nc) {
     exit(EXIT_FAILURE);
   }

@@ -62,26 +62,58 @@ static int l_module_preloader(lua_State *L) {
   return 1;
 }
 
+static inline int is_package_loaded(lua_State *L, const char *name) {
+  lua_getglobal(L, "package");
+  lua_getfield(L, -1, "loaded");
+  lua_getfield(L, -1, name);
+  bool loaded = !lua_isnil(L, -1);
+  lua_pop(L, 3);
+  return loaded;
+}
+
+static int l_require(lua_State *L) {
+  // not entirely sure if we need to completely mimic the original require
+  const char *name = luaL_checkstring(L, 1);
+  if (is_package_loaded(L, name)) {
+    lua_getglobal(L, "_require");
+    lua_pushvalue(L, 1);
+    lua_call(L, 1, 1);
+  } else {
+    PROFILE(strdup(name), {
+      lua_getglobal(L, "_require");
+      lua_pushvalue(L, 1);
+      lua_call(L, 1, 1);
+    })
+  }
+  return 1;
+}
+
 static inline bool llua_init_packages(lua_State *L) {
   // put builtin packages in preload
   lua_getglobal(L, "package");    // [package]
   lua_getfield(L, -1, "preload"); // [package, preload]
   for (size_t i = 0; i < ARRAY_SIZE(builtin_modules); i++) {
     ModuleDef def = builtin_modules[i];
-    lua_pushinteger(L, (long)i);                // [package, preload, i]
-    lua_pushcclosure(L, l_module_preloader, 1); // [package, preload, cclosure]
-    lua_setfield(L, -2, def.name);              // [package, preload]
+    lua_pushinteger(L, (long)i); // [package, preload, i]
+    lua_pushcclosure(L, l_module_preloader,
+                     1);           // [package, preload, cclosure]
+    lua_setfield(L, -2, def.name); // [package, preload]
   }
 
   lua_pop(L, 2); // []
 
-  PROFILE(
-      "lua_core", lua_getglobal(L, "require"); lua_pushstring(L, "lfm._core");
-      if (llua_pcall(L, 1, 0)) {
-        ui_error(ui, "%s", lua_tostring(L, -1));
-        lua_pop(L, 1);
-        false;
-      })
+  lua_getglobal(L, "require");     // [require]
+  lua_setglobal(L, "_require");    // []
+  lua_pushcfunction(L, l_require); // [l_require]
+  lua_setglobal(L, "require");     // []
+  lua_getglobal(L, "require");
+
+  lua_pushstring(L, "lfm._core");
+  if (llua_pcall(L, 1, 0)) {
+    ui_error(ui, "%s", lua_tostring(L, -1));
+    lua_pop(L, 1);
+    return false;
+  }
 
   return true;
 }
@@ -120,8 +152,8 @@ void llua_run_child_callback(lua_State *L, int ref, int rstatus) {
   }
 }
 
-// line does not have to be nul terminated, in this case, len hase to be passed;
-// len is negative, strlen(line) is used
+// line does not have to be nul terminated, in this case, len hase to be
+// passed; len is negative, strlen(line) is used
 void llua_run_stdout_callback(lua_State *L, int ref, const char *line,
                               ssize_t len) {
   // always call this, if line is NULL, we remove the callback from the
@@ -196,11 +228,13 @@ void lfm_lua_init(Lfm *lfm_) {
 
   llua_init_packages(L);
 
-  PROFILE(
-      "user_config",
-      if (lfm->opts.config) {
-        llua_load_file(L, lfm->opts.config, true);
-      } else { llua_load_file(L, cstr_str(&cfg.configpath), false); });
+  PROFILE("user_config", {
+    if (lfm->opts.config) {
+      llua_load_file(L, lfm->opts.config, true);
+    } else {
+      llua_load_file(L, cstr_str(&cfg.configpath), false);
+    }
+  });
 }
 
 void lfm_lua_deinit(Lfm *lfm) {
