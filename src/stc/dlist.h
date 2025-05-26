@@ -113,6 +113,10 @@ STC_API _m_value*       _c_MEMB(_push_back_node)(Self* self, _m_node* node);
 STC_API _m_value*       _c_MEMB(_insert_after_node)(Self* self, _m_node* ref, _m_node* node);
 STC_API _m_node*        _c_MEMB(_unlink_after_node)(Self* self, _m_node* ref);
 STC_API void            _c_MEMB(_erase_after_node)(Self* self, _m_node* ref);
+STC_INLINE void         _c_MEMB(_erase_node)(Self* self, _m_node* ref) \
+                            { _c_MEMB(_erase_after_node)(self, ref->prev); }
+STC_INLINE void         _c_MEMB(_unlink_node)(Self* self, _m_node* ref) \
+                            { _c_MEMB(_unlink_after_node)(self, ref->prev); }
 STC_INLINE _m_node*     _c_MEMB(_get_node)(_m_value* pval) { return _cdlist_tonode(pval); }
 STC_INLINE _m_node*     _c_MEMB(_unlink_front_node)(Self* self)
                             { return _c_MEMB(_unlink_after_node)(self, self->last); }
@@ -318,11 +322,6 @@ _c_MEMB(_erase_after_node)(Self* self, _m_node* ref) {
     _m_node* node = _c_MEMB(_unlink_after_node)(self, ref);
     i_keydrop((&node->value));
     i_free(node, c_sizeof *node);
-}
-
-STC_DEF void
-_c_MEMB(_erase_node)(Self* self, _m_node* ref) {
-    _c_MEMB(_erase_after_node)(self, ref->prev);
 }
 
 STC_DEF _m_node*
