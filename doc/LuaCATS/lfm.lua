@@ -269,7 +269,8 @@ function lfm.spawn(command, opts) end
 ---
 ---@param chunk string Lua code to execute
 ---@param callback? fun(res: any, err: string) Callback for the result/error
-function lfm.thread(chunk, callback) end
+---@param arg? any An optional argument to pass to the thread
+function lfm.thread(chunk, callback, arg) end
 
 ---@alias Lfm.Hook
 ---| '"LfmEnter"'         # Lfm has started and read all configuration

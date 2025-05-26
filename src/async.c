@@ -741,6 +741,7 @@ struct lua_data {
   struct result super;
   Async *async;
   bytes chunk;  // lua code to execute
+  bytes arg;    // optional argument
   bytes result; // error string if error == true, serialized result, otherwise
   bool error;   // either loadstring or the code itself returned an error
   int ref;      // ref to the callback
@@ -749,6 +750,7 @@ struct lua_data {
 static void lua_result_destroy(void *p) {
   struct lua_data *res = p;
   bytes_drop(&res->chunk);
+  bytes_drop(&res->arg);
   bytes_drop(&res->result);
 }
 
@@ -829,46 +831,68 @@ void async_lua_worker(void *arg) {
     // [string.buffer]
 
     lua_getfield(L_thread, -1, "encode"); // [string.buffer, encode]
-    lua_remove(L_thread, -2);             // [encode]
+    lua_getfield(L_thread, -2, "decode"); //  [string.buffer, encode, decode]
+    lua_remove(L_thread, -3);             // [encode, decode]
   }
 
   lua_State *L = L_thread;
 
-  lua_pushvalue(L, -1); // [encode, encode]
-
   bytes chunk = work->chunk;
   if (luaL_loadbuffer(L, chunk.data, chunk.len, chunk.data)) {
-    // [encode, encode, err]
+    // [encode, decode, err]
+    work->result = lua_tobytes(L, -1);
+    lua_pop(L, 1);
+    goto err;
+  }
+
+  // [encode, decode, func]
+
+  int nargs = 0;
+  if (!bytes_is_empty(work->arg)) {
+    // de-serialize arg
+
+    lua_pushvalue(L, -2); // [encode, decode, func, decode]
+    lua_pushbytes(L,
+                  work->arg); // [encode, decode, func, decode, arg]
+    if (lua_pcall(L, 1, 1, 0)) {
+      // [encode, decode, func, err]
+      work->result = lua_tobytes(L, -1);
+      lua_pop(L, 2);
+      goto err;
+    }
+
+    nargs++;
+    // [encode, decode, func, arg]
+  }
+
+  if (lua_pcall(L, nargs, 1, 0)) {
+    // [encode, decode, err]
     work->result = lua_tobytes(L, -1);
     lua_pop(L, 2);
     goto err;
   }
-  // [encode, encode, chunk]
 
-  if (lua_pcall(L, 0, 1, 0)) {
-    // [encode, encode, err]
-    work->result = (lua_tobytes(L, -1));
-    lua_pop(L, 2);
-    goto err;
-  }
+  // [encode, decode, res]
 
-  if (lua_isnil(L, -1) || work->ref == 0) {
+  if (lua_isnoneornil(L, -1) || work->ref == 0) {
     // can not serialize nil, and we don't serialize if there is no callback
-    // [encode, encode, nil]
+    // [encode, decode, nil]
     work->result = bytes_init();
-    lua_pop(L, 2);
+    lua_pop(L, 1);
   } else {
-    // [encode, encode, res]
+    // [encode, decode, res]
+    lua_pushvalue(L, -3);
+    lua_insert(L, -2);
     if (lua_pcall(L, 1, 1, 0)) {
-      // [encode, err]
+      // [encode, decode, err]
       work->result = lua_tobytes(L, -1);
       lua_pop(L, 1);
       goto err;
     }
 
-    // [encode, data]
+    // [encode, decode, data]
     work->result = lua_tobytes(L, -1);
-    lua_pop(L, 1); // [encode]
+    lua_pop(L, 1); // [encode, decode]
   }
 
 end:
@@ -901,7 +925,7 @@ static inline bool load_decoder(Async *async) {
   return true;
 }
 
-int async_lua(Async *async, bytes *chunk, int ref) {
+int async_lua(Async *async, bytes *chunk, bytes *arg, int ref) {
   if (unlikely(!have_decoder)) {
     // re-checking
     have_decoder = load_decoder(async);
@@ -915,6 +939,7 @@ int async_lua(Async *async, bytes *chunk, int ref) {
 
   work->async = async;
   work->chunk = bytes_move(chunk);
+  work->arg = bytes_move(arg);
   work->ref = ref;
 
   log_trace("async_lua");

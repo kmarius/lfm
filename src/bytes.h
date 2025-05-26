@@ -46,6 +46,10 @@ static inline void bytes_drop(struct bytes *bytes) {
   }
 }
 
+static inline size_t bytes_size(struct bytes bytes) {
+  return bytes.len;
+}
+
 static inline bool bytes_is_empty(struct bytes bytes) {
   return bytes.len == 0;
 }

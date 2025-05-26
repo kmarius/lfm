@@ -33,7 +33,7 @@ static int l_schedule(lua_State *L) {
     delay = 0;
   }
   lua_pushvalue(L, 1);
-  lfm_schedule(lfm, lua_set_callback(L), delay);
+  lfm_schedule(lfm, lua_set_callback0(L), delay);
   return 0;
 }
 
@@ -266,7 +266,7 @@ static int l_spawn(lua_State *L) {
 
     lua_getfield(L, 2, "stdout"); // [cmd, opts, opts.out]
     if (lua_isfunction(L, -1)) {
-      stdout_ref = lua_set_callback(L); // [cmd, opts]
+      stdout_ref = lua_set_callback0(L); // [cmd, opts]
     } else {
       capture_stdout = lua_toboolean(L, -1);
       lua_pop(L, 1); // [cmd, opts]
@@ -274,7 +274,7 @@ static int l_spawn(lua_State *L) {
 
     lua_getfield(L, 2, "stderr"); // [cmd, opts, opts.err]
     if (lua_isfunction(L, -1)) {
-      stderr_ref = lua_set_callback(L); // [cmd, opts]
+      stderr_ref = lua_set_callback0(L); // [cmd, opts]
     } else {
       capture_stderr = lua_toboolean(L, -1);
       lua_pop(L, 1); // [cmd, opts]
@@ -282,7 +282,7 @@ static int l_spawn(lua_State *L) {
 
     lua_getfield(L, 2, "callback"); // [cmd, opts, opts.callback]
     if (lua_isfunction(L, -1)) {
-      exit_ref = lua_set_callback(L); // [cmd, opts]
+      exit_ref = lua_set_callback0(L); // [cmd, opts]
     } else {
       lua_pop(L, 1); // [cmd, opts]
     }
@@ -420,21 +420,57 @@ static int l_execute(lua_State *L) {
   }
 }
 
+// encode lua value at at the given index with string.buffer.encode and leave it
+// on the stack
+int lua_encode(lua_State *L, int idx) {
+  lua_getglobal(L, "require");        // [require]
+  lua_pushstring(L, "string.buffer"); // [require, "string.buffer"]
+
+  int status = lua_pcall(L, 1, 1, 0);
+  if (status != LUA_OK) {
+    return status;
+  }
+  // [string.buffer]
+
+  lua_getfield(L, -1, "encode"); // [string.buffer, encode]
+  lua_remove(L, -2);             // [encode]
+  lua_pushvalue(L, idx);         // [encode, value]
+
+  status = lua_pcall(L, 1, 1, 0);
+  if (status != LUA_OK) {
+    return status;
+  }
+  // [encoded_value]
+
+  return LUA_OK;
+}
+
 // TODO: maybe accept arguments as a third arg, serialize them and pass them
 // to the thread
 static int l_thread(lua_State *L) {
-  if (lua_gettop(L) > 2) {
+  if (lua_gettop(L) > 3) {
     return luaL_error(L, "too many arguments");
   }
   int ref = 0;
   luaL_checktype(L, 1, LUA_TSTRING);
-  if (lua_gettop(L) == 2) {
-    luaL_checktype(L, 2, LUA_TFUNCTION);
-    ref = lua_set_callback(L);
+  if (lua_gettop(L) > 1) {
+    if (!lua_isnoneornil(L, 2)) {
+      ref = lua_set_callback(L, 2);
+    }
   }
   bytes chunk = lua_tobytes(L, 1);
-  if (async_lua(&lfm->async, &chunk, ref) != 0) {
+  bytes arg = bytes_init();
+  if (lua_gettop(L) == 3) {
+    // encode optional argument
+    if (lua_encode(L, 3) != LUA_OK) {
+      bytes_drop(&arg);
+      lua_error(L);
+    }
+    arg = lua_tobytes(L, -1);
+  }
+  if (async_lua(&lfm->async, &chunk, &arg, ref) != 0) {
     bytes_drop(&chunk);
+    bytes_drop(&arg);
     luaL_unref(L, LUA_REGISTRYINDEX, ref);
     luaL_error(L, "loading string.buffer");
   }
@@ -563,35 +599,35 @@ static int l_register_mode(lua_State *L) {
 
   lua_getfield(L, 1, "on_enter");
   if (!lua_isnoneornil(L, -1)) {
-    mode.on_enter_ref = lua_set_callback(L);
+    mode.on_enter_ref = lua_set_callback0(L);
   } else {
     lua_pop(L, 1);
   }
 
   lua_getfield(L, 1, "on_change");
   if (!lua_isnoneornil(L, -1)) {
-    mode.on_change_ref = lua_set_callback(L);
+    mode.on_change_ref = lua_set_callback0(L);
   } else {
     lua_pop(L, 1);
   }
 
   lua_getfield(L, 1, "on_return");
   if (!lua_isnoneornil(L, -1)) {
-    mode.on_return_ref = lua_set_callback(L);
+    mode.on_return_ref = lua_set_callback0(L);
   } else {
     lua_pop(L, 1);
   }
 
   lua_getfield(L, 1, "on_esc");
   if (!lua_isnoneornil(L, -1)) {
-    mode.on_esc_ref = lua_set_callback(L);
+    mode.on_esc_ref = lua_set_callback0(L);
   } else {
     lua_pop(L, 1);
   }
 
   lua_getfield(L, 1, "on_exit");
   if (!lua_isnoneornil(L, -1)) {
-    mode.on_exit_ref = lua_set_callback(L);
+    mode.on_exit_ref = lua_set_callback0(L);
   } else {
     lua_pop(L, 1);
   }
@@ -611,7 +647,7 @@ int l_register_hook(lua_State *L) {
   if (id == -1) {
     return luaL_error(L, "no such hook: %s", name);
   }
-  id = lfm_add_hook(lfm, id, lua_set_callback(L));
+  id = lfm_add_hook(lfm, id, lua_set_callback0(L));
   lua_pushnumber(L, id);
   return 1;
 }

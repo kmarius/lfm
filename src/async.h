@@ -49,4 +49,4 @@ void async_notify_preview_add(Async *async, struct Dir *dir);
 
 // Takes ownership of bytes, unless it fails. Returns -1 on failure,
 // if string.buffer can not be loaded for some reason
-int async_lua(Async *async, bytes *chunk, int ref);
+int async_lua(Async *async, bytes *chunk, bytes *arg, int ref);

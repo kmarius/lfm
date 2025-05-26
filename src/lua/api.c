@@ -666,7 +666,7 @@ static int l_fm_filter(lua_State *L) {
     } else if (streq(type, "lua")) {
       luaL_checktype(L, 1, LUA_TFUNCTION);
       lua_settop(L, 1);
-      int ref = lua_set_callback(L);
+      int ref = lua_set_callback0(L);
       fm_filter(fm, filter_create_lua(ref, L));
     } else {
       return luaL_error(L, "unrecognized filter type: %s", type);
