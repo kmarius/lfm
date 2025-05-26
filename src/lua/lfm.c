@@ -420,42 +420,23 @@ static int l_execute(lua_State *L) {
   }
 }
 
-// encode lua value at at the given index with string.buffer.encode and leave it
-// on the stack
-int lua_encode(lua_State *L, int idx) {
-  lua_getglobal(L, "require");        // [require]
-  lua_pushstring(L, "string.buffer"); // [require, "string.buffer"]
-
-  int status = lua_pcall(L, 1, 1, 0);
-  if (status != LUA_OK) {
-    return status;
-  }
-  // [string.buffer]
-
-  lua_getfield(L, -1, "encode"); // [string.buffer, encode]
-  lua_remove(L, -2);             // [encode]
-  lua_pushvalue(L, idx);         // [encode, value]
-
-  status = lua_pcall(L, 1, 1, 0);
-  if (status != LUA_OK) {
-    return status;
-  }
-  // [encoded_value]
-
-  return LUA_OK;
-}
-
-// TODO: maybe accept arguments as a third arg, serialize them and pass them
-// to the thread
 static int l_thread(lua_State *L) {
   if (lua_gettop(L) > 3) {
     return luaL_error(L, "too many arguments");
   }
   int ref = 0;
+  if (lua_type(L, 1) == LUA_TFUNCTION) {
+    // try to string.dump the function and insert it at position 1
+    // TODO: we could store a ref to encode
+    if (lua_string_dump(L, 1) != LUA_OK) {
+      lua_error(L);
+    }
+    lua_replace(L, 1);
+  }
   luaL_checktype(L, 1, LUA_TSTRING);
   if (lua_gettop(L) > 1) {
     if (!lua_isnoneornil(L, 2)) {
-      ref = lua_set_callback(L, 2);
+      ref = lua_register_callback(L, 2);
     }
   }
   bytes chunk = lua_tobytes(L, 1);
@@ -468,7 +449,7 @@ static int l_thread(lua_State *L) {
     }
     arg = lua_tobytes(L, -1);
   }
-  if (async_lua(&lfm->async, &chunk, &arg, ref) != 0) {
+  if (unlikely(async_lua(&lfm->async, &chunk, &arg, ref) != 0)) {
     bytes_drop(&chunk);
     bytes_drop(&arg);
     luaL_unref(L, LUA_REGISTRYINDEX, ref);

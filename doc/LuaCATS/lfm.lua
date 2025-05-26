@@ -267,7 +267,16 @@ function lfm.spawn(command, opts) end
 ---  lfm.thread(bc, print)
 ---```
 ---
----@param chunk string Lua code to execute
+---An arguments can be passed to the thread via the third argument:
+---```lua
+---  local function adds_two(n)
+---    return n + 2
+---  end
+---
+---  lfm.thread(adds_two, print, 2) -- prints 4
+---```
+---
+---@param chunk string|function Lua code to execute. Functions are attempted to be converted via string.dump
 ---@param callback? fun(res: any, err: string) Callback for the result/error
 ---@param arg? any An optional argument to pass to the thread
 function lfm.thread(chunk, callback, arg) end

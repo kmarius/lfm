@@ -110,3 +110,42 @@ static inline void lua_read_vec_cstr(lua_State *L, int idx, vec_cstr *vec) {
     lua_pop(L, 1);
   }
 }
+
+// encode lua value at at the given index with string.buffer.encode and leave it
+// on the stack
+static inline int lua_encode(lua_State *L, int idx) {
+  lua_getglobal(L, "require");        // [require]
+  lua_pushstring(L, "string.buffer"); // [require, "string.buffer"]
+
+  int status = lua_pcall(L, 1, 1, 0);
+  if (status != LUA_OK) {
+    return status;
+  }
+  // [string.buffer]
+
+  lua_getfield(L, -1, "encode"); // [string.buffer, encode]
+  lua_remove(L, -2);             // [encode]
+  lua_pushvalue(L, idx);         // [encode, value]
+
+  status = lua_pcall(L, 1, 1, 0);
+  if (status != LUA_OK) {
+    return status;
+  }
+  // [encoded_value]
+
+  return LUA_OK;
+}
+
+// convert the function at position idx into bytecode
+static inline int lua_string_dump(lua_State *L, int idx) {
+  lua_getglobal(L, "string");  // [string]
+  lua_getfield(L, -1, "dump"); // [string, string.dump]
+  lua_remove(L, -2);           // [string.dump]
+  lua_pushvalue(L, idx);       // [string.dump, func]
+  int status = lua_pcall(L, 1, 1, 0);
+  if (status != LUA_OK) {
+    return status;
+  }
+  // [bytecode]
+  return LUA_OK;
+}

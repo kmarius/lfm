@@ -32,6 +32,7 @@
 #include <sys/stat.h>
 #include <sys/sysinfo.h>
 #include <sys/types.h>
+#include <unistd.h>
 #include <wchar.h>
 
 #define FILEINFO_THRESHOLD 200 // send batches of dircounts around every 200ms
@@ -835,6 +836,7 @@ void async_lua_worker(void *arg) {
     lua_remove(L_thread, -3);             // [encode, decode]
   }
 
+  // [encode, decode]
   lua_State *L = L_thread;
 
   bytes chunk = work->chunk;
@@ -850,6 +852,7 @@ void async_lua_worker(void *arg) {
   int nargs = 0;
   if (!bytes_is_empty(work->arg)) {
     // de-serialize arg
+    log_debug("decoding arg of length %u", bytes_size(work->arg));
 
     lua_pushvalue(L, -2); // [encode, decode, func, decode]
     lua_pushbytes(L,
@@ -868,7 +871,7 @@ void async_lua_worker(void *arg) {
   if (lua_pcall(L, nargs, 1, 0)) {
     // [encode, decode, err]
     work->result = lua_tobytes(L, -1);
-    lua_pop(L, 2);
+    lua_pop(L, 1);
     goto err;
   }
 
@@ -897,8 +900,9 @@ void async_lua_worker(void *arg) {
 
 end:
   enqueue_and_signal(work->async, (struct result *)work);
-  if (L_thread != NULL)
+  if (L_thread != NULL) {
     lua_gc(L_thread, LUA_GCCOLLECT, 0); // collectgarbage("collect")
+  }
   return;
 
 err:

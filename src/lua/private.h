@@ -26,7 +26,7 @@ static inline int lua_set_callback0(lua_State *L) {
   return ref;
 }
 
-static inline int lua_set_callback(lua_State *L, int idx) {
+static inline int lua_register_callback(lua_State *L, int idx) {
   luaL_checktype(L, idx, LUA_TFUNCTION);
   lua_pushvalue(L, idx);
   int ref = luaL_ref(L, LUA_REGISTRYINDEX);

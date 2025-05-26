@@ -102,12 +102,13 @@ static inline bool llua_init_packages(lua_State *L) {
 
   lua_pop(L, 2); // []
 
+  // override require for profiling
   lua_getglobal(L, "require");     // [require]
   lua_setglobal(L, "_require");    // []
   lua_pushcfunction(L, l_require); // [l_require]
   lua_setglobal(L, "require");     // []
-  lua_getglobal(L, "require");
 
+  lua_getglobal(L, "require");
   lua_pushstring(L, "lfm._core");
   if (llua_pcall(L, 1, 0)) {
     ui_error(ui, "%s", lua_tostring(L, -1));

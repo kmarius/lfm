@@ -2,4 +2,4 @@
 
 #include "lua.h"
 
-extern __thread lua_State *L_thread;
+extern _Thread_local lua_State *L_thread;
