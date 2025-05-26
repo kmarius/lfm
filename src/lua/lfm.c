@@ -436,7 +436,7 @@ static int l_thread(lua_State *L) {
   if (async_lua(&lfm->async, &chunk, ref) != 0) {
     bytes_drop(&chunk);
     luaL_unref(L, LUA_REGISTRYINDEX, ref);
-    luaL_error(L, "mpack not found");
+    luaL_error(L, "loading string.buffer");
   }
   return 0;
 }

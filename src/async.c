@@ -741,7 +741,7 @@ struct lua_data {
   struct result super;
   Async *async;
   bytes chunk;  // lua code to execute
-  bytes result; // error string if error == true, mpacked result, otherwise
+  bytes result; // error string if error == true, serialized result, otherwise
   bool error;   // either loadstring or the code itself returned an error
   int ref;      // ref to the callback
 };
@@ -773,8 +773,8 @@ static void lua_result_callback(void *p, Lfm *lfm) {
     lua_pushnil(L);
   } else {
     lua_rawgeti(L, LUA_REGISTRYINDEX,
-                res->async->unpacker_ref); // [cb, unpacker]
-    lua_pushbytes(L, res->result);         // [cb, unpacker, data]
+                res->async->unpacker_ref); // [cb, decode]
+    lua_pushbytes(L, res->result);         // [cb, decode, data]
     if (lua_pcall(L, 1, 1, 0)) {
       // [cb, err]
       goto err;
@@ -816,67 +816,59 @@ void async_lua_worker(void *arg) {
     L_thread = luaL_newstate();
     luaL_openlibs(L_thread);
 
-    // leave an mpack packer instance on the stack
+    // leave string.buffer.encode on the stack
 
-    lua_getglobal(L_thread, "require"); // [require]
-    lua_pushstring(L_thread, "mpack");  // [require, "mpack"]
+    lua_getglobal(L_thread, "require");        // [require]
+    lua_pushstring(L_thread, "string.buffer"); // [require, "string.buffer"]
     if (lua_pcall(L_thread, 1, 1, 0)) {
       // [err]
-      work->result = bytes_from_str(lua_tostring(L_thread, -1));
+      work->result = lua_tobytes(L_thread, -1);
       lua_pop(L_thread, 1); // []
       goto err;
     }
-    // [mpack]
+    // [string.buffer]
 
-    lua_getfield(L_thread, -1, "Packer"); // [mpack, mpack.Packer]
-    if (lua_pcall(L_thread, 0, 1, 0)) {
-      // [mpack, err]
-      work->result = bytes_from_str(lua_tostring(L_thread, -1));
-      lua_pop(L_thread, 2);
-      goto err;
-    }
-    // [mpack, packer]
-
-    lua_remove(L_thread, -2); // [packer]
+    lua_getfield(L_thread, -1, "encode"); // [string.buffer, encode]
+    lua_remove(L_thread, -2);             // [encode]
   }
 
   lua_State *L = L_thread;
 
-  lua_pushvalue(L, -1); // [packer, packer]
+  lua_pushvalue(L, -1); // [encode, encode]
 
   bytes chunk = work->chunk;
   if (luaL_loadbuffer(L, chunk.data, chunk.len, chunk.data)) {
-    // [packer, packer, err]
-    work->result = bytes_from_str(lua_tostring(L, -1));
+    // [encode, encode, err]
+    work->result = lua_tobytes(L, -1);
     lua_pop(L, 2);
     goto err;
   }
-  // [packer, packer, chunk]
+  // [encode, encode, chunk]
 
   if (lua_pcall(L, 0, 1, 0)) {
-    // [packer, packer, err]
-    work->result = bytes_from_str(lua_tostring(L, -1));
+    // [encode, encode, err]
+    work->result = (lua_tobytes(L, -1));
     lua_pop(L, 2);
     goto err;
   }
 
-  if (lua_isnoneornil(L, -1) || work->ref == 0) {
-    // can not serialize nil, and wo don't serialize if there is no callback
-    // [packer, packer, nil]
+  if (lua_isnil(L, -1) || work->ref == 0) {
+    // can not serialize nil, and we don't serialize if there is no callback
+    // [encode, encode, nil]
     work->result = bytes_init();
     lua_pop(L, 2);
   } else {
-    // [packer, packer, res]
+    // [encode, encode, res]
     if (lua_pcall(L, 1, 1, 0)) {
-      // [packer, err]
-      work->result = bytes_from_str(lua_tostring(L, -1));
+      // [encode, err]
+      work->result = lua_tobytes(L, -1);
       lua_pop(L, 1);
       goto err;
     }
 
-    // [packer, data]
+    // [encode, data]
     work->result = lua_tobytes(L, -1);
-    lua_pop(L, 1); // [packer]
+    lua_pop(L, 1); // [encode]
   }
 
 end:
@@ -890,36 +882,30 @@ err:
   goto end;
 }
 
-static bool have_msgpack = false;
-
-static inline bool check_msgpack(Async *async) {
+static bool have_decoder = false;
+static inline bool load_decoder(Async *async) {
   lua_State *L = to_lfm(async)->L;
-  lua_getglobal(L, "require"); // [require]
-  lua_pushstring(L, "mpack");  // [require, "mpack"]
+
+  lua_getglobal(L, "require");        // [require]
+  lua_pushstring(L, "string.buffer"); // [require, "string.buffer"]
   if (lua_pcall(L, 1, 1, 0) != LUA_OK) {
     // [err]
     lua_pop(L, 1);
     return false;
   }
-  // [mpack]
-  lua_getfield(L, -1, "Unpacker"); // [mpack, mpack.Unpacker]
-  if (lua_pcall(L, 0, 1, 0) != LUA_OK) {
-    // [mpack, err]
-    lua_pop(L, 2);
-    return false;
-  }
-  // [mpack, unpacker]
-  async->unpacker_ref = luaL_ref(L, LUA_REGISTRYINDEX); // [mpack]
+  // [string.buffer]
+  lua_getfield(L, -1, "decode"); // [string.buffer, decode]
+  async->unpacker_ref = luaL_ref(L, LUA_REGISTRYINDEX); // [string.buffer]
   lua_pop(L, 1);                                        // []
 
   return true;
 }
 
 int async_lua(Async *async, bytes *chunk, int ref) {
-  if (!have_msgpack) {
+  if (unlikely(!have_decoder)) {
     // re-checking
-    have_msgpack = check_msgpack(async);
-    if (!have_msgpack)
+    have_decoder = load_decoder(async);
+    if (unlikely(!have_decoder))
       return -1;
   }
 

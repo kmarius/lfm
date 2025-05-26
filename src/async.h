@@ -48,5 +48,5 @@ void async_notify_add(Async *async, struct Dir *dir);
 void async_notify_preview_add(Async *async, struct Dir *dir);
 
 // Takes ownership of bytes, unless it fails. Returns -1 on failure,
-// indicating that the mpack lua library wasn't found
+// if string.buffer can not be loaded for some reason
 int async_lua(Async *async, bytes *chunk, int ref);

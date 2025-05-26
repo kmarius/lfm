@@ -239,8 +239,8 @@ function lfm.spawn(command, opts) end
 
 ---
 ---Execute a chunk of lua code in a seperate thread. The chunk may return up one return value,
----which is serialized with msgpack and passed to the callback function. On error, callback is called with nil, errmsg
----This functions throws if the "mpack" library can not be loaded. Long running code will currently block exiting lua indefinitely.
+---which is passed to the callback function. On error, `callback` is called with `nil, errmsg`
+---Currently, `lfm` is not accessible from seperate threads and only the modules luajit offers are loaded.
 ---
 ---Example:
 ---```lua
