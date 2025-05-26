@@ -9,11 +9,11 @@
 #include <ev.h>
 
 #include <errno.h>
+#include <libgen.h>
 #include <locale.h>
+#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
-
-#include <libgen.h>
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <unistd.h>
@@ -38,6 +38,10 @@ static void usage(const char *progname) {
 static void version(const char *progname) {
   fprintf(stderr, VERSION_FMT, progname);
 }
+
+// log library needs a log
+pthread_mutex_t log_mutex = PTHREAD_MUTEX_INITIALIZER;
+static void lock_mutex(bool lock, void *ud);
 
 static Lfm lfm;
 
@@ -105,6 +109,7 @@ int main(int argc, char **argv) {
   }
 
   log_add_fp(log, log_level);
+  log_set_lock(lock_mutex, &log_mutex);
   log_info("starting lfm " LFM_VERSION);
 
   // TODO: make it possible to move the cursor to a directory instead
@@ -150,4 +155,13 @@ cleanup:
   config_deinit();
 
   exit(ret);
+}
+
+static void lock_mutex(bool lock, void *ud) {
+  pthread_mutex_t *mutex = (pthread_mutex_t *)ud;
+  if (lock) {
+    pthread_mutex_lock(mutex);
+  } else {
+    pthread_mutex_unlock(mutex);
+  }
 }
