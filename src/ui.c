@@ -18,6 +18,7 @@
 #include "mode.h"
 #include "ncutil.h"
 #include "preview.h"
+#include "profiling.h"
 #include "spinner.h"
 #include "statusline.h"
 #include "stc/cstr.h"
@@ -123,7 +124,7 @@ void ui_resume(Ui *ui) {
                NCOPTION_PRESERVE_CURSOR | NCOPTION_NO_QUIT_SIGHANDLERS,
   };
   log_debug("creating notcurses context");
-  ui->nc = notcurses_init(&ncopts, NULL);
+  PROFILE("notcurses_init", ui->nc = notcurses_init(&ncopts, NULL););
   if (!ui->nc) {
     exit(EXIT_FAILURE);
   }

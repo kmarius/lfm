@@ -76,7 +76,7 @@ static inline bool llua_init_packages(lua_State *L) {
   lua_pop(L, 2); // []
 
   PROFILE(
-      lua_core, lua_getglobal(L, "require"); lua_pushstring(L, "lfm._core");
+      "lua_core", lua_getglobal(L, "require"); lua_pushstring(L, "lfm._core");
       if (llua_pcall(L, 1, 0)) {
         ui_error(ui, "%s", lua_tostring(L, -1));
         lua_pop(L, 1);
@@ -197,7 +197,7 @@ void lfm_lua_init(Lfm *lfm_) {
   llua_init_packages(L);
 
   PROFILE(
-      user_config,
+      "user_config",
       if (lfm->opts.config) {
         llua_load_file(L, lfm->opts.config, true);
       } else { llua_load_file(L, cstr_str(&cfg.configpath), false); });
