@@ -16,6 +16,7 @@ struct profiling_data {
   struct profiling_entry lua_init;
   struct profiling_entry lua_core;
   struct profiling_entry user_config;
+  struct profiling_entry history;
 };
 
 extern struct profiling_data profiling_data;

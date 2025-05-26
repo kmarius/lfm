@@ -4,6 +4,7 @@
 #include "macros_defs.h"
 #include "memory.h"
 #include "ncutil.h"
+#include "profiling.h"
 #include "stcutil.h"
 #include "ui.h"
 
@@ -68,7 +69,7 @@ void cmdline_init(Cmdline *c) {
   VSTR_INIT(c->right, 8);
   VSTR_INIT(c->buf, 8);
   c->overwrite = false;
-  history_load(&c->history, cstr_zv(&cfg.historypath));
+  PROFILE(history, history_load(&c->history, cstr_zv(&cfg.historypath));)
 }
 
 void cmdline_deinit(Cmdline *c) {
