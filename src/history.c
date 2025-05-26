@@ -3,6 +3,7 @@
 #include "log.h"
 #include "memory.h"
 #include "stc/cstr.h"
+#include "stcutil.h"
 #include "util.h"
 
 #include <errno.h>
@@ -12,14 +13,29 @@
 
 #include <libgen.h>
 
+struct history_entry_raw {
+  zsview prefix; // small string optimized, this is fine
+  zsview line;
+  bool is_new; // true if this item is new and not previously read from the
+               // history file
+};
+
 #define i_declared
 #define i_type _history_list
 #define i_key struct history_entry
+#define i_keyraw struct history_entry_raw
+#define i_keyfrom(p)                                                           \
+  ((struct history_entry){cstr_from_zv((p).prefix), cstr_from_zv((p).line),    \
+                          (p).is_new})
+#define i_keytoraw(p)                                                          \
+  ((struct history_entry_raw){cstr_zv(&(p)->prefix), cstr_zv(&(p)->line),      \
+                              (p)->is_new})
 #define i_no_clone
-#define i_keydrop(p) (cstr_drop(&p->line), cstr_drop(&p->prefix))
-#define i_noclone
+#define i_keydrop(p) (cstr_drop(&(p)->line), cstr_drop(&(p)->prefix))
 #include "stc/dlist.h"
 
+// note that we don't emplace entries, raw entries are never converted
+// this map doesn't own the cstr keys and no i_keydrop is needed
 #define i_declared
 #define i_type _history_hmap
 #define i_key cstr
@@ -29,24 +45,29 @@
 #define i_val _history_list_node *
 #define i_hash zsview_hash
 #define i_eq zsview_eq
+#define i_no_clone
 #include "stc/hmap.h"
 
 /* TODO: signal errors on load/write (on 2021-10-23) */
 /* TODO: only show history items with matching prefixes (on 2021-07-24) */
 
-// returns true on append, false on move to back
-static inline bool append_or_move(History *self, struct history_entry e) {
-  struct history_entry *entry = _history_list_push_back(&self->list, e);
-  _history_hmap_iter it = _history_hmap_find(&self->map, cstr_zv(&e.line));
-  if (it.ref) {
-    _history_list_erase_node(&self->list, it.ref->second);
-    it.ref->first = entry->line;
-    it.ref->second = _history_list_get_node(entry);
+// returns true on append (i.e. it is a new entry), false on move to back
+static inline bool append_or_move(History *self, zsview prefix, zsview line) {
+  // we aways append first and then remove the old entry, if it exists
+  _history_hmap_value *v = _history_hmap_get_mut(&self->map, line);
+  if (v) {
+    // move to back
+    _history_list_unlink_node(&self->list, v->second);
+    _history_list_push_back_node(&self->list, v->second);
   } else {
+    // construct and append new entry
+    struct history_entry *entry = _history_list_emplace_back(
+        &self->list, (struct history_entry_raw){
+                         .prefix = prefix, .line = line, .is_new = true});
     _history_hmap_insert(&self->map, entry->line,
                          _history_list_get_node(entry));
   }
-  return it.ref == NULL;
+  return v == NULL;
 }
 
 // don't call this on loaded history.
@@ -73,10 +94,15 @@ void history_load(History *h, zsview path) {
     }
     int pos = sep - buf;
 
-    cstr prefix = cstr_with_n(buf, pos);
-    cstr line = cstr_with_n(sep + 1, read - pos - 1);
+    zsview prefix = zsview_from_n(buf, pos);
+    zsview line = zsview_from_n(sep + 1, read - pos - 1);
 
-    append_or_move(h, (struct history_entry){.prefix = prefix, .line = line});
+    if (zsview_is_empty(prefix) || zsview_is_empty(line)) {
+      log_error("missing prefix or line in history item: %s", buf);
+      continue;
+    }
+
+    append_or_move(h, prefix, line);
   }
   xfree(buf);
 
@@ -177,31 +203,15 @@ void history_deinit(History *h) {
 }
 
 void history_append(History *h, zsview prefix, zsview line) {
-  {
-    _history_hmap_iter it = _history_hmap_find(&h->map, line);
-    if (it.ref) {
-      if (it.ref->second->value.is_new) {
-        // existing value that was already counted as new, will be re-inserted
-        // as new
-        h->num_new_entries--;
-      }
-      _history_list_erase_node(&h->list, it.ref->second);
-      _history_hmap_erase_at(&h->map, it);
-    }
+  if (zsview_is_empty(prefix) || zsview_is_empty(line)) {
+    return;
   }
 
-  h->num_new_entries++;
+  if (append_or_move(h, prefix, line)) {
+    h->num_new_entries++;
+  }
 
-  cstr line2 = cstr_from_zv(line);
-
-  struct history_entry *entry =
-      _history_list_push_back(&h->list, (struct history_entry){
-                                            .is_new = true,
-                                            .prefix = cstr_from_zv(prefix),
-                                            .line = line2,
-                                        });
-  _history_hmap_insert(&h->map, line2, _history_list_get_node(entry));
-
+  // reset cursor
   history_reset(h);
 }
 
@@ -210,7 +220,7 @@ void history_reset(History *h) {
 }
 
 zsview history_prev(History *h) {
-  if (!h->cur.ref) {
+  if (h->cur.ref == NULL) {
     h->cur = _history_list_last(&h->list);
   } else {
     if (h->cur.ref != _history_list_front(&h->list)) {
@@ -218,7 +228,7 @@ zsview history_prev(History *h) {
     }
   }
 
-  if (!h->cur.ref) {
+  if (h->cur.ref == NULL) {
     return c_zv("");
   }
 
@@ -226,24 +236,24 @@ zsview history_prev(History *h) {
 }
 
 zsview history_next_entry(History *h) {
-  if (!h->cur.ref) {
+  if (h->cur.ref == NULL) {
     return c_zv("");
   }
 
   _history_list_next(&h->cur);
 
-  if (!h->cur.ref) {
+  if (h->cur.ref == NULL) {
     return c_zv("");
   }
 
   return cstr_zv(&h->cur.ref->line);
 }
 
-size_t history_size(History *self) {
+size_t history_size(const History *self) {
   return _history_hmap_size(&self->map);
 }
 
-history_iter history_begin(History *self) {
+history_iter history_begin(const History *self) {
   return _history_list_begin(&self->list);
 }
 

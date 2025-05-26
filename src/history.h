@@ -10,6 +10,8 @@ struct history_entry {
   cstr line;
   bool is_new; // true if this item is new and not previously read from the
                // history file
+               // TODO: what does this mean for when we write the history back?
+               // should we set this on move-to-back?
 };
 
 declare_dlist(_history_list, struct history_entry);
@@ -64,12 +66,12 @@ zsview history_prev(History *h);
 /*
  * Get the number of lines in the history object.
  */
-size_t history_size(History *h);
+size_t history_size(const History *h);
 
 /*
  * Create an iterator for the history object.
  */
-history_iter history_begin(History *h);
+history_iter history_begin(const History *h);
 
 /*
  * Advance an iterator for the history object.
