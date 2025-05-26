@@ -384,14 +384,23 @@ static inline void dir_cursor_move_to_sel(Dir *d, uint32_t height,
   for (uint32_t i = 0; i < d->length; i++) {
     if (cstr_equals_zv(&d->sel, file_name(d->files[i]))) {
       dir_cursor_move(d, i - d->ind, height, scrolloff);
-      goto cleanup;
+      break;
     }
   }
   d->ind = min(d->ind, d->length);
 
-cleanup:
-  cstr_drop(&d->sel);
-  d->sel = cstr_init();
+  cstr_clear(&d->sel);
+}
+
+static inline void dir_cursor_move_to_ino(Dir *d, dev_t dev, ino_t ino,
+                                          uint32_t height, uint32_t scrolloff) {
+  for (int i = 0; i < (int)d->length; i++) {
+    if (d->files[i]->lstat.st_dev == dev && d->files[i]->lstat.st_ino == ino) {
+      dir_cursor_move(d, i - d->ind, height, scrolloff);
+      break;
+    }
+  }
+  d->ind = min(d->ind, d->length);
 }
 
 void dir_cursor_move_to(Dir *d, zsview name, uint32_t height,
@@ -415,8 +424,18 @@ void dir_cursor_move_to(Dir *d, zsview name, uint32_t height,
 }
 
 void dir_update_with(Dir *d, Dir *update, uint32_t height, uint32_t scrolloff) {
+  // will try to select the file the cursor is on, dev/inode take priority
+  // in case of a rename. Otherwise, we use the name.
+  struct {
+    dev_t dev;
+    ino_t ino;
+  } sel = {0};
+
   if (cstr_is_empty(&d->sel) && d->ind < d->length) {
-    const zsview *name = file_name(d->files[d->ind]);
+    File *file = dir_current_file(d);
+    sel.dev = file->lstat.st_dev;
+    sel.ino = file->lstat.st_ino;
+    const zsview *name = file_name(file);
     cstr_assign_zv(&d->sel, *name);
   }
 
@@ -446,9 +465,12 @@ void dir_update_with(Dir *d, Dir *update, uint32_t height, uint32_t scrolloff) {
   d->sorted = false;
   dir_sort(d);
 
-  if (!cstr_is_empty(&d->sel)) {
+  if (sel.ino != 0) {
+    dir_cursor_move_to_ino(d, sel.dev, sel.ino, height, scrolloff);
+  } else if (!cstr_is_empty(&d->sel)) {
     dir_cursor_move_to_sel(d, height, scrolloff);
   }
+  cstr_clear(&d->sel);
   d->loading = false;
 }
 
