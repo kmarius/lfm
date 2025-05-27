@@ -125,7 +125,7 @@ void async_lua_worker(void *arg) {
   lua_State *L = L_thread; // []
 
   bytes chunk = work->chunk;
-  if (luaL_loadbuffer(L, chunk.data, chunk.len, chunk.data)) {
+  if (luaL_loadbuffer(L, chunk.data, chunk.len, "chunk")) {
     // [err]
     work->result = lua_tobytes(L, -1);
     lua_pop(L, 1);
