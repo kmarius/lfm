@@ -3,6 +3,7 @@
 #include "containers.h"
 #include "ncutil.h"
 #include "notify.h"
+#include "stc/common.h"
 #include "stc/cstr.h"
 
 #include <ncurses.h> // COLOR_ constants
@@ -105,20 +106,22 @@ void config_init(void) {
   cfg.preview = true;
   cfg.ratios = c_make(vec_int, {1, 2, 3});
 
-  hmap_icon_emplace_or_assign(&cfg.icon_map, "ln", "l");
-  hmap_icon_emplace_or_assign(&cfg.icon_map, "or", "l");
-  hmap_icon_emplace_or_assign(&cfg.icon_map, "tw", "t");
-  hmap_icon_emplace_or_assign(&cfg.icon_map, "ow", "d");
-  hmap_icon_emplace_or_assign(&cfg.icon_map, "st", "t");
-  hmap_icon_emplace_or_assign(&cfg.icon_map, "di", "d");
-  hmap_icon_emplace_or_assign(&cfg.icon_map, "pi", "p");
-  hmap_icon_emplace_or_assign(&cfg.icon_map, "so", "s");
-  hmap_icon_emplace_or_assign(&cfg.icon_map, "bd", "b");
-  hmap_icon_emplace_or_assign(&cfg.icon_map, "cd", "c");
-  hmap_icon_emplace_or_assign(&cfg.icon_map, "su", "u");
-  hmap_icon_emplace_or_assign(&cfg.icon_map, "sg", "g");
-  hmap_icon_emplace_or_assign(&cfg.icon_map, "ex", "x");
-  hmap_icon_emplace_or_assign(&cfg.icon_map, "fi", "-");
+  cfg.icon_map = c_make(hmap_icon, {
+                                       {"ln", "l"},
+                                       {"or", "l"},
+                                       {"tw", "t"},
+                                       {"ow", "d"},
+                                       {"st", "t"},
+                                       {"di", "d"},
+                                       {"pi", "p"},
+                                       {"so", "s"},
+                                       {"bd", "b"},
+                                       {"cd", "c"},
+                                       {"su", "u"},
+                                       {"sg", "g"},
+                                       {"ex", "x"},
+                                       {"fi", "-"},
+  });
 }
 
 void config_deinit(void) {
