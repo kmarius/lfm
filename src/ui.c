@@ -110,7 +110,6 @@ void ui_deinit(Ui *ui) {
   vec_ncplane_drop(&ui->planes.dirs);
   cmdline_deinit(&ui->cmdline);
   cstr_drop(&ui->search_string);
-  cstr_drop(&ui->infoline);
 }
 
 static int resize_cb(struct ncplane *n) {

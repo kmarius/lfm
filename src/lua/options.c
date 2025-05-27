@@ -178,6 +178,9 @@ static int l_config_index(lua_State *L) {
   } else if (streq(key, "threads")) {
     lua_pushnumber(L, tpool_size(lfm->async.tpool));
     return 1;
+  } else if (streq(key, "infoline")) {
+    lua_pushcstr(L, &cfg.infoline);
+    return 1;
   } else if (streq(key, "histsize")) {
     lua_pushnumber(L, cfg.histsize);
     return 1;
@@ -329,11 +332,10 @@ static int l_config_newindex(lua_State *L) {
     luaL_argcheck(L, num >= 2, 3, "threads must be at least 2");
     tpool_resize(lfm->async.tpool, num);
   } else if (streq(key, "infoline")) {
-    if (lua_isnil(L, 3)) {
-      infoline_set(&lfm->ui, c_zv(""));
-    } else {
-      infoline_set(&lfm->ui, luaL_checkzsview(L, 3));
-    }
+    zsview line = lua_tozsview(L, 3);
+    cstr_assign_zv(&cfg.infoline, line);
+    infoline_parse(line);
+    ui_redraw(ui, REDRAW_INFO);
   } else if (streq(key, "histsize")) {
     int sz = luaL_checkinteger(L, 3);
     luaL_argcheck(L, sz >= 0, 3, "histsize must be non-negative");

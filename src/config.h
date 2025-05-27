@@ -56,6 +56,7 @@ typedef struct config {
   char linkchars[16];   // "->"
   char current_char;    // \0, unless 8 color terminal
   int linkchars_len;
+  cstr infoline;
   bool preview;
   bool preview_images;
   bytes lua_previewer;

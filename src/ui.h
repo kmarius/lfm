@@ -79,9 +79,6 @@ typedef struct Ui {
   // "hidden" under statusline if inactive
   Cmdline cmdline;
 
-  // Information bar at the top
-  cstr infoline;
-
   struct {
     Preview *preview;
     unsigned int y, x; // dimensions of the preview ncplane

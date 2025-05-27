@@ -52,7 +52,6 @@ static struct {
   int file, path, spinner, spacer, mode;
 } idx;
 
-static inline void infoline_parse(zsview infoline);
 static inline void draw_custom(Ui *ui);
 static inline void draw_default(Ui *ui);
 static inline int shorten_file_name(wchar_t *name, int name_len, int max_len,
@@ -81,13 +80,9 @@ void infoline_init(Ui *ui) {
   }
 }
 
-void infoline_set(Ui *ui, zsview line) {
-  cstr_assign_zv(&ui->infoline, line);
-  infoline_parse(line);
-  ui_redraw(ui, REDRAW_INFO);
-}
+void infoline_parse(zsview infoline) {
+  log_trace("parsing size=%u", infoline.size);
 
-static inline void infoline_parse(zsview infoline) {
   memset(&idx, 0, sizeof idx);
   memset(placeholders, 0, sizeof placeholders);
   static_buf_ptr = static_buf;

@@ -128,6 +128,7 @@ void config_deinit(void) {
   hmap_dirsetting_drop(&cfg.dir_settings_map);
   vec_int_drop(&cfg.ratios);
   vec_cstr_drop(&cfg.inotify_blacklist);
+  cstr_drop(&cfg.infoline);
   cstr_drop(&cfg.configdir);
   cstr_drop(&cfg.configpath);
   cstr_drop(&cfg.corepath);
