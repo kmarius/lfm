@@ -56,7 +56,7 @@ typedef struct Ui {
     struct ncplane *info;
     struct ncplane *menu;
     struct ncplane *preview;
-    vec_ncplane dirs;
+    vec_ncplane dirs; // all planes from right to left, including preview
   } planes;
 
   uint32_t redraw; // Bitfield indicating which components need to be drawn, see

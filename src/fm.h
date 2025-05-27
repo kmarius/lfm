@@ -28,11 +28,10 @@ typedef struct Fm {
   cstr pwd;
 
   struct {
-    // Visible directories excluding preview.
+    // Visible directories excluding preview. Index 0 is the current directory,
+    // all following elements are the parents
     vec_dir visible;
-
-    // Number of visible directories, excluding the preview.
-    uint32_t length;
+    int max_visible;
 
     // preview directory, NULL if there is none, e.g. if the cursor is resting
     // on a file.

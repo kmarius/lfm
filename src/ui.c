@@ -48,6 +48,10 @@
 #include "stc/common.h"
 
 #define i_declared
+#define i_TYPE vec_dir, Dir *
+#include "stc/vec.h"
+
+#define i_declared
 #define i_type vec_ncplane, struct ncplane *
 #define i_keydrop(p) (ncplane_destroy(*(p)))
 #define i_no_clone
@@ -69,6 +73,14 @@ static void redraw_cb(EV_P_ ev_idle *w, int revents);
 static int resize_cb(struct ncplane *n);
 
 static void on_cursor_resting(EV_P_ ev_timer *w, int revents);
+
+static inline void clear_pane(struct ncplane *n) {
+  ncplane_erase(n);
+  ncplane_cursor_move_yx(n, 0, 0);
+  ncplane_set_styles(n, NCSTYLE_NONE);
+  ncplane_set_fg_default(n);
+  ncplane_set_bg_default(n);
+}
 
 /* init/resize {{{ */
 
@@ -248,7 +260,14 @@ void ui_recol(Ui *ui) {
   opts.cols = ui->x - xpos - 1;
   vec_ncplane_push(&ui->planes.dirs, ncplane_create(ncstd, &opts));
   ui->planes.preview = *vec_ncplane_back(&ui->planes.dirs);
-  /* ui->planes.preview = ui->planes.dirs[ui->num_columns - 1]; */
+  int len = vec_ncplane_size(&ui->planes.dirs);
+  // reverse vector
+  for (int i = 0; i < len / 2; i++) {
+    struct ncplane *tmp = *vec_ncplane_at(&ui->planes.dirs, i);
+    *vec_ncplane_at_mut(&ui->planes.dirs, i) =
+        *vec_ncplane_at(&ui->planes.dirs, len - i - 1);
+    *vec_ncplane_at_mut(&ui->planes.dirs, len - i - 1) = tmp;
+  }
   ui->preview.x = opts.cols;
   ui->preview.y = ui->y - 2;
 }
@@ -304,12 +323,22 @@ void ui_clear(Ui *ui) {
 
 static void draw_dirs(Ui *ui) {
   Fm *fm = &to_lfm(ui)->fm;
-  const uint32_t l = fm->dirs.length;
-  for (uint32_t i = 0; i < l; i++) {
-    plane_draw_dir(*vec_ncplane_at(&ui->planes.dirs, l - i - 1),
-                   fm->dirs.visible.data[i], &fm->selection.current,
-                   &fm->paste.buffer, fm->paste.mode,
-                   i == 0 ? ui->highlight : zsview_init(), i == 0);
+
+  c_foreach(it, vec_ncplane, ui->planes.dirs) {
+    if (*it.ref != ui->planes.preview)
+      clear_pane(*it.ref);
+  }
+
+  int i = 0;
+  if (cfg.preview && vec_ncplane_size(&ui->planes.dirs) > 1) {
+    i = 1;
+  }
+  c_foreach(it, vec_dir, fm->dirs.visible) {
+    struct ncplane *n = *vec_ncplane_at(&ui->planes.dirs, i);
+    plane_draw_dir(n, *it.ref, &fm->selection.current, &fm->paste.buffer,
+                   fm->paste.mode, i == 0 ? ui->highlight : zsview_init(),
+                   i == 0);
+    i++;
   }
 }
 
@@ -901,21 +930,14 @@ static void draw_file(struct ncplane *n, const File *file, bool iscurrent,
 }
 
 // TODO: plane_draw_dir and draw_file could really use some work
+__lfm_nonnull()
 static void plane_draw_dir(struct ncplane *n, Dir *dir, pathlist *sel,
                            pathlist *load, paste_mode mode, zsview highlight,
                            bool print_info) {
+  clear_pane(n);
+
   unsigned int nrow;
-
-  ncplane_erase(n);
   ncplane_dim_yx(n, &nrow, NULL);
-  ncplane_cursor_move_yx(n, 0, 0);
-  ncplane_set_styles(n, NCSTYLE_NONE);
-  ncplane_set_fg_default(n);
-  ncplane_set_bg_default(n);
-
-  if (!dir) {
-    return;
-  }
 
   if (dir->error) {
     ncplane_putstr_yx(n, 0, 2, strerror(dir->error));

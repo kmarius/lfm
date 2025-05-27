@@ -67,8 +67,8 @@ void fm_init(Fm *fm, struct lfm_opts *opts) {
     }
   }
 
-  fm->dirs.length = vec_int_size(&cfg.ratios) - (cfg.preview ? 1 : 0);
-  vec_dir_resize(&fm->dirs.visible, fm->dirs.length, 0);
+  int len = vec_int_size(&cfg.ratios) - (cfg.preview ? 1 : 0);
+  vec_dir_resize(&fm->dirs.visible, len, NULL);
 
   pathlist_init(&fm->selection.current);
   pathlist_init(&fm->selection.keep_in_visual);
@@ -95,37 +95,46 @@ void fm_deinit(Fm *fm) {
 }
 
 static void fm_populate(Fm *fm) {
-  fm->dirs.visible.data[0] = loader_dir_from_path(
-      &to_lfm(fm)->loader, cstr_zv(&fm->pwd), true); /* current dir */
-  fm->dirs.visible.data[0]->visible = true;
-  Dir *dir = fm_current_dir(fm);
-  for (uint32_t i = 1; i < fm->dirs.length; i++) {
+  vec_dir_clear(&fm->dirs.visible);
+  Dir *dir = loader_dir_from_path(&to_lfm(fm)->loader, cstr_zv(&fm->pwd),
+                                  true); /* current dir */
+  dir->visible = true;
+  vec_dir_push_back(&fm->dirs.visible, dir);
+
+  for (int i = 0; i < fm->dirs.max_visible - 1; i++) {
     zsview parent = path_parent(dir_path(dir));
-    if (zsview_is_empty(parent)) {
-      fm->dirs.visible.data[i] = NULL;
-    } else {
+    if (!zsview_is_empty(parent)) {
       dir = loader_dir_from_path(&to_lfm(fm)->loader, parent, true);
       dir->visible = true;
-      fm->dirs.visible.data[i] = dir;
+      vec_dir_push_back(&fm->dirs.visible, dir);
       if (dir_loading(dir)) {
-        dir_cursor_move_to(dir, *dir_name(fm->dirs.visible.data[i - 1]),
-                           fm->height, cfg.scrolloff);
+        zsview name = *dir_name(*vec_dir_at(
+            &fm->dirs.visible, vec_dir_size(&fm->dirs.visible) - 2));
+
+        dir_cursor_move_to(dir, name, fm->height, cfg.scrolloff);
       }
     }
+  }
+
+  c_foreach(it, vec_dir, fm->dirs.visible) {
+    if (*it.ref == dir)
+      continue;
   }
 }
 
 void fm_recol(Fm *fm) {
   fm_remove_preview(fm);
-  for (uint32_t i = 0; i < fm->dirs.length; i++) {
-    if (fm->dirs.visible.data[i]) {
-      fm->dirs.visible.data[i]->visible = false;
-    }
+
+  c_foreach(it, vec_dir, fm->dirs.visible) {
+    (*it.ref)->visible = false;
   }
 
-  const uint32_t l = max(1, vec_int_size(&cfg.ratios) - (cfg.preview ? 1 : 0));
-  vec_dir_resize(&fm->dirs.visible, l, 0);
-  fm->dirs.length = l;
+  int max = vec_int_size(&cfg.ratios);
+
+  if (max > 1 && cfg.preview) {
+    max--;
+  }
+  fm->dirs.max_visible = max;
 
   fm_populate(fm);
   fm_update_watchers(fm);
@@ -165,10 +174,8 @@ static inline bool fm_chdir_impl(Fm *fm, zsview path, bool save, bool hook,
   }
 
   fm_remove_preview(fm);
-  for (uint32_t i = 0; i < fm->dirs.length; i++) {
-    if (fm->dirs.visible.data[i]) {
-      fm->dirs.visible.data[i]->visible = false;
-    }
+  c_foreach(it, vec_dir, fm->dirs.visible) {
+    (*it.ref)->visible = false;
   }
 
   fm_populate(fm);
@@ -193,10 +200,8 @@ bool fm_async_chdir(Fm *fm, zsview path, bool save, bool hook) {
 static inline void fm_update_watchers(Fm *fm) {
   // watcher for preview is updated in update_preview
   notify_remove_watchers(&to_lfm(fm)->notify);
-  for (size_t i = 0; i < fm->dirs.length; i++) {
-    if (fm->dirs.visible.data[i]) {
-      async_notify_add(&to_lfm(fm)->async, fm->dirs.visible.data[i]);
-    }
+  c_foreach(it, vec_dir, fm->dirs.visible) {
+    async_notify_add(&to_lfm(fm)->async, *it.ref);
   }
 }
 
@@ -217,8 +222,10 @@ static inline void fm_sort_and_reselect(Fm *fm, Dir *dir) {
 }
 
 void fm_sort(Fm *fm) {
-  for (uint32_t i = 0; i < fm->dirs.length; i++) {
-    fm_sort_and_reselect(fm, fm->dirs.visible.data[i]);
+  c_foreach(it, vec_dir, fm->dirs.visible) {
+    if (!dir_check(*it.ref)) {
+      fm_sort_and_reselect(fm, *it.ref);
+    }
   }
   fm_sort_and_reselect(fm, fm->dirs.preview);
 }
@@ -230,12 +237,11 @@ void fm_hidden_set(Fm *fm, bool hidden) {
 }
 
 void fm_check_dirs(const Fm *fm) {
-  for (uint32_t i = 0; i < fm->dirs.length; i++) {
-    if (fm->dirs.visible.data[i] && !dir_check(fm->dirs.visible.data[i])) {
-      loader_dir_reload(&to_lfm(fm)->loader, fm->dirs.visible.data[i]);
+  c_foreach(it, vec_dir, fm->dirs.visible) {
+    if (!dir_check(*it.ref)) {
+      loader_dir_reload(&to_lfm(fm)->loader, *it.ref);
     }
   }
-
   if (fm->dirs.preview && !dir_check(fm->dirs.preview)) {
     loader_dir_reload(&to_lfm(fm)->loader, fm->dirs.preview);
   }
@@ -255,10 +261,8 @@ void fm_drop_cache(Fm *fm) {
 }
 
 void fm_reload(Fm *fm) {
-  for (uint32_t i = 0; i < fm->dirs.length; i++) {
-    if (fm->dirs.visible.data[i]) {
-      async_dir_load(&to_lfm(fm)->async, fm->dirs.visible.data[i], true);
-    }
+  c_foreach(it, vec_dir, fm->dirs.visible) {
+    async_dir_load(&to_lfm(fm)->async, *it.ref, true);
   }
   if (fm->dirs.preview) {
     async_dir_load(&to_lfm(fm)->async, fm->dirs.preview, true);

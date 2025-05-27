@@ -7,6 +7,7 @@
 #pragma once
 
 #include "dir.h"
+#include "macros_defs.h"
 #include "stc/types.h"
 
 #include <ev.h>
@@ -31,17 +32,21 @@ typedef struct notify {
 } Notify;
 
 // Initialize a Notify context. Returns false on failure.
+__lfm_nonnull()
 bool notify_init(Notify *notify);
 
 // Add a watcher for the directory `dir`.
+__lfm_nonnull()
 void notify_add_watcher(Notify *notify, Dir *dir);
 
 // Remove the watcher for the directory `dir`.
 // Returns `true` if the watcher was removed, `false` if it didn't exist.
+__lfm_nonnull()
 bool notify_remove_watcher(Notify *notify, Dir *dir);
 
 // Replace the current set of watchers with `n` watchers for the directories
 // passed in `dirs`. Incremets the notify->version counter.
+__lfm_nonnull(1)
 void notify_set_watchers(Notify *notify, Dir **dirs, uint32_t n);
 
 // Remove all watchers. Incremets the notify->version counter.
@@ -50,4 +55,5 @@ static inline void notify_remove_watchers(Notify *notify) {
 }
 
 // Deinitialize a Notify context.
+__lfm_nonnull()
 void notify_deinit(Notify *notify);
