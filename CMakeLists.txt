@@ -96,8 +96,17 @@ set(LFM_COMMIT "${GIT_SHA1}")
 set(LFM_REVCOUNT "${GIT_REVCOUNT}")
 set(LFM_BRANCH "${GIT_BRANCH}")
 
-file(GLOB LFM_SOURCES ${PROJECT_SOURCE_DIR}/src/*.c ${PROJECT_SOURCE_DIR}/src/lua/*.c)
-file(GLOB LFM_HEADERS ${PROJECT_SOURCE_DIR}/src/*.h ${PROJECT_SOURCE_DIR}/src/lua/*.h)
+file(GLOB LFM_SOURCES
+  ${PROJECT_SOURCE_DIR}/src/*.c
+  ${PROJECT_SOURCE_DIR}/src/lua/*.c
+  ${PROJECT_SOURCE_DIR}/src/async/*.c
+)
+message(STATUS ${LFM_SOURCES})
+file(GLOB LFM_HEADERS
+  ${PROJECT_SOURCE_DIR}/src/*.h
+  ${PROJECT_SOURCE_DIR}/src/lua/*.h
+  ${PROJECT_SOURCE_DIR}/src/async/*.h
+)
 
 add_subdirectory(config)
 list(APPEND LFM_GENERATED_SOURCES

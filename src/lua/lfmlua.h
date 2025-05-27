@@ -5,15 +5,17 @@
  * callbacks etc.
  */
 
+#include "../bytes.h"
 #include "../stc/cstr.h"
 
 #include <lua.h>
 
 #include <stdbool.h>
-#include <stdio.h>
 #include <string.h>
 
 struct Lfm;
+struct Preview;
+struct Async;
 
 // Initialize lua state, load libraries.
 void lfm_lua_init(struct Lfm *lfm);

@@ -1,5 +1,5 @@
 #include "loader.h"
-#include "async.h"
+#include "async/async.h"
 #include "config.h"
 #include "dir.h"
 #include "hooks.h"

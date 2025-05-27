@@ -175,7 +175,7 @@ static inline int gen_cache_path(zsview path, char *buf, size_t buflen) {
 }
 
 // Set preview contents to an error message and log it
-static inline Preview *preview_error(Preview *p, const char *fmt, ...) {
+Preview *preview_error(Preview *p, const char *fmt, ...) {
   va_list args;
   va_start(args, fmt);
   vec_cstr_clear(&p->lines);
@@ -184,6 +184,18 @@ static inline Preview *preview_error(Preview *p, const char *fmt, ...) {
   vec_cstr_push_back(&p->lines, cstr_with_n(buf, len));
   log_error("%s", buf);
   va_end(args);
+  return p;
+}
+
+Preview *preview_create_and_stat(zsview path, int height, int width) {
+  Preview *p = preview_create(path, height, width);
+  p->loadtime = current_millis();
+
+  struct stat statbuf;
+  if (stat(path.str, &statbuf) != -1) {
+    p->mtime = statbuf.st_mtime;
+  }
+
   return p;
 }
 

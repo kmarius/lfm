@@ -43,7 +43,13 @@ typedef struct Preview {
 } Preview;
 
 __lfm_nonnull()
+Preview *preview_error(Preview *p, const char *fmt, ...);
+
+__lfm_nonnull()
 Preview *preview_create_loading(zsview path, int height, int width);
+
+__lfm_nonnull()
+Preview *preview_create_and_stat(zsview path, int height, int width);
 
 __lfm_nonnull()
 Preview *preview_create_from_file(zsview path, uint32_t width, uint32_t height);

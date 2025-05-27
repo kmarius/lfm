@@ -1,14 +1,15 @@
 #pragma once
 
-#include "bytes.h"
-
 #include <ev.h>
 
 #include <pthread.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 struct Dir;
 struct Preview;
+struct Lfm;
+struct bytes;
 
 struct result_queue {
   struct result *head;
@@ -20,7 +21,6 @@ typedef struct Async {
   struct tpool *tpool;
   struct result_queue queue;
   ev_async result_watcher;
-  int unpacker_ref; // ref to mpack.Unpacker instance
 } Async;
 
 void async_init(Async *async);
@@ -47,6 +47,8 @@ void async_notify_add(Async *async, struct Dir *dir);
 
 void async_notify_preview_add(Async *async, struct Dir *dir);
 
-// Takes ownership of bytes, unless it fails. Returns -1 on failure,
-// if string.buffer can not be loaded for some reason
-int async_lua(Async *async, bytes *chunk, bytes *arg, int ref);
+// Takes ownership of chunk and arg
+void async_lua(struct Async *async, struct bytes *chunk, struct bytes *arg,
+               int ref);
+
+void async_lua_preview(struct Async *async, struct Preview *pv);

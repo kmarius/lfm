@@ -58,6 +58,7 @@ typedef struct config {
   int linkchars_len;
   bool preview;
   bool preview_images;
+  bytes lua_previewer;
   cstr previewer;
   uint32_t preview_delay;
   bool icons;

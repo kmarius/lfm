@@ -1,9 +1,10 @@
 #pragma once
 
 #include "../containers.h"
+#include "../log.h"
 #include "../stcutil.h"
-#include "lauxlib.h"
 
+#include <lauxlib.h>
 #include <lua.h>
 
 #define LUA_CHECK_ARGC(L, expected)                                            \
@@ -114,24 +115,58 @@ static inline void lua_read_vec_cstr(lua_State *L, int idx, vec_cstr *vec) {
 // encode lua value at at the given index with string.buffer.encode and leave it
 // on the stack
 static inline int lua_encode(lua_State *L, int idx) {
-  lua_getglobal(L, "require");        // [require]
-  lua_pushstring(L, "string.buffer"); // [require, "string.buffer"]
+  lua_pushvalue(L, idx); // [value]
+
+  lua_getglobal(L, "require");        // [value, require]
+  lua_pushstring(L, "string.buffer"); // [value, require, "string.buffer"]
 
   int status = lua_pcall(L, 1, 1, 0);
   if (status != LUA_OK) {
+    // [value, err]
+    lua_remove(L, -2);
     return status;
   }
-  // [string.buffer]
+  // [value, string.buffer]
 
-  lua_getfield(L, -1, "encode"); // [string.buffer, encode]
-  lua_remove(L, -2);             // [encode]
-  lua_pushvalue(L, idx);         // [encode, value]
+  lua_getfield(L, -1, "encode"); // [value, string.buffer, encode]
+  lua_remove(L, -2);             // [value, encode]
+  lua_insert(L, -2);             // [encode, value]
 
   status = lua_pcall(L, 1, 1, 0);
   if (status != LUA_OK) {
+    // [err]
     return status;
   }
-  // [encoded_value]
+  // [bytes]
+
+  return LUA_OK;
+}
+
+// decode string at at the given index with string.buffer.decode and leave it
+// on the stack
+static inline int lua_decode(lua_State *L, int idx) {
+  lua_pushvalue(L, idx);              // [bytes]
+  lua_getglobal(L, "require");        // [bytes, require]
+  lua_pushstring(L, "string.buffer"); // [bytes, require, "string.buffer"]
+
+  int status = lua_pcall(L, 1, 1, 0);
+  if (status != LUA_OK) {
+    // [bytes, err]
+    lua_remove(L, -2);
+    return status;
+  }
+  // [bytes, string.buffer]
+
+  lua_getfield(L, -1, "decode"); // [bytes, string.buffer, decode]
+  lua_remove(L, -2);             // [bytes, decode]
+  lua_insert(L, -2);             // [decode, bytes]
+
+  status = lua_pcall(L, 1, 1, 0);
+  if (status != LUA_OK) {
+    // [err]
+    return status;
+  }
+  // [value]
 
   return LUA_OK;
 }

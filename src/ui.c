@@ -1,6 +1,6 @@
 #include "ui.h"
 
-#include "async.h"
+#include "async/async.h"
 #include "cmdline.h"
 #include "config.h"
 #include "dir.h"
