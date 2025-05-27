@@ -101,7 +101,6 @@ file(GLOB LFM_SOURCES
   ${PROJECT_SOURCE_DIR}/src/lua/*.c
   ${PROJECT_SOURCE_DIR}/src/async/*.c
 )
-message(STATUS ${LFM_SOURCES})
 file(GLOB LFM_HEADERS
   ${PROJECT_SOURCE_DIR}/src/*.h
   ${PROJECT_SOURCE_DIR}/src/lua/*.h
