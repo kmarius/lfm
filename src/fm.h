@@ -148,6 +148,8 @@ bool fm_updir(Fm *fm);
 // decreases)
 void fm_move_cursor_to(Fm *fm, zsview name);
 
+void fm_move_cursor_to_ptr(Fm *fm, const File *file);
+
 // Apply the filter string given by `filter` to the current directory.
 void fm_filter(Fm *fm, Filter *filter);
 

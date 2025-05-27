@@ -529,6 +529,18 @@ void fm_move_cursor_to(Fm *fm, zsview name) {
   on_cursor_moved(fm, false);
 }
 
+void fm_move_cursor_to_ptr(Fm *fm, const File *file) {
+  Dir *d = fm_current_dir(fm);
+  for (uint32_t i = 0; i < d->length; i++) {
+    if (d->files[i] == file) {
+      dir_cursor_move(d, i - d->ind, fm->height, cfg.scrolloff);
+      break;
+    }
+  }
+  d->ind = min(d->ind, d->length);
+  on_cursor_moved(fm, false);
+}
+
 bool fm_scroll_up(Fm *fm) {
   Dir *dir = fm_current_dir(fm);
   if (dir->ind > 0 && dir->ind == dir->pos) {
