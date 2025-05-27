@@ -49,6 +49,7 @@ static void lua_result_destroy(void *p) {
   bytes_drop(&res->chunk);
   bytes_drop(&res->arg);
   bytes_drop(&res->result);
+  xfree(p);
 }
 
 static void lua_result_callback(void *p, Lfm *lfm) {
@@ -219,8 +220,9 @@ struct lua_preview_data {
 static void lua_preview_destroy(void *p) {
   struct lua_preview_data *res = p;
   bytes_drop(&res->chunk);
-  free(res->path);
   preview_destroy(res->update);
+  free(res->path);
+  free(res);
 }
 
 static void lua_preview_callback(void *p, Lfm *lfm) {
