@@ -332,12 +332,14 @@ static void draw_dirs(Ui *ui) {
   if (cfg.preview && vec_ncplane_size(&ui->planes.dirs) > 1) {
     i = 1;
   }
+  bool print_info = true;
   c_foreach(it, vec_dir, fm->dirs.visible) {
     struct ncplane *n = *vec_ncplane_at(&ui->planes.dirs, i);
     plane_draw_dir(n, *it.ref, &fm->selection.current, &fm->paste.buffer,
                    fm->paste.mode, i == 0 ? ui->highlight : zsview_init(),
-                   i == 0);
+                   print_info);
     i++;
+    print_info = false;
   }
 }
 
