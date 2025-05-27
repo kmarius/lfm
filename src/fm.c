@@ -67,8 +67,11 @@ void fm_init(Fm *fm, struct lfm_opts *opts) {
     }
   }
 
-  int len = vec_int_size(&cfg.ratios) - (cfg.preview ? 1 : 0);
-  vec_dir_resize(&fm->dirs.visible, len, NULL);
+  int max = vec_int_size(&cfg.ratios);
+  if (max > 1 && cfg.preview) {
+    max--;
+  }
+  fm->dirs.max_visible = max;
 
   pathlist_init(&fm->selection.current);
   pathlist_init(&fm->selection.keep_in_visual);
@@ -130,7 +133,6 @@ void fm_recol(Fm *fm) {
   }
 
   int max = vec_int_size(&cfg.ratios);
-
   if (max > 1 && cfg.preview) {
     max--;
   }
