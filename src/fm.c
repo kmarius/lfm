@@ -225,9 +225,7 @@ static inline void fm_sort_and_reselect(Fm *fm, Dir *dir) {
 
 void fm_sort(Fm *fm) {
   c_foreach(it, vec_dir, fm->dirs.visible) {
-    if (!dir_check(*it.ref)) {
-      fm_sort_and_reselect(fm, *it.ref);
-    }
+    fm_sort_and_reselect(fm, *it.ref);
   }
   fm_sort_and_reselect(fm, fm->dirs.preview);
 }
