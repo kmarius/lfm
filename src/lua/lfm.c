@@ -539,8 +539,8 @@ static int l_current_mode(lua_State *L) {
 static int l_get_modes(lua_State *L) {
   lua_createtable(L, lfm->modes.size, 0);
   int i = 1;
-  c_foreach(it, hmap_modes, lfm->modes) {
-    lua_pushcstr(L, &(*it.ref).second.name);
+  c_foreach_kv(_, v, hmap_modes, lfm->modes) {
+    lua_pushcstr(L, &v->name);
     lua_rawseti(L, -2, i++);
   }
   return 1;

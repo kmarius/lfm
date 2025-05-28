@@ -263,10 +263,8 @@ void ui_recol(Ui *ui) {
   int len = vec_ncplane_size(&ui->planes.dirs);
   // reverse vector
   for (int i = 0; i < len / 2; i++) {
-    struct ncplane *tmp = *vec_ncplane_at(&ui->planes.dirs, i);
-    *vec_ncplane_at_mut(&ui->planes.dirs, i) =
-        *vec_ncplane_at(&ui->planes.dirs, len - i - 1);
-    *vec_ncplane_at_mut(&ui->planes.dirs, len - i - 1) = tmp;
+    c_swap(vec_ncplane_at_mut(&ui->planes.dirs, i),
+           vec_ncplane_at_mut(&ui->planes.dirs, len - i - 1));
   }
   ui->preview.x = opts.cols;
   ui->preview.y = ui->y - 2;

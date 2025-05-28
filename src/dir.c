@@ -70,15 +70,9 @@ static inline void vec_file_set(vec_file *vec, size_t i, File *file) {
     qsort(vec.data, vec.size, sizeof *vec.data, cmp);                          \
   } while (0)
 
-static inline void swap(File **a, File **b) {
-  File *tmp = *a;
-  *a = *b;
-  *b = tmp;
-}
-
 static inline void reverse(File **a, size_t len) {
   for (size_t i = 0; i < len / 2; i++) {
-    swap(a + i, a + len - i - 1);
+    c_swap(a + i, a + len - i - 1);
   }
 }
 

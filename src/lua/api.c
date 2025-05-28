@@ -910,9 +910,9 @@ static int l_get_tags(lua_State *L) {
     return 1;
   }
   Dir *dir = v->second;
-  c_foreach(it, hmap_cstr, dir->tags.tags) {
-    lua_pushcstr(L, &it.ref->second);
-    lua_setfield(L, -2, cstr_str(&it.ref->first));
+  c_foreach_kv(k, v, hmap_cstr, dir->tags.tags) {
+    lua_pushcstr(L, v);
+    lua_setfield(L, -2, cstr_str(k));
   }
   lua_pushnumber(L, dir->tags.cols);
   return 2;
