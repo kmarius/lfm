@@ -29,10 +29,11 @@ struct message {
 #include "stc/vec.h"
 
 #define REDRAW_INFO 1
-#define REDRAW_FM 2
-#define REDRAW_CMDLINE 4
-#define REDRAW_MENU 8
-#define REDRAW_PREVIEW 16
+#define REDRAW_CMDLINE 2
+#define REDRAW_MENU 4
+#define REDRAW_PREVIEW 8
+#define REDRAW_FM 16
+#define REDRAW_CURRENT 32
 #define REDRAW_FULL                                                            \
   (REDRAW_INFO | REDRAW_FM | REDRAW_CMDLINE | REDRAW_MENU | REDRAW_PREVIEW)
 

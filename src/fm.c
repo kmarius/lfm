@@ -381,7 +381,7 @@ void fm_selection_add(Fm *fm, const cstr *path, bool run_hook) {
   }
 }
 
-void fm_selection_clear(Fm *fm) {
+bool fm_selection_clear(Fm *fm) {
   log_trace("fm_selection_clear");
   if (pathlist_size(&fm->selection.current) > 0) {
     pathlist tmp = fm->selection.previous;
@@ -389,7 +389,9 @@ void fm_selection_clear(Fm *fm) {
     fm->selection.current = tmp;
     pathlist_clear(&fm->selection.current);
     lfm_run_hook(to_lfm(fm), LFM_HOOK_SELECTION);
+    return true;
   }
+  return false;
 }
 
 void fm_selection_reverse(Fm *fm) {

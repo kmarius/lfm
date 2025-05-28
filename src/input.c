@@ -222,17 +222,21 @@ void input_handle_key(Lfm *lfm, input_t in) {
       if (vec_input_size(&lfm->ui.maps.seq) > 0) {
         input_clear(lfm);
       } else {
-        search_nohighlight(lfm);
-        fm_selection_clear(&lfm->fm);
-        ui_menu_hide(&lfm->ui);
+        uint32_t mode = 0;
+        if (fm_selection_clear(&lfm->fm)) {
+          mode |= REDRAW_FM;
+        }
         if (fm_paste_buffer_clear(fm)) {
           lfm_run_hook(lfm, LFM_HOOK_PASTEBUF);
+          mode |= REDRAW_FM;
         }
+        search_nohighlight(lfm);
+        ui_menu_hide(&lfm->ui);
+        ui_redraw(ui, mode);
         mode_on_esc(lfm->current_mode, lfm);
         lfm_mode_enter(lfm, c_zv("normal"));
       }
       ui->show_message = false;
-      ui_redraw(ui, REDRAW_FM);
     } else if (!lfm->ui.maps.cur) {
       vec_input_push(&lfm->ui.maps.seq, in);
       char buf[256];

@@ -71,6 +71,7 @@ static inline void print_message(Ui *ui, zsview msg, bool error);
 static inline void draw_cmdline(Ui *ui);
 static void redraw_cb(EV_P_ ev_idle *w, int revents);
 static int resize_cb(struct ncplane *n);
+static void draw_current(Ui *ui);
 
 static void on_cursor_resting(EV_P_ ev_timer *w, int revents);
 
@@ -284,29 +285,33 @@ static void redraw_cb(EV_P_ ev_idle *w, int revents) {
 void ui_draw(Ui *ui) {
   uint64_t t0 = current_micros();
 
-  if (ui->redraw & REDRAW_FM) {
+  uint32_t mode = ui->redraw;
+
+  if (mode & REDRAW_FM) {
+    mode &= ~REDRAW_CURRENT;
     draw_dirs(ui);
   }
-  if (ui->redraw & (REDRAW_MENU | REDRAW_MENU)) {
+  if (mode & REDRAW_CURRENT) {
+    draw_current(ui);
+  }
+  if (mode & REDRAW_MENU) {
     draw_menu(ui, &ui->menubuf);
   }
-  if (ui->redraw & (REDRAW_FM | REDRAW_CMDLINE)) {
+  if (mode & (REDRAW_FM | REDRAW_CMDLINE)) {
     draw_cmdline(ui);
   }
-  if (ui->redraw & (REDRAW_FM | REDRAW_INFO)) {
+  if (mode & (REDRAW_FM | REDRAW_INFO)) {
     infoline_draw(ui);
   }
-  if (ui->redraw & (REDRAW_FM | REDRAW_PREVIEW)) {
+  if (mode & (REDRAW_FM | REDRAW_PREVIEW)) {
     draw_preview(ui);
   }
-  if (ui->redraw) {
-    notcurses_render(ui->nc);
-  }
 
-  uint64_t t1 = current_micros();
-  if (ui->redraw)
-    log_trace("ui_draw completed in %.3fms (%d)", (t1 - t0) / 1000.0,
-              ui->redraw);
+  if (mode) {
+    notcurses_render(ui->nc);
+    uint64_t t1 = current_micros();
+    log_trace("ui_draw completed in %.3fms (%d)", (t1 - t0) / 1000.0, mode);
+  }
 
   ui->redraw = 0;
 }
@@ -318,6 +323,22 @@ void ui_clear(Ui *ui) {
   notcurses_cursor_disable(ui->nc);
 
   ui_redraw(ui, REDRAW_FULL);
+}
+
+static void draw_current(Ui *ui) {
+  Fm *fm = &to_lfm(ui)->fm;
+
+  int idx = 0;
+  if (cfg.preview && vec_ncplane_size(&ui->planes.dirs) > 1) {
+    idx = 1;
+  }
+
+  struct ncplane *n = *vec_ncplane_at(&ui->planes.dirs, idx);
+  Dir *dir = fm_current_dir(fm);
+
+  clear_pane(n);
+  plane_draw_dir(n, dir, &fm->selection.current, &fm->paste.buffer,
+                 fm->paste.mode, ui->highlight, true);
 }
 
 static void draw_dirs(Ui *ui) {
@@ -455,7 +476,7 @@ static void menu_resize(Ui *ui) {
 void ui_menu_show(Ui *ui, vec_cstr *vec, uint32_t delay) {
   struct ev_loop *loop = to_lfm(ui)->loop;
   ev_timer_stop(EV_A_ & ui->menu_delay_timer);
-  if (vec_cstr_size(&ui->menubuf) > 0) {
+  if (!vec_cstr_is_empty(&ui->menubuf)) {
     ncplane_erase(ui->planes.menu);
     ncplane_move_bottom(ui->planes.menu);
     vec_cstr_clear(&ui->menubuf);
@@ -471,7 +492,7 @@ void ui_menu_show(Ui *ui, vec_cstr *vec, uint32_t delay) {
       ev_invoke(EV_A_ & ui->menu_delay_timer, 0);
     }
   }
-  if (vec_cstr_size(&ui->menubuf) > 0) {
+  if (!vec_cstr_is_empty(&ui->menubuf)) {
     ui_redraw(ui, REDRAW_MENU);
   }
 }

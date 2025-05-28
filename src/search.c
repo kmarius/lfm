@@ -4,21 +4,32 @@
 #include "fm.h"
 #include "lfm.h"
 #include "stcutil.h"
+#include "ui.h"
 #include "util.h"
 
-/* pass empty to highlight previous search */
-static inline void search_highlight(Lfm *lfm, zsview string) {
+// empty re-enables
+static inline void search_highlight(Ui *ui, zsview string) {
   if (!zsview_is_empty(string)) {
-    cstr_assign_zv(&lfm->ui.search_string, string);
+    cstr_assign_zv(&ui->search_string, string);
   }
-  lfm->ui.highlight = cstr_zv(&lfm->ui.search_string);
-  ui_redraw(&lfm->ui, REDRAW_FM);
+  ui->highlight = cstr_zv(&ui->search_string);
+  ui_redraw(ui, REDRAW_CURRENT);
+}
+
+// re-enable highlight with current search
+static inline void search_rehighlight(Ui *ui) {
+  if (!cstr_is_empty(&ui->search_string) && zsview_is_empty(ui->highlight)) {
+    ui->highlight = cstr_zv(&ui->search_string);
+    ui_redraw(ui, REDRAW_CURRENT);
+  }
 }
 
 // don't remove search_string here
 void search_nohighlight(Lfm *lfm) {
-  lfm->ui.highlight = zsview_init();
-  ui_redraw(&lfm->ui, REDRAW_FM);
+  if (!zsview_is_empty(lfm->ui.highlight)) {
+    lfm->ui.highlight = zsview_init();
+    ui_redraw(&lfm->ui, REDRAW_CURRENT);
+  }
 }
 
 void search(Lfm *lfm, zsview string, bool forward) {
@@ -27,7 +38,7 @@ void search(Lfm *lfm, zsview string, bool forward) {
     search_nohighlight(lfm);
   } else {
     lfm->ui.search_forward = forward;
-    search_highlight(lfm, string);
+    search_highlight(&lfm->ui, string);
   }
 }
 
@@ -37,13 +48,15 @@ static void search_next_forward(Lfm *lfm, bool inclusive) {
   }
 
   Dir *dir = fm_current_dir(&lfm->fm);
-  search_highlight(lfm, zsview_init());
+  search_rehighlight(&lfm->ui);
   for (uint32_t i = inclusive ? 0 : 1; i < dir_length(dir); i++) {
     uint32_t idx = (dir->ind + i) % dir_length(dir);
     if (strcasestr(file_name_str(*vec_file_at(&dir->files, idx)),
                    cstr_str(&lfm->ui.search_string))) {
-      fm_cursor_move_to_ind(&lfm->fm, idx);
-      ui_update_file_preview(&lfm->ui);
+      if (fm_cursor_move_to_ind(&lfm->fm, idx)) {
+        ui_redraw(&lfm->ui, REDRAW_CURRENT);
+        ui_update_file_preview(&lfm->ui);
+      }
       return;
     }
   }
@@ -55,13 +68,15 @@ static void search_next_backwards(Lfm *lfm, bool inclusive) {
   }
 
   Dir *dir = fm_current_dir(&lfm->fm);
-  search_highlight(lfm, zsview_init());
+  search_rehighlight(&lfm->ui);
   for (uint32_t i = inclusive ? 0 : 1; i < dir_length(dir); i++) {
     uint32_t idx = (dir->ind + dir_length(dir) - i) % dir_length(dir);
     if (strcasestr(file_name_str(*vec_file_at(&dir->files, idx)),
                    cstr_str(&lfm->ui.search_string))) {
-      fm_cursor_move_to_ind(&lfm->fm, idx);
-      ui_update_file_preview(&lfm->ui);
+      if (fm_cursor_move_to_ind(&lfm->fm, idx)) {
+        ui_redraw(&lfm->ui, REDRAW_CURRENT);
+        ui_update_file_preview(&lfm->ui);
+      }
       return;
     }
   }

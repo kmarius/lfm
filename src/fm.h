@@ -99,8 +99,8 @@ void fm_recol(Fm *fm);
 // Move the cursor relative to the current position.
 bool fm_cursor_move(Fm *fm, int32_t ct);
 
-static inline void fm_cursor_move_to_ind(Fm *fm, uint32_t ind) {
-  fm_cursor_move(fm, ind - fm_current_dir(fm)->ind);
+static inline bool fm_cursor_move_to_ind(Fm *fm, uint32_t ind) {
+  return fm_cursor_move(fm, ind - fm_current_dir(fm)->ind);
 }
 
 // Move cursor `ct` up in the current directory.
@@ -186,7 +186,7 @@ void fm_selection_toggle_current(Fm *fm);
 void fm_selection_add(Fm *fm, const cstr *path, bool run_hook);
 
 // Clear the selection completely.
-void fm_selection_clear(Fm *fm);
+bool fm_selection_clear(Fm *fm);
 
 // Reverse the file selection.
 void fm_selection_reverse(Fm *fm);
