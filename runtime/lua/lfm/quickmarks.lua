@@ -22,26 +22,26 @@ local marks = {}
 ---  lfm.quickmarks.mark_set("a") -- same as above
 ---```
 ---
----@param m Char
+---@param char Char
 ---@param loc? Path Defaults to the current location
-local function mark_set(m, loc)
-	if #m == 0 then
+local function mark_set(char, loc)
+	if #char == 0 then
 		lfm.log.errorf("ignoring quickmark without key")
 	end
 	loc = loc or fn.getpwd()
 	local cmd = "cd " .. loc
-	lfm.map("'" .. m, function()
+	lfm.map("'" .. char, function()
 		lfm.eval(cmd)
 	end, { desc = cmd })
-	marks[m] = loc
+	marks[char] = loc
 end
 
 ---Loads marks from disk, overwriting those currently set.
 local function load_from_file()
 	local f = loadfile(M.path)
 	if f then
-		for m, loc in pairs(f()) do
-			mark_set(m, loc)
+		for char, loc in pairs(f()) do
+			mark_set(char, loc)
 		end
 	end
 end
@@ -55,9 +55,9 @@ local escape = {
 local function write_to_file()
 	local file = assert(io.open(M.path, "w"))
 	file:write("return {\n")
-	for m, loc in pairs(marks) do
-		m = escape[m] or m
-		file:write(string.format('\t["%s"] = "%s",\n', m, loc))
+	for char, loc in pairs(marks) do
+		char = escape[char] or char
+		file:write(string.format('\t["%s"] = "%s",\n', char, loc))
 	end
 	file:write("}\n")
 	file:close()
@@ -67,10 +67,10 @@ end
 ---```lua
 ---    lfm.quickmarks.save("a")
 ---```
----@param m Char
-function M.save(m)
+---@param char Char
+function M.save(char)
 	load_from_file()
-	mark_set(m, fn.getpwd())
+	mark_set(char, fn.getpwd())
 	write_to_file()
 end
 
@@ -90,8 +90,8 @@ end
 function M.add(t)
 	t = t or {}
 	load_from_file()
-	for k, v in pairs(t) do
-		mark_set(k, v)
+	for char, loc in pairs(t) do
+		mark_set(char, loc)
 	end
 	write_to_file()
 end
@@ -104,21 +104,21 @@ end
 ---  lfm.quickmarks.delete("a")
 ---```
 ---
----@param m Char
-function M.delete(m)
-	if marks[m] then
+---@param char Char
+function M.delete(char)
+	if marks[char] then
 		load_from_file()
-		map("'" .. m, nil)
-		marks[m] = nil
+		lfm.map("'" .. char, nil)
+		marks[char] = nil
 		write_to_file()
 	end
 end
 
 ---Prompt to save a quickmark of the current location
 function M.prompt_save()
-	lfm.util.input({ prompt = "mark-save: ", single_key = true }, function(m)
-		if m and #m > 0 then
-			M.save(m)
+	lfm.util.input({ prompt = "mark-save: ", single_key = true }, function(char)
+		if char and #char > 0 then
+			M.save(char)
 		end
 	end)
 end
@@ -126,13 +126,13 @@ end
 ---Prompt to delete a quickmark
 function M.prompt_delete()
 	local lines = {}
-	for k, v in pairs(marks) do
-		table.insert(lines, k .. "\t" .. v)
+	for char, loc in pairs(marks) do
+		table.insert(lines, char .. "\t" .. loc)
 	end
 	lfm.api.ui_menu(lines)
-	lfm.util.input({ prompt = "mark-delete: ", single_key = true }, function(m)
-		if m and #m > 0 then
-			M.delete(m)
+	lfm.util.input({ prompt = "mark-delete: ", single_key = true }, function(char)
+		if char and #char > 0 then
+			M.delete(char)
 		end
 	end)
 end
