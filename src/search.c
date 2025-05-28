@@ -57,7 +57,7 @@ static void search_next_backwards(Lfm *lfm, bool inclusive) {
   Dir *dir = fm_current_dir(&lfm->fm);
   search_highlight(lfm, zsview_init());
   for (uint32_t i = inclusive ? 0 : 1; i < dir_length(dir); i++) {
-    uint32_t idx = (dir->ind - i + dir_length(dir)) % dir_length(dir);
+    uint32_t idx = (dir->ind + dir_length(dir) - i) % dir_length(dir);
     if (strcasestr(file_name_str(*vec_file_at(&dir->files, idx)),
                    cstr_str(&lfm->ui.search_string))) {
       fm_cursor_move_to_ind(&lfm->fm, idx);
