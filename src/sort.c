@@ -88,7 +88,7 @@ void shuffle(void *arr_, size_t n, size_t size) {
   }
 
   char *arr = arr_;
-  char *tmp = xmalloc(n * size);
+  char *tmp = xmalloc(size);
 
   for (size_t i = 0; i < n - 1; ++i) {
     const size_t rnd = (size_t)rand();

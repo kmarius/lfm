@@ -45,14 +45,20 @@ static int l_colors_clear(lua_State *L) {
 }
 
 static int l_handle_key(lua_State *L) {
+  input_t buf1[128];
+  input_t *buf = buf1;
   size_t len;
   const char *keys = luaL_checklstring(L, 1, &len);
-  input_t *buf = xmalloc((len + 1) * sizeof *buf);
+  if (len + 1 > 128) {
+    buf = xmalloc((len + 1) * sizeof *buf);
+  }
   key_names_to_input(keys, buf);
   for (input_t *u = buf; *u; u++) {
     input_handle_key(lfm, *u);
   }
-  xfree(buf);
+  if (buf != buf1) {
+    xfree(buf);
+  }
   return 0;
 }
 
