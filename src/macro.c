@@ -7,34 +7,21 @@
 
 #include <stdint.h>
 
-struct macro {
-  input_t *inputs;
-  int length;
-  int capacity;
-};
-
-struct {
-  struct macro macro;
-  input_t id;
-} *macros;
-static int length = 0;
-static int capacity = 8;
+#define i_type macros_map, input_t, vec_input
+#include "stc/hmap.h"
 
 bool macro_recording = false;
 bool macro_playing = false;
 input_t macro_identifier;
 
-static struct macro *current = NULL;
+static macros_map macros = {0};
+static struct vec_input *current = NULL;
 
 void macros_init() {
-  macros = malloc(capacity * sizeof *macros);
 }
 
 void macros_deinit() {
-  for (int i = 0; i < length; i++) {
-    free(macros[i].macro.inputs);
-  }
-  free(macros);
+  macros_map_drop(&macros);
 }
 
 int macro_record(uint64_t id) {
@@ -46,24 +33,13 @@ int macro_record(uint64_t id) {
     log_error("currently playing a macro");
     return -1;
   }
-  for (int i = 0; i < length; i++) {
-    if (macros[i].id == id) {
-      current = &macros[i].macro;
-      break;
-    }
+  macros_map_value *v = macros_map_get_mut(&macros, id);
+  if (v == NULL) {
+    macros_map_result res = macros_map_insert(&macros, id, vec_input_init());
+    current = &res.ref->second;
+  } else {
+    current = &v->second;
   }
-  if (!current) {
-    if (length == capacity) {
-      capacity *= 2;
-      macros = realloc(macros, capacity * sizeof *macros);
-    }
-    macros[length].id = id;
-    current = &macros[length].macro;
-    length++;
-    current->capacity = 8;
-    current->inputs = malloc(current->capacity * sizeof *current->inputs);
-  }
-  current->length = 0;
   macro_recording = true;
   macro_identifier = id;
   return 0;
@@ -75,19 +51,9 @@ int macro_stop_record() {
     return -1;
   }
   // Assuming the last key called this function
-  current->length--;
+  current->size--;
   current = NULL;
   macro_recording = false;
-  return 0;
-}
-
-static inline int macro_play_impl(Lfm *lfm, struct macro *macro) {
-  for (int j = 0; j < macro->length; j++) {
-    log_trace("%s", input_to_key_name(macro->inputs[j], NULL));
-  }
-  for (int j = 0; j < macro->length; j++) {
-    input_handle_key(lfm, macro->inputs[j]);
-  }
   return 0;
 }
 
@@ -100,32 +66,24 @@ int macro_play(uint64_t id, struct Lfm *lfm) {
     log_error("a macro is already playing");
     return -1;
   }
-  for (int i = 0; i < length; i++) {
-    if (macros[i].id == id) {
-      macro_playing = true;
-      int ret = macro_play_impl(lfm, &macros[i].macro);
-      macro_playing = false;
-      return ret;
+  macros_map_value *v = macros_map_get_mut(&macros, id);
+  if (v != NULL) {
+    macro_playing = true;
+    c_foreach(it, vec_input, v->second) {
+      input_handle_key(lfm, *it.ref);
     }
+    macro_playing = false;
+    return 0;
   }
   log_error("macro not found");
   return -1;
 }
 
-static inline int macro_add_key_impl(struct macro *macro, input_t key) {
-  if (macro->length == macro->capacity) {
-    macro->capacity *= 2;
-    macro->inputs =
-        realloc(macro->inputs, macro->capacity * sizeof *macro->inputs);
-  }
-  macro->inputs[macro->length++] = key;
-  return 0;
-}
-
 int macro_add_key(input_t key) {
-  if (!current) {
+  if (current == NULL) {
     log_error("macro_add_key called but not recording");
     return -1;
   }
-  return macro_add_key_impl(current, key);
+  vec_input_push_back(current, key);
+  return 0;
 }

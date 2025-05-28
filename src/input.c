@@ -219,10 +219,10 @@ void input_handle_key(Lfm *lfm, input_t in) {
     }
     lfm->ui.maps.cur = trie_find_child(lfm->ui.maps.cur, in);
     if (in == NCKEY_ESC) {
-      if (vec_input_size(&lfm->ui.maps.seq) > 0) {
+      uint32_t mode = 0;
+      if (!vec_input_is_empty(&lfm->ui.maps.seq)) {
         input_clear(lfm);
       } else {
-        uint32_t mode = 0;
         if (fm_selection_clear(&lfm->fm)) {
           mode |= REDRAW_FM;
         }
@@ -232,11 +232,14 @@ void input_handle_key(Lfm *lfm, input_t in) {
         }
         search_nohighlight(lfm);
         ui_menu_hide(&lfm->ui);
-        ui_redraw(ui, mode);
         mode_on_esc(lfm->current_mode, lfm);
         lfm_mode_enter(lfm, c_zv("normal"));
       }
-      ui->show_message = false;
+      if (ui->show_message) {
+        ui->show_message = false;
+        mode |= REDRAW_CMDLINE;
+      }
+      ui_redraw(ui, mode);
     } else if (!lfm->ui.maps.cur) {
       vec_input_push(&lfm->ui.maps.seq, in);
       char buf[256];
