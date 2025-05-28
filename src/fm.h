@@ -120,7 +120,7 @@ static inline bool fm_top(Fm *fm) {
 
 // Move cursor to the bottom of the current directory.
 static inline bool fm_bot(Fm *fm) {
-  return fm_down(fm, fm_current_dir(fm)->length - fm_current_dir(fm)->ind);
+  return fm_down(fm, dir_length(fm_current_dir(fm)) - fm_current_dir(fm)->ind);
 }
 
 // Scroll up the directory while keeping the cursor position if possible.

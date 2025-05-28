@@ -53,8 +53,9 @@ void statusline_draw(Ui *ui) {
       }
     }
 
-    rhs_sz = snprintf(nums, sizeof nums, "%u/%u",
-                      dir->length > 0 ? dir->ind + 1 : 0, dir->length);
+    rhs_sz =
+        snprintf(nums, sizeof nums, "%u/%u",
+                 dir_length(dir) > 0 ? dir->ind + 1 : 0, (int)dir_length(dir));
     ncplane_putstr_yx(n, 0, ui->x - rhs_sz, nums);
 
     // these are drawn right to left

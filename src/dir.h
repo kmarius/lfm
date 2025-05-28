@@ -3,6 +3,7 @@
 #include "containers.h"
 #include "file.h"
 #include "filter.h"
+#include "macros_defs.h"
 #include "path.h"
 #include "sort.h"
 
@@ -11,6 +12,9 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+
+#define i_type vec_file, File *
+#include "stc/vec.h"
 
 typedef enum {
   INFO_SIZE = 0,
@@ -42,12 +46,9 @@ typedef struct Dir {
 
   struct stat stat;
 
-  File **files_all;    // every file in the directory
-  File **files_sorted; // every file, but sorted
-  File **files;        // every visible file
-  uint32_t length_all;
-  uint32_t length_sorted;
-  uint32_t length;
+  vec_file files;        // every visible file
+  vec_file files_all;    // every file in the directory
+  vec_file files_sorted; // every file, but sorted
 
   bool visible;
   dir_loading_status status;
@@ -95,6 +96,10 @@ Dir *dir_load(zsview path, bool load_dircount);
 // Free all resources belonging to `dir`.
 void dir_destroy(Dir *dir);
 
+static inline size_t dir_length(const Dir *dir) {
+  return vec_file_size(&dir->files);
+}
+
 static inline const cstr *dir_path(const Dir *dir) {
   return &dir->path;
 }
@@ -114,7 +119,13 @@ static inline bool dir_loading(const Dir *dir) {
 
 // Current file of `dir`. Can be `NULL` if it is empty or not yet loaded, or
 // if files are filtered/hidden.
-File *dir_current_file(const Dir *dir);
+__lfm_nonnull()
+static inline File *dir_current_file(const Dir *dir) {
+  if (unlikely(dir->ind >= dir_length(dir))) {
+    return NULL;
+  }
+  return *vec_file_at(&dir->files, dir->ind);
+}
 
 // Sort `dir` with respect to `dir->hidden`, `dir->dirfirst`, `dir->reverse`,
 // `dir->sorttype`.
@@ -148,3 +159,8 @@ static inline bool dir_isroot(const Dir *dir) {
 
 // Load a flat directorie showing files up `level`s deep.
 Dir *dir_load_flat(zsview path, int level, bool load_dircount);
+
+// define iterators so we can use c_foreach with Dir
+#define Dir_iter vec_file_iter
+#define Dir_next vec_file_next
+#define Dir_begin(dir) vec_file_begin(dir->files)

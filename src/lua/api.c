@@ -365,10 +365,11 @@ static int l_fm_current_dir(lua_State *L) {
   lua_setfield(L, -2, "reverse");
   lua_setfield(L, -2, "sortopts");
 
-  lua_createtable(L, dir->length, 0);
-  for (uint32_t i = 0; i < dir->length; i++) {
-    lua_pushcstr(L, file_path(dir->files[i]));
-    lua_rawseti(L, -2, i + 1);
+  lua_createtable(L, dir_length(dir), 0);
+  size_t i = 1;
+  c_foreach(it, Dir, dir) {
+    lua_pushcstr(L, file_path(*it.ref));
+    lua_rawseti(L, -2, i++);
   }
   lua_setfield(L, -2, "files");
 

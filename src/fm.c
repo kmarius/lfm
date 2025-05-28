@@ -394,8 +394,8 @@ void fm_selection_clear(Fm *fm) {
 
 void fm_selection_reverse(Fm *fm) {
   const Dir *dir = fm_current_dir(fm);
-  for (uint32_t i = 0; i < dir->length; i++) {
-    fm_selection_toggle(fm, file_path(dir->files[i]), false);
+  c_foreach(it, Dir, dir) {
+    fm_selection_toggle(fm, file_path(*it.ref), false);
   }
   lfm_run_hook(to_lfm(fm), LFM_HOOK_SELECTION);
 }
@@ -406,13 +406,14 @@ void fm_on_visual_enter(Fm *fm) {
   }
 
   Dir *dir = fm_current_dir(fm);
-  if (dir->length == 0) {
+  if (dir_length(dir) == 0) {
     return;
   }
 
   fm->visual.active = true;
   fm->visual.anchor = dir->ind;
-  fm_selection_add(fm, file_path(dir->files[dir->ind]), false);
+
+  fm_selection_add(fm, file_path(dir_current_file(dir)), false);
   pathlist_clear(&fm->selection.keep_in_visual);
   c_foreach(it, pathlist, fm->selection.current) {
     pathlist_add(&fm->selection.keep_in_visual, it.ref);
@@ -459,25 +460,21 @@ static void selection_visual_update(Fm *fm, uint32_t origin, uint32_t from,
   const Dir *dir = fm_current_dir(fm);
   for (; lo <= hi; lo++) {
     // never unselect the old selection
-    if (!pathlist_contains(&fm->selection.keep_in_visual,
-                           file_path(dir->files[lo]))) {
-      fm_selection_toggle(fm, file_path(dir->files[lo]), false);
+    const cstr *path = file_path(*vec_file_at(&dir->files, lo));
+    if (!pathlist_contains(&fm->selection.keep_in_visual, path)) {
+      fm_selection_toggle(fm, path, false);
     }
   }
   lfm_run_hook(to_lfm(fm), LFM_HOOK_SELECTION);
 }
 
 void fm_selection_write(const Fm *fm, zsview path) {
-  char buf[PATH_MAX + 1];
   if (path.size > PATH_MAX) {
     log_error("fm_selection_write: path too long");
     return;
   }
 
-  memcpy(buf, path.str, path.size);
-  buf[path.size] = 0;
-  char *dir = dirname(buf);
-  mkdir_p(dir, 755);
+  make_dirs(path, 755);
 
   FILE *fp = fopen(path.str, "w");
   if (!fp) {
@@ -486,8 +483,7 @@ void fm_selection_write(const Fm *fm, zsview path) {
   }
 
   if (pathlist_size(&fm->selection.current) > 0) {
-    for (pathlist_iter it = pathlist_begin(&fm->selection.current); it.ref;
-         pathlist_next(&it)) {
+    c_foreach(it, pathlist, fm->selection.current) {
       fwrite(cstr_str(it.ref), 1, cstr_size(it.ref), fp);
       fputc('\n', fp);
     }
@@ -530,14 +526,16 @@ void fm_move_cursor_to(Fm *fm, zsview name) {
 }
 
 void fm_move_cursor_to_ptr(Fm *fm, const File *file) {
-  Dir *d = fm_current_dir(fm);
-  for (uint32_t i = 0; i < d->length; i++) {
-    if (d->files[i] == file) {
-      dir_cursor_move(d, i - d->ind, fm->height, cfg.scrolloff);
+  Dir *dir = fm_current_dir(fm);
+  int i = 0;
+  c_foreach(it, Dir, dir) {
+    if (*it.ref == file) {
+      dir_cursor_move(dir, i - dir->ind, fm->height, cfg.scrolloff);
       break;
     }
+    i++;
   }
-  d->ind = min(d->ind, d->length);
+  dir->ind = min(dir->ind, dir_length(dir));
   on_cursor_moved(fm, false);
 }
 
@@ -551,8 +549,8 @@ bool fm_scroll_up(Fm *fm) {
   } else {
     dir->pos = fm->height - cfg.scrolloff - 1;
     dir->ind--;
-    if (dir->ind > dir->length - cfg.scrolloff - 1) {
-      dir->ind = dir->length - cfg.scrolloff - 1;
+    if (dir->ind > dir_length(dir) - cfg.scrolloff - 1) {
+      dir->ind = dir_length(dir) - cfg.scrolloff - 1;
     }
     on_cursor_moved(fm, false);
   }
@@ -561,7 +559,7 @@ bool fm_scroll_up(Fm *fm) {
 
 bool fm_scroll_down(Fm *fm) {
   Dir *dir = fm_current_dir(fm);
-  if (dir->length - dir->ind + dir->pos - 1 < fm->height) {
+  if (dir_length(dir) - dir->ind + dir->pos - 1 < fm->height) {
     return fm_down(fm, 1);
   }
   if (dir->pos > cfg.scrolloff) {
@@ -636,10 +634,10 @@ void fm_on_resize(Fm *fm, uint32_t height) {
       if (scrolloff_top > scrolloff) {
         scrolloff_top = scrolloff;
       }
-      if (dir->length + dir->pos < height + dir->ind) {
-        dir->pos = height - dir->length + dir->ind;
+      if (dir_length(dir) + dir->pos < height + dir->ind) {
+        dir->pos = height - dir_length(dir) + dir->ind;
       }
-      if (dir->length > height && dir->pos < scrolloff_top) {
+      if (dir_length(dir) > height && dir->pos < scrolloff_top) {
         dir->pos = scrolloff_top;
       }
     } else if (height < fm->height) {
@@ -648,9 +646,9 @@ void fm_on_resize(Fm *fm, uint32_t height) {
       if (height < scrolloff * 2) {
         scrolloff = height / 2;
       }
-      if (scrolloff >= dir->length - dir->ind) {
+      if (scrolloff >= dir_length(dir) - dir->ind) {
         // closer to the end of directory than scrolloff
-        dir->pos = height - (dir->length - dir->ind);
+        dir->pos = height - (dir_length(dir) - dir->ind);
       } else if (dir->pos + scrolloff >= height) {
         dir->pos = height - scrolloff - 1;
       }

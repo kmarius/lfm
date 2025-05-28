@@ -275,7 +275,7 @@ static void async_dir_load_worker(void *arg) {
     work->update = dir_load(zsview_from(work->path), work->load_fileinfo);
   }
 
-  const uint32_t num_files = work->update->length_all;
+  uint32_t num_files = vec_file_size(&work->update->files_all);
 
   if (work->load_fileinfo || num_files == 0) {
     enqueue_and_signal(work->async, (struct result *)work);
@@ -285,8 +285,8 @@ static void async_dir_load_worker(void *arg) {
   // prepare list of symlinks/directories to load afterwards
   struct file_path_tup *files = xmalloc(num_files * sizeof *files);
   int j = 0;
-  for (uint32_t i = 0; i < num_files; i++) {
-    File *file = work->update->files_all[i];
+  c_foreach(it, vec_file, work->update->files_all) {
+    File *file = *it.ref;
     if (S_ISLNK(file->lstat.st_mode) || S_ISDIR(file->lstat.st_mode)) {
       files[j].file = file;
       files[j].path = cstr_strdup(file_path(file));

@@ -21,9 +21,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#define i_type vec_file, File *
-#include "stc/vec.h"
-
 // queue to load flattened dirs
 typedef struct flat_dir_node {
   const char *path; // path to load
@@ -63,31 +60,47 @@ typedef struct flat_dir_node {
 
 const char *fileinfo_str[] = {"size", "atime", "ctime", "mtime"};
 
-File *dir_current_file(const Dir *d) {
-  if (!d || d->ind >= d->length) {
-    return NULL;
-  }
+// doesn't check bounds
+static inline void vec_file_set(vec_file *vec, size_t i, File *file) {
+  vec->data[i] = file;
+}
 
-  return d->files[d->ind];
+#define vec_file_qsort(vec, cmp)                                               \
+  do {                                                                         \
+    qsort(vec.data, vec.size, sizeof *vec.data, cmp);                          \
+  } while (0)
+
+static inline void swap(File **a, File **b) {
+  File *tmp = *a;
+  *a = *b;
+  *b = tmp;
+}
+
+static inline void reverse(File **a, size_t len) {
+  for (size_t i = 0; i < len / 2; i++) {
+    swap(a + i, a + len - i - 1);
+  }
 }
 
 static void apply_filters(Dir *d) {
   if (d->filter) {
-    uint32_t j = 0;
-    uint32_t up = 0;
-    for (uint32_t i = 0; i < d->length_sorted; i++) {
-      if (filter_match(d->filter, d->files_sorted[i])) {
-        d->files[j++] = d->files_sorted[i];
+    unsigned up = 0; // number of positions to move the cursor up
+    size_t j = 0;
+    size_t i = 0;
+    c_foreach(it, vec_file, d->files_sorted) {
+      if (filter_match(d->filter, *it.ref)) {
+        vec_file_set(&d->files, j++, *it.ref);
       } else {
         if (i <= d->ind) {
           up++;
         }
-        d->files_sorted[i]->score = 0;
+        (*it.ref)->score = 0;
       }
+      i++;
     }
-    d->length = j;
+    d->files.size = j;
     if (filter_cmp(d->filter)) {
-      qsort(d->files, d->length, sizeof *d->files, filter_cmp(d->filter));
+      vec_file_qsort(d->files, filter_cmp(d->filter));
     }
     if (up > d->ind) {
       d->ind = 0;
@@ -97,102 +110,93 @@ static void apply_filters(Dir *d) {
   } else {
     /* TODO: try to select previously selected file
      * note that on the first call dir->files is not yet valid */
-    memcpy(d->files, d->files_sorted, d->length_sorted * sizeof *d->files);
-    d->length = d->length_sorted;
-    d->ind = max(min(d->ind, d->length - 1), 0);
-  }
-}
 
-static inline void swap(File **a, File **b) {
-  File *Dir = *a;
-  *a = *b;
-  *b = Dir;
+    memcpy(d->files.data, d->files_sorted.data,
+           d->files_sorted.size * sizeof(File *));
+    d->files.size = d->files_sorted.size;
+    d->ind = max(min(d->ind, vec_file_size(&d->files) - 1), 0);
+  }
 }
 
 /* sort allfiles and copy non-hidden ones to sortedfiles */
 void dir_sort(Dir *d) {
-  if (!d->files_all) {
+  if (vec_file_is_empty(&d->files_all)) {
     return;
   }
   if (!d->sorted) {
     switch (d->settings.sorttype) {
     case SORT_NATURAL:
-      files_natural_sort(d->files_all, d->length_all);
+      files_natural_sort(d->files_all.data, d->files_all.size);
       break;
     case SORT_NAME:
-      files_name_sort(d->files_all, d->length_all);
+      files_name_sort(d->files_all.data, d->files_all.size);
       break;
     case SORT_SIZE:
-      files_size_sort(d->files_all, d->length_all);
+      files_size_sort(d->files_all.data, d->files_all.size);
       break;
     case SORT_ATIME:
-      files_atime_sort(d->files_all, d->length_all);
+      files_atime_sort(d->files_all.data, d->files_all.size);
       break;
     case SORT_CTIME:
-      files_ctime_sort(d->files_all, d->length_all);
+      files_ctime_sort(d->files_all.data, d->files_all.size);
       break;
     case SORT_MTIME:
-      files_mtime_sort(d->files_all, d->length_all);
+      files_mtime_sort(d->files_all.data, d->files_all.size);
       break;
     case SORT_RAND:
-      shuffle(d->files_all, d->length_all, sizeof *d->files_all);
+      shuffle(d->files_all.data, d->files_all.size, sizeof(File *));
     default:
       break;
     }
     d->sorted = 1;
   }
-  uint32_t ndirs = 0;
-  uint32_t j = 0;
+  size_t num_dirs = 0;
+  size_t j = 0;
   if (d->settings.hidden) {
     if (d->settings.dirfirst) {
       /* first pass: directories */
-      for (uint32_t i = 0; i < d->length_all; i++) {
-        if (file_isdir(d->files_all[i])) {
-          d->files_sorted[j++] = d->files_all[i];
+      c_foreach(it, vec_file, d->files_all) {
+        if (file_isdir(*it.ref)) {
+          d->files_sorted.data[j++] = *it.ref;
         }
       }
-      ndirs = j;
+      num_dirs = j;
       /* second pass: files */
-      for (uint32_t i = 0; i < d->length_all; i++) {
-        if (!file_isdir(d->files_all[i])) {
-          d->files_sorted[j++] = d->files_all[i];
+      c_foreach(it, vec_file, d->files_all) {
+        if (!file_isdir(*it.ref)) {
+          d->files_sorted.data[j++] = *it.ref;
         }
       }
     } else {
-      j = d->length_all;
-      memcpy(d->files_sorted, d->files, d->length_all * sizeof *d->files_all);
+      j = vec_file_size(&d->files_all);
+      memcpy(d->files_sorted.data, d->files.data, j * sizeof(File *));
     }
   } else {
     if (d->settings.dirfirst) {
-      for (uint32_t i = 0; i < d->length_all; i++) {
-        if (!file_hidden(d->files_all[i]) && file_isdir(d->files_all[i])) {
-          d->files_sorted[j++] = d->files_all[i];
+      c_foreach(it, vec_file, d->files_all) {
+        if (!file_hidden(*it.ref) && file_isdir(*it.ref)) {
+          d->files_sorted.data[j++] = *it.ref;
         }
       }
-      ndirs = j;
-      for (uint32_t i = 0; i < d->length_all; i++) {
-        if (!file_hidden(d->files_all[i]) && !file_isdir(d->files_all[i])) {
-          d->files_sorted[j++] = d->files_all[i];
+      num_dirs = j;
+      c_foreach(it, vec_file, d->files_all) {
+        if (!file_hidden(*it.ref) && !file_isdir(*it.ref)) {
+          d->files_sorted.data[j++] = *it.ref;
         }
       }
     } else {
-      for (uint32_t i = 0; i < d->length_all; i++) {
-        if (!file_hidden(d->files_all[i])) {
-          d->files_sorted[j++] = d->files_all[i];
+      c_foreach(it, vec_file, d->files_all) {
+        if (!file_hidden(*it.ref)) {
+          d->files_sorted.data[j++] = *it.ref;
         }
       }
     }
   }
-  d->length_sorted = j;
-  d->length = j;
+  d->files_sorted.size = j;
+  d->files.size = j;
   if (d->settings.reverse) {
-    for (uint32_t i = 0; i < ndirs / 2; i++) {
-      swap(d->files_sorted + i, d->files_sorted + ndirs - i - 1);
-    }
-    for (uint32_t i = 0; i < (d->length_sorted - ndirs) / 2; i++) {
-      swap(d->files_sorted + ndirs + i,
-           d->files_sorted + d->length_sorted - i - 1);
-    }
+    reverse(d->files_sorted.data, num_dirs);
+    reverse(d->files_sorted.data + num_dirs, d->files_sorted.size - num_dirs);
   }
 
   apply_filters(d);
@@ -271,18 +275,11 @@ Dir *dir_load(zsview path, bool load_fileinfo) {
   }
   closedir(dirp);
 
-  dir->length_all = vec_file_size(&files);
-  dir->length_sorted = dir->length_all;
-  dir->length = dir->length_all;
-
   vec_file_shrink_to_fit(&files);
-  dir->files_all = files.data;
-  dir->files_sorted = xmalloc(dir->length_all * sizeof *dir->files_all);
-  dir->files = xmalloc(dir->length_all * sizeof *dir->files_all);
+  dir->files_all = vec_file_clone(files);
+  dir->files_sorted = vec_file_clone(files);
+  dir->files = files;
 
-  memcpy(dir->files_sorted, dir->files_all,
-         dir->length_all * sizeof *dir->files_all);
-  memcpy(dir->files, dir->files_all, dir->length_all * sizeof *dir->files_all);
   dir->status = DIR_LOADING_FULLY;
   dir->loading = false;
 
@@ -348,59 +345,55 @@ Dir *dir_load_flat(zsview path, int level, bool load_fileinfo) {
   }
   queue_dirs_drop(&queue);
 
-  dir->length_all = vec_file_size(&files);
-  dir->length_sorted = dir->length_all;
-  dir->length = dir->length_all;
-
   vec_file_shrink_to_fit(&files);
-  dir->files_all = files.data;
-  dir->files_sorted = xmalloc(dir->length_all * sizeof *dir->files_sorted);
-  dir->files = xmalloc(dir->length_all * sizeof *dir->files);
-
-  memcpy(dir->files_sorted, dir->files_all,
-         dir->length_all * sizeof *dir->files_all);
-  memcpy(dir->files, dir->files_all, dir->length_all * sizeof *dir->files_all);
+  dir->files_all = vec_file_clone(files);
+  dir->files_sorted = vec_file_clone(files);
+  dir->files = files;
 
   return dir;
 }
 
 void dir_cursor_move(Dir *d, int32_t ct, uint32_t height, uint32_t scrolloff) {
-  d->ind = max(min(d->ind + ct, d->length - 1), 0);
+  d->ind = max(min(d->ind + ct, dir_length(d) - 1), 0);
   if (ct < 0) {
     d->pos = min(max(scrolloff, d->pos + ct), d->ind);
   } else {
     d->pos = max(min(height - 1 - scrolloff, d->pos + ct),
-                 height - d->length + d->ind);
+                 height - dir_length(d) + d->ind);
   }
   d->dirty = true;
 }
 
 static inline void dir_cursor_move_to_sel(Dir *d, uint32_t height,
                                           uint32_t scrolloff) {
-  if (cstr_is_empty(&d->sel) || !d->files) {
+  if (cstr_is_empty(&d->sel) || vec_file_is_empty(&d->files)) {
     return;
   }
 
-  for (uint32_t i = 0; i < d->length; i++) {
-    if (cstr_equals_zv(&d->sel, file_name(d->files[i]))) {
+  int i = 0;
+  c_foreach(it, vec_file, d->files) {
+    if (cstr_equals_zv(&d->sel, file_name(*it.ref))) {
       dir_cursor_move(d, i - d->ind, height, scrolloff);
       break;
     }
+    i++;
   }
-  d->ind = min(d->ind, d->length);
+  d->ind = min(d->ind, dir_length(d));
 
   cstr_clear(&d->sel);
 }
 
 static inline void dir_cursor_move_to_ino(Dir *d, dev_t dev, ino_t ino,
                                           uint32_t height, uint32_t scrolloff) {
-  for (int i = 0; i < (int)d->length; i++) {
-    if (d->files[i]->lstat.st_dev == dev && d->files[i]->lstat.st_ino == ino) {
+  int i = 0;
+  c_foreach(it, vec_file, d->files) {
+    if ((*it.ref)->lstat.st_dev == dev && (*it.ref)->lstat.st_ino == ino) {
       dir_cursor_move(d, i - d->ind, height, scrolloff);
       break;
     }
+    i++;
   }
-  d->ind = min(d->ind, d->length);
+  d->ind = min(d->ind, dir_length(d));
 }
 
 void dir_cursor_move_to(Dir *d, zsview name, uint32_t height,
@@ -409,21 +402,33 @@ void dir_cursor_move_to(Dir *d, zsview name, uint32_t height,
     return;
   }
 
-  if (!d->files) {
+  if (vec_file_is_empty(&d->files)) {
     cstr_assign_zv(&d->sel, name);
     return;
   }
 
-  for (uint32_t i = 0; i < d->length; i++) {
-    if (zsview_eq(file_name(d->files[i]), &name)) {
+  int i = 0;
+  c_foreach(it, vec_file, d->files) {
+    if (zsview_eq(file_name(*it.ref), &name)) {
       dir_cursor_move(d, i - d->ind, height, scrolloff);
       return;
     }
+    i++;
   }
-  d->ind = min(d->ind, d->length);
+  d->ind = min(d->ind, dir_length(d));
 }
 
-void dir_update_with(Dir *d, Dir *update, uint32_t height, uint32_t scrolloff) {
+static inline void drop_files(Dir *dir) {
+  c_foreach(it, vec_file, dir->files_all) {
+    file_destroy(*it.ref);
+  }
+  vec_file_drop(&dir->files_all);
+  vec_file_drop(&dir->files_sorted);
+  vec_file_drop(&dir->files);
+}
+
+void dir_update_with(Dir *dir, Dir *update, uint32_t height,
+                     uint32_t scrolloff) {
   // will try to select the file the cursor is on, dev/inode take priority
   // in case of a rename. Otherwise, we use the name.
   struct {
@@ -431,63 +436,47 @@ void dir_update_with(Dir *d, Dir *update, uint32_t height, uint32_t scrolloff) {
     ino_t ino;
   } sel = {0};
 
-  if (cstr_is_empty(&d->sel) && d->ind < d->length) {
-    File *file = dir_current_file(d);
+  if (cstr_is_empty(&dir->sel) && dir->ind < dir_length(dir)) {
+    File *file = dir_current_file(dir);
     sel.dev = file->lstat.st_dev;
     sel.ino = file->lstat.st_ino;
     const zsview *name = file_name(file);
-    cstr_assign_zv(&d->sel, *name);
+    cstr_assign_zv(&dir->sel, *name);
   }
 
-  for (uint32_t i = 0; i < d->length_all; i++) {
-    file_destroy(d->files_all[i]);
-  }
-  xfree(d->files_all);
-  xfree(d->files_sorted);
-  xfree(d->files);
+  drop_files(dir);
 
-  d->files_all = update->files_all;
-  d->files_sorted = update->files_sorted;
-  d->files = update->files;
-  d->length_all = update->length_all;
-  d->length_sorted = update->length_sorted;
-  d->length = update->length;
-  d->load_time = update->load_time;
-  d->error = update->error;
-  d->flatten_level = update->flatten_level;
-  d->stat = update->stat;
-  d->status = DIR_LOADING_FULLY;
+  dir->files_all = vec_file_move(&update->files_all);
+  dir->files_sorted = vec_file_move(&update->files_sorted);
+  dir->files = vec_file_move(&update->files);
 
-  cstr_drop(&update->path);
-  cstr_drop(&update->sel);
-  xfree(update);
+  dir->load_time = update->load_time;
+  dir->error = update->error;
+  dir->flatten_level = update->flatten_level;
+  dir->stat = update->stat;
+  dir->status = DIR_LOADING_FULLY;
+  dir->loading = false;
 
-  d->sorted = false;
-  dir_sort(d);
+  dir->sorted = false;
+  dir_sort(dir);
 
   if (sel.ino != 0) {
-    dir_cursor_move_to_ino(d, sel.dev, sel.ino, height, scrolloff);
-  } else if (!cstr_is_empty(&d->sel)) {
-    dir_cursor_move_to_sel(d, height, scrolloff);
+    dir_cursor_move_to_ino(dir, sel.dev, sel.ino, height, scrolloff);
+  } else if (!cstr_is_empty(&dir->sel)) {
+    dir_cursor_move_to_sel(dir, height, scrolloff);
   }
-  cstr_clear(&d->sel);
-  d->loading = false;
+  cstr_clear(&dir->sel);
+
+  dir_destroy(update);
 }
 
-void dir_destroy(Dir *d) {
-  if (!d) {
-    return;
+void dir_destroy(Dir *dir) {
+  if (dir) {
+    drop_files(dir);
+    filter_destroy(dir->filter);
+    cstr_drop(&dir->sel);
+    cstr_drop(&dir->path);
+    hmap_cstr_drop(&dir->tags.tags);
+    xfree(dir);
   }
-
-  for (uint32_t i = 0; i < d->length_all; i++) {
-    file_destroy(d->files_all[i]);
-  }
-  xfree(d->files_all);
-  filter_destroy(d->filter);
-  xfree(d->files_sorted);
-  xfree(d->files);
-  cstr_drop(&d->sel);
-  cstr_drop(&d->path);
-  hmap_cstr_drop(&d->tags.tags);
-  xfree(d);
 }

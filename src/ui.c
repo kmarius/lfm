@@ -332,14 +332,14 @@ static void draw_dirs(Ui *ui) {
   if (cfg.preview && vec_ncplane_size(&ui->planes.dirs) > 1) {
     i = 1;
   }
-  bool print_info = true;
+  bool is_current_dir = true;
   c_foreach(it, vec_dir, fm->dirs.visible) {
     struct ncplane *n = *vec_ncplane_at(&ui->planes.dirs, i);
-    plane_draw_dir(n, *it.ref, &fm->selection.current, &fm->paste.buffer,
-                   fm->paste.mode, i == 0 ? ui->highlight : zsview_init(),
-                   print_info);
+    plane_draw_dir(
+        n, *it.ref, &fm->selection.current, &fm->paste.buffer, fm->paste.mode,
+        is_current_dir ? ui->highlight : zsview_init(), is_current_dir);
     i++;
-    print_info = false;
+    is_current_dir = false;
   }
 }
 
@@ -946,8 +946,8 @@ static void plane_draw_dir(struct ncplane *n, Dir *dir, pathlist *sel,
     // print nothing
   } else if (dir->status == DIR_LOADING_INITIAL) {
     ncplane_putstr_yx(n, 0, 2, "loading");
-  } else if (dir->length == 0) {
-    if (dir->length_all > 0) {
+  } else if (dir_length(dir) == 0) {
+    if (!vec_file_is_empty(&dir->files_all)) {
       ncplane_putstr_yx(n, 0, 2, "contains hidden files");
     } else {
       ncplane_putstr_yx(n, 0, 2, "empty");
@@ -957,16 +957,17 @@ static void plane_draw_dir(struct ncplane *n, Dir *dir, pathlist *sel,
 
     uint32_t offset = max(dir->ind - dir->pos, 0);
 
-    if (dir->length <= (uint32_t)nrow) {
+    if (dir_length(dir) <= (uint32_t)nrow) {
       offset = 0;
     }
 
     struct tags *tags = cfg.tags && dir->tags.cols > 0 ? &dir->tags : NULL;
-    const uint32_t l = min(dir->length - offset, nrow);
+    const uint32_t l = min(dir_length(dir) - offset, nrow);
     for (uint32_t i = 0; i < l; i++) {
       ncplane_cursor_move_yx(n, i, 0);
-      draw_file(n, dir->files[i + offset], i == dir->pos, sel, load, mode,
-                highlight, print_info, dir->settings.fileinfo, tags);
+      File *file = *vec_file_at(&dir->files, i + offset);
+      draw_file(n, file, i == dir->pos, sel, load, mode, highlight, print_info,
+                dir->settings.fileinfo, tags);
     }
   }
 }
