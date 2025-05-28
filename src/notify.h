@@ -7,7 +7,7 @@
 #pragma once
 
 #include "dir.h"
-#include "macros_defs.h"
+#include "macros.h"
 #include "stc/types.h"
 
 #include <ev.h>

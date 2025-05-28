@@ -1,7 +1,7 @@
 #pragma once
 
 #include "bytes.h"
-#include "macros_defs.h"
+#include "macros.h"
 #include "memory.h"
 
 #include "stc/cstr.h"

@@ -8,7 +8,7 @@
 #include "loader.h"
 #include "log.h"
 #include "lua/lfmlua.h"
-#include "macros_defs.h"
+#include "macros.h"
 #include "mode.h"
 #include "notify.h"
 #include "profiling.h"

@@ -9,7 +9,7 @@
 #include "lfm.h"
 #include "log.h"
 #include "lua/lfmlua.h"
-#include "macros.h"
+#include "macro.h"
 #include "mode.h"
 #include "search.h"
 #include "stc/cstr.h"

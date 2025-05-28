@@ -1,31 +1,23 @@
 #pragma once
 
-#include "keys.h"
+// pass no arguments to indicate everything nonnull
+#define __lfm_nonnull(...) __attribute__((nonnull(__VA_ARGS__)))
 
-#include <stdbool.h>
-#include <stdint.h>
+#define container_of(ptr, type, member)                                        \
+  ({                                                                           \
+    const typeof(((type *)0)->member) *__mptr = (ptr);                         \
+    (type *)((char *)__mptr - offsetof(type, member));                         \
+  })
 
-struct Lfm;
+#define to_lfm(ptr)                                                            \
+  _Generic((ptr),                                                              \
+      Ui *: container_of((Ui *)ptr, Lfm, ui),                                  \
+      Fm *: container_of((Fm *)ptr, Lfm, fm),                                  \
+      const Fm *: container_of((const Fm *)ptr, Lfm, fm),                      \
+      Async *: container_of((Async *)ptr, Lfm, async),                         \
+      Notify *: container_of((Notify *)ptr, Lfm, notify),                      \
+      Loader *: container_of((Loader *)ptr, Lfm, loader),                      \
+      default: NULL)
 
-extern bool macro_recording;     // true, if currently recording a macro
-extern bool macro_playing;       // true, if currently playing a macro
-extern input_t macro_identifier; // identifier of the macro being recorded
-
-void macros_init(void);
-void macros_deinit(void);
-
-// Begin recording the macro with the id `id`.
-// Returns 0 on success, -1 if already recording a macro.
-int macro_record(uint64_t id);
-
-// Stop recording a macro.
-// Returns 0 on success, -1 not currently recording.
-int macro_stop_record(void);
-
-// Play the macro with the id `id`.
-// Returns 0 on success, -1 if no macro with the given id exists.
-int macro_play(uint64_t id, struct Lfm *lfm);
-
-// Add an input to the macro currently being recorded.
-// Returns 0 on success, -1 if not recording.
-int macro_add_key(input_t key);
+#define likely(x) __builtin_expect(!!(x), 1)
+#define unlikely(x) __builtin_expect(!!(x), 0)

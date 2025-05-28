@@ -4,8 +4,8 @@
 #include "file.h"
 #include "keys.h"
 #include "lfm.h"
+#include "macro.h"
 #include "macros.h"
-#include "macros_defs.h"
 #include "ui.h"
 
 #include <curses.h>

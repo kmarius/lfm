@@ -3,7 +3,7 @@
 #include "config.h"
 #include "lfm.h"
 #include "log.h"
-#include "macros_defs.h"
+#include "macros.h"
 #include "memory.h"
 #include "ncutil.h"
 #include "spinner.h"

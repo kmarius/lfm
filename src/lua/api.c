@@ -3,7 +3,7 @@
 #include "../fm.h"
 #include "../history.h"
 #include "../hooks.h"
-#include "../macros.h"
+#include "../macro.h"
 #include "../path.h"
 #include "../search.h"
 #include "../stc/cstr.h"

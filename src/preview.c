@@ -3,7 +3,7 @@
 #include "config.h"
 #include "containers.h"
 #include "log.h"
-#include "macros_defs.h"
+#include "macros.h"
 #include "memory.h"
 #include "ncutil.h"
 #include "sha256.h"

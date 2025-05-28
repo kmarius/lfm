@@ -3,7 +3,7 @@
 #include "log.h"
 #include "lua/lfmlua.h"
 #include "lua/util.h"
-#include "macros_defs.h"
+#include "macros.h"
 
 #include <assert.h>
 #include <lauxlib.h>

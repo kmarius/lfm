@@ -1,4 +1,4 @@
-#include "macros.h"
+#include "macro.h"
 
 #include "input.h"
 #include "keys.h"

@@ -4,7 +4,7 @@
 #include "../containers.h"
 #include "../hooks.h"
 #include "../input.h"
-#include "../macros_defs.h"
+#include "../macros.h"
 #include "../mode.h"
 #include "../search.h"
 #include "auto/versiondef.h"
