@@ -294,7 +294,7 @@ static void map_suggestion_timer_cb(EV_P_ ev_timer *w, int revents) {
 
   vec_trie maps = trie_collect_leaves(lfm->ui.maps.cur, true);
   vec_trie_sort(&maps);
-  vec_cstr lines = vec_cstr_init();
+  vec_cstr lines = vec_cstr_with_capacity(vec_trie_size(&maps) + 1);
   // bold header
   vec_cstr_emplace(&lines, "\033[1mkeys\tcommand\033[0m");
   c_foreach(it, vec_trie, maps) {
