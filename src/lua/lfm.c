@@ -16,6 +16,7 @@
 
 #include <errno.h>
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -45,19 +46,17 @@ static int l_colors_clear(lua_State *L) {
 }
 
 static int l_handle_key(lua_State *L) {
-  input_t buf1[128];
-  input_t *buf = buf1;
   size_t len;
   const char *keys = luaL_checklstring(L, 1, &len);
-  if (len + 1 > 128) {
-    buf = xmalloc((len + 1) * sizeof *buf);
-  }
-  key_names_to_input(keys, buf);
-  for (input_t *u = buf; *u; u++) {
-    input_handle_key(lfm, *u);
-  }
-  if (buf != buf1) {
-    xfree(buf);
+  const char *end = keys + len;
+  while (keys < end) {
+    input_t u;
+    int len = key_name_to_input(keys, &u);
+    if (len < 0) {
+      return luaL_error(L, "invalid key");
+    }
+    input_handle_key(lfm, u);
+    keys += len;
   }
   return 0;
 }
@@ -327,7 +326,8 @@ static int l_spawn(lua_State *L) {
     return 1;
   } else {
     lua_pushnil(L);
-    lua_pushstring(L, strerror(errno)); // not sure if something even sets errno
+    lua_pushstring(L,
+                   strerror(errno)); // not sure if something even sets errno
     return 2;
   }
 }
@@ -495,7 +495,19 @@ static inline int map_key(lua_State *L, Trie *trie, bool allow_mode) {
     ref = luaL_ref(L, LUA_REGISTRYINDEX);
   }
 
-  int oldref = input_map(trie, keys, ref, desc);
+  int oldref;
+
+  int status = input_map(trie, keys, ref, desc, &oldref);
+  if (status < 0) {
+    if (ref != 0) {
+      luaL_unref(L, LUA_REGISTRYINDEX, ref);
+    }
+    if (status == -2)
+      return luaL_error(L, "key sequence too long");
+    else
+      return luaL_error(L, "malformed key sequence");
+  }
+
   if (oldref) {
     luaL_unref(L, LUA_REGISTRYINDEX, oldref);
   }

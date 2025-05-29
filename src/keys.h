@@ -1,5 +1,7 @@
 #pragma once
 
+#include "stc/zsview.h"
+
 #include <notcurses/notcurses.h>
 
 // if the highest 3 bits are used in notcurses at some point we need to go
@@ -29,7 +31,10 @@ typedef uint32_t input_t;
 // representation. Not thread safe.
 const char *input_to_key_name(input_t in, size_t *len_out);
 
+// return -1 on error, length of the used chars otherwise
+int key_name_to_input(const char *key, input_t *out);
+
 // Map a string of inputs in its readable representation to a zero terminated
 // array of `input_t`s in the given buffer. `buf` should be of the size at
-// least `strlen(keys)+1`.
-input_t *key_names_to_input(const char *keys, input_t *buf);
+// least `strlen(keys)+1`. Returns -1 on error.
+int key_names_to_input(zsview keys, input_t *buf, size_t bufsz);

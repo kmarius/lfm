@@ -23,6 +23,8 @@
 
 #include <wctype.h>
 
+#define MAP_MAX_LENGTH 8
+
 static void map_clear_timer_cb(EV_P_ ev_timer *w, int revents);
 static void map_suggestion_timer_cb(EV_P_ ev_timer *w, int revents);
 static void stdin_cb(EV_P_ ev_io *w, int revents);
@@ -55,17 +57,19 @@ void input_suspend(Lfm *lfm) {
   ev_io_stop(lfm->loop, &lfm->ui.input_watcher);
 }
 
-#define MAP_MAX_LENGTH 128
-
-int input_map(Trie *trie, zsview keys, int ref, zsview desc) {
+int input_map(Trie *trie, zsview keys, int ref, zsview desc, int *out_ref) {
   input_t buf[MAP_MAX_LENGTH + 1];
-  key_names_to_input(keys.str, buf);
+  int status = key_names_to_input(keys, buf, MAP_MAX_LENGTH + 1);
+  if (status < 0) {
+    return status;
+  }
   log_trace("input_map %s %d %s", keys.str, ref, desc.str);
   if (ref) {
-    return trie_insert(trie, buf, ref, keys, desc);
+    *out_ref = trie_insert(trie, buf, ref, keys, desc);
   } else {
-    return trie_remove(trie, buf);
+    *out_ref = trie_remove(trie, buf);
   }
+  return 0;
 }
 
 static void stdin_cb(EV_P_ ev_io *w, int revents) {
