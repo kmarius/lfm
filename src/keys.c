@@ -1,4 +1,5 @@
 #include "keys.h"
+#include "config.h"
 
 #include <string.h>
 #include <strings.h>
@@ -223,6 +224,13 @@ int key_name_to_input(const char *key, input_t *out) {
       ptr = end + 1;
       in = key_names[i].id;
       break;
+    }
+  }
+
+  if (in == NCKEY_INVALID) {
+    if (strncasecmp(ptr, "leader", end - ptr) == 0) {
+      ptr = end + 1;
+      in = cfg.mapleader;
     }
   }
 

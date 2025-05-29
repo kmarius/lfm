@@ -205,6 +205,9 @@ static int l_config_index(lua_State *L) {
   } else if (streq(key, "tags")) {
     lua_pushboolean(L, cfg.tags);
     return 1;
+  } else if (streq(key, "mapleader")) {
+    lua_pushstring(L, input_to_key_name(cfg.mapleader, NULL));
+    return 1;
   } else {
     luaL_error(L, "unexpected key %s", key);
   }
@@ -380,6 +383,12 @@ static int l_config_newindex(lua_State *L) {
       cfg.tags = val;
       ui_redraw(ui, REDRAW_FM);
     }
+  } else if (streq(key, "mapleader")) {
+    input_t key;
+    if (key_name_to_input(luaL_checkstring(L, 3), &key) < 0) {
+      return luaL_error(L, "invalid key");
+    }
+    cfg.mapleader = key;
   } else {
     return luaL_error(L, "unexpected key %s", key);
   }

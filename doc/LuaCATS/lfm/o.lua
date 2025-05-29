@@ -53,4 +53,5 @@
 ---@field inotify_timeout number Minimum time in milliseconds between reloads triggered by inotify. Must larger or equal to 100.
 ---@field inotify_delay number Small delay in milliseconds before reloads are triggered by inotify.
 ---@field tags boolean Enable directory tags.
+---@field mapleader string Mapleader, first (multibyte) character only, use <leader> in mappings
 lfm.o = {}

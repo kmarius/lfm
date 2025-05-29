@@ -2,6 +2,7 @@
 
 #include "containers.h"
 #include "dir.h"
+#include "keys.h"
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -68,6 +69,7 @@ typedef struct config {
   uint32_t scrolloff;
   cstr timefmt;
   vec_int ratios;
+  input_t mapleader;
 
   vec_cstr inotify_blacklist;
   uint32_t inotify_timeout;

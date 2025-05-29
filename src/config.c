@@ -30,6 +30,7 @@ Config cfg = {
     .map_suggestion_delay = MAP_SUGGESTION_DELAY,
     .map_clear_delay = MAP_CLEAR_DELAY,
     .loading_indicator_delay = LOADING_INDICATOR_DELAY,
+    .mapleader = '\\',
     .colors = {
         .normal = NCCHANNELS_INITIALIZER_PALINDEX(-1, -1),
         .copy = NCCHANNELS_INITIALIZER_PALINDEX(COLOR_BLACK, COLOR_YELLOW),
