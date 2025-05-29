@@ -457,7 +457,8 @@ function lfm.api.fm_scroll_down() end
 ---    lfm.api.fm_chdir("../sibling")
 ---```
 ---@param dir string destination path
-function lfm.api.fm_chdir(dir) end
+---@param force_sync? boolean force chdir immediately
+function lfm.api.fm_chdir(dir, force_sync) end
 
 ---Get the height in characters of the UI.
 ---```lua

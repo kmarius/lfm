@@ -537,6 +537,7 @@ static int l_fm_selection_restore(lua_State *L) {
 static int l_fm_chdir(lua_State *L) {
   char buf[PATH_MAX + 1];
   zsview arg = luaL_optzsview(L, 1, c_zv("~"));
+  bool force_sync = luaL_optbool(L, 2, false);
 
   // TODO: can't remember why we are doing this, also this actually finds the
   // first slash, not the last
@@ -552,7 +553,7 @@ static int l_fm_chdir(lua_State *L) {
   search_nohighlight(lfm);
   lfm_mode_exit(lfm, c_zv("visual"));
   lfm_run_hook(lfm, LFM_HOOK_CHDIRPRE, &fm->pwd);
-  if (macro_playing) {
+  if (force_sync || macro_playing) {
     fm_sync_chdir(fm, path, should_save, true);
   } else {
     fm_async_chdir(fm, path, should_save, true);
