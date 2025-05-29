@@ -63,7 +63,7 @@ int main(int argc, char **argv) {
   log_set_quiet(true);
   int log_level = LOG_INFO;
 
-#ifdef DEBUG
+#ifndef NDEBUG
   log_level = LOG_DEBUG;
 #endif
 
@@ -148,7 +148,7 @@ cleanup:
   log_info("fin");
   fclose(log);
 
-#ifndef DEBUG
+#ifdef NDEBUG
   remove(cstr_str(&cfg.logpath));
 #endif
 
