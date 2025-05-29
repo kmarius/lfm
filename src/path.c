@@ -74,6 +74,7 @@ cstr path_replace_tilde(zsview path) {
   zsview home = getenv_zv("HOME");
   cstr res = cstr_with_capacity(path.size + home.size);
   path.str++; // skip ~
+  path.size--;
   cstr_append_zv(&res, home);
   cstr_append_zv(&res, path);
   return res;
