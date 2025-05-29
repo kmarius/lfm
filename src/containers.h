@@ -23,6 +23,12 @@
 #define i_keypro cstr
 #include "stc/vec.h"
 
+#define i_key zsview
+#define i_keyraw const char *
+#define i_keyfrom zsview_from
+#define i_keytoraw(p) ((p)->str)
+#include "stc/vec.h"
+
 #define i_type vec_bytes, struct bytes
 #define i_keyclone bytes_clone
 #define i_keydrop bytes_drop

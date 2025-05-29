@@ -5,13 +5,13 @@
  * callbacks etc.
  */
 
-#include "../bytes.h"
-#include "../stc/cstr.h"
+#include "../stc/zsview.h"
 
 #include <lua.h>
 
 #include <stdbool.h>
 #include <string.h>
+#include <sys/types.h>
 
 struct Lfm;
 struct Preview;
@@ -32,8 +32,8 @@ static inline void llua_eval(lua_State *L, const char *expr) {
   llua_evaln(L, expr, strlen(expr));
 }
 
-static inline void llua_eval_cstr(lua_State *L, const cstr expr) {
-  llua_evaln(L, cstr_str(&expr), cstr_size(&expr));
+static inline void llua_eval_zsview(lua_State *L, zsview expr) {
+  llua_evaln(L, expr.str, expr.size);
 }
 
 //  Run callback for finished child.

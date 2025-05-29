@@ -73,7 +73,7 @@ int main(int argc, char **argv) {
   while ((opt = getopt(argc, argv, ":c:hl:L:s:u:v")) != -1) {
     switch (opt) {
     case 'c':
-      vec_cstr_emplace(&opts.commands, optarg);
+      vec_zsview_emplace(&opts.commands, optarg);
       break;
     case 'h':
       usage(argv[0]);

@@ -203,11 +203,11 @@ static void prepare_cb(EV_P_ ev_prepare *w, int revents) {
   (void)revents;
   Lfm *lfm = w->data;
 
-  vec_cstr commands = vec_cstr_move(&lfm->opts.commands);
-  c_foreach(it, vec_cstr, commands) {
-    llua_eval_cstr(lfm->L, *it.ref);
+  vec_zsview commands = vec_zsview_move(&lfm->opts.commands);
+  c_foreach(it, vec_zsview, commands) {
+    llua_eval_zsview(lfm->L, *it.ref);
   }
-  vec_cstr_drop(&commands);
+  vec_zsview_drop(&commands);
 
   vec_message messages = vec_message_move(&lfm->messages);
   c_foreach(it, vec_message, messages) {
