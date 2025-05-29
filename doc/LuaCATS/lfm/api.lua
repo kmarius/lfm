@@ -448,17 +448,21 @@ function lfm.api.fm_scroll_up() end
 ---```
 function lfm.api.fm_scroll_down() end
 
+---
 ---Navigate to location given by dir
+---
+---Example:
 ---```lua
----    lfm.api.fm_chdir("/home/john")
+---    lfm.api.chdir("/home/john")
 ---
----    lfm.api.fm_chdir("~")
+---    lfm.api.chdir("~")
 ---
----    lfm.api.fm_chdir("../sibling")
+---    lfm.api.chdir("../sibling")
 ---```
+---
 ---@param dir string destination path
 ---@param force_sync? boolean force chdir immediately
-function lfm.api.fm_chdir(dir, force_sync) end
+function lfm.api.chdir(dir, force_sync) end
 
 ---Get the height in characters of the UI.
 ---```lua

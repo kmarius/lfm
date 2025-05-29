@@ -3,7 +3,7 @@ local M = { _NAME = ... }
 local lfm = lfm
 
 local getpwd = lfm.fn.getpwd
-local chdir = lfm.api.fm_chdir
+local chdir = lfm.api.chdir
 
 local list = { getpwd() }
 local ind = 1

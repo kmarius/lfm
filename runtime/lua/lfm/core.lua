@@ -379,7 +379,7 @@ register_command(
 	{ tokenize = false, compl = compl.limit(1, compl.files), desc = "Rename the current file." }
 )
 
-register_command("cd", api.fm_chdir, { tokenize = true, compl = compl.dirs })
+register_command("cd", api.chdir, { tokenize = true, compl = compl.dirs })
 
 local c = util.c
 local a = util.a
@@ -617,7 +617,7 @@ map("or", function()
 end, { desc = "Sort: random" })
 
 local function gmap(key, location)
-	local chdir = api.fm_chdir
+	local chdir = api.chdir
 	map("g" .. key, function()
 		chdir(location)
 	end, { desc = "Go to " .. location })

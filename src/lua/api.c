@@ -534,7 +534,7 @@ static int l_fm_selection_restore(lua_State *L) {
   return 0;
 }
 
-static int l_fm_chdir(lua_State *L) {
+static int l_chdir(lua_State *L) {
   char buf[PATH_MAX + 1];
   zsview arg = luaL_optzsview(L, 1, c_zv("~"));
   bool force_sync = luaL_optbool(L, 2, false);
@@ -727,7 +727,7 @@ static const struct luaL_Reg fm_funcs[] = {
     {"fm_flatten",           l_fm_flatten                 },
     {"fm_flatten_level",     l_fm_flatten_level           },
     {"fm_bottom",            l_fm_bot                     },
-    {"fm_chdir",             l_fm_chdir                   },
+    {"chdir",                l_chdir                      },
     {"fm_down",              l_fm_down                    },
     {"fm_filter",            l_fm_filter                  },
     {"fm_getfilter",         l_fm_filter_get              },
