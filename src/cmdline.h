@@ -5,25 +5,12 @@
 #include <notcurses/notcurses.h>
 
 #include <stdbool.h>
-#include <wchar.h>
-
-struct vstr {
-  char *str;
-  size_t cap;
-  uint32_t len;
-};
-
-struct vwstr {
-  wchar_t *str;
-  size_t cap;
-  uint32_t len;
-};
 
 typedef struct Cmdline {
-  struct vstr prefix;
-  struct vwstr left;
-  struct vwstr right;
-  struct vstr buf;
+  cstr prefix;
+  cstr left;
+  cstr right;
+  cstr buf;
   bool overwrite;
   History history;
 } Cmdline;

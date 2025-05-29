@@ -14,6 +14,10 @@ static inline char *cstr_append_zv(cstr *self, zsview zv) {
   return cstr_append_n(self, zv.str, zv.size);
 }
 
+static inline void cstr_insert_zv(cstr *self, isize pos, zsview zv) {
+  cstr_insert_sv(self, pos, zsview_sv(zv));
+}
+
 static inline char *cstr_strdup(const cstr *self) {
   return strndup(cstr_str(self), cstr_size(self));
 }
