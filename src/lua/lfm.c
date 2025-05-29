@@ -312,7 +312,8 @@ static int l_spawn(lua_State *L) {
     lua_pop(L, 1);
   }
 
-  int pid = lfm_spawn(lfm, args.data[0], args.data, &env, &stdin_lines,
+  int pid = lfm_spawn(lfm, args.data[0], args.data, &env,
+                      !vec_bytes_is_empty(&stdin_lines) ? &stdin_lines : NULL,
                       stdin_is_function ? &stdin_fd : NULL, capture_stdout,
                       capture_stderr, stdout_ref, stderr_ref, exit_ref,
                       working_directory);

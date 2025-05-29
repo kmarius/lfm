@@ -459,7 +459,7 @@ int lfm_spawn(Lfm *lfm, const char *prog, char *const *args, env_list *env,
               bool capture_stderr, int stdout_ref, int stderr_ref, int exit_ref,
               zsview working_directory) {
 
-  bool send_stdin = stdin_lines || stdin_fd != 0;
+  bool send_stdin = stdin_lines != NULL || stdin_fd != NULL;
   capture_stdout |= stdout_ref != 0;
   capture_stderr |= stderr_ref != 0;
 
