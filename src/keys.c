@@ -6,11 +6,11 @@
 #include <wchar.h>
 #include <wctype.h> /* towlower, towlupper */
 
-#define MAX_KEY_NAME_LEN 2 + 9 + 2 + 2 + 2 /* <> + backspace + c- + a- + s- */
+#define MAX_KEY_WITH_MODIFIERS 2 + 9 + 2 + 2 + 2 /* <c-a-s-backspace> */
 
 static struct {
   uint32_t id;
-  const char *name;
+  char name[12];
 } key_names[] = {
     {' ',             "Space"    },
     {'<',             "lt"       },
@@ -121,7 +121,7 @@ static struct {
 static const int key_names_len = sizeof(key_names) / sizeof(key_names[0]);
 
 const char *input_to_key_name(input_t in, size_t *len_out) {
-  static char buf[MAX_KEY_NAME_LEN + 1];
+  static char buf[MAX_KEY_WITH_MODIFIERS + 1];
   uint32_t j = 0;
   const char *name = NULL;
   if (ID(in) <= '<' || (ID(in) >= NCKEY_INVALID && ID(in) <= NCKEY_REFRESH)) {
@@ -219,11 +219,15 @@ int key_name_to_input(const char *key, input_t *out) {
 
   // check special key names
   int in = NCKEY_INVALID;
-  for (int i = 0; i < key_names_len; i++) {
-    if (strncasecmp(ptr, key_names[i].name, end - ptr) == 0) {
-      ptr = end + 1;
-      in = key_names[i].id;
-      break;
+  // currently longest would be backspace (9)
+  if (end - ptr < 10) {
+    for (int i = 0; i < key_names_len; i++) {
+      if (key_names[i].name[end - ptr] == 0 &&
+          strncasecmp(ptr, key_names[i].name, end - ptr) == 0) {
+        ptr = end + 1;
+        in = key_names[i].id;
+        break;
+      }
     }
   }
 
