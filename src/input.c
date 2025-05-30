@@ -2,7 +2,6 @@
 
 #include "cmdline.h"
 #include "config.h"
-#include "containers.h"
 #include "fm.h"
 #include "hooks.h"
 #include "keys.h"

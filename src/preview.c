@@ -1,7 +1,6 @@
 #include "preview.h"
 
 #include "config.h"
-#include "containers.h"
 #include "log.h"
 #include "macros.h"
 #include "memory.h"

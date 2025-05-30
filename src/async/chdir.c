@@ -1,6 +1,5 @@
 #include "private.h"
 
-#include "../containers.h"
 #include "../fm.h"
 #include "../hooks.h"
 #include "../lfm.h"

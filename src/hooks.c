@@ -1,6 +1,5 @@
 #include "hooks.h"
 
-#include "containers.h"
 #include "lfm.h"
 #include "log.h"
 #include "lua/lfmlua.h"

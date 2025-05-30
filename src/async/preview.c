@@ -1,7 +1,6 @@
 #include "private.h"
 
 #include "../config.h"
-#include "../containers.h"
 #include "../lfm.h"
 #include "../loader.h"
 #include "../log.h"

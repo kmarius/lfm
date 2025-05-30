@@ -1,5 +1,4 @@
 #include "../cmdline.h"
-#include "../containers.h"
 #include "../fm.h"
 #include "../history.h"
 #include "../hooks.h"

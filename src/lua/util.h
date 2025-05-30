@@ -1,8 +1,10 @@
 #pragma once
 
-#include "../containers.h"
-#include "../log.h"
+#include "../bytes.h"
 #include "../stcutil.h"
+#include "../vec_bytes.h"
+#include "../vec_cstr.h"
+#include "../vec_str.h"
 
 #include <lauxlib.h>
 #include <lua.h>

@@ -1,6 +1,5 @@
 #include "config.h"
 
-#include "containers.h"
 #include "ncutil.h"
 #include "notify.h"
 #include "stc/common.h"

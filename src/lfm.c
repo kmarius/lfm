@@ -2,7 +2,7 @@
 
 #include "async/async.h"
 #include "config.h"
-#include "containers.h"
+#include "vec_env.h"
 #include "hooks.h"
 #include "input.h"
 #include "loader.h"
@@ -454,7 +454,7 @@ static ev_io *add_io_watcher(Lfm *lfm, FILE *f, int ref) {
 }
 
 // spawn a background program
-int lfm_spawn(Lfm *lfm, const char *prog, char *const *args, env_list *env,
+int lfm_spawn(Lfm *lfm, const char *prog, char *const *args, vec_env *env,
               const vec_bytes *stdin_lines, int *stdin_fd, bool capture_stdout,
               bool capture_stderr, int stdout_ref, int stderr_ref, int exit_ref,
               zsview working_directory) {
@@ -499,8 +499,8 @@ int lfm_spawn(Lfm *lfm, const char *prog, char *const *args, env_list *env,
     // child
 
     if (env) {
-      c_foreach(n, env_list, *env) {
-        env_list_raw v = env_list_value_toraw(n.ref);
+      c_foreach(n, vec_env, *env) {
+        vec_env_raw v = vec_env_value_toraw(n.ref);
         setenv(v.key, v.val, 1);
       }
     }
@@ -595,7 +595,7 @@ int lfm_spawn(Lfm *lfm, const char *prog, char *const *args, env_list *env,
 }
 
 // execute a foreground program
-int lfm_execute(Lfm *lfm, const char *prog, char *const *args, env_list *env,
+int lfm_execute(Lfm *lfm, const char *prog, char *const *args, vec_env *env,
                 vec_bytes *stdin_lines, vec_bytes *stdout_lines,
                 vec_bytes *stderr_lines) {
   int status, rc;
@@ -648,8 +648,8 @@ int lfm_execute(Lfm *lfm, const char *prog, char *const *args, env_list *env,
     // child
 
     if (env) {
-      c_foreach(n, env_list, *env) {
-        env_list_raw v = env_list_value_toraw(n.ref);
+      c_foreach(n, vec_env, *env) {
+        vec_env_raw v = vec_env_value_toraw(n.ref);
         setenv(v.key, v.val, 1);
       }
     }

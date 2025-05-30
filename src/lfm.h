@@ -1,13 +1,14 @@
 #pragma once
 
 #include "async/async.h"
-#include "containers.h"
 #include "fm.h"
 #include "hooks.h"
 #include "loader.h"
 #include "mode.h"
 #include "notify.h"
 #include "ui.h"
+#include "vec_int.h"
+#include "vec_zsview.h"
 
 #include "stc/types.h"
 
@@ -18,7 +19,9 @@
 
 declare_dlist(list_timer, struct sched_timer);
 declare_dlist(list_child, struct child_watcher);
-struct vec_str; // defined in config.h
+struct vec_str;
+struct vec_env;
+struct vec_bytes;
 
 // we will free startpath/startfile and commands in lfm
 struct lfm_opts {
@@ -86,17 +89,18 @@ void lfm_quit(Lfm *lfm, int ret);
 // respective callbacks are called with each line of output/error and nothing
 // will be printed on the ui. `exit_ref` will be called with the return code
 // once the command finishes.
-int lfm_spawn(Lfm *lfm, const char *prog, char *const *args, env_list *env,
-              const vec_bytes *stdin_lines, int *stdin_fd, bool capture_stdout,
-              bool capture_stderr, int stdout_ref, int stderr_ref, int exit_ref,
+int lfm_spawn(Lfm *lfm, const char *prog, char *const *args,
+              struct vec_env *env, const struct vec_bytes *stdin_lines,
+              int *stdin_fd, bool capture_stdout, bool capture_stderr,
+              int stdout_ref, int stderr_ref, int exit_ref,
               zsview working_directory);
 
 // Execute a foreground program. Uses execvp semantics. If stdout is passed,
 // lines from stdout are captured in the vector. Returns the exit status of the
 // process, or -1 if fork() fails.
-int lfm_execute(Lfm *lfm, const char *prog, char *const *args, env_list *env,
-                vec_bytes *stdin_lines, vec_bytes *stdout_lines,
-                vec_bytes *stderr_lines);
+int lfm_execute(Lfm *lfm, const char *prog, char *const *args,
+                struct vec_env *env, struct vec_bytes *stdin_lines,
+                struct vec_bytes *stdout_lines, struct vec_bytes *stderr_lines);
 
 // Schedule callback of the function given by `ref` in `delay` milliseconds.
 void lfm_schedule(Lfm *lfm, int ref, uint32_t delay);

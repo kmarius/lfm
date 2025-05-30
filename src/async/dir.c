@@ -1,7 +1,6 @@
 #include "private.h"
 
 #include "../config.h"
-#include "../containers.h"
 #include "../dir.h"
 #include "../file.h"
 #include "../fm.h"

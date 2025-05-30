@@ -1,7 +1,7 @@
 #include "lfm.h"
 
 #include "../config.h"
-#include "../containers.h"
+#include "../vec_env.h"
 #include "../hooks.h"
 #include "../input.h"
 #include "../macros.h"
@@ -230,7 +230,7 @@ static int lua_proc_create(lua_State *L, int pid, int fd) {
 static int l_spawn(lua_State *L) {
   // init just nulls these, we can exit without dropping, if nothing is added
   vec_str args = vec_str_init();
-  env_list env = env_list_init();
+  vec_env env = vec_env_init();
   vec_bytes stdin_lines = vec_bytes_init();
   zsview working_directory = zsview_init();
 
@@ -300,7 +300,7 @@ static int l_spawn(lua_State *L) {
         // we make copies of these values because the luajit source code
         // suggests that, if value is not a string, gc may run and invalidate
         // other values that have been stored
-        env_list_push_back(
+        vec_env_push_back(
             &env, (struct env_entry){lua_tostrdup(L, -2), lua_tostrdup(L, -1)});
       }
     }
@@ -319,7 +319,7 @@ static int l_spawn(lua_State *L) {
                       working_directory);
 
   vec_str_drop(&args);
-  env_list_drop(&env);
+  vec_env_drop(&env);
   vec_bytes_drop(&stdin_lines);
 
   if (pid != -1) {
@@ -338,7 +338,7 @@ static int l_execute(lua_State *L) {
   vec_bytes stdout_lines = vec_bytes_init();
   vec_bytes stderr_lines = vec_bytes_init();
   vec_bytes stdin_lines = vec_bytes_init();
-  env_list env = env_list_init();
+  vec_env env = vec_env_init();
 
   bool capture_stdout = false;
   bool capture_stderr = false;
@@ -383,7 +383,7 @@ static int l_execute(lua_State *L) {
     if (lua_istable(L, -1)) {
       for (lua_pushnil(L); lua_next(L, -2) != 0; lua_pop(L, 1)) {
         // [cmd, opts, opts.env, key, val]
-        env_list_push_back(
+        vec_env_push_back(
             &env, (struct env_entry){lua_tostrdup(L, -2), lua_tostrdup(L, -1)});
       }
     }
@@ -395,7 +395,7 @@ static int l_execute(lua_State *L) {
                            capture_stdout ? &stdout_lines : NULL,
                            capture_stderr ? &stderr_lines : NULL);
 
-  env_list_drop(&env);
+  vec_env_drop(&env);
   vec_str_drop(&args);
   vec_bytes_drop(&stdin_lines);
 
