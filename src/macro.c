@@ -24,7 +24,7 @@ void macros_deinit() {
   macros_map_drop(&macros);
 }
 
-int macro_record(uint64_t id) {
+int macro_record(input_t id) {
   if (macro_recording) {
     log_error("already recording a macro");
     return -1;
@@ -57,7 +57,7 @@ int macro_stop_record() {
   return 0;
 }
 
-int macro_play(uint64_t id, struct Lfm *lfm) {
+int macro_play(input_t id, struct Lfm *lfm) {
   if (macro_recording) {
     log_error("can not play macro while recording");
     return -1;

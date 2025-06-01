@@ -19,7 +19,6 @@
 #include <linux/limits.h>
 #include <notcurses/notcurses.h>
 #include <stdint.h>
-#include <wchar.h>
 
 static int l_cmd_line_get(lua_State *L) {
   lua_pushzsview(L, cmdline_get(&ui->cmdline));
@@ -868,11 +867,11 @@ static int l_macro_recording(lua_State *L) {
 
 static int l_macro_record(lua_State *L) {
   const char *str = luaL_checkstring(L, 1);
-  wchar_t w;
-  if (mbtowc(&w, str, MB_LEN_MAX) == -1) {
-    return luaL_error(L, "converting to wchar_t");
+  input_t in;
+  if (key_name_to_input(str, &in) <= 0) {
+    return luaL_error(L, "converting to input_t");
   }
-  if (macro_record(w)) {
+  if (macro_record(in)) {
     return luaL_error(L, "already recording");
   }
   return 1;
@@ -887,11 +886,11 @@ static int l_macro_stop_record(lua_State *L) {
 
 static int l_macro_play(lua_State *L) {
   const char *str = luaL_checkstring(L, 1);
-  wchar_t w;
-  if (mbtowc(&w, str, MB_LEN_MAX) == -1) {
-    return luaL_error(L, "converting to wchar_t");
+  input_t in;
+  if (key_name_to_input(str, &in) <= 0) {
+    return luaL_error(L, "converting to input_t");
   }
-  if (macro_play(w, lfm)) {
+  if (macro_play(in, lfm)) {
     return luaL_error(L, "no such macro");
   }
   return 0;

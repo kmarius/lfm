@@ -536,7 +536,7 @@ static uint64_t ext_channel_get(const char *ext) {
   return 0;
 }
 
-// TODO: get rid of this abomination
+// TODO: get rid of this one?
 static int print_highlighted_and_shortened(struct ncplane *n, const char *name,
                                            const char *hl, int max_len,
                                            bool has_ext) {
