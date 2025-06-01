@@ -164,3 +164,5 @@ Dir *dir_load_flat(zsview path, int level, bool load_dircount);
 #define Dir_iter vec_file_iter
 #define Dir_next vec_file_next
 #define Dir_begin(dir) vec_file_begin(dir->files)
+
+int fileinfo_from_str(const char *str);

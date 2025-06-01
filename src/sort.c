@@ -10,6 +10,15 @@ const char *sorttype_str[NUM_SORTTYPE] = {
     "natural", "name", "size", "ctime", "atime", "mtime", "random",
 };
 
+int sorttype_from_str(const char *str) {
+  for (int j = 0; j < NUM_SORTTYPE; j++) {
+    if (streq(str, sorttype_str[j])) {
+      return j;
+    }
+  }
+  return -1;
+}
+
 int compare_name(const void *a, const void *b) {
   return strcasecmp(file_name_str(*(File **)a), file_name_str(*(File **)b));
 }

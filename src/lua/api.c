@@ -27,14 +27,15 @@ static int l_cmd_line_get(lua_State *L) {
 }
 
 static int l_cmd_line_set(lua_State *L) {
-  ui->show_message = false;
-
   if (lua_gettop(L) > 2) {
-    luaL_error(L, "line_set takes only up to two arguments");
+    return luaL_error(L, "line_set takes only up to two arguments");
   }
 
-  cmdline_set(&ui->cmdline, lua_tozsview(L, 1), lua_tozsview(L, 2));
-  ui_redraw(ui, REDRAW_CMDLINE);
+  ui->show_message = false;
+
+  if (cmdline_set(&ui->cmdline, lua_tozsview(L, 1), lua_tozsview(L, 2))) {
+    ui_redraw(ui, REDRAW_CMDLINE);
+  }
 
   return 0;
 }
@@ -49,7 +50,9 @@ static int l_cmd_toggle_overwrite(lua_State *L) {
 
 static int l_cmd_clear(lua_State *L) {
   (void)L;
-  cmdline_clear(&ui->cmdline);
+  if (cmdline_clear(&ui->cmdline)) {
+    ui_redraw(ui, REDRAW_CMDLINE);
+  }
   return 0;
 }
 
@@ -338,7 +341,7 @@ static int l_fm_open(lua_State *L) {
 
 static int l_fm_current_file(lua_State *L) {
   File *file = fm_current_file(fm);
-  if (file) {
+  if (file != NULL) {
     lua_pushcstr(L, file_path(file));
     return 1;
   }
@@ -383,15 +386,14 @@ static int l_fm_get_info(lua_State *L) {
 
 static int l_fm_set_info(lua_State *L) {
   const char *val = luaL_checkstring(L, 1);
-  Dir *dir = fm_current_dir(fm);
-  for (int i = 0; i < NUM_FILEINFO; i++) {
-    if (streq(val, fileinfo_str[i])) {
-      dir->settings.fileinfo = i;
-      ui_redraw(ui, REDRAW_FM);
-      return 0;
-    }
+  int info = fileinfo_from_str(val);
+  if (info < 0) {
+    return luaL_error(L, "invalid option for info: %s", val);
   }
-  return luaL_error(L, "invalid option for info: %s", val);
+  Dir *dir = fm_current_dir(fm);
+  dir->settings.fileinfo = info;
+  ui_redraw(ui, REDRAW_FM);
+  return 0;
 }
 
 static int l_fm_sort(lua_State *L) {
@@ -415,16 +417,11 @@ static int l_fm_sort(lua_State *L) {
   lua_getfield(L, 1, "type");
   if (!lua_isnoneornil(L, -1)) {
     const char *op = luaL_checkstring(L, -1);
-    int j;
-    for (j = 0; j < NUM_SORTTYPE; j++) {
-      if (streq(op, sorttype_str[j])) {
-        settings.sorttype = j;
-        break;
-      }
-    }
-    if (j == NUM_SORTTYPE) {
+    int type = sorttype_from_str(op);
+    if (type < 0) {
       return luaL_error(L, "unrecognized sort type: %s", op);
     }
+    settings.sorttype = type;
   }
   lua_pop(L, 1);
 

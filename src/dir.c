@@ -474,3 +474,12 @@ void dir_destroy(Dir *dir) {
     xfree(dir);
   }
 }
+
+int fileinfo_from_str(const char *str) {
+  for (int i = 0; i < NUM_FILEINFO; i++) {
+    if (streq(str, fileinfo_str[i])) {
+      return i;
+    }
+  }
+  return -1;
+}

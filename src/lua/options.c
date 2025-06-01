@@ -38,16 +38,11 @@ static inline int llua_dir_settings_set(lua_State *L, zsview path, int ind) {
   lua_getfield(L, ind, "sorttype");
   if (!lua_isnil(L, -1)) {
     const char *op = luaL_checkstring(L, -1);
-    int i;
-    for (i = 0; i < NUM_SORTTYPE; i++) {
-      if (streq(op, sorttype_str[i])) {
-        s.sorttype = i;
-        break;
-      }
-    }
-    if (i == NUM_SORTTYPE) {
+    int type = sorttype_from_str(op);
+    if (type < 0) {
       return luaL_error(L, "unrecognized sort type: %s", op);
     }
+    s.sorttype = type;
   }
   lua_pop(L, 1);
 

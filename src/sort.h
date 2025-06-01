@@ -15,6 +15,8 @@ typedef enum {
 
 extern const char *sorttype_str[NUM_SORTTYPE];
 
+int sorttype_from_str(const char *str);
+
 int compare_name(const void *a, const void *b);
 
 int compare_size(const void *a, const void *b);
