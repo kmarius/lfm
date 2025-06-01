@@ -217,6 +217,19 @@ bool llua_load_file(lua_State *L, const char *path, bool err_on_non_exist) {
 }
 
 void lfm_lua_init_thread(lua_State *L) {
+  lua_getglobal(L, "package");    // [package]
+  lua_getfield(L, -1, "preload"); // [package, preload]
+  for (size_t i = 0; i < ARRAY_SIZE(builtin_modules); i++) {
+    ModuleDef def = builtin_modules[i];
+    if (streq(def.name, "lfm.fs")) {
+      lua_pushinteger(L, (long)i); // [package, preload, i]
+      lua_pushcclosure(L, l_module_preloader,
+                       1);           // [package, preload, cclosure]
+      lua_setfield(L, -2, def.name); // [package, preload]
+    }
+  }
+  lua_pop(L, 2); // []
+
   lua_newtable(L);
 
   luaopen_log(L);
@@ -226,6 +239,11 @@ void lfm_lua_init_thread(lua_State *L) {
   lua_setfield(L, -2, "fn");
 
   lua_setglobal(L, "lfm");
+
+  if (luaL_dostring(L, "lfm.validate = function() end")) {
+    log_error("%s", lua_tostring(L, -1));
+    lua_pop(L, 1);
+  }
 }
 
 void lfm_lua_init(Lfm *lfm_) {
