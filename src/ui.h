@@ -110,6 +110,8 @@ void ui_recol(Ui *ui);
 
 void ui_deinit(Ui *ui);
 
+void ui_on_resize(Ui *ui);
+
 void ui_clear(Ui *ui);
 
 void ui_draw(Ui *ui);

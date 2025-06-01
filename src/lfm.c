@@ -2,7 +2,6 @@
 
 #include "async/async.h"
 #include "config.h"
-#include "vec_env.h"
 #include "hooks.h"
 #include "input.h"
 #include "loader.h"
@@ -16,6 +15,7 @@
 #include "stc/cstr.h"
 #include "ui.h"
 #include "util.h"
+#include "vec_env.h"
 
 #include <asm-generic/errno.h>
 #include <ev.h>
@@ -426,6 +426,12 @@ void lfm_quit(Lfm *lfm, int ret) {
     fwrite(cstr_str(&lfm->fm.pwd), 1, cstr_size(&lfm->fm.pwd), fp);
     fclose(fp);
   }
+}
+
+void lfm_on_resize(Lfm *lfm) {
+  ui_on_resize(&lfm->ui);
+  fm_on_resize(&lfm->fm, lfm->ui.y - 2);
+  lfm_run_hook(lfm, LFM_HOOK_RESIZED);
 }
 
 static ev_io *add_io_watcher(Lfm *lfm, FILE *f, int ref) {

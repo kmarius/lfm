@@ -7,7 +7,6 @@
 #include "file.h"
 #include "filter.h"
 #include "fm.h"
-#include "hooks.h"
 #include "infoline.h"
 #include "input.h"
 #include "lfm.h"
@@ -113,18 +112,19 @@ void ui_deinit(Ui *ui) {
   cstr_drop(&ui->search_string);
 }
 
-static int resize_cb(struct ncplane *n) {
-  Ui *ui = ncplane_userptr(n);
+void ui_on_resize(Ui *ui) {
   notcurses_stddim_yx(ui->nc, &ui->y, &ui->x);
   ncplane_resize(ui->planes.info, 0, 0, 0, 0, 0, 0, 1, ui->x);
   ncplane_resize(ui->planes.cmdline, 0, 0, 0, 0, 0, 0, 1, ui->x);
   ncplane_move_yx(ui->planes.cmdline, ui->y - 1, 0);
-  lfm_run_hook(to_lfm(ui), LFM_HOOK_RESIZED);
   ui_recol(ui);
-  Fm *fm = &to_lfm(ui)->fm;
-  fm_on_resize(fm, ui->y - 2);
   menu_resize(ui);
   ui_update_file_preview(ui);
+}
+
+static int resize_cb(struct ncplane *n) {
+  Lfm *lfm = ncplane_userptr(n);
+  lfm_on_resize(lfm);
   return 0;
 }
 
@@ -157,7 +157,7 @@ void ui_resume(Ui *ui) {
       .x = 0,
       .rows = 1,
       .cols = ui->x,
-      .userptr = ui,
+      .userptr = to_lfm(ui),
   };
 
   // this plane is responsible for resizing, only put the callback here

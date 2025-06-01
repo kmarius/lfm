@@ -82,6 +82,9 @@ int lfm_run(Lfm *lfm);
 // Stop the event loop.
 void lfm_quit(Lfm *lfm, int ret);
 
+// call this on resize
+void lfm_on_resize(Lfm *lfm);
+
 // Spawn a background command. execvp semantics hold for `prog`, `args`.
 // A vector of strings can be passed by `stdin_lines` and will be send to the
 // commands standard input. If `out` or `err` are true, output/errors will be
