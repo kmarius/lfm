@@ -289,9 +289,11 @@ static inline void draw_custom(Ui *ui) {
   }
 
   if (idx.file != 0) {
-    shorten_name(*file_name(file), file_buf, remaining, !file_is_dir);
-    if (remaining < file_len) {
-      file_len = remaining;
+    if (file != NULL) {
+      shorten_name(*file_name(file), file_buf, remaining, !file_is_dir);
+      if (remaining < file_len) {
+        file_len = remaining;
+      }
     }
     // TODO: could be returned by shorten_file_name
     placeholders[idx.file].replacement_len = file_len;
