@@ -365,6 +365,10 @@ static void draw_dirs(Ui *ui) {
 static void draw_preview(Ui *ui) {
   Fm *fm = &to_lfm(ui)->fm;
   if (cfg.preview && ui->num_columns > 1) {
+    if (ui->preview.hidden) {
+      ncplane_erase(ui->planes.preview);
+      return;
+    }
     if (fm->dirs.preview) {
       plane_draw_dir(ui->planes.preview, fm->dirs.preview,
                      &fm->selection.current, &fm->paste.buffer, fm->paste.mode,
@@ -1028,6 +1032,7 @@ static void on_cursor_resting(EV_P_ ev_timer *w, int revents) {
       }
     }
   }
+  ui->preview.hidden = false;
   ui_redraw(&lfm->ui, REDRAW_PREVIEW);
 }
 
@@ -1082,6 +1087,7 @@ static inline void on_cursor_moved(Ui *ui, bool delay_action) {
         &to_lfm(ui)->loader, cstr_zv(file_path(file)), !delay_action);
   }
 
+  ui->preview.hidden = delay_action;
   if (delay_action) {
     ev_timer_again(to_lfm(ui)->loop, &ui->preview_load_timer);
   } else {

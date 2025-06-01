@@ -83,6 +83,7 @@ typedef struct Ui {
   struct {
     Preview *preview;
     unsigned int y, x; // dimensions of the preview ncplane
+    bool hidden;       // temporarily hidden
   } preview;
 
   vec_cstr menubuf;
