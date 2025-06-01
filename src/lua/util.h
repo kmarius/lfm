@@ -69,7 +69,7 @@ static inline void lua_push_vec_cstr(lua_State *L, const vec_cstr *vec) {
 }
 
 static inline void lua_pushbytes(lua_State *L, bytes bytes) {
-  lua_pushlstring(L, bytes.data, bytes.len);
+  lua_pushlstring(L, bytes.data, bytes.size);
 }
 
 static inline void lua_push_vec_bytes(lua_State *L, vec_bytes *vec) {

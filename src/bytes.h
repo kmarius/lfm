@@ -9,7 +9,7 @@
 // A slice of bytes with fixed length.
 typedef struct bytes {
   char *data;
-  size_t len;
+  size_t size;
 } bytes;
 
 static inline struct bytes bytes_init() {
@@ -25,13 +25,7 @@ static inline struct bytes bytes_from_n(const char *bytes, size_t len) {
 }
 
 static inline struct bytes bytes_clone(struct bytes bytes) {
-  return bytes_from_n(bytes.data, bytes.len);
-}
-
-// For use with nul-terminated strings.
-static inline struct bytes bytes_from_str(const char *str) {
-  int len = strlen(str);
-  return (struct bytes){strndup(str, len), len};
+  return bytes_from_n(bytes.data, bytes.size);
 }
 
 static inline struct bytes bytes_move(struct bytes *bytes) {
@@ -46,10 +40,6 @@ static inline void bytes_drop(struct bytes *bytes) {
   }
 }
 
-static inline size_t bytes_size(struct bytes bytes) {
-  return bytes.len;
-}
-
 static inline bool bytes_is_empty(struct bytes bytes) {
-  return bytes.len == 0;
+  return bytes.size == 0;
 }

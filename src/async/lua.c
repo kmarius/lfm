@@ -115,7 +115,7 @@ void async_lua_worker(void *arg) {
   lua_State *L = L_thread; // []
 
   bytes chunk = work->chunk;
-  if (luaL_loadbuffer(L, chunk.data, chunk.len, "chunk")) {
+  if (luaL_loadbuffer(L, chunk.data, chunk.size, "chunk")) {
     // [err]
     work->result = lua_tobytes(L, -1);
     lua_pop(L, 1);
@@ -245,7 +245,7 @@ void async_lua_preview_worker(void *arg) {
   lua_State *L = L_thread;
 
   bytes chunk = work->chunk;
-  if (luaL_loadbuffer(L, chunk.data, chunk.len, chunk.data)) {
+  if (luaL_loadbuffer(L, chunk.data, chunk.size, chunk.data)) {
     // [encode, decode, err]
     preview_error(pv, "%s", lua_tostring(L_thread, -1));
     lua_pop(L, 1);
