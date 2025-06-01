@@ -186,3 +186,7 @@ static inline int lua_string_dump(lua_State *L, int idx) {
   // [bytecode]
   return LUA_OK;
 }
+
+// removes ./?.lua and ./?.so from package.(c)path
+// appends ~/.config/lfm/lua/... to package.path
+void set_package_path(lua_State *L);

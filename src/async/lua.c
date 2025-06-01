@@ -10,23 +10,12 @@
 #include <lua.h>
 #include <lualib.h>
 
-// TODO: filter out ./?.lua and ./?.so in package.cpath
-static void append_package_path(lua_State *L, const char *path) {
-  lua_getglobal(L, "package");
-  lua_getfield(L, -1, "path");
-  const char *old_path = lua_tostring(L, -1);
-  lua_pop(L, 1);
-  lua_pushfstring(L, "%s;%s/lua/?.lua;%s/lua/?/init.lua", old_path, path);
-  lua_setfield(L, -2, "path");
-  lua_pop(L, 1);
-}
-
 static int init_lua_thread_state() {
   if (L_thread == NULL) {
     lua_State *L = luaL_newstate();
     luaL_openlibs(L);
 
-    append_package_path(L, cstr_str(&cfg.configdir));
+    set_package_path(L);
 
     L_thread = L;
   }

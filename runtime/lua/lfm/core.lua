@@ -1,10 +1,3 @@
--- Set up package.path to include ~/.config/lfm/lua and remove ./
-local paths = lfm.paths
-
-package.path = string.gsub(package.path, "%./%?.lua;", "")
-package.path = package.path .. ";" .. paths.config_dir .. "/lua/?.lua;" .. paths.config_dir .. "/lua/?/init.lua"
-package.cpath = string.gsub(package.cpath, "%./%?.so;", "")
-
 local fn = lfm.fn
 local api = lfm.api
 local log = lfm.log

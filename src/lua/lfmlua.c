@@ -7,10 +7,12 @@
 #include "private.h"
 
 #include <lauxlib.h>
+#include <linux/limits.h>
 #include <lua.h>
 #include <lualib.h>
 
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 
 typedef struct {
@@ -227,6 +229,7 @@ void lfm_lua_init(Lfm *lfm_) {
   luaopen_jit(L);
   luaopen_lfm(L);
 
+  set_package_path(L);
   llua_init_packages(L);
 
   PROFILE("user_config", {
