@@ -22,6 +22,7 @@
 
 #include "tpool.h"
 
+#include "lua/thread.h"
 #include "memory.h"
 
 #include <stdlib.h>
@@ -123,6 +124,8 @@ static void *tpool_worker(void *arg) {
   tm->thread_cnt--;
   pthread_cond_signal(&(tm->working_cond));
   pthread_mutex_unlock(&(tm->work_mutex));
+
+  L_thread_destroy();
   return NULL;
 }
 
