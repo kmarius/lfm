@@ -216,6 +216,18 @@ bool llua_load_file(lua_State *L, const char *path, bool err_on_non_exist) {
   return true;
 }
 
+void lfm_lua_init_thread(lua_State *L) {
+  lua_newtable(L);
+
+  luaopen_log(L);
+  lua_setfield(L, -2, "log");
+
+  luaopen_fn(L);
+  lua_setfield(L, -2, "fn");
+
+  lua_setglobal(L, "lfm");
+}
+
 void lfm_lua_init(Lfm *lfm_) {
   lfm = lfm_;
   ui = &lfm_->ui;

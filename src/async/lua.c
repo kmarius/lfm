@@ -16,6 +16,7 @@ static int init_lua_thread_state() {
     luaL_openlibs(L);
 
     set_package_path(L);
+    lfm_lua_init_thread(L);
 
     L_thread = L;
   }

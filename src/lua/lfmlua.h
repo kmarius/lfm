@@ -20,6 +20,8 @@ struct Async;
 // Initialize lua state, load libraries.
 void lfm_lua_init(struct Lfm *lfm);
 
+void lfm_lua_init_thread(lua_State *L);
+
 void lfm_lua_deinit(struct Lfm *lfm);
 
 int llua_pcall(lua_State *L, int nargs, int nresults);
