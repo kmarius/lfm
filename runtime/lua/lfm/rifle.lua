@@ -91,7 +91,7 @@ end
 -- overwrite the builtin setup
 local setup_internal = M.setup
 
----@class Lapi.fm_Rifle.SetupOpts
+---@class Lfm.Rifle.SetupOpts
 ---@field config? string path to configuration file e.g. a rifle.conf
 ---@field rules? string[] a table of rules as defined in rifle.conf, will take precedence
 
@@ -105,7 +105,7 @@ local setup_internal = M.setup
 ---      },
 ---    })
 ---```
----@param opts Lapi.fm_Rifle.SetupOpts
+---@param opts Lfm.Rifle.SetupOpts
 function M.setup(opts)
 	opts = opts or {}
 	config = opts.config

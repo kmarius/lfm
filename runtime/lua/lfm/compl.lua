@@ -12,9 +12,9 @@ local dirent = require("posix.dirent")
 ---and as second argument the full command line.
 ---It must return a table of completion candidates and optionally a separator,
 ---e.g. `"/"` or `"."` or even `""`.
----@alias Lapi.fm_ComplFun fun(token: string, line: string): string[], string?
+---@alias Lfm.ComplFun fun(token: string, line: string): string[], string?
 
----@type Lapi.fm_ComplFun
+---@type Lfm.ComplFun
 local function commands_provider(tok)
 	local t = {}
 	for c, _ in pairs(commands) do
@@ -26,7 +26,7 @@ local function commands_provider(tok)
 end
 
 ---Complete fields from the lfm namespace. Used to complete functions in command mode.
----@type Lapi.fm_ComplFun
+---@type Lfm.ComplFun
 function M.table(_, line)
 	local t = {}
 	local prefix, suffix = string.match(line, "^(.*%.)(.*)")
@@ -52,7 +52,7 @@ end
 local reset = false
 local candidates = {}
 local ind = 0
----@type Lapi.fm_ComplFun
+---@type Lfm.ComplFun
 local provider = commands_provider
 
 function M.reset()
@@ -71,7 +71,7 @@ end
 ---    local compl_fun = lfm.compl.dirs
 ---    lfm.register_command("cool-command", { compl = compl_fun })
 ---```
----@type Lapi.fm_ComplFun
+---@type Lfm.ComplFun
 function M.dirs(path)
 	if path == "~" then
 		return { "~" }, "/"
@@ -113,7 +113,7 @@ end
 ---    local compl_fun = lfm.compl.files
 ---    lfm.register_command("cool-command", { compl = compl_fun })
 ---```
----@type Lapi.fm_ComplFun
+---@type Lfm.ComplFun
 function M.files(path)
 	if path == "~" then
 		return { "~" }, "/"
@@ -154,8 +154,8 @@ end
 ---    lfm.register_command("cool-command", { compl = compl_fun })
 ---```
 ---@param n number
----@param f Lapi.fm_ComplFun
----@return Lapi.fm_ComplFun
+---@param f Lfm.ComplFun
+---@return Lfm.ComplFun
 function M.limit(n, f)
 	return function(tok, line)
 		local _, toks = lfm.fn.tokenize(line)

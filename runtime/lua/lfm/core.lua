@@ -180,16 +180,16 @@ local function feedkeys(...)
 	end
 end
 
----@class Lapi.fm_CommandOpts
+---@class Lfm.CommandOpts
 ---@field tokenize? boolean tokenize arguments (default: true)
----@field compl? Lapi.fm_ComplFun completion function
+---@field compl? Lfm.ComplFun completion function
 ---@field desc? string Description
 
----@class Lapi.fm_Command : Lapi.fm_CommandOpts
+---@class Lfm.Command : Lfm.CommandOpts
 ---@field f function corresponding function
 ---@overload fun(t: string[]): boolean
 
----@type table<string, Lapi.fm_Command>
+---@type table<string, Lfm.Command>
 local commands = setmetatable({}, {
 	__call = function(_, line)
 		lfm.eval(line)
@@ -255,7 +255,7 @@ local reserved = {
 ---```
 ---@param name string Command name, can not contain whitespace.
 ---@param f function The function to execute or `nil` to unregister
----@param opts? Lapi.fm_CommandOpts Additional options.
+---@param opts? Lfm.CommandOpts Additional options.
 local function register_command(name, f, opts)
 	if reserved[name] then
 		error("reserved command name: " .. name)
@@ -268,7 +268,7 @@ local function register_command(name, f, opts)
 		opts.f = f
 		opts.tokenize = opts.tokenize == nil and true or opts.tokenize
 		opts = setmetatable(opts, command_mt)
-		lfm.commands[name] = opts --[[@as Lapi.fm_Command]]
+		lfm.commands[name] = opts --[[@as Lfm.Command]]
 	else
 		lfm.commands[name] = nil
 	end
@@ -371,8 +371,8 @@ require("lfm.quickmarks")._setup()
 require("lfm.macros")._setup()
 require("lfm.glob")._setup()
 
-register_command("quit", quit, { desc = "Quit Lapi.fm_" })
-register_command("q", quit, { desc = "Quit Lapi.fm_" })
+register_command("quit", quit, { desc = "Quit Lfm" })
+register_command("q", quit, { desc = "Quit Lfm" })
 register_command(
 	"rename",
 	require("lfm.functions").rename,
