@@ -1,6 +1,5 @@
 #include "../config.h"
 #include "../infoline.h"
-#include "../log.h"
 #include "../ncutil.h"
 #include "../path.h"
 #include "../stc/cstr.h"
@@ -114,14 +113,7 @@ static const struct luaL_Reg dir_settings_mt[] = {
 static int l_config_index(lua_State *L) {
   const char *key = luaL_checkstring(L, 2);
   if (streq(key, "truncatechar")) {
-    char buf[MB_LEN_MAX + 1];
-    int l = wctomb(buf, cfg.truncatechar);
-    if (l == -1) {
-      log_error("converting truncatechar to mbs");
-      l = 0;
-    }
-    buf[l] = 0;
-    lua_pushstring(L, buf);
+    lua_pushstring(L, cfg.truncatechar);
     return 1;
   } else if (streq(key, "hidden")) {
     lua_pushboolean(L, cfg.dir_settings.hidden);
@@ -212,13 +204,13 @@ static int l_config_index(lua_State *L) {
 static int l_config_newindex(lua_State *L) {
   const char *key = luaL_checkstring(L, 2);
   if (streq(key, "truncatechar")) {
-    const char *val = luaL_checkstring(L, 3);
-    wchar_t w;
-    int l = mbtowc(&w, val, MB_LEN_MAX);
-    if (l == -1) {
-      return luaL_error(L, "converting truncatechar to wchar_t");
+    size_t len;
+    const char *val = luaL_checklstring(L, 3, &len);
+    if (len > 0) {
+      len = utf8_chr_size(val);
+      memcpy(cfg.truncatechar, val, len);
     }
-    cfg.truncatechar = w;
+    cfg.truncatechar[len] = 0;
     ui_redraw(ui, REDRAW_FM);
   } else if (streq(key, "hidden")) {
     fm_hidden_set(fm, lua_toboolean(L, 3));

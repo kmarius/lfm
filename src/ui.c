@@ -25,6 +25,7 @@
 #include "util.h"
 
 #include <ev.h>
+#include <linux/limits.h>
 #include <ncurses.h>
 #include <notcurses/notcurses.h>
 
@@ -535,19 +536,7 @@ static uint64_t ext_channel_get(const char *ext) {
   return 0;
 }
 
-static inline int print_shortened(struct ncplane *n, const char *name,
-                                  int max_len, bool has_ext) {
-  if (max_len <= 0) {
-    return 0;
-  }
-
-  int name_len;
-  wchar_t *namew = ambstowcs(name, &name_len);
-  int ret = print_shortened_w(n, namew, name_len, max_len, has_ext);
-  xfree(namew);
-  return ret;
-}
-
+// TODO: get rid of this abomination
 static int print_highlighted_and_shortened(struct ncplane *n, const char *name,
                                            const char *hl, int max_len,
                                            bool has_ext) {
@@ -610,7 +599,7 @@ static int print_highlighted_and_shortened(struct ncplane *n, const char *name,
           ncplane_putwc(n, *(namew++));
         }
       }
-      ncplane_putwc(n, cfg.truncatechar);
+      ncplane_putstr(n, cfg.truncatechar);
     } else {
       // highlight begins after truncate
       while (namew < print_name_end) {
@@ -620,7 +609,7 @@ static int print_highlighted_and_shortened(struct ncplane *n, const char *name,
         // highlight begins before extension begins
         ncplane_set_channels(n, cfg.colors.search);
       }
-      ncplane_putwc(n, cfg.truncatechar);
+      ncplane_putstr(n, cfg.truncatechar);
     }
     if (hl_begin >= extw) {
       while (extw < hl_begin) {
@@ -653,7 +642,7 @@ static int print_highlighted_and_shortened(struct ncplane *n, const char *name,
     if (hl_begin < extw) {
       ncplane_set_channels(n, cfg.colors.search);
     }
-    ncplane_putwc(n, cfg.truncatechar);
+    ncplane_putstr(n, cfg.truncatechar);
     if (hl_end <= extw) {
       ncplane_set_channels(n, ch);
     }
@@ -671,13 +660,13 @@ static int print_highlighted_and_shortened(struct ncplane *n, const char *name,
       while (extw < ext_end) {
         ncplane_putwc(n, *(extw++));
       }
-      ncplane_putwc(n, cfg.truncatechar);
+      ncplane_putstr(n, cfg.truncatechar);
       ncplane_set_channels(n, ch);
     } else {
       while (extw < ext_end) {
         ncplane_putwc(n, *(extw++));
       }
-      ncplane_putwc(n, cfg.truncatechar);
+      ncplane_putstr(n, cfg.truncatechar);
     }
   } else if (max_len > 1) {
     const wchar_t *name_end = namew_ + max_len - 1;
@@ -705,7 +694,7 @@ static int print_highlighted_and_shortened(struct ncplane *n, const char *name,
       }
       ncplane_set_channels(n, cfg.colors.search);
     }
-    ncplane_putwc(n, cfg.truncatechar);
+    ncplane_putstr(n, cfg.truncatechar);
     ncplane_set_channels(n, ch);
   } else {
     // only one char
@@ -923,15 +912,16 @@ static void draw_file(struct ncplane *n, const File *file, bool iscurrent,
   const char *hlsubstr = !zsview_is_empty(highlight) && highlight.str[0]
                              ? strcasestr(file_name_str(file), highlight.str)
                              : NULL;
-  const int left_space =
+  int left_space =
       ncol - 3 - rightmargin - (cfg.icons ? 2 : 0) - (tags ? tags->cols : 0);
   if (left_space > 0) {
     if (hlsubstr) {
       x += print_highlighted_and_shortened(
           n, file_name_str(file), highlight.str, left_space, !file_isdir(file));
     } else {
-      x += print_shortened(n, file_name_str(file), left_space,
-                           !file_isdir(file));
+      char buf[PATH_MAX];
+      shorten_name(*file_name(file), buf, left_space, !file_isdir(file));
+      ncplane_putstr(n, buf);
     }
 
     for (; x < ncol - rightmargin - 1; x++) {

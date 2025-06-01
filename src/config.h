@@ -8,7 +8,6 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include <wchar.h>
 
 #include <unistd.h>
 
@@ -54,10 +53,10 @@ typedef struct config {
   cstr fifopath;    // rundir/$PID.fifo
   cstr logpath;     // /tmp/lfm.$PID.log
 
-  int histsize;         // 100
-  wchar_t truncatechar; // '~'
-  char linkchars[16];   // "->"
-  char current_char;    // \0, unless 8 color terminal
+  int histsize;          // 100
+  char truncatechar[16]; // '~'
+  char linkchars[16];    // "->"
+  char current_char;     // \0, unless 8 color terminal
   int linkchars_len;
   cstr infoline;
   bool preview;

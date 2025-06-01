@@ -48,6 +48,3 @@ static inline void ncplane_putchar_rep(struct ncplane *n, char c, int rep) {
 
 // Returns the size of the string in wide chars with ansi codes removed.
 size_t ansi_mblen(const char *s);
-
-int print_shortened_w(struct ncplane *n, const wchar_t *name, int name_len,
-                      int max_len, bool has_ext);

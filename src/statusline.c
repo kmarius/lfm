@@ -132,7 +132,7 @@ void statusline_draw(Ui *ui) {
       ncplane_putchar(n, ' ');
     }
     if (lhs_sz + rhs_sz > ui->x) {
-      ncplane_putwc_yx(n, 0, ui->x - rhs_sz - 2, cfg.truncatechar);
+      ncplane_putstr_yx(n, 0, ui->x - rhs_sz - 2, cfg.truncatechar);
       ncplane_putchar(n, ' ');
     }
   }

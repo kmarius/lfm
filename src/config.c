@@ -20,7 +20,7 @@ extern char *default_lua_dir;
 // clang-format off
 Config cfg = {
     .histsize = 100,
-    .truncatechar = L'~',
+    .truncatechar = "~",
     .scrolloff = 4,
     .linkchars = "->",
     .linkchars_len = 2,

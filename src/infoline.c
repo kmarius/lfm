@@ -4,11 +4,11 @@
 #include "lfm.h"
 #include "log.h"
 #include "macros.h"
-#include "memory.h"
 #include "ncutil.h"
 #include "spinner.h"
+#include "stc/csview.h"
+#include "stc/zsview.h"
 #include "ui.h"
-#include "util.h"
 
 #include <curses.h>
 
@@ -16,7 +16,6 @@
 #include <notcurses/notcurses.h>
 #include <string.h>
 #include <unistd.h>
-#include <wchar.h>
 
 // some placeholders don't change (user, host) and are not counted here
 #define PLACEHOLDERS_MAX 16
@@ -44,7 +43,7 @@ static struct {
   int16_t next_len;        // printed length of whatever follows
   int16_t replacement_len; // printed length of the replaced placeholder, if
                            // known, or 0
-  void *ptr; // data belonging to the placeholder, possibly a char* or wchar_t*
+  void *ptr; // data belonging to the placeholder, possibly a char *
 } placeholders[PLACEHOLDERS_MAX] = {0};
 
 // index positions of some placeholders
@@ -54,9 +53,7 @@ static struct {
 
 static inline void draw_custom(Ui *ui);
 static inline void draw_default(Ui *ui);
-static inline int shorten_file_name(wchar_t *name, int name_len, int max_len,
-                                    bool has_ext);
-static inline int shorten_path(wchar_t *path, int path_len, int max_len);
+static inline int shorten_path(zsview path, char *buf, int max_len);
 
 static inline bool should_draw_default() {
   return static_len == 0;
@@ -219,16 +216,12 @@ static inline void draw_custom(Ui *ui) {
   struct ncplane *n = ui->planes.info;
 
   // longer file names/paths are truncated safely
-  wchar_t file_buf[128] = {0};
+  File *file = NULL;
+  char file_buf[128] = {0};
   int file_len = 0;
   bool file_is_dir = false;
-  const int file_buf_len = sizeof file_buf / sizeof file_buf[0];
 
-  wchar_t path_buf[PATH_MAX] = {0};
-  const int path_buf_len = sizeof path_buf / sizeof path_buf[0];
-
-  // start of the string we are printing, points into path_buf
-  wchar_t *path = path_buf;
+  char path_buf[PATH_MAX] = {0};
 
   // we need to fit file/path placeholders into this
   // make sure to deduct any other dynamic placeholders from this
@@ -243,73 +236,65 @@ static inline void draw_custom(Ui *ui) {
 
   if (idx.file != 0) {
     file_buf[0] = 0;
-    File *file = fm_current_file(&to_lfm(ui)->fm);
-    if (file) {
-      file_len = mbstowcs(file_buf, file_name_str(file), file_buf_len - 1);
+    file = fm_current_file(&to_lfm(ui)->fm);
+    if (file != NULL) {
+      file_len = zsview_u8_size(*file_name(file));
       file_is_dir = file_isdir(file);
     }
   }
 
   if (idx.path != 0) {
     const Dir *dir = fm_current_dir(&to_lfm(ui)->fm);
-    const wchar_t *path_buf_end = path_buf + path_buf_len;
-
-    mbstowcs(path_buf, dir_path_str(dir), path_buf_len - 1);
 
     int path_remaining = remaining - file_len;
 
+    size_t buf_idx = 0;
+
     // replace $HOME with ~
-    if (cstr_starts_with(dir_path(dir), home)) {
-      path += mbslen(home) - 1;
-      // make sure we don't jump past the end of the buffer
-      if (path < path_buf_end - 1) {
-        *path = '~';
-        path_remaining--;
-      } else {
-        // abort!
-        path_remaining = 0;
-        path = (wchar_t *)path_buf_end - 1;
-      }
+    zsview path = cstr_zv(dir_path(dir));
+    if (zsview_starts_with(path, home)) {
+      path = zsview_from_pos(path, home_len);
+      path_buf[buf_idx++] = '~';
+      path_remaining--;
     }
 
     if (!dir_isroot(dir) && path_remaining > 0) {
       path_remaining--; // extra trailing '/', later
     }
 
-    int len = wcslen(path);
-    if (path_remaining < len) {
-      wchar_t *path_begin = path;
-      if (path[0] == '~') {
-        path_begin++;
-        len--;
-      }
-      shorten_path(path_begin, len, path_remaining);
-      len = wcslen(path);
+    int u8_len;
+
+    if (path_remaining <= 1) {
+      strcpy(path_buf, cfg.truncatechar);
+      buf_idx = strlen(path_buf);
+      u8_len = 1;
+    } else {
+      u8_len = shorten_path(path, &path_buf[buf_idx], path_remaining);
+      buf_idx = strlen(path_buf);
     }
-    assert(path + len < path_buf_end);
 
     // trailing slash
     if (!dir_isroot(dir)) {
-      if (path + len < path_buf_end - 1) {
-        path[len] = '/';
-        path[len + 1] = 0;
-        len++;
+      if (buf_idx < sizeof path_buf - 1) {
+        path_buf[buf_idx] = '/';
+        path_buf[buf_idx + 1] = 0;
+        buf_idx++;
+        u8_len++;
       }
     }
 
-    placeholders[idx.path].replacement_len = len;
-    placeholders[idx.path].ptr = path;
-    remaining -= len;
-
-    assert(path < path_buf_end);
+    placeholders[idx.path].replacement_len = u8_len;
+    placeholders[idx.path].ptr = path_buf;
+    remaining -= u8_len;
   }
 
   if (idx.file != 0) {
+    shorten_name(*file_name(file), file_buf, remaining, !file_is_dir);
     if (remaining < file_len) {
-      shorten_file_name(file_buf, file_len, remaining, !file_is_dir);
+      file_len = remaining;
     }
     // TODO: could be returned by shorten_file_name
-    placeholders[idx.file].replacement_len = wcslen(file_buf);
+    placeholders[idx.file].replacement_len = file_len;
     placeholders[idx.file].ptr = file_buf;
   }
 
@@ -318,10 +303,10 @@ static inline void draw_custom(Ui *ui) {
     case 0:
       break;
     case 'f':
-      ncplane_putwstr(n, placeholders[i].ptr);
+      ncplane_putstr(n, placeholders[i].ptr);
       break;
     case 'p':
-      ncplane_putwstr(n, placeholders[i].ptr);
+      ncplane_putstr(n, placeholders[i].ptr);
       break;
     case 's': {
       unsigned int x;
@@ -379,204 +364,210 @@ static inline void draw_default(Ui *ui) {
 
   const Dir *dir = fm_current_dir(&to_lfm(ui)->fm);
   const File *file = dir_current_file(dir);
-  int path_len = 0;
-  int name_len = 0;
-  wchar_t *path_ = ambstowcs(dir_path_str(dir), &path_len);
-  wchar_t *path = path_;
-  wchar_t *name = NULL;
 
-  // shortening should work fine with ascii only names
-  wchar_t *end = path + wcslen(path);
-  unsigned int remaining;
+  zsview path = cstr_zv(dir_path(dir));
+
+  unsigned remaining;
   ncplane_cursor_yx(n, NULL, &remaining);
   remaining = ui->x - remaining;
-  if (file) {
-    name = ambstowcs(file_name_str(file), &name_len);
-    remaining -= name_len;
+
+  if (file != NULL) {
+    remaining -= zsview_u8_size(*file_name(file));
   }
+
   ncplane_set_fg_palindex(n, COLOR_BLUE);
-  if (cstr_starts_with(dir_path(dir), home)) {
+  if (zsview_starts_with(path, home)) {
     ncplane_putchar(n, '~');
     remaining--;
-    path += home_len;
+    path = zsview_from_pos(path, home_len);
   }
 
   if (!dir_isroot(dir)) {
-    remaining--; // printing another '/' later
+    remaining--; // printing another '/' after path
   }
 
-  /* TODO: check remaining < 0 here (on 2022-10-29) */
-
-  // shorten path components if necessary {}
-  while (*path && end - path > remaining) {
-    ncplane_putchar(n, '/');
-    remaining--;
-    wchar_t *next = wcschr(++path, '/');
-    if (!next) {
-      next = end;
-    }
-
-    if (end - next <= remaining) {
-      // Everything after the next component fits, we can print some of this one
-      const int m = remaining - (end - next) - 1;
-      if (m >= 2) {
-        wchar_t *print_end = path + m;
-        remaining -= m;
-        while (path < print_end) {
-          ncplane_putwc(n, *(path++));
-        }
-
-        if (*path != '/') {
-          ncplane_putwc(n, cfg.truncatechar);
-          remaining--;
-        }
-      } else {
-        ncplane_putwc(n, *path);
-        remaining--;
-        path = next;
-      }
-      path = next;
-    } else {
-      // print one char only.
-      ncplane_putwc(n, *path);
-      remaining--;
-      path = next;
-    }
-  }
-  ncplane_putwstr(n, path);
+  char buf[PATH_MAX];
+  shorten_path(path, buf, remaining);
+  ncplane_putstr(n, buf);
 
   if (!dir_isroot(dir)) {
     ncplane_putchar(n, '/');
   }
 
-  if (file) {
+  if (file != NULL) {
     ncplane_cursor_yx(n, NULL, &remaining);
     remaining = ui->x - remaining;
     ncplane_set_fg_default(n);
-    print_shortened_w(n, name, name_len, remaining, !file_isdir(file));
+    shorten_name(*file_name(file), buf, remaining, !file_isdir(file));
+    ncplane_putstr(n, buf);
   }
-
-  xfree(path_);
-  xfree(name);
 }
 
 /* TODO: make the following two functions return the length of the output
  * (and make the callers use it) (on 2022-10-29) */
-/* TODO: use these in the default infoline drawer (on 2022-10-29) */
 
 // max_len is not a strict upper bound, but we try to make path as short as
 // possible. path probably shouldn't end with /
-static inline int shorten_path(wchar_t *path, int path_len, int max_len) {
-  wchar_t *ptr = path;
-  wchar_t *end = path + path_len;
-  if (path_len <= max_len) {
-    return path_len;
-  } else if (max_len <= 0) {
-    // as short as possible
-    while (*path) {
-      *ptr++ = '/';
-      wchar_t *next = wcschr(++path, '/');
-      *ptr++ = *path;
-      if (!next) {
-        break;
-      }
-      path = next;
-    }
-  } else {
-    while (*path && end - path > max_len) {
-      *ptr++ = '/';
-      max_len--;
+static inline int shorten_path(zsview path, char *buf, int max_len) {
+  int trunc_len = strlen(cfg.truncatechar);
+  int max = max_len;
 
-      wchar_t *next = wcschr(++path, '/');
-      if (!next) {
-        next = end;
-      }
+  char *ptr = buf;
 
-      if (end - next <= max_len) {
-        // Everything after the next component fits, we can print some of this
-        // one
-        const int m = max_len - (end - next) - 1;
-        if (m >= 2) {
-          const wchar_t *keep = path + m;
-          max_len -= m;
-          while (path < keep) {
-            *ptr++ = *(path++);
-          }
-
-          if (*path != '/') {
-            *ptr++ = cfg.truncatechar;
-            max_len--;
-          }
-        } else {
-          *ptr++ = *path;
-          max_len--;
-        }
-      } else {
-        // print one char only.
-        *ptr++ = *path;
-        max_len--;
-      }
-
-      path = next;
-    }
-
-    // any leftovers fit
-    while (*path) {
-      *ptr++ = *path++;
-    }
-  }
-
-  *ptr = 0;
-
-  return 0;
-}
-
-static inline int shorten_file_name(wchar_t *name, int name_len, int max_len,
-                                    bool has_ext) {
-  if (max_len <= 0) {
-    *name = 0;
+  // very short
+  if (max_len == 2) {
+    *ptr++ = '/';
+    memcpy(ptr, cfg.truncatechar, trunc_len + 1);
+    ptr += trunc_len;
+    return 2;
+  } else if (max_len == 1) {
+    memcpy(ptr, cfg.truncatechar, trunc_len + 1);
+    ptr += trunc_len;
+    return 1;
+  } else if (max_len == 0) {
+    *ptr = 0;
     return 0;
   }
 
-  const wchar_t *ext = has_ext ? wcsrchr(name, L'.') : NULL;
-
-  if (!ext || ext == name) {
-    ext = name + name_len;
+  int path_remaining_u8 = zsview_u8_size(path);
+  if (path_remaining_u8 <= max_len) {
+    memcpy(buf, path.str, path.size + 1);
+    return path_remaining_u8;
   }
-  const int ext_len = name_len - (ext - name);
 
-  wchar_t *ptr = name;
+  zsview cur = path;
+  while (path_remaining_u8 > 0 && path_remaining_u8 > max_len) {
+    // first char is / on each iteration
+    cur = zsview_from_pos(cur, 1);
+    *ptr++ = '/';
+    max_len--;
+    path_remaining_u8--;
 
-  int x = max_len;
+    const char *next = strchr(cur.str, '/');
+
+    int len = 0;
+    int u8_len;
+    if (next != NULL) {
+      len = next - cur.str;
+      u8_len = csview_u8_size(zsview_subview(cur, 0, len));
+    } else {
+      len = cur.size;
+      u8_len = path_remaining_u8;
+    }
+
+    path_remaining_u8 -= u8_len;
+
+    if (path_remaining_u8 <= (int)max_len) {
+      // Everything after the next component fits, we can print some of this
+      // one
+
+      // fill this many cells
+      int m = max_len - path_remaining_u8;
+      if (m >= 2) {
+        csview cs = zsview_u8_subview(cur, 0, m - 1);
+        memcpy(ptr, cs.buf, cs.size);
+        ptr += cs.size;
+        memcpy(ptr, cfg.truncatechar, trunc_len);
+        ptr += trunc_len;
+      } else {
+        // space for just one
+        csview cs = zsview_u8_subview(cur, 0, 1);
+        memcpy(ptr, cs.buf, cs.size);
+        ptr += cs.size;
+      }
+      max_len -= m;
+    } else if (max_len == 1) {
+      // way too little space, aborting
+      memcpy(ptr, cfg.truncatechar, trunc_len + 1);
+      return max;
+    } else if (max_len == 0) {
+      *ptr = 0;
+      return max;
+    } else {
+      // otherwise, print one char only.
+      csview cs = zsview_u8_subview(cur, 0, 1);
+      memcpy(ptr, cs.buf, cs.size);
+      ptr += cs.size;
+      max_len--;
+    }
+
+    // advance to next /
+    cur = zsview_from_pos(cur, len);
+  }
+
+  memcpy(ptr, cur.str, cur.size + 1);
+  ptr += cur.size;
+
+  return max;
+}
+
+int shorten_name(zsview name, char *buf, int max_len, bool has_ext) {
+  size_t pos = 0;
+  char *ptr = buf;
+  if (max_len <= 0) {
+    *ptr = 0;
+    return 0;
+  }
+
+  int name_len = zsview_u8_size(name);
   if (name_len <= max_len) {
     // everything fits
+    memcpy(buf, name.str, name.size + 1);
     return name_len;
-  } else if (max_len > ext_len + 1) {
-    // keep extension and as much of the name as possible
-    int print_name_ind = max_len - ext_len - 1;
-    ptr = name + print_name_ind;
-    *ptr++ = cfg.truncatechar;
-    while (*ext) {
-      *ptr++ = *ext++;
-    }
-  } else if (max_len >= 5) {
-    // keep first char of the name and as mutch of the extension as possible
-    const wchar_t *keep = ext + max_len - 2 - 1;
-    ptr++;
-    *ptr++ = cfg.truncatechar;
-    while (ext < keep && *ext) {
-      *ptr++ = *ext++;
-    }
-    *ptr++ = cfg.truncatechar;
-  } else if (max_len > 1) {
-    wchar_t *name_end = name + max_len - 1;
-    ptr = name_end;
-    *ptr++ = cfg.truncatechar;
-  } else {
-    // first char only
-    ptr++;
   }
-  *ptr = 0;
 
-  return x;
+  zsview ext = zsview_tail(name, 0);
+  if (has_ext) {
+    const char *ptr = strrchr(name.str, '.');
+    if (ptr != NULL && ptr != name.str) {
+      ext = zsview_tail(name, name.size - (ptr - name.str));
+    }
+  }
+  int ext_len = zsview_u8_size(ext);
+
+  int trunc_len = strlen(cfg.truncatechar);
+
+  if (max_len > ext_len + 1) {
+    // print extension and as much of the name as possible
+    csview cs = zsview_u8_subview(name, 0, max_len - ext_len - 1);
+
+    memcpy(buf + pos, cs.buf, cs.size);
+    pos += cs.size;
+
+    memcpy(buf + pos, cfg.truncatechar, trunc_len);
+    pos += trunc_len;
+
+    memcpy(buf + pos, ext.str, ext.size + 1);
+  } else if (max_len >= 5) {
+    // print first char of the name and as mutch of the extension as possible
+    csview cs = zsview_u8_subview(name, 0, 1);
+
+    memcpy(buf + pos, cs.buf, cs.size);
+    pos += cs.size;
+
+    memcpy(buf + pos, cfg.truncatechar, trunc_len);
+    pos += trunc_len;
+
+    cs = zsview_u8_subview(ext, 0, max_len - 2 - 1);
+
+    memcpy(buf + pos, cs.buf, cs.size);
+    pos += cs.size;
+
+    memcpy(buf + pos, cfg.truncatechar, trunc_len + 1);
+  } else if (max_len > 1) {
+    csview cs = zsview_u8_subview(name, 0, max_len - 1);
+    memcpy(buf + pos, cs.buf, cs.size);
+    pos += cs.size;
+
+    memcpy(buf + pos, cfg.truncatechar, trunc_len + 1);
+  } else {
+    // try one char?
+    csview cs = zsview_u8_subview(name, 0, 1);
+
+    memcpy(buf + pos, cs.buf, cs.size);
+    pos += cs.size;
+    buf[pos] = 0;
+  }
+
+  return max_len;
 }
