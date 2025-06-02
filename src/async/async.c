@@ -16,7 +16,6 @@
 #include <sys/sysinfo.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include <wchar.h>
 
 static struct result *result_queue_get(struct result_queue *queue);
 
