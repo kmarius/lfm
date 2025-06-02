@@ -62,14 +62,10 @@ static void lua_result_callback(void *p, Lfm *lfm) {
     // result was nil
     lua_pushnil(L); // [cb, nil]
   } else {
-    lua_pushbytes(L, res->result); // [cb, bytes]
-    if (lua_decode(L, -1)) {
-      // [cb, bytes, err]
-      lua_remove(L, -2);
+    if (lua_decode(L, res->result)) {
+      // [cb, err]
       goto err;
     }
-    // [cb, bytes, res]
-    lua_remove(L, -2); // [cb, res]
   }
 
   // [cb, res]
@@ -126,16 +122,13 @@ void async_lua_worker(void *arg) {
 
   int nargs = 0;
   if (!bytes_is_empty(work->arg)) {
-    lua_pushbytes(L, work->arg); // [func, bytes]
-    if (lua_decode(L, -1)) {
-      // [func, bytes, err]
+    if (lua_decode(L, work->arg)) {
+      // [func, err]
       work->result = lua_tobytes(L, -1);
-      lua_pop(L, 3);
+      lua_pop(L, 2);
       goto err;
     }
-    // [func, bytes, arg]
-
-    lua_remove(L, -2); // [func, arg]
+    // [func, arg]
     nargs++;
   }
 
@@ -157,16 +150,14 @@ void async_lua_worker(void *arg) {
     lua_pop(L, 1);
   } else {
     // [res]
-    if (lua_encode(L, -1)) {
+    if (lua_encode(L, -1, &work->result)) {
       // [res, err]
       work->result = lua_tobytes(L, -1);
       lua_pop(L, 2); // []
       goto err;
     }
-    // [res, bytes]
-
-    work->result = lua_tobytes(L, -1);
-    lua_pop(L, 2); // []
+    // [res]
+    lua_pop(L, 1); // []
   }
 
 end:

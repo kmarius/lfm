@@ -1,12 +1,12 @@
 #include "lfm.h"
 
 #include "../config.h"
-#include "../vec_env.h"
 #include "../hooks.h"
 #include "../input.h"
 #include "../macros.h"
 #include "../mode.h"
 #include "../search.h"
+#include "../vec_env.h"
 #include "auto/versiondef.h"
 #include "private.h"
 #include "util.h"
@@ -450,11 +450,10 @@ static int l_thread(lua_State *L) {
   bytes arg = bytes_init();
   if (lua_gettop(L) == 3) {
     // encode optional argument
-    if (lua_encode(L, 3)) {
+    if (lua_encode(L, 3, &arg)) {
       bytes_drop(&chunk);
       return lua_error(L);
     }
-    arg = lua_tobytes(L, -1);
   }
   async_lua(&lfm->async, &chunk, &arg, ref);
   return 0;
