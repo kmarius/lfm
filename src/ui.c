@@ -676,6 +676,50 @@ static int print_short_hl(struct ncplane *n, zsview name, int hl_begin,
   return x;
 }
 
+// try to find the icon for a file, or return NULL
+const cstr *get_icon(const File *file) {
+  const char *key = NULL;
+  if (file_islink(file)) {
+    key = file_isbroken(file) ? "or" : "ln";
+  } else if (file_isdir(file)) {
+    key = "di";
+    /* TODO: add these (on 2022-09-18) */
+    // case f.IsDir() && f.Mode()&os.ModeSticky != 0 && f.Mode()&0002 != 0:
+    //       key = "tw"
+    // case f.IsDir() && f.Mode()&0002 != 0:
+    //         key = "ow"
+    // case f.IsDir() && f.Mode()&os.ModeSticky != 0:
+    //           key = "st"
+    // case f.Mode()&os.ModeNamedPipe != 0:
+    //               key = "pi";
+    // case f.Mode()&os.ModeSocket != 0:
+    //                 key = "so";
+    // case f.Mode()&os.ModeDevice != 0:
+    //                   key = "bd";
+    // case f.Mode()&os.ModeCharDevice != 0:
+    //                     key = "cd";
+    // case f.Mode()&os.ModeSetuid != 0:
+    //                       key = "su";
+    // case f.Mode()&os.ModeSetgid != 0:
+  } else if (file_isexec(file)) {
+    key = "ex";
+  }
+
+  const hmap_icon_value *v = NULL;
+  if (key != NULL) {
+    v = hmap_icon_get(&cfg.icon_map, key);
+  }
+
+  if (v == NULL && file_ext(file)) {
+    v = hmap_icon_get(&cfg.icon_map, file_ext(file));
+  }
+
+  if (v == NULL) {
+    v = hmap_icon_get(&cfg.icon_map, "fi");
+  }
+  return v ? &v->second : NULL;
+}
+
 // TODO: this function could use some love
 static void draw_file(struct ncplane *n, const File *file, bool iscurrent,
                       pathlist *sel, pathlist *load, paste_mode mode,
@@ -821,53 +865,12 @@ static void draw_file(struct ncplane *n, const File *file, bool iscurrent,
   ncplane_putchar(n, ' ');
 
   if (cfg.icons) {
-    const char *key = NULL;
-
-    if (file_islink(file)) {
-      key = file_isbroken(file) ? "or" : "ln";
-    } else if (file_isdir(file)) {
-      key = "di";
-      /* TODO: add these (on 2022-09-18) */
-      // case f.IsDir() && f.Mode()&os.ModeSticky != 0 && f.Mode()&0002 != 0:
-      //       key = "tw"
-      // case f.IsDir() && f.Mode()&0002 != 0:
-      //         key = "ow"
-      // case f.IsDir() && f.Mode()&os.ModeSticky != 0:
-      //           key = "st"
-      // case f.Mode()&os.ModeNamedPipe != 0:
-      //               key = "pi";
-      // case f.Mode()&os.ModeSocket != 0:
-      //                 key = "so";
-      // case f.Mode()&os.ModeDevice != 0:
-      //                   key = "bd";
-      // case f.Mode()&os.ModeCharDevice != 0:
-      //                     key = "cd";
-      // case f.Mode()&os.ModeSetuid != 0:
-      //                       key = "su";
-      // case f.Mode()&os.ModeSetgid != 0:
-    } else if (file_isexec(file)) {
-      key = "ex";
-    }
-
-    const hmap_icon_value *v = NULL;
-    if (key != NULL) {
-      v = hmap_icon_get(&cfg.icon_map, key);
-    }
-
-    if (v == NULL && file_ext(file)) {
-      v = hmap_icon_get(&cfg.icon_map, file_ext(file));
-    }
-
-    if (v == NULL) {
-      v = hmap_icon_get(&cfg.icon_map, "fi");
-    }
-
-    if (v != NULL) {
+    const cstr *icon = get_icon(file);
+    if (icon != NULL) {
       // move the corsor to make sure we only print one char
-      ncplane_putnstr(n, cstr_size(&v->second), cstr_str(&v->second));
+      ncplane_putnstr(n, cstr_size(icon), cstr_str(icon));
       ncplane_putstr_yx(n, y0, 3 + (tags ? tags->cols : 0), " ");
     } else {
-      // no icon found
       ncplane_putstr(n, "  ");
     }
   }
