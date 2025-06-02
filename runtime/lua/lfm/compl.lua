@@ -25,6 +25,26 @@ local function commands_provider(tok)
 	return t, " "
 end
 
+-- lazily generate fields from the luacats documentation file
+local config_fields
+local function get_config_fields()
+	if not config_fields then
+		config_fields = {}
+		local path = lfm.fs.joinpath(lfm.paths.data_dir, "LuaCATS/lfm/o.lua")
+		local enabled = false
+		for line in io.lines(path, "*l") do
+			if line == "---@class Lfm.Options" then
+				enabled = true
+			end
+			if enabled then
+				local field = line:match("^%-%-%-@field ([^ ]+)")
+				table.insert(config_fields, field)
+			end
+		end
+	end
+	return config_fields
+end
+
 ---Complete fields from the lfm namespace. Used to complete functions in command mode.
 ---@type Lfm.ComplFun
 function M.table(_, line)
@@ -44,6 +64,13 @@ function M.table(_, line)
 	for e, _ in pairs(tab) do
 		if string.sub(e, 1, #suffix) == suffix then
 			table.insert(t, prefix .. e)
+		end
+	end
+	if prefix == "lfm.o." then
+		for _, field in ipairs(get_config_fields()) do
+			if string.sub(field, 1, #suffix) == suffix then
+				table.insert(t, prefix .. field)
+			end
 		end
 	end
 	return t, "."
