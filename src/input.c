@@ -190,7 +190,7 @@ void input_handle_key(Lfm *lfm, input_t in) {
         char buf[MB_LEN_MAX + 1];
         int n = wctomb(buf, in);
         if (n < 0) {
-          log_error("invalid character wchar=%lu", in);
+          log_error("invalid input: %lu", in);
           n = 0;
         }
         buf[n] = '\0';

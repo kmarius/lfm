@@ -6,7 +6,6 @@
 #include <magic.h>
 
 #include <ctype.h>
-#include <errno.h>
 #include <libgen.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -19,6 +18,9 @@
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/types.h>
+
+bool haswcaseprefix(const wchar_t *restrict string,
+                    const wchar_t *restrict prefix);
 
 char *rtrim(char *s) {
   char *t = s;
@@ -58,16 +60,6 @@ const wchar_t *wstrcasestr(const wchar_t *str, const wchar_t *sub) {
   return NULL;
 }
 
-bool haswprefix(const wchar_t *restrict string,
-                const wchar_t *restrict prefix) {
-  while (*prefix != 0) {
-    if (*prefix++ != *string++) {
-      return false;
-    }
-  }
-  return true;
-}
-
 bool haswcaseprefix(const wchar_t *restrict string,
                     const wchar_t *restrict prefix) {
   while (*prefix != 0) {
@@ -105,35 +97,6 @@ bool hascaseprefix(const char *restrict string, const char *restrict prefix) {
   return true;
 }
 
-bool hasprefix(const char *restrict string, const char *restrict prefix) {
-  while (*prefix != 0) {
-    if (*prefix++ != *string++) {
-      return false;
-    }
-  }
-  return true;
-}
-
-bool hassuffix(const char *suf, const char *str) {
-  const char *s = strrchr(str, suf[0]);
-  return s && strcasecmp(s, suf) == 0;
-}
-
-const char *strcaserchr(const char *str, char c) {
-  const char *last = NULL;
-  for (; *str != 0; str++) {
-    if (*str == c) {
-      last = str;
-    }
-  }
-  return last;
-}
-
-bool hascasesuffix(const char *suf, const char *str) {
-  const char *s = strcaserchr(str, suf[0]);
-  return s && strcasecmp(s, suf) == 0;
-}
-
 char *readable_filesize(double size, char *buf) {
   int32_t i = 0;
   const char *units[] = {"", "K", "M", "G", "T", "P", "E", "Z", "Y"};
@@ -143,21 +106,6 @@ char *readable_filesize(double size, char *buf) {
   }
   sprintf(buf, "%.*f%s", i > 0 ? 1 : 0, size, units[i]);
   return buf;
-}
-
-// https://stackoverflow.com/questions/1157209/is-there-an-alternative-sleep-function-in-c-to-milliseconds
-int msleep(uint32_t msec) {
-  struct timespec ts;
-  int res;
-
-  ts.tv_sec = msec / 1000;
-  ts.tv_nsec = (msec % 1000) * 1000000;
-
-  do {
-    res = nanosleep(&ts, &ts);
-  } while (res != 0 && errno == EINTR);
-
-  return res;
 }
 
 uint64_t current_micros(void) {
@@ -192,23 +140,6 @@ int make_dirs(zsview path, __mode_t mode) {
   return mkdir_p(dirname(buf), mode);
 }
 
-int vasprintf(char **dst, const char *format, va_list args) {
-  va_list args_copy;
-  va_copy(args_copy, args);
-  *dst = xmalloc(vsnprintf(NULL, 0, format, args) + 1);
-  int ret = vsprintf(*dst, format, args_copy);
-  va_end(args_copy);
-  return ret;
-}
-
-int asprintf(char **dst, const char *format, ...) {
-  va_list args;
-  va_start(args, format);
-  const int ret = vasprintf(dst, format, args);
-  va_end(args);
-  return ret;
-}
-
 wchar_t *ambstowcs(const char *s, int *len) {
   const int l = mbstowcs(NULL, s, 0);
   wchar_t *ws = xmalloc((l + 1) * sizeof *ws);
@@ -225,7 +156,8 @@ bool get_mimetype(const char *path, char *dest, size_t sz) {
   magic_t magic = magic_open(MAGIC_MIME_TYPE);
   magic_load(magic, NULL);
   const char *mime = magic_file(magic, path);
-  if (!mime || hasprefix(mime, "cannot open")) {
+  if (mime == 0 ||
+      strncmp(mime, "cannot open", sizeof "cannot open" - 1) == 0) {
     ret = false;
     *dest = 0;
   } else {
