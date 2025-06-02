@@ -246,7 +246,7 @@ uint32_t cmdline_draw(Self *self, struct ncplane *n) {
   ncplane_dim_yx(n, NULL, &ncol);
 
   uint32_t ret = 0;
-  ret += ncplane_put_str_ansi_yx(n, 0, 0, cstr_str(&self->prefix));
+  ret += ncplane_putstr_ansi_yx(n, 0, 0, cstr_str(&self->prefix));
   ncol -= ret;
 
   unsigned left_len = cstr_u8_size(&self->left);

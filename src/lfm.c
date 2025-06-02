@@ -586,7 +586,7 @@ int lfm_spawn(Lfm *lfm, const char *prog, char *const *args, vec_env *env,
     close(pipe_stdin[0]);
     if (stdin_lines) {
       c_foreach(it, vec_bytes, *stdin_lines) {
-        write(pipe_stdin[1], it.ref->data, it.ref->size);
+        write(pipe_stdin[1], it.ref->buf, it.ref->size);
         write(pipe_stdin[1], "\n", 1);
       }
     }
@@ -720,7 +720,7 @@ int lfm_execute(Lfm *lfm, const char *prog, char *const *args, vec_env *env,
     log_trace("sending stdin");
     close(pipe_stdin[0]);
     c_foreach(it, vec_bytes, *stdin_lines) {
-      write(pipe_stdin[1], it.ref->data, it.ref->size);
+      write(pipe_stdin[1], it.ref->buf, it.ref->size);
       write(pipe_stdin[1], "\n", 1);
     }
     close(pipe_stdin[1]);

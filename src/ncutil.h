@@ -1,8 +1,11 @@
 #pragma once
 
-#include <notcurses/notcurses.h>
+// misc utils to work with notcurses and/or stc
 
 #include "stc/cstr.h"
+#include "stc/csview.h"
+
+#include <notcurses/notcurses.h>
 
 #define NCCHANNEL_INITIALIZER_PALINDEX(ind)                                    \
   (ind < 0 ? ~NC_BGDEFAULT_MASK & 0xff000000lu                                 \
@@ -23,21 +26,34 @@ const char *ncplane_set_ansi_attrs(struct ncplane *n, const char *s);
 
 // Adds a string to n, interpreting ansi escape sequences and setting the
 // attributes to n.
-int ncplane_put_str_ansi_yx(struct ncplane *n, int y, int x, const char *s);
+int ncplane_putcs_ansi_yx(struct ncplane *n, int y, int x, csview cs);
 
-static inline int ncplane_put_str_ansi(struct ncplane *n, const char *s) {
-  return ncplane_put_str_ansi_yx(n, -1, -1, s);
+static inline int ncplane_putstr_ansi_yx(struct ncplane *n, int y, int x,
+                                         const char *str) {
+  return ncplane_putcs_ansi_yx(n, y, x, csview_from(str));
 }
 
-int ncplane_putnstr_ansi_yx(struct ncplane *n, int y, int x, size_t s,
-                            const char *ptr);
+static inline int ncplane_putstr_ansi(struct ncplane *n, const char *str) {
+  return ncplane_putstr_ansi_yx(n, -1, -1, str);
+}
 
-// Adds a cstr to n, interpreting ansi escape sequences and setting the
-// attributes to n.
-int ncplane_put_cstr_ansi_yx(struct ncplane *n, int y, int x, const cstr s);
+static inline int ncplane_putcstr_ansi_yx(struct ncplane *n, int y, int x,
+                                          const cstr *str) {
+  return ncplane_putcs_ansi_yx(n, y, x, cstr_sv(str));
+}
 
-static inline int ncplane_put_cstr_ansi(struct ncplane *n, const cstr s) {
-  return ncplane_put_cstr_ansi_yx(n, -1, -1, s);
+static inline int ncplane_putcstr_ansi(struct ncplane *n, const cstr *str) {
+  return ncplane_putcstr_ansi_yx(n, -1, -1, str);
+}
+
+// stops once printed s cells
+int ncplane_putlcs_ansi_yx(struct ncplane *n, int y, int x, size_t s,
+                           csview cs);
+
+// stops once printed s cells
+static inline int ncplane_putlcstr_ansi_yx(struct ncplane *n, int y, int x,
+                                           size_t s, const cstr *str) {
+  return ncplane_putlcs_ansi_yx(n, y, x, s, cstr_sv(str));
 }
 
 static inline void ncplane_putchar_rep(struct ncplane *n, char c, int rep) {

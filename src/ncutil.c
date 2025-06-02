@@ -2,12 +2,13 @@
 
 #include "log.h"
 #include "stc/cstr.h"
+
 #include <curses.h>
+#include <notcurses/notcurses.h>
 
 #include <assert.h>
 #include <ctype.h>
 #include <limits.h>
-#include <notcurses/notcurses.h>
 #include <stddef.h>
 
 static inline void normal(struct ncplane *n) {
@@ -165,17 +166,19 @@ err:
   goto ret;
 }
 
-int ncplane_put_str_ansi_yx(struct ncplane *n, int y, int x, const char *s) {
+int ncplane_putcs_ansi_yx(struct ncplane *n, int y, int x, csview cs) {
   int ret = 0;
   ncplane_cursor_move_yx(n, y, x);
-  while (*s) {
-    if (*s == '\033') {
-      s = ncplane_set_ansi_attrs(n, s);
+  const char *ptr = cs.buf;
+  const char *end = cs.buf + cs.size;
+  while (ptr < end) {
+    if (*ptr == '\033') {
+      ptr = ncplane_set_ansi_attrs(n, ptr);
     } else {
-      const char *c;
-      for (c = s; *s != 0 && *s != '\033'; s++)
+      const char *cur;
+      for (cur = ptr; ptr < end && *ptr != '\033'; ptr++)
         ;
-      int m = ncplane_putnstr(n, s - c, c);
+      int m = ncplane_putnstr(n, ptr - cur, cur);
       if (m < 0) {
         // EOL/error
         ret -= m;
@@ -187,18 +190,20 @@ int ncplane_put_str_ansi_yx(struct ncplane *n, int y, int x, const char *s) {
   return ret;
 }
 
-int ncplane_putnstr_ansi_yx(struct ncplane *n, int y, int x, size_t s,
-                            const char *ptr) {
+int ncplane_putlcs_ansi_yx(struct ncplane *n, int y, int x, size_t s,
+                           csview cs) {
   int ret = 0;
   ncplane_cursor_move_yx(n, y, x);
-  while (*ptr) {
+  const char *ptr = cs.buf;
+  const char *end = cs.buf + cs.size;
+  while (ptr < end) {
     if (*ptr == '\033') {
       ptr = ncplane_set_ansi_attrs(n, ptr);
     } else {
-      const char *c;
-      for (c = ptr; *ptr != 0 && *ptr != '\033'; ptr++)
+      const char *cur;
+      for (cur = ptr; ptr < end && *ptr != '\033'; ptr++)
         ;
-      int m = ncplane_putnstr(n, ptr - c, c);
+      int m = ncplane_putnstr(n, ptr - cur, cur);
       if (m < 0) {
         // EOL/error
         ret -= m;
@@ -208,30 +213,6 @@ int ncplane_putnstr_ansi_yx(struct ncplane *n, int y, int x, size_t s,
       if (ret >= (int)s) {
         break;
       }
-    }
-  }
-  return ret;
-}
-
-int ncplane_put_cstr_ansi_yx(struct ncplane *n, int y, int x, cstr str) {
-  int ret = 0;
-  ncplane_cursor_move_yx(n, y, x);
-  const char *s = cstr_str(&str);
-  const char *end = cstr_str(&str) + cstr_size(&str);
-  while (s < end) {
-    if (*s == '\033') {
-      s = ncplane_set_ansi_attrs(n, s);
-    } else {
-      const char *c;
-      for (c = s; s < end && *s != '\033'; s++)
-        ;
-      int m = ncplane_putnstr(n, s - c, c);
-      if (m < 0) {
-        // EOL/error
-        ret -= m;
-        break;
-      }
-      ret += m;
     }
   }
   return ret;

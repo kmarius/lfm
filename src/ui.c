@@ -664,7 +664,6 @@ static int print_short_hl(struct ncplane *n, zsview name, int hl_begin,
   } else {
     // only one char
     if (hl_begin == 0) {
-      const uint64_t ch = ncplane_channels(n);
       ncplane_set_channels(n, cfg.colors.search);
       x += ncplane_putnstr(n, 1, name.str);
       ncplane_set_channels(n, ch);
@@ -788,8 +787,7 @@ static void draw_file(struct ncplane *n, const File *file, bool iscurrent,
       ncplane_set_fg_default(n);
       ncplane_set_bg_default(n);
 
-      int len =
-          ncplane_putnstr_ansi_yx(n, -1, -1, tags->cols, cstr_str(&v->second));
+      int len = ncplane_putlcstr_ansi_yx(n, -1, -1, tags->cols, &v->second);
       if (len < 0) {
         ncplane_putchar_rep(n, ' ', tags->cols);
       } else if (len < tags->cols) {
@@ -1089,7 +1087,7 @@ static inline void print_message(Ui *ui, zsview msg, bool error) {
   } else {
     ncplane_set_fg_default(n);
     ncplane_cursor_move_yx(n, 0, 0);
-    ncplane_put_str_ansi(n, msg.str);
+    ncplane_putstr_ansi(n, msg.str);
   }
   notcurses_render(ui->nc);
   ncplane_set_fg_default(n);

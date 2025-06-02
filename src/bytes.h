@@ -8,38 +8,38 @@
 
 // A slice of bytes with fixed length.
 typedef struct bytes {
-  char *data;
+  char *buf;
   size_t size;
 } bytes;
 
-static inline struct bytes bytes_init() {
-  return (struct bytes){0};
+static inline bytes bytes_init() {
+  return (bytes){0};
 }
 
-static inline struct bytes bytes_from_n(const char *bytes, size_t len) {
-  if (unlikely(len == 0)) {
+static inline bytes bytes_from_n(const char *data, size_t size) {
+  if (unlikely(size == 0)) {
     return bytes_init();
   }
-  char *data = memdup(bytes, len);
-  return (struct bytes){data, data ? len : 0};
+  char *data_ = memdup(data, size);
+  return (bytes){data_, data_ ? size : 0};
 }
 
-static inline struct bytes bytes_clone(struct bytes bytes) {
-  return bytes_from_n(bytes.data, bytes.size);
+static inline bytes bytes_clone(bytes bs) {
+  return bytes_from_n(bs.buf, bs.size);
 }
 
-static inline struct bytes bytes_move(struct bytes *bytes) {
-  struct bytes res = *bytes;
-  memset(bytes, 0, sizeof *bytes);
+static inline bytes bytes_move(bytes *self) {
+  struct bytes res = *self;
+  memset(self, 0, sizeof *self);
   return res;
 }
 
-static inline void bytes_drop(struct bytes *bytes) {
-  if (bytes) {
-    free(bytes->data);
+static inline void bytes_drop(bytes *self) {
+  if (self) {
+    free(self->buf);
   }
 }
 
-static inline bool bytes_is_empty(struct bytes bytes) {
-  return bytes.size == 0;
+static inline bool bytes_is_empty(bytes bs) {
+  return bs.size == 0;
 }

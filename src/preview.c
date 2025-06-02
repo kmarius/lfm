@@ -365,7 +365,7 @@ static void draw_text_preview(const Preview *p, struct ncplane *n) {
     ncplane_set_fg_default(n);
     ncplane_set_bg_default(n);
     ncplane_set_styles(n, NCSTYLE_NONE);
-    ncplane_put_cstr_ansi(n, *vec_cstr_at(&p->lines, i));
+    ncplane_putcstr_ansi(n, vec_cstr_at(&p->lines, i));
   }
 }
 
