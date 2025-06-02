@@ -1024,6 +1024,7 @@ static void on_cursor_resting(EV_P_ ev_timer *w, int revents) {
   }
   ui->preview.hidden = false;
   ui_redraw(&lfm->ui, REDRAW_PREVIEW);
+  ev_idle_start(EV_A_ & ui->redraw_watcher);
 }
 
 void ui_update_file_preview_delayed(Ui *ui) {
