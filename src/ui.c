@@ -872,6 +872,11 @@ static void draw_file(struct ncplane *n, const File *file, bool iscurrent,
     }
   }
 
+  // NOTE:
+  // we currently assume that the search is lower case
+  // also we rely on the assumption that converting to lower does not change the
+  // length of utf8 codepoints
+  // there is also cstr_casefold, which is meant to be used for searching
   isize hl_begin = c_NPOS;
   if (!zsview_is_empty(highlight)) {
     cstr name_lower = cstr_tolower_sv(zsview_sv(*file_name(file)));
