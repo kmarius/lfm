@@ -10,7 +10,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <wchar.h>
 
 #include <bits/types.h>
 
@@ -34,8 +33,6 @@ static inline char *trim(char *s) {
   return ltrim(rtrim(s));
 }
 
-const wchar_t *wstrcasestr(const wchar_t *str, const wchar_t *sub);
-
 char *strcasestr(const char *str, const char *sub);
 
 bool hascaseprefix(const char *str, const char *pre);
@@ -51,10 +48,6 @@ int mkdir_p(char *path, __mode_t mode);
 
 // make all directory components of the file at path
 int make_dirs(zsview path, __mode_t mode);
-
-// converts mb string s to a newly allocated wchar string, optionally passes
-// the length to len
-wchar_t *ambstowcs(const char *s, int *len);
 
 // Writes the mimetype of the file at PATH into the buffer dest of length sz.
 // Returns true on success, false on failure with *dest == '\0'

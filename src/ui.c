@@ -9,11 +9,11 @@
 #include "fm.h"
 #include "infoline.h"
 #include "input.h"
+#include "keys.h"
 #include "lfm.h"
 #include "loader.h"
 #include "log.h"
 #include "macros.h"
-#include "memory.h"
 #include "mode.h"
 #include "ncutil.h"
 #include "preview.h"
@@ -39,7 +39,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include <wchar.h>
 
 #include <fcntl.h>
 #include <libgen.h>
@@ -536,180 +535,144 @@ static uint64_t ext_channel_get(const char *ext) {
   return 0;
 }
 
-// TODO: get rid of this one?
-static int print_highlighted_and_shortened(struct ncplane *n, const char *name,
-                                           const char *hl, int max_len,
-                                           bool has_ext) {
+static int print_short_hl(struct ncplane *n, zsview name, int hl_begin,
+                          int hl_end, int max_len, bool has_ext) {
   if (max_len <= 0) {
     return 0;
   }
 
-  int name_len, hl_len;
-  wchar_t *namew_ = ambstowcs(name, &name_len);
-  wchar_t *hlw = ambstowcs(hl, &hl_len);
-  wchar_t *extw = has_ext ? wcsrchr(namew_, L'.') : NULL;
-  if (!extw || extw == namew_) {
-    extw = namew_ + name_len;
-  }
-  int ext_len = name_len - (extw - namew_);
-  const wchar_t *hl_begin = wstrcasestr(namew_, hlw);
-  const wchar_t *hl_end = hl_begin + hl_len;
+  int name_len = zsview_u8_size(name);
 
-  const uint64_t ch = ncplane_channels(n);
-  int x = max_len;
-  wchar_t *namew = namew_;
+  zsview ext = zsview_tail(name, 0);
+  if (has_ext) {
+    char *ptr = strrchr(name.str, '.');
+    if (ptr != NULL && ptr != name.str) {
+      ext = zsview_from_pos(name, ptr - name.str);
+    }
+  }
+  int ext_begin = ext.str - name.str;
+  int ext_len = zsview_u8_size(ext);
+
+  uint64_t ch = ncplane_channels(n);
+  int x = 0;
 
   /* TODO: some of these branches can probably be optimized/combined (on
    * 2022-02-18) */
   if (name_len <= max_len) {
     // everything fits
-    while (namew < hl_begin) {
-      ncplane_putwc(n, *(namew++));
-    }
+    x += ncplane_putnstr(n, hl_begin, name.str);
     ncplane_set_channels(n, cfg.colors.search);
-    while (namew < hl_end) {
-      ncplane_putwc(n, *(namew++));
-    }
+    x += ncplane_putnstr(n, hl_end - hl_begin, name.str + hl_begin);
     ncplane_set_channels(n, ch);
-    while (*namew) {
-      ncplane_putwc(n, *(namew++));
-    }
-    x = name_len;
+    x += ncplane_putstr(n, name.str + hl_end);
   } else if (max_len > ext_len + 1) {
     // print extension and as much of the name as possible
-    wchar_t *print_name_end = namew + max_len - ext_len - 1;
-    if (hl_begin < print_name_end) {
+    int trunc_pos = max_len - ext_len - 1;
+    if (hl_begin < trunc_pos) {
       // highlight begins before truncate
-      while (namew < hl_begin) {
-        ncplane_putwc(n, *(namew++));
-      }
+      x += ncplane_putnstr(n, hl_begin, name.str);
       ncplane_set_channels(n, cfg.colors.search);
-      if (hl_end <= print_name_end) {
+      if (hl_end <= trunc_pos) {
         // highlight ends before truncate
-        while (namew < hl_end) {
-          ncplane_putwc(n, *(namew++));
-        }
+        x += ncplane_putnstr(n, hl_end - hl_begin, name.str + hl_begin);
         ncplane_set_channels(n, ch);
-        while (namew < print_name_end) {
-          ncplane_putwc(n, *(namew++));
-        }
+
+        x += ncplane_putnstr(n, trunc_pos - hl_end, name.str + hl_end);
       } else {
         // highlight continues during truncate
-        while (namew < print_name_end) {
-          ncplane_putwc(n, *(namew++));
-        }
+        x += ncplane_putnstr(n, trunc_pos - hl_begin, name.str + hl_begin);
       }
-      ncplane_putstr(n, cfg.truncatechar);
+      x += ncplane_putstr(n, cfg.truncatechar);
     } else {
       // highlight begins after truncate
-      while (namew < print_name_end) {
-        ncplane_putwc(n, *(namew++));
-      }
-      if (hl_begin < extw) {
+      x += ncplane_putnstr(n, trunc_pos, name.str);
+      if (hl_begin < ext_begin) {
         // highlight begins before extension begins
         ncplane_set_channels(n, cfg.colors.search);
       }
-      ncplane_putstr(n, cfg.truncatechar);
+      x += ncplane_putstr(n, cfg.truncatechar);
     }
-    if (hl_begin >= extw) {
-      while (extw < hl_begin) {
-        ncplane_putwc(n, *(extw++));
-      }
+    if (hl_begin >= ext_begin) {
+      // highlight begins at or after extension
+      x += ncplane_putnstr(n, hl_begin - ext_begin, name.str + ext_begin);
       ncplane_set_channels(n, cfg.colors.search);
-      while (extw < hl_end) {
-        ncplane_putwc(n, *(extw++));
-      }
+      x += ncplane_putnstr(n, hl_end - hl_begin, name.str + hl_begin);
       ncplane_set_channels(n, ch);
-      while (*extw) {
-        ncplane_putwc(n, *(extw++));
-      }
+      x += ncplane_putstr(n, name.str + hl_end);
     } else {
       // highlight was started before
-      while (extw < hl_end) {
-        ncplane_putwc(n, *(extw++));
-      }
-      ncplane_set_channels(n, ch);
-      while (*extw) {
-        ncplane_putwc(n, *(extw++));
+      if (hl_end > ext_begin) {
+        x += ncplane_putnstr(n, hl_end - ext_begin, name.str + ext_begin);
+        ncplane_set_channels(n, ch);
+        x += ncplane_putstr(n, name.str + hl_end);
+      } else {
+        ncplane_set_channels(n, ch);
+        x += ncplane_putstr(n, name.str + ext_begin);
       }
     }
   } else if (max_len >= 5) {
-    const wchar_t *ext_end = extw + max_len - 2 - 1;
-    if (hl_begin == namew_) {
+    int ext_trunc = max_len - 2 - 1;
+    if (hl_begin == 0) {
       ncplane_set_channels(n, cfg.colors.search);
     }
-    ncplane_putwc(n, *name);
-    if (hl_begin < extw) {
+    // first char of name
+    x += ncplane_putnstr(n, 1, name.str);
+    if (hl_begin < ext_begin) {
+      // highlight begins within truncated part
       ncplane_set_channels(n, cfg.colors.search);
     }
-    ncplane_putstr(n, cfg.truncatechar);
-    if (hl_end <= extw) {
+    x += ncplane_putstr(n, cfg.truncatechar);
+    if (hl_end <= ext_begin) {
+      // highlight ends within truncated part
       ncplane_set_channels(n, ch);
     }
-    if (hl_begin >= extw) {
-      while (extw < hl_begin) {
-        ncplane_putwc(n, *(extw++));
-      }
+    if (hl_begin >= ext_begin) {
+      x += ncplane_putnstr(n, hl_begin - ext_begin, name.str + ext_begin);
       ncplane_set_channels(n, cfg.colors.search);
-      if (hl_end < ext_end) {
-        while (extw < hl_end) {
-          ncplane_putwc(n, *(extw++));
-        }
+      if (hl_end < ext_trunc) {
+        x += ncplane_putnstr(n, hl_begin - hl_end, name.str + hl_begin);
         ncplane_set_channels(n, ch);
+        x += ncplane_putnstr(n, ext_trunc - hl_end, name.str + hl_end);
+      } else {
+        x += ncplane_putnstr(n, ext_trunc - hl_end, name.str + hl_begin);
       }
-      while (extw < ext_end) {
-        ncplane_putwc(n, *(extw++));
-      }
-      ncplane_putstr(n, cfg.truncatechar);
+      x += ncplane_putstr(n, cfg.truncatechar);
       ncplane_set_channels(n, ch);
     } else {
-      while (extw < ext_end) {
-        ncplane_putwc(n, *(extw++));
-      }
-      ncplane_putstr(n, cfg.truncatechar);
+      // highlight already ended
+      x += ncplane_putnstr(n, ext_trunc - ext_begin, name.str + ext_begin);
+      x += ncplane_putstr(n, cfg.truncatechar);
     }
   } else if (max_len > 1) {
-    const wchar_t *name_end = namew_ + max_len - 1;
+    int name_end = max_len - 1;
     if (hl_begin < name_end) {
-      while (namew < hl_begin) {
-        ncplane_putwc(n, *(namew++));
-      }
+      x += ncplane_putnstr(n, hl_begin, name.str);
       ncplane_set_channels(n, cfg.colors.search);
       if (hl_end < name_end) {
-        while (namew < hl_end) {
-          ncplane_putwc(n, *(namew++));
-        }
+        x += ncplane_putnstr(n, hl_end - hl_begin, name.str + hl_begin);
         ncplane_set_channels(n, ch);
-        while (namew < name_end) {
-          ncplane_putwc(n, *(namew++));
-        }
+        x += ncplane_putnstr(n, name_end - hl_end, name.str + hl_end);
       } else {
-        while (namew < name_end) {
-          ncplane_putwc(n, *(namew++));
-        }
+        x += ncplane_putnstr(n, name_end - hl_begin, name.str + hl_begin);
       }
     } else {
-      while (namew < name_end) {
-        ncplane_putwc(n, *(namew++));
-      }
+      x += ncplane_putnstr(n, name_end, name.str);
       ncplane_set_channels(n, cfg.colors.search);
     }
-    ncplane_putstr(n, cfg.truncatechar);
+    x += ncplane_putstr(n, cfg.truncatechar);
     ncplane_set_channels(n, ch);
   } else {
     // only one char
-    if (hl == name) {
+    if (hl_begin == 0) {
       const uint64_t ch = ncplane_channels(n);
       ncplane_set_channels(n, cfg.colors.search);
-      ncplane_putwc(n, *namew_);
+      x += ncplane_putnstr(n, 1, name.str);
       ncplane_set_channels(n, ch);
     } else {
-      ncplane_putwc(n, *namew_);
+      x += ncplane_putnstr(n, 1, name.str);
     }
   }
 
-  xfree(hlw);
-  xfree(namew_);
   return x;
 }
 
@@ -909,19 +872,25 @@ static void draw_file(struct ncplane *n, const File *file, bool iscurrent,
     }
   }
 
-  const char *hlsubstr = !zsview_is_empty(highlight) && highlight.str[0]
-                             ? strcasestr(file_name_str(file), highlight.str)
-                             : NULL;
+  isize hl_begin = c_NPOS;
+  if (!zsview_is_empty(highlight)) {
+    cstr name_lower = cstr_tolower_sv(zsview_sv(*file_name(file)));
+    hl_begin = cstr_find_sv(&name_lower, zsview_sv(highlight));
+    cstr_drop(&name_lower);
+  }
+
   int left_space =
       ncol - 3 - rightmargin - (cfg.icons ? 2 : 0) - (tags ? tags->cols : 0);
   if (left_space > 0) {
-    if (hlsubstr) {
-      x += print_highlighted_and_shortened(
-          n, file_name_str(file), highlight.str, left_space, !file_isdir(file));
-    } else {
+    if (hl_begin == c_NPOS) {
       char buf[PATH_MAX];
       shorten_name(*file_name(file), buf, left_space, !file_isdir(file));
-      ncplane_putstr(n, buf);
+      x += ncplane_putstr(n, buf);
+    } else {
+      int hl_end = hl_begin + highlight.size;
+
+      x += print_short_hl(n, *file_name(file), hl_begin, hl_end, left_space,
+                          !file_isdir(file));
     }
 
     for (; x < ncol - rightmargin - 1; x++) {

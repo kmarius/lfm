@@ -1,6 +1,5 @@
 #include "util.h"
 
-#include "memory.h"
 #include "stc/cstr.h"
 
 #include <magic.h>
@@ -12,15 +11,11 @@
 #include <stdlib.h>
 #include <strings.h> // strcasecmp
 #include <time.h>
-#include <wctype.h>
 
 #include <linux/limits.h>
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/types.h>
-
-bool haswcaseprefix(const wchar_t *restrict string,
-                    const wchar_t *restrict prefix);
 
 char *rtrim(char *s) {
   char *t = s;
@@ -40,34 +35,6 @@ char *ltrim(char *s) {
   while (isspace(*++s)) {
   }
   return s;
-}
-
-const wchar_t *wstrcasestr(const wchar_t *str, const wchar_t *sub) {
-
-  if (*sub == 0) {
-    return str;
-  }
-
-  for (; *str != 0; str++) {
-    if (towlower(*str) != towlower(*sub)) {
-      continue;
-    }
-    if (haswcaseprefix(str, sub)) {
-      return str;
-    }
-  }
-
-  return NULL;
-}
-
-bool haswcaseprefix(const wchar_t *restrict string,
-                    const wchar_t *restrict prefix) {
-  while (*prefix != 0) {
-    if (towlower(*prefix++) != towlower(*string++)) {
-      return false;
-    }
-  }
-  return true;
 }
 
 char *strcasestr(const char *str, const char *sub) {
@@ -138,16 +105,6 @@ int make_dirs(zsview path, __mode_t mode) {
     memcpy(buf, path.str, path.size + 1);
   }
   return mkdir_p(dirname(buf), mode);
-}
-
-wchar_t *ambstowcs(const char *s, int *len) {
-  const int l = mbstowcs(NULL, s, 0);
-  wchar_t *ws = xmalloc((l + 1) * sizeof *ws);
-  mbstowcs(ws, s, l + 1);
-  if (len) {
-    *len = l;
-  }
-  return ws;
 }
 
 // https://stackoverflow.com/questions/9152978/include-unix-utility-file-in-c-program
