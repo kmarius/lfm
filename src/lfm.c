@@ -44,20 +44,26 @@ struct sched_timer {
 #define i_type list_timer, struct sched_timer
 #include "stc/dlist.h"
 
-struct child_watcher {
-  ev_child watcher;
-  Lfm *lfm;
+// ev_io wrapper for stdout/stderr
+struct out_watcher {
+  ev_io w;
+  FILE *stream;
   int ref;
-  ev_io *stdout_watcher;
-  ev_io *stderr_watcher;
 };
 
-static inline void destroy_io_watcher(ev_io *w);
+// ev_child wrapper for child processes with stdout/err
+struct child_watcher {
+  ev_child w;
+  struct out_watcher wstdout; // valid if .stream != NULL
+  struct out_watcher wstderr; // valid if .stream != NULL
+  int ref;                    // ref to lua callback
+};
+
+static inline void destroy_child_watcher(struct child_watcher *w);
 
 #define i_declared
 #define i_type list_child, struct child_watcher
-#define i_keydrop(p)                                                           \
-  (destroy_io_watcher(p->stdout_watcher), destroy_io_watcher(p->stderr_watcher))
+#define i_keydrop(p) (destroy_child_watcher(p))
 #define i_no_clone
 #include "stc/dlist.h"
 
@@ -67,25 +73,79 @@ static inline void destroy_io_watcher(ev_io *w);
 // full.
 #define FIFO_BUF_SZ 512
 
-struct stdout_watcher_data {
-  ev_io watcher;
-  Lfm *lfm;
-  FILE *stream;
-  int ref;
-};
-
 // watcher and corresponding stdout/-err watchers need to be stopped before
 // calling this function
-static inline void destroy_io_watcher(ev_io *w) {
-  if (!w) {
-    return;
+static inline void destroy_child_watcher(struct child_watcher *w) {
+  if (w) {
+    Lfm *lfm = w->w.data;
+    if (w->wstdout.stream) {
+      if (w->wstdout.ref)
+        llua_run_stdout_callback(lfm->L, w->wstdout.ref, NULL, 0);
+      fclose(w->wstdout.stream);
+    }
+    if (w->wstderr.stream) {
+      if (w->wstderr.ref)
+        llua_run_stdout_callback(lfm->L, w->wstderr.ref, NULL, 0);
+      fclose(w->wstderr.stream);
+    }
   }
-  struct stdout_watcher_data *data = (struct stdout_watcher_data *)w;
-  if (data->ref) {
-    llua_run_stdout_callback(data->lfm->L, data->ref, NULL, 0);
+}
+
+static void child_cb(EV_P_ ev_child *w, int revents) {
+  (void)revents;
+
+  struct child_watcher *child = (struct child_watcher *)w;
+  Lfm *lfm = w->data;
+
+  if (child->wstdout.stream) {
+    ev_invoke(EV_A_ & child->wstdout.w, 0);
+    ev_io_stop(EV_A_ & child->wstdout.w);
   }
-  fclose(data->stream);
-  xfree(data);
+
+  if (child->wstderr.stream) {
+    ev_invoke(EV_A_ & child->wstderr.w, 0);
+    ev_io_stop(EV_A_ & child->wstderr.w);
+  }
+
+  if (child->ref) {
+    llua_run_child_callback(lfm->L, child->ref, WEXITSTATUS(w->rstatus));
+  }
+
+  ev_child_stop(EV_A_ w);
+
+  list_child_erase_node(&lfm->child_watchers, list_child_get_node(child));
+  ev_idle_start(EV_A_ & lfm->ui.redraw_watcher);
+}
+
+static void child_out_cb(EV_P_ ev_io *w, int revents) {
+  (void)revents;
+
+  struct out_watcher *data = (struct out_watcher *)w;
+  Lfm *lfm = w->data;
+
+  char *line = NULL;
+  int read;
+  size_t n;
+
+  while ((read = getline(&line, &n, data->stream)) != -1) {
+    if (line[read - 1] == '\n') {
+      read--;
+    }
+
+    if (data->ref) {
+      llua_run_stdout_callback(lfm->L, data->ref, line, read);
+    } else {
+      ui_echom(&lfm->ui, "%s", line);
+    }
+  }
+  xfree(line);
+
+  // this seems to prevent the callback being immediately called again by libev
+  if (errno == EAGAIN) {
+    clearerr(data->stream);
+  }
+
+  ev_idle_start(EV_A_ & lfm->ui.redraw_watcher);
 }
 
 static void fifo_cb(EV_P_ ev_io *w, int revents) {
@@ -125,31 +185,6 @@ static void fifo_cb(EV_P_ ev_io *w, int revents) {
   ev_idle_start(lfm->loop, &lfm->ui.redraw_watcher);
 }
 
-static void child_cb(EV_P_ ev_child *w, int revents) {
-  (void)revents;
-  struct child_watcher *watcher = (struct child_watcher *)w;
-  Lfm *lfm = watcher->lfm;
-
-  if (watcher->stdout_watcher) {
-    ev_invoke(EV_A_ watcher->stdout_watcher, 0);
-    ev_io_stop(EV_A_ watcher->stdout_watcher);
-  }
-
-  if (watcher->stderr_watcher) {
-    ev_invoke(EV_A_ watcher->stderr_watcher, 0);
-    ev_io_stop(EV_A_ watcher->stderr_watcher);
-  }
-
-  if (watcher->ref) {
-    llua_run_child_callback(lfm->L, watcher->ref, WEXITSTATUS(w->rstatus));
-  }
-
-  ev_child_stop(EV_A_ w);
-
-  list_child_erase_node(&lfm->child_watchers, list_child_get_node(watcher));
-  ev_idle_start(EV_A_ & lfm->ui.redraw_watcher);
-}
-
 static void schedule_timer_cb(EV_P_ ev_timer *w, int revents) {
   (void)revents;
   struct sched_timer *timer = (struct sched_timer *)w;
@@ -165,36 +200,6 @@ static void timer_cb(EV_P_ ev_timer *w, int revents) {
   Lfm *lfm = w->data;
   (void)lfm;
   ev_timer_stop(EV_A_ w);
-}
-
-static void command_stdout_cb(EV_P_ ev_io *w, int revents) {
-  (void)revents;
-  struct stdout_watcher_data *data = (struct stdout_watcher_data *)w;
-  Lfm *lfm = data->lfm;
-
-  char *line = NULL;
-  int read;
-  size_t n;
-
-  while ((read = getline(&line, &n, data->stream)) != -1) {
-    if (line[read - 1] == '\n') {
-      read--;
-    }
-
-    if (data->ref) {
-      llua_run_stdout_callback(lfm->L, data->ref, line, read);
-    } else {
-      ui_echom(&lfm->ui, "%s", line);
-    }
-  }
-  xfree(line);
-
-  // this seems to prevent the callback being immediately called again by libev
-  if (errno == EAGAIN) {
-    clearerr(data->stream);
-  }
-
-  ev_idle_start(EV_A_ & lfm->ui.redraw_watcher);
 }
 
 // To run command line cmds after loop starts. I think it is called back before
@@ -434,29 +439,28 @@ void lfm_on_resize(Lfm *lfm) {
   lfm_run_hook(lfm, LFM_HOOK_RESIZED);
 }
 
-static ev_io *add_io_watcher(Lfm *lfm, FILE *f, int ref) {
-  if (!f) {
-    return NULL;
+static void init_io_watcher(struct out_watcher *data, Lfm *lfm, int fd,
+                            int ref) {
+  if (fd == -1) {
+    return;
   }
 
-  const int fd = fileno(f);
-  if (fd < 0) {
-    log_error("fileno: %s", strerror(errno));
-    fclose(f);
-    return NULL;
+  FILE *file = fdopen(fd, "r");
+  if (file == NULL) {
+    log_error("fdopen: %s", strerror(errno));
+    close(fd);
+    return;
   }
-  const int flags = fcntl(fd, F_GETFL, 0);
+
+  int flags = fcntl(fd, F_GETFL, 0);
   fcntl(fd, F_SETFL, flags | O_NONBLOCK);
 
-  struct stdout_watcher_data *data = xmalloc(sizeof *data);
-  data->lfm = lfm;
-  data->stream = f;
+  data->w.data = lfm;
+  data->stream = file;
   data->ref = ref;
 
-  ev_io_init(&data->watcher, command_stdout_cb, fd, EV_READ);
-  ev_io_start(lfm->loop, &data->watcher);
-
-  return &data->watcher;
+  ev_io_init(&data->w, child_out_cb, fd, EV_READ);
+  ev_io_start(lfm->loop, &data->w);
 }
 
 // spawn a background program
@@ -558,29 +562,22 @@ int lfm_spawn(Lfm *lfm, const char *prog, char *const *args, vec_env *env,
     _exit(ENOSYS);
   }
 
-  ev_io *stdout_watcher = NULL;
-  ev_io *stderr_watcher = NULL;
-
+  struct child_watcher *data =
+      list_child_push(&lfm->child_watchers, (struct child_watcher){
+                                                .ref = exit_ref,
+                                            });
   if (capture_stdout) {
     close(pipe_stdout[1]);
-    FILE *stdout_stream = fdopen(pipe_stdout[0], "r");
-    stdout_watcher = add_io_watcher(lfm, stdout_stream, stdout_ref);
+    init_io_watcher(&data->wstdout, lfm, pipe_stdout[0], stdout_ref);
   }
   if (capture_stderr) {
     close(pipe_stderr[1]);
-    FILE *stderr_stream = fdopen(pipe_stderr[0], "r");
-    stderr_watcher = add_io_watcher(lfm, stderr_stream, stderr_ref);
+    init_io_watcher(&data->wstderr, lfm, pipe_stderr[0], stderr_ref);
   }
 
-  struct child_watcher *data = list_child_push(
-      &lfm->child_watchers, (struct child_watcher){
-                                .ref = exit_ref,
-                                .lfm = lfm,
-                                .stdout_watcher = stdout_watcher,
-                                .stderr_watcher = stderr_watcher,
-                            });
-  ev_child_init(&data->watcher, child_cb, pid, 0);
-  ev_child_start(lfm->loop, &data->watcher);
+  ev_child_init(&data->w, child_cb, pid, 0);
+  data->w.data = lfm;
+  ev_child_start(lfm->loop, &data->w);
 
   if (send_stdin) {
     close(pipe_stdin[0]);
