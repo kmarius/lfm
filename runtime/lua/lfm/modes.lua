@@ -116,7 +116,7 @@ function M._setup()
 				hidden = options.hidden
 			end,
 			on_return = function()
-				local file = api.fm_current_file()
+				local file = api.current_file()
 				if file then
 					api.fm_filter("")
 					if api.fm_open() then
@@ -177,7 +177,7 @@ function M._setup()
 				hidden = options.hidden
 			end,
 			on_return = function()
-				local file = api.fm_current_file()
+				local file = api.current_file()
 				if file then
 					api.fm_filter()
 					if api.fm_open() then
@@ -238,7 +238,7 @@ function M._setup()
 			prefix = "/",
 			on_enter = function()
 				lfm.nohighlight()
-				file = api.fm_current_file()
+				file = api.current_file()
 			end,
 			on_change = function()
 				lfm.search(api.cmdline_line_get())
@@ -262,7 +262,7 @@ function M._setup()
 			prefix = "?",
 			on_enter = function()
 				lfm.nohighlight()
-				file = lfm.api.fm_current_file()
+				file = lfm.api.current_file()
 			end,
 			on_change = function()
 				lfm.search_back(api.cmdline_line_get())

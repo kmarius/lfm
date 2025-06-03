@@ -60,7 +60,7 @@ end
 ---```
 ---@param name string
 function M.rename(name)
-	local file = api.fm_current_file()
+	local file = api.current_file()
 	if file then
 		if not file_exists(name) then
 			lfm.spawn({ "mv", "--", file, name }, { stderr = true })
@@ -75,7 +75,7 @@ end
 ---    M.rename_until_ext()
 ---```
 function M.rename_until_ext()
-	local file = fs.basename(api.fm_current_file())
+	local file = fs.basename(api.current_file())
 	if file then
 		local _, ext = fs.split_ext(file)
 		if not ext then
@@ -93,7 +93,7 @@ end
 ---    M.rename_before_ext()
 ---```
 function M.rename_before_ext()
-	local file = fs.basename(api.fm_current_file())
+	local file = fs.basename(api.current_file())
 	if file then
 		local name, ext = fs.split_ext(file)
 		if not ext then
@@ -112,7 +112,7 @@ end
 ---```
 function M.rename_before()
 	lfm.mode("command")
-	api.cmdline_line_set("rename ", fs.basename(api.fm_current_file()))
+	api.cmdline_line_set("rename ", fs.basename(api.current_file()))
 end
 
 ---Populate the prompt to rename at the end of the file name.
@@ -121,7 +121,7 @@ end
 ---```
 function M.rename_after()
 	lfm.mode("command")
-	api.cmdline_line_set("rename " .. fs.basename(api.fm_current_file()), "")
+	api.cmdline_line_set("rename " .. fs.basename(api.current_file()), "")
 end
 
 ---Create absolute symbolic links of the current load at the current location.
@@ -159,7 +159,7 @@ end
 ---    M.follow_link()
 ---```
 function M.follow_link()
-	local file = api.fm_current_file()
+	local file = api.current_file()
 	local target = lfm.shell.popen({ "readlink", "--", file })[1]
 	if target then
 		-- TODO: do these things even work with spaces in filenames? (on 2022-02-12)

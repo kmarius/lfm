@@ -159,7 +159,7 @@ end
 ---@return string[] selection
 local function sel_or_cur()
 	local sel = api.fm_selection_get()
-	return #sel > 0 and sel or { api.fm_current_file() }
+	return #sel > 0 and sel or { api.current_file() }
 end
 
 ---Feed keys into the key handler.

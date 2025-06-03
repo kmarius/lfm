@@ -199,7 +199,7 @@ function lfm.api.fm_open() end
 
 ---Get the current directory.
 ---```lua
----    local dir = lfm.api.fm_current_dir()
+---    local dir = lfm.api.current_dir()
 ---    print(dir.path)
 ---    print(dir.name)
 ---    for i, file in ipairs(dir.files) do
@@ -208,18 +208,18 @@ function lfm.api.fm_open() end
 ---```
 ---@return Lfm.Dir directory
 ---@nodiscard
-function lfm.api.fm_current_dir() end
+function lfm.api.current_dir() end
 
 ---Get the current file.
 ---```lua
----    local file = lfm.api.fm_current_file()
+---    local file = lfm.api.current_file()
 ---    if file then
 ---      print(file)
 ---    end
 ---```
 ---@return string? file Path to the current file or `nil` if the directory is empty.
 ---@nodiscard
-function lfm.api.fm_current_file() end
+function lfm.api.current_file() end
 
 ---Reverse selection of files in the current directory.
 ---```lua
