@@ -1,5 +1,6 @@
 #include "preview.h"
 
+#include "cdims.h"
 #include "config.h"
 #include "log.h"
 #include "macros.h"
@@ -198,6 +199,27 @@ Preview *preview_create_and_stat(zsview path, int height, int width) {
   return p;
 }
 
+// downscale images to fit the preview pane
+static void downscale_image(struct ncvisual *ncv, int y, int x) {
+  int cdimy = cdims.cdimy;
+  int cdimx = cdims.cdimx;
+
+  ncvgeom geom = {0};
+  ncvisual_geom(NULL, ncv, NULL, &geom);
+
+  double scaley = 1.0 * geom.pixy / (y * cdimy);
+  double scale = 1.0 * geom.pixx / (x * cdimx);
+  if (scaley > scale) {
+    scale = scaley;
+  }
+  if (scale > 1.0) {
+    int newy = (int)(geom.pixy / scale);
+    int newx = (int)(geom.pixx / scale);
+    log_trace("resizing: %d %d pane: %d %d", y * cdimy, x * cdimx, newy, newx);
+    ncvisual_resize(ncv, newy, newx);
+  }
+}
+
 Preview *preview_create_from_file(zsview path, uint32_t width,
                                   uint32_t height) {
 
@@ -324,6 +346,7 @@ Preview *preview_create_from_file(zsview path, uint32_t width,
           return preview_error(p, "ncvisual_from_file: ", strerror(errno));
         }
         vec_cstr_drop(&p->lines);
+        downscale_image(ncv, height, width);
         p->ncv = ncv;
         p->draw = draw_image_preview;
         p->update = update_image_preview;
@@ -337,6 +360,7 @@ Preview *preview_create_from_file(zsview path, uint32_t width,
           return preview_error(p, "ncvisual_from_file: ", strerror(errno));
         }
         vec_cstr_drop(&p->lines);
+        downscale_image(ncv, height, width);
         p->ncv = ncv;
         p->draw = draw_image_preview;
         p->update = update_image_preview;

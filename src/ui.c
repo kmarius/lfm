@@ -1,6 +1,7 @@
 #include "ui.h"
 
 #include "async/async.h"
+#include "cdims.h"
 #include "cmdline.h"
 #include "config.h"
 #include "dir.h"
@@ -57,6 +58,8 @@
 #include "stc/vec.h"
 
 #define EXT_MAX_LEN 128 // to convert the extension to lowercase
+
+struct cdims cdims = {0};
 
 static void menu_delay_timer_cb(EV_P_ ev_timer *w, int revents);
 static void draw_dirs(Ui *ui);
@@ -223,6 +226,9 @@ void ui_recol(Ui *ui) {
   ioctl(STDOUT_FILENO, TIOCGWINSZ, &ui->winsize);
   ui->ypixel_cell = ui->winsize.ws_ypixel / ui->winsize.ws_row;
   ui->xpixel_cell = ui->winsize.ws_xpixel / ui->winsize.ws_col;
+
+  cdims.cdimy = ui->ypixel_cell;
+  cdims.cdimx = ui->xpixel_cell;
 
   log_debug(
       "winsize row=%u col=%u ypixel=%u xpixel=%u ypixel_cell=%u xpixel_cell=%u",
