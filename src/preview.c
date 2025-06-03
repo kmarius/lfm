@@ -295,6 +295,7 @@ static Preview *preview_create_from_file_r(zsview path, uint32_t width,
 
     FILE *fp_stdout = fdopen(fd[0], "r");
     if (unlikely(fp_stdout == NULL)) {
+      close(fd[0]);
       return preview_error(p, "fdopen: %s", strerror(errno));
     }
 
