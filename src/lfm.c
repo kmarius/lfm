@@ -562,22 +562,23 @@ int lfm_spawn(Lfm *lfm, const char *prog, char *const *args, vec_env *env,
     _exit(ENOSYS);
   }
 
-  struct child_watcher *data =
-      list_child_push(&lfm->child_watchers, (struct child_watcher){
-                                                .ref = exit_ref,
-                                            });
-  if (capture_stdout) {
-    close(pipe_stdout[1]);
-    init_io_watcher(&data->wstdout, lfm, pipe_stdout[0], stdout_ref);
+  if (exit_ref != 0 || capture_stdout || capture_stderr) {
+    struct child_watcher *data =
+        list_child_push(&lfm->child_watchers, (struct child_watcher){
+                                                  .ref = exit_ref,
+                                              });
+    if (capture_stdout) {
+      close(pipe_stdout[1]);
+      init_io_watcher(&data->wstdout, lfm, pipe_stdout[0], stdout_ref);
+    }
+    if (capture_stderr) {
+      close(pipe_stderr[1]);
+      init_io_watcher(&data->wstderr, lfm, pipe_stderr[0], stderr_ref);
+    }
+    ev_child_init(&data->w, child_cb, pid, 0);
+    data->w.data = lfm;
+    ev_child_start(lfm->loop, &data->w);
   }
-  if (capture_stderr) {
-    close(pipe_stderr[1]);
-    init_io_watcher(&data->wstderr, lfm, pipe_stderr[0], stderr_ref);
-  }
-
-  ev_child_init(&data->w, child_cb, pid, 0);
-  data->w.data = lfm;
-  ev_child_start(lfm->loop, &data->w);
 
   if (send_stdin) {
     close(pipe_stdin[0]);
