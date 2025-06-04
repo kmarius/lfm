@@ -973,8 +973,8 @@ static int l_set_tags(lua_State *L) {
 }
 
 static const struct luaL_Reg ui_funcs[] = {
-    {"set_tags",                 l_set_tags                },
-    {"get_tags",                 l_get_tags                },
+    {"set_directory_tags",       l_set_tags                },
+    {"get_directory_tags",       l_get_tags                },
     {"macro_recording",          l_macro_recording         },
     {"macro_record",             l_macro_record            },
     {"macro_stop_record",        l_macro_stop_record       },
