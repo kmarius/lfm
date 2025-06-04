@@ -25,7 +25,6 @@
 #define PROC_META "Lfm.Proc.Meta"
 
 static int l_schedule(lua_State *L) {
-  luaL_checktype(L, 1, LUA_TFUNCTION);
   int delay = 0;
   if (lua_gettop(L) >= 2) {
     delay = luaL_checknumber(L, 2);
