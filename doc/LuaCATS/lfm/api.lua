@@ -178,11 +178,25 @@ function lfm.api.fm_filter(filter, type) end
 ---@nodiscard
 function lfm.api.fm_getfilter() end
 
+---
 ---Jump to the directory saved by the automatic mark (e.g. with '')
+---
+---Example:
 ---```lua
----    lfm.api.fm_jump_automark()
+---  lfm.api.jump_automark()
 ---```
-function lfm.api.fm_jump_automark() end
+---
+function lfm.api.jump_automark() end
+
+---
+---Jump to the directory saved by the automatic mark (e.g. with '')
+---
+---Example:
+---```lua
+---  local path = lfm.api.get_automark()
+---```
+---
+function lfm.api.get_automark() end
 
 ---Navigate into the directory at the current cursor position. If the current file
 ---is not a directory, its path is returned instead.

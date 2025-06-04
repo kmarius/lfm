@@ -499,7 +499,7 @@ map("L", require("lfm.functions").follow_link, { desc = "Follow symlink under cu
 map("H", a(feedkeys, "''")) -- complementary to "L"
 map("gg", api.fm_top, { desc = "Go to top" })
 map("G", api.fm_bottom, { desc = "Go to bottom" })
-map("''", api.fm_jump_automark, { desc = "Jump to previous directory" })
+map("''", api.jump_automark, { desc = "Jump to previous directory" })
 map("cd", a(feedkeys, ":cd "), { desc = ":cd " })
 map("<Up>", api.fm_up, { desc = "Move cursor up" })
 map("<Down>", api.fm_down, { desc = "Move cursor down" })

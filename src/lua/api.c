@@ -691,7 +691,12 @@ static int l_fm_filter(lua_State *L) {
   return 0;
 }
 
-static int l_fm_jump_automark(lua_State *L) {
+static int l_get_automark(lua_State *L) {
+  lua_pushcstr(L, &fm->automark);
+  return 1;
+}
+
+static int l_jump_automark(lua_State *L) {
   (void)L;
   lfm_run_hook(lfm, LFM_HOOK_CHDIRPRE, &fm->pwd);
   lfm_mode_exit(lfm, c_zv("visual"));
@@ -745,7 +750,8 @@ static const struct luaL_Reg fm_funcs[] = {
     {"fm_flatten_level",    l_fm_flatten_level           },
     {"fm_filter",           l_fm_filter                  },
     {"fm_getfilter",        l_fm_filter_get              },
-    {"fm_jump_automark",    l_fm_jump_automark           },
+    {"get_automark",        l_get_automark               },
+    {"jump_automark",       l_jump_automark              },
     {"current_dir",         l_fm_current_dir             },
     {"current_file",        l_fm_current_file            },
     {"selection_get",       l_fm_selection_get           },
@@ -973,18 +979,22 @@ static int l_set_tags(lua_State *L) {
 }
 
 static const struct luaL_Reg ui_funcs[] = {
-    {"set_directory_tags",       l_set_tags                },
-    {"get_directory_tags",       l_get_tags                },
-    {"macro_recording",          l_macro_recording         },
-    {"macro_record",             l_macro_record            },
-    {"macro_stop_record",        l_macro_stop_record       },
-    {"macro_play",               l_macro_play              },
-    {"ui_get_width",             l_ui_get_width            },
-    {"ui_get_height",            l_ui_get_height           },
-    {"ui_clear",                 l_ui_clear                },
-    {"redraw",                   l_ui_redraw               },
-    {"ui_menu",                  l_ui_menu                 },
-    {"get_messages",             l_ui_messages             },
+    {"set_directory_tags", l_set_tags         },
+    {"get_directory_tags", l_get_tags         },
+    {"macro_recording",    l_macro_recording  },
+    {"macro_record",       l_macro_record     },
+    {"macro_stop_record",  l_macro_stop_record},
+    {"macro_play",         l_macro_play       },
+    {"ui_get_width",       l_ui_get_width     },
+    {"ui_get_height",      l_ui_get_height    },
+    {"ui_clear",           l_ui_clear         },
+    {"redraw",             l_ui_redraw        },
+    {"ui_menu",            l_ui_menu          },
+    {"get_messages",       l_ui_messages      },
+    {NULL,                 NULL               },
+};
+
+static const struct luaL_Reg nc_funcs[] = {
     {"notcurses_palette_size",   l_notcurses_palette_size  },
     {"notcurses_cantruecolor",   l_notcurses_cantruecolor  },
     {"notcurses_canopen_images", l_notcurses_canopen_images},
@@ -1001,5 +1011,6 @@ int luaopen_api(lua_State *L) {
   luaL_register(L, NULL, cmdline_funcs);
   luaL_register(L, NULL, fm_funcs);
   luaL_register(L, NULL, ui_funcs);
+  luaL_register(L, NULL, nc_funcs);
   return 1;
 }
