@@ -1,4 +1,5 @@
 #include "cmdline.h"
+#include "log.h"
 
 #define STC_CSTR_UTF8
 #include "stc/cstr.h"
@@ -243,9 +244,9 @@ int cmdline_draw(Self *self, struct ncplane *n) {
   ncplane_set_bg_default(n);
   ncplane_set_fg_default(n);
 
-  int xpos = 0;
+  unsigned xpos = 0;
   xpos += ncplane_putcstr_ansi_yx(n, 0, 0, &self->prefix);
-  ncol -= xpos;
+  unsigned remaining = ncol - xpos;
 
   unsigned left_len = cstr_u8_size(&self->left);
   unsigned right_len = cstr_u8_size(&self->right);
@@ -253,20 +254,26 @@ int cmdline_draw(Self *self, struct ncplane *n) {
   // scroll some if the line is too long
   int offset;
   if (right_len == 0) {
-    offset = left_len - ncol + 1;
-  } else if (right_len > ncol / 2) {
-    offset = left_len - ncol + ncol / 2 + 1;
+    offset = left_len - remaining + 1;
+  } else if (right_len > remaining / 2) {
+    offset = left_len - remaining + remaining / 2 + 1;
   } else {
-    offset = left_len - ncol + right_len + 1;
+    offset = left_len - remaining + right_len;
   }
 
   if (offset < 0) {
     offset = 0;
+  } else {
+    xpos += ncplane_putnstr(n, 1, cfg.truncatechar);
+    offset++;
   }
 
   zsview tail = cstr_u8_tail(&self->left, left_len - offset);
   xpos += ncplane_putzv(n, tail);
   ncplane_putcstr(n, &self->right);
+  if (xpos + right_len > ncol) {
+    ncplane_putnstr_yx(n, 0, ncol - 1, 1, cfg.truncatechar);
+  }
 
   fputs(right_len == 0    ? "\033[2 q"
         : self->overwrite ? "\033[4 q"
