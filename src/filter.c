@@ -328,7 +328,7 @@ Filter *filter_create_lua(int ref, void *L) {
 
 bool lua_match(const Filter *filter, const File *file) {
   LuaFilter *f = (LuaFilter *)filter;
-  return llua_filter(f->L, f->ref, file_name_str(file));
+  return llua_filter(f->L, f->ref, *file_name(file));
 }
 
 void lua_destroy(Filter *filter) {

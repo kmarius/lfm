@@ -282,9 +282,9 @@ void lfm_lua_deinit(Lfm *lfm) {
   lfm->L = NULL;
 }
 
-bool llua_filter(lua_State *L, int ref, const char *name) {
+bool llua_filter(lua_State *L, int ref, zsview name) {
   lua_get_callback(L, ref, false);
-  lua_pushstring(L, name);
+  lua_pushzsview(L, name);
   if (llua_pcall(L, 1, 1)) { // []
     ui_error(ui, "%s", lua_tostring(L, -1));
     lua_pop(L, 1);
