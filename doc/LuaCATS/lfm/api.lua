@@ -492,14 +492,14 @@ function lfm.api.ui_clear() end
 ---Drawing happens _after_ execution of the current lua code finishes and the main
 ---event loop idles.
 ---```lua
----    lfm.api.ui_redraw()
+---    lfm.api.redraw()
 ---```
 ---Redraw everything:
 ---```lua
----    lfm.api.ui_redraw(true)
+---    lfm.api.redraw(true)
 ---```
 ---@param force? boolean use force (default: `false`)
-function lfm.api.ui_redraw(force) end
+function lfm.api.redraw(force) end
 
 ---Draws a menu on screen.
 ---```lua
