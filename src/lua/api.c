@@ -27,7 +27,7 @@ static int l_cmd_line_get(lua_State *L) {
 
 static int l_cmd_line_set(lua_State *L) {
   if (lua_gettop(L) > 2) {
-    return luaL_error(L, "line_set takes only up to two arguments");
+    return luaL_error(L, "Expected up to 2 arguments");
   }
 
   ui->show_message = false;

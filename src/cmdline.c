@@ -222,10 +222,8 @@ bool cmdline_clear(Self *self) {
 }
 
 bool cmdline_set(Self *self, zsview left, zsview right) {
-  if (!zsview_is_empty(left))
-    cstr_assign_zv(&self->left, left);
-  if (!zsview_is_empty(right))
-    cstr_assign_zv(&self->right, right);
+  cstr_assign_zv(&self->left, left);
+  cstr_assign_zv(&self->right, right);
   return true;
 }
 
