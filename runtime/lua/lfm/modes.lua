@@ -53,20 +53,20 @@ function M._setup()
 			input = true,
 			prefix = "filter: ",
 			on_enter = function()
-				local filter, type = api.fm_getfilter()
+				local filter, type = api.get_filter()
 				if type ~= "substring" then
-					api.fm_filter(filter)
+					api.set_filter(filter)
 				end
 				api.cmdline_line_set(filter)
 			end,
 			on_change = function()
-				api.fm_filter(api.cmdline_line_get())
+				api.set_filter(api.cmdline_line_get())
 			end,
 			on_return = function()
 				lfm.mode("normal")
 			end,
 			on_esc = function()
-				api.fm_filter("")
+				api.set_filter("")
 			end,
 		}
 		lfm.register_mode(mode)
@@ -81,22 +81,22 @@ function M._setup()
 			input = true,
 			prefix = "fuzzy: ",
 			on_enter = function()
-				local filter, type = api.fm_getfilter()
+				local filter, type = api.get_filter()
 				if type ~= "fuzzy" then
-					api.fm_filter(filter, "fuzzy")
+					api.set_filter(filter, "fuzzy")
 				end
 				api.cmdline_line_set(filter)
 			end,
 			on_change = function()
 				local filter = api.cmdline_line_get()
-				api.fm_filter(filter, "fuzzy")
+				api.set_filter(filter, "fuzzy")
 				api.fm_top()
 			end,
 			on_return = function()
 				lfm.mode("normal")
 			end,
 			on_esc = function()
-				api.fm_filter()
+				api.set_filter()
 			end,
 		}
 		lfm.register_mode(mode)
@@ -118,7 +118,7 @@ function M._setup()
 			on_return = function()
 				local file = api.current_file()
 				if file then
-					api.fm_filter("")
+					api.set_filter("")
 					if api.fm_open() then
 						lfm.mode("normal")
 						lfm.eval("open")
@@ -139,10 +139,10 @@ function M._setup()
 						options.hidden = false
 					end
 				end
-				api.fm_filter(line)
+				api.set_filter(line)
 			end,
 			on_exit = function()
-				api.fm_filter("")
+				api.set_filter("")
 				if not hidden then
 					options.hidden = false
 				end
@@ -160,7 +160,7 @@ function M._setup()
 		lfm.map("<Up>", api.fm_up, { mode = "travel" })
 		lfm.map("<Down>", api.fm_down, { mode = "travel" })
 		lfm.map("<a-h>", function()
-			api.fm_filter("")
+			api.set_filter("")
 			api.fm_updir()
 			api.cmdline_clear()
 		end, { mode = "travel", desc = "Move to parent directory" })
@@ -179,7 +179,7 @@ function M._setup()
 			on_return = function()
 				local file = api.current_file()
 				if file then
-					api.fm_filter()
+					api.set_filter()
 					if api.fm_open() then
 						lfm.mode("normal")
 						lfm.eval("open")
@@ -200,11 +200,11 @@ function M._setup()
 						options.hidden = false
 					end
 				end
-				api.fm_filter(line, "fuzzy")
+				api.set_filter(line, "fuzzy")
 				api.fm_top()
 			end,
 			on_exit = function()
-				api.fm_filter()
+				api.set_filter()
 				if not hidden then
 					options.hidden = false
 				end
@@ -222,7 +222,7 @@ function M._setup()
 		lfm.map("<Up>", api.fm_up, { mode = "travel-fuzzy" })
 		lfm.map("<Down>", api.fm_down, { mode = "travel-fuzzy" })
 		lfm.map("<a-h>", function()
-			api.fm_filter("")
+			api.set_filter("")
 			api.fm_updir()
 			api.cmdline_clear()
 		end, { mode = "travel-fuzzy", desc = "Move to parent directory" })

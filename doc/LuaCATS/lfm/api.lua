@@ -154,29 +154,29 @@ function lfm.api.cmdline_get_history() end
 
 ---Set the filter string for the current directory. "" or nil clears the filter.
 ---```lua
----    lfm.api.fm_filter(".txt")
----    lfm.api.fm_filter(".txt", "filter")
+---    lfm.api.set_filter(".txt")
+---    lfm.api.set_filter(".txt", "filter")
 ---
----    lfm.api.fm_filter("txt", "fuzzy")
+---    lfm.api.set_filter("txt", "fuzzy")
 ---
----    lfm.api.fm_filter(function(name) return string.find(name, "txt") end, "lua")
+---    lfm.api.set_filter(function(name) return string.find(name, "txt") end, "lua")
 ---
----    lfm.api.fm_filter()
+---    lfm.api.set_filter()
 ---```
 ---@param filter? string The filter string.
 ---@param type? Lfm.FilterType The filter type.
 ---@overload fun(function: Lfm.FilterFunction, type: "lua")
 ---@overload fun()
-function lfm.api.fm_filter(filter, type) end
+function lfm.api.set_filter(filter, type) end
 
 ---Get the filter string for the current directory.
 ---```lua
----    local filter = lfm.api.fm_getfilter()
+---    local filter = lfm.api.get_filter()
 ---```
 ---@return string|nil filter The filter string.
 ---@return Lfm.FilterType|nil filter The filter type.
 ---@nodiscard
-function lfm.api.fm_getfilter() end
+function lfm.api.get_filter() end
 
 ---
 ---Jump to the directory saved by the automatic mark (e.g. with '')
