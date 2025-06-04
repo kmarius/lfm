@@ -8,7 +8,7 @@
 ---@class Lfm.Dir
 ---@field path string
 ---@field name string
----@field files table[string] table of filenames
+---@field files fun():string[] table of filenames
 ---@field sortopts Lfm.SortOpts
 
 ---@alias Lfm.SortType

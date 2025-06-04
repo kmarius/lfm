@@ -347,6 +347,23 @@ static int l_fm_current_file(lua_State *L) {
   return 0;
 }
 
+static int l_push_files(lua_State *L) {
+  zsview path = lua_tozsview(L, lua_upvalueindex(1));
+  Dir *dir = loader_dir_from_path(&lfm->loader, path, false);
+  if (dir == NULL) {
+    return luaL_error(L, "no such directory: %s", path.str);
+  }
+
+  lua_createtable(L, dir_length(dir), 0);
+  size_t i = 1;
+  c_foreach(it, Dir, dir) {
+    lua_pushzsview(L, *file_name(*it.ref));
+    lua_rawseti(L, -2, i++);
+  }
+
+  return 1;
+}
+
 static int l_fm_current_dir(lua_State *L) {
   const Dir *dir = fm_current_dir(fm);
   lua_createtable(L, 0, 3);
@@ -366,12 +383,8 @@ static int l_fm_current_dir(lua_State *L) {
   lua_setfield(L, -2, "reverse");
   lua_setfield(L, -2, "sortopts");
 
-  lua_createtable(L, dir_length(dir), 0);
-  size_t i = 1;
-  c_foreach(it, Dir, dir) {
-    lua_pushcstr(L, file_path(*it.ref));
-    lua_rawseti(L, -2, i++);
-  }
+  lua_pushcstr(L, dir_path(dir));
+  lua_pushcclosure(L, l_push_files, 1);
   lua_setfield(L, -2, "files");
 
   return 1;

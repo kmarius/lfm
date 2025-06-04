@@ -202,7 +202,7 @@ function lfm.api.fm_open() end
 ---    local dir = lfm.api.current_dir()
 ---    print(dir.path)
 ---    print(dir.name)
----    for i, file in ipairs(dir.files) do
+---    for i, file in ipairs(dir.files()) do
 ---      print(i, file)
 ---    end
 ---```
