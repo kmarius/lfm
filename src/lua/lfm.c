@@ -33,8 +33,7 @@ static int l_schedule(lua_State *L) {
   if (delay < 0) {
     delay = 0;
   }
-  lua_pushvalue(L, 1);
-  lfm_schedule(lfm, lua_set_callback0(L), delay);
+  lfm_schedule(lfm, lua_register_callback(L, 1), delay);
   return 0;
 }
 
@@ -271,26 +270,25 @@ static int l_spawn(lua_State *L) {
 
     lua_getfield(L, 2, "stdout"); // [cmd, opts, opts.out]
     if (lua_isfunction(L, -1)) {
-      stdout_ref = lua_set_callback0(L); // [cmd, opts]
+      stdout_ref = lua_register_callback(L, -1); // [cmd, opts, opts.out]
     } else {
       capture_stdout = lua_toboolean(L, -1);
-      lua_pop(L, 1); // [cmd, opts]
     }
+    lua_pop(L, 1); // [cmd, opts]
 
     lua_getfield(L, 2, "stderr"); // [cmd, opts, opts.err]
     if (lua_isfunction(L, -1)) {
-      stderr_ref = lua_set_callback0(L); // [cmd, opts]
+      stderr_ref = lua_register_callback(L, -1); // [cmd, opts, opts.err]
     } else {
       capture_stderr = lua_toboolean(L, -1);
-      lua_pop(L, 1); // [cmd, opts]
     }
+    lua_pop(L, 1); // [cmd, opts]
 
     lua_getfield(L, 2, "callback"); // [cmd, opts, opts.callback]
     if (lua_isfunction(L, -1)) {
-      exit_ref = lua_set_callback0(L); // [cmd, opts]
-    } else {
-      lua_pop(L, 1); // [cmd, opts]
+      exit_ref = lua_register_callback(L, -1); // [cmd, opts, opts.callback]
     }
+    lua_pop(L, 1); // [cmd, opts]
 
     lua_getfield(L, 2, "env"); // [cmd, opts, opts.env]
     if (lua_istable(L, -1)) {
@@ -593,38 +591,33 @@ static int l_register_mode(lua_State *L) {
 
   lua_getfield(L, 1, "on_enter");
   if (!lua_isnoneornil(L, -1)) {
-    mode.on_enter_ref = lua_set_callback0(L);
-  } else {
-    lua_pop(L, 1);
+    mode.on_enter_ref = lua_register_callback(L, -1);
   }
+  lua_pop(L, 1);
 
   lua_getfield(L, 1, "on_change");
   if (!lua_isnoneornil(L, -1)) {
-    mode.on_change_ref = lua_set_callback0(L);
-  } else {
-    lua_pop(L, 1);
+    mode.on_change_ref = lua_register_callback(L, -1);
   }
+  lua_pop(L, 1);
 
   lua_getfield(L, 1, "on_return");
   if (!lua_isnoneornil(L, -1)) {
-    mode.on_return_ref = lua_set_callback0(L);
-  } else {
-    lua_pop(L, 1);
+    mode.on_return_ref = lua_register_callback(L, -1);
   }
+  lua_pop(L, 1);
 
   lua_getfield(L, 1, "on_esc");
   if (!lua_isnoneornil(L, -1)) {
-    mode.on_esc_ref = lua_set_callback0(L);
-  } else {
-    lua_pop(L, 1);
+    mode.on_esc_ref = lua_register_callback(L, -1);
   }
+  lua_pop(L, 1);
 
   lua_getfield(L, 1, "on_exit");
   if (!lua_isnoneornil(L, -1)) {
-    mode.on_exit_ref = lua_set_callback0(L);
-  } else {
-    lua_pop(L, 1);
+    mode.on_exit_ref = lua_register_callback(L, -1);
   }
+  lua_pop(L, 1);
 
   if (lfm_mode_register(lfm, &mode) != 0) {
     return luaL_error(L, "mode \"%s\" already exists", mode.name);
@@ -634,14 +627,13 @@ static int l_register_mode(lua_State *L) {
 }
 
 int l_register_hook(lua_State *L) {
-  const char *name = luaL_checkstring(L, 1);
-  luaL_checktype(L, 2, LUA_TFUNCTION);
   LUA_CHECK_ARGC(L, 2);
+  const char *name = luaL_checkstring(L, 1);
   int id = hook_name_to_id(name);
   if (id == -1) {
     return luaL_error(L, "no such hook: %s", name);
   }
-  id = lfm_add_hook(lfm, id, lua_set_callback0(L));
+  id = lfm_add_hook(lfm, id, lua_register_callback(L, 2));
   lua_pushnumber(L, id);
   return 1;
 }

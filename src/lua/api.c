@@ -665,9 +665,7 @@ static int l_fm_filter(lua_State *L) {
     } else if (streq(type, "fuzzy")) {
       fm_filter(fm, filter_create_fuzzy(lua_tozsview(L, 1)));
     } else if (streq(type, "lua")) {
-      luaL_checktype(L, 1, LUA_TFUNCTION);
-      lua_settop(L, 1);
-      int ref = lua_set_callback0(L);
+      int ref = lua_register_callback(L, 1);
       fm_filter(fm, filter_create_lua(ref, L));
     } else {
       return luaL_error(L, "unrecognized filter type: %s", type);

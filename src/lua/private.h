@@ -17,15 +17,8 @@ extern Fm *fm;
   (lfm_quit(lfm, luaL_optint(L, -1, 0)),                                       \
    luaL_error(L, "no actual error, just quiting"));
 
-// Stores the element at the top of the stack in the registry and returns the
-// reference index. Old version without index.
-static inline int lua_set_callback0(lua_State *L) {
-  luaL_checktype(L, -1, LUA_TFUNCTION);
-  int ref = luaL_ref(L, LUA_REGISTRYINDEX);
-  assert(ref > 0);
-  return ref;
-}
-
+// Stores the element at position idx in the registry and returns the
+// reference index.
 static inline int lua_register_callback(lua_State *L, int idx) {
   luaL_checktype(L, idx, LUA_TFUNCTION);
   lua_pushvalue(L, idx);
