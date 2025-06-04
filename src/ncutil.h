@@ -20,6 +20,14 @@
   ((NCCHANNEL_INITIALIZER_PALINDEX(fg) << 32lu) |                              \
    NCCHANNEL_INITIALIZER_PALINDEX(bg))
 
+static inline int ncplane_putzv(struct ncplane *n, zsview cv) {
+  return ncplane_putstr(n, cv.str);
+}
+
+static inline int ncplane_putcstr(struct ncplane *n, const cstr *str) {
+  return ncplane_putstr(n, cstr_str(str));
+}
+
 // Consumes the ansi escape sequence pointed to by s setting the attributes to
 // n. Returns a pointer to the char after the sequence.
 const char *ncplane_set_ansi_attrs(struct ncplane *n, const char *s);

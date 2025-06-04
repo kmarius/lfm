@@ -1103,8 +1103,8 @@ static inline void print_message(Ui *ui, zsview msg, bool error) {
 
 static inline void draw_cmdline(Ui *ui) {
   if (to_lfm(ui)->current_mode->is_input) {
-    const uint32_t cursor_pos = cmdline_draw(&ui->cmdline, ui->planes.cmdline);
-    notcurses_cursor_enable(ui->nc, ui->y - 1, cursor_pos);
+    int pos = cmdline_draw(&ui->cmdline, ui->planes.cmdline);
+    notcurses_cursor_enable(ui->nc, ui->y - 1, pos);
   } else {
     if (ui->running && ui->show_message) {
       const struct message *msg = vec_message_back(&ui->messages);

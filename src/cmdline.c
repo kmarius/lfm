@@ -235,24 +235,23 @@ zsview cmdline_get(Self *self) {
   return cstr_zv(&self->buf);
 }
 
-uint32_t cmdline_draw(Self *self, struct ncplane *n) {
+int cmdline_draw(Self *self, struct ncplane *n) {
+  unsigned int ncol;
+  ncplane_dim_yx(n, NULL, &ncol);
+
   ncplane_erase(n);
   ncplane_set_bg_default(n);
   ncplane_set_fg_default(n);
-  ncplane_cursor_yx(n, 0, 0);
 
-  unsigned int ncol;
-  int offset;
-  ncplane_dim_yx(n, NULL, &ncol);
-
-  uint32_t ret = 0;
-  ret += ncplane_putstr_ansi_yx(n, 0, 0, cstr_str(&self->prefix));
-  ncol -= ret;
+  int xpos = 0;
+  xpos += ncplane_putcstr_ansi_yx(n, 0, 0, &self->prefix);
+  ncol -= xpos;
 
   unsigned left_len = cstr_u8_size(&self->left);
   unsigned right_len = cstr_u8_size(&self->right);
 
   // scroll some if the line is too long
+  int offset;
   if (right_len == 0) {
     offset = left_len - ncol + 1;
   } else if (right_len > ncol / 2) {
@@ -261,19 +260,18 @@ uint32_t cmdline_draw(Self *self, struct ncplane *n) {
     offset = left_len - ncol + right_len + 1;
   }
 
-  if (offset > 0) {
-    offset = cstr_u8_to_index(&self->left, offset);
-  } else {
+  if (offset < 0) {
     offset = 0;
   }
 
-  ret += ncplane_putstr(n, cstr_str(&self->left) + +offset);
-  ncplane_putstr(n, cstr_str(&self->right));
+  zsview tail = cstr_u8_tail(&self->left, left_len - offset);
+  xpos += ncplane_putzv(n, tail);
+  ncplane_putcstr(n, &self->right);
 
   fputs(right_len == 0    ? "\033[2 q"
         : self->overwrite ? "\033[4 q"
                           : "\033[6 q",
         stdout); // block/bar cursor
 
-  return ret;
+  return xpos;
 }

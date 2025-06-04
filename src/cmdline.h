@@ -79,6 +79,6 @@ zsview cmdline_get(Self *self);
 
 // Draw the command line into an ncplane. Returns the number of printed
 // characters of prefix, left so that the cursor can be positioned.
-uint32_t cmdline_draw(Self *self, struct ncplane *n);
+int cmdline_draw(Self *self, struct ncplane *n);
 
 #undef Self
