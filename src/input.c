@@ -136,7 +136,7 @@ void input_handle_key(Lfm *lfm, input_t in) {
 
   ev_timer_stop(lfm->loop, &lfm->ui.map_clear_timer);
   ev_timer_stop(lfm->loop, &lfm->ui.map_suggestion_timer);
-  if (lfm->current_mode->input) {
+  if (lfm->current_mode->is_input) {
     if (!lfm->ui.maps.cur && !lfm->ui.maps.cur_input) {
       // reset the buffer/trie only if no mode map and no input map are possible
       lfm->ui.maps.cur = lfm->current_mode->maps;
@@ -151,7 +151,7 @@ void input_handle_key(Lfm *lfm, input_t in) {
       // escape key pressed, switch to normal
       mode_on_esc(lfm->current_mode, lfm);
       input_clear(lfm);
-      lfm_mode_enter(lfm, c_zv("normal"));
+      lfm_mode_normal(lfm);
     } else if (in == NCKEY_ENTER) {
       // return key pressed, call the callback in the mode
       zsview line = cmdline_get(&ui->cmdline);
@@ -236,7 +236,7 @@ void input_handle_key(Lfm *lfm, input_t in) {
         search_nohighlight(lfm);
         ui_menu_hide(&lfm->ui);
         mode_on_esc(lfm->current_mode, lfm);
-        lfm_mode_enter(lfm, c_zv("normal"));
+        lfm_mode_normal(lfm);
       }
       if (ui->show_message) {
         ui->show_message = false;

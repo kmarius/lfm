@@ -22,11 +22,11 @@ void lfm_modes_init(Lfm *lfm) {
                          });
   lfm_mode_register(lfm, &(struct mode){
                              .name = cstr_lit("input"),
-                             .input = true,
+                             .is_input = true,
                          });
   lfm_mode_register(lfm, &(struct mode){
                              .name = cstr_lit("visual"),
-                             .input = false,
+                             .is_input = false,
                              .on_enter = visual_on_enter,
                              .on_exit = visual_on_exit,
                          });
@@ -49,7 +49,6 @@ void lfm_modes_deinit(Lfm *lfm) {
 
 static void normal_on_enter(Lfm *lfm) {
   cmdline_clear(&lfm->ui.cmdline);
-  cmdline_prefix_set(&lfm->ui.cmdline, c_zv(""));
 }
 
 static void visual_on_enter(Lfm *lfm) {
@@ -88,7 +87,7 @@ int lfm_mode_enter(Lfm *lfm, zsview name) {
   lfm->current_mode = mode;
   mode_on_enter(mode, lfm);
 
-  if (mode->input && !cstr_is_empty(&mode->prefix)) {
+  if (mode->is_input && !cstr_is_empty(&mode->prefix)) {
     cmdline_prefix_set(&lfm->ui.cmdline, cstr_zv(&mode->prefix));
   }
   lfm->ui.maps.cur_input = NULL;
@@ -100,7 +99,7 @@ int lfm_mode_enter(Lfm *lfm, zsview name) {
 
 int lfm_mode_exit(Lfm *lfm, zsview name) {
   if (cstr_equals_zv(&lfm->current_mode->name, &name)) {
-    return lfm_mode_enter(lfm, c_zv("normal"));
+    return lfm_mode_normal(lfm);
   }
   return 1;
 }

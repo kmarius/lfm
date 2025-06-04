@@ -1,8 +1,9 @@
 #pragma once
 
+#include "trie.h"
+
 #include "stc/cstr.h"
 #include "stc/zsview.h"
-#include "trie.h"
 
 #include <stdbool.h>
 
@@ -10,8 +11,8 @@ struct Lfm;
 
 struct mode {
   cstr name;                       // name of the mode
-  bool input;                      // capture command line input
-  cstr prefix;                     // prefix to show in case input is set
+  bool is_input;                   // capture command line input
+  cstr prefix;                     // prefix to show in case is_input is true
   int on_enter_ref;                // lua ref to on_enter function
   int on_change_ref;               // lua ref to on_change function
   int on_return_ref;               // lua ref to on_return function
@@ -73,6 +74,13 @@ int lfm_mode_register(struct Lfm *lfm, struct mode *mode);
  * Returns 1 if the mode does not exist, 0 otherwise.
  */
 int lfm_mode_enter(struct Lfm *lfm, zsview name);
+
+/*
+ * Enter normal mode.
+ */
+static inline int lfm_mode_normal(struct Lfm *lfm) {
+  return lfm_mode_enter(lfm, c_zv("normal"));
+}
 
 /*
  * Exit the mode (i.e. enters "normal" mode) with the name `name` if it is

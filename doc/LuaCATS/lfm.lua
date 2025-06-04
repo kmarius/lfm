@@ -488,7 +488,7 @@ function lfm.colors_clear() end
 
 ---@class Lfm.ModeDef
 ---@field name string The name of the mode.
----@field input? boolean true, if the mode takes input via the command line
+---@field is_input? boolean true, if the mode takes input via the command line
 ---@field prefix? string The prefix, a string, shown in the command line.
 ---@field on_enter? function A function that is called when the mode is entered.
 ---@field on_return? function A function that is called when pressing enter while the mode is active.

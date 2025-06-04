@@ -58,7 +58,7 @@ static int l_cmd_clear(lua_State *L) {
 static int l_cmd_delete(lua_State *L) {
   (void)L;
   if (cstr_is_empty(&ui->cmdline.left) && cstr_is_empty(&ui->cmdline.right)) {
-    lfm_mode_enter(lfm, c_zv("normal"));
+    lfm_mode_normal(lfm);
   } else {
     cmdline_delete(&ui->cmdline);
     mode_on_change(lfm->current_mode, lfm);

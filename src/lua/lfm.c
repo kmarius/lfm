@@ -584,7 +584,7 @@ static int l_register_mode(lua_State *L) {
   lua_pop(L, 1);
 
   lua_getfield(L, 1, "input");
-  mode.input = lua_toboolean(L, -1);
+  mode.is_input = lua_toboolean(L, -1);
   lua_pop(L, 1);
 
   lua_getfield(L, 1, "prefix");
@@ -709,7 +709,7 @@ static int l_mode_index(lua_State *L) {
     lua_pushcstr(L, &mode->prefix);
     return 1;
   } else if (streq(key, "input")) {
-    lua_pushboolean(L, mode->input);
+    lua_pushboolean(L, mode->is_input);
     return 1;
   } else {
     return luaL_error(L, "no such field: %s", key);
@@ -721,7 +721,7 @@ static int l_mode_newindex(lua_State *L) {
   struct mode *mode = *(struct mode **)luaL_checkudata(L, 1, MODE_META);
   const char *key = luaL_checkstring(L, 2);
   if (streq(key, "prefix")) {
-    if (!mode->input) {
+    if (!mode->is_input) {
       return luaL_error(L, "can only set prefix for input modes");
     }
     zsview prefix = lua_tozsview(L, 3);
