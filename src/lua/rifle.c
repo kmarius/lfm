@@ -425,7 +425,7 @@ static int l_rifle_query_mime(lua_State *L) {
     lua_pop(L, 1);
 
     lua_getfield(L, 2, "pick");
-    if (!lua_isnoneornil(L, -1)) {
+    if (!lua_isnil(L, -1)) {
       pick = lua_tozsview(L, -1);
     }
     lua_pop(L, 1);
@@ -482,7 +482,7 @@ static int l_rifle_query(lua_State *L) {
     lua_pop(L, 1);
 
     lua_getfield(L, 2, "pick");
-    if (!lua_isnoneornil(L, -1)) {
+    if (!lua_isnil(L, -1)) {
       pick = lua_tozsview(L, -1);
     }
     lua_pop(L, 1);
@@ -595,13 +595,13 @@ static int l_rifle_setup(lua_State *L) {
 
   if (lua_istable(L, 1)) {
     lua_getfield(L, 1, "rules");
-    if (!lua_isnoneornil(L, -1)) {
+    if (!lua_isnil(L, -1)) {
       llua_parse_rules(L, -1, rifle);
     }
     lua_pop(L, 1);
 
     lua_getfield(L, 1, "config");
-    if (!lua_isnoneornil(L, -1)) {
+    if (!lua_isnil(L, -1)) {
       cstr_drop(&rifle->config_file);
       rifle->config_file = path_replace_tilde(lua_tozsview(L, -1));
     }

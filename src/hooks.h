@@ -77,7 +77,7 @@ static inline void lua_get_callback(lua_State *L, int ref, bool unref) {
   if (unref) {
     luaL_unref(L, LUA_REGISTRYINDEX, ref);
   }
-  assert(!lua_isnoneornil(L, -1));
+  assert(!lua_isnil(L, -1));
 }
 
 #define _lfm_run_hook0(lfm, hook)                                              \

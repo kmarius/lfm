@@ -466,13 +466,13 @@ static inline int map_key(lua_State *L, Trie *trie, bool allow_mode) {
   zsview desc = {0};
   if (lua_type(L, 3) == LUA_TTABLE) {
     lua_getfield(L, 3, "desc");
-    if (!lua_isnoneornil(L, -1)) {
+    if (!lua_isnil(L, -1)) {
       desc = lua_tozsview(L, -1);
     }
     lua_pop(L, 1);
 
     lua_getfield(L, 3, "mode");
-    if (!lua_isnoneornil(L, -1)) {
+    if (!lua_isnil(L, -1)) {
       if (!allow_mode) {
         return luaL_error(L, "mode not allowed here");
       }
@@ -574,7 +574,7 @@ static int l_register_mode(lua_State *L) {
   struct mode mode = {0};
 
   lua_getfield(L, 1, "name");
-  if (lua_isnoneornil(L, -1)) {
+  if (lua_isnil(L, -1)) {
     return luaL_error(L, "register_mode: missing field 'name'");
   }
   mode.name = cstr_from_zv(lua_tozsview(L, -1));
@@ -589,31 +589,31 @@ static int l_register_mode(lua_State *L) {
   lua_pop(L, 1);
 
   lua_getfield(L, 1, "on_enter");
-  if (!lua_isnoneornil(L, -1)) {
+  if (!lua_isnil(L, -1)) {
     mode.on_enter_ref = lua_register_callback(L, -1);
   }
   lua_pop(L, 1);
 
   lua_getfield(L, 1, "on_change");
-  if (!lua_isnoneornil(L, -1)) {
+  if (!lua_isnil(L, -1)) {
     mode.on_change_ref = lua_register_callback(L, -1);
   }
   lua_pop(L, 1);
 
   lua_getfield(L, 1, "on_return");
-  if (!lua_isnoneornil(L, -1)) {
+  if (!lua_isnil(L, -1)) {
     mode.on_return_ref = lua_register_callback(L, -1);
   }
   lua_pop(L, 1);
 
   lua_getfield(L, 1, "on_esc");
-  if (!lua_isnoneornil(L, -1)) {
+  if (!lua_isnil(L, -1)) {
     mode.on_esc_ref = lua_register_callback(L, -1);
   }
   lua_pop(L, 1);
 
   lua_getfield(L, 1, "on_exit");
-  if (!lua_isnoneornil(L, -1)) {
+  if (!lua_isnil(L, -1)) {
     mode.on_exit_ref = lua_register_callback(L, -1);
   }
   lua_pop(L, 1);

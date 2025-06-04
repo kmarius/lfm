@@ -415,19 +415,19 @@ static int l_fm_sort(lua_State *L) {
 
   struct dir_settings settings = dir->settings;
   lua_getfield(L, 1, "dirfirst");
-  if (!lua_isnoneornil(L, -1)) {
+  if (!lua_isnil(L, -1)) {
     settings.dirfirst = lua_toboolean(L, -1);
   }
   lua_pop(L, 1);
 
   lua_getfield(L, 1, "reverse");
-  if (!lua_isnoneornil(L, -1)) {
+  if (!lua_isnil(L, -1)) {
     settings.reverse = lua_toboolean(L, -1);
   }
   lua_pop(L, 1);
 
   lua_getfield(L, 1, "type");
-  if (!lua_isnoneornil(L, -1)) {
+  if (!lua_isnil(L, -1)) {
     const char *op = luaL_checkstring(L, -1);
     int type = sorttype_from_str(op);
     if (type < 0) {
@@ -671,7 +671,9 @@ static int l_fm_filter_get(lua_State *L) {
 }
 
 static int l_fm_filter(lua_State *L) {
-  if (!lua_isnoneornil(L, 1)) {
+  if (lua_isnoneornil(L, 1)) {
+    fm_filter(fm, NULL);
+  } else {
     const char *type = lua_tostring(L, 2);
     if (!type || streq(type, "substring")) {
       fm_filter(fm, filter_create_sub(lua_tozsview(L, 1)));
@@ -683,8 +685,6 @@ static int l_fm_filter(lua_State *L) {
     } else {
       return luaL_error(L, "unrecognized filter type: %s", type);
     }
-  } else {
-    fm_filter(fm, NULL);
   }
   ui_update_file_preview_delayed(ui);
   ui_redraw(ui, REDRAW_FM);

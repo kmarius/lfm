@@ -406,13 +406,13 @@ static inline uint64_t read_color_pair(lua_State *L, int ind) {
   ncchannel_set_default(&bg);
 
   lua_getfield(L, ind, "fg");
-  if (!lua_isnoneornil(L, -1)) {
+  if (!lua_isnil(L, -1)) {
     fg = read_channel(L, -1);
   }
   lua_pop(L, 1);
 
   lua_getfield(L, ind, "bg");
-  if (!lua_isnoneornil(L, -1)) {
+  if (!lua_isnil(L, -1)) {
     bg = read_channel(L, -1);
   }
   lua_pop(L, 1);
