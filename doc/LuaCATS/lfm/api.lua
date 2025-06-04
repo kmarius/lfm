@@ -619,35 +619,35 @@ function lfm.api.notcurses_palette_size() end
 
 ---Check if a macro is currently being recorded.
 ---```lua
----    local recording = lfm.api.ui_macro_recording()
+---    local recording = lfm.api.macro_recording()
 ---```
 ---@return boolean
 ---@nodiscard
-function lfm.api.ui_macro_recording() end
+function lfm.api.macro_recording() end
 
 ---Start recording a macro. Keytrokes are recorded until macro_stop_record is called.
 ---Returns false if a macro is already being recorded.
 ---```lua
----    lfm.api.ui_macro_record("a")
+---    lfm.api.macro_record("a")
 ---```
 ---@param id string First found wchar is used as an id.
 ---@return boolean
-function lfm.api.ui_macro_record(id) end
+function lfm.api.macro_record(id) end
 
 ---Stop recording current macro.
 ---```lua
----    lfm.api.ui_macro_stop_record()
+---    lfm.api.macro_stop_record()
 ---```
 ---@return boolean
-function lfm.api.ui_macro_stop_record() end
+function lfm.api.macro_stop_record() end
 
 ---Replay a macro.
 ---```lua
----    lfm.api.ui_macro_play("a")
+---    lfm.api.macro_play("a")
 ---```
 ---@param id string First found wchar is used as an id.
 ---@return boolean
-function lfm.api.ui_macro_play(id) end
+function lfm.api.macro_play(id) end
 
 ---
 ---Get tags of a directory.
