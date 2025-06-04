@@ -223,51 +223,51 @@ function lfm.api.current_file() end
 
 ---Reverse selection of files in the current directory.
 ---```lua
----    lfm.api.fm_selection_reverse()
+---    lfm.api.selection_reverse()
 ---```
-function lfm.api.fm_selection_reverse() end
+function lfm.api.selection_reverse() end
 
 ---Toggle selection of the current file.
 ---```lua
----    lfm.api.fm_selection_toggle()
+---    lfm.api.selection_toggle()
 ---```
-function lfm.api.fm_selection_toggle() end
+function lfm.api.selection_toggle() end
 
 ---Add files to the current selection. Must use absolute paths (TODO: make relative paths work)
 ---```lua
----    lfm.api.fm_selection_add({"/tmp/file1", "/tmp/file2"})
+---    lfm.api.selection_add({"/tmp/file1", "/tmp/file2"})
 ---```
 ---@param files string[] Table of paths.
-function lfm.api.fm_selection_add(files) end
+function lfm.api.selection_add(files) end
 
 ---Set the current selection. Empty table or nil clears.
 ---```lua
----    lfm.api.fm_selection_set({"/tmp/file1", "/tmp/file2"})
+---    lfm.api.selection_set({"/tmp/file1", "/tmp/file2"})
 ---```
 ---Clear the selection:
 ---```lua
----    lfm.api.fm_selection_set({})
----    lfm.api.fm_selection_set()
+---    lfm.api.selection_set({})
+---    lfm.api.selection_set()
 ---```
 ---@param files? string[] table of strings.
-function lfm.api.fm_selection_set(files) end
+function lfm.api.selection_set(files) end
 
 ---Get the current selection. Files are in the order in which they were added.
 ---```lua
----    local files = lfm.api.fm_selection_get()
+---    local files = lfm.api.selection_get()
 ---    for i, file in ipairs(files) do
 ---      print(i, file)
 ---    end
 ---```
 ---@return string[] files table of files as strings.
 ---@nodiscard
-function lfm.api.fm_selection_get() end
+function lfm.api.selection_get() end
 
 ---Restore the previous selection. Previous selection is set whenever the selection/paste buffer is cleared.
 ---```lua
----    lfm.api.fm_selection_restore()
+---    lfm.api.selection_restore()
 ---```
-function lfm.api.fm_selection_restore() end
+function lfm.api.selection_restore() end
 
 ---Flatten the current directory `level`s deep.
 ---```lua
@@ -388,10 +388,10 @@ function lfm.api.fm_reload() end
 
 ---Move the cursor to a file in the current directory.
 ---```lua
----    lfm.api.fm_sel("file.txt")
+---    lfm.api.sel("file.txt")
 ---```
 ---@param name string
-function lfm.api.fm_sel(name) end
+function lfm.api.sel(name) end
 
 ---Current height of the file manager, i.e. the maximum number of files shown in one directory.
 ---```lua

@@ -22,7 +22,7 @@ function M.open(...)
 	local file = api.fm_open()
 	if file then
 		-- selection takes priority
-		local files = api.fm_selection_get()
+		local files = api.selection_get()
 		if #files == 0 then
 			files = { file }
 		end

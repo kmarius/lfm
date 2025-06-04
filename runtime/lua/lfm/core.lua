@@ -158,7 +158,7 @@ end
 ---```
 ---@return string[] selection
 local function sel_or_cur()
-	local sel = api.fm_selection_get()
+	local sel = api.selection_get()
 	return #sel > 0 and sel or { api.current_file() }
 end
 
@@ -439,7 +439,7 @@ register_command("delete", function(args)
 		error("command takes no arguments")
 	end
 	spawn({ "rm", "-rf", "--", unpack(sel_or_cur()) }, { stderr = true })
-	api.fm_selection_set()
+	api.selection_set()
 end, { desc = "Delete current selection without asking for confirmation." })
 
 -- Keymaps
@@ -478,14 +478,14 @@ map("s", a(feedkeys, ":shell "), { desc = ":shell " })
 map("S", a(execute, { "sh", "-c", "LFM_LEVEL=1 " .. os.getenv("SHELL") }), { desc = "Open a $SHELL" })
 
 -- Visual/selection
-map("<Space>", c(api.fm_selection_toggle, api.fm_down), { desc = "Select current file" })
-map("v", api.fm_selection_reverse, { desc = "Reverse selection" })
+map("<Space>", c(api.selection_toggle, api.fm_down), { desc = "Select current file" })
+map("v", api.selection_reverse, { desc = "Reverse selection" })
 map("V", function()
 	local mode = lfm.current_mode()
 	lfm.mode(mode ~= "visual" and "visual" or "normal")
 end, { desc = "Toggle visual selection mode" })
-map("uv", c(api.fm_paste_buffer_set, api.fm_selection_set), { desc = "Clear selection" })
-map("gu", api.fm_selection_restore, { desc = "Restore previous selection" })
+map("uv", c(api.fm_paste_buffer_set, api.selection_set), { desc = "Clear selection" })
+map("gu", api.selection_restore, { desc = "Restore previous selection" })
 
 -- Navigation
 map("<Enter>", open, { desc = "Open file or directory" })

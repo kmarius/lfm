@@ -136,7 +136,7 @@ end
 ---@param glob string
 function M.glob_select(glob)
 	local files = glob_files_single(".", glob, { full_paths = true })
-	api.fm_selection_set(files)
+	api.selection_set(files)
 end
 
 ---
@@ -155,7 +155,7 @@ function M.glob_select_recursive(glob)
 		return M.matches(file, pattern, match_dot)
 	end
 	local files = fs.find(filter, { path = lfm.fn.getpwd(), limit = 1000000, follow = true })
-	api.fm_selection_set(files)
+	api.selection_set(files)
 end
 
 function M._setup()
@@ -171,7 +171,7 @@ function M._setup()
 			lfm.mode("normal")
 		end,
 		on_esc = function()
-			api.fm_selection_set({})
+			api.selection_set({})
 		end,
 		on_change = function()
 			require("lfm.glob").glob_select(api.cmdline_line_get())

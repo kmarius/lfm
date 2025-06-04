@@ -49,7 +49,7 @@ lfm.map("df", function()
 	lfm.util.input({ prompt = prompt, single_key = true }, function(input)
 		if input == "y" then
 			M.put(files)
-			api.fm_selection_set({})
+			api.selection_set({})
 		end
 	end)
 end, { desc = "Trash file/selection" })
