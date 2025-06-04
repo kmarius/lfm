@@ -512,14 +512,14 @@ function lfm.api.ui_menu(menu) end
 
 ---Show all previously shown errors and messages.
 ---```lua
----    local messages = lfm.api.ui_messages()
+---    local messages = lfm.api.get_messages()
 ---    for i, message in ipairs(messages) do
 ---      print(i, message)
 ---    end
 ---```
 ---@return string[] messages
 ---@nodiscard
-function lfm.api.ui_messages() end
+function lfm.api.get_messages() end
 
 ---
 ---Con notcurses open images?

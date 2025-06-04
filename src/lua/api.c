@@ -984,7 +984,7 @@ static const struct luaL_Reg ui_funcs[] = {
     {"ui_clear",                 l_ui_clear                },
     {"redraw",                   l_ui_redraw               },
     {"ui_menu",                  l_ui_menu                 },
-    {"ui_messages",              l_ui_messages             },
+    {"get_messages",             l_ui_messages             },
     {"notcurses_palette_size",   l_notcurses_palette_size  },
     {"notcurses_cantruecolor",   l_notcurses_cantruecolor  },
     {"notcurses_canopen_images", l_notcurses_canopen_images},
