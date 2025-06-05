@@ -123,7 +123,7 @@ function M._setup()
 						lfm.mode("normal")
 						lfm.eval("open")
 					else
-						api.cmdline_clear()
+						api.cmdline_line_set()
 					end
 				end
 				if not hidden then
@@ -162,7 +162,7 @@ function M._setup()
 		lfm.map("<a-h>", function()
 			api.set_filter("")
 			api.fm_updir()
-			api.cmdline_clear()
+			api.cmdline_line_set()
 		end, { mode = "travel", desc = "Move to parent directory" })
 	end
 
@@ -184,7 +184,7 @@ function M._setup()
 						lfm.mode("normal")
 						lfm.eval("open")
 					else
-						api.cmdline_clear()
+						api.cmdline_line_set()
 					end
 				end
 				if not hidden then
@@ -224,7 +224,7 @@ function M._setup()
 		lfm.map("<a-h>", function()
 			api.set_filter("")
 			api.fm_updir()
-			api.cmdline_clear()
+			api.cmdline_line_set()
 		end, { mode = "travel-fuzzy", desc = "Move to parent directory" })
 	end
 
