@@ -48,14 +48,12 @@ typedef struct Lfm {
   struct mode *current_mode;
 
   ev_prepare prepare_watcher;
-  ev_timer timer_watcher;
   ev_signal sigint_watcher;
   ev_signal sigtstp_watcher;
   ev_signal sigwinch_watcher;
   ev_signal sigterm_watcher;
   ev_signal sighup_watcher;
   ev_signal sigpipe_watcher;
-  ev_io fifo_watcher;
 
   list_timer schedule_timers;
   list_child child_watchers;
@@ -66,7 +64,6 @@ typedef struct Lfm {
 
   struct lfm_opts opts;
 
-  int fifo_fd;
   int ret; /* set in lfm_quit and returned in main.c */
 } Lfm;
 

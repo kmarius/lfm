@@ -2,6 +2,7 @@
 
 #include "async/async.h"
 #include "config.h"
+#include "fifo.h"
 #include "hooks.h"
 #include "input.h"
 #include "loader.h"
@@ -17,10 +18,8 @@
 #include "util.h"
 #include "vec_env.h"
 
-#include <asm-generic/errno.h>
 #include <ev.h>
 #include <lauxlib.h>
-#include <limits.h>
 #include <notcurses/notcurses.h>
 
 #include <errno.h>
@@ -30,13 +29,10 @@
 #include <string.h>
 
 #include <fcntl.h>
-#include <sys/inotify.h>
 #include <sys/wait.h>
-#include <unistd.h>
 
 struct sched_timer {
   ev_timer watcher;
-  Lfm *lfm;
   int ref;
 };
 
@@ -66,12 +62,6 @@ static inline void destroy_child_watcher(struct child_watcher *w);
 #define i_keydrop(p) (destroy_child_watcher(p))
 #define i_no_clone
 #include "stc/dlist.h"
-
-#define TICK 1 // heartbeat, in seconds
-
-// Size of the buffer for reading from the fifo. Switches to a dynamic buffer if
-// full.
-#define FIFO_BUF_SZ 512
 
 // watcher and corresponding stdout/-err watchers need to be stopped before
 // calling this function
@@ -148,58 +138,14 @@ static void child_out_cb(EV_P_ ev_io *w, int revents) {
   ev_idle_start(EV_A_ & lfm->ui.redraw_watcher);
 }
 
-static void fifo_cb(EV_P_ ev_io *w, int revents) {
-  (void)revents;
-  (void)loop;
-
-  Lfm *lfm = w->data;
-
-  char buf[FIFO_BUF_SZ];
-  ssize_t nread = read(w->fd, buf, sizeof buf);
-
-  if (nread <= 0) {
-    return;
-  }
-
-  if ((size_t)nread < sizeof buf) {
-    buf[nread - 1] = 0;
-    llua_eval(lfm->L, buf);
-  } else {
-    size_t capacity = 2 * sizeof buf;
-    char *dyn_buf = xmalloc(capacity);
-    size_t length = nread;
-    memcpy(dyn_buf, buf, nread);
-    while ((nread = read(lfm->fifo_fd, dyn_buf + length, capacity - length)) >
-           0) {
-      length += nread;
-      if (length == capacity) {
-        capacity *= 2;
-        dyn_buf = xrealloc(dyn_buf, capacity);
-      }
-    }
-    dyn_buf[length] = 0;
-    llua_eval(lfm->L, dyn_buf);
-    xfree(dyn_buf);
-  }
-
-  ev_idle_start(lfm->loop, &lfm->ui.redraw_watcher);
-}
-
 static void schedule_timer_cb(EV_P_ ev_timer *w, int revents) {
   (void)revents;
   struct sched_timer *timer = (struct sched_timer *)w;
-  Lfm *lfm = timer->lfm;
+  Lfm *lfm = w->data;
   ev_timer_stop(EV_A_ w);
   llua_run_callback(lfm->L, timer->ref);
   list_timer_erase_node(&lfm->schedule_timers, list_timer_get_node(timer));
   ev_idle_start(EV_A_ & lfm->ui.redraw_watcher);
-}
-
-static void timer_cb(EV_P_ ev_timer *w, int revents) {
-  (void)revents;
-  Lfm *lfm = w->data;
-  (void)lfm;
-  ev_timer_stop(EV_A_ w);
 }
 
 // To run command line cmds after loop starts. I think it is called back before
@@ -298,31 +244,6 @@ static inline void init_dirs(Lfm *lfm) {
   }
 }
 
-static inline void init_fifo(Lfm *lfm) {
-  log_trace("setting up fifo");
-
-  if ((mkfifo(cstr_str(&cfg.fifopath), 0600) == -1 && errno != EEXIST)) {
-    fprintf(stderr, "mkfifo: %s", strerror(errno));
-    exit(EXIT_FAILURE);
-  }
-  if ((lfm->fifo_fd = open(cstr_str(&cfg.fifopath), O_RDWR | O_NONBLOCK, 0)) ==
-      -1) {
-    fprintf(stderr, "open: %s", strerror(errno));
-    exit(EXIT_FAILURE);
-  }
-
-  setenv("LFMFIFO", cstr_str(&cfg.fifopath), 1);
-
-  ev_io_init(&lfm->fifo_watcher, fifo_cb, lfm->fifo_fd, EV_READ);
-  lfm->fifo_watcher.data = lfm;
-  ev_io_start(lfm->loop, &lfm->fifo_watcher);
-}
-
-static inline void deinit_fifo(Lfm *lfm) {
-  close(lfm->fifo_fd);
-  remove(cstr_str(&cfg.fifopath));
-}
-
 static inline void setup_signal_handlers(Lfm *lfm) {
   log_trace("installing signals handlers");
 
@@ -331,10 +252,6 @@ static inline void setup_signal_handlers(Lfm *lfm) {
   ev_prepare_init(&lfm->prepare_watcher, prepare_cb);
   lfm->prepare_watcher.data = lfm;
   ev_prepare_start(lfm->loop, &lfm->prepare_watcher);
-
-  // Heartbeat, currently does nothing
-  ev_timer_init(&lfm->timer_watcher, timer_cb, TICK, TICK);
-  lfm->timer_watcher.data = lfm;
 
   // Catch some signals
   ev_signal_init(&lfm->sigint_watcher, sigint_cb, SIGINT);
@@ -372,7 +289,7 @@ void lfm_init(Lfm *lfm, struct lfm_opts *opts) {
 
   init_loop(lfm);
   init_dirs(lfm);
-  init_fifo(lfm);
+  fifo_init(lfm);
 
   /* notify should be available on fm startup */
   notify_init(&lfm->notify);
@@ -403,7 +320,7 @@ void lfm_deinit(Lfm *lfm) {
   loader_deinit(&lfm->loader);
   lfm_lua_deinit(lfm);
   async_deinit(&lfm->async);
-  deinit_fifo(lfm);
+  fifo_deinit();
 
   cstr_drop(&lfm->opts.startfile);
   cstr_drop(&lfm->opts.startpath);
@@ -815,9 +732,9 @@ void lfm_error(Lfm *lfm, const char *fmt, ...) {
 void lfm_schedule(Lfm *lfm, int ref, uint32_t delay) {
   struct sched_timer *data =
       list_timer_push(&lfm->schedule_timers, (struct sched_timer){
-                                                 .lfm = lfm,
                                                  .ref = ref,
                                              });
   ev_timer_init(&data->watcher, schedule_timer_cb, 1.0 * delay / 1000, 0);
+  data->watcher.data = lfm;
   ev_timer_start(lfm->loop, &data->watcher);
 }
