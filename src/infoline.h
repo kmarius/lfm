@@ -1,11 +1,11 @@
 #pragma once
 
-#include "ui.h"
+#include "stc/zsview.h"
 
-void infoline_init(Ui *ui);
+struct Ui;
+
+void infoline_init(struct Ui *ui);
 
 void infoline_parse(zsview infoline);
 
-void infoline_draw(Ui *ui);
-
-int shorten_name(zsview name, char *buf, int max_len, bool has_ext);
+void infoline_draw(struct Ui *ui);

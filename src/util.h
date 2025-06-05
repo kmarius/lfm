@@ -65,3 +65,5 @@ static inline zsview getenv_zv(const char *name) {
 
 // case insensitive cmp, but 'a' < 'A'
 int strcasecmp_strict(const char *s1, const char *s2);
+
+int shorten_name(zsview name, char *buf, int max_len, bool has_ext);

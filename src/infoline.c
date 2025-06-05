@@ -6,14 +6,16 @@
 #include "macros.h"
 #include "ncutil.h"
 #include "spinner.h"
+#include "ui.h"
+#include "util.h"
+
 #include "stc/csview.h"
 #include "stc/zsview.h"
-#include "ui.h"
 
 #include <curses.h>
+#include <notcurses/notcurses.h>
 
 #include <linux/limits.h>
-#include <notcurses/notcurses.h>
 #include <string.h>
 #include <unistd.h>
 
@@ -501,75 +503,4 @@ static inline int shorten_path(zsview path, char *buf, int max_len) {
   ptr += cur.size;
 
   return max;
-}
-
-int shorten_name(zsview name, char *buf, int max_len, bool has_ext) {
-  size_t pos = 0;
-  char *ptr = buf;
-  if (max_len <= 0) {
-    *ptr = 0;
-    return 0;
-  }
-
-  int name_len = zsview_u8_size(name);
-  if (name_len <= max_len) {
-    // everything fits
-    memcpy(buf, name.str, name.size + 1);
-    return name_len;
-  }
-
-  zsview ext = zsview_tail(name, 0);
-  if (has_ext) {
-    const char *ptr = strrchr(name.str, '.');
-    if (ptr != NULL && ptr != name.str) {
-      ext = zsview_tail(name, name.size - (ptr - name.str));
-    }
-  }
-  int ext_len = zsview_u8_size(ext);
-
-  int trunc_len = strlen(cfg.truncatechar);
-
-  if (max_len > ext_len + 1) {
-    // print extension and as much of the name as possible
-    csview cs = zsview_u8_subview(name, 0, max_len - ext_len - 1);
-
-    memcpy(buf + pos, cs.buf, cs.size);
-    pos += cs.size;
-
-    memcpy(buf + pos, cfg.truncatechar, trunc_len);
-    pos += trunc_len;
-
-    memcpy(buf + pos, ext.str, ext.size + 1);
-  } else if (max_len >= 5) {
-    // print first char of the name and as mutch of the extension as possible
-    csview cs = zsview_u8_subview(name, 0, 1);
-
-    memcpy(buf + pos, cs.buf, cs.size);
-    pos += cs.size;
-
-    memcpy(buf + pos, cfg.truncatechar, trunc_len);
-    pos += trunc_len;
-
-    cs = zsview_u8_subview(ext, 0, max_len - 2 - 1);
-
-    memcpy(buf + pos, cs.buf, cs.size);
-    pos += cs.size;
-
-    memcpy(buf + pos, cfg.truncatechar, trunc_len + 1);
-  } else if (max_len > 1) {
-    csview cs = zsview_u8_subview(name, 0, max_len - 1);
-    memcpy(buf + pos, cs.buf, cs.size);
-    pos += cs.size;
-
-    memcpy(buf + pos, cfg.truncatechar, trunc_len + 1);
-  } else {
-    // try one char?
-    csview cs = zsview_u8_subview(name, 0, 1);
-
-    memcpy(buf + pos, cs.buf, cs.size);
-    pos += cs.size;
-    buf[pos] = 0;
-  }
-
-  return max_len;
 }
