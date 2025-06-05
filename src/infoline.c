@@ -53,6 +53,9 @@ static struct {
   int file, path, spinner, spacer, mode;
 } idx;
 
+// currently the only spinner instance in use
+static struct spinner spinner;
+
 static inline void draw_custom(Ui *ui);
 static inline void draw_default(Ui *ui);
 static inline int shorten_path(zsview path, char *buf, int max_len);
@@ -62,7 +65,6 @@ static inline bool should_draw_default() {
 }
 
 void infoline_init(Ui *ui) {
-  (void)ui;
   gethostname(host, sizeof host);
   uid = getuid();
   strncpy(user, getenv("USER"), sizeof user - 1);
@@ -77,6 +79,8 @@ void infoline_init(Ui *ui) {
     }
     home_len = mbstowcs(NULL, home, 0);
   }
+
+  spinner_init(&spinner, spinner_chars, to_lfm(ui)->loop);
 }
 
 void infoline_parse(zsview infoline) {
@@ -335,16 +339,16 @@ static inline void draw_custom(Ui *ui) {
       uint64_t channels = ncplane_channels(n);
       uint16_t style = ncplane_styles(n);
 
-      spinner_on(&ui->spinner, 0, x, channels, style);
+      spinner_on(&spinner, 0, x, channels, style, n);
       // draw the current char immediately
-      spinner_draw_char(&ui->spinner);
+      spinner_draw_char(&spinner);
     } break;
     }
     ncplane_putstr_ansi(n, placeholders[i].next);
   }
 
   if (idx.spinner == 0) {
-    spinner_off(&ui->spinner);
+    spinner_off(&spinner);
   }
 }
 

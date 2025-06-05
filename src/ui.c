@@ -19,7 +19,6 @@
 #include "ncutil.h"
 #include "preview.h"
 #include "profiling.h"
-#include "spinner.h"
 #include "statusline.h"
 #include "stc/cstr.h"
 #include "stcutil.h"
@@ -167,8 +166,6 @@ void ui_resume(Ui *ui) {
   opts.resizecb = resize_cb;
   ui->planes.info = ncplane_create(ncstd, &opts);
   opts.resizecb = NULL;
-
-  spinner_init(&ui->spinner, spinner_chars, to_lfm(ui)->loop, ui->planes.info);
 
   opts.y = ui->y - 1;
   ui->planes.cmdline = ncplane_create(ncstd, &opts);

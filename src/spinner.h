@@ -25,10 +25,10 @@ static const char spinner_chars[] = "⣾⣽⣻⢿⡿⣟⣯⣷";
 // braille random: 0x2800 - 0x28ff
 
 struct spinner *spinner_init(struct spinner *spinner, const char *chars,
-                             struct ev_loop *loop, struct ncplane *n);
+                             struct ev_loop *loop);
 
 void spinner_on(struct spinner *spinner, unsigned int y, unsigned int x,
-                uint64_t channels, uint16_t style);
+                uint64_t channels, uint16_t style, struct ncplane *n);
 
 static inline void spinner_draw_char(struct spinner *spinner) {
   ncplane_putnstr_yx(spinner->n, spinner->y, spinner->x, 1,

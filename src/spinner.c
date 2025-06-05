@@ -6,12 +6,11 @@
 static void spinner_draw(EV_P_ ev_timer *w, int revents);
 
 struct spinner *spinner_init(struct spinner *spinner, const char *chars,
-                             struct ev_loop *loop, struct ncplane *n) {
+                             struct ev_loop *loop) {
   ev_timer_init(&spinner->timer, spinner_draw, 0.0, SPINNER_INTERVAL / 1000.0);
   spinner->chars = chars;
   spinner->len = strlen(chars);
   spinner->i = 0;
-  spinner->n = n;
   spinner->loop = loop;
   return spinner;
 }
@@ -30,11 +29,12 @@ static void spinner_draw(EV_P_ ev_timer *w, int revents) {
 }
 
 void spinner_on(struct spinner *spinner, unsigned int y, unsigned int x,
-                uint64_t channels, uint16_t style) {
+                uint64_t channels, uint16_t style, struct ncplane *n) {
   spinner->y = y;
   spinner->x = x;
   spinner->channels = channels;
   spinner->style = style;
+  spinner->n = n;
   if (!ev_is_active(spinner))
     ev_timer_start(spinner->loop, &spinner->timer);
 }

@@ -2,7 +2,6 @@
 
 #include "cmdline.h"
 #include "preview.h"
-#include "spinner.h"
 #include "trie.h"
 
 #include <ev.h>
@@ -92,7 +91,6 @@ typedef struct Ui {
   ev_timer map_clear_timer;
   ev_timer map_suggestion_timer;
   ev_timer preview_load_timer;
-  struct spinner spinner;
 
   vec_message messages;
   bool show_message; // if true, the latest message is drawn over the statusline
