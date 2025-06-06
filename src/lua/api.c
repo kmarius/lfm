@@ -26,9 +26,7 @@ static int l_cmd_line_get(lua_State *L) {
 }
 
 static int l_cmd_line_set(lua_State *L) {
-  if (lua_gettop(L) > 2) {
-    return luaL_error(L, "Expected up to 2 arguments");
-  }
+  LUA_CHECK_ARGMAX(L, 2);
 
   ui->show_message = false;
 
@@ -830,7 +828,7 @@ static int l_ui_menu(lua_State *L) {
 }
 
 static int l_ui_redraw(lua_State *L) {
-  if (lua_gettop(L) > 0 && lua_toboolean(L, 1)) {
+  if (luaL_optbool(L, 1, false)) {
     ui_redraw(ui, REDRAW_FULL);
   }
   ev_idle_start(lfm->loop, &ui->redraw_watcher);
@@ -932,9 +930,7 @@ static int l_get_tags(lua_State *L) {
 }
 
 static int l_set_tags(lua_State *L) {
-  if (lua_gettop(L) > 3) {
-    return luaL_error(L, "too many arguments");
-  }
+  LUA_CHECK_ARGMAX(L, 3);
 
   luaL_checktype(L, 1, LUA_TSTRING);
   zsview path = lua_tozsview(L, 1);

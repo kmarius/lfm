@@ -25,10 +25,8 @@
 #define PROC_META "Lfm.Proc.Meta"
 
 static int l_schedule(lua_State *L) {
-  int delay = 0;
-  if (lua_gettop(L) >= 2) {
-    delay = luaL_checknumber(L, 2);
-  }
+  LUA_CHECK_ARGMAX(L, 2);
+  int delay = luaL_optinteger(L, 2, 0);
   if (delay < 0) {
     delay = 0;
   }
@@ -226,6 +224,8 @@ static int lua_proc_create(lua_State *L, int pid, int fd) {
 }
 
 static int l_spawn(lua_State *L) {
+  LUA_CHECK_ARGMAX(L, 2);
+
   // init just nulls these, we can exit without dropping, if nothing is added
   vec_str args = vec_str_init();
   vec_env env = vec_env_init();
@@ -239,10 +239,6 @@ static int l_spawn(lua_State *L) {
   int stdout_ref = 0;
   int stderr_ref = 0;
   int exit_ref = 0;
-
-  if (lua_gettop(L) > 2) {
-    return luaL_error(L, "too many arguments");
-  }
 
   luaL_checktype(L, 1, LUA_TTABLE); // [cmd, opts?]
   if (lua_gettop(L) == 2) {
@@ -331,6 +327,8 @@ static int l_spawn(lua_State *L) {
 }
 
 static int l_execute(lua_State *L) {
+  LUA_CHECK_ARGMAX(L, 2);
+
   vec_str args = vec_str_init();
   vec_bytes stdout_lines = vec_bytes_init();
   vec_bytes stderr_lines = vec_bytes_init();
@@ -340,10 +338,6 @@ static int l_execute(lua_State *L) {
   bool capture_stdout = false;
   bool capture_stderr = false;
   bool send_stdin = false;
-
-  if (lua_gettop(L) > 2) {
-    return luaL_error(L, "too many arguments");
-  }
 
   luaL_checktype(L, 1, LUA_TTABLE);
   if (lua_gettop(L) == 2) {
@@ -425,9 +419,8 @@ static int l_execute(lua_State *L) {
 }
 
 static int l_thread(lua_State *L) {
-  if (lua_gettop(L) > 3) {
-    return luaL_error(L, "too many arguments");
-  }
+  LUA_CHECK_ARGMAX(L, 3);
+
   int ref = 0;
   if (lua_type(L, 1) == LUA_TFUNCTION) {
     // try to string.dump the function and insert it at position 1

@@ -17,6 +17,14 @@
                         lua_gettop(L));                                        \
   } while (0)
 
+#define LUA_CHECK_ARGMAX(L, expected)                                          \
+  do {                                                                         \
+    if (lua_gettop(L) > (expected))                                            \
+      return luaL_error(L, "Expected at most %d %s, got %d", (expected),       \
+                        expected == 1 ? "argument" : "arguments",              \
+                        lua_gettop(L));                                        \
+  } while (0)
+
 #define luaL_checkzsview(L, idx)                                               \
   (luaL_checktype((L), (idx), LUA_TSTRING), lua_tozsview((L), (idx)))
 
