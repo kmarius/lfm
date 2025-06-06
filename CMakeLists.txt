@@ -131,6 +131,7 @@ set(LUA_QUICKMARKS_MODULE_SOURCE ${PROJECT_SOURCE_DIR}/runtime/lua/lfm/quickmark
 set(LUA_RIFLE_MODULE_SOURCE ${PROJECT_SOURCE_DIR}/runtime/lua/lfm/rifle.lua)
 set(LUA_SHELL_MODULE_SOURCE ${PROJECT_SOURCE_DIR}/runtime/lua/lfm/shell.lua)
 set(LUA_TRASH_MODULE_SOURCE ${PROJECT_SOURCE_DIR}/runtime/lua/lfm/trash.lua)
+set(LUA_UI_MODULE_SOURCE ${PROJECT_SOURCE_DIR}/runtime/lua/lfm/ui.lua)
 set(LUA_UTIL_MODULE_SOURCE ${PROJECT_SOURCE_DIR}/runtime/lua/lfm/util.lua)
 
 file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/lua)
@@ -154,6 +155,7 @@ add_custom_command(
  ${LUA_RIFLE_MODULE_SOURCE} "lfm.rifle"
  ${LUA_SHELL_MODULE_SOURCE} "lfm.shell"
  ${LUA_TRASH_MODULE_SOURCE} "lfm.trash"
+ ${LUA_UI_MODULE_SOURCE} "lfm.ui"
  ${LUA_UTIL_MODULE_SOURCE} "lfm.util"
  DEPENDS
  ${CHAR_BLOB_GENERATOR}
@@ -172,6 +174,7 @@ add_custom_command(
  ${LUA_RIFLE_MODULE_SOURCE}
  ${LUA_SHELL_MODULE_SOURCE}
  ${LUA_TRASH_MODULE_SOURCE}
+ ${LUA_UI_MODULE_SOURCE}
  ${LUA_UTIL_MODULE_SOURCE}
  VERBATIM
  )

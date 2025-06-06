@@ -120,7 +120,7 @@ end
 
 ---Prompt to save a quickmark of the current location
 function M.prompt_save()
-	lfm.util.input({ prompt = "mark-save: ", single_key = true }, function(char)
+	lfm.ui.input({ prompt = "mark-save: ", single_key = true }, function(char)
 		if char and #char > 0 then
 			M.save(char)
 		end
@@ -134,7 +134,7 @@ function M.prompt_delete()
 		table.insert(lines, char .. "\t" .. loc)
 	end
 	lfm.api.ui_menu(lines)
-	lfm.util.input({ prompt = "mark-delete: ", single_key = true }, function(char)
+	lfm.ui.input({ prompt = "mark-delete: ", single_key = true }, function(char)
 		if char and #char > 0 then
 			M.delete(char)
 		end

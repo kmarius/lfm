@@ -46,7 +46,7 @@ lfm.map("df", function()
 		error("no files")
 	end
 	local prompt = ("Trash %d %s [y/N]: "):format(#files, (#files > 1) and "files" or "file")
-	lfm.util.input({ prompt = prompt, single_key = true }, function(input)
+	lfm.ui.input({ prompt = prompt, single_key = true }, function(input)
 		if input == "y" then
 			M.put(files)
 			api.selection_set({})

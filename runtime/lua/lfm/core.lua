@@ -353,6 +353,7 @@ local submodules = {
 	search = true,
 	shell = true,
 	trash = true,
+	ui = true,
 	util = true,
 }
 
