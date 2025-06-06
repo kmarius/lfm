@@ -45,7 +45,9 @@ local function get_config_fields()
 	return config_fields
 end
 
+---
 ---Complete fields from the lfm namespace. Used to complete functions in command mode.
+---
 ---@type Lfm.ComplFun
 function M.table(_, line)
 	local t = {}
@@ -93,11 +95,15 @@ local function is_dir(path)
 	return s and stat.S_ISDIR(s.st_mode) == 1
 end
 
+---
 ---Complete directories.
+---
+---Example:
 ---```lua
----    local compl_fun = lfm.compl.dirs
----    lfm.register_command("cool-command", { compl = compl_fun })
+---  local compl_fun = lfm.compl.dirs
+---  lfm.register_command("cool-command", { compl = compl_fun })
 ---```
+---
 ---@type Lfm.ComplFun
 function M.dirs(path)
 	if path == "~" then
@@ -135,11 +141,15 @@ end
 -- maybe show dirs before directories
 -- files could be additionaly filtered with a function
 
+---
 ---Complete files.
+---
+---Example:
 ---```lua
----    local compl_fun = lfm.compl.files
----    lfm.register_command("cool-command", { compl = compl_fun })
+---  local compl_fun = lfm.compl.files
+---  lfm.register_command("cool-command", { compl = compl_fun })
 ---```
+---
 ---@type Lfm.ComplFun
 function M.files(path)
 	if path == "~" then
@@ -173,13 +183,15 @@ function M.files(path)
 	return t, (#t == 1 and string.sub(t[1], #t[1]) == "/") and "" or " "
 end
 
+---
 ---Limit completion of completion function `f` to `n` arguments.
 ---
 ---Complete a single file argument:
 ---```lua
----    local compl_fun = lfm.compl.limit(1, lfm.compl.files)
----    lfm.register_command("cool-command", { compl = compl_fun })
+---  local compl_fun = lfm.compl.limit(1, lfm.compl.files)
+---  lfm.register_command("cool-command", { compl = compl_fun })
 ---```
+---
 ---@param n number
 ---@param f Lfm.ComplFun
 ---@return Lfm.ComplFun
@@ -247,18 +259,26 @@ local function shownext(increment)
 	end
 end
 
+---
 ---Show next completion entry.
+---
+---Example:
 ---```lfm
----    lfm.compl.next()
+---  lfm.compl.next()
 ---```
+---
 function M.next()
 	shownext(1)
 end
 
+---
 ---Show previous completion entry.
+---
+---Example:
 ---```lfm
----    lfm.compl.prev()
+---  lfm.compl.prev()
 ---```
+---
 function M.prev()
 	shownext(-1)
 end

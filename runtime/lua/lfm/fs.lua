@@ -65,7 +65,9 @@ local types = {
 	[stat.S_IFBLK] = "block",
 }
 
+---
 ---Traverse directory in level order.
+---
 ---@param path string
 ---@param opts? Lfm.Fs.DirOpts
 ---@return fun():(string, Lfm.Fs.Type)

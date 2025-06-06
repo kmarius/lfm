@@ -5,14 +5,18 @@ local lfm = lfm
 local eval = lfm.eval
 local feedkeys = lfm.feedkeys
 
+---
 ---Construct a function that, when called, executes line as an expression.
+---
+---Example:
 ---```lua
----    local f = lfm.util.expr("cd ~")
+---  local f = lfm.util.expr("cd ~")
 --
----    f()
+---  f()
 --
----    lfm.map("H", f, { desc = "Go home" })
+---  lfm.map("H", f, { desc = "Go home" })
 ---```
+---
 ---@param line string
 ---@return function function
 function M.expr(line)
@@ -21,10 +25,14 @@ function M.expr(line)
 	end
 end
 
+---
 ---Create a function that calls all functions given as the argument.
+---
+---Example:
 ---```lua
----    lfm.util.c(lfm.api.fm_load_clear, lfm.api.redraw)()
+---  lfm.util.c(lfm.api.fm_load_clear, lfm.api.redraw)()
 ---```
+---
 ---@param ... function
 ---@return function
 function M.c(...)
@@ -49,11 +57,15 @@ function M.c(...)
 	end
 end
 
+---
 ---Create a function that, when called, executes the provided function with
 ---the provided arguments.
+---
+---Example:
 ---```lua
----    lfm.util.a(lfm.echo, "hey man")()
+---  lfm.util.a(lfm.echo, "hey man")()
 ---```
+---
 ---@param f function
 ---@param ... any
 ---@return function
@@ -75,11 +87,15 @@ function M.a(f, ...)
 	end
 end
 
+---
 ---Create a function that, when called, feeds keys into the keyhandler.
+---
+---Example:
 ---```lua
----    lfm.util.feed(":quit")()
----    lfm.util.feed("cd ~", "<Enter>", ":quit")()
+---  lfm.util.feed(":quit")()
+---  lfm.util.feed("cd ~", "<Enter>", ":quit")()
 ---```
+---
 ---@param ... string
 function M.feed(...)
 	local keys = { ... }
@@ -88,12 +104,16 @@ function M.feed(...)
 	end
 end
 
+---
 ---Check if an environment variable exists and is non-empty.
+---
+---Example:
 ---```lua
----    if lfm.util.hasenv("TMUX") then
----      -- ...
----    end
----````
+---  if lfm.util.hasenv("TMUX") then
+---    -- ...
+---  end
+---```
+---
 ---@param var string
 ---@return boolean
 function M.hasenv(var)
@@ -101,15 +121,19 @@ function M.hasenv(var)
 	return v and v ~= "" or false
 end
 
+---
 ---Merges a table of default options into a given table. Applied recursively on subtables.
 ---opts table is mutated in the process and returned.
+---
+---Example:
 ---```lua
----    local dflt = { next = "n", prev = "p" }
----    local opts = { next = "<right>" }
----    opts = apply_default_options(opts, dflt)
----    assert(opts.next == "<right>")
----    assert(opts.prev == "p")
+---  local dflt = { next = "n", prev = "p" }
+---  local opts = { next = "<right>" }
+---  opts = apply_default_options(opts, dflt)
+---  assert(opts.next == "<right>")
+---  assert(opts.prev == "p")
 ---```
+---
 ---@param opts table Table of options
 ---@param dflt table Table of default options
 ---@return table

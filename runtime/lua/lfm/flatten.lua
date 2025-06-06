@@ -4,20 +4,24 @@ local lfm = lfm
 
 local api = lfm.api
 
----Set the flatten level of the current directory.
----```lua
----    -- flatten one level deep
----    M.flatten(1)
 ---
----    -- reset flatten level
----    M.flatten(0)
---
----    -- increment flatten level
----    M.flatten('+')
---
----    -- decrement flatten level
----    M.flatten('-')
+---Set the flatten level of the current directory.
+---
+---Example:
+---```lua
+---  -- flatten one level deep
+---  M.flatten(1)
+---
+---  -- reset flatten level
+---  M.flatten(0)
+---
+---  -- increment flatten level
+---  M.flatten('+')
+---
+---  -- decrement flatten level
+---  M.flatten('-')
 ---```
+---
 ---@param level integer | ("+"|"-") The level or "+"/"-" to increment/decrement respectively
 function M.flatten(level)
 	if level == "+" then
@@ -28,10 +32,14 @@ function M.flatten(level)
 	api.fm_flatten(level --[[@as integer]])
 end
 
+---
 ---Increment the flatten level of the current directory. Sets "nodirfirst".
+---
+---Example:
 ---```lua
----    M.increment()
+---  M.increment()
 ---```
+---
 function M.increment()
 	if api.fm_flatten_level() == 0 then
 		api.fm_sort({ dirfirst = false })
@@ -39,11 +47,15 @@ function M.increment()
 	M.flatten("+")
 end
 
+---
 ---Decrement the flatten level of the current directory. Sets "dirfirst" after
 ---reaching a flatten level of 0.
+---
+---Example:
 ---```lua
----    M.deccrement()
+---  M.deccrement()
 ---```
+---
 function M.decrement()
 	M.flatten("-")
 	if api.fm_flatten_level() == 0 then

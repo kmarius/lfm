@@ -11,14 +11,17 @@ local function file_exists(path)
 	return stat.stat(path) ~= nil
 end
 
+---
 ---Copy a string to the clipboard.
+---
 ---```lua
----    M.wl_copy("some text")
+---  M.wl_copy("some text")
 ---```
 ---```lua
----    -- Use primary clipboard
----    M.wl_copy("some text", true)
+---  -- Use primary clipboard
+---  M.wl_copy("some text", true)
 ---```
+---
 ---@param text string|string[]
 ---@param primary boolean
 local function wl_copy(text, primary)
@@ -29,10 +32,14 @@ local function wl_copy(text, primary)
 	end
 end
 
+---
 ---Copy full paths of the current selection to the clipboard.
+---
+---Example:
 ---```lua
----    M.yank_path()
+---  M.yank_path()
 ---```
+---
 function M.yank_path()
 	local files = api.fm_sel_or_cur()
 	if #files > 0 then
@@ -40,10 +47,14 @@ function M.yank_path()
 	end
 end
 
+---
 ---Copy filenames of the current selection to the clipboard.
+---
+---Example:
 ---```lua
----    M.yank_name()
+---  M.yank_name()
 ---```
+---
 function M.yank_name()
 	local files = api.fm_sel_or_cur()
 	if #files > 0 then
@@ -54,10 +65,14 @@ function M.yank_name()
 	end
 end
 
+---
 ---Rename (move) the currently selected file.
+---
+---Example:
 ---```lua
----    M.rename("file.txt")
+---  M.rename("file.txt")
 ---```
+---
 ---@param name string
 function M.rename(name)
 	local file = api.current_file()
@@ -70,9 +85,12 @@ function M.rename(name)
 	end
 end
 
+---
 ---Populate the prompt to rename the current file up to its extension.
+---
+---Example:
 ---```lua
----    M.rename_until_ext()
+---  M.rename_until_ext()
 ---```
 function M.rename_until_ext()
 	local file = fs.basename(api.current_file())
@@ -88,10 +106,14 @@ function M.rename_until_ext()
 	end
 end
 
+---
 ---Populate the prompt to rename the current file just before its extension.
+---
+---Example:
 ---```lua
----    M.rename_before_ext()
+---  M.rename_before_ext()
 ---```
+---
 function M.rename_before_ext()
 	local file = fs.basename(api.current_file())
 	if file then
@@ -106,29 +128,41 @@ function M.rename_before_ext()
 	end
 end
 
+---
 ---Populate the prompt to rename at the beginning of the file name.
+---
+---Example:
 ---```lua
----    M.rename_before()
+---  M.rename_before()
 ---```
+---
 function M.rename_before()
 	lfm.mode("command")
 	api.cmdline_line_set("rename ", fs.basename(api.current_file()))
 end
 
+---
 ---Populate the prompt to rename at the end of the file name.
+---
+---Example:
 ---```lua
----    M.rename_after()
+---  M.rename_after()
 ---```
+---
 function M.rename_after()
 	lfm.mode("command")
 	api.cmdline_line_set("rename " .. fs.basename(api.current_file()), "")
 end
 
+---
 ---Create absolute symbolic links of the current load at the current location.
 ---Aborts if the mode is "move" instead of "copy".
+---
+---Example:
 ---```lua
----    M.symlink()
+---  M.symlink()
 ---```
+---
 function M.symlink()
 	local files, mode = api.fm_paste_buffer_get()
 	if mode == "copy" then
@@ -139,11 +173,15 @@ function M.symlink()
 	api.fm_paste_buffer_set({})
 end
 
+---
 ---Create relative symbolic links of the current load at the current location.
 ---Aborts if the mode is "move" instead of "copy".
+---
+---Example:
 ---```lua
----    M.symlink_relative()
+---  M.symlink_relative()
 ---```
+---
 function M.symlink_relative()
 	local files, mode = api.fm_paste_buffer_get()
 	if mode == "copy" then
@@ -154,10 +192,14 @@ function M.symlink_relative()
 	api.fm_paste_buffer_set({})
 end
 
+---
 ---Go to the location pointed at by the symlink at the cursor position.
+---
+---Example:
 ---```lua
----    M.follow_link()
+---  M.follow_link()
 ---```
+---
 function M.follow_link()
 	local file = api.current_file()
 	local target = lfm.shell.popen({ "readlink", "--", file })[1]
@@ -204,10 +246,14 @@ local c27 = string.char(27)
 local green = c27 .. "[32m"
 local clear = c27 .. "[0m"
 
+---
 ---Paste the load in the current directory, making backups of existing files.
+---
+---Example:
 ---```lua
----    M.paste()
+---  M.paste()
 ---```
+---
 function M.paste()
 	local files, mode = api.fm_paste_buffer_get()
 	if #files == 0 then
@@ -250,19 +296,27 @@ function M.paste()
 	api.fm_paste_buffer_set({})
 end
 
+---
 ---Toggle paste mode from "copy" to "move" and reverse.
+---
+---Example:
 ---```lua
----    M.toggle_paste()
+---  M.toggle_paste()
 ---```
+---
 function M.toggle_paste()
 	local mode = lfm.api.fm_paste_mode_get()
 	lfm.api.fm_paste_mode_set(mode == "copy" and "move" or "copy")
 end
 
+---
 ---Paste the load in the current directory, overwriting existing files.
+---
+---Example:
 ---```lua
----    M.paste_overwrite()
+---  M.paste_overwrite()
 ---```
+---
 function M.paste_overwrite()
 	local files, mode = api.fm_paste_buffer_get()
 	if #files == 0 then

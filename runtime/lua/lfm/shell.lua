@@ -22,10 +22,14 @@ M.ARRAY = FilesVia.ARRAY
 local ARGV = FilesVia.ARGV
 local ARRAY = FilesVia.ARRAY
 
+---
 ---Wrap a string (or table of strings) in single quotes and join them with an optional separator.
+---
+---Example:
 ---```lua
----    local escaped = escape({"file with witespace.txt", "audio.mp3"}, " ")
+---  local escaped = escape({"file with witespace.txt", "audio.mp3"}, " ")
 ---```
+---
 ---@param args string[]|string
 ---@param sep? string separator (default: " ").
 ---@return string
@@ -77,12 +81,16 @@ do
 	---@class Lfm.Shell.Sh.BuildOpts: Lfm.Shell.Sh.ExecOpts, Lfm.Shell.Sh.SpawnOpts
 	---@field fg? true
 
-	---Spawn a shell process in the background.
-	---```lua
-	---    lfm.shell.sh.spawn("mv *.txt somedir")
 	---
-	---    lfm.shell.sh.spawn('mv "$@" somedir', { files_via = lfm.shell.ARGV })
+	---Spawn a shell process in the background.
+	---
+	---Example:
+	---```lua
+	---  lfm.shell.sh.spawn("mv *.txt somedir")
+	---
+	---  lfm.shell.sh.spawn('mv "$@" somedir', { files_via = lfm.shell.ARGV })
 	---```
+	---
 	---@param command string
 	---@param opts? Lfm.Shell.Sh.SpawnOpts
 	---@param ... string Extra arguments will be passed to the command (unless opts.files_via == ARGV)
@@ -109,12 +117,16 @@ do
 		lfm_spawn(cmd, opts)
 	end
 
-	---Spawn a shell process in the foreground.
-	---```lua
-	---    lfm.shell.sh.execute("nvim *.txt")
 	---
-	---    lfm.shell.sh.execute('nvim "$@"', { files_via = lfm.shell.ARGV })
+	---Spawn a shell process in the foreground.
+	---
+	---Example:
+	---```lua
+	---  lfm.shell.sh.execute("nvim *.txt")
+	---
+	---  lfm.shell.sh.execute('nvim "$@"', { files_via = lfm.shell.ARGV })
 	---```
+	---
 	---@param command string
 	---@param opts? Lfm.Shell.Sh.ExecOpts
 	---@param ... string Extra arguments will be passed to the command (unless opts.files_via == ARGV)
@@ -141,11 +153,15 @@ do
 		lfm_execute(cmd)
 	end
 
+	---
 	---Build a function that executes a shell command.
+	---
+	---Example:
 	---```lua
-	---    local f = lfm.shell.sh.build("echo hey", { fork = true })
-	---    f()
+	---  local f = lfm.shell.sh.build("echo hey", { fork = true })
+	---  f()
 	---```
+	---
 	---@param command string
 	---@param opts? Lfm.Shell.Sh.BuildOpts
 	---@return function
@@ -175,12 +191,16 @@ do
 	---@class Lfm.Shell.Bash.BuildOpts : Lfm.Shell.Bash.ExecOpts, Lfm.Shell.Bash.SpawnOpts
 	---@field fg? true
 
-	---Spawn a shell process in the background.
-	---```lua
-	---    lfm.shell.bash.spawn("mv *.txt somedir")
 	---
-	---    lfm.shell.bash.spawn('mv "$@" somedir', { files_via = lfm.shell.ARGV })
+	---Spawn a shell process in the background.
+	---
+	---Example:
+	---```lua
+	---  lfm.shell.bash.spawn("mv *.txt somedir")
+	---
+	---  lfm.shell.bash.spawn('mv "$@" somedir', { files_via = lfm.shell.ARGV })
 	---```
+	---
 	---@param command string
 	---@param opts? Lfm.Shell.Bash.SpawnOpts
 	---@param ... string Extra arguments will be passed to the command (unless opts.files_via == ARGV)
@@ -208,12 +228,16 @@ do
 		lfm_spawn(cmd, opts)
 	end
 
-	---Spawn a shell process in the foreground.
-	---```lua
-	---    lfm.shell.bash.execute("nvim *.txt")
 	---
-	---    lfm.shell.bash.execute('nvim "$@"', { files_via = lfm.shell.ARGV })
+	---Spawn a shell process in the foreground.
+	---
+	---Example:
+	---```lua
+	---  lfm.shell.bash.execute("nvim *.txt")
+	---
+	---  lfm.shell.bash.execute('nvim "$@"', { files_via = lfm.shell.ARGV })
 	---```
+	---
 	---@param command string
 	---@param opts? Lfm.Shell.Bash.ExecOpts
 	---@param ... string Extra arguments will be passed to the command (unless opts.files_via == ARGV)
@@ -241,11 +265,15 @@ do
 		lfm_execute(cmd)
 	end
 
+	---
 	---Build a function that executes a shell command.
+	---
+	---Example:
 	---```lua
-	---    local f = lfm.shell.bash.build("echo hey", { fork = true })
-	---    f()
+	---  local f = lfm.shell.bash.build("echo hey", { fork = true })
+	---  f()
 	---```
+	---
 	---@param command string
 	---@param opts? Lfm.Shell.Bash.BuildOpts
 	---@return function
@@ -274,12 +302,16 @@ do
 	---@class Lfm.Shell.Fish.BuildOpts : Lfm.Shell.Fish.ExecOpts ,Lfm.Shell.Fish.SpawnOpts
 	---@field fg? true
 
-	---Spawn a shell process in the background.
-	---```lua
-	---    lfm.shell.fish.spawn("mv *.txt somedir")
 	---
-	---    lfm.shell.fish.spawn('mv "$@" somedir', { files_via = lfm.shell.ARGV })
+	---Spawn a shell process in the background.
+	---
+	---Example:
+	---```lua
+	---  lfm.shell.fish.spawn("mv *.txt somedir")
+	---
+	---  lfm.shell.fish.spawn('mv "$@" somedir', { files_via = lfm.shell.ARGV })
 	---```
+	---
 	---@param command string
 	---@param opts? Lfm.Shell.Fish.SpawnOpts
 	---@param ... string Extra arguments will be passed to the command (unless opts.files_via == ARGV)
@@ -308,12 +340,16 @@ do
 		lfm_spawn(cmd, opts)
 	end
 
-	---Spawn a shell process in the foreground.
-	---```lua
-	---    lfm.shell.fish.execute("nvim *.txt")
 	---
-	---    lfm.shell.fish.execute('nvim "$@"', { files_via = lfm.shell.ARGV })
+	---Spawn a shell process in the foreground.
+	---
+	---Example:
+	---```lua
+	---  lfm.shell.fish.execute("nvim *.txt")
+	---
+	---  lfm.shell.fish.execute('nvim "$@"', { files_via = lfm.shell.ARGV })
 	---```
+	---
 	---@param command string
 	---@param opts? Lfm.Shell.Fish.ExecOpts
 	---@param ... string Extra arguments will be passed to the command (unless opts.files_via == ARGV)
@@ -342,11 +378,15 @@ do
 		lfm_execute(cmd)
 	end
 
+	---
 	---Build a function that executes a shell command.
+	---
+	---Example:
 	---```lua
-	---    local f = lfm.shell.fish.build("echo hey", { fork = true })
-	---    f()
+	---  local f = lfm.shell.fish.build("echo hey", { fork = true })
+	---  f()
 	---```
+	---
 	---@param command string
 	---@param opts? Lfm.Shell.Fish.BuildOpts
 	---@return function

@@ -7,14 +7,19 @@ local api = lfm.api
 
 local config
 
+---
 ---Navigate into a directory or open files with rifle.
+---
+---Example:
 ---```lua
----    lfm.rifle.open()
+---  lfm.rifle.open()
 ---```
----Use opener from rifle with label 1 to open the current file/selection.
+---
+---Use opener from rifle with label 1 to open the current file/selection:
 ---```lua
----    lfm.rifle.open(1)
+---  lfm.rifle.open(1)
 ---```
+---
 ---@param ... any
 function M.open(...)
 	local t = { ... }
@@ -70,11 +75,15 @@ function M.open(...)
 	end
 end
 
+---
 ---Show opener options for the current file in a menu and prepare the command
 ---line.
+---
+---Example:
 ---```lua
----    lfm.rifle.ask()
+---  lfm.rifle.ask()
 ---```
+---
 function M.ask()
 	local file = api.fm_sel_or_cur()[1]
 	if file then
@@ -95,16 +104,20 @@ local setup_internal = M.setup
 ---@field config? string path to configuration file e.g. a rifle.conf
 ---@field rules? string[] a table of rules as defined in rifle.conf, will take precedence
 
+---
 ---Set up rifle.
+---
+---Example:
 ---```lua
----    lfm.rifle.setup({
----      config = "~/.config/lfm/rifle.conf",
----      rules = {
----        'ext txt, has nvim = nvim "$@"',
----        'ext png, has feh = feh "$@"',
----      },
----    })
+---  lfm.rifle.setup({
+---    config = "~/.config/lfm/rifle.conf",
+---    rules = {
+---      'ext txt, has nvim = nvim "$@"',
+---      'ext png, has feh = feh "$@"',
+---    },
+---  })
 ---```
+---
 ---@param opts Lfm.Rifle.SetupOpts
 function M.setup(opts)
 	opts = opts or {}

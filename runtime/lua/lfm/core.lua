@@ -54,10 +54,14 @@ do
 	})
 end
 
----Pretty print on the UI. Returns the parameter as is
+---
+---Pretty print on the UI (using lfm.inspect). Returns the parameter as is
+---
+---Example:
 ---```lua
----    lfm.print({ "Hello", "World" })
+---  lfm.print({ "Hello", "World" })
 ---```
+---
 ---@param ... any
 function lfm.print(...)
 	for _, e in ipairs({ ... }) do
@@ -66,20 +70,28 @@ function lfm.print(...)
 	return ...
 end
 
+---
 ---Print a formatted string.
+---
+---Example:
 ---```lua
----    lfm.printf("Hello %s", "World")
+---  lfm.printf("Hello %s", "World")
 ---```
+---
 ---@param fmt string
 ---@param ... any
 local function printf(fmt, ...)
 	print(string_format(fmt, ...))
 end
 
+---
 ---Print a formatted error.
+---
+---Example:
 ---```lua
----    lfm.errorf("errno was %d", errno)
+---  lfm.errorf("errno was %d", errno)
 ---```
+---
 ---@param fmt string
 ---@param ... any
 local function errorf(fmt, ...)
@@ -149,22 +161,29 @@ do -- lfm.validate
 	end
 end
 
+---
 ---Get the current selection or file under the cursor.
+---
+---Example:
 ---```lua
----    local files = lfm.api.fm_sel_or_cur()
----    for i, file in ipairs(files) do
----      print(i, file)
----    end
+---  local files = lfm.api.fm_sel_or_cur()
+---  for i, file in ipairs(files) do
+---    print(i, file)
+---  end
 ---```
+---
 ---@return string[] selection
 local function sel_or_cur()
 	local sel = api.selection_get()
 	return #sel > 0 and sel or { api.current_file() }
 end
 
+---
 ---Feed keys into the key handler.
+---
+---Example:
 ---```lua
----    lfm.feedkeys("cd", "<Enter>")
+---  lfm.feedkeys("cd", "<Enter>")
 ---```
 ---@param ... string
 local function feedkeys(...)
@@ -224,28 +243,34 @@ local reserved = {
 	["while"] = true,
 }
 
+---
 ---Register a function as a lfm command or unregister a command. Supported options
+---
+---Example:
 ---```lua
----    lfm.register_command("updir", api.fm_updir, { desc = "Go to parent directory" })
+---  lfm.register_command("updir", api.fm_updir, { desc = "Go to parent directory" })
 ---```
+---
 ---Handling arguments:
 ---```lua
----    lfm.register_command("cmd", function(line)
----      -- args passed as a single string
----    end, {})
+---  lfm.register_command("cmd", function(line)
+---    -- args passed as a single string
+---  end, {})
 ---
----    lfm.register_command("cmd", function(...)
----      local args = { ... }
----      -- args are split by whitespace
----    end, { tokenize = true })
+---  lfm.register_command("cmd", function(...)
+---    local args = { ... }
+---    -- args are split by whitespace
+---  end, { tokenize = true })
 ---```
+---
 ---Using completions (see `compl.lua`):
 ---```lua
----    lfm.register_command("cd", chdir, {
----      compl = require("lfm.compl").dirs,
----      tokenize = true,
----    })
+---  lfm.register_command("cd", chdir, {
+---    compl = require("lfm.compl").dirs,
+---    tokenize = true,
+---  })
 ---```
+---
 ---@param name string Command name, can not contain whitespace.
 ---@param f function The function to execute or `nil` to unregister
 ---@param opts? Lfm.CommandOpts Additional options.
@@ -267,13 +292,17 @@ local function register_command(name, f, opts)
 	end
 end
 
+---
 ---Evaluates a line of lua code. If the first whitespace delimited token is a
 ---registered command it is executed with the following text as arguments.
 ---Otherwise line is assumed to be lua code and is executed. Results are printed.
+---
+---Example:
 ---```lua
----    lfm.eval("cd /home")   -- expression is not lua because "cd" is a registered command
----    lfm.eval('print(2+2)') -- executed as lua code
+---  lfm.eval("cd /home")   -- expression is not lua because "cd" is a registered command
+---  lfm.eval('print(2+2)') -- executed as lua code
 ---```
+---
 ---@param line string
 local function eval(line)
 	local cmd = string_match(line, "^[^ ]*")

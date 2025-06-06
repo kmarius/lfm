@@ -2,177 +2,265 @@
 
 lfm.api = {}
 
+---
 ---Clear the command line.
+---
+---Example:
 ---```lua
----    lfm.api.cmdline_clear()
+---  lfm.api.cmdline_clear()
 ---```
+---
 function lfm.api.cmdline_clear() end
 
+---
 ---Delete the character to the left.
+---
+---Example:
 ---```lua
----    lfm.api.cmdline_delete()
+---  lfm.api.cmdline_delete()
 ---```
+---
 function lfm.api.cmdline_delete() end
 
+---
 ---Delete the character to the right.
+---
+---Example:
 ---```lua
----    lfm.api.cmdline_delete_right()
+---  lfm.api.cmdline_delete_right()
 ---```
+---
 function lfm.api.cmdline_delete_right() end
 
+---
 ---Delete the word to the right.
+---
+---Example:
 ---```lua
----    lfm.api.cmdline_delete_word()
+---  lfm.api.cmdline_delete_word()
 ---```
+---
 function lfm.api.cmdline_delete_word() end
 
+---
 ---Delete to the beginning of the line.
+---
+---Example:
 ---```lua
----    lfm.api.cmdline_delete_line_left()
+---  lfm.api.cmdline_delete_line_left()
 ---```
+---
 function lfm.api.cmdline_delete_line_left() end
 
+---
 ---Move cursor one word left.
+---
+---Example:
 ---```lua
----    lfm.api.cmdline_word_left()
+---  lfm.api.cmdline_word_left()
 ---```
+---
 function lfm.api.cmdline_word_left() end
 
+---
 ---Move cursor one word right.
+---
+---Example:
 ---```lua
----    lfm.api.cmdline_word_right()
+---  lfm.api.cmdline_word_right()
 ---```
+---
 function lfm.api.cmdline_word_right() end
 
+---
 ---Move cursor to the end.
+---
+---Example:
 ---```lua
----    lfm.api.cmdline__end()
+---  lfm.api.cmdline__end()
 ---```
+---
 function lfm.api.cmdline__end() end
 
+---
 ---Move cursor to the beginning of the line.
+---
+---Example:
 ---```lua
----    lfm.api.cmdline_home()
+---  lfm.api.cmdline_home()
 ---```
+---
 function lfm.api.cmdline_home() end
 
+---
 ---Insert a character at the current cursor position.
+---
+---Example:
 ---```lua
----    lfm.api.cmdline_insert("ö")
+---  lfm.api.cmdline_insert("ö")
 ---```
+---
 ---@param c string The character
 function lfm.api.cmdline_insert(c) end
 
+---
 ---Move the cursor to the left.
+---
+---Example:
 ---```lua
----    lfm.api.cmdline_left()
+---  lfm.api.cmdline_left()
 ---```
+---
 function lfm.api.cmdline_left() end
 
+---
 ---Move the cursor to the right.
+---
+---Example:
 ---```lua
----    lfm.api.cmdline_right()
+---  lfm.api.cmdline_right()
 ---```
+---
 function lfm.api.cmdline_right() end
 
+---
 ---Get the current command line string.
+---
+---Example:
 ---```lua
----    local line = lfm.api.cmdline_line_get()
----    -- do something with line
+---  local line = lfm.api.cmdline_line_get()
+---  -- do something with line
 ---```
+---
 ---@return string
 ---@nodiscard
 function lfm.api.cmdline_line_get() end
 
+---
 ---Set the command line. If two arguments are provided.
 ---The cursor will be positioned between `left` and `right`.
+---
+---Example:
 ---```lua
----    -- sets the command line to file.txt with the cursor at the end
----    lfm.api.cmdline_line_set("file.txt")
+---  -- sets the command line to file.txt with the cursor at the end
+---  lfm.api.cmdline_line_set("file.txt")
 ---
----    -- sets the cursor before the dot
----    lfm.api.cmdline_line_set("file", ".txt")
+---  -- sets the cursor before the dot
+---  lfm.api.cmdline_line_set("file", ".txt")
 ---
----    -- clears:
----    lfm.api.cmdline_line_set()
+---  -- clears:
+---  lfm.api.cmdline_line_set()
 ---```
+---
 ---@param left? string
 ---@param right? string
 function lfm.api.cmdline_line_set(left, right) end
 
+---
 ---Get the current command line prefix.
+---
+---Example:
 ---```lua
----    local prefix = lfm.api.cmdline_prefix_get()
----    -- do something with prefix
+---  local prefix = lfm.api.cmdline_prefix_get()
+---  -- do something with prefix
 ---```
+---
 ---@return string prefix
 ---@nodiscard
 function lfm.api.cmdline_prefix_get() end
 
+---
 ---Toggle between insert and overwrite mode.
+---
+---Example:
 ---```lua
----    lfm.api.cmdline_toggle_overwrite()
+---  lfm.api.cmdline_toggle_overwrite()
 ---```
+---
 function lfm.api.cmdline_toggle_overwrite() end
 
+---
 ---Append a line to history.
+---
+---Example:
 ---```lua
----    lfm.api.cmdline_history_append(':', "cd /tmp")
+---  lfm.api.cmdline_history_append(':', "cd /tmp")
 ---```
+---
 ---@param prefix string
 ---@param line string
 function lfm.api.cmdline_history_append(prefix, line) end
 
+---
 ---Get the next line from history.
+---
+---Example:
 ---```lua
----    local line = lfm.api.cmdline_history_next()
----    -- do something with line
+---  local line = lfm.api.cmdline_history_next()
+---  -- do something with line
 ---```
+---
 ---@return string
 ---@nodiscard
 function lfm.api.cmdline_history_next() end
 
+---
 ---Get the previous line from history.
+---
+---Example:
 ---```lua
----    local line = lfm.api.cmdline_history_prev()
----    -- do something with line
+---  local line = lfm.api.cmdline_history_prev()
+---  -- do something with line
 ---```
+---
 ---@return string
 ---@nodiscard
 function lfm.api.cmdline_history_prev() end
 
+---
 ---Get the full history, latest items first
+---
+---Example:
 ---```lua
----    local history = lfm.api.cmdline_get_history()
----    for i, item in ipairs(history) do
----      print(i, item)
----    end
+---  local history = lfm.api.cmdline_get_history()
+---  for i, item in ipairs(history) do
+---    print(i, item)
+---  end
 ---```
+---
 ---@return string
 ---@nodiscard
 function lfm.api.cmdline_get_history() end
 
+---
 ---Set the filter string for the current directory. "" or nil clears the filter.
+---
+---Example:
 ---```lua
----    lfm.api.set_filter(".txt")
----    lfm.api.set_filter(".txt", "filter")
+---  lfm.api.set_filter(".txt")
+---  lfm.api.set_filter(".txt", "filter")
 ---
----    lfm.api.set_filter("txt", "fuzzy")
+---  lfm.api.set_filter("txt", "fuzzy")
 ---
----    lfm.api.set_filter(function(name) return string.find(name, "txt") end, "lua")
+---  lfm.api.set_filter(function(name) return string.find(name, "txt") end, "lua")
 ---
----    lfm.api.set_filter()
+---  lfm.api.set_filter()
 ---```
+---
 ---@param filter? string The filter string.
 ---@param type? Lfm.FilterType The filter type.
 ---@overload fun(function: Lfm.FilterFunction, type: "lua")
 ---@overload fun()
 function lfm.api.set_filter(filter, type) end
 
+---
 ---Get the filter string for the current directory.
+---
+---Example:
 ---```lua
 ---    local filter = lfm.api.get_filter()
 ---```
+---
 ---@return string|nil filter The filter string.
 ---@return Lfm.FilterType|nil filter The filter type.
 ---@nodiscard
@@ -198,268 +286,396 @@ function lfm.api.jump_automark() end
 ---
 function lfm.api.get_automark() end
 
+---
 ---Navigate into the directory at the current cursor position. If the current file
 ---is not a directory, its path is returned instead.
+---
+---Example:
 ---```lua
----    local path = lfm.api.fm_open()
----    if path then
----      -- path is a file, do something with it
----    else
----      -- we moved into the directory
----    end
+---  local path = lfm.api.fm_open()
+---  if path then
+---    -- path is a file, do something with it
+---  else
+---    -- we moved into the directory
+---  end
 ---```
+---
 ---@return string? file Path to the file under the curser, `nil` if it was a directory
 function lfm.api.fm_open() end
 
+---
 ---Get the current directory.
+---
+---Example:
 ---```lua
----    local dir = lfm.api.current_dir()
----    print(dir.path)
----    print(dir.name)
----    for i, file in ipairs(dir.files()) do
----      print(i, file)
----    end
+---  local dir = lfm.api.current_dir()
+---  print(dir.path)
+---  print(dir.name)
+---  for i, file in ipairs(dir.files()) do
+---    print(i, file)
+---  end
 ---```
+---
 ---@return Lfm.Dir directory
 ---@nodiscard
 function lfm.api.current_dir() end
 
+---
 ---Get the current file.
+---
+---Example:
 ---```lua
----    local file = lfm.api.current_file()
----    if file then
----      print(file)
----    end
+---  local file = lfm.api.current_file()
+---  if file then
+---    print(file)
+---  end
 ---```
+---
 ---@return string? file Path to the current file or `nil` if the directory is empty.
 ---@nodiscard
 function lfm.api.current_file() end
 
+---
 ---Reverse selection of files in the current directory.
+---
+---Example:
 ---```lua
----    lfm.api.selection_reverse()
+---  lfm.api.selection_reverse()
 ---```
+---
 function lfm.api.selection_reverse() end
 
+---
 ---Toggle selection of the current file.
+---
+---Example:
 ---```lua
----    lfm.api.selection_toggle()
+---  lfm.api.selection_toggle()
 ---```
+---
 function lfm.api.selection_toggle() end
 
+---
 ---Add files to the current selection. Must use absolute paths (TODO: make relative paths work)
+---
+---Example:
 ---```lua
----    lfm.api.selection_add({"/tmp/file1", "/tmp/file2"})
+---  lfm.api.selection_add({"/tmp/file1", "/tmp/file2"})
 ---```
+---
 ---@param files string[] Table of paths.
 function lfm.api.selection_add(files) end
 
+---
 ---Set the current selection. Empty table or nil clears.
+---
+---Example:
 ---```lua
----    lfm.api.selection_set({"/tmp/file1", "/tmp/file2"})
+---  lfm.api.selection_set({"/tmp/file1", "/tmp/file2"})
 ---```
 ---Clear the selection:
 ---```lua
----    lfm.api.selection_set({})
----    lfm.api.selection_set()
+---  lfm.api.selection_set({})
+---  lfm.api.selection_set()
 ---```
+---
 ---@param files? string[] table of strings.
 function lfm.api.selection_set(files) end
 
+---
 ---Get the current selection. Files are in the order in which they were added.
+---
+---Example:
 ---```lua
----    local files = lfm.api.selection_get()
----    for i, file in ipairs(files) do
----      print(i, file)
----    end
+---  local files = lfm.api.selection_get()
+---  for i, file in ipairs(files) do
+---    print(i, file)
+---  end
 ---```
+---
 ---@return string[] files table of files as strings.
 ---@nodiscard
 function lfm.api.selection_get() end
 
+---
 ---Restore the previous selection. Previous selection is set whenever the selection/paste buffer is cleared.
+---
+---Example:
 ---```lua
----    lfm.api.selection_restore()
+---  lfm.api.selection_restore()
 ---```
+---
 function lfm.api.selection_restore() end
 
+---
 ---Flatten the current directory `level`s deep.
+---
+---Example:
 ---```lua
----    lfm.api.fm_flatten(2)
+---  lfm.api.fm_flatten(2)
 ---```
+---
 ---@param level integer
 function lfm.api.fm_flatten(level) end
 
+---
 ---Get the flatten level for the current directory.
+---
+---Example:
 ---```lua
----    local level = lfm.api.fm_flatten_level()
----    lfm.api.fm_flatten(level + 1)
+---  local level = lfm.api.fm_flatten_level()
+---  lfm.api.fm_flatten(level + 1)
 ---```
+---
 ---@return integer
 ---@nodiscard
 function lfm.api.fm_flatten_level() end
 
+---
 ---Set the sort method. Multiple options can be set at once. Later options may override previous ones.
+---
+---Example:
 ---```lua
----    lfm.api.fm_sort({ type = "ctime", dirfirst = true, reverse = false })
+---  lfm.api.fm_sort({ type = "ctime", dirfirst = true, reverse = false })
 ---```
+---
 ---@param opts Lfm.SortOpts
 function lfm.api.fm_sort(opts) end
 
+---
 ---Get the info setting for the current directory.
+---
+---Example:
 ---```lua
----    local info = lfm.api.fm_get_info()
+---  local info = lfm.api.fm_get_info()
 ---```
+---
 ---@return Lfm.Info info
 ---@nodiscard
 function lfm.api.fm_get_info() end
 
+---
 ---Set the info setting for the current directory.
+---
+---Example:
 ---```lua
----    lfm.api.fm_set_info("ctime")
+---  lfm.api.fm_set_info("ctime")
 ---```
+---
 ---@param info Lfm.Info
 ---@return Lfm.Info info
 function lfm.api.fm_set_info(info) end
 
+---
 ---Change directory to the parent of the current directory, unless in "/".
+---
+---Example:
 ---```lua
----    lfm.api.fm_updir()
+---  lfm.api.fm_updir()
 ---```
+---
 function lfm.api.fm_updir() end
 
+---
 ---Get the current paste buffer and mode.
+---
+---Example:
 ---```lua
----    local files, mode lfm.api.fm_paste_buffer_get()
----    print("mode:", mode)
----    for i, file in ipairs(files) do
----      print(i, file)
----    end
+---  local files, mode lfm.api.fm_paste_buffer_get()
+---  print("mode:", mode)
+---  for i, file in ipairs(files) do
+---    print(i, file)
+---  end
 ---```
+---
 ---@return string[] files
 ---@return Lfm.PasteMode mode
 ---@nodiscard
 function lfm.api.fm_paste_buffer_get() end
 
+---
 ---Set the current paste buffer and mode. nil or {} clears the buffer.
+---
+---Example:
 ---```lua
----    lfm.api.fm_paste_buffer_set({"/tmp/file1", "/tmp/file2"}, "move")
+---  lfm.api.fm_paste_buffer_set({"/tmp/file1", "/tmp/file2"}, "move")
 ---```
+---
 ---@param files string[]
 ---@param mode? Lfm.PasteMode (default: "copy")
 function lfm.api.fm_paste_buffer_set(files, mode) end
 
+---
 ---Get current paste mode.
+---
+---Example:
 ---```lua
----    local mode = lfm.api.fm_paste_mode_get()
----    print("mode:", mode)
+---  local mode = lfm.api.fm_paste_mode_get()
+---  print("mode:", mode)
 ---```
+---
 ---@return Lfm.PasteMode mode
 ---@nodiscard
 function lfm.api.fm_paste_mode_get() end
 
+---
 ---Set current paste mode without changing the contents of the paste buffer.
+---
+---Example:
 ---```lua
----    lfm.api.fm_paste_mode_set("move")
+---  lfm.api.fm_paste_mode_set("move")
 ---```
+---
 ---@param mode Lfm.PasteMode (default: `"copy"`)
 function lfm.api.fm_paste_mode_set(mode) end
 
+---
 ---Add the current selection to the load and change mode to MODE_MOVE.
+---
+---Example:
 ---```lua
----    lfm.api.fm_cut()
+---  lfm.api.fm_cut()
 ---```
+---
 function lfm.api.fm_cut() end
 
+---
 ---Add the current selection to the load and change mode to MODE_COPY.
+---
+---Example:
 ---```lua
----    lfm.api.fm_copy()
+---  lfm.api.fm_copy()
 ---```
+---
 function lfm.api.fm_copy() end
 
+---
 ---Check the current directory for changes and reload if necessary.
+---
+---Example:
 ---```lua
----    lfm.api.fm_check()
+---  lfm.api.fm_check()
 ---```
+---
 function lfm.api.fm_check() end
 
+---
 ---(Re)load a directory from disk.
----@param path string
+---
+---Example:
 ---```lua
----    lfm.api.fm_load("/mnt/data")
+---  lfm.api.fm_load("/mnt/data")
 ---```
+---
+---@param path string
 function lfm.api.fm_load(path) end
 
 ---Drop directory cache and reload visible directories from disk.
 -- function lfm.api.fm_drop_cache() end
 function lfm.api.fm_drop_cache() end
 
+---
 ---Reload visible directories from disk.
+---
+---Example:
 ---```lua
----    lfm.api.fm_reload()
+---  lfm.api.fm_reload()
 ---```
+---
 function lfm.api.fm_reload() end
 
+---
 ---Move the cursor to a file in the current directory.
+---
+---Example:
 ---```lua
----    lfm.api.sel("file.txt")
+---  lfm.api.sel("file.txt")
 ---```
+---
 ---@param name string
 function lfm.api.sel(name) end
 
+---
 ---Current height of the file manager, i.e. the maximum number of files shown in one directory.
+---
+---Example
 ---```lua
----    local height = lfm.api.fm_get_height()
----    print("height:", height)
+---  local height = lfm.api.fm_get_height()
+---  print("height:", height)
 ---```
+---
 ---@return integer
 ---@nodiscard
 function lfm.api.fm_get_height() end
 
+---
 ---Move the cursor to the bottom.
+---
+---Example:
 ---```lua
----    lfm.api.fm_bottom()
+---  lfm.api.fm_bottom()
 ---```
+---
 function lfm.api.fm_bottom() end
 
+---
 ---Move the cursor to the top.
+---
+---Example:
 ---```lua
----    lfm.api.fm_top()
+---  lfm.api.fm_top()
 ---```
+---
 function lfm.api.fm_top() end
 
----Move the cursor up.
----```lua
----    -- move up one file
----    lfm.api.fm_up()
 ---
----    -- move up three files
----    lfm.api.fm_up(3)
+---Move the cursor up.
+---
+---Example:
+---```lua
+---  -- move up one file
+---  lfm.api.fm_up()
+---
+---  -- move up three files
+---  lfm.api.fm_up(3)
 ---```
+---
 ---@param ct? integer count, 1 if omitted
 function lfm.api.fm_up(ct) end
 
----Move the cursor down.
----```lua
----    -- move down one file
----    lfm.api.fm_down()
 ---
----    -- move down three files
----    lfm.api.fm_down(3)
+---Move the cursor down.
+---
+---Example:
+---```lua
+---  -- move down one file
+---  lfm.api.fm_down()
+---
+---  -- move down three files
+---  lfm.api.fm_down(3)
 ---```
+---
 ---@param ct? integer count, 1 if omitted
 function lfm.api.fm_down(ct) end
 
+---
 ---Scroll up while keeping the cursor on the current file (if possible).
+---
+---Example:
 ---```lua
----    lfm.api.fm_scroll_up()
+---  lfm.api.fm_scroll_up()
 ---```
+---
 function lfm.api.fm_scroll_up() end
 
+---
 ---Scroll down while keeping the cursor on the current file (if possible).
+---
+---Example:
 ---```lua
----    lfm.api.fm_scroll_down()
+---  lfm.api.fm_scroll_down()
 ---```
+---
 function lfm.api.fm_scroll_down() end
 
 ---
@@ -467,70 +683,95 @@ function lfm.api.fm_scroll_down() end
 ---
 ---Example:
 ---```lua
----    lfm.api.chdir("/home/john")
+---  lfm.api.chdir("/home/john")
 ---
----    lfm.api.chdir("~")
+---  lfm.api.chdir("~")
 ---
----    lfm.api.chdir("../sibling")
+---  lfm.api.chdir("../sibling")
 ---```
 ---
 ---@param dir string destination path
 ---@param force_sync? boolean force chdir immediately
 function lfm.api.chdir(dir, force_sync) end
 
+---
 ---Get the height in characters of the UI.
+---
+---Example
 ---```lua
----    local height = lfm.api.ui_get_height()
----    print("height:", height)
+---  local height = lfm.api.ui_get_height()
+---  print("height:", height)
 ---```
+---
 ---@return integer height
 ---@nodiscard
 function lfm.api.ui_get_height() end
 
+---
 ---Get the width in characters of the UI.
+---
+---Example:
 ---```lua
----    local width = lfm.api.ui_get_width()
----    print("width:", width)
+---  local width = lfm.api.ui_get_width()
+---  print("width:", width)
 ---```
+---
 ---@return integer width
 ---@nodiscard
 function lfm.api.ui_get_width() end
 
+---
 ---Clear the UI and redraw.
+---
+---Example:
 ---```lua
----    lfm.api.ui_clear()
+---  lfm.api.ui_clear()
 ---```
+---
 function lfm.api.ui_clear() end
 
+---
 ---Request redraw. If no `force` is set only parts the need redrawing are drawn.
 ---Drawing happens _after_ execution of the current lua code finishes and the main
 ---event loop idles.
+---
+---Example:
 ---```lua
----    lfm.api.redraw()
+---  lfm.api.redraw()
 ---```
+---
 ---Redraw everything:
 ---```lua
----    lfm.api.redraw(true)
+---  lfm.api.redraw(true)
 ---```
+---
 ---@param force? boolean use force (default: `false`)
 function lfm.api.redraw(force) end
 
+---
 ---Draws a menu on screen.
+---
+---Example:
 ---```lua
----    lfm.api.ui_menu() -- hide menu
----    lfm.api.ui_menu({"line1", "line2"})
----    lfm.api.ui_menu("line1\nline2")
+---  lfm.api.ui_menu() -- hide menu
+---  lfm.api.ui_menu({"line1", "line2"})
+---  lfm.api.ui_menu("line1\nline2")
 ---```
+---
 ---@param menu nil|string[]|string
 function lfm.api.ui_menu(menu) end
 
+---
 ---Show all previously shown errors and messages.
+---
+---Example:
 ---```lua
----    local messages = lfm.api.get_messages()
----    for i, message in ipairs(messages) do
----      print(i, message)
----    end
+---  local messages = lfm.api.get_messages()
+---  for i, message in ipairs(messages) do
+---    print(i, message)
+---  end
 ---```
+---
 ---@return string[] messages
 ---@nodiscard
 function lfm.api.get_messages() end
@@ -636,33 +877,45 @@ function lfm.api.notcurses_palette_size() end
 ---
 ---Example:
 ---```lua
----    local recording = lfm.api.macro_recording()
+---  local recording = lfm.api.macro_recording()
 ---```
 ---
 ---@return string|nil identifier (key) for the current macro or nil
 ---@nodiscard
 function lfm.api.macro_recording() end
 
+---
 ---Start recording a macro. Keytrokes are recorded until macro_stop_record is called.
 ---Returns false if a macro is already being recorded.
+---
+---Example:
 ---```lua
----    lfm.api.macro_record("a")
+---  lfm.api.macro_record("a")
 ---```
+---
 ---@param id string First found wchar is used as an id.
 ---@return boolean
 function lfm.api.macro_record(id) end
 
+---
 ---Stop recording current macro.
+---
+---Example:
 ---```lua
----    lfm.api.macro_stop_record()
+---  lfm.api.macro_stop_record()
 ---```
+---
 ---@return boolean
 function lfm.api.macro_stop_record() end
 
+---
 ---Replay a macro.
+---
+---Example:
 ---```lua
----    lfm.api.macro_play("a")
+---  lfm.api.macro_play("a")
 ---```
+---
 ---@param id string First found wchar is used as an id.
 ---@return boolean
 function lfm.api.macro_play(id) end

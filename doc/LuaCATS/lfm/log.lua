@@ -20,108 +20,163 @@ local LogLevel = {
 ---@field level Log.Level Get/set the current log level.
 lfm.log = {}
 
+---
 ---Get the log level.
+---
+---Example:
 ---```lua
----    local level = lfm.log.get_level()
+---  local level = lfm.log.get_level()
 ---```
-----@return Lfm.Log.Level level
+---
 ---@return Log.Level level
 ---@nodiscard
 function lfm.log.get_level() end
 
+---
 ---Set the log level.
+---
+---Example:
 ---```lua
----    lfm.log.set_level(lfm.log.TRACE)
+---  lfm.log.set_level(lfm.log.TRACE)
 ---```
+---
 ---@param level Log.Level
 function lfm.log.set_level(level) end
 
+---
 ---Log one or more objects.
+---
+---Example:
 ---```lua
----    lfm.log.trace("logging..")
+---  lfm.log.trace("logging..")
 ---```
+---
 ---@param ... any
 function lfm.log.trace(...) end
 
+---
 ---Log one or more objects.
+---
+---Example:
 ---```lua
----    lfm.log.trace("logging..")
+---  lfm.log.trace("logging..")
 ---```
+---
 ---@param ... any
 function lfm.log.debug(...) end
 
+---
 ---Log one or more objects.
+---
+---Example:
 ---```lua
----    lfm.log.trace("logging..")
+---  lfm.log.trace("logging..")
 ---```
+---
 ---@param ... any
 function lfm.log.info(...) end
 
+---
 ---Log one or more objects.
+---
+---Example:
 ---```lua
----    lfm.log.trace("logging..")
+---  lfm.log.trace("logging..")
 ---```
+---
 ---@param ... any
 function lfm.log.warn(...) end
 
+---
 ---Log one or more objects.
+---
+---Example:
 ---```lua
----    lfm.log.trace("logging..")
+---  lfm.log.trace("logging..")
 ---```
+---
 ---@param ... any
 function lfm.log.error(...) end
 
+---
 ---Log one or more objects.
+---
+---Example:
 ---```lua
----    lfm.log.trace("logging..")
+---  lfm.log.trace("logging..")
 ---```
+---
 ---@param ... any
 function lfm.log.fatal(...) end
 
+---
 ---Log a formatted string.
+---
+---Example:
 ---```lua
----    lfm.log.tracef("%s: logging..", "module.name")
+---  lfm.log.tracef("%s: logging..", "module.name")
 ---```
+---
 ---@param fmt string
 ---@param ... any
 function lfm.log.tracef(fmt, ...) end
 
+---
 ---Log a formatted string.
+---
+---Example:
 ---```lua
----    lfm.log.debugf("%s: logging..", "module.name")
+---  lfm.log.debugf("%s: logging..", "module.name")
 ---```
+---
 ---@param fmt string
 ---@param ... any
 function lfm.log.debugf(fmt, ...) end
 
+---
 ---Log a formatted string.
+---
+---Example:
 ---```lua
----    lfm.log.infof("%s: logging..", "module.name")
+---  lfm.log.infof("%s: logging..", "module.name")
 ---```
+---
 ---@param fmt string
 ---@param ... any
 function lfm.log.infof(fmt, ...) end
 
+---
 ---Log a formatted string.
+---
+---Example:
 ---```lua
----    lfm.log.warnf("%s: logging..", "module.name")
+---  lfm.log.warnf("%s: logging..", "module.name")
 ---```
+---
 ---@param fmt string
 ---@param ... any
 function lfm.log.warnf(fmt, ...) end
 
+---
 ---Log a formatted string.
+---
+---Example:
 ---```lua
----    lfm.log.errorf("%s: logging..", "module.name")
+---  lfm.log.errorf("%s: logging..", "module.name")
 ---```
+---
 ---@param fmt string
 ---@param ... any
 function lfm.log.errorf(fmt, ...) end
 
+---
 ---Log a formatted string.
+---
+---Example:
 ---```lua
----    lfm.log.fatalf("%s: logging..", "module.name")
+---  lfm.log.fatalf("%s: logging..", "module.name")
 ---```
+---
 ---@param fmt string
 ---@param ... any
 function lfm.log.fatalf(fmt, ...) end

@@ -63,10 +63,14 @@ local function write_to_file()
 	file:close()
 end
 
+---
 ---Add a quick mark for the current directory with character `m`.
+---
+---Example:
 ---```lua
----    lfm.quickmarks.save("a")
+---  lfm.quickmarks.save("a")
 ---```
+---
 ---@param char Char
 function M.save(char)
 	load_from_file()

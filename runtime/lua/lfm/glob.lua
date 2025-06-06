@@ -13,7 +13,9 @@ local fs = lfm.fs
 
 local dirent = require("posix.dirent")
 
+---
 ---Match files against a single glob
+---
 ---@param path string
 ---@param glob string
 ---@param opts? Glob.Opts
@@ -37,7 +39,9 @@ local function glob_files_single(path, glob, opts)
 	return files
 end
 
+---
 ---Match files against a multiple globs
+---
 ---@param path string
 ---@param globs Glob.GlobPatterns
 ---@param opts? Glob.Opts
@@ -63,11 +67,15 @@ local function glob_files_multiple(path, globs, opts)
 	return files
 end
 
+---
 ---Convert a glob into a pattern. Can not contain "/". Second return value indicates wether it should match dot files.
+---
+---Example:
 ---```lua
----   local pat = glob.to_pattern("*.txt")
----   string.match("/some/file.txt", pat)
+---  local pat = glob.to_pattern("*.txt")
+---  string.match("/some/file.txt", pat)
 ---```
+---
 ---@param glob string
 ---@return string pattern
 ---@return boolean
@@ -82,7 +90,9 @@ function M.to_pattern(glob)
 	return "^" .. glob .. "$", match_dot
 end
 
+---
 ---Convert an array of globs into a set of patterns
+---
 ---@param globs string[]
 ---@return Glob.GlobPatterns
 function M.to_patterns(globs)
@@ -95,7 +105,9 @@ function M.to_patterns(globs)
 	return patterns
 end
 
+---
 ---Check if a file matches a set of globs
+---
 ---@param file string
 ---@param globs Glob.GlobPatterns|string
 ---@param match_dot? boolean
@@ -112,7 +124,9 @@ function M.matches(file, globs, match_dot)
 	return false
 end
 
+---
 ---Get files matching one or more globs in a directory.
+---
 ---@param path string The directory.
 ---@param glob string|string[] The globs.
 ---@param opts? Glob.Opts
