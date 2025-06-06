@@ -325,12 +325,15 @@ Dir *dir_load_flat(zsview path, int level, bool load_fileinfo) {
           }
         }
         // name is a pointer into path, we can simply move it back
+        int pos = 0;
         for (int i = 0; i < head.level; i++) {
-          file->name.str -= 2;
-          while (*(file->name.str - 1) != '/') {
-            file->name.str--;
+          pos -= 2;
+          while (file->name.str[pos - 1] != '/') {
+            pos--;
           }
         }
+        file->name.str += pos;
+        file->name.size -= pos;
 
         vec_file_push(&files, file);
       }
