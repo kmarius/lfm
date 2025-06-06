@@ -5,6 +5,7 @@ local lfm = lfm
 local api = lfm.api
 
 local stat = require("posix.sys.stat")
+local unistd = require("posix.unistd")
 local fs = require("lfm.fs")
 
 local function file_exists(path)
@@ -202,12 +203,12 @@ end
 ---
 function M.follow_link()
 	local file = api.current_file()
-	local target = lfm.shell.popen({ "readlink", "--", file })[1]
-	if target then
-		-- TODO: do these things even work with spaces in filenames? (on 2022-02-12)
-		lfm.eval("cd " .. fs.dirname(target))
-		api.fm_sel(fs.basename(target) --[[@as string]])
+	local target, err = unistd.readlink(file)
+	if err then
+		error(err)
 	end
+	api.chdir(fs.dirname(target), true)
+	api.fm_sel(fs.basename(target) --[[@as string]])
 end
 
 -- TODO: this is useful, expose it somewhere (on 2022-03-11)
