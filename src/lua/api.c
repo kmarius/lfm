@@ -876,8 +876,13 @@ static int l_notcurses_cantruecolor(lua_State *L) {
 }
 
 static int l_macro_recording(lua_State *L) {
-  lua_pushboolean(L, macro_recording);
-  return 1;
+  if (macro_recording) {
+    size_t len;
+    const char *str = input_to_key_name(macro_identifier, &len);
+    lua_pushlstring(L, str, len);
+    return 1;
+  }
+  return 0;
 }
 
 static int l_macro_record(lua_State *L) {

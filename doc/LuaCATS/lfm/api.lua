@@ -631,11 +631,15 @@ function lfm.api.notcurses_cantruecolor() end
 ---@nodiscard
 function lfm.api.notcurses_palette_size() end
 
----Check if a macro is currently being recorded.
+---
+---Check if a macro is currently being recorded and get its identifier.
+---
+---Example:
 ---```lua
 ---    local recording = lfm.api.macro_recording()
 ---```
----@return boolean
+---
+---@return string|nil identifier (key) for the current macro or nil
 ---@nodiscard
 function lfm.api.macro_recording() end
 
