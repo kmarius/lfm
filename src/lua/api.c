@@ -564,6 +564,7 @@ static int l_chdir(lua_State *L) {
   } else {
     fm_async_chdir(fm, path, should_save, true);
   }
+  ui_update_file_preview(ui);
   ui_redraw(ui, REDRAW_FM);
   return 0;
 }
