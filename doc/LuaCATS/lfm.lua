@@ -59,6 +59,7 @@ lfm.rifle = require("lfm.rifle")
 lfm.search = require("lfm.search")
 lfm.shell = require("lfm.shell")
 lfm.trash = require("lfm.trash")
+lfm.ui = require("lfm.ui")
 lfm.util = require("lfm.util")
 
 ---@alias Lfm.Version.BuildType

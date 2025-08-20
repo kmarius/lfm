@@ -26,7 +26,7 @@ lfm.register_mode({
 })
 
 ---@class Lfm.Ui.InputOpts
----@field prompt? string
+---@field prompt string
 ---@field default? string
 ---@field completion? string
 ---@field single_key? boolean
@@ -62,7 +62,7 @@ function M.input(opts, on_confirm)
 			on_confirm(line)
 		end
 	else
-		mode.on_change = nil
+		mode.on_change = function() end
 	end
 	lfm.modes[mode.name].prefix = opts.prompt or ""
 	lfm.mode(mode.name)
