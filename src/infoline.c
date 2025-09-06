@@ -508,3 +508,8 @@ static inline int shorten_path(zsview path, char *buf, int max_len) {
 
   return max;
 }
+
+void infoline_suspend(struct Ui *ui) {
+  (void)ui;
+  spinner_off(&spinner);
+}
