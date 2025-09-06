@@ -11,6 +11,7 @@
 
 #include <errno.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -77,29 +78,29 @@ static inline void reverse(File **a, size_t len) {
 }
 
 static void apply_filters(Dir *d) {
+  File *cur = dir_current_file(d);
   if (d->filter) {
-    unsigned up = 0; // number of positions to move the cursor up
-    size_t j = 0;
     size_t i = 0;
     c_foreach(it, vec_file, d->files_sorted) {
+      if (cur != NULL && *it.ref == cur) {
+        // position cursor on the previous selected file
+        // (or next to it, if filtered)
+        // TODO: can we make it work fith a custom filter_cmp sort?
+        d->ind = i;
+        cur = NULL;
+      }
       if (filter_match(d->filter, *it.ref)) {
-        vec_file_set(&d->files, j++, *it.ref);
+        vec_file_set(&d->files, i++, *it.ref);
       } else {
-        if (i <= d->ind) {
-          up++;
-        }
         (*it.ref)->score = 0;
       }
-      i++;
     }
-    d->files.size = j;
+    d->files.size = i;
+    if (d->ind >= d->files.size) {
+      d->ind = d->files.size - 1;
+    }
     if (filter_cmp(d->filter)) {
       vec_file_qsort(d->files, filter_cmp(d->filter));
-    }
-    if (up > d->ind) {
-      d->ind = 0;
-    } else {
-      d->ind -= up;
     }
   } else {
     /* TODO: try to select previously selected file
@@ -115,6 +116,7 @@ static void apply_filters(Dir *d) {
 /* sort allfiles and copy non-hidden ones to sortedfiles */
 void dir_sort(Dir *d) {
   if (vec_file_is_empty(&d->files_all)) {
+    d->sorted = true;
     return;
   }
   if (!d->sorted) {
@@ -142,7 +144,7 @@ void dir_sort(Dir *d) {
     default:
       break;
     }
-    d->sorted = 1;
+    d->sorted = true;
   }
   size_t num_dirs = 0;
   size_t j = 0;
