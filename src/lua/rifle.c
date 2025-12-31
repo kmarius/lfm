@@ -448,10 +448,10 @@ static int l_rifle_query_mime(lua_State *L) {
       ct_match++;
 
       if (!zsview_is_empty(pick)) {
-        const int ind = atoi(pick.str);
-        const bool ok = (ind != 0 || pick.str[0] == '0');
+        int ind = atoi(pick.str);
+        bool ok = (ind != 0 || pick.str[0] == '0');
         if ((ok && ind != ct_match - 1) ||
-            (!ok && (cstr_equals_zv(&r->label, &pick) != 0))) {
+            (!ok && (!cstr_equals_zv(&r->label, &pick)))) {
           continue;
         }
       }
@@ -513,10 +513,10 @@ static int l_rifle_query(lua_State *L) {
       ct_match++;
 
       if (!zsview_is_empty(pick)) {
-        const int ind = atoi(pick.str);
-        const bool ok = (ind != 0 || pick.str[0] == '0');
+        int ind = atoi(pick.str);
+        bool ok = (ind != 0 || pick.str[0] == '0');
         if ((ok && ind != ct_match - 1) ||
-            (!ok && (cstr_equals_zv(&r->label, &pick) != 0))) {
+            (!ok && (!cstr_equals_zv(&r->label, &pick)))) {
           continue;
         }
       }
