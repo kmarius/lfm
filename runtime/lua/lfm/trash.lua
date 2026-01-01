@@ -33,7 +33,7 @@ function M.put(files)
 		for i, file in ipairs(files) do
 			command[i + #M.command] = file
 		end
-		lfm.spawn(command, { stderr = true })
+		lfm.spawn(command, { on_stderr = true })
 	end
 end
 

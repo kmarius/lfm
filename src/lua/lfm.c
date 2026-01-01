@@ -263,25 +263,25 @@ static int l_spawn(lua_State *L) {
     }
     lua_pop(L, 1); // [cmd, opts]
 
-    lua_getfield(L, 2, "stdout"); // [cmd, opts, opts.out]
+    lua_getfield(L, 2, "on_stdout"); // [cmd, opts, opts.on_stdout]
     if (lua_isfunction(L, -1)) {
-      stdout_ref = lua_register_callback(L, -1); // [cmd, opts, opts.out]
+      stdout_ref = lua_register_callback(L, -1); // [cmd, opts, opts.on_stdout]
     } else {
       capture_stdout = lua_toboolean(L, -1);
     }
     lua_pop(L, 1); // [cmd, opts]
 
-    lua_getfield(L, 2, "stderr"); // [cmd, opts, opts.err]
+    lua_getfield(L, 2, "on_stderr"); // [cmd, opts, opts.on_stderr]
     if (lua_isfunction(L, -1)) {
-      stderr_ref = lua_register_callback(L, -1); // [cmd, opts, opts.err]
+      stderr_ref = lua_register_callback(L, -1); // [cmd, opts, opts.on_stderr]
     } else {
       capture_stderr = lua_toboolean(L, -1);
     }
     lua_pop(L, 1); // [cmd, opts]
 
-    lua_getfield(L, 2, "callback"); // [cmd, opts, opts.callback]
+    lua_getfield(L, 2, "on_exit"); // [cmd, opts, opts.on_exit]
     if (lua_isfunction(L, -1)) {
-      exit_ref = lua_register_callback(L, -1); // [cmd, opts, opts.callback]
+      exit_ref = lua_register_callback(L, -1); // [cmd, opts, opts.on_exit]
     }
     lua_pop(L, 1); // [cmd, opts]
 
@@ -362,11 +362,11 @@ static int l_execute(lua_State *L) {
     }
     lua_pop(L, 1); // [cmd, opts]
 
-    lua_getfield(L, 2, "stdout"); //[cmd, opts, opts.stdout]
+    lua_getfield(L, 2, "capture_stdout"); //[cmd, opts, opts.capture_stdout]
     capture_stdout = lua_toboolean(L, -1);
     lua_pop(L, 1); //[cmd, opts]
 
-    lua_getfield(L, 2, "stderr"); //[cmd, opts, opts.err]
+    lua_getfield(L, 2, "capture_stderr"); //[cmd, opts, opts.capture_stderr]
     capture_stderr = lua_toboolean(L, -1);
     lua_pop(L, 1); //[cmd, opts]
 

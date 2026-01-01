@@ -79,8 +79,8 @@ lfm.version = {}
 
 ---@class Lfm.ExecuteOpts
 ---@field stdin? string|string[] Send data to stdin
----@field stdout? true Capture stdout and return it in the `stdout` field of the execution result
----@field stderr? true Capture stderr and return it in the `stderr` field of the execution result
+---@field capture_stdout? true Capture stdout and return it in the `stdout` field of the execution result
+---@field capture_stderr? true Capture stderr and return it in the `stderr` field of the execution result
 ---@field env? table<string, string> Additional environment variables to set.
 
 ---@class Lfm.ExecuteResult
@@ -104,13 +104,13 @@ lfm.version = {}
 ---
 ---Capture stdout. Really only works if supported by the executable.
 ---```lua
----  local res, err = lfm.execute({ "fzf" }, { stdout = true })
+---  local res, err = lfm.execute({ "fzf" }, { capture_stdout = true })
 ---  print(res.stdout[1])
 ---```
 ---
 ---Capture stderr.
 ---```lua
----  local res, err = lfm.execute({ "nvim", some_file }, { stderr = true })
+---  local res, err = lfm.execute({ "nvim", some_file }, { capture_stderr = true })
 ---  print(res.stderr[1])
 ---```
 ---
@@ -132,10 +132,10 @@ function lfm.execute(command, opts) end
 
 ---@class Lfm.SpawnOpts
 ---@field stdin? string|string[]|true Will be sent to the process' stdin. If `true`, input can be sent to the process via `proc:write`.
----@field stdout? fun(line: string)|true Function to capture stdout, or `true` to show output in the UI
----@field stderr? fun(line: string)|true Function to capture stderr, or `true` to show output in the UI
+---@field on_stdout? fun(line: string)|true Function to capture stdout, or `true` to show output in the UI
+---@field on_stderr? fun(line: string)|true Function to capture stderr, or `true` to show output in the UI
 ---@field env? table<string, string> Additional environment variables to set.
----@field callback? function Function to capture the return value
+---@field on_exit? function Function to capture the return value
 ---@field dir? string Working directory for the process
 
 ---
@@ -151,7 +151,7 @@ local proc = {}
 ---
 ---Example:
 ---```lua
----  local proc, err = lfm.spawn({ "cat" }, { stdin = true, stdout = true })
+---  local proc, err = lfm.spawn({ "cat" }, { on_stdin = true, on_stdout = true })
 ---  proc:write("hello") -- prints "hello" to the UI
 ---  proc:close()
 ---```
@@ -164,7 +164,7 @@ function proc:write(line) end
 ---
 ---Example:
 ---```lua
----  local proc, err = lfm.spawn({ "cat" }, { stdin = true, stdout = true })
+---  local proc, err = lfm.spawn({ "cat" }, { on_stdin = true, on_stdout = true })
 ---  -- ...
 ---  -- use send and receive data to and from proc
 ---  -- ...
@@ -174,7 +174,7 @@ function proc:write(line) end
 function proc:close() end
 
 ---
----Spawn a background command. Returns the pid on success, nil otherwise.
+---Spawn a background command. Returns the pid on success, `nil` otherwise.
 ---
 ---Example:
 ---```lua
@@ -183,46 +183,46 @@ function proc:close() end
 ---
 ---Capture exit status:
 ---```lua
----  local function callback(ret)
+---  local function on_exit(ret)
 ---    print("command exited with status " .. ret)
 ---  end
----  lfm.spawn({"true"}, { callback = callback })
+---  lfm.spawn({"true"}, { on_exit = on_exit })
 ---```
 ---
 ---Capture stdout:
 ---```lua
 ---  -- Prints directly to lfm:
----  lfm.spawn({"echo", "hello"}, { stdout = true })
+---  lfm.spawn({"echo", "hello"}, { on_stdout = true })
 ---
 ---  -- Capture output with a function:
----  local function callback(line)
+---  local function on_stdout(line)
 ---    print("received: " .. line)
 ---  end
----  lfm.spawn({"echo", "hello"}, { stdout = callback })
+---  lfm.spawn({"echo", "hello"}, { on_stdout = on_stdout })
 ---```
 ---
 ---Capture stderr:
 ---```lua
 ---  -- Prints nothing
----  lfm.spawn({"sh", "-c", "echo hello >&2"}, { stderr = true })
+---  lfm.spawn({"sh", "-c", "echo hello >&2"}, { on_stderr = true })
 ---
 ---  -- Capture stderr with a function:
----  local function callback(line)
+---  local function on_stderr(line)
 ---    print("received: " .. line) .. " on stderr"
 ---  end
----  lfm.spawn({"echo", "hello"}, { err = callback })
+---  lfm.spawn({"echo", "hello"}, { on_stderr = on_stderr })
 ---```
 ---
 ---Sending input:
 ---```lua
 ---  -- Send stdin to command (which is then output by "cat" and sent to lfm)
----  lfm.spawn({"cat"}, { stdin = "Hello", stdout = true })
+---  lfm.spawn({"cat"}, { stdin = "Hello", on_stdout = true })
 ---
 ---  -- Or as a table
----  lfm.spawn({"cat"}, { stdin = { "Hello,", "Mike" }, stdout = true })
+---  lfm.spawn({"cat"}, { stdin = { "Hello,", "Mike" }, on_stdout = true })
 ---
 ---  -- Or via a function
----  local proc, err = lfm.spawn({"cat"}, { stdin = true, stdout = true })
+---  local proc, err = lfm.spawn({"cat"}, { stdin = true, on_stdout = true })
 ---  proc:write("Hello")
 ---  proc:close() -- close stdin so that cat exits
 ---````
@@ -240,7 +240,7 @@ function lfm.spawn(command, opts) end
 
 ---
 ---Execute a chunk of lua code in a seperate thread. The chunk may return up one return value,
----which is passed to the callback function. On error, `callback` is called with `nil, errmsg`
+---which is passed to the callback function. On error, `on_exit` is called with `nil, errmsg`
 ---Currently, `lfm` is not accessible from seperate threads and only the modules luajit offers are loaded.
 ---
 ---Example:
@@ -278,9 +278,9 @@ function lfm.spawn(command, opts) end
 ---```
 ---
 ---@param chunk string|function Lua code to execute. Functions are attempted to be converted via string.dump
----@param callback? fun(res: any, err: string) Callback for the result/error
+---@param on_exit? fun(res: any, err: string) Callback for the result/error
 ---@param arg? any An optional argument to pass to the thread
-function lfm.thread(chunk, callback, arg) end
+function lfm.thread(chunk, on_exit, arg) end
 
 ---@alias Lfm.Hook
 ---| '"LfmEnter"'         # Lfm has started and read all configuration

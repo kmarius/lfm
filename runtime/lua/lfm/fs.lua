@@ -368,7 +368,7 @@ function M.rm(path, opts)
 		table.insert(cmd, "-f")
 	end
 
-	lfm.spawn(cmd, { stderr = true })
+	lfm.spawn(cmd, { on_stderr = true })
 end
 
 ---@param source string
