@@ -382,13 +382,15 @@ static inline void dir_cursor_move_to_sel(Dir *d, uint32_t height,
   cstr_clear(&d->sel);
 }
 
+// TODO: do we need scrolloff?
 static inline void dir_cursor_move_to_ino(Dir *d, dev_t dev, ino_t ino,
                                           uint32_t height, uint32_t scrolloff) {
+  (void)height, (void)scrolloff;
   int i = 0;
   c_foreach(it, vec_file, d->files) {
     if ((*it.ref)->lstat.st_dev == dev && (*it.ref)->lstat.st_ino == ino) {
-      dir_cursor_move(d, i - d->ind, height, scrolloff);
-      break;
+      d->ind = i;
+      return;
     }
     i++;
   }
@@ -430,6 +432,7 @@ void dir_update_with(Dir *dir, Dir *update, uint32_t height,
                      uint32_t scrolloff) {
   // will try to select the file the cursor is on, dev/inode take priority
   // in case of a rename. Otherwise, we use the name.
+  // TODO: why do we store both ino and file name?
   struct {
     dev_t dev;
     ino_t ino;
