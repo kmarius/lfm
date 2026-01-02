@@ -9,6 +9,7 @@
 #include "stcutil.h"
 #include "util.h"
 
+#include <curses.h>
 #include <errno.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -77,18 +78,11 @@ static inline void reverse(File **a, size_t len) {
   }
 }
 
+// does not attempt to keep the cursor position
 static void apply_filters(Dir *d) {
-  File *cur = dir_current_file(d);
   if (d->filter) {
     size_t i = 0;
     c_foreach(it, vec_file, d->files_sorted) {
-      if (cur != NULL && *it.ref == cur) {
-        // position cursor on the previous selected file
-        // (or next to it, if filtered)
-        // TODO: can we make it work fith a custom filter_cmp sort?
-        d->ind = i;
-        cur = NULL;
-      }
       if (filter_match(d->filter, *it.ref)) {
         vec_file_set(&d->files, i++, *it.ref);
       } else {
@@ -96,21 +90,15 @@ static void apply_filters(Dir *d) {
       }
     }
     d->files.size = i;
-    if (d->ind >= d->files.size) {
-      d->ind = d->files.size - 1;
-    }
     if (filter_cmp(d->filter)) {
       vec_file_qsort(d->files, filter_cmp(d->filter));
     }
   } else {
-    /* TODO: try to select previously selected file
-     * note that on the first call dir->files is not yet valid */
-
     memcpy(d->files.data, d->files_sorted.data,
            d->files_sorted.size * sizeof(File *));
     d->files.size = d->files_sorted.size;
-    d->ind = max(min(d->ind, vec_file_size(&d->files) - 1), 0);
   }
+  d->ind = max(min(d->ind, vec_file_size(&d->files) - 1), 0);
 }
 
 /* sort allfiles and copy non-hidden ones to sortedfiles */
@@ -382,14 +370,12 @@ static inline void dir_cursor_move_to_sel(Dir *d, uint32_t height,
   cstr_clear(&d->sel);
 }
 
-// TODO: do we need scrolloff?
 static inline void dir_cursor_move_to_ino(Dir *d, dev_t dev, ino_t ino,
                                           uint32_t height, uint32_t scrolloff) {
-  (void)height, (void)scrolloff;
   int i = 0;
   c_foreach(it, vec_file, d->files) {
     if ((*it.ref)->lstat.st_dev == dev && (*it.ref)->lstat.st_ino == ino) {
-      d->ind = i;
+      dir_cursor_move(d, i - d->ind, height, scrolloff);
       return;
     }
     i++;
@@ -465,6 +451,7 @@ void dir_update_with(Dir *dir, Dir *update, uint32_t height,
   if (sel.ino != 0) {
     dir_cursor_move_to_ino(dir, sel.dev, sel.ino, height, scrolloff);
   } else if (!cstr_is_empty(&dir->sel)) {
+    // same file with different ino?
     dir_cursor_move_to_sel(dir, height, scrolloff);
   }
   cstr_clear(&dir->sel);
