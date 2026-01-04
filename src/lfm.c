@@ -163,9 +163,9 @@ static void prepare_cb(EV_P_ ev_prepare *w, int revents) {
   vec_message messages = vec_message_move(&lfm->messages);
   c_foreach(it, vec_message, messages) {
     if (it.ref->error) {
-      lfm_error(lfm, "%s", it.ref->text);
+      lfm_error(lfm, "%s", cstr_str(&it.ref->text));
     } else {
-      lfm_print(lfm, "%s", it.ref->text);
+      lfm_print(lfm, "%s", cstr_str(&it.ref->text));
     }
   }
   vec_message_drop(&messages);

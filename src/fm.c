@@ -53,7 +53,9 @@ void fm_init(Fm *fm, struct lfm_opts *opts) {
     } else {
       fm->pwd = cstr_move(&opts->startpath);
     }
-  } else {
+  }
+
+  if (cstr_is_empty(&fm->pwd)) {
     zsview pwd = getenv_zv("PWD");
     if (zsview_is_empty(pwd)) {
       char cwd[PATH_MAX + 1];
