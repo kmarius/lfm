@@ -348,19 +348,23 @@ void dir_cursor_move(Dir *d, int32_t ct, uint32_t height, uint32_t scrolloff) {
     d->pos = max(min(height - 1 - scrolloff, d->pos + ct),
                  height - dir_length(d) + d->ind);
   }
-  d->dirty = true;
+  if (ct != 0) {
+    d->dirty = true;
+  }
 }
 
-static inline void dir_cursor_move_to_sel(Dir *d, uint32_t height,
+static inline bool dir_cursor_move_to_sel(Dir *d, uint32_t height,
                                           uint32_t scrolloff) {
   if (cstr_is_empty(&d->sel) || vec_file_is_empty(&d->files)) {
-    return;
+    return true;
   }
+  bool ret = false;
 
   int i = 0;
   c_foreach(it, vec_file, d->files) {
     if (cstr_equals_zv(&d->sel, file_name(*it.ref))) {
       dir_cursor_move(d, i - d->ind, height, scrolloff);
+      ret = true;
       break;
     }
     i++;
@@ -368,19 +372,21 @@ static inline void dir_cursor_move_to_sel(Dir *d, uint32_t height,
   d->ind = min(d->ind, dir_length(d));
 
   cstr_clear(&d->sel);
+  return ret;
 }
 
-static inline void dir_cursor_move_to_ino(Dir *d, dev_t dev, ino_t ino,
+static inline bool dir_cursor_move_to_ino(Dir *d, dev_t dev, ino_t ino,
                                           uint32_t height, uint32_t scrolloff) {
   int i = 0;
   c_foreach(it, vec_file, d->files) {
     if ((*it.ref)->lstat.st_dev == dev && (*it.ref)->lstat.st_ino == ino) {
       dir_cursor_move(d, i - d->ind, height, scrolloff);
-      return;
+      return true;
     }
     i++;
   }
   d->ind = min(d->ind, dir_length(d));
+  return false;
 }
 
 void dir_cursor_move_to(Dir *d, zsview name, uint32_t height,
@@ -414,6 +420,17 @@ static inline void drop_files(Dir *dir) {
   vec_file_drop(&dir->files);
 }
 
+static inline void apply_scroll(Dir *dir, uint32_t height, uint32_t scrolloff) {
+  (void)scrolloff;
+  int num_files = vec_file_size(&dir->files);
+  int files_above_viewport = dir->ind - dir->pos;
+  int num_files_below_cursor = num_files - dir->ind - 1;
+  int space_below_last_file = height - dir->pos - num_files_below_cursor - 1;
+  if (files_above_viewport > 0 && space_below_last_file > 0) {
+    dir->pos += min(files_above_viewport, space_below_last_file);
+  }
+}
+
 void dir_update_with(Dir *dir, Dir *update, uint32_t height,
                      uint32_t scrolloff) {
   // will try to select the file the cursor is on, dev/inode take priority
@@ -428,8 +445,6 @@ void dir_update_with(Dir *dir, Dir *update, uint32_t height,
     File *file = dir_current_file(dir);
     sel.dev = file->lstat.st_dev;
     sel.ino = file->lstat.st_ino;
-    const zsview *name = file_name(file);
-    cstr_assign_zv(&dir->sel, *name);
   }
 
   drop_files(dir);
@@ -448,13 +463,16 @@ void dir_update_with(Dir *dir, Dir *update, uint32_t height,
   dir->sorted = false;
   dir_sort(dir);
 
-  if (sel.ino != 0) {
-    dir_cursor_move_to_ino(dir, sel.dev, sel.ino, height, scrolloff);
-  } else if (!cstr_is_empty(&dir->sel)) {
-    // same file with different ino?
+  // TODO: if the cursor rest in the middle of the viewport, and files are
+  // inserted above, the cursor is moved down, instead we could keep the cursor
+  // position and scroll
+  // I think in general we should try to keep dir->pos stable here, if possible
+  if (!cstr_is_empty(&dir->sel)) {
     dir_cursor_move_to_sel(dir, height, scrolloff);
+  } else {
+    dir_cursor_move_to_ino(dir, sel.dev, sel.ino, height, scrolloff);
   }
-  cstr_clear(&dir->sel);
+  apply_scroll(dir, height, scrolloff);
 
   dir_destroy(update);
 }
