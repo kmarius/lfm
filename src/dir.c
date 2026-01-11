@@ -348,9 +348,6 @@ void dir_cursor_move(Dir *d, int32_t ct, uint32_t height, uint32_t scrolloff) {
     d->pos = max(min(height - 1 - scrolloff, d->pos + ct),
                  height - dir_length(d) + d->ind);
   }
-  if (ct != 0) {
-    d->dirty = true;
-  }
 }
 
 static inline bool dir_cursor_move_to_sel(Dir *d, uint32_t height,
