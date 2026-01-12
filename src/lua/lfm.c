@@ -177,6 +177,13 @@ static int l_proc_close(lua_State *L) {
   return 0;
 }
 
+static int l_proc_send_signal(lua_State *L) {
+  struct proc *proc = (struct proc *)lua_touserdata(L, 1);
+  int sig = luaL_checkinteger(L, 2);
+  lua_pushinteger(L, kill(proc->pid, sig));
+  return 1;
+}
+
 static int l_proc_index(lua_State *L) {
   struct proc *proc = (struct proc *)lua_touserdata(L, 1);
   const char *key = luaL_checkstring(L, 2);
@@ -214,6 +221,9 @@ static int lua_proc_create(lua_State *L, int pid, int fd) {
 
     lua_pushcfunction(L, l_proc_close);
     lua_setfield(L, -2, "close");
+
+    lua_pushcfunction(L, l_proc_send_signal);
+    lua_setfield(L, -2, "send_signal");
 
     lua_setfield(L, -2, "__methods");
   }

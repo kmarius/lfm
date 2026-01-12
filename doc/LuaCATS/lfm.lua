@@ -160,6 +160,20 @@ local proc = {}
 function proc:write(line) end
 
 ---
+---Send a signal to the process.
+---
+---Example:
+---```lua
+---  local proc, err = lfm.spawn({ "sleep", "10" }, { on_exit = print })
+---  -- ...
+---  local ret = proc:send_signal(15)  -- 0, on success
+---```
+---
+---@param sig integer signal number
+---@return integer ret exit status of `kill`
+function proc:send_signal(sig) end
+
+---
 ---Close stdin. Also called, when the object is garbage collected. Safe to call multiple times.
 ---
 ---Example:
