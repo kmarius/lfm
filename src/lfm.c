@@ -29,6 +29,7 @@
 #include <string.h>
 
 #include <fcntl.h>
+#include <poll.h>
 #include <sys/wait.h>
 
 struct sched_timer {
@@ -638,6 +639,8 @@ int lfm_execute(Lfm *lfm, const char *prog, char *const *args, vec_env *env,
   }
 
   if (send_stdin) {
+    // could this lock up if we try to send more while the child is trying
+    // to write to a full stdout pipe?
     log_trace("sending stdin");
     close(pipe_stdin[0]);
     c_foreach(it, vec_bytes, *stdin_lines) {
@@ -647,8 +650,59 @@ int lfm_execute(Lfm *lfm, const char *prog, char *const *args, vec_env *env,
     close(pipe_stdin[1]);
   }
 
-  // as is the case with previews, we probably have to drain stdout/stderr or
-  // the process might not finish
+  if (capture_stdout || capture_stderr) {
+    struct pollfd pfds[2] = {0};
+
+    if (capture_stdout) {
+      pfds[0].fd = fileno(file_stdout);
+      pfds[0].events = POLLIN;
+    }
+    if (capture_stderr) {
+      pfds[1].fd = fileno(file_stderr);
+      pfds[1].events = POLLIN;
+    }
+    int num_open_fds = capture_stdout + capture_stderr;
+
+    FILE *files[2] = {
+        file_stdout,
+        file_stderr,
+    };
+    vec_bytes *vecs[2] = {
+        stdout_lines,
+        stderr_lines,
+    };
+
+    char *line = NULL;
+    size_t n;
+    while (num_open_fds > 0) {
+      if (poll(pfds, 2, -1) == -1) {
+        log_error("poll: %s", strerror(errno));
+        break;
+      }
+      for (int i = 0; i < 2; i++) {
+        if (pfds[i].revents != 0) {
+          if (pfds[i].revents & POLLIN) {
+            int read;
+            // TODO: should we support binary (not newline delimited) output?
+            while ((read = getline(&line, &n, files[i])) != -1) {
+              if (line[read - 1] == '\n') {
+                read--;
+              }
+              vec_bytes_push_back(vecs[i], bytes_from_n(line, read));
+            }
+          } else { /* POLLERR | POLLHUP */
+            pfds[i].fd = -1;
+            num_open_fds--;
+          }
+        }
+      }
+    }
+    if (capture_stdout)
+      fclose(file_stdout);
+    if (capture_stderr)
+      fclose(file_stderr);
+    free(line);
+  }
 
   log_trace("waiting for process %d to finish", pid);
   do {
@@ -661,46 +715,12 @@ int lfm_execute(Lfm *lfm, const char *prog, char *const *args, vec_env *env,
   } else {
     rstatus = WEXITSTATUS(status);
   }
-
-  log_trace("process %d finished with status %d", pid, rstatus);
+  log_trace("child %d finished with status %d", pid, rstatus);
 
   ui_resume(&lfm->ui);
   ev_signal_start(lfm->loop, &lfm->sigint_watcher);
   ev_signal_start(lfm->loop, &lfm->sigtstp_watcher);
   lfm_run_hook(lfm, LFM_HOOK_EXECPOST);
-
-  char *line = NULL;
-  size_t n;
-
-  if (capture_stdout && file_stdout != NULL) {
-    log_trace("reading stdout");
-
-    int read;
-    while ((read = getline(&line, &n, file_stdout)) != -1) {
-      if (line[read - 1] == '\n') {
-        read--;
-      }
-      vec_bytes_push_back(stdout_lines, bytes_from_n(line, read));
-    }
-
-    fclose(file_stdout);
-  }
-
-  if (capture_stderr && file_stderr != NULL) {
-    log_trace("reading stderr");
-
-    int read;
-    while ((read = getline(&line, &n, file_stderr)) != -1) {
-      if (line[read - 1] == '\n') {
-        read--;
-      }
-      vec_bytes_push_back(stderr_lines, bytes_from_n(line, read));
-    }
-
-    fclose(file_stderr);
-  }
-
-  free(line);
 
   if (status == -1) {
     // if commands return this, we need different error signalling
