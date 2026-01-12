@@ -654,27 +654,34 @@ int lfm_execute(Lfm *lfm, const char *prog, char *const *args, vec_env *env,
   do {
     rc = waitpid(pid, &status, 0);
   } while ((rc == -1) && (errno == EINTR));
-  log_trace("process %d finished with status %d", pid, WEXITSTATUS(status));
+
+  int rstatus;
+  if (WIFSIGNALED(status)) {
+    rstatus = 128 + WTERMSIG(status);
+  } else {
+    rstatus = WEXITSTATUS(status);
+  }
+
+  log_trace("process %d finished with status %d", pid, rstatus);
 
   ui_resume(&lfm->ui);
   ev_signal_start(lfm->loop, &lfm->sigint_watcher);
   ev_signal_start(lfm->loop, &lfm->sigtstp_watcher);
   lfm_run_hook(lfm, LFM_HOOK_EXECPOST);
 
+  char *line = NULL;
+  size_t n;
+
   if (capture_stdout && file_stdout != NULL) {
     log_trace("reading stdout");
 
-    char *line = NULL;
     int read;
-    size_t n;
-
     while ((read = getline(&line, &n, file_stdout)) != -1) {
       if (line[read - 1] == '\n') {
         read--;
       }
       vec_bytes_push_back(stdout_lines, bytes_from_n(line, read));
     }
-    free(line);
 
     fclose(file_stdout);
   }
@@ -682,27 +689,25 @@ int lfm_execute(Lfm *lfm, const char *prog, char *const *args, vec_env *env,
   if (capture_stderr && file_stderr != NULL) {
     log_trace("reading stderr");
 
-    char *line = NULL;
     int read;
-    size_t n;
-
     while ((read = getline(&line, &n, file_stderr)) != -1) {
       if (line[read - 1] == '\n') {
         read--;
       }
       vec_bytes_push_back(stderr_lines, bytes_from_n(line, read));
     }
-    free(line);
 
     fclose(file_stderr);
   }
+
+  free(line);
 
   if (status == -1) {
     // if commands return this, we need different error signalling
     lfm_error(lfm, "command returned -1");
   }
 
-  return WEXITSTATUS(status);
+  return rstatus;
 }
 
 void lfm_print(Lfm *lfm, const char *fmt, ...) {
