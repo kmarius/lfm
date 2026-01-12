@@ -98,7 +98,13 @@ static void child_cb(EV_P_ ev_child *w, int revents) {
   }
 
   if (child->ref) {
-    llua_run_child_callback(lfm->L, child->ref, WEXITSTATUS(w->rstatus));
+    int status;
+    if (WIFSIGNALED(w->rstatus)) {
+      status = 128 + WTERMSIG(w->rstatus);
+    } else {
+      status = WEXITSTATUS(w->rstatus);
+    }
+    llua_run_child_callback(lfm->L, child->ref, status);
   }
 
   ev_child_stop(EV_A_ w);
