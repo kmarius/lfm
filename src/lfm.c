@@ -393,11 +393,11 @@ static void init_io_watcher(struct out_watcher *data, Lfm *lfm, int fd,
 
 // spawn a background program
 int lfm_spawn(Lfm *lfm, const char *prog, char *const *args, vec_env *env,
-              const vec_bytes *stdin_lines, int *stdin_fd, bool capture_stdout,
+              const vec_bytes *stdin_data, int *stdin_fd, bool capture_stdout,
               bool capture_stderr, int stdout_ref, int stderr_ref, int exit_ref,
               zsview working_directory) {
 
-  bool send_stdin = stdin_lines != NULL || stdin_fd != NULL;
+  bool send_stdin = stdin_data != NULL || stdin_fd != NULL;
   capture_stdout |= stdout_ref != 0;
   capture_stderr |= stderr_ref != 0;
 
@@ -510,12 +510,11 @@ int lfm_spawn(Lfm *lfm, const char *prog, char *const *args, vec_env *env,
 
   if (send_stdin) {
     close(pipe_stdin[0]);
-    if (stdin_lines) {
-      // TODO: this could block if the process doesn't read its input in a
-      // timely manner
-      c_foreach(it, vec_bytes, *stdin_lines) {
+    if (stdin_data) {
+      // TODO: this will block if the process doesn't read its input in a
+      // timely manner. We really should do this in an io watcher.
+      c_foreach(it, vec_bytes, *stdin_data) {
         write(pipe_stdin[1], it.ref->buf, it.ref->size);
-        write(pipe_stdin[1], "\n", 1);
       }
     }
     if (stdin_fd) {
@@ -534,7 +533,7 @@ int lfm_spawn(Lfm *lfm, const char *prog, char *const *args, vec_env *env,
 // TODO: we should just take the raw output and split by newlines when we
 // push the result into the lua state
 int lfm_execute(Lfm *lfm, const char *prog, char *const *args, vec_env *env,
-                vec_bytes *stdin_lines, vec_bytes *stdout_lines,
+                vec_bytes *stdin_lines, vec_bytes *stdout_data,
                 vec_bytes *stderr_lines) {
   int status, rc;
   lfm_run_hook(lfm, LFM_HOOK_EXECPRE);
@@ -542,7 +541,7 @@ int lfm_execute(Lfm *lfm, const char *prog, char *const *args, vec_env *env,
   ev_signal_stop(lfm->loop, &lfm->sigtstp_watcher);
   ui_suspend(&lfm->ui);
 
-  bool capture_stdout = stdout_lines != NULL;
+  bool capture_stdout = stdout_data != NULL;
   bool capture_stderr = stderr_lines != NULL;
   bool send_stdin = stdin_lines != NULL;
 
@@ -685,7 +684,7 @@ int lfm_execute(Lfm *lfm, const char *prog, char *const *args, vec_env *env,
         file_stderr,
     };
     vec_bytes *vecs[2] = {
-        stdout_lines,
+        stdout_data,
         stderr_lines,
     };
 

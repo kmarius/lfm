@@ -90,7 +90,7 @@ void lfm_on_resize(Lfm *lfm);
 // will be printed on the ui. `exit_ref` will be called with the return code
 // once the command finishes.
 int lfm_spawn(Lfm *lfm, const char *prog, char *const *args,
-              struct vec_env *env, const struct vec_bytes *stdin_lines,
+              struct vec_env *env, const struct vec_bytes *stdin_data,
               int *stdin_fd, bool capture_stdout, bool capture_stderr,
               int stdout_ref, int stderr_ref, int exit_ref,
               zsview working_directory);
@@ -99,7 +99,7 @@ int lfm_spawn(Lfm *lfm, const char *prog, char *const *args,
 // lines from stdout are captured in the vector. Returns the exit status of the
 // process, or -1 if fork() fails.
 int lfm_execute(Lfm *lfm, const char *prog, char *const *args,
-                struct vec_env *env, struct vec_bytes *stdin_lines,
+                struct vec_env *env, struct vec_bytes *stdin_data,
                 struct vec_bytes *stdout_lines, struct vec_bytes *stderr_lines);
 
 // Schedule callback of the function given by `ref` in `delay` milliseconds.

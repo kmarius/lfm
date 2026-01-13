@@ -267,9 +267,9 @@ static int l_spawn(lua_State *L) {
     if (lua_isboolean(L, -1)) {
       stdin_is_function = lua_toboolean(L, -1);
     } else if (lua_isstring(L, -1)) {
-      vec_bytes_push_back(&stdin_lines, lua_tobytes(L, -1));
+      lua_read_bytes_into_chunks(L, -1, &stdin_lines);
     } else if (lua_istable(L, -1)) {
-      lua_read_vec_bytes(L, -1, &stdin_lines);
+      lua_read_vec_bytes_into_chunks(L, -1, &stdin_lines);
     }
     lua_pop(L, 1); // [cmd, opts]
 
