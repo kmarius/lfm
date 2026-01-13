@@ -1,6 +1,7 @@
 #include "lfm.h"
 
 #include "async/async.h"
+#include "bytes.h"
 #include "config.h"
 #include "fifo.h"
 #include "hooks.h"
@@ -16,6 +17,7 @@
 #include "stc/cstr.h"
 #include "ui.h"
 #include "util.h"
+#include "vec_bytes.h"
 #include "vec_env.h"
 
 #include <ev.h>
@@ -23,6 +25,7 @@
 #include <notcurses/notcurses.h>
 
 #include <errno.h>
+#include <sched.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -30,6 +33,7 @@
 
 #include <fcntl.h>
 #include <poll.h>
+#include <sys/socket.h>
 #include <sys/wait.h>
 
 struct sched_timer {
@@ -507,6 +511,8 @@ int lfm_spawn(Lfm *lfm, const char *prog, char *const *args, vec_env *env,
   if (send_stdin) {
     close(pipe_stdin[0]);
     if (stdin_lines) {
+      // TODO: this could block if the process doesn't read its input in a
+      // timely manner
       c_foreach(it, vec_bytes, *stdin_lines) {
         write(pipe_stdin[1], it.ref->buf, it.ref->size);
         write(pipe_stdin[1], "\n", 1);
@@ -523,6 +529,10 @@ int lfm_spawn(Lfm *lfm, const char *prog, char *const *args, vec_env *env,
 }
 
 // execute a foreground program
+// TODO: we could avoid all the output buffering and allocations
+// by getting it straight to the lua state
+// TODO: we should just take the raw output and split by newlines when we
+// push the result into the lua state
 int lfm_execute(Lfm *lfm, const char *prog, char *const *args, vec_env *env,
                 vec_bytes *stdin_lines, vec_bytes *stdout_lines,
                 vec_bytes *stderr_lines) {
@@ -536,19 +546,16 @@ int lfm_execute(Lfm *lfm, const char *prog, char *const *args, vec_env *env,
   bool capture_stderr = stderr_lines != NULL;
   bool send_stdin = stdin_lines != NULL;
 
-  int pipe_stdout[2];
-  int pipe_stderr[2];
-  int pipe_stdin[2];
+  int pipe_stdout[2] = {0};
+  int pipe_stderr[2] = {0};
+  int pipe_stdin[2] = {0};
 
-  if (send_stdin) {
+  if (send_stdin)
     pipe(pipe_stdin);
-  }
-  if (capture_stdout) {
+  if (capture_stdout)
     pipe(pipe_stdout);
-  }
-  if (capture_stderr) {
+  if (capture_stderr)
     pipe(pipe_stderr);
-  }
 
   int pid = fork();
   if (unlikely(pid < 0)) {
@@ -622,6 +629,11 @@ int lfm_execute(Lfm *lfm, const char *prog, char *const *args, vec_env *env,
 
   if (capture_stdout) {
     close(pipe_stdout[1]);
+
+    int fd = pipe_stdout[0];
+    int flags = fcntl(fd, F_GETFL, 0);
+    fcntl(fd, F_SETFL, flags | O_NONBLOCK);
+
     file_stdout = fdopen(pipe_stdout[0], "r");
     if (file_stdout == NULL) {
       log_error("fdopen: %s", strerror(errno));
@@ -631,6 +643,11 @@ int lfm_execute(Lfm *lfm, const char *prog, char *const *args, vec_env *env,
 
   if (capture_stderr) {
     close(pipe_stderr[1]);
+
+    int fd = pipe_stderr[0];
+    int flags = fcntl(fd, F_GETFL, 0);
+    fcntl(fd, F_SETFL, flags | O_NONBLOCK);
+
     file_stderr = fdopen(pipe_stderr[0], "r");
     if (file_stderr == NULL) {
       log_error("fdopen: %s", strerror(errno));
@@ -639,19 +656,20 @@ int lfm_execute(Lfm *lfm, const char *prog, char *const *args, vec_env *env,
   }
 
   if (send_stdin) {
-    // could this lock up if we try to send more while the child is trying
-    // to write to a full stdout pipe?
-    log_trace("sending stdin");
     close(pipe_stdin[0]);
-    c_foreach(it, vec_bytes, *stdin_lines) {
-      write(pipe_stdin[1], it.ref->buf, it.ref->size);
-      write(pipe_stdin[1], "\n", 1);
-    }
-    close(pipe_stdin[1]);
+
+    int fd = pipe_stdin[1];
+    int flags = fcntl(fd, F_GETFL, 0);
+    fcntl(fd, F_SETFL, flags | O_NONBLOCK);
   }
 
-  if (capture_stdout || capture_stderr) {
+  // TODO: should we support binary (not newline delimited) output
+  if (capture_stdout || capture_stderr || send_stdin) {
     struct pollfd pfds[2] = {0};
+
+    vec_bytes_iter it = {0};
+    if (send_stdin)
+      it = vec_bytes_begin(stdin_lines);
 
     if (capture_stdout) {
       pfds[0].fd = fileno(file_stdout);
@@ -661,7 +679,6 @@ int lfm_execute(Lfm *lfm, const char *prog, char *const *args, vec_env *env,
       pfds[1].fd = fileno(file_stderr);
       pfds[1].events = POLLIN;
     }
-    int num_open_fds = capture_stdout + capture_stderr;
 
     FILE *files[2] = {
         file_stdout,
@@ -672,24 +689,86 @@ int lfm_execute(Lfm *lfm, const char *prog, char *const *args, vec_env *env,
         stderr_lines,
     };
 
+    // TODO: we need a dynamic buffer type
+    size_t bufsz[] = {512, 512};
+    char *buf[] = {NULL, NULL};
+    size_t buf_idx[] = {0, 0};
+
     char *line = NULL;
     size_t n;
-    while (num_open_fds > 0) {
+    int num_open_fds = capture_stdout + capture_stderr;
+    while (num_open_fds > 0 || send_stdin) {
+      if (send_stdin) {
+        // we can not write arbitrarily large data here because the pipes have
+        // limited size. we don't chunk the data here, it is already chunked in
+        // the vectors
+        if (write(pipe_stdin[1], it.ref->buf, it.ref->size) == -1) {
+          if (waitpid(pid, &status, WNOHANG) == -1) {
+            // child died
+            send_stdin = false;
+          }
+        } else {
+          vec_bytes_next(&it);
+        }
+        if (it.ref == NULL) {
+          close(pipe_stdin[1]);
+          pipe_stdin[1] = -1;
+          send_stdin = false;
+        }
+      }
+
       if (poll(pfds, 2, -1) == -1) {
+        if (errno == EINTR)
+          continue;
         log_error("poll: %s", strerror(errno));
         break;
       }
+
       for (int i = 0; i < 2; i++) {
         if (pfds[i].revents != 0) {
           if (pfds[i].revents & POLLIN) {
             int read;
-            // TODO: should we support binary (not newline delimited) output?
             while ((read = getline(&line, &n, files[i])) != -1) {
-              if (line[read - 1] == '\n') {
-                read--;
+              if (unlikely(line[read - 1] != '\n')) {
+                // fragment of a line, buffer it
+                // this happens rarely and I haven't found out why, yet
+                if (unlikely(buf[i] == NULL)) {
+                  while ((int)bufsz[i] < read * 2)
+                    bufsz[i] *= 2;
+                  buf[i] = malloc(bufsz[i]);
+                }
+                if (buf_idx[i] + read > bufsz[i]) {
+                  while (buf_idx[i] + read > bufsz[i])
+                    bufsz[i] *= 2;
+                  buf[i] = realloc(buf[i], bufsz[i]);
+                }
+                memcpy(buf[i] + buf_idx[i], line, read);
+                buf_idx[i] += read;
+                continue;
               }
-              vec_bytes_push_back(vecs[i], bytes_from_n(line, read));
+              read--;
+              if (unlikely(buf_idx[i] > 0)) {
+                // last part of a fragmented line
+                bytes bytes = bytes_init();
+                bytes.size = buf_idx[i] + read;
+                if (buf_idx[i] + read > bufsz[i]) {
+                  bytes.buf = malloc(buf_idx[i] + read);
+                  memcpy(bytes.buf, buf[i], buf_idx[i]);
+                } else {
+                  bytes.buf = buf[i];
+                  buf[i] = NULL;
+                }
+                memcpy(bytes.buf + buf_idx[i], line, read);
+                vec_bytes_push_back(vecs[i], bytes);
+                buf_idx[i] = 0;
+              } else {
+                vec_bytes_push_back(vecs[i], bytes_from_n(line, read));
+              }
             }
+            // if we don't clear this error poll will indicate the file is
+            // readable and we will loop forever
+            if (errno == EAGAIN)
+              clearerr(files[i]);
           } else { /* POLLERR | POLLHUP */
             pfds[i].fd = -1;
             num_open_fds--;
@@ -697,11 +776,21 @@ int lfm_execute(Lfm *lfm, const char *prog, char *const *args, vec_env *env,
         }
       }
     }
+    if (pipe_stdin[1] > 0)
+      close(pipe_stdin[1]);
     if (capture_stdout)
       fclose(file_stdout);
     if (capture_stderr)
       fclose(file_stderr);
     free(line);
+
+    // if the output didn't end in \n we might have a fragment in the buffer
+    if (buf_idx[0] > 0)
+      vec_bytes_push_back(vecs[0], bytes_from_n(buf[0], buf_idx[0]));
+    if (buf_idx[1] > 0)
+      vec_bytes_push_back(vecs[1], bytes_from_n(buf[1], buf_idx[1]));
+    free(buf[0]);
+    free(buf[1]);
   }
 
   log_trace("waiting for process %d to finish", pid);

@@ -366,9 +366,9 @@ static int l_execute(lua_State *L) {
     lua_getfield(L, 2, "stdin"); // [cmd, opts, opts.stdin]
     send_stdin = lua_toboolean(L, -1);
     if (lua_isstring(L, -1)) {
-      vec_bytes_push_back(&stdin_lines, lua_tobytes(L, -1));
+      lua_read_bytes_into_chunks(L, -1, &stdin_lines);
     } else if (lua_istable(L, -1)) {
-      lua_read_vec_bytes(L, -1, &stdin_lines);
+      lua_read_vec_bytes_into_chunks(L, -1, &stdin_lines);
     }
     lua_pop(L, 1); // [cmd, opts]
 

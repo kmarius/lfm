@@ -1,6 +1,7 @@
 #include "util.h"
 
 #include "../config.h"
+#include "../log.h"
 #include "lua.h"
 
 #include <linux/limits.h>
@@ -145,6 +146,73 @@ void lua_read_vec_bytes(lua_State *L, int idx, vec_bytes *vec) {
     lua_rawgeti(L, idx, i);
     vec_bytes_push_back(vec, lua_tobytes(L, -1));
     lua_pop(L, 1);
+  }
+}
+
+void lua_read_bytes_into_chunks(lua_State *L, int idx, vec_bytes *vec) {
+  size_t bufsz = 4096;
+
+  size_t n;
+  const char *data = lua_tolstring(L, idx, &n);
+  vec_bytes_clear(vec);
+  if (n == 0)
+    return;
+
+  vec_bytes_reserve(vec, n / bufsz + 1);
+  size_t chunksz = bufsz;
+  for (size_t idx = 0; idx < n; idx += chunksz) {
+    if (idx + chunksz > n)
+      chunksz = n - idx;
+    bytes bytes = bytes_from_n(data + idx, chunksz);
+    vec_bytes_push_back(vec, bytes);
+  }
+}
+
+void lua_read_vec_bytes_into_chunks(lua_State *L, int idx, vec_bytes *vec) {
+  int n = lua_objlen(L, idx);
+  vec_bytes_clear(vec);
+  if (n == 0)
+    return;
+  vec_bytes_reserve(vec, 4);
+
+  size_t bufsz = 4096;
+  char *buf = malloc(bufsz);
+  int buf_idx = 0;
+
+  for (int i = 1; i <= n; i++) {
+    lua_rawgeti(L, idx, i);
+    size_t bytes_remaining;
+    const char *data = lua_tolstring(L, -1, &bytes_remaining);
+
+    for (;;) {
+      if (likely(buf_idx + bytes_remaining + 1 <= bufsz)) {
+        memcpy(buf + buf_idx, data, bytes_remaining);
+
+        buf_idx += bytes_remaining;
+        buf[buf_idx++] = '\n';
+
+        break;
+      } else {
+        memcpy(buf + buf_idx, data, bufsz - buf_idx);
+        bytes_remaining -= (bufsz - buf_idx);
+        data += (bufsz - buf_idx);
+
+        bytes bytes = {.buf = buf, .size = bufsz};
+        vec_bytes_push_back(vec, bytes);
+
+        buf = malloc(bufsz);
+        buf_idx = 0;
+      }
+    }
+
+    lua_pop(L, 1);
+  }
+
+  if (buf_idx > 0) {
+    bytes bytes = {.buf = buf, .size = buf_idx};
+    vec_bytes_push_back(vec, bytes);
+  } else {
+    free(buf);
   }
 }
 

@@ -77,6 +77,13 @@ void lua_push_vec_bytes(lua_State *L, vec_bytes *vec);
 
 void lua_read_vec_bytes(lua_State *L, int idx, vec_bytes *vec);
 
+// read string at index idx into a a vector of 4kB chunks. adds a newline
+void lua_read_bytes_into_chunks(lua_State *L, int idx, vec_bytes *vec);
+
+// reads a list of strings into a vector of 4kB chunks,
+// adding a newline character between each line
+void lua_read_vec_bytes_into_chunks(lua_State *L, int idx, vec_bytes *vec);
+
 void lua_read_vec_str(lua_State *L, int idx, vec_str *vec);
 
 void lua_read_vec_cstr(lua_State *L, int idx, vec_cstr *vec);
