@@ -24,7 +24,7 @@ typedef struct File {
   score_t score;    // for convenience, used in fzy
 } File;
 
-File *file_create(const char *dir, const char *name, bool load_info);
+File *file_create(const char *dir, const char *name, int fd, bool load_info);
 
 void file_destroy(File *file);
 

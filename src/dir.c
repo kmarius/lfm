@@ -17,6 +17,7 @@
 #include <string.h>
 
 #include <dirent.h>
+#include <fcntl.h>
 #include <libgen.h>
 #include <linux/limits.h>
 #include <sys/stat.h>
@@ -243,6 +244,13 @@ Dir *dir_load(zsview path, bool load_fileinfo) {
     dir->error = errno;
     return dir;
   }
+  int dir_fd = open(path.str, O_RDONLY);
+  if (dir_fd < 0) {
+    log_error("open: %s", strerror(errno));
+    dir->error = errno;
+    closedir(dirp);
+    return dir;
+  }
 
   vec_file files = vec_file_init();
 
@@ -252,12 +260,13 @@ Dir *dir_load(zsview path, bool load_fileinfo) {
       continue;
     }
 
-    File *file = file_create(path.str, entry->d_name, load_fileinfo);
+    File *file = file_create(path.str, entry->d_name, dir_fd, load_fileinfo);
     if (file != NULL) {
       vec_file_push(&files, file);
     }
   }
   closedir(dirp);
+  close(dir_fd);
 
   vec_file_shrink_to_fit(&files);
   dir->files_all = vec_file_clone(files);
@@ -292,7 +301,12 @@ Dir *dir_load_flat(zsview path, int level, bool load_fileinfo) {
     queue_dirs_pop(&queue);
 
     DIR *dirp = opendir(head.path);
-    if (!dirp) {
+    if (!dirp)
+      continue;
+
+    int dir_fd = open(head.path, O_RDONLY);
+    if (dir_fd < 0) {
+      closedir(dirp);
       continue;
     }
 
@@ -302,7 +316,7 @@ Dir *dir_load_flat(zsview path, int level, bool load_fileinfo) {
         continue;
       }
 
-      File *file = file_create(head.path, entry->d_name, load_fileinfo);
+      File *file = file_create(head.path, entry->d_name, dir_fd, load_fileinfo);
       if (file != NULL) {
         file->hidden |= head.hidden;
         if (file_isdir(file)) {
@@ -329,6 +343,7 @@ Dir *dir_load_flat(zsview path, int level, bool load_fileinfo) {
       }
     }
     closedir(dirp);
+    close(dir_fd);
   }
   queue_dirs_drop(&queue);
 
