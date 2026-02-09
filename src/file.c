@@ -11,9 +11,11 @@
 
 #include <bits/types.h>
 #include <dirent.h>
+#include <fcntl.h>
 #include <grp.h>
 #include <linux/limits.h> // PATH_MAX
 #include <pwd.h>
+#include <sys/stat.h>
 #include <unistd.h> // readlink
 
 static inline zsview name_from_path(cstr *path) {
@@ -34,7 +36,7 @@ static inline zsview ext_from_name(zsview *name) {
   return c_zv("");
 }
 
-File *file_create(const char *dir, const char *name, bool load_info) {
+File *file_create(const char *dir, const char *name, int fd, bool load_info) {
   char buf[PATH_MAX + 1] = {0};
 
   File *f = xcalloc(1, sizeof *f);
@@ -50,7 +52,7 @@ File *file_create(const char *dir, const char *name, bool load_info) {
   f->ext = ext_from_name(&f->name);
   f->hidden = file_name(f)->str[0] == '.';
 
-  if (lstat(file_path_str(f), &f->lstat) == -1) {
+  if (fstatat(fd, name, &f->lstat, AT_SYMLINK_NOFOLLOW) == -1) {
     if (errno == ENOENT) {
       cstr_drop(&f->path);
       xfree(f);
@@ -63,12 +65,12 @@ File *file_create(const char *dir, const char *name, bool load_info) {
 
   if (S_ISLNK(f->lstat.st_mode)) {
     if (load_info) {
-      if (stat(file_path_str(f), &f->stat) == -1) {
+      if (fstatat(fd, name, &f->lstat, 0) == -1) {
         f->isbroken = true;
         f->stat = f->lstat;
       }
     }
-    ssize_t len = readlink(file_path_str(f), buf, sizeof buf);
+    ssize_t len = readlinkat(fd, name, buf, sizeof buf);
     if (len == -1) {
       f->isbroken = true;
     } else {
