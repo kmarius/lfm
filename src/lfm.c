@@ -86,7 +86,7 @@ static inline void destroy_child_watcher(struct child_watcher *w) {
   }
 }
 
-static void child_cb(EV_P_ ev_child *w, int revents) {
+static void child_exit_cb(EV_P_ ev_child *w, int revents) {
   (void)revents;
 
   struct child_watcher *child = (struct child_watcher *)w;
@@ -118,7 +118,7 @@ static void child_cb(EV_P_ ev_child *w, int revents) {
   ev_idle_start(EV_A_ & lfm->ui.redraw_watcher);
 }
 
-static void child_out_cb(EV_P_ ev_io *w, int revents) {
+static void child_output_cb(EV_P_ ev_io *w, int revents) {
   (void)revents;
 
   struct out_watcher *data = (struct out_watcher *)w;
@@ -387,7 +387,7 @@ static void init_io_watcher(struct out_watcher *data, Lfm *lfm, int fd,
   data->stream = file;
   data->ref = ref;
 
-  ev_io_init(&data->w, child_out_cb, fd, EV_READ);
+  ev_io_init(&data->w, child_output_cb, fd, EV_READ);
   ev_io_start(lfm->loop, &data->w);
 }
 
@@ -503,7 +503,7 @@ int lfm_spawn(Lfm *lfm, const char *prog, char *const *args, vec_env *env,
       close(pipe_stderr[1]);
       init_io_watcher(&data->wstderr, lfm, pipe_stderr[0], stderr_ref);
     }
-    ev_child_init(&data->w, child_cb, pid, 0);
+    ev_child_init(&data->w, child_exit_cb, pid, 0);
     data->w.data = lfm;
     ev_child_start(lfm->loop, &data->w);
   }
