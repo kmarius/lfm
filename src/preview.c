@@ -247,18 +247,20 @@ static Preview *preview_create_from_file_r(zsview path, uint32_t width,
     cache_path[0] = 0;
   }
 
-  char w[32];
-  char h[32];
-  snprintf(w, sizeof w, "%u", width);
-  snprintf(h, sizeof h, "%u", height);
+  char width_str[32];
+  char height_str[32];
+  snprintf(width_str, sizeof width_str, "%u", width);
+  snprintf(height_str, sizeof height_str, "%u", height);
 
-  const char *args[7] = {cstr_str(&cfg.previewer),
-                         preview_path_str(p),
-                         w,
-                         h,
-                         cache_path,
-                         cfg.preview_images ? "True" : "False",
-                         NULL};
+  const char *args[7] = {
+      cstr_str(&cfg.previewer),
+      preview_path_str(p),
+      width_str,
+      height_str,
+      cache_path,
+      cfg.preview_images ? "True" : "False",
+      NULL,
+  };
 
   do { // retry loop
     int fd[2];
