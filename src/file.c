@@ -40,7 +40,6 @@ File *file_create(const char *dir, const char *name, int fd, bool load_info) {
   char buf[PATH_MAX + 1] = {0};
 
   File *f = xcalloc(1, sizeof *f);
-  memset(f, 0, sizeof *f);
 
   f->dircount = -1;
 
