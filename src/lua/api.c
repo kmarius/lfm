@@ -687,6 +687,8 @@ static int l_fm_filter(lua_State *L) {
 }
 
 static int l_get_automark(lua_State *L) {
+  if (cstr_is_empty(&fm->automark))
+    return 0;
   lua_pushcstr(L, &fm->automark);
   return 1;
 }

@@ -277,7 +277,7 @@ function lfm.api.get_filter() end
 function lfm.api.jump_automark() end
 
 ---
----Jump to the directory saved by the automatic mark (e.g. with '')
+---Get the location automatic quickmark.
 ---
 ---Example:
 ---```lua
