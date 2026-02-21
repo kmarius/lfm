@@ -127,6 +127,7 @@ set(LUA_INSPECT_MODULE_SOURCE ${PROJECT_SOURCE_DIR}/runtime/lua/lfm/inspect.lua)
 set(LUA_JUMPLIST_MODULE_SOURCE ${PROJECT_SOURCE_DIR}/runtime/lua/lfm/jumplist.lua)
 set(LUA_MACROS_MODULE_SOURCE ${PROJECT_SOURCE_DIR}/runtime/lua/lfm/macros.lua)
 set(LUA_MODES_MODULE_SOURCE ${PROJECT_SOURCE_DIR}/runtime/lua/lfm/modes.lua)
+set(LUA_PROFILING_MODULE_SOURCE ${PROJECT_SOURCE_DIR}/runtime/lua/lfm/profiling.lua)
 set(LUA_QUICKMARKS_MODULE_SOURCE ${PROJECT_SOURCE_DIR}/runtime/lua/lfm/quickmarks.lua)
 set(LUA_RIFLE_MODULE_SOURCE ${PROJECT_SOURCE_DIR}/runtime/lua/lfm/rifle.lua)
 set(LUA_SHELL_MODULE_SOURCE ${PROJECT_SOURCE_DIR}/runtime/lua/lfm/shell.lua)
@@ -152,6 +153,7 @@ add_custom_command(
  ${LUA_MACROS_MODULE_SOURCE} "lfm.macros"
  ${LUA_MODES_MODULE_SOURCE} "lfm.modes"
  ${LUA_QUICKMARKS_MODULE_SOURCE} "lfm.quickmarks"
+ ${LUA_PROFILING_MODULE_SOURCE} "lfm.profiling"
  ${LUA_RIFLE_MODULE_SOURCE} "lfm.rifle"
  ${LUA_SHELL_MODULE_SOURCE} "lfm.shell"
  ${LUA_TRASH_MODULE_SOURCE} "lfm.trash"
@@ -171,6 +173,7 @@ add_custom_command(
  ${LUA_MACROS_MODULE_SOURCE}
  ${LUA_MODES_MODULE_SOURCE}
  ${LUA_QUICKMARKS_MODULE_SOURCE}
+ ${LUA_PROFILING_MODULE_SOURCE}
  ${LUA_RIFLE_MODULE_SOURCE}
  ${LUA_SHELL_MODULE_SOURCE}
  ${LUA_TRASH_MODULE_SOURCE}

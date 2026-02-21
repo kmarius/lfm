@@ -402,6 +402,10 @@ register_command(
 
 register_command("cd", api.chdir, { tokenize = true, compl = compl.dirs })
 
+register_command("startuptime", function()
+	require("lfm.profiling").startuptime()
+end, { desc = "Display startup profiling info" })
+
 local c = util.c
 local a = util.a
 
