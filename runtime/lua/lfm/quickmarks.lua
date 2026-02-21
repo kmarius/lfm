@@ -118,6 +118,26 @@ function M.delete(char)
 	end
 end
 
+---
+---Get a table of all quickmarks.
+---
+---Example:
+---```lua
+---  local marks = lfm.quickmarks.get_marks()
+---  for key, loc in pairs(marks) do
+---    print(key, loc)
+---  end
+---```
+---
+---@return table<string, string>
+function M.get_marks()
+	local res = {}
+	for m, loc in pairs(marks) do
+		res[m] = loc
+	end
+	return res
+end
+
 ---Prompt to save a quickmark of the current location
 function M.prompt_save()
 	lfm.ui.input({ prompt = "mark-save: ", single_key = true }, function(char)
