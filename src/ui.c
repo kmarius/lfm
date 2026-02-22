@@ -406,6 +406,9 @@ void ui_display_message(Ui *ui, struct message msg) {
   } else {
     ev_timer_stop(loop, &ui->message_clear_timer);
   }
+
+  ui_redraw(ui, REDRAW_CMDLINE);
+  ev_idle_start(loop, &ui->redraw_watcher);
 }
 
 static void message_clear_timer_cb(EV_P_ ev_timer *w, int revents) {
