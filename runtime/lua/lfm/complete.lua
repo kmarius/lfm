@@ -4,7 +4,6 @@ local lfm = lfm
 
 local line_get = lfm.api.cmdline_line_get
 local line_set = lfm.api.cmdline_line_set
-local commands = lfm.commands
 local stat = require("posix.sys.stat")
 local dirent = require("posix.dirent")
 
@@ -17,7 +16,7 @@ local dirent = require("posix.dirent")
 ---@type Lfm.ComplFun
 local function commands_provider(tok)
 	local t = {}
-	for c, _ in pairs(commands) do
+	for c, _ in pairs(lfm.cmd) do
 		if string.sub(c, 1, #tok) == tok then
 			table.insert(t, c)
 		end
@@ -100,8 +99,8 @@ end
 ---
 ---Example:
 ---```lua
----  local compl_fun = lfm.compl.dirs
----  lfm.register_command("cool-command", { compl = compl_fun })
+---  local compl_fun = lfm.complete.dirs
+---  lfm.api.create_command("cool-command", { complete = compl_fun })
 ---```
 ---
 ---@type Lfm.ComplFun
@@ -146,8 +145,8 @@ end
 ---
 ---Example:
 ---```lua
----  local compl_fun = lfm.compl.files
----  lfm.register_command("cool-command", { compl = compl_fun })
+---  local compl_fun = lfm.complete.files
+---  lfm.api.create_command("cool-command", { complete = compl_fun })
 ---```
 ---
 ---@type Lfm.ComplFun
@@ -188,8 +187,8 @@ end
 ---
 ---Complete a single file argument:
 ---```lua
----  local compl_fun = lfm.compl.limit(1, lfm.compl.files)
----  lfm.register_command("cool-command", { compl = compl_fun })
+---  local compl_fun = lfm.complete.limit(1, lfm.complete.files)
+---  lfm.api.create_command("cool-command", { complete = compl_fun })
 ---```
 ---
 ---@param n number
@@ -219,9 +218,9 @@ local function shownext(increment)
 			provider = commands_provider
 		end
 	else
-		local cmd = string.match(prefix, "^([^%s]*)")
-		if commands[cmd] and commands[cmd].compl then
-			provider = commands[cmd].compl
+		local name = string.match(prefix, "^([^%s]*)")
+		if lfm.cmd[name] and lfm.cmd[name].complete then
+			provider = lfm.cmd[name].complete
 		else
 			provider = commands_provider
 			return
@@ -264,7 +263,7 @@ end
 ---
 ---Example:
 ---```lfm
----  lfm.compl.next()
+---  lfm.complete.next()
 ---```
 ---
 function M.next()
@@ -276,7 +275,7 @@ end
 ---
 ---Example:
 ---```lfm
----  lfm.compl.prev()
+---  lfm.complete.prev()
 ---```
 ---
 function M.prev()

@@ -179,28 +179,25 @@ end
 
 ---@class Lfm.CommandOpts
 ---@field tokenize? boolean tokenize arguments (default: true)
----@field compl? Lfm.ComplFun completion function
+---@field complete? Lfm.ComplFun completion function
 ---@field desc? string Description
 
 ---@class Lfm.Command : Lfm.CommandOpts
 ---@field f function corresponding function
 ---@overload fun(t: string[]): boolean
 
----@type table<string, Lfm.Command>
+---@type table<string, Lfm.Command> A table to execute commands, e.g. `lfm.cmd.open()` executes the `open` command.
 local commands = setmetatable({}, {
 	__call = function(_, line)
 		lfm.eval(line)
 	end,
 })
-lfm.commands = commands
+
+lfm.cmd = commands
 
 local command_mt = {
-	__call = function(self, arg)
-		if arg then
-			self.f(unpack(arg))
-		else
-			self.f()
-		end
+	__call = function(self, ...)
+		return self.f(...)
 	end,
 }
 
@@ -233,48 +230,58 @@ local reserved = {
 ---
 ---Example:
 ---```lua
----  lfm.register_command("updir", api.fm_updir, { desc = "Go to parent directory" })
+---  lfm.api.create_command("updir", api.fm_updir, { desc = "Go to parent directory" })
 ---```
 ---
 ---Handling arguments:
 ---```lua
----  lfm.register_command("cmd", function(line)
+---  lfm.api.create_command("cmd", function(line)
 ---    -- args passed as a single string
 ---  end, {})
 ---
----  lfm.register_command("cmd", function(...)
+---  lfm.api.create_command("cmd", function(...)
 ---    local args = { ... }
 ---    -- args are split by whitespace
 ---  end, { tokenize = true })
 ---```
 ---
----Using completions (see `compl.lua`):
+---Using completions (see `complete.lua`):
 ---```lua
----  lfm.register_command("cd", chdir, {
----    compl = require("lfm.compl").dirs,
+---  lfm.api.create_command("cd", chdir, {
+---    complete = require("lfm.complete").dirs,
 ---    tokenize = true,
 ---  })
 ---```
 ---
 ---@param name string Command name, can not contain whitespace.
----@param f function The function to execute or `nil` to unregister
+---@param f function The function to execute.
 ---@param opts? Lfm.CommandOpts Additional options.
-local function register_command(name, f, opts)
-	if reserved[name] then
-		error("reserved command name: " .. name)
-	end
+local function create_command(name, f, opts)
+	lfm.validate("name", name, "string")
+	lfm.validate("name", name, function(val)
+		return not reserved[val]
+	end, "valid command name")
+	lfm.validate("f", f, "function")
+	lfm.validate("opts", opts, "table", true)
 
-	-- TODO: we should probably make a copy of opts
-	if f then
-		opts = opts or {}
-		---@diagnostic disable-next-line: inject-field
-		opts.f = f
-		opts.tokenize = opts.tokenize == nil and true or opts.tokenize
-		opts = setmetatable(opts, command_mt)
-		lfm.commands[name] = opts --[[@as Lfm.Command]]
-	else
-		lfm.commands[name] = nil
-	end
+	opts = lfm.util.shallow_copy(opts or {})
+	opts.f = f
+	opts.tokenize = opts.tokenize == nil and true or opts.tokenize
+	opts = setmetatable(opts, command_mt)
+	commands[name] = opts --[[@as Lfm.Command]]
+end
+
+---
+---Delete a command.
+---
+---Example:
+---```lua
+---  lfm.api.del_command("open")
+---```
+---
+---@param name string Command name, can not contain whitespace.
+local function del_command(name)
+	commands[name] = nil
 end
 
 ---
@@ -321,12 +328,13 @@ end
 lfm.printf = printf
 lfm.errorf = errorf
 lfm.eval = eval
-lfm.register_command = register_command
+lfm.api.create_command = create_command
+lfm.api.del_command = del_command
 lfm.api.fm_sel_or_cur = sel_or_cur
 
 -- lazily load submodules in the lfm namespace, make sure to add them to doc/LuaCATS/lfm.lua
 local submodules = {
-	compl = true,
+	complete = true,
 	fs = true,
 	functions = true,
 	inspect = true,
@@ -361,32 +369,32 @@ require("lfm.rifle").setup({
 })
 
 local util = require("lfm.util")
-local compl = require("lfm.compl")
+local complete = require("lfm.complete")
 local shell = require("lfm.shell")
 
-register_command("shell", function(arg)
+api.create_command("shell", function(arg)
 	shell.bash.execute(arg, { files_via = shell.ARGV })
-end, { tokenize = false, compl = compl.files, desc = "Run a shell command." })
+end, { tokenize = false, complete = complete.files, desc = "Run a shell command." })
 
-register_command("shell-bg", function(arg)
+api.create_command("shell-bg", function(arg)
 	shell.bash.spawn(arg, { files_via = shell.ARGV, on_stdout = true, on_stderr = true })
-end, { tokenize = false, compl = compl.files, desc = "Run a shell command in the background." })
+end, { tokenize = false, complete = complete.files, desc = "Run a shell command in the background." })
 
 require("lfm.jumplist")._setup()
 require("lfm.quickmarks")._setup()
 require("lfm.glob")._setup()
 
-register_command("quit", quit, { desc = "Quit Lfm" })
-register_command("q", quit, { desc = "Quit Lfm" })
-register_command(
+api.create_command("quit", quit, { desc = "Quit Lfm" })
+api.create_command("q", quit, { desc = "Quit Lfm" })
+api.create_command(
 	"rename",
 	require("lfm.functions").rename,
-	{ tokenize = false, compl = compl.limit(1, compl.files), desc = "Rename the current file." }
+	{ tokenize = false, complete = complete.limit(1, complete.files), desc = "Rename the current file." }
 )
 
-register_command("cd", api.chdir, { tokenize = true, compl = compl.dirs })
+api.create_command("cd", api.chdir, { tokenize = true, complete = complete.dirs })
 
-register_command("startuptime", function()
+api.create_command("startuptime", function()
 	require("lfm.profiling").startuptime()
 end, { desc = "Display startup profiling info" })
 
@@ -450,7 +458,7 @@ local function open()
 	eval("open")
 end
 
-register_command("delete", function(args)
+api.create_command("delete", function(args)
 	if args then
 		error("command takes no arguments")
 	end
@@ -473,8 +481,8 @@ cmap("<c-h>", api.cmdline_delete, { desc = "Delete left" })
 cmap("<c-w>", api.cmdline_delete_word, { desc = "Delete word left" })
 cmap("<c-Backspace>", api.cmdline_delete_word, { desc = "Delete word left" })
 cmap("<c-u>", api.cmdline_delete_line_left, { desc = "Delete line left" })
-cmap("<Tab>", compl.next, { desc = "Next completion item" })
-cmap("<s-Tab>", compl.prev, { desc = "Previous completion item" })
+cmap("<Tab>", complete.next, { desc = "Next completion item" })
+cmap("<s-Tab>", complete.prev, { desc = "Previous completion item" })
 
 map("q", quit, { desc = "Quit" })
 map("ZZ", quit, { desc = "Quit" })
@@ -552,7 +560,7 @@ lfm.map("df", function()
 end, { desc = "Trash current file or selection" })
 
 -- lfm.flatten
-register_command("flatten", function(l)
+api.create_command("flatten", function(l)
 	require("lfm.flatten").flatten(l)
 end, { tokenize = true, desc = "(Un)flatten current directory." })
 map("<a-+>", function()

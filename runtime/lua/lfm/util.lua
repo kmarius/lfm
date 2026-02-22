@@ -5,6 +5,24 @@ local lfm = lfm
 local eval = lfm.eval
 
 ---
+---Create a shallow copy of a table.
+---
+---Example:
+---```lua
+---  local copy = shallow_copy({ field1 = 1, field2 = "test" })
+---```
+---
+---@param t table
+---@return table
+function M.shallow_copy(t)
+	local copy = {}
+	for k, v in pairs(t) do
+		copy[k] = v
+	end
+	return copy
+end
+
+---
 ---Construct a function that, when called, executes line as an expression.
 ---
 ---Example:

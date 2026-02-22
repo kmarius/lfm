@@ -195,13 +195,13 @@ function M._setup()
 	lfm.register_mode(mode)
 	map("*", a(lfm.mode, mode.name), { desc = "glob-select" })
 
-	lfm.register_command(
+	lfm.api.create_command(
 		"glob-select",
 		require("lfm.glob").glob_select,
 		{ tokenize = false, desc = "Select files in the current directory matching a glob." }
 	)
 
-	lfm.register_command(
+	lfm.api.create_command(
 		"glob-select-rec",
 		require("lfm.glob").glob_select_recursive,
 		{ tokenize = false, desc = "Select matching a glob recursively." }

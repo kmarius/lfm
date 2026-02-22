@@ -7,13 +7,7 @@ local api = lfm.api
 ---@type string[]?
 M.command = nil
 
-local function shallow_copy(t)
-	local copy = {}
-	for i = 1, #t do
-		copy[i] = t[i]
-	end
-	return copy
-end
+local shallow_copy = lfm.util.shallow_copy
 
 ---
 ---Trash files.

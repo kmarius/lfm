@@ -117,7 +117,7 @@ include_directories(${PROJECT_BINARY_DIR}/config)
 set(CHAR_BLOB_GENERATOR ${PROJECT_SOURCE_DIR}/gen/gen_char_blob.lua)
 set(LFM_MODULE_FILE ${PROJECT_BINARY_DIR}/lua/lfm_module.generated.h)
 set(LUA_COLORS_MODULE_SOURCE ${PROJECT_SOURCE_DIR}/runtime/lua/lfm/colors.lua)
-set(LUA_COMPL_MODULE_SOURCE ${PROJECT_SOURCE_DIR}/runtime/lua/lfm/compl.lua)
+set(LFM_COMPLETE_MODULE_SOURCE ${PROJECT_SOURCE_DIR}/runtime/lua/lfm/complete.lua)
 set(LUA_CORE_MODULE_SOURCE ${PROJECT_SOURCE_DIR}/runtime/lua/lfm/core.lua)
 set(LUA_FLATTEN_MODULE_SOURCE ${PROJECT_SOURCE_DIR}/runtime/lua/lfm/flatten.lua)
 set(LUA_FUNCTIONS_MODULE_SOURCE ${PROJECT_SOURCE_DIR}/runtime/lua/lfm/functions.lua)
@@ -142,7 +142,7 @@ add_custom_command(
  "LUAC_PRG=${LUAC_PRG}"
  ${LUA_PRG} ${CHAR_BLOB_GENERATOR} -c ${LFM_MODULE_FILE}
  ${LUA_COLORS_MODULE_SOURCE} "lfm.colors"
- ${LUA_COMPL_MODULE_SOURCE} "lfm.compl"
+ ${LFM_COMPLETE_MODULE_SOURCE} "lfm.complete"
  ${LUA_CORE_MODULE_SOURCE} "lfm._core"
  ${LUA_FLATTEN_MODULE_SOURCE} "lfm.flatten"
  ${LUA_FS_MODULE_SOURCE} "lfm.fs"
@@ -162,7 +162,7 @@ add_custom_command(
  DEPENDS
  ${CHAR_BLOB_GENERATOR}
  ${LUA_COLORS_MODULE_SOURCE}
- ${LUA_COMPL_MODULE_SOURCE}
+ ${LFM_COMPLETE_MODULE_SOURCE}
  ${LUA_CORE_MODULE_SOURCE}
  ${LUA_FLATTEN_MODULE_SOURCE}
  ${LUA_FS_MODULE_SOURCE}

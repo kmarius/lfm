@@ -5,7 +5,7 @@ local lfm = lfm
 local options = lfm.o
 local api = lfm.api
 local fs = lfm.fs
-local compl = require("lfm.compl")
+local complete = require("lfm.complete")
 local util = require("lfm.util")
 
 local a = util.a
@@ -26,7 +26,7 @@ function M._setup()
 			end,
 			on_change = function()
 				prev_line = nil
-				compl.reset()
+				complete.reset()
 			end,
 		}
 		lfm.register_mode(mode)

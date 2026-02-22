@@ -123,7 +123,7 @@ function M.setup(opts)
 	opts = opts or {}
 	config = opts.config
 	setup_internal(opts)
-	lfm.register_command("open", M.open, { tokenize = true, desc = "Open file(s)." })
+	lfm.api.create_command("open", M.open, { tokenize = true, desc = "Open file(s)." })
 	lfm.map("r", M.ask, { desc = "show opener options" })
 end
 
