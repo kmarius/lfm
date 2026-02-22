@@ -17,6 +17,7 @@ declare_vec(vec_ncplane, struct ncplane *);
 struct message {
   cstr text;
   bool error;
+  int id;
 };
 
 #define i_type vec_message, struct message
@@ -91,6 +92,8 @@ typedef struct Ui {
   ev_timer map_clear_timer;
   ev_timer map_suggestion_timer;
   ev_timer preview_load_timer;
+  ev_timer message_clear_timer;
+  int message_clear_id;
 
   vec_message messages;
   bool show_message; // if true, the latest message is drawn over the statusline
@@ -129,6 +132,8 @@ void ui_echom(Ui *ui, const char *format, ...);
 void ui_verror(Ui *ui, const char *format, va_list args);
 
 void ui_vechom(Ui *ui, const char *format, va_list args);
+
+void ui_display_message(Ui *ui, const char *str, int timeout_ms);
 
 // takes ownership ov vec, if passed
 void ui_menu_show(Ui *ui, vec_cstr *vec, uint32_t delay);

@@ -424,6 +424,21 @@ function lfm.search_prev(inclusive) end
 ---
 function lfm.nohighlight() end
 
+---@class Lfm.Print2Opts
+---@field timeout? number timeout in milliseconds
+
+---
+---Display a message, optionally with timeout, after which it is cleared.
+---
+---Example:
+---```lua
+---  lfm.print2("Hello!", { timeout = 1000 })
+---```
+---
+---@param msg string
+---@param opts? Lfm.Print2Opts
+function lfm.print2(msg, opts) end
+
 ---
 ---Show an error in the UI.
 ---

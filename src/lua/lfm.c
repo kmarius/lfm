@@ -140,6 +140,19 @@ static int l_message_clear(lua_State *L) {
   return 0;
 }
 
+static int l_print2(lua_State *L) {
+  int timeout_ms = 0;
+  if (lua_gettop(L) == 2) {
+    luaL_checktype(L, 2, LUA_TTABLE);
+    lua_getfield(L, 2, "timeout");
+    if (!lua_isnil(L, -1))
+      timeout_ms = luaL_checknumber(L, -1);
+    lua_pop(L, 1);
+  }
+  ui_display_message(ui, luaL_optstring(L, 1, ""), timeout_ms);
+  return 0;
+}
+
 // TODO: should we use a FILE* instead of fd?
 struct proc {
   int pid;
@@ -674,6 +687,7 @@ static const struct luaL_Reg lfm_lib[] = {
     {"crash",           l_crash           },
     {"error",           l_error           },
     {"message_clear",   l_message_clear   },
+    {"print2",          l_print2          },
     {"quit",            l_quit            },
     {NULL,              NULL              },
 };
