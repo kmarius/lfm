@@ -2,6 +2,86 @@
 
 lfm.api = {}
 
+---@class Lfm.MapOpts
+---@field desc? string Description of the mapping
+---@field mode? string Name of the mode for a mode-only mapping
+
+---@class Lfm.DelMapOpts
+---@field mode? string Name of the mode.
+
+---
+---Map a key sequence to a function in normal mode, unles specified via opts. The function is called with
+---the command repetition count if it greater than 0 or nil if not.
+---
+---### Basic usage:
+---```lua
+---  lfm.api.set_map("P", function()
+---    print("hey")
+---  end, { desc = "My cool mapping" })
+---```
+---
+---### Mode mappings:
+---```lua
+---  -- Only active "my-mode"
+---  lfm.api.set_map("P", function()
+---    print("hey")
+---  end, { desc = "My cool mapping", mode = "my-mode" })
+---```
+---
+---### Accepting a command count:
+---```lua
+---  -- typing 2P prints "count: 2"
+---  lfm.api.set_map("P", function(ct)
+---     if ct then
+---       print("count: " .. ct)
+---     else
+---       print("no count given")
+---     end
+---  end, { desc = "My cool mapping" })
+---```
+---
+---@param seq string
+---@param f? function
+---@param opts? Lfm.MapOpts
+function lfm.api.set_keymap(seq, f, opts) end
+
+---
+---Delete a keymap.
+---
+---Example:
+---```lua
+---  lfm.del_keymap("<c-d>", { mode = "command" })
+---```
+---
+---@param seq string
+---@param opts? Lfm.DelMapOpts
+function lfm.api.del_keymap(seq, opts) end
+
+---@class Lfm.Keymap
+---@field desc string
+---@field keys string
+---@field f function
+
+---
+---Get a table of all maps for a mode. Pass the special mode `"input"` to get keys
+---mapped via `lfm.cmap`. If the `prune` parameter is set, only reachable maps are
+---returned, i.e. if both `"g"` and `"gn"` are mapped, `"gn"` is not reachable and
+---therefore not included.
+---
+---```lua
+---  local maps = lfm.api.get_keymap("normal")
+---  for _, map in pairs(maps) do
+---    print(map.keys, map.desc)
+---    local f = map.f -- holds the function
+---  end
+---```
+---
+---@param mode string
+---@param prune? boolean list reachable maps only (default: `false`)
+---@return Lfm.Keymap[]
+---@nodiscard
+function lfm.api.get_keymap(mode, prune) end
+
 ---
 ---Send keys to the input buffer. The input buffer is handled asynchronuously in the event loop.
 ---

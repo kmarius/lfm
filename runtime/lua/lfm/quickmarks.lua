@@ -30,7 +30,7 @@ local function mark_set(char, loc)
 	end
 	loc = loc or fn.getpwd()
 	local cmd = "cd " .. loc
-	lfm.map("'" .. char, function()
+	lfm.api.set_keymap("'" .. char, function()
 		lfm.eval(cmd)
 	end, { desc = cmd })
 	marks[char] = loc
@@ -112,7 +112,7 @@ end
 function M.delete(char)
 	if marks[char] then
 		load_from_file()
-		lfm.map("'" .. char, nil)
+		lfm.api.del_keymap("'" .. char)
 		marks[char] = nil
 		write_to_file()
 	end
@@ -165,8 +165,8 @@ function M._setup(opts)
 	lfm.validate("opts", opts, "table", true)
 	opts = opts or {}
 
-	lfm.map("m", M.prompt_save, { desc = "Save quickmark" })
-	lfm.map("dm", M.prompt_delete, { desc = "Save quickmark" })
+	lfm.api.set_keymap("m", M.prompt_save, { desc = "Save quickmark" })
+	lfm.api.set_keymap("dm", M.prompt_delete, { desc = "Save quickmark" })
 end
 
 return M

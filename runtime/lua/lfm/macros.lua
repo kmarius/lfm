@@ -6,7 +6,7 @@ local ui = lfm.ui
 
 local prev -- identifier of the last run macro
 
-lfm.map("w", function()
+lfm.api.set_keymap("w", function()
 	if api.macro_recording() then
 		api.macro_stop_record()
 	else
@@ -19,7 +19,7 @@ lfm.map("w", function()
 	end
 end, { desc = "Start or stop recording a macro" })
 
-lfm.map("W", function(ct)
+lfm.api.set_keymap("W", function(ct)
 	local count = ct or 1
 	ui.input({ prompt = "macro-play: ", single_key = true }, function(id)
 		if id and id ~= "" then

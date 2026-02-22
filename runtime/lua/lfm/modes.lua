@@ -30,8 +30,8 @@ function M._setup()
 			end,
 		}
 		lfm.register_mode(mode)
-		lfm.map(":", a(lfm.mode, "command"), { desc = "enter COMMAND mode" })
-		lfm.map("<Up>", function()
+		lfm.api.set_keymap(":", a(lfm.mode, "command"), { desc = "enter COMMAND mode" })
+		lfm.api.set_keymap("<Up>", function()
 			if not prev_line then
 				prev_line = api.cmdline_line_get()
 			end
@@ -40,7 +40,7 @@ function M._setup()
 				api.cmdline_line_set(line)
 			end
 		end, { mode = "command", desc = "Previous history item" })
-		lfm.map("<Down>", function()
+		lfm.api.set_keymap("<Down>", function()
 			local line = api.cmdline_history_next()
 			api.cmdline_line_set(line or prev_line)
 		end, { mode = "command", desc = "Next history item" })
@@ -70,8 +70,8 @@ function M._setup()
 			end,
 		}
 		lfm.register_mode(mode)
-		lfm.map("zf", a(lfm.mode, "filter"), { desc = "Enter FILTER mode" })
-		lfm.map("zF", a(lfm.api.feedkeys, "zf<esc>"), { desc = "Remove current filter" })
+		lfm.api.set_keymap("zf", a(lfm.mode, "filter"), { desc = "Enter FILTER mode" })
+		lfm.api.set_keymap("zF", a(lfm.api.feedkeys, "zf<esc>"), { desc = "Remove current filter" })
 	end
 
 	-- FUZZY mode
@@ -100,9 +100,9 @@ function M._setup()
 			end,
 		}
 		lfm.register_mode(mode)
-		lfm.map("zF", a(lfm.mode, "fuzzy"), { desc = "Enter FUZZY mode" })
-		lfm.map("<c-n>", api.fm_down, { mode = "fuzzy", desc = "down" })
-		lfm.map("<c-p>", api.fm_up, { mode = "fuzzy", desc = "up" })
+		lfm.api.set_keymap("zF", a(lfm.mode, "fuzzy"), { desc = "Enter FUZZY mode" })
+		lfm.api.set_keymap("<c-n>", api.fm_down, { mode = "fuzzy", desc = "down" })
+		lfm.api.set_keymap("<c-p>", api.fm_up, { mode = "fuzzy", desc = "up" })
 	end
 
 	-- TRAVEL mode
@@ -154,12 +154,12 @@ function M._setup()
 			end,
 		}
 		lfm.register_mode(mode)
-		lfm.map("f", a(lfm.mode, "travel"), { desc = "Enter TRAVEL mode" })
-		lfm.map("<c-n>", api.fm_down, { mode = "travel" })
-		lfm.map("<c-p>", api.fm_up, { mode = "travel" })
-		lfm.map("<Up>", api.fm_up, { mode = "travel" })
-		lfm.map("<Down>", api.fm_down, { mode = "travel" })
-		lfm.map("<a-h>", function()
+		lfm.api.set_keymap("f", a(lfm.mode, "travel"), { desc = "Enter TRAVEL mode" })
+		lfm.api.set_keymap("<c-n>", api.fm_down, { mode = "travel" })
+		lfm.api.set_keymap("<c-p>", api.fm_up, { mode = "travel" })
+		lfm.api.set_keymap("<Up>", api.fm_up, { mode = "travel" })
+		lfm.api.set_keymap("<Down>", api.fm_down, { mode = "travel" })
+		lfm.api.set_keymap("<a-h>", function()
 			api.set_filter("")
 			api.fm_updir()
 			api.cmdline_line_set()
@@ -216,12 +216,12 @@ function M._setup()
 			end,
 		}
 		lfm.register_mode(mode)
-		lfm.map("F", a(lfm.mode, "travel-fuzzy"), { desc = "Enter travel-fuzzy mode" })
-		lfm.map("<c-n>", api.fm_down, { mode = "travel-fuzzy" })
-		lfm.map("<c-p>", api.fm_up, { mode = "travel-fuzzy" })
-		lfm.map("<Up>", api.fm_up, { mode = "travel-fuzzy" })
-		lfm.map("<Down>", api.fm_down, { mode = "travel-fuzzy" })
-		lfm.map("<a-h>", function()
+		lfm.api.set_keymap("F", a(lfm.mode, "travel-fuzzy"), { desc = "Enter travel-fuzzy mode" })
+		lfm.api.set_keymap("<c-n>", api.fm_down, { mode = "travel-fuzzy" })
+		lfm.api.set_keymap("<c-p>", api.fm_up, { mode = "travel-fuzzy" })
+		lfm.api.set_keymap("<Up>", api.fm_up, { mode = "travel-fuzzy" })
+		lfm.api.set_keymap("<Down>", api.fm_down, { mode = "travel-fuzzy" })
+		lfm.api.set_keymap("<a-h>", function()
 			api.set_filter("")
 			api.fm_updir()
 			api.cmdline_line_set()
@@ -282,10 +282,10 @@ function M._setup()
 		lfm.register_mode(mode)
 		lfm.register_mode(mode_back)
 
-		lfm.map("/", a(lfm.mode, "search"), { desc = "Search" })
-		lfm.map("?", a(lfm.mode, "search-back"), { desc = "Search backwards" })
-		lfm.map("n", lfm.search_next, { desc = "Go to next search result" })
-		lfm.map("N", lfm.search_prev, { desc = "Go to previous search result" })
+		lfm.api.set_keymap("/", a(lfm.mode, "search"), { desc = "Search" })
+		lfm.api.set_keymap("?", a(lfm.mode, "search-back"), { desc = "Search backwards" })
+		lfm.api.set_keymap("n", lfm.search_next, { desc = "Go to next search result" })
+		lfm.api.set_keymap("N", lfm.search_prev, { desc = "Go to previous search result" })
 	end
 end
 

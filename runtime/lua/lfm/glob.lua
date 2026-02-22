@@ -174,7 +174,6 @@ end
 
 function M._setup()
 	-- GLOBSELECT mode
-	local map = lfm.map
 	local a = require("lfm.util").a
 
 	local mode = {
@@ -193,7 +192,7 @@ function M._setup()
 	}
 
 	lfm.register_mode(mode)
-	map("*", a(lfm.mode, mode.name), { desc = "glob-select" })
+	lfm.api.set_keymap("*", a(lfm.mode, mode.name), { desc = "glob-select" })
 
 	lfm.api.create_command(
 		"glob-select",

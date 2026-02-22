@@ -21,6 +21,116 @@
 #include <notcurses/notcurses.h>
 #include <stdint.h>
 
+static int l_set_keymap(lua_State *L) {
+  luaL_checktype(L, 2, LUA_TFUNCTION);
+
+  zsview keys = luaL_checkzsview(L, 1);
+  Trie *trie = lfm->ui.maps.normal;
+  zsview desc = zsview_init();
+
+  if (lua_type(L, 3) == LUA_TTABLE) {
+    lua_getfield(L, 3, "desc");
+    if (!lua_isnil(L, -1)) {
+      desc = lua_tozsview(L, -1);
+    }
+    lua_pop(L, 1);
+
+    lua_getfield(L, 3, "mode");
+    if (!lua_isnil(L, -1)) {
+      const hmap_modes_value *mode =
+          hmap_modes_get(&lfm->modes, lua_tozsview(L, -1));
+      if (mode == NULL) {
+        return luaL_error(L, "no such mode: %s", lua_tostring(L, -1));
+      }
+      trie = mode->second.maps;
+    }
+    lua_pop(L, 1);
+  }
+
+  int ref = 0;
+  if (!lua_isnil(L, 2)) {
+    lua_pushvalue(L, 2);
+    ref = luaL_ref(L, LUA_REGISTRYINDEX);
+  }
+
+  int oldref;
+
+  int status = input_map(trie, keys, ref, desc, &oldref);
+  if (status < 0) {
+    if (ref != 0) {
+      luaL_unref(L, LUA_REGISTRYINDEX, ref);
+    }
+    if (status == -2)
+      return luaL_error(L, "key sequence too long");
+    else
+      return luaL_error(L, "malformed key sequence");
+  }
+
+  if (oldref)
+    luaL_unref(L, LUA_REGISTRYINDEX, oldref);
+
+  return 0;
+}
+
+static int l_del_keymap(lua_State *L) {
+  zsview keys = luaL_checkzsview(L, 1);
+  Trie *trie = lfm->ui.maps.normal;
+
+  if (lua_type(L, 3) == LUA_TTABLE) {
+    lua_getfield(L, 3, "mode");
+    if (!lua_isnil(L, -1)) {
+      const hmap_modes_value *mode =
+          hmap_modes_get(&lfm->modes, lua_tozsview(L, -1));
+      if (mode == NULL) {
+        return luaL_error(L, "no such mode: %s", lua_tostring(L, -1));
+      }
+      trie = mode->second.maps;
+    }
+    lua_pop(L, 1);
+  }
+
+  int oldref;
+
+  int status = input_map(trie, keys, 0, zsview_init(), &oldref);
+  if (status < 0) {
+    if (status == -2)
+      return luaL_error(L, "key sequence too long");
+    else
+      return luaL_error(L, "malformed key sequence");
+  }
+
+  if (oldref)
+    luaL_unref(L, LUA_REGISTRYINDEX, oldref);
+
+  return 0;
+}
+
+static int l_get_keymap(lua_State *L) {
+  zsview name = luaL_checkzsview(L, 1);
+  const struct mode *mode = hmap_modes_at(&lfm->modes, name);
+  if (!mode) {
+    return luaL_error(L, "no such mode: %s", name);
+  }
+  bool prune = luaL_optbool(L, 2, false);
+  vec_trie maps = trie_collect_leaves(mode->maps, prune);
+  lua_createtable(L, vec_trie_size(&maps), 0);
+  size_t i = 0;
+  c_foreach(it, vec_trie, maps) {
+    Trie *map = *it.ref;
+    lua_createtable(L, 0, 3);
+    lua_pushcstr(L, &map->desc);
+    lua_setfield(L, -2, "desc");
+    lua_pushcstr(L, &map->keys);
+    lua_setfield(L, -2, "keys");
+    lua_rawgeti(L, LUA_REGISTRYINDEX, map->ref);
+    lua_setfield(L, -2, "f");
+    lua_rawseti(L, -2, i + 1);
+    i++;
+  }
+  vec_trie_drop(&maps);
+  return 1;
+}
+
 static int l_cmd_line_get(lua_State *L) {
   lua_pushzsview(L, cmdline_get(&ui->cmdline));
   return 1;
@@ -1012,6 +1122,9 @@ static int l_set_tags(lua_State *L) {
 }
 
 static const struct luaL_Reg ui_funcs[] = {
+    {"set_keymap",         l_set_keymap       },
+    {"del_keymap",         l_del_keymap       },
+    {"get_keymap",         l_get_keymap       },
     {"input",              l_input            },
     {"feedkeys",           l_feedkeys         },
     {"set_directory_tags", l_set_tags         },
