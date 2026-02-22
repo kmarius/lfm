@@ -37,7 +37,15 @@ function M.put(files)
 	end
 end
 
-lfm.map("df", function()
+---
+---Trash current file or selection, asking for confirmation.
+---
+---Example:
+---```lua
+---  lfm.trash.trash_selection()
+---```
+---
+function M.trash_selection()
 	if not M.command then
 		error("lfm.trash.command not set")
 	end
@@ -52,6 +60,6 @@ lfm.map("df", function()
 			api.selection_set({})
 		end
 	end)
-end, { desc = "Trash file/selection" })
+end
 
 return M

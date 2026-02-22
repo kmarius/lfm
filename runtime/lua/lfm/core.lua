@@ -562,14 +562,21 @@ map("zh", function()
 	lfm.o.hidden = not lfm.o.hidden
 end, { desc = "Toggle hidden files" })
 
--- Flatten
-register_command(
-	"flatten",
-	require("lfm.flatten").flatten,
-	{ tokenize = true, desc = "(Un)flatten current directory." }
-)
-map("<a-+>", require("lfm.flatten").increment, { desc = "Increase flatten level" })
-map("<a-->", require("lfm.flatten").decrement, { desc = "Decrease flatten level" })
+-- lfm.trash
+lfm.map("df", function()
+	require("lfm.trash").trash_selection()
+end, { desc = "Trash current file or selection" })
+
+-- lfm.flatten
+register_command("flatten", function(l)
+	require("lfm.flatten").flatten(l)
+end, { tokenize = true, desc = "(Un)flatten current directory." })
+map("<a-+>", function()
+	require("lfm.flatten").increment()
+end, { desc = "Increase flatten level" })
+map("<a-->", function()
+	require("lfm.flatten").decrement()
+end, { desc = "Decrease flatten level" })
 
 -- Copy/pasting
 map("yn", require("lfm.functions").yank_name, { desc = "Yank name" })
