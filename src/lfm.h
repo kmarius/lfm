@@ -106,7 +106,7 @@ int lfm_execute(Lfm *lfm, const char *prog, char *const *args,
 void lfm_schedule(Lfm *lfm, int ref, uint32_t delay);
 
 // Print a message in the UI. `printf` formatting applies.
-void lfm_print(Lfm *lfm, const char *format, ...);
+void lfm_printf(Lfm *lfm, const char *format, ...);
 
 // Print an error in the UI. `printf` formatting applies.
-void lfm_error(Lfm *lfm, const char *format, ...);
+void lfm_errorf(Lfm *lfm, const char *format, ...);

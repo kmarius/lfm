@@ -49,7 +49,7 @@ void fm_init(Fm *fm, struct lfm_opts *opts) {
 
   if (!cstr_is_empty(&opts->startpath)) {
     if (chdir(cstr_str(&opts->startpath)) != 0) {
-      lfm_error(to_lfm(fm), "chdir: %s", strerror(errno));
+      lfm_errorf(to_lfm(fm), "chdir: %s", strerror(errno));
     } else {
       fm->pwd = cstr_move(&opts->startpath);
     }
@@ -160,7 +160,7 @@ static inline bool fm_chdir_impl(Fm *fm, zsview path, bool save, bool hook,
     if (chdir(path.str) == 0) {
       setenv("PWD", path.str, true);
     } else {
-      lfm_error(to_lfm(fm), "chdir: %s", strerror(errno));
+      lfm_errorf(to_lfm(fm), "chdir: %s", strerror(errno));
       return false;
     }
   }
@@ -474,7 +474,7 @@ static void selection_visual_update(Fm *fm, uint32_t origin, uint32_t from,
 
 void fm_selection_write(const Fm *fm, zsview path) {
   if (path.size > PATH_MAX) {
-    log_error("fm_selection_write: path too long");
+    lfm_errorf(to_lfm(fm), "fm_selection_write: path too long");
     return;
   }
 
@@ -482,7 +482,7 @@ void fm_selection_write(const Fm *fm, zsview path) {
 
   FILE *fp = fopen(path.str, "w");
   if (!fp) {
-    lfm_error(to_lfm(fm), "selfile: %s", strerror(errno));
+    lfm_errorf(to_lfm(fm), "selfile: %s", strerror(errno));
     return;
   }
 

@@ -136,7 +136,7 @@ static void child_output_cb(EV_P_ ev_io *w, int revents) {
     if (data->ref) {
       llua_run_stdout_callback(lfm->L, data->ref, line, read);
     } else {
-      ui_echom(&lfm->ui, "%s", line);
+      lfm_printf(lfm, "%s", line);
     }
   }
   xfree(line);
@@ -165,21 +165,19 @@ static void prepare_cb(EV_P_ ev_prepare *w, int revents) {
   (void)revents;
   Lfm *lfm = w->data;
 
+  vec_message messages = vec_message_move(&lfm->messages);
+  c_foreach(it, vec_message, messages) {
+    // takes ownership of the messages
+    ui_display_message(&lfm->ui, *it.ref);
+  }
+  messages.size = 0;
+  vec_message_drop(&messages);
+
   vec_zsview commands = vec_zsview_move(&lfm->opts.commands);
   c_foreach(it, vec_zsview, commands) {
     llua_eval_zsview(lfm->L, *it.ref);
   }
   vec_zsview_drop(&commands);
-
-  vec_message messages = vec_message_move(&lfm->messages);
-  c_foreach(it, vec_message, messages) {
-    if (it.ref->error) {
-      lfm_error(lfm, "%s", cstr_str(&it.ref->text));
-    } else {
-      lfm_print(lfm, "%s", cstr_str(&it.ref->text));
-    }
-  }
-  vec_message_drop(&messages);
 
   lfm_run_hook(lfm, LFM_HOOK_ENTER);
   ev_prepare_stop(EV_A_ w);
@@ -429,7 +427,7 @@ int lfm_spawn(Lfm *lfm, const char *prog, char *const *args, vec_env *env,
       close(pipe_stderr[0]);
       close(pipe_stderr[1]);
     }
-    lfm_error(lfm, "fork: %s", strerror(errno));
+    lfm_errorf(lfm, "fork: %s", strerror(errno));
     return -1;
   }
 
@@ -574,7 +572,7 @@ int lfm_execute(Lfm *lfm, const char *prog, char *const *args, vec_env *env,
     ev_signal_start(lfm->loop, &lfm->sigint_watcher);
     ev_signal_start(lfm->loop, &lfm->sigtstp_watcher);
     lfm_run_hook(lfm, LFM_HOOK_EXECPOST);
-    lfm_error(lfm, "fork: %s", strerror(errno));
+    lfm_errorf(lfm, "fork: %s", strerror(errno));
     return -1;
   }
 
@@ -812,37 +810,41 @@ int lfm_execute(Lfm *lfm, const char *prog, char *const *args, vec_env *env,
 
   if (status == -1) {
     // if commands return this, we need different error signalling
-    lfm_error(lfm, "command returned -1");
+    lfm_errorf(lfm, "command returned -1");
   }
 
   return rstatus;
 }
 
-void lfm_print(Lfm *lfm, const char *fmt, ...) {
+void lfm_printf(Lfm *lfm, const char *fmt, ...) {
   va_list args;
   va_start(args, fmt);
 
+  struct message msg = {};
+  cstr_vfmt(&msg.text, 0, fmt, args);
+
   if (!lfm->ui.running) {
-    struct message msg = {};
-    cstr_vfmt(&msg.text, 0, fmt, args);
     vec_message_push(&lfm->messages, msg);
   } else {
-    ui_vechom(&lfm->ui, fmt, args);
+    ui_display_message(&lfm->ui, msg);
   }
 
   va_end(args);
 }
 
-void lfm_error(Lfm *lfm, const char *fmt, ...) {
+void lfm_errorf(Lfm *lfm, const char *fmt, ...) {
   va_list args;
   va_start(args, fmt);
 
+  struct message msg = {
+      .error = true,
+  };
+  cstr_vfmt(&msg.text, 0, fmt, args);
+
   if (!lfm->ui.running) {
-    struct message msg = {.error = true};
-    cstr_vfmt(&msg.text, 0, fmt, args);
     vec_message_push(&lfm->messages, msg);
   } else {
-    ui_verror(&lfm->ui, fmt, args);
+    ui_display_message(&lfm->ui, msg);
   }
 
   va_end(args);

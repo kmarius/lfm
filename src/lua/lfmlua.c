@@ -113,7 +113,7 @@ static inline bool llua_init_packages(lua_State *L) {
   lua_getglobal(L, "require");
   lua_pushstring(L, "lfm._core");
   if (llua_pcall(L, 1, 0)) {
-    ui_error(ui, "%s", lua_tostring(L, -1));
+    lfm_errorf(lfm, "%s", lua_tostring(L, -1));
     lua_pop(L, 1);
     return false;
   }
@@ -124,7 +124,7 @@ static inline bool llua_init_packages(lua_State *L) {
 void llua_run_callback(lua_State *L, int ref) {
   lua_get_callback(L, ref, true); // [f]
   if (llua_pcall(L, 0, 0)) {      // []
-    ui_error(ui, "%s", lua_tostring(L, -1));
+    lfm_errorf(lfm, "%s", lua_tostring(L, -1));
     lua_pop(L, 1);
   }
 }
@@ -132,7 +132,7 @@ void llua_run_callback(lua_State *L, int ref) {
 void llua_call_ref(lua_State *L, int ref) {
   lua_get_callback(L, ref, false); // [f]
   if (llua_pcall(L, 0, 0)) {       // []
-    ui_error(ui, "%s", lua_tostring(L, -1));
+    lfm_errorf(lfm, "%s", lua_tostring(L, -1));
     lua_pop(L, 1);
   }
 }
@@ -141,7 +141,7 @@ void llua_call_ref1(lua_State *L, int ref, zsview line) {
   lua_get_callback(L, ref, false); // [f]
   lua_pushzsview(L, line);
   if (llua_pcall(L, 1, 0)) { // []
-    ui_error(ui, "%s", lua_tostring(L, -1));
+    lfm_errorf(lfm, "%s", lua_tostring(L, -1));
     lua_pop(L, 1);
   }
 }
@@ -150,7 +150,7 @@ void llua_run_child_callback(lua_State *L, int ref, int rstatus) {
   lua_get_callback(L, ref, true); // [f]
   lua_pushnumber(L, rstatus);     // [f, rstatus]
   if (llua_pcall(L, 1, 0)) {      // []
-    ui_error(ui, "%s", lua_tostring(L, -1));
+    lfm_errorf(lfm, "%s", lua_tostring(L, -1));
     lua_pop(L, 1);
   }
 }
@@ -170,10 +170,10 @@ void llua_run_stdout_callback(lua_State *L, int ref, const char *line,
   if (len < 0)
     len = strlen(line);
 
-  lua_pushlstring(L, line, len);             // [f, line]
-  if (llua_pcall(L, 1, 00)) {                // []
-    ui_error(ui, "%s", lua_tostring(L, -1)); // [err]
-    lua_pop(L, 1);                           // []
+  lua_pushlstring(L, line, len);                // [f, line]
+  if (llua_pcall(L, 1, 00)) {                   // []
+    lfm_errorf(lfm, "%s", lua_tostring(L, -1)); // [err]
+    lua_pop(L, 1);                              // []
   }
 }
 
@@ -183,7 +183,7 @@ void llua_call_from_ref(lua_State *L, int ref, int count) {
     lua_pushnumber(L, count); // [f, count]
   }
   if (llua_pcall(L, count > 0 ? 1 : 0, 0)) { // []
-    ui_error(ui, "%s", lua_tostring(L, -1));
+    lfm_errorf(lfm, "%s", lua_tostring(L, -1));
     lua_pop(L, 1);
   }
 }
@@ -194,7 +194,7 @@ void llua_evaln(lua_State *L, const char *expr, int len) {
   lua_getfield(L, -1, "eval");   // [lfm, lfm.eval]
   lua_pushlstring(L, expr, len); // [lfm, lfm.eval, expr]
   if (llua_pcall(L, 1, 0)) {     // [lfm]
-    ui_error(ui, "%s", lua_tostring(L, -1));
+    lfm_errorf(lfm, "%s", lua_tostring(L, -1));
     lua_pop(L, 1);
   }
   lua_pop(L, 1);
@@ -204,12 +204,12 @@ bool llua_load_file(lua_State *L, const char *path, bool err_on_non_exist) {
   if (luaL_loadfile(L, path)) {
     if (err_on_non_exist ||
         !strstr(lua_tostring(L, -1), "No such file or directory")) {
-      ui_error(ui, "%s", lua_tostring(L, -1));
+      lfm_errorf(lfm, "%s", lua_tostring(L, -1));
     }
     return false;
   }
   if (llua_pcall(L, 0, 0)) {
-    ui_error(ui, "%s", lua_tostring(L, -1));
+    lfm_errorf(lfm, "%s", lua_tostring(L, -1));
     lua_pop(L, 1);
     return false;
   }
@@ -286,7 +286,7 @@ bool llua_filter(lua_State *L, int ref, zsview name) {
   lua_get_callback(L, ref, false);
   lua_pushzsview(L, name);
   if (llua_pcall(L, 1, 1)) { // []
-    ui_error(ui, "%s", lua_tostring(L, -1));
+    lfm_errorf(lfm, "%s", lua_tostring(L, -1));
     lua_pop(L, 1);
   }
   return lua_toboolean(L, -1);

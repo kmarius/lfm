@@ -21,7 +21,6 @@
 #include "profiling.h"
 #include "statusline.h"
 #include "stc/cstr.h"
-#include "stcutil.h"
 #include "util.h"
 
 #include <ev.h>
@@ -57,8 +56,6 @@
 #include "stc/vec.h"
 
 #define EXT_MAX_LEN 128 // to convert the extension to lowercase
-
-static int message_id = 0;
 
 struct cdims cdims = {0};
 
@@ -97,6 +94,9 @@ void ui_init(Ui *ui) {
   ev_timer_init(&ui->preview_load_timer, on_cursor_resting, 0,
                 cfg.preview_delay / 1000.0);
   ui->preview_load_timer.data = to_lfm(ui);
+
+  ev_timer_init(&ui->message_clear_timer, message_clear_timer_cb, 0, 0);
+  ui->message_clear_timer.data = ui;
 
   cmdline_init(&ui->cmdline);
   infoline_init(ui);
@@ -181,9 +181,6 @@ void ui_resume(Ui *ui) {
 
   ev_timer_init(&ui->menu_delay_timer, menu_delay_timer_cb, 0, 0);
   ui->menu_delay_timer.data = to_lfm(ui);
-
-  ev_timer_init(&ui->message_clear_timer, message_clear_timer_cb, 0, 0);
-  ui->message_clear_timer.data = to_lfm(ui);
 
   input_resume(to_lfm(ui));
   ui_update_file_preview(ui);
@@ -394,61 +391,20 @@ static void draw_preview(Ui *ui) {
   }
 }
 
-void ui_echom(Ui *ui, const char *format, ...) {
-  va_list args;
-  va_start(args, format);
-  ui_vechom(ui, format, args);
-  va_end(args);
-  ui_redraw(ui, REDRAW_CMDLINE);
-}
-
-void ui_error(Ui *ui, const char *format, ...) {
-  va_list args;
-  va_start(args, format);
-  ui_verror(ui, format, args);
-  va_end(args);
-  ui_redraw(ui, REDRAW_CMDLINE);
-}
-
-void ui_verror(Ui *ui, const char *fmt, va_list args) {
-  struct message msg = {
-      .error = true,
-      .id = message_id++,
-  };
-  cstr_vfmt(&msg.text, 0, fmt, args);
-
-  log_error("%s", cstr_str(&msg.text));
-
+void ui_display_message(Ui *ui, struct message msg) {
   vec_message_push(&ui->messages, msg);
 
-  ui->show_message = true;
-}
-
-void ui_vechom(Ui *ui, const char *fmt, va_list args) {
-  struct message msg = {
-      .id = message_id++,
-  };
-  cstr_vfmt(&msg.text, 0, fmt, args);
-
-  vec_message_push(&ui->messages, msg);
-
-  ui->show_message = true;
-}
-
-void ui_display_message(Ui *ui, const char *str, int timeout_ms) {
-  struct message msg = {
-      .id = message_id++,
-  };
-  msg.text = cstr_from(str);
-  vec_message_push(&ui->messages, msg);
+  if (msg.error)
+    log_error("%s", cstr_str(&msg.text));
 
   ui->show_message = true;
 
-  if (timeout_ms > 0) {
-    struct ev_loop *loop = to_lfm(ui)->loop;
-    ui->message_clear_id = msg.id;
-    ev_timer_set(&ui->message_clear_timer, 0.0, (float)timeout_ms / 1000.0);
+  struct ev_loop *loop = to_lfm(ui)->loop;
+  if (msg.timeout > 0) {
+    ev_timer_set(&ui->message_clear_timer, 0.0, (float)msg.timeout / 1000.0);
     ev_timer_again(loop, &ui->message_clear_timer);
+  } else {
+    ev_timer_stop(loop, &ui->message_clear_timer);
   }
 }
 
@@ -456,18 +412,11 @@ static void message_clear_timer_cb(EV_P_ ev_timer *w, int revents) {
   (void)revents;
   ev_timer_stop(EV_A_ w);
 
-  Lfm *lfm = w->data;
-  Ui *ui = &lfm->ui;
-  size_t len = vec_message_size(&ui->messages);
-  if (len > 0) {
-    struct message msg = *vec_message_at(&ui->messages, len - 1);
-    if (msg.id != ui->message_clear_id)
-      return;
-    ui->show_message = false;
-    ui->message_clear_id = -1;
-    ui_redraw(ui, REDRAW_CMDLINE);
-    ev_idle_start(EV_A_ & ui->redraw_watcher);
-  }
+  Ui *ui = w->data;
+
+  ui->show_message = false;
+  ui_redraw(ui, REDRAW_CMDLINE);
+  ev_idle_start(EV_A_ & ui->redraw_watcher);
 }
 
 /* }}} */

@@ -74,7 +74,7 @@ static void lua_result_callback(void *p, Lfm *lfm) {
 
   if (llua_pcall(L, 1, 0)) {
     // [err]
-    ui_error(&lfm->ui, "%s", lua_tostring(L, -1));
+    lfm_errorf(lfm, "%s", lua_tostring(L, -1));
     lua_pop(L, 1);
   }
 
@@ -90,7 +90,7 @@ err:
   lua_insert(L, -2); // [cb, nil, err]
   if (llua_pcall(L, 2, 0)) {
     // [err]
-    ui_error(&lfm->ui, "%s", lua_tostring(L, -1));
+    lfm_errorf(lfm, "%s", lua_tostring(L, -1));
     lua_pop(L, 1); // []
   }
   goto cleanup;

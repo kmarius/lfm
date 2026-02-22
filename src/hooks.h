@@ -86,7 +86,7 @@ static inline void lua_get_callback(lua_State *L, int ref, bool unref) {
     c_foreach(it, vec_int, (lfm)->hook_refs[(hook)]) {                         \
       lua_get_callback((lfm)->L, *it.ref, false);                              \
       if (llua_pcall((lfm)->L, 0, 0) != LUA_OK) {                              \
-        ui_error(&(lfm)->ui, "%s", lua_tostring((lfm)->L, -1));                \
+        lfm_errorf(lfm, "%s", lua_tostring((lfm)->L, -1));                     \
         lua_pop((lfm)->L, 1);                                                  \
       }                                                                        \
     }                                                                          \
@@ -100,7 +100,7 @@ static inline void lua_get_callback(lua_State *L, int ref, bool unref) {
       lua_get_callback((lfm)->L, *it.ref, false);                              \
       lua_pushvalue((lfm)->L, -2); /* push copy of ARG1 */                     \
       if (llua_pcall((lfm)->L, 1, 0) != LUA_OK) {                              \
-        ui_error(&(lfm)->ui, "%s", lua_tostring((lfm)->L, -1));                \
+        lfm_errorf(lfm, "%s", lua_tostring((lfm)->L, -1));                     \
         lua_pop((lfm)->L, 1);                                                  \
       }                                                                        \
     }                                                                          \
@@ -117,7 +117,7 @@ static inline void lua_get_callback(lua_State *L, int ref, bool unref) {
       lua_pushvalue((lfm)->L, -3); /* push copy of ARG1 */                     \
       lua_pushvalue((lfm)->L, -3); /* push copy of ARG2 (stack changed) */     \
       if (llua_pcall((lfm)->L, 2, 0) != LUA_OK) {                              \
-        ui_error(&(lfm)->ui, "%s", lua_tostring((lfm)->L, -1));                \
+        lfm_errorf(lfm, "%s", lua_tostring((lfm)->L, -1));                     \
         lua_pop((lfm)->L, 1);                                                  \
       }                                                                        \
     }                                                                          \
@@ -136,7 +136,7 @@ static inline void lua_get_callback(lua_State *L, int ref, bool unref) {
       lua_pushvalue((lfm)->L, -4); /* push copy of ARG2 (stack changed) */     \
       lua_pushvalue((lfm)->L, -4); /* push copy of ARG3 (stack changed) */     \
       if (llua_pcall((lfm)->L, 3, 0) != LUA_OK) {                              \
-        ui_error(&(lfm)->ui, "%s", lua_tostring((lfm)->L, -1));                \
+        lfm_errorf(lfm, "%s", lua_tostring((lfm)->L, -1));                     \
         lua_pop((lfm)->L, 1);                                                  \
       }                                                                        \
     }                                                                          \

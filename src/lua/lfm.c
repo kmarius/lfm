@@ -123,13 +123,13 @@ static int l_print(lua_State *L) {
     lua_pop(L, 1); /* pop result */
   }
   buf[ind++] = 0;
-  ui_echom(ui, "%s", buf);
+  lfm_printf(lfm, "%s", buf);
   xfree(buf);
   return 0;
 }
 
 static int l_error(lua_State *L) {
-  ui_error(ui, "%s", luaL_optstring(L, 1, ""));
+  lfm_errorf(lfm, "%s", luaL_optstring(L, 1, ""));
   return 0;
 }
 
@@ -141,15 +141,26 @@ static int l_message_clear(lua_State *L) {
 }
 
 static int l_print2(lua_State *L) {
-  int timeout_ms = 0;
+  struct message msg = {};
+
   if (lua_gettop(L) == 2) {
     luaL_checktype(L, 2, LUA_TTABLE);
+
     lua_getfield(L, 2, "timeout");
     if (!lua_isnil(L, -1))
-      timeout_ms = luaL_checknumber(L, -1);
+      msg.timeout = luaL_checknumber(L, -1);
+    lua_pop(L, 1);
+
+    lua_getfield(L, 2, "error");
+    if (!lua_isnil(L, -1))
+      msg.error = lua_toboolean(L, -1);
+
     lua_pop(L, 1);
   }
-  ui_display_message(ui, luaL_optstring(L, 1, ""), timeout_ms);
+
+  msg.text = lua_tocstr(L, 1);
+
+  ui_display_message(ui, msg);
   return 0;
 }
 

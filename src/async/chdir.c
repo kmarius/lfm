@@ -39,10 +39,10 @@ static void chdir_callback(void *p, Lfm *lfm) {
   if (cstr_equals(&lfm->fm.pwd, res->path)) {
     lfm_mode_exit(lfm, c_zv("visual"));
     if (res->err) {
-      lfm_error(lfm, "stat: %s", strerror(res->err));
+      lfm_errorf(lfm, "stat: %s", strerror(res->err));
       fm_sync_chdir(&lfm->fm, zsview_from(res->origin), false, false);
     } else if (chdir(res->path) != 0) {
-      lfm_error(lfm, "chdir: %s", strerror(errno));
+      lfm_errorf(lfm, "chdir: %s", strerror(errno));
       fm_sync_chdir(&lfm->fm, zsview_from(res->origin), false, false);
     } else {
       setenv("PWD", res->path, true);
