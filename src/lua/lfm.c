@@ -41,22 +41,6 @@ static int l_colors_clear(lua_State *L) {
   return 0;
 }
 
-static int l_handle_key(lua_State *L) {
-  size_t len;
-  const char *keys = luaL_checklstring(L, 1, &len);
-  const char *end = keys + len;
-  while (keys < end) {
-    input_t u;
-    int len = key_name_to_input(keys, &u);
-    if (len < 0) {
-      return luaL_error(L, "invalid key");
-    }
-    input_handle_key(lfm, u);
-    keys += len;
-  }
-  return 0;
-}
-
 static int l_search(lua_State *L) {
   search(lfm, lua_tozsview(L, 1), true);
   return 0;
@@ -689,7 +673,6 @@ static const struct luaL_Reg lfm_lib[] = {
     {"map",             l_map_key         },
     {"cmap",            l_cmap_key        },
     {"get_maps",        l_get_maps        },
-    {"handle_key",      l_handle_key      },
     {"nohighlight",     l_nohighlight     },
     {"search",          l_search          },
     {"search_back",     l_search_backwards},

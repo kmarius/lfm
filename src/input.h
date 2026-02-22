@@ -25,6 +25,9 @@ void input_suspend(struct Lfm *lfm);
 __lfm_nonnull()
 void input_handle_key(struct Lfm *lfm, input_t in);
 
+__lfm_nonnull()
+void input_buffer_add(struct Lfm *lfm, input_t in);
+
 // Maps a key sequence to a lua function (i.e. a reference to the registry).
 // `ref == 0` unmaps. Returns -1 on invalid key sequence, -2 on input too long.
 // removed.

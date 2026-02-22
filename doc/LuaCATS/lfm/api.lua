@@ -3,6 +3,32 @@
 lfm.api = {}
 
 ---
+---Send keys to the input buffer. The input buffer is handled asynchronuously in the event loop.
+---
+---Example:
+---```lua
+---  lfm.api.input(":mkdir ")
+---```
+---
+---@param keys string
+function lfm.api.input(keys) end
+
+---
+---Handle a key sequence immediately, bypassing the input buffer.
+---
+---Example:
+---```lua
+---  -- select the first three files
+---  lfm.api.feedkeys("ggV2jV")
+---
+---  -- Type a command into the command line and execute it
+---  lfm.api.feedkeys(":cd ~<Enter>")
+---```
+---
+---@param keys string
+function lfm.api.feedkeys(keys) end
+
+---
 ---Clear the command line.
 ---
 ---Example:

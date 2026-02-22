@@ -24,12 +24,18 @@
 
 #define MAP_MAX_LENGTH 8
 
+static void input_buffer_cb(EV_P_ ev_idle *w, int revents);
 static void map_clear_timer_cb(EV_P_ ev_timer *w, int revents);
 static void map_suggestion_timer_cb(EV_P_ ev_timer *w, int revents);
 static void stdin_cb(EV_P_ ev_io *w, int revents);
 
 void input_init(Lfm *lfm) {
   lfm->ui.input_watcher.data = lfm;
+
+  ev_idle_init(&lfm->ui.input_buffer_watcher, input_buffer_cb);
+  lfm->ui.input_buffer_watcher.data = lfm;
+  // increase the priority so we handle input before redrawing
+  ev_set_priority(&lfm->ui.input_buffer_watcher, 1);
 
   ev_timer_init(&lfm->ui.map_clear_timer, map_clear_timer_cb, 0, 0);
   lfm->ui.map_clear_timer.data = lfm;
@@ -122,6 +128,23 @@ static inline void input_clear(Lfm *lfm) {
     ui_redraw(ui, REDRAW_CMDLINE);
     vec_input_clear(&ui->maps.seq);
   }
+}
+
+void input_buffer_add(struct Lfm *lfm, input_t in) {
+  queue_input_push(&lfm->ui.input_buffer, in);
+  ev_idle_start(lfm->loop, &lfm->ui.input_buffer_watcher);
+}
+
+static void input_buffer_cb(EV_P_ ev_idle *w, int revents) {
+  (void)revents;
+  Lfm *lfm = w->data;
+  ev_idle_stop(EV_A_ w);
+  while (!queue_input_is_empty(&lfm->ui.input_buffer)) {
+    input_t in = *queue_input_front(&lfm->ui.input_buffer);
+    queue_input_pop(&lfm->ui.input_buffer);
+    input_handle_key(lfm, in);
+  }
+  ev_idle_start(EV_A_ & lfm->ui.redraw_watcher);
 }
 
 void input_handle_key(Lfm *lfm, input_t in) {

@@ -71,7 +71,7 @@ function M._setup()
 		}
 		lfm.register_mode(mode)
 		lfm.map("zf", a(lfm.mode, "filter"), { desc = "Enter FILTER mode" })
-		lfm.map("zF", a(lfm.feedkeys, "zf<esc>"), { desc = "Remove current filter" })
+		lfm.map("zF", a(lfm.api.feedkeys, "zf<esc>"), { desc = "Remove current filter" })
 	end
 
 	-- FUZZY mode

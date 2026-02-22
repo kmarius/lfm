@@ -4,7 +4,6 @@ local log = lfm.log
 
 local cmap = lfm.cmap
 local execute = lfm.execute
-local handle_key = lfm.handle_key
 local lfm_error = lfm.error
 local map = lfm.map
 local quit = lfm.quit
@@ -178,20 +177,6 @@ local function sel_or_cur()
 	return #sel > 0 and sel or { api.current_file() }
 end
 
----
----Feed keys into the key handler.
----
----Example:
----```lua
----  lfm.feedkeys("cd", "<Enter>")
----```
----@param ... string
-local function feedkeys(...)
-	for _, seq in ipairs({ ... }) do
-		handle_key(seq)
-	end
-end
-
 ---@class Lfm.CommandOpts
 ---@field tokenize? boolean tokenize arguments (default: true)
 ---@field compl? Lfm.ComplFun completion function
@@ -335,7 +320,6 @@ end
 
 lfm.printf = printf
 lfm.errorf = errorf
-lfm.feedkeys = feedkeys
 lfm.eval = eval
 lfm.register_command = register_command
 lfm.api.fm_sel_or_cur = sel_or_cur
@@ -502,11 +486,11 @@ map("<c-c>", function()
 end, { desc = "ctrl-c" })
 map("<c-l>", api.ui_clear, { desc = "Clear screen and redraw" })
 map("<a-r>", api.fm_drop_cache, { desc = "Drop direcory/preview caches" })
-map("cd", a(feedkeys, ":cd "), { desc = ":cd " })
+map("cd", a(lfm.api.feedkeys, ":cd "), { desc = ":cd " })
 map("<a-c>", api.fm_check, { desc = "Check directories and reload" })
 
-map("&", a(feedkeys, ":shell-bg "), { desc = ":shell-bg " })
-map("s", a(feedkeys, ":shell "), { desc = ":shell " })
+map("&", a(lfm.api.feedkeys, ":shell-bg "), { desc = ":shell-bg " })
+map("s", a(lfm.api.feedkeys, ":shell "), { desc = ":shell " })
 map("S", a(execute, { "sh", "-c", "LFM_LEVEL=1 " .. os.getenv("SHELL") }), { desc = "Open a $SHELL" })
 
 -- Visual/selection
@@ -528,11 +512,11 @@ map("k", api.fm_up, { desc = "Move cursor up" })
 map("h", api.fm_updir, { desc = "Go to parent directory" })
 map("l", open, { desc = "Open file/directory" })
 map("L", require("lfm.functions").follow_link, { desc = "Follow symlink under cursor" })
-map("H", a(feedkeys, "''")) -- complementary to "L"
+map("H", a(lfm.api.feedkeys, "''")) -- complementary to "L"
 map("gg", api.fm_top, { desc = "Go to top" })
 map("G", api.fm_bottom, { desc = "Go to bottom" })
 map("''", api.jump_automark, { desc = "Jump to previous directory" })
-map("cd", a(feedkeys, ":cd "), { desc = ":cd " })
+map("cd", a(lfm.api.feedkeys, ":cd "), { desc = ":cd " })
 map("<Up>", api.fm_up, { desc = "Move cursor up" })
 map("<Down>", api.fm_down, { desc = "Move cursor down" })
 map("<c-y>", api.fm_scroll_up, { desc = "Scroll directory up" })
@@ -593,8 +577,8 @@ map("pl", require("lfm.functions").symlink, { desc = "Create symlink" })
 map("pL", require("lfm.functions").symlink_relative, { desc = "Create relative symlink" })
 
 -- Renaming
-map("cW", a(feedkeys, ":rename "), { desc = "Rename" })
-map("cc", a(feedkeys, ":rename "), { desc = "Rename" })
+map("cW", a(lfm.api.feedkeys, ":rename "), { desc = "Rename" })
+map("cc", a(lfm.api.feedkeys, ":rename "), { desc = "Rename" })
 map("cw", require("lfm.functions").rename_until_ext, { desc = "Rename until extension" })
 map("a", require("lfm.functions").rename_before_ext, { desc = "Rename before extension" })
 map("A", require("lfm.functions").rename_after, { desc = "Rename at the end" })

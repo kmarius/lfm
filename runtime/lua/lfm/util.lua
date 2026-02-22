@@ -3,7 +3,6 @@ local M = { _NAME = ... }
 local lfm = lfm
 
 local eval = lfm.eval
-local feedkeys = lfm.feedkeys
 
 ---
 ---Construct a function that, when called, executes line as an expression.
@@ -84,23 +83,6 @@ function M.a(f, ...)
 		return function()
 			f(unpack(t))
 		end
-	end
-end
-
----
----Create a function that, when called, feeds keys into the keyhandler.
----
----Example:
----```lua
----  lfm.util.feed(":quit")()
----  lfm.util.feed("cd ~", "<Enter>", ":quit")()
----```
----
----@param ... string
-function M.feed(...)
-	local keys = { ... }
-	return function()
-		feedkeys(unpack(keys))
 	end
 end
 

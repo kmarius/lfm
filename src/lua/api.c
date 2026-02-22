@@ -2,6 +2,7 @@
 #include "../fm.h"
 #include "../history.h"
 #include "../hooks.h"
+#include "../input.h"
 #include "../macro.h"
 #include "../path.h"
 #include "../search.h"
@@ -23,6 +24,38 @@
 static int l_cmd_line_get(lua_State *L) {
   lua_pushzsview(L, cmdline_get(&ui->cmdline));
   return 1;
+}
+
+static int l_feedkeys(lua_State *L) {
+  size_t len;
+  const char *keys = luaL_checklstring(L, 1, &len);
+  const char *end = keys + len;
+  while (keys < end) {
+    input_t u;
+    int len = key_name_to_input(keys, &u);
+    if (len < 0) {
+      return luaL_error(L, "invalid key");
+    }
+    keys += len;
+    input_handle_key(lfm, u);
+  }
+  return 0;
+}
+
+static int l_input(lua_State *L) {
+  size_t len;
+  const char *keys = luaL_checklstring(L, 1, &len);
+  const char *end = keys + len;
+  while (keys < end) {
+    input_t u;
+    int len = key_name_to_input(keys, &u);
+    if (len < 0) {
+      return luaL_error(L, "invalid key");
+    }
+    keys += len;
+    input_buffer_add(lfm, u);
+  }
+  return 0;
 }
 
 static int l_cmd_line_set(lua_State *L) {
@@ -979,6 +1012,8 @@ static int l_set_tags(lua_State *L) {
 }
 
 static const struct luaL_Reg ui_funcs[] = {
+    {"input",              l_input            },
+    {"feedkeys",           l_feedkeys         },
     {"set_directory_tags", l_set_tags         },
     {"get_directory_tags", l_get_tags         },
     {"macro_recording",    l_macro_recording  },

@@ -28,6 +28,9 @@ struct message {
 #define i_TYPE vec_input, input_t
 #include "stc/vec.h"
 
+#define i_TYPE queue_input, input_t
+#include "stc/queue.h"
+
 #define REDRAW_INFO 1
 #define REDRAW_CMDLINE 2
 #define REDRAW_MENU 4
@@ -67,6 +70,8 @@ typedef struct Ui {
   int loading_indicator_timer_recheck_count;
 
   ev_io input_watcher;
+  ev_idle input_buffer_watcher;
+  queue_input input_buffer;
   struct {
     struct Trie *cur;       // current leaf in the trie of the active mode
     struct Trie *cur_input; // current leaf in the trie of input maps

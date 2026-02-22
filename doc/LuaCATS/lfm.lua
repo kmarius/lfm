@@ -460,21 +460,6 @@ function lfm.error(msg) end
 ---
 function lfm.message_clear() end
 
----
----Handle a key sequence.
----
----Example:
----```lua
----  -- select the first three files
----  lfm.handle_key("ggV2jV")
----
----  -- Type a command into the command line and execute it
----  lfm.handle_key(":cd ~<Enter>")
----```
----
----@param keys string
-function lfm.handle_key(keys) end
-
 ---@class Lfm.MapOpts
 ---@field desc? string Description of the mapping
 ---@field mode? string Name of the mode for a mode-only mapping
@@ -530,7 +515,7 @@ function lfm.map(seq, f, opts) end
 ---Example:
 ---```lua
 ---  lfm.cmap("<c-d>", function()
----    lfm.handle_key(os.date("%Y-%M-%d"))
+---    lfm.api.feedkeys(os.date("%Y-%M-%d"))
 ---  end, { desc = "Insert the current date" })
 ---
 ---  -- unmap:
