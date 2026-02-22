@@ -181,7 +181,7 @@ function M._setup()
 		input = true,
 		prefix = "glob-select: ",
 		on_return = function()
-			lfm.mode("normal")
+			lfm.api.mode("normal")
 		end,
 		on_esc = function()
 			api.selection_set({})
@@ -191,8 +191,8 @@ function M._setup()
 		end,
 	}
 
-	lfm.register_mode(mode)
-	lfm.api.set_keymap("*", a(lfm.mode, mode.name), { desc = "glob-select" })
+	lfm.api.create_mode(mode)
+	lfm.api.set_keymap("*", a(lfm.api.mode, mode.name), { desc = "glob-select" })
 
 	lfm.api.create_command(
 		"glob-select",

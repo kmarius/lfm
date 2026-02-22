@@ -466,85 +466,6 @@ static int l_thread(lua_State *L) {
   return 0;
 }
 
-static int l_current_mode(lua_State *L) {
-  lua_pushcstr(L, &lfm->current_mode->name);
-  return 1;
-}
-
-static int l_get_modes(lua_State *L) {
-  lua_createtable(L, lfm->modes.size, 0);
-  int i = 1;
-  c_foreach_kv(_, v, hmap_modes, lfm->modes) {
-    lua_pushcstr(L, &v->name);
-    lua_rawseti(L, -2, i++);
-  }
-  return 1;
-}
-
-static int l_mode(lua_State *L) {
-  if (lfm_mode_enter(lfm, luaL_checkzsview(L, 1)) != 0) {
-    return luaL_error(L, "no such mode: %s", lua_tostring(L, -1));
-  }
-  return 0;
-}
-
-static int l_register_mode(lua_State *L) {
-  luaL_checktype(L, 1, LUA_TTABLE);
-
-  struct mode mode = {0};
-
-  lua_getfield(L, 1, "name");
-  if (lua_isnil(L, -1)) {
-    return luaL_error(L, "register_mode: missing field 'name'");
-  }
-  mode.name = cstr_from_zv(lua_tozsview(L, -1));
-  lua_pop(L, 1);
-
-  lua_getfield(L, 1, "input");
-  mode.is_input = lua_toboolean(L, -1);
-  lua_pop(L, 1);
-
-  lua_getfield(L, 1, "prefix");
-  mode.prefix = cstr_from_zv(lua_tozsview(L, -1));
-  lua_pop(L, 1);
-
-  lua_getfield(L, 1, "on_enter");
-  if (!lua_isnil(L, -1)) {
-    mode.on_enter_ref = lua_register_callback(L, -1);
-  }
-  lua_pop(L, 1);
-
-  lua_getfield(L, 1, "on_change");
-  if (!lua_isnil(L, -1)) {
-    mode.on_change_ref = lua_register_callback(L, -1);
-  }
-  lua_pop(L, 1);
-
-  lua_getfield(L, 1, "on_return");
-  if (!lua_isnil(L, -1)) {
-    mode.on_return_ref = lua_register_callback(L, -1);
-  }
-  lua_pop(L, 1);
-
-  lua_getfield(L, 1, "on_esc");
-  if (!lua_isnil(L, -1)) {
-    mode.on_esc_ref = lua_register_callback(L, -1);
-  }
-  lua_pop(L, 1);
-
-  lua_getfield(L, 1, "on_exit");
-  if (!lua_isnil(L, -1)) {
-    mode.on_exit_ref = lua_register_callback(L, -1);
-  }
-  lua_pop(L, 1);
-
-  if (lfm_mode_register(lfm, &mode) != 0) {
-    return luaL_error(L, "mode \"%s\" already exists", mode.name);
-  }
-
-  return 0;
-}
-
 int l_register_hook(lua_State *L) {
   LUA_CHECK_ARGC(L, 2);
   const char *name = luaL_checkstring(L, 1);
@@ -568,10 +489,6 @@ int l_deregister_hook(lua_State *L) {
 }
 
 static const struct luaL_Reg lfm_lib[] = {
-    {"mode",            l_mode            },
-    {"current_mode",    l_current_mode    },
-    {"get_modes",       l_get_modes       },
-    {"register_mode",   l_register_mode   },
     {"register_hook",   l_register_hook   },
     {"deregister_hook", l_deregister_hook },
     {"schedule",        l_schedule        },

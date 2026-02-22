@@ -1067,3 +1067,77 @@ function lfm.api.set_directory_tags(path, tags, cols) end
 ---
 ---@return string[]
 function lfm.api.get_cached_dirs() end
+
+---@class Lfm.ModeDef
+---@field name string The name of the mode.
+---@field is_input? boolean true, if the mode takes input via the command line
+---@field prefix? string The prefix, a string, shown in the command line.
+---@field on_enter? function A function that is called when the mode is entered.
+---@field on_return? function A function that is called when pressing enter while the mode is active.
+---@field on_change? function A function that is called when the command line changes, e.g. keys are typed/deleted.
+---@field on_esc? function A function that is called when pressing esc while the mode is active.
+---@field on_exit? function A function that is called when the mode is exited.
+
+---
+---Create a mode to lfm. A mode is given by a table t containing the following fields:
+---
+---Example:
+---```lua
+---  lfm.api.create_mode({
+---    name = "my-mode",
+---    input = true,
+---    prefix = "My cool mode: ",
+---    on_return = function()
+--       local line = lfm.cmd.line_get()
+---      lfm.api.mode("normal")
+---      print("mode exited, command line was", line)
+---    end,
+---  })
+---```
+---
+---Use the mode via
+---```lua
+---  lfm.api.mode("my-mode")
+---```
+---
+---@param def Lfm.ModeDef
+function lfm.api.create_mode(def) end
+
+---
+---Enter a mode.
+---
+---Example:
+---```lua
+---  lfm.api.mode("command")
+---```
+---
+---@param name string The name of the mode.
+function lfm.api.mode(name) end
+
+---
+---Get the current mode.
+---
+---Example:
+---```lua
+---  local mode = lfm.api.current_mode()
+---  print("Current mode:", mode)
+---```
+---
+---@return string mode
+---@nodiscard
+function lfm.api.current_mode() end
+
+---
+---Get the names of registered modes.
+---
+---Example:
+---```lua
+---  local modes = lfm.api.get_modes()
+---  for _, mode in ipairs(modes) do
+---    print(mode)
+---  end
+---```
+---
+---@return string[]
+---@nodiscard
+function lfm.api.get_modes() end

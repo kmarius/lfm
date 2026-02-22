@@ -508,7 +508,7 @@ api.set_keymap("<Space>", c(api.selection_toggle, api.fm_down), { desc = "Select
 api.set_keymap("v", api.selection_reverse, { desc = "Reverse selection" })
 api.set_keymap("V", function()
 	local mode = lfm.current_mode()
-	lfm.mode(mode ~= "visual" and "visual" or "normal")
+	lfm.api.mode(mode ~= "visual" and "visual" or "normal")
 end, { desc = "Toggle visual selection mode" })
 api.set_keymap("uv", c(api.fm_paste_buffer_set, api.selection_set), { desc = "Clear selection" })
 api.set_keymap("gu", api.selection_restore, { desc = "Restore previous selection" })

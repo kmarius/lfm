@@ -10,7 +10,7 @@ local mode = {
 }
 
 -- wrap the mode to register so we can dynamically change the callbacks
-lfm.register_mode({
+lfm.api.create_mode({
 	name = mode.name,
 	prefix = mode.prefix,
 	input = mode.input,
@@ -52,20 +52,20 @@ function M.input(opts, on_confirm)
 	mode.on_esc = on_confirm
 	mode.on_return = function()
 		local line = lfm.api.cmdline_line_get()
-		lfm.mode("normal")
+		lfm.api.mode("normal")
 		on_confirm(line)
 	end
 	if opts.single_key then
 		mode.on_change = function()
 			local line = lfm.api.cmdline_line_get()
-			lfm.mode("normal")
+			lfm.api.mode("normal")
 			on_confirm(line)
 		end
 	else
 		mode.on_change = function() end
 	end
 	lfm.modes[mode.name].prefix = opts.prompt or ""
-	lfm.mode(mode.name)
+	lfm.api.mode(mode.name)
 end
 
 return M

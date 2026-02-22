@@ -98,10 +98,10 @@ function M.rename_until_ext()
 	if file then
 		local _, ext = fs.split_ext(file)
 		if not ext then
-			lfm.mode("command")
+			lfm.api.mode("command")
 			lfm.api.cmdline_line_set("rename ", "")
 		else
-			lfm.mode("command")
+			lfm.api.mode("command")
 			lfm.api.cmdline_line_set("rename ", "." .. ext)
 		end
 	end
@@ -120,10 +120,10 @@ function M.rename_before_ext()
 	if file then
 		local name, ext = fs.split_ext(file)
 		if not ext then
-			lfm.mode("command")
+			lfm.api.mode("command")
 			lfm.api.cmdline_line_set("rename " .. file, "")
 		else
-			lfm.mode("command")
+			lfm.api.mode("command")
 			lfm.api.cmdline_line_set("rename " .. name, "." .. ext)
 		end
 	end
@@ -138,7 +138,7 @@ end
 ---```
 ---
 function M.rename_before()
-	lfm.mode("command")
+	lfm.api.mode("command")
 	api.cmdline_line_set("rename ", fs.basename(api.current_file()))
 end
 
@@ -151,7 +151,7 @@ end
 ---```
 ---
 function M.rename_after()
-	lfm.mode("command")
+	lfm.api.mode("command")
 	api.cmdline_line_set("rename " .. fs.basename(api.current_file()), "")
 end
 
