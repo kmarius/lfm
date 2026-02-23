@@ -1143,20 +1143,20 @@ function lfm.api.current_mode() end
 function lfm.api.get_modes() end
 
 ---@alias Lfm.Hook
----| '"LfmEnter"'         # Lfm has started and read all configuration
----| '"ExitPre"'          # Lfm is about to exit, called with exit status
----| '"ChdirPre"'         # Emitted before changing directories, called with PWD
----| '"ChdirPost"'        # Emitted after changin directories, called with PWD
----| '"SelectionChanged"' # The selection changed
----| '"Resized"'          # The window was resized
----| '"PasteBufChange"'   # The paste buffer changed
----| '"DirLoaded"'        # A new directory was loaded from disk, called with path
----| '"DirUpdated"'       # A new directory was loaded from disk, called with path
----| '"ModeChanged"'      # Mode transition, called with mode name
----| '"FocusGained"'      # Terminal gained focus
----| '"FocusLost"'        # Terminal lost focus
----| '"ExecPre"'          # Before a foreground command is executed
----| '"ExecPost"'         # After a foreground command is executed
+---| '"on_start"'               # Lfm has started and read all configuration
+---| '"on_exit"'                # Lfm is about to exit, called with exit status
+---| '"on_chdir_pre"'           # Emitted before changing directories, called with PWD
+---| '"on_chdir_post"'          # Emitted after changin directories, called with PWD
+---| '"on_resize"'              # The window was resized
+---| '"on_selection_change"'    # The selection changed
+---| '"on_paste_buffer_change"' # The paste buffer changed
+---| '"on_dir_loaded"'          # A new directory was loaded from disk, called with path
+---| '"on_dir_updated"'         # A new directory was loaded from disk, called with path
+---| '"on_mode_change"'         # Mode transition, called with mode name
+---| '"on_focus_gained"'        # Terminal gained focus
+---| '"on_focus_lost"'          # Terminal lost focus
+---| '"on_exec_pre"'            # Before a foreground command is executed
+---| '"on_exec_post"'           # After a foreground command is executed
 
 ---
 ---Register a function to hook into events. Returns an `id` with which the hook
@@ -1164,10 +1164,11 @@ function lfm.api.get_modes() end
 ---
 ---Example:
 ---```lua
----  lfm.api.add_hook("DirLoaded", function(dir)
+---  lfm.api.add_hook("on_dir_loaded", function(dir)
 ---    print(dir, "was loaded")
 ---  end)
 ---```
+---
 ---@param name Lfm.Hook
 ---@param f function
 ---@return integer id
@@ -1178,7 +1179,9 @@ function lfm.api.add_hook(name, f) end
 ---
 ---Example:
 ---```lua
----  local id = lfm.api.add_hook("LfmEnter", function() end)
+---  local id = lfm.api.add_hook("on_start", function()
+---    print("main loop started")
+---  end)
 ---  lfm.api.del_hook(id)
 ---```
 ---

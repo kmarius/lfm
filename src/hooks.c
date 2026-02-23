@@ -29,20 +29,20 @@ struct hook_change {
 
 // absolutely make sure this is the same order as the enum
 const char *hook_str[LFM_NUM_HOOKS] = {
-    [LFM_HOOK_RESIZED] = "Resized",
-    [LFM_HOOK_ENTER] = "LfmEnter",
-    [LFM_HOOK_EXITPRE] = "ExitPre",
-    [LFM_HOOK_CHDIRPRE] = "ChdirPre",
-    [LFM_HOOK_CHDIRPOST] = "ChdirPost",
-    [LFM_HOOK_PASTEBUF] = "PasteBufChange",
-    [LFM_HOOK_SELECTION] = "SelectionChanged",
-    [LFM_HOOK_DIRLOADED] = "DirLoaded",
-    [LFM_HOOK_DIRUPDATED] = "DirUpdated",
-    [LFM_HOOK_MODECHANGED] = "ModeChanged",
-    [LFM_HOOK_FOCUSGAINED] = "FocusGained",
-    [LFM_HOOK_FOCUSLOST] = "FocusLost",
-    [LFM_HOOK_EXECPRE] = "ExecPre",
-    [LFM_HOOK_EXECPOST] = "ExecPost",
+    [LFM_HOOK_RESIZED] = "on_resize",
+    [LFM_HOOK_ENTER] = "on_start",
+    [LFM_HOOK_EXITPRE] = "on_exit",
+    [LFM_HOOK_CHDIRPRE] = "on_chdir_pre",
+    [LFM_HOOK_CHDIRPOST] = "on_chdir_post",
+    [LFM_HOOK_PASTEBUF] = "on_paste_buffer_change",
+    [LFM_HOOK_SELECTION] = "on_selection_change",
+    [LFM_HOOK_DIRLOADED] = "on_dir_loaded",
+    [LFM_HOOK_DIRUPDATED] = "on_dir_updated",
+    [LFM_HOOK_MODECHANGED] = "on_mode_change",
+    [LFM_HOOK_FOCUSGAINED] = "on_focus_gained",
+    [LFM_HOOK_FOCUSLOST] = "on_focus_lost",
+    [LFM_HOOK_EXECPRE] = "on_exec_pre",
+    [LFM_HOOK_EXECPOST] = "on_exec_post",
 };
 
 void lfm_hooks_init(Lfm *lfm) {

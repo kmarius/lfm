@@ -89,7 +89,7 @@ lfm.version = {}
 ---@field stderr? string[] standard error, if requested
 
 ---
----Execute a foreground command. The hooks `ExecPre` and `ExecPost` are run
+---Execute a foreground command. The hooks `"on_exec_pre"` and `"on_exec_post"` are run
 ---before and after a command executes.
 ---
 ---Example:
