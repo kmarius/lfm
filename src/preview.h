@@ -4,6 +4,7 @@
 #include "stc/cstr.h"
 #include "vec_cstr.h"
 
+#include <semaphore.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <sys/types.h>
@@ -54,6 +55,16 @@ Preview *preview_create_and_stat(zsview path, int height, int width);
 __lfm_nonnull()
 Preview *preview_create_from_file(zsview path, uint32_t width, uint32_t height);
 
+__lfm_nonnull()
+Preview *preview_fork_previewer(zsview path, uint32_t width, uint32_t height,
+                                int *pid_out, int fd_out[2]);
+
+__lfm_nonnull()
+Preview *preview_read_output(Preview *p, uint32_t height, int fd[2]);
+
+__lfm_nonnull()
+Preview *preview_handle_exit_status(Preview *p, uint32_t width, uint32_t height,
+                                    int status);
 __lfm_nonnull()
 static inline const cstr *preview_path(const Preview *pv) {
   return &pv->path;

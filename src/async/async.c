@@ -55,6 +55,8 @@ void async_init(Async *async) {
 }
 
 void async_deinit(Async *async) {
+  async_kill_previewers(async);
+
   tpool_wait(async->tpool);
   tpool_destroy(async->tpool);
 

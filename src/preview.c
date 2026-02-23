@@ -9,6 +9,7 @@
 #include "sha256.h"
 #include "util.h"
 #include <asm-generic/errno-base.h>
+#include <semaphore.h>
 
 #define STC_CSTR_IO
 #include "stc/cstr.h"
@@ -221,16 +222,10 @@ static void downscale_image(struct ncvisual *ncv, int y, int x) {
   }
 }
 
-// we simply retry loading the preview if waitpid fails (indicating that libev
-// reaped our child) until we can find a proper fix
-static Preview *preview_create_from_file_r(zsview path, uint32_t width,
-                                           uint32_t height, int retries) {
-
+Preview *preview_fork_previewer(zsview path, uint32_t width, uint32_t height,
+                                int *pid_out, int fd[2]) {
   Preview *p = preview_create(path, height, width);
   p->loadtime = current_millis();
-
-  struct stat statbuf;
-  p->mtime = stat(path.str, &statbuf) != -1 ? statbuf.st_mtime : 0;
 
   if (cstr_is_empty(&cfg.previewer)) {
     return p;
@@ -262,136 +257,140 @@ static Preview *preview_create_from_file_r(zsview path, uint32_t width,
       NULL,
   };
 
-  do { // retry loop
-    int fd[2];
-    if (unlikely(pipe(fd) == -1)) {
-      return preview_error(p, "pipe: ", strerror(errno));
-    }
+  if (unlikely(pipe(fd) == -1)) {
+    return preview_error(p, "pipe: ", strerror(errno));
+  }
 
-    int pid = fork();
+  int pid = fork();
 
-    if (pid == 0) {
-      // child
+  if (pid == 0) {
+    // child
 
-      // stdout
-      close(fd[0]);
-      dup2(fd[1], 1);
-      close(fd[1]);
-
-      // stderr (some program I can't remember didn't like closed stderr)
-      int devnull = open("/dev/null", O_WRONLY | O_CREAT, 0666);
-      dup2(devnull, 2);
-      close(devnull);
-
-      execv(args[0], (char **)args);
-      log_error("execv: %s", strerror(errno));
-      _exit(ENOSYS);
-    }
-
+    // stdout
+    close(fd[0]);
+    dup2(fd[1], 1);
     close(fd[1]);
 
-    if (unlikely(pid < 0)) {
-      close(fd[0]);
-      return preview_error(p, "fork: ", strerror(errno));
-    }
+    // stderr (some program I can't remember didn't like closed stderr)
+    int devnull = open("/dev/null", O_WRONLY | O_CREAT, 0666);
+    dup2(devnull, 2);
+    close(devnull);
 
-    FILE *fp_stdout = fdopen(fd[0], "r");
-    if (unlikely(fp_stdout == NULL)) {
-      close(fd[0]);
-      return preview_error(p, "fdopen: %s", strerror(errno));
-    }
+    execv(args[0], (char **)args);
+    log_error("execv: %s", strerror(errno));
+    _exit(ENOSYS);
+  }
 
-    // we have to drain the entire input, otherwise the buffer might fill up
-    // and the child process never exits
-    lines_from_stream(&p->lines, fp_stdout, height);
-    char buf[512];
-    while (fread(buf, 1, sizeof buf, fp_stdout) > 0)
-      ;
+  close(fd[1]);
 
-    // timing seems to be critical here, otherwise libev might reap the child
-    // before the call to waitpid. Ideally, we would just close fp_stdout after
-    // reading enough lines from it, but that is too slow (?)
+  if (unlikely(pid < 0)) {
+    close(fd[0]);
+    fd[0] = -1;
+    return preview_error(p, "fork: ", strerror(errno));
+  }
 
-    int status;
-    if (unlikely(waitpid(pid, &status, 0) == -1)) {
-      fclose(fp_stdout);
-      log_error("waitpid: %s", strerror(errno));
-      if (retries-- > 0)
-        continue;
-      return preview_error(p, "waitpid: %s", strerror(errno));
-    }
+  *pid_out = pid;
+  return p;
+}
 
-    fclose(fp_stdout);
+Preview *preview_read_output(Preview *p, uint32_t height, int fd[2]) {
+  struct stat statbuf;
+  p->mtime = stat(cstr_str(&p->path), &statbuf) != -1 ? statbuf.st_mtime : 0;
 
-    // TODO: check other statuses?
-    if (likely(WIFEXITED(status))) {
-      int rc = WEXITSTATUS(status);
+  FILE *stdout = fdopen(fd[0], "r");
+  if (unlikely(stdout == NULL)) {
+    close(fd[0]);
+    fd[0] = -1;
+    return preview_error(p, "fdopen: %s", strerror(errno));
+  }
 
-      switch (rc) {
-      case PREVIEW_DISPLAY_STDOUT:
-        break;
-      case PREVIEW_NONE:
-        break; // no preview
-      case PREVIEW_FILE_CONTENTS: {
-        FILE *fp_file = fopen(path.str, "r");
-        if (fp_file == NULL) {
-          return preview_error(p, "fopen: ", strerror(errno));
-        }
-        vec_cstr_clear(&p->lines);
-        lines_from_stream(&p->lines, fp_file, height);
-        fclose(fp_file);
-      } break;
-      case PREVIEW_FIX_WIDTH:
-        p->reload_width = INT_MAX;
-        break;
-      case PREVIEW_FIX_HEIGHT:
-        p->reload_height = INT_MAX;
-        break;
-      case PREVIEW_FIX_WIDTH_AND_HEIGHT:
-        p->reload_width = INT_MAX;
-        p->reload_height = INT_MAX;
-        break;
-      case PREVIEW_CACHE_AS_IMAGE:
-        if (cfg.preview_images) {
-          struct ncvisual *ncv = ncvisual_from_file(cache_path);
-          if (unlikely(ncv == NULL)) {
-            return preview_error(p, "ncvisual_from_file: ", strerror(errno));
-          }
-          vec_cstr_drop(&p->lines);
-          downscale_image(ncv, height, width);
-          p->ncv = ncv;
-          p->draw = draw_image_preview;
-          p->update = update_image_preview;
-          p->destroy = destroy_image_preview;
-        }
-        break;
-      case PREVIEW_AS_IMAGE:
-        if (cfg.preview_images) {
-          struct ncvisual *ncv = ncvisual_from_file(path.str);
-          if (unlikely(ncv == NULL)) {
-            return preview_error(p, "ncvisual_from_file: ", strerror(errno));
-          }
-          vec_cstr_drop(&p->lines);
-          downscale_image(ncv, height, width);
-          p->ncv = ncv;
-          p->draw = draw_image_preview;
-          p->update = update_image_preview;
-          p->destroy = destroy_image_preview;
-        }
-        break;
-      default:
-        return preview_error(p, "previewer returned %d", rc);
-      }
-    }
-    break;
-  } while (retries > 0);
+  lines_from_stream(&p->lines, stdout, height);
+  char buf[512];
+  while (fread(buf, 1, sizeof buf, stdout) > 0) {
+  }
+
+  fclose(stdout);
+  fd[0] = -1;
 
   return p;
 }
 
-Preview *preview_create_from_file(zsview path, uint32_t width,
-                                  uint32_t height) {
-  return preview_create_from_file_r(path, width, height, 2);
+Preview *preview_handle_exit_status(Preview *p, uint32_t width, uint32_t height,
+                                    int status) {
+
+  // TODO: check other statuses?
+  if (likely(WIFEXITED(status))) {
+    int rc = WEXITSTATUS(status);
+    switch (rc) {
+    case PREVIEW_DISPLAY_STDOUT:
+      break;
+    case PREVIEW_NONE:
+      break; // no preview
+    case PREVIEW_FILE_CONTENTS: {
+      FILE *fp_file = fopen(cstr_str(&p->path), "r");
+      if (fp_file == NULL) {
+        return preview_error(p, "fopen: ", strerror(errno));
+      }
+      vec_cstr_clear(&p->lines);
+      lines_from_stream(&p->lines, fp_file, height);
+      fclose(fp_file);
+    } break;
+    case PREVIEW_FIX_WIDTH:
+      p->reload_width = INT_MAX;
+      break;
+    case PREVIEW_FIX_HEIGHT:
+      p->reload_height = INT_MAX;
+      break;
+    case PREVIEW_FIX_WIDTH_AND_HEIGHT:
+      p->reload_width = INT_MAX;
+      p->reload_height = INT_MAX;
+      break;
+    case PREVIEW_CACHE_AS_IMAGE:
+      if (cfg.preview_images) {
+
+        // this is also done in p1
+        char cache_path[PATH_MAX];
+        if (cfg.preview_images) {
+          if (gen_cache_path(cstr_zv(&p->path), cache_path,
+                             sizeof cache_path) != 0) {
+            return preview_error(p, "gen_cache_path");
+          }
+        } else {
+          cache_path[0] = 0;
+        }
+
+        struct ncvisual *ncv = ncvisual_from_file(cache_path);
+        if (unlikely(ncv == NULL)) {
+          return preview_error(p, "ncvisual_from_file: ", strerror(errno));
+        }
+        vec_cstr_drop(&p->lines);
+        downscale_image(ncv, height, width);
+        p->ncv = ncv;
+        p->draw = draw_image_preview;
+        p->update = update_image_preview;
+        p->destroy = destroy_image_preview;
+      }
+      break;
+    case PREVIEW_AS_IMAGE:
+      if (cfg.preview_images) {
+        struct ncvisual *ncv = ncvisual_from_file(cstr_str(&p->path));
+        if (unlikely(ncv == NULL)) {
+          return preview_error(p, "ncvisual_from_file: ", strerror(errno));
+        }
+        vec_cstr_drop(&p->lines);
+        downscale_image(ncv, height, width);
+        p->ncv = ncv;
+        p->draw = draw_image_preview;
+        p->update = update_image_preview;
+        p->destroy = destroy_image_preview;
+      }
+      break;
+    default:
+      return preview_error(p, "previewer returned %d", rc);
+    }
+  }
+
+  return p;
 }
 
 static void draw_text_preview(const Preview *p, struct ncplane *n) {

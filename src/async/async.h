@@ -11,6 +11,9 @@ struct Preview;
 struct Lfm;
 struct bytes;
 
+#include "../stc/types.h"
+declare_vec(vec_ev_child, struct ev_child *);
+
 struct result_queue {
   struct result *head;
   struct result *tail;
@@ -21,6 +24,8 @@ typedef struct Async {
   struct tpool *tpool;
   struct result_queue queue;
   ev_async result_watcher;
+  vec_ev_child previewer_children; // a list of all previewer children to kill
+                                   // on shutdown
 } Async;
 
 void async_init(Async *async);
@@ -40,6 +45,9 @@ void async_preview_check(Async *async, struct Preview *pv);
 
 // Reloads preview of the file at `path` with `nrow` lines from disk.
 void async_preview_load(Async *async, struct Preview *pv);
+
+// kills all preview loading processes
+void async_kill_previewers(Async *async);
 
 void async_chdir(Async *async, const char *path, bool hook);
 
