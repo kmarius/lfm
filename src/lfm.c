@@ -699,13 +699,15 @@ int lfm_execute(Lfm *lfm, const char *prog, char *const *args, vec_env *env,
         // we can not write arbitrarily large data here because the pipes have
         // limited size. we don't chunk the data here, it is already chunked in
         // the vectors
-        if (write(pipe_stdin[1], it.ref->buf, it.ref->size) == -1) {
-          if (waitpid(pid, &status, WNOHANG) == -1) {
-            // child died
-            send_stdin = false;
+        if (it.ref != NULL) {
+          if (write(pipe_stdin[1], it.ref->buf, it.ref->size) == -1) {
+            if (waitpid(pid, &status, WNOHANG) == -1) {
+              // child died
+              send_stdin = false;
+            }
+          } else {
+            vec_bytes_next(&it);
           }
-        } else {
-          vec_bytes_next(&it);
         }
         if (it.ref == NULL) {
           close(pipe_stdin[1]);
