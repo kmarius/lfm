@@ -518,24 +518,24 @@ function lfm.api.selection_restore() end
 ---
 ---Example:
 ---```lua
----  lfm.api.fm_flatten(2)
+---  lfm.api.set_flatten_level(2)
 ---```
 ---
 ---@param level integer
-function lfm.api.fm_flatten(level) end
+function lfm.api.set_flatten_level(level) end
 
 ---
 ---Get the flatten level for the current directory.
 ---
 ---Example:
 ---```lua
----  local level = lfm.api.fm_flatten_level()
----  lfm.api.fm_flatten(level + 1)
+---  local level = lfm.api.get_flatten_level()
+---  lfm.api.set_flatten_level(level + 1)
 ---```
 ---
 ---@return integer
 ---@nodiscard
-function lfm.api.fm_flatten_level() end
+function lfm.api.get_flatten_level() end
 
 ---
 ---Set the sort method. Multiple options can be set at once. Later options may override previous ones.

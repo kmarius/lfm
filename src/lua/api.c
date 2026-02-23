@@ -846,12 +846,12 @@ static int l_jump_automark(lua_State *L) {
   return 0;
 }
 
-static int l_fm_flatten_level(lua_State *L) {
+static int l_get_flatten_level(lua_State *L) {
   lua_pushinteger(L, fm_current_dir(fm)->flatten_level);
   return 1;
 }
 
-static int l_fm_flatten(lua_State *L) {
+static int l_set_flatten_level(lua_State *L) {
   int level = luaL_optinteger(L, 1, 0);
   if (level < 0) {
     level = 0;
@@ -886,8 +886,8 @@ static const struct luaL_Reg fm_funcs[] = {
     {"fm_sel",              l_fm_sel                     },
     {"fm_set_info",         l_fm_set_info                },
     {"fm_get_info",         l_fm_get_info                },
-    {"fm_flatten",          l_fm_flatten                 },
-    {"fm_flatten_level",    l_fm_flatten_level           },
+    {"set_flatten_level",   l_set_flatten_level          },
+    {"get_flatten_level",   l_get_flatten_level          },
     {"set_filter",          l_fm_filter                  },
     {"get_filter",          l_fm_filter_get              },
     {"get_automark",        l_get_automark               },

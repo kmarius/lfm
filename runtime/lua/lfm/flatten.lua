@@ -25,11 +25,11 @@ local api = lfm.api
 ---@param level integer | ("+"|"-") The level or "+"/"-" to increment/decrement respectively
 function M.flatten(level)
 	if level == "+" then
-		level = api.fm_flatten_level() + 1
+		level = api.get_flatten_level() + 1
 	elseif level == "-" then
-		level = api.fm_flatten_level() - 1
+		level = api.get_flatten_level() - 1
 	end
-	api.fm_flatten(level --[[@as integer]])
+	api.set_flatten_level(level --[[@as integer]])
 end
 
 ---
@@ -41,7 +41,7 @@ end
 ---```
 ---
 function M.increment()
-	if api.fm_flatten_level() == 0 then
+	if api.get_flatten_level() == 0 then
 		api.fm_sort({ dirfirst = false })
 	end
 	M.flatten("+")
@@ -58,7 +58,7 @@ end
 ---
 function M.decrement()
 	M.flatten("-")
-	if api.fm_flatten_level() == 0 then
+	if api.get_flatten_level() == 0 then
 		api.fm_sort({ dirfirst = true })
 	end
 end
