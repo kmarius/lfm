@@ -4,7 +4,6 @@
 #include "stc/cstr.h"
 #include "vec_cstr.h"
 
-#include <semaphore.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <sys/types.h>
