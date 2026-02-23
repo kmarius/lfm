@@ -1233,7 +1233,31 @@ static int l_create_mode(lua_State *L) {
   return 0;
 }
 
+int l_add_hook(lua_State *L) {
+  LUA_CHECK_ARGC(L, 2);
+  const char *name = luaL_checkstring(L, 1);
+  int id = hook_name_to_id(name);
+  if (id == -1) {
+    return luaL_error(L, "no such hook: %s", name);
+  }
+  id = lfm_add_hook(lfm, id, lua_register_callback(L, 2));
+  lua_pushnumber(L, id);
+  return 1;
+}
+
+int l_del_hook(lua_State *L) {
+  int id = luaL_checknumber(L, 1);
+  int ref = lfm_remove_hook(lfm, id);
+  if (!ref) {
+    return luaL_error(L, "no hook with id %d", id);
+  }
+  luaL_unref(L, LUA_REGISTRYINDEX, ref);
+  return 0;
+}
+
 static const struct luaL_Reg api_funcs[] = {
+    {"add_hook",     l_add_hook    },
+    {"del_hook",     l_del_hook    },
     {"mode",         l_mode        },
     {"current_mode", l_current_mode},
     {"get_modes",    l_get_modes   },

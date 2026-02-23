@@ -1141,3 +1141,46 @@ function lfm.api.current_mode() end
 ---@return string[]
 ---@nodiscard
 function lfm.api.get_modes() end
+
+---@alias Lfm.Hook
+---| '"LfmEnter"'         # Lfm has started and read all configuration
+---| '"ExitPre"'          # Lfm is about to exit, called with exit status
+---| '"ChdirPre"'         # Emitted before changing directories, called with PWD
+---| '"ChdirPost"'        # Emitted after changin directories, called with PWD
+---| '"SelectionChanged"' # The selection changed
+---| '"Resized"'          # The window was resized
+---| '"PasteBufChange"'   # The paste buffer changed
+---| '"DirLoaded"'        # A new directory was loaded from disk, called with path
+---| '"DirUpdated"'       # A new directory was loaded from disk, called with path
+---| '"ModeChanged"'      # Mode transition, called with mode name
+---| '"FocusGained"'      # Terminal gained focus
+---| '"FocusLost"'        # Terminal lost focus
+---| '"ExecPre"'          # Before a foreground command is executed
+---| '"ExecPost"'         # After a foreground command is executed
+
+---
+---Register a function to hook into events. Returns an `id` with which the hook
+---can be deregistered later. Curruntly supported hooks are
+---
+---Example:
+---```lua
+---  lfm.api.add_hook("DirLoaded", function(dir)
+---    print(dir, "was loaded")
+---  end)
+---```
+---@param name Lfm.Hook
+---@param f function
+---@return integer id
+function lfm.api.add_hook(name, f) end
+
+---
+---Deregister the hook with the given `id` previously returned by `lfm.api.add_hook`.
+---
+---Example:
+---```lua
+---  local id = lfm.api.add_hook("LfmEnter", function() end)
+---  lfm.api.del_hook(id)
+---```
+---
+---@param id integer
+function lfm.api.del_hook(id) end

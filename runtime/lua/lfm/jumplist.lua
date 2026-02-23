@@ -95,7 +95,7 @@ end
 
 ---Set up jumplist: sets keybinds and registers the necessary hook.
 function M._setup()
-	lfm.register_hook("ChdirPost", on_chdir)
+	lfm.api.add_hook("ChdirPost", on_chdir)
 	lfm.api.set_keymap("]", M.jump_next, { desc = "jumplist-next" })
 	lfm.api.set_keymap("[", M.jump_prev, { desc = "jumplist-prev" })
 end
