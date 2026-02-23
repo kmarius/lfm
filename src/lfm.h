@@ -17,6 +17,7 @@
 
 #include <stdint.h>
 
+declare_vec(vec_hook_change, struct hook_change);
 declare_dlist(list_timer, struct sched_timer);
 declare_dlist(list_child, struct child_watcher);
 struct vec_str;
@@ -58,7 +59,11 @@ typedef struct Lfm {
   list_timer schedule_timers;
   list_child child_watchers;
 
+  // We can not make changes to hooks while in a hook callback.
+  // Hence, all changes are collected and processed afterwards.
   vec_int hook_refs[LFM_NUM_HOOKS];
+  vec_hook_change hook_changes;
+  int hook_callback_depth; // a callback could cause another hook to run
 
   vec_message messages;
 
