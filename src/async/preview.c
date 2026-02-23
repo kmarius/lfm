@@ -51,8 +51,6 @@ struct preview_load_data {
   struct result super;
   Async *async;
   Preview *preview; // not guaranteed to exist, do not touch
-  int width;
-  int height;
   Preview *update;
   ev_child watcher;
   sem_t semaphore;
@@ -99,8 +97,8 @@ void async_preview_check(Async *async, Preview *pv) {
 
   work->async = async;
   work->path = cstr_strdup(preview_path(pv));
-  work->height = pv->reload_height;
-  work->width = pv->reload_width;
+  work->height = pv->height;
+  work->width = pv->width;
   work->mtime = pv->mtime;
   work->loadtime = pv->loadtime;
 
@@ -137,15 +135,14 @@ static void async_preview_load_worker(void *arg) {
   struct preview_load_data *work = arg;
 
   log_trace("reading preview output: %s", cstr_str(&work->update->path));
-  preview_read_output(work->update, work->height, work->fd);
+  preview_read_output(work->update, work->fd);
 
   log_trace("waiting for signal");
   sem_wait(&work->semaphore);
   // exit status stored in work->status
   log_trace("previewer status code after signal: %d", work->status);
 
-  preview_handle_exit_status(work->update, work->width, work->height,
-                             work->status);
+  preview_handle_exit_status(work->update, work->status);
   log_trace("finished preview: %s", cstr_str(&work->update->path));
 
   enqueue_and_signal(work->async, (struct result *)work);
@@ -175,13 +172,13 @@ void async_preview_load(Async *async, Preview *pv) {
 
     work->async = async;
     work->preview = pv;
-    work->width = to_lfm(async)->ui.preview.x;
-    work->height = to_lfm(async)->ui.preview.y;
+    uint32_t width = to_lfm(async)->ui.preview.x;
+    uint32_t height = to_lfm(async)->ui.preview.y;
 
     // first stage of loading the preview: fork the previewer process
     pid_t pid = 0;
-    work->update = preview_fork_previewer(cstr_zv(&pv->path), work->width,
-                                          work->height, &pid, work->fd);
+    work->update = preview_fork_previewer(cstr_zv(&pv->path), width, height,
+                                          &pid, work->fd);
     // TODO: we could handle some errors here
 
     // install the child watcher and set up signal

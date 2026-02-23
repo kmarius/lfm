@@ -24,6 +24,10 @@ typedef void (*preview_destroy_fun)(struct Preview *);
 
 typedef struct Preview {
   cstr path;
+  uint32_t width; // geometry of the preview window when this preview was loaded
+                  // requested width and height of this preview checked to see
+                  // if a reload is necessary, INT_MAX when disabled.
+  uint32_t height;
   union {
     vec_cstr lines;
     struct ncvisual *ncv;
@@ -36,10 +40,6 @@ typedef struct Preview {
   preview_draw_fun draw;
   preview_update_fun update;
   preview_destroy_fun destroy;
-  int reload_width;  // geometry of the preview window when this preview was
-                     // loaded
-  int reload_height; // checked to see if a reload is necessary, INT_MAX when
-                     // disabled.
 } Preview;
 
 __lfm_nonnull()
@@ -56,11 +56,10 @@ Preview *preview_fork_previewer(zsview path, uint32_t width, uint32_t height,
                                 int *pid_out, int fd_out[2]);
 
 __lfm_nonnull()
-Preview *preview_read_output(Preview *p, uint32_t height, int fd[2]);
+Preview *preview_read_output(Preview *p, int fd[2]);
 
 __lfm_nonnull()
-Preview *preview_handle_exit_status(Preview *p, uint32_t width, uint32_t height,
-                                    int status);
+Preview *preview_handle_exit_status(Preview *p, int status);
 
 __lfm_nonnull()
 static inline const cstr *preview_path(const Preview *pv) {

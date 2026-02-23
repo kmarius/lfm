@@ -1012,7 +1012,7 @@ void ui_update_file_preview_delayed(Ui *ui) {
 }
 
 // check if the dimensions changed and the preview should be reloaded
-#define CHECK_DIMS(pv, nrow) (!(pv)->loading && (pv)->reload_height < (int)nrow)
+#define CHECK_DIMS(pv, nrow) (!(pv)->loading && (pv)->height < (nrow))
 
 static inline void on_cursor_moved(Ui *ui, bool delay_action) {
   delay_action &= cfg.preview_delay > 0;

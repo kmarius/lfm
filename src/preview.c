@@ -51,8 +51,8 @@ static inline Preview *preview_init(Preview *p, zsview path, int height,
                                     int width) {
   memset(p, 0, sizeof *p);
   p->path = cstr_from_zv(path);
-  p->reload_height = height;
-  p->reload_width = width;
+  p->height = height;
+  p->width = width;
   p->next = current_millis();
 
   p->draw = draw_text_preview;
@@ -87,8 +87,8 @@ static void update_text_preview(Preview *p, Preview *u) {
   vec_cstr_drop(&p->lines);
   p->lines = u->lines;
   p->mtime = u->mtime;
-  p->reload_width = u->reload_width;
-  p->reload_height = u->reload_height;
+  p->width = u->width;
+  p->height = u->height;
   p->loadtime = u->loadtime;
   p->loading = false;
   p->status = PV_LOADING_NORMAL;
@@ -108,8 +108,8 @@ static void update_image_preview(Preview *p, Preview *u) {
   p->mtime = u->mtime;
   p->loadtime = u->loadtime;
   p->loading = false;
-  p->reload_width = u->reload_width;
-  p->reload_height = u->reload_height;
+  p->width = u->width;
+  p->height = u->height;
   p->status = PV_LOADING_NORMAL;
 
   destroy_preview(u);
@@ -293,7 +293,7 @@ Preview *preview_fork_previewer(zsview path, uint32_t width, uint32_t height,
   return p;
 }
 
-Preview *preview_read_output(Preview *p, uint32_t height, int fd[2]) {
+Preview *preview_read_output(Preview *p, int fd[2]) {
   struct stat statbuf;
   p->mtime = stat(cstr_str(&p->path), &statbuf) != -1 ? statbuf.st_mtime : 0;
 
@@ -304,7 +304,7 @@ Preview *preview_read_output(Preview *p, uint32_t height, int fd[2]) {
     return preview_error(p, "fdopen: %s", strerror(errno));
   }
 
-  lines_from_stream(&p->lines, stdout, height);
+  lines_from_stream(&p->lines, stdout, p->height);
   char buf[512];
   while (fread(buf, 1, sizeof buf, stdout) > 0) {
   }
@@ -315,8 +315,7 @@ Preview *preview_read_output(Preview *p, uint32_t height, int fd[2]) {
   return p;
 }
 
-Preview *preview_handle_exit_status(Preview *p, uint32_t width, uint32_t height,
-                                    int status) {
+Preview *preview_handle_exit_status(Preview *p, int status) {
 
   // TODO: check other statuses?
   if (likely(WIFEXITED(status))) {
@@ -332,18 +331,18 @@ Preview *preview_handle_exit_status(Preview *p, uint32_t width, uint32_t height,
         return preview_error(p, "fopen: ", strerror(errno));
       }
       vec_cstr_clear(&p->lines);
-      lines_from_stream(&p->lines, fp_file, height);
+      lines_from_stream(&p->lines, fp_file, p->height);
       fclose(fp_file);
     } break;
     case PREVIEW_FIX_WIDTH:
-      p->reload_width = INT_MAX;
+      p->width = INT_MAX;
       break;
     case PREVIEW_FIX_HEIGHT:
-      p->reload_height = INT_MAX;
+      p->height = INT_MAX;
       break;
     case PREVIEW_FIX_WIDTH_AND_HEIGHT:
-      p->reload_width = INT_MAX;
-      p->reload_height = INT_MAX;
+      p->width = INT_MAX;
+      p->height = INT_MAX;
       break;
     case PREVIEW_CACHE_AS_IMAGE:
       if (cfg.preview_images) {
@@ -364,7 +363,7 @@ Preview *preview_handle_exit_status(Preview *p, uint32_t width, uint32_t height,
           return preview_error(p, "ncvisual_from_file: ", strerror(errno));
         }
         vec_cstr_drop(&p->lines);
-        downscale_image(ncv, height, width);
+        downscale_image(ncv, p->height, p->width);
         p->ncv = ncv;
         p->draw = draw_image_preview;
         p->update = update_image_preview;
@@ -378,7 +377,7 @@ Preview *preview_handle_exit_status(Preview *p, uint32_t width, uint32_t height,
           return preview_error(p, "ncvisual_from_file: ", strerror(errno));
         }
         vec_cstr_drop(&p->lines);
-        downscale_image(ncv, height, width);
+        downscale_image(ncv, p->height, p->width);
         p->ncv = ncv;
         p->draw = draw_image_preview;
         p->update = update_image_preview;

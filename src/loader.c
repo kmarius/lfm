@@ -244,8 +244,8 @@ Preview *loader_preview_from_path(Loader *loader, zsview path, bool do_load) {
         return pv;
       }
       if (pv->status == PV_LOADING_NORMAL) {
-        if (pv->reload_height < (int)to_lfm(loader)->ui.preview.y ||
-            pv->reload_width < (int)to_lfm(loader)->ui.preview.x) {
+        if (pv->height < to_lfm(loader)->ui.preview.y ||
+            pv->width < to_lfm(loader)->ui.preview.x) {
           async_preview_load(&to_lfm(loader)->async, pv);
         } else {
           async_preview_check(&to_lfm(loader)->async, pv);
