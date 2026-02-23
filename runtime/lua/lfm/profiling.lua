@@ -28,21 +28,27 @@ local data = C.get_profiling_data()
 function M.get_lines()
 	local entries = {}
 
+	-- every incomplete entry artificially increases the depth of all following entries
+	local incomplete = 0
+
 	local longest = 0
 	for i = 0, data.num_entries - 1 do
 		local entry = data.entries[i]
 		if entry.is_complete then
 			local name = ffi.string(entry.name)
-			local length = #name + 2 * entry.depth
+			local depth = entry.depth - incomplete
+			local length = #name + 2 * depth
 			if length > longest then
 				longest = length
 			end
 			table.insert(entries, {
 				name = name,
 				diff = tonumber(entry.diff),
-				depth = entry.depth,
+				depth = depth,
 				length = length,
 			})
+		else
+			incomplete = incomplete + 1
 		end
 	end
 

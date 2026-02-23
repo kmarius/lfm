@@ -54,13 +54,13 @@ extern bool profiling_complete;
       struct profiling_entry *entry =                                          \
           &profiling_data.entries[profiling_data.num_entries++];               \
       entry->depth = profiling_depth++;                                        \
+      entry->name = (name_);                                                   \
       entry->ts = current_micros();                                            \
       do {                                                                     \
         BODY;                                                                  \
       } while (0);                                                             \
       entry->diff = current_micros() - entry->ts;                              \
       entry->ts -= profiling_data.startup;                                     \
-      entry->name = (name_);                                                   \
       entry->is_complete = 1;                                                  \
       profiling_depth--;                                                       \
     }                                                                          \
