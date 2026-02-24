@@ -118,20 +118,17 @@ set(CHAR_BLOB_GENERATOR ${PROJECT_SOURCE_DIR}/gen/gen_char_blob.lua)
 set(LFM_MODULE_FILE ${PROJECT_BINARY_DIR}/lua/lfm_module.generated.h)
 set(LUA_COLORS_MODULE_SOURCE ${PROJECT_SOURCE_DIR}/runtime/lua/lfm/colors.lua)
 set(LFM_COMPLETE_MODULE_SOURCE ${PROJECT_SOURCE_DIR}/runtime/lua/lfm/complete.lua)
-set(LUA_CORE_MODULE_SOURCE ${PROJECT_SOURCE_DIR}/runtime/lua/lfm/core.lua)
+set(LUA_CORE_MODULE_SOURCE ${PROJECT_SOURCE_DIR}/runtime/lua/lfm/_core.lua)
 set(LUA_FLATTEN_MODULE_SOURCE ${PROJECT_SOURCE_DIR}/runtime/lua/lfm/flatten.lua)
 set(LUA_FUNCTIONS_MODULE_SOURCE ${PROJECT_SOURCE_DIR}/runtime/lua/lfm/functions.lua)
 set(LUA_FS_MODULE_SOURCE ${PROJECT_SOURCE_DIR}/runtime/lua/lfm/fs.lua)
-set(LUA_GLOB_MODULE_SOURCE ${PROJECT_SOURCE_DIR}/runtime/lua/lfm/glob.lua)
+# set(LUA_GLOB_MODULE_SOURCE ${PROJECT_SOURCE_DIR}/runtime/lua/lfm/glob.lua)
 set(LUA_INSPECT_MODULE_SOURCE ${PROJECT_SOURCE_DIR}/runtime/lua/lfm/inspect.lua)
 set(LUA_JUMPLIST_MODULE_SOURCE ${PROJECT_SOURCE_DIR}/runtime/lua/lfm/jumplist.lua)
 set(LUA_MACROS_MODULE_SOURCE ${PROJECT_SOURCE_DIR}/runtime/lua/lfm/macros.lua)
 set(LUA_MODES_MODULE_SOURCE ${PROJECT_SOURCE_DIR}/runtime/lua/lfm/modes.lua)
-set(LUA_PROFILING_MODULE_SOURCE ${PROJECT_SOURCE_DIR}/runtime/lua/lfm/profiling.lua)
-set(LUA_QUICKMARKS_MODULE_SOURCE ${PROJECT_SOURCE_DIR}/runtime/lua/lfm/quickmarks.lua)
 set(LUA_RIFLE_MODULE_SOURCE ${PROJECT_SOURCE_DIR}/runtime/lua/lfm/rifle.lua)
 set(LUA_SHELL_MODULE_SOURCE ${PROJECT_SOURCE_DIR}/runtime/lua/lfm/shell.lua)
-set(LUA_TRASH_MODULE_SOURCE ${PROJECT_SOURCE_DIR}/runtime/lua/lfm/trash.lua)
 set(LUA_UI_MODULE_SOURCE ${PROJECT_SOURCE_DIR}/runtime/lua/lfm/ui.lua)
 set(LUA_UTIL_MODULE_SOURCE ${PROJECT_SOURCE_DIR}/runtime/lua/lfm/util.lua)
 
@@ -147,16 +144,12 @@ add_custom_command(
  ${LUA_FLATTEN_MODULE_SOURCE} "lfm.flatten"
  ${LUA_FS_MODULE_SOURCE} "lfm.fs"
  ${LUA_FUNCTIONS_MODULE_SOURCE} "lfm.functions"
- ${LUA_GLOB_MODULE_SOURCE} "lfm.glob"
  ${LUA_INSPECT_MODULE_SOURCE} "lfm.inspect"
  ${LUA_JUMPLIST_MODULE_SOURCE} "lfm.jumplist"
  ${LUA_MACROS_MODULE_SOURCE} "lfm.macros"
  ${LUA_MODES_MODULE_SOURCE} "lfm.modes"
- ${LUA_QUICKMARKS_MODULE_SOURCE} "lfm.quickmarks"
- ${LUA_PROFILING_MODULE_SOURCE} "lfm.profiling"
  ${LUA_RIFLE_MODULE_SOURCE} "lfm.rifle"
  ${LUA_SHELL_MODULE_SOURCE} "lfm.shell"
- ${LUA_TRASH_MODULE_SOURCE} "lfm.trash"
  ${LUA_UI_MODULE_SOURCE} "lfm.ui"
  ${LUA_UTIL_MODULE_SOURCE} "lfm.util"
  DEPENDS
@@ -167,16 +160,12 @@ add_custom_command(
  ${LUA_FLATTEN_MODULE_SOURCE}
  ${LUA_FS_MODULE_SOURCE}
  ${LUA_FUNCTIONS_MODULE_SOURCE}
- ${LUA_GLOB_MODULE_SOURCE}
  ${LUA_INSPECT_MODULE_SOURCE}
  ${LUA_JUMPLIST_MODULE_SOURCE}
  ${LUA_MACROS_MODULE_SOURCE}
  ${LUA_MODES_MODULE_SOURCE}
- ${LUA_QUICKMARKS_MODULE_SOURCE}
- ${LUA_PROFILING_MODULE_SOURCE}
  ${LUA_RIFLE_MODULE_SOURCE}
  ${LUA_SHELL_MODULE_SOURCE}
- ${LUA_TRASH_MODULE_SOURCE}
  ${LUA_UI_MODULE_SOURCE}
  ${LUA_UTIL_MODULE_SOURCE}
  VERBATIM

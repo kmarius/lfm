@@ -1,5 +1,8 @@
 local M = { _NAME = ... }
 
+local lfm = lfm
+local api = lfm.api
+
 local mode = {
 	name = "prompt",
 	prefix = "",
@@ -9,8 +12,8 @@ local mode = {
 	on_change = function() end,
 }
 
--- wrap the mode to register so we can dynamically change the callbacks
-lfm.api.create_mode({
+-- we create a wrapped mode so we can change the callbacks later
+api.create_mode({
 	name = mode.name,
 	prefix = mode.prefix,
 	input = mode.input,
@@ -26,10 +29,10 @@ lfm.api.create_mode({
 })
 
 ---@class Lfm.Ui.InputOpts
----@field prompt string
----@field default? string
----@field completion? string
----@field single_key? boolean
+---@field prompt string default: `""`
+---@field default? string unused
+---@field completion? string unused
+---@field single_key? boolean Accept a single key of input without requiring Enter.
 
 ---
 ---Prompt for input.
@@ -51,21 +54,21 @@ function M.input(opts, on_confirm)
 
 	mode.on_esc = on_confirm
 	mode.on_return = function()
-		local line = lfm.api.cmdline_line_get()
-		lfm.api.mode("normal")
+		local line = api.cmdline_line_get()
+		api.mode("normal")
 		on_confirm(line)
 	end
 	if opts.single_key then
 		mode.on_change = function()
-			local line = lfm.api.cmdline_line_get()
-			lfm.api.mode("normal")
+			local line = api.cmdline_line_get()
+			api.mode("normal")
 			on_confirm(line)
 		end
 	else
 		mode.on_change = function() end
 	end
 	lfm.modes[mode.name].prefix = opts.prompt or ""
-	lfm.api.mode(mode.name)
+	api.mode(mode.name)
 end
 
 return M

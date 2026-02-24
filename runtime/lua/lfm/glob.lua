@@ -172,39 +172,22 @@ function M.glob_select_recursive(glob)
 	api.selection_set(files)
 end
 
-function M._setup()
-	-- GLOBSELECT mode
-	local a = require("lfm.util").a
+-- glob-select mode
+api.create_mode({
+	name = "glob-select",
+	input = true,
+	prefix = "glob-select: ",
+	on_return = function()
+		api.mode("normal")
+	end,
+	on_esc = function()
+		api.selection_set({})
+	end,
+	on_change = function()
+		M.glob_select(api.cmdline_line_get())
+	end,
+})
 
-	local mode = {
-		name = "glob-select",
-		input = true,
-		prefix = "glob-select: ",
-		on_return = function()
-			lfm.api.mode("normal")
-		end,
-		on_esc = function()
-			api.selection_set({})
-		end,
-		on_change = function()
-			require("lfm.glob").glob_select(api.cmdline_line_get())
-		end,
-	}
-
-	lfm.api.create_mode(mode)
-	lfm.api.set_keymap("*", a(lfm.api.mode, mode.name), { desc = "glob-select" })
-
-	lfm.api.create_command(
-		"glob-select",
-		require("lfm.glob").glob_select,
-		{ tokenize = false, desc = "Select files in the current directory matching a glob." }
-	)
-
-	lfm.api.create_command(
-		"glob-select-rec",
-		require("lfm.glob").glob_select_recursive,
-		{ tokenize = false, desc = "Select matching a glob recursively." }
-	)
-end
+lfm.log.info("loaded")
 
 return M

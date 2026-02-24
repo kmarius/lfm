@@ -1,18 +1,17 @@
-local fn = lfm.fn
 local api = lfm.api
+local fn = lfm.fn
 local log = lfm.log
 
 local execute = lfm.execute
-local lfm_error = lfm.error
 local quit = lfm.quit
-local spawn = lfm.spawn
 local string_format = string.format
+local spawn = lfm.spawn
 local string_match = string.match
-local table_concat = table.concat
 local tokenize = fn.tokenize
 
 -- Enhance logging functions
 do
+	local table_concat = table.concat
 	local level = log.get_level()
 	-- Index in the table corresponds to the log level of the function
 	for l, name in ipairs({ "trace", "debug", "info", "warn", "error", "fatal" }) do
@@ -80,6 +79,7 @@ end
 local function printf(fmt, ...)
 	print(string_format(fmt, ...))
 end
+lfm.printf = printf
 
 ---
 ---Print a formatted error.
@@ -92,8 +92,9 @@ end
 ---@param fmt string
 ---@param ... any
 local function errorf(fmt, ...)
-	lfm_error(string_format(fmt, ...))
+	lfm.error(string_format(fmt, ...))
 end
+lfm.errorf = errorf
 
 do -- lfm.validate
 	---@param t string|string[]|function
@@ -132,48 +133,63 @@ do -- lfm.validate
 			message = optional
 			optional = false
 		end
-		message = message or join_types(validator)
 		if not value then
 			if not optional then
-				error(name .. ": expected " .. message .. ", got nil")
-			else
-				return
+				message = message or join_types(validator)
+				error(string.format("%s: expected %s, got %s", name, message, "nil"))
 			end
+			return
 		end
 		local vtype = type(value)
 		if type(validator) == "string" then
 			if vtype ~= validator then
-				error(name .. ": expected " .. message .. ", got " .. vtype)
+				message = message or join_types(validator)
+				error(string.format("%s: expected %s, got %s", name, message, vtype))
 			end
 		elseif type(validator) == "table" then
 			if not table_contains(validator, vtype) then
-				error(name .. ": expected " .. message .. ", got " .. vtype)
+				message = message or join_types(validator)
+				error(string.format("%s: expected %s, got %s", name, message, vtype))
 			end
 		else
 			assert(type(validator) == "function")
 			if not validator(value) then
-				error(name .. ": expected " .. message .. ", got " .. tostring(value))
+				message = message or join_types(validator)
+				error(string.format("%s: expected %s, got %s", name, message, tostring(value)))
 			end
 		end
 	end
 end
 
----
----Get the current selection or file under the cursor.
----
----Example:
----```lua
----  local files = lfm.api.fm_sel_or_cur()
----  for i, file in ipairs(files) do
----    print(i, file)
----  end
----```
----
----@return string[] selection
-local function sel_or_cur()
-	local sel = api.selection_get()
-	return #sel > 0 and sel or { api.current_file() }
-end
+-- lazily load submodules in the lfm namespace, make sure to add them to doc/LuaCATS/lfm.lua
+local submodules = {
+	complete = true,
+	fs = true,
+	functions = true,
+	inspect = true,
+	jumplist = true,
+	mode = true,
+	quickmarks = true,
+	rifle = true,
+	search = true,
+	shell = true,
+	trash = true,
+	ui = true,
+	util = true,
+}
+
+local util = require("lfm.util")
+local complete = require("lfm.complete")
+local shell = require("lfm.shell")
+
+setmetatable(lfm, {
+	__index = function(t, key)
+		if submodules[key] then
+			t[key] = require("lfm." .. key)
+			return t[key]
+		end
+	end,
+})
 
 ---@class Lfm.CommandOpts
 ---@field tokenize? boolean tokenize arguments (default: true)
@@ -228,16 +244,16 @@ local reserved = {
 ---
 ---Example:
 ---```lua
----  lfm.api.create_command("updir", api.fm_updir, { desc = "Go to parent directory" })
+---  api.create_command("updir", api.fm_updir, { desc = "Go to parent directory" })
 ---```
 ---
 ---Handling arguments:
 ---```lua
----  lfm.api.create_command("cmd", function(line)
+---  api.create_command("cmd", function(line)
 ---    -- args passed as a single string
 ---  end, {})
 ---
----  lfm.api.create_command("cmd", function(...)
+---  api.create_command("cmd", function(...)
 ---    local args = { ... }
 ---    -- args are split by whitespace
 ---  end, { tokenize = true })
@@ -245,7 +261,7 @@ local reserved = {
 ---
 ---Using completions (see `complete.lua`):
 ---```lua
----  lfm.api.create_command("cd", chdir, {
+---  api.create_command("cd", chdir, {
 ---    complete = require("lfm.complete").dirs,
 ---    tokenize = true,
 ---  })
@@ -262,25 +278,29 @@ local function create_command(name, f, opts)
 	lfm.validate("f", f, "function")
 	lfm.validate("opts", opts, "table", true)
 
-	opts = lfm.util.shallow_copy(opts or {})
+	opts = util.shallow_copy(opts or {})
 	opts.f = f
 	opts.tokenize = opts.tokenize == nil and true or opts.tokenize
 	opts = setmetatable(opts, command_mt)
 	commands[name] = opts --[[@as Lfm.Command]]
+	log.tracef("registered command: %s", name)
 end
+api.create_command = create_command
 
 ---
 ---Delete a command.
 ---
 ---Example:
 ---```lua
----  lfm.api.del_command("open")
+---  api.del_command("open")
 ---```
 ---
 ---@param name string Command name, can not contain whitespace.
 local function del_command(name)
 	commands[name] = nil
+	log.tracef("deleted command: %s", name)
 end
+api.del_command = del_command
 
 ---
 ---Evaluates a line of lua code. If the first whitespace delimited token is a
@@ -322,41 +342,9 @@ local function eval(line)
 		end
 	end
 end
-
-lfm.printf = printf
-lfm.errorf = errorf
 lfm.eval = eval
-lfm.api.create_command = create_command
-lfm.api.del_command = del_command
-lfm.api.fm_sel_or_cur = sel_or_cur
 
--- lazily load submodules in the lfm namespace, make sure to add them to doc/LuaCATS/lfm.lua
-local submodules = {
-	complete = true,
-	fs = true,
-	functions = true,
-	inspect = true,
-	jumplist = true,
-	mode = true,
-	quickmarks = true,
-	rifle = true,
-	search = true,
-	shell = true,
-	trash = true,
-	ui = true,
-	util = true,
-}
-
-setmetatable(lfm, {
-	__index = function(t, key)
-		if submodules[key] then
-			t[key] = require("lfm." .. key)
-			return t[key]
-		end
-	end,
-})
-
-require("lfm.modes")._setup()
+require("lfm.modes")
 
 require("lfm.rifle").setup({
 	rules = {
@@ -366,10 +354,6 @@ require("lfm.rifle").setup({
 	},
 })
 
-local util = require("lfm.util")
-local complete = require("lfm.complete")
-local shell = require("lfm.shell")
-
 api.create_command("shell", function(arg)
 	shell.bash.execute(arg, { files_via = shell.ARGV })
 end, { tokenize = false, complete = complete.files, desc = "Run a shell command." })
@@ -378,9 +362,47 @@ api.create_command("shell-bg", function(arg)
 	shell.bash.spawn(arg, { files_via = shell.ARGV, on_stdout = true, on_stderr = true })
 end, { tokenize = false, complete = complete.files, desc = "Run a shell command in the background." })
 
-require("lfm.jumplist")._setup()
-require("lfm.quickmarks")._setup()
-require("lfm.glob")._setup()
+require("lfm.jumplist")
+
+-- lfm.glob
+api.set_keymap("*", function()
+	require("lfm.glob")
+	api.mode("glob-select")
+end, { desc = "glob-select" })
+
+api.create_command("glob-select", function(arg)
+	require("lfm.glob").glob_select(arg)
+end, { tokenize = false, desc = "Select files in the current directory matching a glob." })
+
+api.create_command("glob-select-rec", function(arg)
+	require("lfm.glob").glob_select_recursive(arg)
+end, { tokenize = false, desc = "Select matching a glob recursively." })
+
+-- lfm.quickmarks
+api.set_keymap("m", function()
+	lfm.quickmarks.prompt_save()
+end, { desc = "Save quickmark" })
+api.set_keymap("dm", function()
+	lfm.quickmarks.prompt_delete()
+end, { desc = "Save quickmark" })
+
+---
+---Get the current selection or file under the cursor.
+---
+---Example:
+---```lua
+---  local files = api.fm_sel_or_cur()
+---  for i, file in ipairs(files) do
+---    print(i, file)
+---  end
+---```
+---
+---@return string[] selection
+local function sel_or_cur()
+	local sel = api.selection_get()
+	return #sel > 0 and sel or { api.current_file() }
+end
+api.fm_sel_or_cur = sel_or_cur
 
 api.create_command("quit", quit, { desc = "Quit Lfm" })
 api.create_command("q", quit, { desc = "Quit Lfm" })
@@ -453,7 +475,7 @@ require("lfm.colors").set({
 })
 
 local function open()
-	eval("open")
+	lfm.cmd.open()
 end
 
 api.create_command("delete", function(args)
@@ -496,19 +518,19 @@ api.set_keymap("<c-c>", function()
 end, { desc = "ctrl-c" })
 api.set_keymap("<c-l>", api.ui_clear, { desc = "Clear screen and redraw" })
 api.set_keymap("<a-r>", api.fm_drop_cache, { desc = "Drop direcory/preview caches" })
-api.set_keymap("cd", a(lfm.api.feedkeys, ":cd "), { desc = ":cd " })
+api.set_keymap("cd", a(api.feedkeys, ":cd "), { desc = ":cd " })
 api.set_keymap("<a-c>", api.fm_check, { desc = "Check directories and reload" })
 
-api.set_keymap("&", a(lfm.api.feedkeys, ":shell-bg "), { desc = ":shell-bg " })
-api.set_keymap("s", a(lfm.api.feedkeys, ":shell "), { desc = ":shell " })
+api.set_keymap("&", a(api.feedkeys, ":shell-bg "), { desc = ":shell-bg " })
+api.set_keymap("s", a(api.feedkeys, ":shell "), { desc = ":shell " })
 api.set_keymap("S", a(execute, { "sh", "-c", "LFM_LEVEL=1 " .. os.getenv("SHELL") }), { desc = "Open a $SHELL" })
 
 -- Visual/selection
 api.set_keymap("<Space>", c(api.selection_toggle, api.fm_down), { desc = "Select current file" })
 api.set_keymap("v", api.selection_reverse, { desc = "Reverse selection" })
 api.set_keymap("V", function()
-	local mode = lfm.current_mode()
-	lfm.api.mode(mode ~= "visual" and "visual" or "normal")
+	local mode = api.current_mode()
+	api.mode(mode ~= "visual" and "visual" or "normal")
 end, { desc = "Toggle visual selection mode" })
 api.set_keymap("uv", c(api.fm_paste_buffer_set, api.selection_set), { desc = "Clear selection" })
 api.set_keymap("gu", api.selection_restore, { desc = "Restore previous selection" })
@@ -522,11 +544,11 @@ api.set_keymap("k", api.fm_up, { desc = "Move cursor up" })
 api.set_keymap("h", api.fm_updir, { desc = "Go to parent directory" })
 api.set_keymap("l", open, { desc = "Open file/directory" })
 api.set_keymap("L", require("lfm.functions").follow_link, { desc = "Follow symlink under cursor" })
-api.set_keymap("H", a(lfm.api.feedkeys, "''")) -- complementary to "L"
+api.set_keymap("H", a(api.feedkeys, "''")) -- complementary to "L"
 api.set_keymap("gg", api.fm_top, { desc = "Go to top" })
 api.set_keymap("G", api.fm_bottom, { desc = "Go to bottom" })
 api.set_keymap("''", api.jump_automark, { desc = "Jump to previous directory" })
-api.set_keymap("cd", a(lfm.api.feedkeys, ":cd "), { desc = ":cd " })
+api.set_keymap("cd", a(api.feedkeys, ":cd "), { desc = ":cd " })
 api.set_keymap("<Up>", api.fm_up, { desc = "Move cursor up" })
 api.set_keymap("<Down>", api.fm_down, { desc = "Move cursor down" })
 api.set_keymap("<c-y>", api.fm_scroll_up, { desc = "Scroll directory up" })
@@ -587,74 +609,70 @@ api.set_keymap("pl", require("lfm.functions").symlink, { desc = "Create symlink"
 api.set_keymap("pL", require("lfm.functions").symlink_relative, { desc = "Create relative symlink" })
 
 -- Renaming
-api.set_keymap("cW", a(lfm.api.feedkeys, ":rename "), { desc = "Rename" })
-api.set_keymap("cc", a(lfm.api.feedkeys, ":rename "), { desc = "Rename" })
+api.set_keymap("cW", a(api.feedkeys, ":rename "), { desc = "Rename" })
+api.set_keymap("cc", a(api.feedkeys, ":rename "), { desc = "Rename" })
 api.set_keymap("cw", require("lfm.functions").rename_until_ext, { desc = "Rename until extension" })
 api.set_keymap("a", require("lfm.functions").rename_before_ext, { desc = "Rename before extension" })
 api.set_keymap("A", require("lfm.functions").rename_after, { desc = "Rename at the end" })
 api.set_keymap("I", require("lfm.functions").rename_before, { desc = "Rename at the start" })
 
 -- TODO: change these when more file info values are implemented
-local sort = api.fm_sort
-local set_info = api.fm_set_info
 api.set_keymap("on", function()
-	sort({ type = "natural", reverse = false })
-	set_info("size")
+	api.sort({ type = "natural", reverse = false })
+	api.set_info("size")
 end, { desc = "Sort: natural, noreverse" })
 api.set_keymap("oN", function()
-	sort({ type = "natural", reverse = true })
-	set_info("size")
+	api.sort({ type = "natural", reverse = true })
+	api.set_info("size")
 end, { desc = "Sort: natural, reverse" })
 api.set_keymap("os", function()
-	sort({ type = "size", reverse = true })
-	set_info("size")
+	api.sort({ type = "size", reverse = true })
+	api.set_info("size")
 end, { desc = "Sort: size, noreverse" })
 api.set_keymap("oS", function()
-	sort({ type = "size", reverse = false })
-	set_info("size")
+	api.sort({ type = "size", reverse = false })
+	api.set_info("size")
 end, { desc = "Sort: size, reverse" })
 api.set_keymap("oc", function()
-	sort({ type = "ctime", reverse = true })
-	set_info("ctime")
+	api.sort({ type = "ctime", reverse = true })
+	api.set_info("ctime")
 end, { desc = "Sort: ctime, reverse" })
 api.set_keymap("oC", function()
-	sort({ type = "ctime", reverse = false })
-	set_info("ctime")
+	api.sort({ type = "ctime", reverse = false })
+	api.set_info("ctime")
 end, { desc = "Sort: ctime, noreverse" })
 api.set_keymap("oa", function()
-	sort({ type = "atime", reverse = true })
-	set_info("atime")
+	api.sort({ type = "atime", reverse = true })
+	api.set_info("atime")
 end, { desc = "Sort: atime, reverse" })
 api.set_keymap("oA", function()
-	sort({ type = "atime", reverse = false })
-	set_info("atime")
+	api.sort({ type = "atime", reverse = false })
+	api.set_info("atime")
 end, { desc = "Sort: atime, noreverse" })
 api.set_keymap("om", function()
-	sort({ type = "mtime", reverse = true })
-	set_info("mtime")
+	api.sort({ type = "mtime", reverse = true })
+	api.set_info("mtime")
 end, { desc = "Sort: mtime, reverse" })
 api.set_keymap("oM", function()
-	sort({ type = "mtime", reverse = false })
-	set_info("mtime")
+	api.sort({ type = "mtime", reverse = false })
+	api.set_info("mtime")
 end, { desc = "Sort: mtime, noreverse" })
 api.set_keymap("or", function()
-	sort({ type = "random" })
-	set_info("size")
+	api.sort({ type = "random" })
+	api.set_info("size")
 end, { desc = "Sort: random" })
 
-local function gmap(key, location)
-	local chdir = api.chdir
+for key, loc in pairs({
+	["e"] = "/etc",
+	["h"] = os.getenv("HOME"),
+	["m"] = "/mnt",
+	["n"] = "~/Downloads",
+	["o"] = "/opt",
+	["p"] = "/tmp",
+	["r"] = "/",
+	["s"] = "/srv",
+}) do
 	api.set_keymap("g" .. key, function()
-		chdir(location)
-	end, { desc = "Go to " .. location })
+		api.chdir(loc)
+	end, { desc = "Go to " .. loc })
 end
-
-gmap("/", "/")
-gmap("e", "/etc")
-gmap("h", os.getenv("HOME"))
-gmap("m", "/mnt")
-gmap("n", "~/Downloads")
-gmap("o", "/opt")
-gmap("p", "/tmp")
-gmap("r", "/")
-gmap("s", "/srv")

@@ -2,10 +2,7 @@ local M = { _NAME = ... }
 
 local lfm = lfm
 
-local sel_or_cur = lfm.api.fm_sel_or_cur
-local lfm_execute = lfm.execute
-local lfm_spawn = lfm.spawn
-local table_insert = table.insert
+local api = lfm.api
 
 ---@enum Lfm.Shell.FilesVia
 local FilesVia = {
@@ -45,7 +42,7 @@ function M.escape(args, sep)
 	local ret = {}
 	for _, a in pairs(args) do
 		local s = string.gsub(tostring(a), "'", [['\'']])
-		table_insert(ret, "'" .. s .. "'")
+		table.insert(ret, "'" .. s .. "'")
 	end
 	return table.concat(ret, sep)
 end
@@ -65,7 +62,7 @@ function M.popen(command)
 	local res = {}
 	if file then
 		for line in file:lines() do
-			table_insert(res, line)
+			table.insert(res, line)
 		end
 	end
 	return res
@@ -99,7 +96,7 @@ do
 		local cmd = { "sh", "-c", command }
 		if opts.files_via == ARGV then
 			cmd[#cmd + 1] = "_"
-			for _, file in ipairs(sel_or_cur()) do
+			for _, file in ipairs(api.fm_sel_or_cur()) do
 				cmd[#cmd + 1] = file
 			end
 		elseif opts.files_via == ARRAY then
@@ -114,7 +111,7 @@ do
 				end
 			end
 		end
-		lfm_spawn(cmd, opts)
+		lfm.spawn(cmd, opts)
 	end
 
 	---
@@ -135,7 +132,7 @@ do
 		local cmd = { "sh", "-c", command }
 		if opts.files_via == ARGV then
 			cmd[#cmd + 1] = "_"
-			for _, file in ipairs(sel_or_cur()) do
+			for _, file in ipairs(api.fm_sel_or_cur()) do
 				cmd[#cmd + 1] = file
 			end
 		elseif opts.files_via == ARRAY then
@@ -150,7 +147,7 @@ do
 				end
 			end
 		end
-		lfm_execute(cmd)
+		lfm.execute(cmd)
 	end
 
 	---
@@ -209,12 +206,12 @@ do
 		local cmd = { "bash", "-c", command }
 		if opts.files_via == ARGV then
 			cmd[#cmd + 1] = "_"
-			for _, file in ipairs(sel_or_cur()) do
+			for _, file in ipairs(api.fm_sel_or_cur()) do
 				cmd[#cmd + 1] = file
 			end
 		else
 			if opts.files_via == ARRAY then
-				cmd[3] = string.format("files=(%s); %s", escape(sel_or_cur()), command)
+				cmd[3] = string.format("files=(%s); %s", escape(api.fm_sel_or_cur()), command)
 			end
 			local n = select("#", ...)
 			if n > 0 then
@@ -225,7 +222,7 @@ do
 				end
 			end
 		end
-		lfm_spawn(cmd, opts)
+		lfm.spawn(cmd, opts)
 	end
 
 	---
@@ -246,12 +243,12 @@ do
 		local cmd = { "bash", "-c", command }
 		if opts.files_via == ARGV then
 			cmd[#cmd + 1] = "_"
-			for _, file in ipairs(sel_or_cur()) do
+			for _, file in ipairs(api.fm_sel_or_cur()) do
 				cmd[#cmd + 1] = file
 			end
 		else
 			if opts.files_via == ARRAY then
-				cmd[3] = string.format("files=(%s); %s", escape(sel_or_cur()), command)
+				cmd[3] = string.format("files=(%s); %s", escape(api.fm_sel_or_cur()), command)
 			end
 			local n = select("#", ...)
 			if n > 0 then
@@ -262,7 +259,7 @@ do
 				end
 			end
 		end
-		lfm_execute(cmd)
+		lfm.execute(cmd)
 	end
 
 	---
@@ -320,13 +317,13 @@ do
 		local cmd = { "fish", "-c", command }
 		if opts.files_via == ARGV then
 			cmd[#cmd + 1] = "_"
-			for _, file in ipairs(sel_or_cur()) do
+			for _, file in ipairs(api.fm_sel_or_cur()) do
 				cmd[#cmd + 1] = file
 			end
 		else
 			if opts.files_via == ARRAY then
-				table_insert(cmd, 2, "-c")
-				table_insert(cmd, 2, "set files " .. escape(sel_or_cur()))
+				table.insert(cmd, 2, "-c")
+				table.insert(cmd, 2, "set files " .. escape(api.fm_sel_or_cur()))
 			end
 			local n = select("#", ...)
 			if n > 0 then
@@ -337,7 +334,7 @@ do
 				end
 			end
 		end
-		lfm_spawn(cmd, opts)
+		lfm.spawn(cmd, opts)
 	end
 
 	---
@@ -358,13 +355,13 @@ do
 		local cmd = { "fish", "-c", command }
 		if opts.files_via == ARGV then
 			cmd[#cmd + 1] = "--"
-			for _, file in ipairs(sel_or_cur()) do
+			for _, file in ipairs(api.fm_sel_or_cur()) do
 				cmd[#cmd + 1] = file
 			end
 		else
 			if opts.files_via == ARRAY then
-				table_insert(cmd, 2, "-c")
-				table_insert(cmd, 2, "set files " .. escape(sel_or_cur()))
+				table.insert(cmd, 2, "-c")
+				table.insert(cmd, 2, "set files " .. escape(api.fm_sel_or_cur()))
 			end
 			local n = select("#", ...)
 			if n > 0 then
@@ -375,7 +372,7 @@ do
 				end
 			end
 		end
-		lfm_execute(cmd)
+		lfm.execute(cmd)
 	end
 
 	---

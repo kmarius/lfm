@@ -161,12 +161,4 @@ function M.prompt_delete()
 	end)
 end
 
-function M._setup(opts)
-	lfm.validate("opts", opts, "table", true)
-	opts = opts or {}
-
-	lfm.api.set_keymap("m", M.prompt_save, { desc = "Save quickmark" })
-	lfm.api.set_keymap("dm", M.prompt_delete, { desc = "Save quickmark" })
-end
-
 return M

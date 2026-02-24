@@ -1,8 +1,8 @@
 #include "util.h"
 
 #include "../config.h"
-#include "../log.h"
-#include "lua.h"
+
+#include <lua.h>
 
 #include <linux/limits.h>
 

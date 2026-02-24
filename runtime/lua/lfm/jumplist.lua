@@ -3,10 +3,7 @@ local M = { _NAME = ... }
 local lfm = lfm
 local api = lfm.api
 
-local getpwd = lfm.fn.getpwd
-local chdir = lfm.api.chdir
-
-local list = { getpwd() }
+local list = { lfm.fn.getpwd() }
 local ind = 1
 
 local disable_hook = false
@@ -60,7 +57,7 @@ function M.jump_to(idx)
 	if idx >= 1 and idx <= #list then
 		ind = idx
 		disable_hook = true
-		chdir(list[ind])
+		api.chdir(list[ind])
 	end
 end
 
@@ -75,7 +72,7 @@ end
 function M.jump_next()
 	if ind < #list then
 		ind = ind + 1
-		chdir(list[ind])
+		api.chdir(list[ind])
 	end
 end
 
@@ -90,15 +87,12 @@ end
 function M.jump_prev()
 	if ind > 1 then
 		ind = ind - 1
-		chdir(list[ind])
+		api.chdir(list[ind])
 	end
 end
 
----Set up jumplist: sets keybinds and registers the necessary hook.
-function M._setup()
-	api.add_hook("on_chdir_post", on_chdir)
-	api.set_keymap("]", M.jump_next, { desc = "jumplist-next" })
-	api.set_keymap("[", M.jump_prev, { desc = "jumplist-prev" })
-end
+api.add_hook("on_chdir_post", on_chdir)
+api.set_keymap("]", M.jump_next, { desc = "jumplist-next" })
+api.set_keymap("[", M.jump_prev, { desc = "jumplist-prev" })
 
 return M

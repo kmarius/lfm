@@ -34,8 +34,8 @@ function M.open(...)
 		local match = M.query(files[1], { pick = pick, limit = 1 })[1]
 		if match then
 			if match.command == "ask" then
-				lfm.api.mode("command")
-				lfm.api.cmdline_line_set("shell ", ' "${files[@]}"')
+				api.mode("command")
+				api.cmdline_line_set("shell ", ' "${files[@]}"')
 			elseif match.lfm then
 				local f, err = loadstring(match.command)
 				if not f then
@@ -91,8 +91,8 @@ function M.ask()
 		for _, rule in pairs(M.query(file)) do
 			table.insert(menu, rule.number .. " " .. rule.command)
 		end
-		lfm.api.mode("command")
-		lfm.api.cmdline_line_set("open ")
+		api.mode("command")
+		api.cmdline_line_set("open ")
 		api.ui_menu(menu)
 	end
 end
@@ -123,8 +123,8 @@ function M.setup(opts)
 	opts = opts or {}
 	config = opts.config
 	setup_internal(opts)
-	lfm.api.create_command("open", M.open, { tokenize = true, desc = "Open file(s)." })
-	lfm.api.set_keymap("r", M.ask, { desc = "show opener options" })
+	api.create_command("open", M.open, { tokenize = true, desc = "Open file(s)." })
+	api.set_keymap("r", M.ask, { desc = "show opener options" })
 end
 
 return M
