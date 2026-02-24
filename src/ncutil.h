@@ -30,7 +30,8 @@ static inline int ncplane_putcstr(struct ncplane *n, const cstr *str) {
 
 // Consumes the ansi escape sequence pointed to by s setting the attributes to
 // n. Returns a pointer to the char after the sequence.
-const char *ncplane_set_ansi_attrs(struct ncplane *n, const char *s);
+const char *ncplane_set_ansi_attrs(struct ncplane *n, const char *s,
+                                   const char *end);
 
 // Adds a string to n, interpreting ansi escape sequences and setting the
 // attributes to n.

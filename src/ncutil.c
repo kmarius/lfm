@@ -1,6 +1,7 @@
 #include "ncutil.h"
 
 #include "log.h"
+#include "macros.h"
 #include "stc/cstr.h"
 
 #include <curses.h>
@@ -17,33 +18,36 @@ static inline void normal(struct ncplane *n) {
   ncplane_set_bg_default(n);
 }
 
-static inline bool parse_number(const char **s, int *num) {
+static inline bool parse_number(const char **s, const char *end, int *num) {
   const char *p = *s;
   int acc = 0;
-  if ((*p != '[' && *p != ';') || !isdigit(*++p)) {
+
+  if ((*p != '[' && *p != ';') || unlikely(p + 1 >= end) || !isdigit(*++p))
     return false;
-  }
-  while (isdigit(*p)) {
+
+  while (likely(p < end) && isdigit(*p)) {
     acc = acc * 10 + *p - '0';
     p++;
   }
   *s = p;
   *num = acc;
+
   return true;
 }
 
-const char *ncplane_set_ansi_attrs(struct ncplane *n, const char *s) {
+const char *ncplane_set_ansi_attrs(struct ncplane *n, const char *s,
+                                   const char *end) {
   assert(*s == '\033');
   s++;
 
-  if (*s && *(s + 1) == 'm') {
+  if (s < end && *(s + 1) == 'm') {
     normal(n);
     return s + 2;
   }
 
   int num;
-  while (*s && *s != 'm') {
-    if (!parse_number(&s, &num)) {
+  while (s < end && *s != 'm') {
+    if (!parse_number(&s, end, &num)) {
       goto err;
     }
 
@@ -94,21 +98,21 @@ const char *ncplane_set_ansi_attrs(struct ncplane *n, const char *s) {
         break;
       case 38: {
         int op;
-        if (!parse_number(&s, &op)) {
+        if (!parse_number(&s, end, &op)) {
           goto err;
         }
         switch (op) {
         case 5: {
           int p;
-          if (!parse_number(&s, &p)) {
+          if (!parse_number(&s, end, &p)) {
             goto err;
           }
           ncplane_set_fg_palindex(n, p);
         } break;
         case 2: {
           int r, g, b;
-          if (!parse_number(&s, &r) || !parse_number(&s, &g) ||
-              !parse_number(&s, &b)) {
+          if (!parse_number(&s, end, &r) || !parse_number(&s, end, &g) ||
+              !parse_number(&s, end, &b)) {
             goto err;
           }
           ncplane_set_fg_rgb8(n, r, g, b);
@@ -122,21 +126,21 @@ const char *ncplane_set_ansi_attrs(struct ncplane *n, const char *s) {
         break;
       case 48: {
         int op;
-        if (!parse_number(&s, &op)) {
+        if (!parse_number(&s, end, &op)) {
           goto err;
         }
         switch (op) {
         case 5: {
           int p;
-          if (!parse_number(&s, &p)) {
+          if (!parse_number(&s, end, &p)) {
             goto err;
           }
           ncplane_set_bg_palindex(n, p);
         } break;
         case 2: {
           int r, g, b;
-          if (!parse_number(&s, &r) || !parse_number(&s, &g) ||
-              !parse_number(&s, &b)) {
+          if (!parse_number(&s, end, &r) || !parse_number(&s, end, &g) ||
+              !parse_number(&s, end, &b)) {
             goto err;
           }
           ncplane_set_bg_rgb8(n, r, g, b);
@@ -173,7 +177,7 @@ int ncplane_putcs_ansi_yx(struct ncplane *n, int y, int x, csview cs) {
   const char *end = cs.buf + cs.size;
   while (ptr < end) {
     if (*ptr == '\033') {
-      ptr = ncplane_set_ansi_attrs(n, ptr);
+      ptr = ncplane_set_ansi_attrs(n, ptr, end);
     } else {
       const char *cur;
       for (cur = ptr; ptr < end && *ptr != '\033'; ptr++)
@@ -198,7 +202,7 @@ int ncplane_putlcs_ansi_yx(struct ncplane *n, int y, int x, size_t s,
   const char *end = cs.buf + cs.size;
   while (ptr < end) {
     if (*ptr == '\033') {
-      ptr = ncplane_set_ansi_attrs(n, ptr);
+      ptr = ncplane_set_ansi_attrs(n, ptr, end);
     } else {
       const char *cur;
       for (cur = ptr; ptr < end && *ptr != '\033'; ptr++)

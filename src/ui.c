@@ -454,7 +454,7 @@ static void draw_menu(Ui *ui, const vec_cstr *menubuf) {
       }
       xpos += ncplane_putnstr(n, str - start, start);
       if (*str == '\033') {
-        str = ncplane_set_ansi_attrs(n, str);
+        str = ncplane_set_ansi_attrs(n, str, end);
       } else if (*str == '\t') {
         ncplane_putchar(n, ' ');
         xpos++;
