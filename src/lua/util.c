@@ -27,6 +27,10 @@ void set_package_path(lua_State *L) {
     len -= l;
   }
 
+  // append /usr/share/lfm/lua/..
+  len += snprintf(buf + len, sizeof buf - len, ";%s/?.lua;%s/?/init.lua",
+                  cstr_str(&cfg.luadir), cstr_str(&cfg.luadir));
+
   // append ~/.config/lfm/lua/..
   snprintf(buf + len, sizeof buf - len, ";%s/lua/?.lua;%s/lua/?/init.lua",
            cstr_str(&cfg.configdir), cstr_str(&cfg.configdir));
