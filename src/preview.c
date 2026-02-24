@@ -1,5 +1,6 @@
 #include "preview.h"
 
+#include "bytes.h"
 #include "cdims.h"
 #include "config.h"
 #include "log.h"
@@ -10,6 +11,7 @@
 #include "util.h"
 #include <asm-generic/errno-base.h>
 #include <semaphore.h>
+#include <stddef.h>
 
 #define STC_CSTR_IO
 #include "stc/cstr.h"
@@ -27,7 +29,8 @@
 #include <sys/stat.h>
 #include <sys/wait.h>
 
-#define MAX_LINE_LENGTH 1024 // includes escapes and color codes
+// a security measure, a bad previewer could try to send large files
+#define PREVIEW_MAX_BYTES (128 * 1024)
 
 // return code interpretation of the previewer script taken from ranger
 #define PREVIEW_DISPLAY_STDOUT 0
@@ -73,7 +76,7 @@ static inline void destroy_preview(Preview *p) {
 }
 
 static void destroy_text_preview(Preview *p) {
-  vec_cstr_drop(&p->lines);
+  bytes_drop(&p->data);
   destroy_preview(p);
 }
 
@@ -84,8 +87,8 @@ Preview *preview_create_loading(zsview path, int height, int width) {
 }
 
 static void update_text_preview(Preview *p, Preview *u) {
-  vec_cstr_drop(&p->lines);
-  p->lines = u->lines;
+  bytes_drop(&p->data);
+  p->data = u->data;
   p->mtime = u->mtime;
   p->width = u->width;
   p->height = u->height;
@@ -115,40 +118,74 @@ static void update_image_preview(Preview *p, Preview *u) {
   destroy_preview(u);
 }
 
-// Like fgets, but seeks to the next '\n' after n characters have been read
-// Returns -1 on EOF. FILE must be locked by the calling thread
-static inline ssize_t fgets_seek(char *dest, int n, FILE *fp) {
-  int c = 0;
-  char *ptr = dest;
+static inline void data_from_stream(bytes *data, FILE *file, int max_lines) {
+  char static_buf[4096];
 
-  while (--n > 0 && (c = getc_unlocked(fp)) != EOF) {
-    if ((*ptr++ = c) == '\n') {
-      break;
+  char *buf = static_buf;
+  size_t buf_sz = sizeof static_buf;
+
+  size_t size = fread(buf, 1, buf_sz, file);
+  if (size == 0) {
+    *data = bytes_init();
+    return;
+  }
+
+  int num_lines = 0;
+  const char *last_newline = NULL;
+  for (size_t i = 0; i < size; i++) {
+    if (static_buf[i] == '\n') {
+      num_lines++;
+      last_newline = static_buf + i;
+      if (num_lines == max_lines)
+        break;
     }
   }
 
-  if (c != EOF && c != '\n') {
-    while ((c = getc_unlocked(fp)) != EOF && c != '\n')
-      ;
-  }
+  if (size == buf_sz && num_lines < max_lines) {
+    buf_sz *= 2;
+    buf = malloc(buf_sz);
+    memcpy(buf, static_buf, sizeof static_buf);
+    last_newline = buf + (last_newline - static_buf);
 
-  *ptr = 0;
-  return (c == EOF && ptr == dest) ? -1 : ptr - dest;
-}
+    // more input
+    for (;;) {
+      size_t i = size;
+      size += fread(buf + size, 1, buf_sz - size, file);
 
-// Read up to max_lines lines from a stream into a vector. Stops reading a line
-// after MAX_LINE_LENGTH bytes.
-static inline void lines_from_stream(vec_cstr *vec, FILE *file, int max_lines) {
-  flockfile(file);
-  char buf[MAX_LINE_LENGTH];
-  for (int i = 0; i < max_lines; i++) {
-    ssize_t len = fgets_seek(buf, sizeof buf, file);
-    if (len < 0) {
-      return;
+      for (; i < size; i++) {
+        if (buf[i] == '\n') {
+          num_lines++;
+          last_newline = buf + i;
+          if (num_lines == max_lines)
+            break;
+        }
+      }
+
+      if (size < buf_sz)
+        break; // no more output
+
+      if (num_lines == max_lines)
+        break;
+
+      if (size > PREVIEW_MAX_BYTES) {
+        log_error("previewer is sending too much data, stopping here");
+        // make sure we backtrack to the last newline
+        num_lines = max_lines;
+        break;
+      }
+
+      buf_sz = buf_sz * 3 / 2;
+      buf = realloc(buf, buf_sz);
     }
-    vec_cstr_push_back(vec, cstr_with_n(buf, len));
   }
-  funlockfile(file);
+
+  if (num_lines == max_lines)
+    size = last_newline - buf;
+
+  if (buf == static_buf)
+    buf = memdup(static_buf, size);
+
+  *data = (bytes){.buf = buf, .size = size};
 }
 
 // caller must pass a buffer of size PATH_MAX
@@ -180,10 +217,10 @@ static inline int gen_cache_path(zsview path, char *buf, size_t buflen) {
 Preview *preview_error(Preview *p, const char *fmt, ...) {
   va_list args;
   va_start(args, fmt);
-  vec_cstr_clear(&p->lines);
+  bytes_drop(&p->data);
   char buf[128];
   int len = vsnprintf(buf, sizeof buf - 1, fmt, args);
-  vec_cstr_push_back(&p->lines, cstr_with_n(buf, len));
+  p->data = bytes_from_n(buf, len);
   log_error("%s", buf);
   va_end(args);
   return p;
@@ -304,9 +341,12 @@ Preview *preview_read_output(Preview *p, int fd[2]) {
     return preview_error(p, "fdopen: %s", strerror(errno));
   }
 
-  lines_from_stream(&p->lines, stdout, p->height);
-  char buf[512];
-  while (fread(buf, 1, sizeof buf, stdout) > 0) {
+  data_from_stream(&p->data, stdout, p->height);
+
+  {
+    char buf[4096];
+    while (fread(buf, 1, sizeof buf, stdout) > 0) {
+    }
   }
 
   fclose(stdout);
@@ -330,8 +370,8 @@ Preview *preview_handle_exit_status(Preview *p, int status) {
       if (fp_file == NULL) {
         return preview_error(p, "fopen: ", strerror(errno));
       }
-      vec_cstr_clear(&p->lines);
-      lines_from_stream(&p->lines, fp_file, p->height);
+      bytes_drop(&p->data);
+      data_from_stream(&p->data, fp_file, p->height);
       fclose(fp_file);
     } break;
     case PREVIEW_FIX_WIDTH:
@@ -362,7 +402,7 @@ Preview *preview_handle_exit_status(Preview *p, int status) {
         if (unlikely(ncv == NULL)) {
           return preview_error(p, "ncvisual_from_file: ", strerror(errno));
         }
-        vec_cstr_drop(&p->lines);
+        bytes_drop(&p->data);
         downscale_image(ncv, p->height, p->width);
         p->ncv = ncv;
         p->draw = draw_image_preview;
@@ -376,7 +416,7 @@ Preview *preview_handle_exit_status(Preview *p, int status) {
         if (unlikely(ncv == NULL)) {
           return preview_error(p, "ncvisual_from_file: ", strerror(errno));
         }
-        vec_cstr_drop(&p->lines);
+        bytes_drop(&p->data);
         downscale_image(ncv, p->height, p->width);
         p->ncv = ncv;
         p->draw = draw_image_preview;
@@ -395,19 +435,34 @@ Preview *preview_handle_exit_status(Preview *p, int status) {
 static void draw_text_preview(const Preview *p, struct ncplane *n) {
   ncplane_erase(n);
 
+  if (bytes_is_empty(p->data))
+    return;
+
   unsigned int nrow;
   ncplane_dim_yx(n, &nrow, NULL);
-  ncplane_set_styles(n, NCSTYLE_NONE);
-  ncplane_set_fg_default(n);
-  ncplane_set_bg_default(n);
 
-  for (int i = 0; i < vec_cstr_size(&p->lines) && i < (int)nrow; i++) {
+  const char *pos = p->data.buf;
+  ssize_t remaining = p->data.size;
+
+  for (int i = 0; i < (int)nrow && remaining > 0; i++) {
     ncplane_cursor_move_yx(n, i, 0);
     ncplane_set_fg_default(n);
     ncplane_set_bg_default(n);
     ncplane_set_styles(n, NCSTYLE_NONE);
-    ncplane_putcstr_ansi(n, vec_cstr_at(&p->lines, i));
+
+    const char *end = memchr(pos, '\n', remaining);
+    if (end == NULL)
+      end = pos + remaining;
+
+    ncplane_putcs_ansi(n, c_sv(pos, end - pos));
+
+    remaining -= end - pos + 1;
+    pos = end + 1;
   }
+
+  ncplane_set_fg_default(n);
+  ncplane_set_bg_default(n);
+  ncplane_set_styles(n, NCSTYLE_NONE);
 }
 
 static void draw_image_preview(const Preview *p, struct ncplane *n) {

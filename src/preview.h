@@ -1,8 +1,8 @@
 #pragma once
 
+#include "bytes.h"
 #include "macros.h"
 #include "stc/cstr.h"
-#include "vec_cstr.h"
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -29,7 +29,7 @@ typedef struct Preview {
                   // if a reload is necessary, INT_MAX when disabled.
   uint32_t height;
   union {
-    vec_cstr lines;
+    bytes data;
     struct ncvisual *ncv;
   };
   uint64_t next;

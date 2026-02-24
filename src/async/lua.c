@@ -267,10 +267,17 @@ void async_lua_preview_worker(void *arg) {
   } else {
     // [encode, decode, res]
     int n = lua_objlen(L, -1);
+    cstr buf = cstr_init();
     for (int i = 1; i <= n; i++) {
       lua_rawgeti(L, -1, i);
-      vec_cstr_push_back(&pv->lines, lua_tocstr(L, -1));
+      cstr_append_zv(&buf, lua_tozsview(L, -1));
+      cstr_append(&buf, "\n");
       lua_pop(L, 1);
+    }
+    if (cstr_is_long(&buf)) {
+      pv->data = (bytes){buf.lon.data, .size = buf.lon.size};
+    } else {
+      pv->data = bytes_from_n(cstr_str(&buf), cstr_size(&buf));
     }
     lua_pop(L, 1); // [encode, decode]
   }

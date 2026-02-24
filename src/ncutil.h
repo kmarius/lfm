@@ -36,6 +36,10 @@ const char *ncplane_set_ansi_attrs(struct ncplane *n, const char *s);
 // attributes to n.
 int ncplane_putcs_ansi_yx(struct ncplane *n, int y, int x, csview cs);
 
+static inline int ncplane_putcs_ansi(struct ncplane *n, csview cs) {
+  return ncplane_putcs_ansi_yx(n, -1, -1, cs);
+}
+
 static inline int ncplane_putstr_ansi_yx(struct ncplane *n, int y, int x,
                                          const char *str) {
   return ncplane_putcs_ansi_yx(n, y, x, csview_from(str));
