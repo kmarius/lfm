@@ -172,6 +172,9 @@ void async_preview_load(Async *async, Preview *pv) {
 
     work->async = async;
     work->preview = pv;
+
+    // we could modify these to load extra lines, but we would need to make
+    // changes because we resize images to thexe exact dimensions
     uint32_t width = to_lfm(async)->ui.preview.x;
     uint32_t height = to_lfm(async)->ui.preview.y;
 
