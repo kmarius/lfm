@@ -38,6 +38,8 @@ static char *static_buf_ptr;
 // this includes size of elements not in the static buf, e.g. 1 for the spinner
 static int static_len = 0;
 
+char file_buf[128] = {0};
+
 static int num_placeholders = 0;
 static struct {
   char *next; // points into buf, to print whatever follows this placeholder
@@ -223,7 +225,7 @@ static inline void draw_custom(Ui *ui) {
 
   // longer file names/paths are truncated safely
   File *file = NULL;
-  char file_buf[128] = {0};
+  file_buf[0] = 0;
   int file_len = 0;
   bool file_is_dir = false;
 
