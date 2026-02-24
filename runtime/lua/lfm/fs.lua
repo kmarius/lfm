@@ -1,11 +1,23 @@
 -- https://neovim.io/doc/user/lua.html#vim.fs
 
+local lfm = lfm
+local fn = lfm.fn
+
 local dirent = require("posix.dirent")
 local stat = require("posix.sys.stat")
 local stdlib = require("posix.stdlib")
 
 local M = {}
 
+---
+---Check whether a file exists.
+---
+---```lua
+---  if fs.exists("path/to/some/file.txt") then
+---    print("file exists")
+---  end
+---```
+---
 ---@param path string
 ---@return boolean
 function M.exists(path)
@@ -13,6 +25,14 @@ function M.exists(path)
 	return stat.lstat(path) ~= nil
 end
 
+---
+---Get the absolute path of the argument. Replaces ~ and prepends PWD if necessary.
+---
+---```lua
+---  local abs = fs.abspath("path/to/some/file.txt")
+---  local abs2 = fs.abspath("~/Desktop")
+---```
+---
 ---@param path string
 ---@return string
 function M.abspath(path)
@@ -26,9 +46,16 @@ function M.abspath(path)
 	if path:sub(1, 2) == "~/" then
 		return os.getenv("HOME") .. path:sub(2)
 	end
-	return lfm.fn.getpwd() .. "/" .. path
+	return fn.getpwd() .. "/" .. path
 end
 
+---
+---Get the basename of a path.
+---
+---```lua
+---  local base = fs.basename("path/to/some/file.txt") -- "file.txt"
+---```
+---
 ---@param path? string
 ---@return string
 ---@overload fun():nil
@@ -66,7 +93,31 @@ local types = {
 }
 
 ---
----Traverse directory in level order.
+---Traverse directory tree in level order.
+---
+---```lua
+---  -- traverse only the current directory
+---  for name, ftype in fs.dir(".") do
+---    print(name, ftype)
+---  end
+---```
+---
+---```lua
+---  -- traverse 2 levels deep and follow symlinks
+---  for name, ftype in fs.dir(".", { depth = 2, follow = true }) do
+---    print(name, ftype)
+---  end
+---```
+---
+---```lua
+---  -- traverse 3 levels deep, but not into "build" directory
+---  local function skip_build(name)
+---    return name ~= "build"
+---  end
+---  for name, ftype in fs.dir(".", { depth = 3, skip = skip_build }) do
+---    print(name, ftype)
+---  end
+---```
 ---
 ---@param path string
 ---@param opts? Lfm.Fs.DirOpts
@@ -119,6 +170,13 @@ function M.dir(path, opts)
 	end)
 end
 
+---
+---Get the directory component of a path.
+---
+---```lua
+---  local dir = fs.dirname("path/to/some/file.txt") -- "path/to/some"
+---```
+---
 ---@param path string
 ---@return string
 ---@overload fun():nil
@@ -139,13 +197,30 @@ function M.dirname(path)
 end
 
 ---@class Lfm.Fs.FindOpts
----@field path? string
----@field upward? boolean
----@field stop? string
----@field type? Lfm.Fs.Type
----@field limit? number
----@field follow? boolean
+---@field path? string Starting path for the search (default: `"."`)
+---@field upward? boolean Search upwards in all parents of `path` (default: `false`)
+---@field stop? string Stop searching upwards once this directory is reached (default: `nil`)
+---@field type? Lfm.Fs.Type Limit search to a specific file type (default: `nil`)
+---@field limit? number Limit number of results (default: `1`)
+---@field follow? boolean Follow symlinks (default: `false`)
 
+---
+---Find files.
+---
+---```lua
+---  -- find the first occurrance of file.txt in the current directory tree
+---  local files = fs.find("file.txt") -- { "/path/to/PWD/some/subpath/file.txt" }
+---
+---  -- find up to 5 occurrance of file.txt or image.png in the /some/path tree
+---  local files = fs.find({ "file.txt", "image.png" }, { path = "/some/path" })
+---
+---  -- find the first occurrance of CMakeLists.txt in the parent and its parent directories
+---  local files = fs.find("CMakeLists.txt", { upward = true, stop = "/path/to/project" })
+---
+---  -- find all fifos in /run
+---  local files = fs.find(function(name, path) return true end, { path = "/run", type = "fifo" })
+---```
+---
 ---@param names (string|string[]|fun(name: string, path: string): boolean)
 ---@param opts? Lfm.Fs.FindOpts
 ---@return string[]
@@ -218,6 +293,13 @@ function M.find(names, opts)
 	return files
 end
 
+---
+---Join path components.
+---
+---```lua
+---  local path = fs.joinpath("/path/to", "some", "file.txt") -- "/path/to/some/file.txt"
+---```
+---
 ---@param ... string
 ---@return string
 function M.joinpath(...)
@@ -227,8 +309,18 @@ function M.joinpath(...)
 end
 
 ---@class Lfm.Fs.NormalizeOpts
----@field expand_env? boolean
+---@field expand_env? boolean Expand environment variables (default: `false`)
 
+---
+---Normalize a path by replacing all .., ./, ~ and returning an absolute path. Optionally replacing environment variables.
+---
+---```lua
+---  local path = fs.normalize("/path/to/some/dir/../file.txt") -- "/path/to/some/file.txt"
+---
+---  -- expand environment variables, only of the form $VAR, not ${VAR}
+---  local path = fs.normalize("$HOME/path/to/some/file.txt", { expand_env = true })
+---```
+---
 ---@param path string
 ---@param opts? Lfm.Fs.NormalizeOpts
 ---@return string
@@ -295,7 +387,16 @@ function M.normalize(path, opts)
 	return path
 end
 
----@param start string
+---
+---Iterate of all parents of a directory.
+---
+---```lua
+---  for parent in fs.parents("/path/to/some/file.txt") do
+---    print(parent) -- "/path/to/some", "/path/to", "/path", "/"
+---  end
+---```
+---
+---@param start string Absolute path to the starting point.
 ---@return function
 function M.parents(start)
 	lfm.validate("start", start, "string")
@@ -319,6 +420,13 @@ end
 ---Reserved in nvim for the future
 ---@class Lfm.Fs.RelpathOpts
 
+---
+---Get the path of `target` relative to `base`, if `base` is an ancestor.
+---
+---```lua
+---  local path = fs.relpath("/path/to", "/path/to/some/file.txt") -- "some/file.txt"
+---```
+---
 ---@param base string
 ---@param target string
 ---@param opts? Lfm.Fs.RelpathOpts
@@ -351,6 +459,17 @@ end
 ---@field recursive? boolean
 ---@field force? boolean
 
+---
+---Remove a path (spawns `rm`).
+---
+---```lua
+---  fs.rm("/path/to/some/file.txt")
+---```
+---
+---```lua
+---  fs.rm("/path/to/some", { recursive = true, force = true })
+---```
+---
 ---@param path string
 ---@param opts? Lfm.Fs.RmOpts
 function M.rm(path, opts)
@@ -367,11 +486,33 @@ function M.rm(path, opts)
 	if opts.force then
 		table.insert(cmd, "-f")
 	end
+	table.insert(cmd, "--")
+	table.insert(cmd, path)
 
 	lfm.spawn(cmd, { on_stderr = true })
 end
 
----@param source string
+---
+---Find the root of some subtree using a marker file.
+---
+---```lua
+---  -- finds the parent that contains CMakeLists.txt
+---  local root = fs.root(".", "CMakeLists.txt")
+---```
+---
+---```lua
+---  -- multiple files
+---  local root = fs.root(".", { "CMakeLists.txt", "compile_commands.json" })
+---```
+---
+---```lua
+---  -- using a function
+---  local root = fs.root(".", function(name)
+---    return name:match("^marker.*%.txt$")
+---  end)
+---```
+---
+---@param source string Starting point of the search
 ---@param marker (string|string[]|fun(name: string, path: string): boolean)
 ---@return string?
 function M.root(source, marker)
@@ -405,6 +546,13 @@ function M.root(source, marker)
 	end
 end
 
+---
+---Resolve all symlinks in a given path.
+---
+---```lua
+---  local path = fs.realpath("/path/with/symlinks")
+---```
+---
 ---@param path string
 ---@return string
 ---@return string? err
@@ -413,20 +561,26 @@ function M.realpath(path)
 	return res, err
 end
 
----@param file string
----@return string name
----@return string? extension
+---
+---Split a file name into its prefix and extension.
+---
+---```lua
+---  local stem, ext = fs.split_ext("file.txt") -- "file", ".txt"
+---```
+---
+---@param path string
+---@return string stem
+---@return string extension
 ---@overload fun(path: nil): nil
-function M.split_ext(file)
-	if not file then
+function M.split_ext(path)
+	if not path then
 		return nil
 	end
-	local i, j = file:find("%.[^.]*$")
-	if not i or i == 1 then
-		return file
-	else
-		return file:sub(1, i - 1), file:sub(i + 1, j)
+	local pos = path:find("[^/]%.[^./]*$")
+	if not pos then
+		return path, ""
 	end
+	return path:sub(1, pos), path:sub(pos + 1)
 end
 
 return M
