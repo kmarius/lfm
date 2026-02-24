@@ -18,36 +18,36 @@ static inline void normal(struct ncplane *n) {
   ncplane_set_bg_default(n);
 }
 
-static inline bool parse_number(const char **s, const char *end, int *num) {
-  const char *p = *s;
+static inline bool parse_number(const char **str, const char *end, int *num) {
+  const char *ptr = *str;
   int acc = 0;
 
-  if ((*p != '[' && *p != ';') || unlikely(p + 1 >= end) || !isdigit(*++p))
+  if (unlikely((*ptr != '[' && *ptr != ';') || ptr + 1 >= end ||
+               !isdigit(*++ptr)))
     return false;
 
-  while (likely(p < end) && isdigit(*p)) {
-    acc = acc * 10 + *p - '0';
-    p++;
-  }
-  *s = p;
+  for (; likely(ptr < end) && isdigit(*ptr); ptr++)
+    acc = acc * 10 + *ptr - '0';
+
+  *str = ptr;
   *num = acc;
 
   return true;
 }
 
-const char *ncplane_set_ansi_attrs(struct ncplane *n, const char *s,
+const char *ncplane_set_ansi_attrs(struct ncplane *n, const char *str,
                                    const char *end) {
-  assert(*s == '\033');
-  s++;
+  assert(*str == '\033');
+  str++;
 
-  if (s < end && *(s + 1) == 'm') {
+  if (str < end && *(str + 1) == 'm') {
     normal(n);
-    return s + 2;
+    return str + 2;
   }
 
   int num;
-  while (s < end && *s != 'm') {
-    if (!parse_number(&s, end, &num)) {
+  while (str < end && *str != 'm') {
+    if (!parse_number(&str, end, &num)) {
       goto err;
     }
 
@@ -98,21 +98,21 @@ const char *ncplane_set_ansi_attrs(struct ncplane *n, const char *s,
         break;
       case 38: {
         int op;
-        if (!parse_number(&s, end, &op)) {
+        if (!parse_number(&str, end, &op)) {
           goto err;
         }
         switch (op) {
         case 5: {
           int p;
-          if (!parse_number(&s, end, &p)) {
+          if (!parse_number(&str, end, &p)) {
             goto err;
           }
           ncplane_set_fg_palindex(n, p);
         } break;
         case 2: {
           int r, g, b;
-          if (!parse_number(&s, end, &r) || !parse_number(&s, end, &g) ||
-              !parse_number(&s, end, &b)) {
+          if (!parse_number(&str, end, &r) || !parse_number(&str, end, &g) ||
+              !parse_number(&str, end, &b)) {
             goto err;
           }
           ncplane_set_fg_rgb8(n, r, g, b);
@@ -126,21 +126,21 @@ const char *ncplane_set_ansi_attrs(struct ncplane *n, const char *s,
         break;
       case 48: {
         int op;
-        if (!parse_number(&s, end, &op)) {
+        if (!parse_number(&str, end, &op)) {
           goto err;
         }
         switch (op) {
         case 5: {
           int p;
-          if (!parse_number(&s, end, &p)) {
+          if (!parse_number(&str, end, &p)) {
             goto err;
           }
           ncplane_set_bg_palindex(n, p);
         } break;
         case 2: {
           int r, g, b;
-          if (!parse_number(&s, end, &r) || !parse_number(&s, end, &g) ||
-              !parse_number(&s, end, &b)) {
+          if (!parse_number(&str, end, &r) || !parse_number(&str, end, &g) ||
+              !parse_number(&str, end, &b)) {
             goto err;
           }
           ncplane_set_bg_rgb8(n, r, g, b);
@@ -156,12 +156,11 @@ const char *ncplane_set_ansi_attrs(struct ncplane *n, const char *s,
     }
   }
 
-  if (!*s) {
+  if (!*str)
     goto err;
-  }
 
 ret:
-  return s + 1;
+  return str + 1;
 
 err:
   normal(n);
@@ -223,19 +222,20 @@ int ncplane_putlcs_ansi_yx(struct ncplane *n, int y, int x, size_t s,
   return ret;
 }
 
-size_t ansi_mblen(const char *s) {
+size_t ansi_mblen(const char *ptr) {
+  const char *end = ptr + strlen(ptr);
   size_t len = 0;
-  while (*s) {
-    if (*s == '\033') {
-      while (*s && *s != 'm') {
-        s++;
-      }
-      if (*s == 'm') {
-        s++;
-      }
+  while (ptr < end) {
+    if (*ptr == '\033') {
+      while (ptr < end && *ptr != 'm')
+        ptr++;
+      if (ptr < end)
+        ptr++; // skip 'm'
     } else {
-      int l = mbtowc(NULL, s, MB_LEN_MAX);
-      s += l;
+      int l = mbtowc(NULL, ptr, end - ptr);
+      if (l < 0)
+        return len;
+      ptr += l;
       len++;
     }
   }

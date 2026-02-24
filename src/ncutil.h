@@ -96,4 +96,4 @@ static inline void ncplane_putchar_rep(struct ncplane *n, char c, int rep) {
 }
 
 // Returns the size of the string in wide chars with ansi codes removed.
-size_t ansi_mblen(const char *s);
+size_t ansi_mblen(const char *ptr);
