@@ -170,18 +170,19 @@ err:
   goto ret;
 }
 
-int ncplane_putcs_ansi_yx(struct ncplane *n, int y, int x, csview cs) {
+int ncplane_putnstr_ansi_yx(struct ncplane *n, int y, int x, size_t s,
+                            const char *gclusters) {
   int ret = 0;
   ncplane_cursor_move_yx(n, y, x);
-  const char *ptr = cs.buf;
-  const char *end = cs.buf + cs.size;
+  const char *ptr = gclusters;
+  const char *end = gclusters + s;
   while (ptr < end) {
     if (*ptr == '\033') {
       ptr = ncplane_set_ansi_attrs(n, ptr, end);
     } else {
       const char *cur;
-      for (cur = ptr; ptr < end && *ptr != '\033'; ptr++)
-        ;
+      for (cur = ptr; ptr < end && *ptr != '\033'; ptr++) {
+      }
       int m = ncplane_putnstr(n, ptr - cur, cur);
       if (m < 0) {
         // EOL/error

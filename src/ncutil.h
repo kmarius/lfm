@@ -20,34 +20,54 @@
   ((NCCHANNEL_INITIALIZER_PALINDEX(fg) << 32lu) |                              \
    NCCHANNEL_INITIALIZER_PALINDEX(bg))
 
-static inline int ncplane_putzv(struct ncplane *n, zsview cv) {
-  return ncplane_putstr(n, cv.str);
-}
-
-static inline int ncplane_putcstr(struct ncplane *n, const cstr *str) {
-  return ncplane_putstr(n, cstr_str(str));
-}
-
 // Consumes the ansi escape sequence pointed to by s setting the attributes to
 // n. Returns a pointer to the char after the sequence.
 const char *ncplane_set_ansi_attrs(struct ncplane *n, const char *s,
                                    const char *end);
 
+static inline int ncplane_putzv(struct ncplane *n, zsview zv) {
+  return ncplane_putnstr(n, zv.size, zv.str);
+}
+
+static inline int ncplane_putcstr(struct ncplane *n, const cstr *str) {
+  return ncplane_putzv(n, cstr_zv(str));
+}
+
 // Adds a string to n, interpreting ansi escape sequences and setting the
 // attributes to n.
-int ncplane_putcs_ansi_yx(struct ncplane *n, int y, int x, csview cs);
+int ncplane_putnstr_ansi_yx(struct ncplane *n, int y, int x, size_t s,
+                            const char *gclusters);
+
+static inline int ncplane_putnstr_ansi(struct ncplane *n, size_t s,
+                                       const char *gclusters) {
+  return ncplane_putnstr_ansi_yx(n, -1, -1, s, gclusters);
+}
+
+static inline int ncplane_putstr_ansi_yx(struct ncplane *n, int y, int x,
+                                         const char *str) {
+  return ncplane_putnstr_ansi_yx(n, y, x, strlen(str), str);
+}
+
+static inline int ncplane_putstr_ansi(struct ncplane *n, const char *str) {
+  return ncplane_putstr_ansi_yx(n, -1, -1, str);
+}
+
+static inline int ncplane_putcs_ansi_yx(struct ncplane *n, int y, int x,
+                                        csview cs) {
+  return ncplane_putnstr_ansi_yx(n, y, x, cs.size, cs.buf);
+}
 
 static inline int ncplane_putcs_ansi(struct ncplane *n, csview cs) {
   return ncplane_putcs_ansi_yx(n, -1, -1, cs);
 }
 
-static inline int ncplane_putstr_ansi_yx(struct ncplane *n, int y, int x,
-                                         const char *str) {
-  return ncplane_putcs_ansi_yx(n, y, x, csview_from(str));
+static inline int ncplane_putzv_ansi_yx(struct ncplane *n, int y, int x,
+                                        zsview zs) {
+  return ncplane_putnstr_ansi_yx(n, y, x, zs.size, zs.str);
 }
 
-static inline int ncplane_putstr_ansi(struct ncplane *n, const char *str) {
-  return ncplane_putstr_ansi_yx(n, -1, -1, str);
+static inline int ncplane_putzv_ansi(struct ncplane *n, zsview zv) {
+  return ncplane_putzv_ansi_yx(n, -1, -1, zv);
 }
 
 static inline int ncplane_putcstr_ansi_yx(struct ncplane *n, int y, int x,
