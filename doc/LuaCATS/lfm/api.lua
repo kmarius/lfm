@@ -542,11 +542,11 @@ function lfm.api.get_flatten_level() end
 ---
 ---Example:
 ---```lua
----  lfm.api.fm_sort({ type = "ctime", dirfirst = true, reverse = false })
+---  lfm.api.sort({ type = "ctime", dirfirst = true, reverse = false })
 ---```
 ---
 ---@param opts Lfm.SortOpts
-function lfm.api.fm_sort(opts) end
+function lfm.api.sort(opts) end
 
 ---
 ---Get the info setting for the current directory.
@@ -565,12 +565,12 @@ function lfm.api.fm_get_info() end
 ---
 ---Example:
 ---```lua
----  lfm.api.fm_set_info("ctime")
+---  lfm.api.set_info("ctime")
 ---```
 ---
 ---@param info Lfm.Info
 ---@return Lfm.Info info
-function lfm.api.fm_set_info(info) end
+function lfm.api.set_info(info) end
 
 ---
 ---Change directory to the parent of the current directory, unless in "/".
