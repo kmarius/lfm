@@ -5,10 +5,13 @@ local lfm = lfm
 ---@alias Char string
 ---@alias Path string
 
+local stdio = require("posix.stdio")
+
 local fn = lfm.fn
+local fs = lfm.fs
 
 ---Path to quickmarks file
-M.path = lfm.paths.state_dir .. "/quickmarks.lua"
+M.path = fs.joinpath(lfm.paths.state_dir, "quickmarks.lua")
 
 local marks = {}
 
@@ -53,7 +56,8 @@ local escape = {
 
 ---Writes currently set quickmarks to disk.
 local function write_to_file()
-	local file = assert(io.open(M.path, "w"))
+	local tmp_path = fs.joinpath(fs.dirname(M.path), "." .. fs.basename(os.tmpname()))
+	local file = assert(io.open(tmp_path, "w"))
 	file:write("return {\n")
 	for char, loc in pairs(marks) do
 		char = escape[char] or char
@@ -61,6 +65,7 @@ local function write_to_file()
 	end
 	file:write("}\n")
 	file:close()
+	stdio.rename(tmp_path, M.path)
 end
 
 ---
