@@ -8,10 +8,6 @@ local stat = require("posix.sys.stat")
 local unistd = require("posix.unistd")
 local fs = require("lfm.fs")
 
-local function file_exists(path)
-	return stat.stat(path) ~= nil
-end
-
 ---
 ---Copy a string to the clipboard.
 ---
@@ -26,11 +22,11 @@ end
 ---@param text string|string[]
 ---@param primary boolean
 local function wl_copy(text, primary)
+	local cmd = { "wl-copy", "-n" }
 	if primary then
-		lfm.spawn({ "wl-copy", "-n", "--primary" }, { stdin = text, on_stderr = true })
-	else
-		lfm.spawn({ "wl-copy", "-n" }, { stdin = text, on_stderr = true })
+		table.insert(cmd, "--primary")
 	end
+	lfm.spawn(cmd, { stdin = text, on_stderr = true })
 end
 
 ---
@@ -78,11 +74,10 @@ end
 function M.rename(name)
 	local file = api.current_file()
 	if file then
-		if not file_exists(name) then
-			lfm.spawn({ "mv", "--", file, name }, { on_stderr = true })
-		else
-			lfm.error("file exists")
+		if fs.exists(name) then
+			error("file exists")
 		end
+		lfm.spawn({ "mv", "--", file, name }, { on_stderr = true })
 	end
 end
 
@@ -97,13 +92,8 @@ function M.rename_until_ext()
 	local file = fs.basename(api.current_file())
 	if file then
 		local _, ext = fs.split_ext(file)
-		if not ext then
-			lfm.api.mode("command")
-			lfm.api.cmdline_line_set("rename ", "")
-		else
-			lfm.api.mode("command")
-			lfm.api.cmdline_line_set("rename ", "." .. ext)
-		end
+		api.mode("command")
+		api.cmdline_line_set("rename ", ext)
 	end
 end
 
@@ -118,14 +108,9 @@ end
 function M.rename_before_ext()
 	local file = fs.basename(api.current_file())
 	if file then
-		local name, ext = fs.split_ext(file)
-		if not ext then
-			lfm.api.mode("command")
-			lfm.api.cmdline_line_set("rename " .. file, "")
-		else
-			lfm.api.mode("command")
-			lfm.api.cmdline_line_set("rename " .. name, "." .. ext)
-		end
+		local stem, ext = fs.split_ext(file)
+		api.mode("command")
+		api.cmdline_line_set("rename " .. stem, ext)
 	end
 end
 
@@ -138,7 +123,7 @@ end
 ---```
 ---
 function M.rename_before()
-	lfm.api.mode("command")
+	api.mode("command")
 	api.cmdline_line_set("rename ", fs.basename(api.current_file()))
 end
 
@@ -151,7 +136,7 @@ end
 ---```
 ---
 function M.rename_after()
-	lfm.api.mode("command")
+	api.mode("command")
 	api.cmdline_line_set("rename " .. fs.basename(api.current_file()), "")
 end
 
@@ -306,8 +291,8 @@ end
 ---```
 ---
 function M.toggle_paste()
-	local mode = lfm.api.fm_paste_mode_get()
-	lfm.api.fm_paste_mode_set(mode == "copy" and "move" or "copy")
+	local mode = api.fm_paste_mode_get()
+	api.fm_paste_mode_set(mode == "copy" and "move" or "copy")
 end
 
 ---
