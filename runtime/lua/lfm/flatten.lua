@@ -42,7 +42,7 @@ end
 ---
 function M.increment()
 	if api.get_flatten_level() == 0 then
-		api.fm_sort({ dirfirst = false })
+		api.sort({ dirfirst = false })
 	end
 	M.flatten("+")
 end
@@ -59,7 +59,7 @@ end
 function M.decrement()
 	M.flatten("-")
 	if api.get_flatten_level() == 0 then
-		api.fm_sort({ dirfirst = true })
+		api.sort({ dirfirst = true })
 	end
 end
 
