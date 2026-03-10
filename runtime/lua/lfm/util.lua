@@ -2,8 +2,6 @@ local M = { _NAME = ... }
 
 local lfm = lfm
 
-local eval = lfm.eval
-
 ---
 ---Create a shallow copy of a table.
 ---
@@ -38,7 +36,7 @@ end
 ---@return function function
 function M.expr(line)
 	return function()
-		eval(line)
+		lfm.eval(line)
 	end
 end
 
