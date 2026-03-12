@@ -226,6 +226,9 @@ void lfm_lua_init_thread(lua_State *L) {
   luaopen_fn(L);
   lua_setfield(L, -2, "fn");
 
+  lua_pushvalue(L, -1);
+  lua_setglobal(L, "lfm");
+
   for (size_t i = 0; i < ARRAY_SIZE(builtin_modules); i++) {
     ModuleDef def = builtin_modules[i];
     if (streq(def.name, "lfm.fs")) {
@@ -243,8 +246,6 @@ void lfm_lua_init_thread(lua_State *L) {
       break;
     }
   }
-
-  lua_setglobal(L, "lfm");
 
   if (luaL_dostring(L, "lfm.validate = function() end")) {
     log_error("%s", lua_tostring(L, -1));
