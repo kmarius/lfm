@@ -54,4 +54,5 @@
 ---@field inotify_delay number Small delay in milliseconds before reloads are triggered by inotify.
 ---@field tags boolean Enable directory tags.
 ---@field mapleader string Mapleader, first (multibyte) character only, use <leader> in mappings
+---@field extra_env table<string, string> Extra environment variables, passed to processes in spawn and execute.
 lfm.o = {}

@@ -1,7 +1,9 @@
 #include "../path.h"
+#include "../pwd.h"
 #include "../tokenize.h"
 #include "lua.h"
 #include "private.h"
+#include "util.h"
 
 #include <lauxlib.h>
 
@@ -126,14 +128,15 @@ static int l_fn_getpid(lua_State *L) {
 }
 
 static int l_fn_getcwd(lua_State *L) {
-  const char buf[PATH_MAX + 1];
-  const char *cwd = getcwd((char *)buf, sizeof buf - 1);
+  char buf[PATH_MAX + 1];
+  const char *cwd = getcwd(buf, sizeof buf - 1);
   lua_pushstring(L, cwd ? cwd : "");
   return 1;
 }
 
 static int l_fn_getpwd(lua_State *L) {
-  lua_pushcstr(L, fm_getpwd(fm));
+  lua_pushzsview(L, getpwd_zv_manual_unlock());
+  getpwd_unlock();
   return 1;
 }
 

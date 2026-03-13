@@ -48,7 +48,8 @@ lfm = {}
 
 -- Preloaded modules:
 
-lfm.compl = require("lfm.compl")
+lfm.api = require("lfm.api")
+lfm.complete = require("lfm.complete")
 lfm.fs = require("lfm.fs")
 lfm.functions = require("lfm.functions")
 lfm.inspect = require("lfm.inspect")
@@ -123,6 +124,8 @@ lfm.version = {}
 ---```lua
 ---  local res, err = lfm.execute({ cmd, args }, { env = { SOME_VAR = "value" } })
 ---```
+---Note that you can add environment variables to `lfm.o.extra_env` that will
+---passed to every spawned and executed process, but can be overridden via the env parameter.
 ---
 ---@param command string[]
 ---@param opts? Lfm.ExecuteOpts
@@ -245,6 +248,8 @@ function proc:close() end
 ---```lua
 ---  local proc, err = lfm.spawn({ cmd, args }, { env = { SOME_VAR = "value" } })
 ---```
+---Note that you can add environment variables to `lfm.o.extra_env` that will
+---passed to every spawned and executed process, but can be overridden via the env parameter.
 ---
 ---@param command string[]
 ---@param opts? Lfm.SpawnOpts

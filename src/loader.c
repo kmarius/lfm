@@ -226,8 +226,7 @@ Dir *loader_dir_from_path(Loader *loader, zsview path, bool do_load) {
 Preview *loader_preview_from_path(Loader *loader, zsview path, bool do_load) {
   char fullpath[PATH_MAX + 1];
   if (path_is_relative(path.str)) {
-    int len =
-        snprintf(fullpath, sizeof fullpath, "%s/%s", getenv("PWD"), path.str);
+    int len = path_make_absolute(path, fullpath, sizeof fullpath);
     path.str = fullpath;
     path.size = len;
   }

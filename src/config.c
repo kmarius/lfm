@@ -126,6 +126,7 @@ void config_init(void) {
 
 void config_deinit(void) {
   config_colors_clear();
+  vec_env_drop(&cfg.extra_env);
   hmap_channel_drop(&cfg.colors.color_map);
   hmap_icon_drop(&cfg.icon_map);
   hmap_dirsetting_drop(&cfg.dir_settings_map);

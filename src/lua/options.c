@@ -195,6 +195,14 @@ static int l_config_index(lua_State *L) {
   } else if (streq(key, "mapleader")) {
     lua_pushstring(L, input_to_key_name(cfg.mapleader, NULL));
     return 1;
+  } else if (streq(key, "extra_env")) {
+    size_t len = vec_env_size(&cfg.extra_env);
+    lua_createtable(L, 0, len);
+    c_foreach(it, vec_env, cfg.extra_env) {
+      lua_pushstring(L, it.ref->val);
+      lua_setfield(L, -2, it.ref->key);
+    }
+    return 1;
   } else {
     luaL_error(L, "unexpected key %s", key);
   }
@@ -376,6 +384,13 @@ static int l_config_newindex(lua_State *L) {
       return luaL_error(L, "invalid key");
     }
     cfg.mapleader = key;
+  } else if (streq(key, "extra_env")) {
+    vec_env_clear(&cfg.extra_env);
+    for (lua_pushnil(L); lua_next(L, -2) != 0; lua_pop(L, 1)) {
+      vec_env_push_back(
+          &cfg.extra_env,
+          (struct env_entry){lua_tostrdup(L, -2), lua_tostrdup(L, -1)});
+    }
   } else {
     return luaL_error(L, "unexpected key %s", key);
   }

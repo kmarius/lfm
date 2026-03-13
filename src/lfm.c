@@ -13,6 +13,7 @@
 #include "mode.h"
 #include "notify.h"
 #include "profiling.h"
+#include "pwd.h"
 #include "stc/common.h"
 #include "stc/cstr.h"
 #include "ui.h"
@@ -296,6 +297,8 @@ void lfm_init(Lfm *lfm, struct lfm_opts *opts) {
   memset(lfm, 0, sizeof *lfm);
   lfm->opts = *opts;
 
+  setpwd(getenv("PWD"));
+
   init_loop(lfm);
   init_dirs(lfm);
   fifo_init(lfm);
@@ -433,6 +436,11 @@ int lfm_spawn(Lfm *lfm, const char *prog, char *const *args, vec_env *env,
 
   if (pid == 0) {
     // child
+
+    c_foreach(n, vec_env, cfg.extra_env) {
+      vec_env_raw v = vec_env_value_toraw(n.ref);
+      setenv(v.key, v.val, 1);
+    }
 
     if (env) {
       c_foreach(n, vec_env, *env) {
@@ -578,6 +586,11 @@ int lfm_execute(Lfm *lfm, const char *prog, char *const *args, vec_env *env,
 
   if (pid == 0) {
     // child
+
+    c_foreach(n, vec_env, cfg.extra_env) {
+      vec_env_raw v = vec_env_value_toraw(n.ref);
+      setenv(v.key, v.val, 1);
+    }
 
     if (env) {
       c_foreach(n, vec_env, *env) {

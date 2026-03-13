@@ -4,6 +4,7 @@
 #include "dir.h"
 #include "keys.h"
 #include "vec_cstr.h"
+#include "vec_env.h"
 #include "vec_int.h"
 
 #include <stdbool.h>
@@ -82,6 +83,8 @@ typedef struct config {
 
   struct dir_settings dir_settings; // default dir_settings
   hmap_dirsetting dir_settings_map; // path -> dir_settings
+
+  vec_env extra_env; // environment overrides for forked processes
 
   struct colors {
     hmap_channel color_map; // char* -> uint64

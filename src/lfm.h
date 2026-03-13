@@ -7,6 +7,7 @@
 #include "mode.h"
 #include "notify.h"
 #include "ui.h"
+#include "vec_env.h"
 #include "vec_int.h"
 #include "vec_zsview.h"
 

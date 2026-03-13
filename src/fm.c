@@ -11,6 +11,7 @@
 #include "notify.h"
 #include "path.h"
 #include "pathlist.h"
+#include "pwd.h"
 #include "stcutil.h"
 #include "util.h"
 
@@ -21,7 +22,6 @@
 #include <ev.h>
 #include <stdint.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include <libgen.h>
@@ -56,17 +56,9 @@ void fm_init(Fm *fm, struct lfm_opts *opts) {
   }
 
   if (cstr_is_empty(&fm->pwd)) {
-    zsview pwd = getenv_zv("PWD");
-    if (zsview_is_empty(pwd)) {
-      char cwd[PATH_MAX + 1];
-      if (getcwd(cwd, sizeof cwd) == NULL) {
-        perror("getcwd");
-        _exit(1);
-      }
-      fm->pwd = cstr_from(cwd);
-    } else {
-      fm->pwd = cstr_from_zv(pwd);
-    }
+    zsview pwd = getpwd_zv_manual_unlock();
+    fm->pwd = cstr_from_zv(pwd);
+    getpwd_unlock();
   }
 
   int max = vec_int_size(&cfg.ratios);
@@ -149,8 +141,11 @@ static inline bool fm_chdir_impl(Fm *fm, zsview path, bool save, bool hook,
                                  bool async) {
   char buf[PATH_MAX + 1];
   if (path_is_relative(path.str)) {
-    // TODO: is there a reason why we don't use fm->pwd? 2025-05-21
-    int len = snprintf(buf, sizeof buf, "%s/%s", getenv("PWD"), path.str);
+    ssize_t len = path_make_absolute(path, buf, sizeof buf);
+    if (len < 0) {
+      lfm_errorf(to_lfm(fm), "path too long: %s", path.str);
+      return false;
+    }
     path = zsview_from_n(buf, len);
   }
 
@@ -158,7 +153,7 @@ static inline bool fm_chdir_impl(Fm *fm, zsview path, bool save, bool hook,
     async_chdir(&to_lfm(fm)->async, path.str, hook);
   } else {
     if (chdir(path.str) == 0) {
-      setenv("PWD", path.str, true);
+      setpwd(path.str);
     } else {
       lfm_errorf(to_lfm(fm), "chdir: %s", strerror(errno));
       return false;

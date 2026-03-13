@@ -1,5 +1,6 @@
 #include "path.h"
 
+#include "pwd.h"
 #include "stc/cstr.h"
 #include "stcutil.h"
 #include "util.h"
@@ -8,7 +9,9 @@
 
 #include <libgen.h>
 #include <linux/limits.h>
+#include <stdio.h>
 #include <string.h>
+#include <sys/types.h>
 
 zsview path_parent_zv(zsview path) {
   if (zsview_is_empty(path) || path_is_root_zv(path)) {
@@ -86,7 +89,7 @@ cstr path_replace_tilde(zsview path) {
 // replace /./
 // replace /../ and kill one component to the left
 static inline char *path_clean(char *const path, size_t len_in,
-                               size_t *len_out) {
+                               ssize_t *len_out) {
   char *p = path; // read position
   char *q = path; // write position
   const char *end = path + len_in;
@@ -125,7 +128,7 @@ static inline char *path_clean(char *const path, size_t len_in,
 }
 
 zsview path_normalize3(zsview path, const char *pwd, char *buf, size_t bufsz) {
-  size_t len = 0;
+  ssize_t len = 0;
 
   if (zsview_eq(&path, &c_zv("~"))) {
     zsview home = getenv_zv("HOME");
@@ -150,15 +153,21 @@ zsview path_normalize3(zsview path, const char *pwd, char *buf, size_t bufsz) {
     // this increases the length
 
     if (!pwd) {
-      pwd = getenv("PWD");
-    }
-    len = strlen(pwd);
-    if ((size_t)len + path.size + 1 > bufsz) {
-      // too long, abort
-      return c_zv("");
+      len = getpwd_buf(buf, bufsz);
+      if (len < 0 || len + path.size + 1 > (ssize_t)bufsz) {
+        // too long, abort
+        return c_zv("");
+      }
+    } else {
+      len = strlen(pwd);
+      if ((size_t)len + path.size + 1 > bufsz) {
+        // too long, abort
+        return c_zv("");
+      }
+
+      memcpy(buf, pwd, len);
     }
 
-    memcpy(buf, pwd, len);
     buf[len] = '/';
     memcpy(buf + len + 1, path.str, path.size + 1); // includes nul
     len += path.size + 1;
@@ -175,4 +184,16 @@ zsview path_normalize3(zsview path, const char *pwd, char *buf, size_t bufsz) {
   }
   path_clean(buf, len, &len);
   return zsview_from_n(buf, len);
+}
+
+ssize_t path_make_absolute(zsview path, char *buf, size_t bufsz) {
+  ssize_t len = getpwd_buf(buf, bufsz);
+  if (len < 0 || len + 1 + path.size + 1 > (ssize_t)bufsz) {
+    // buffer too small
+    return -1;
+  }
+  buf[len++] = '/';
+  memcpy(buf + len, path.str, path.size + 1); // includes nul
+  path = zsview_from_n(buf, len);
+  return len + path.size;
 }
