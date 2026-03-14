@@ -1,4 +1,4 @@
-#include "../config.h"
+#include "config.h"
 #include "private.h"
 
 #include <lauxlib.h>

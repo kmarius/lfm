@@ -1,10 +1,10 @@
 #pragma once
 
-#include "../bytes.h"
-#include "../stcutil.h"
-#include "../vec_bytes.h"
-#include "../vec_cstr.h"
-#include "../vec_str.h"
+#include "stcutil.h"
+#include "types/bytes.h"
+#include "types/vec_bytes.h"
+#include "types/vec_cstr.h"
+#include "types/vec_str.h"
 
 #include <lauxlib.h>
 #include <lua.h>

@@ -1,12 +1,13 @@
 #include "lfm.h"
 
-#include "../config.h"
-#include "../macros.h"
-#include "../mode.h"
-#include "../search.h"
-#include "../vec_env.h"
 #include "auto/versiondef.h"
+#include "config.h"
+#include "lfmlib.h"
+#include "macros.h"
+#include "mode.h"
 #include "private.h"
+#include "search.h"
+#include "types/vec_env.h"
 #include "util.h"
 
 #include <lauxlib.h>

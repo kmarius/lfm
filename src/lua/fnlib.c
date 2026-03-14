@@ -1,11 +1,11 @@
-#include "../path.h"
-#include "../pwd.h"
-#include "../tokenize.h"
-#include "lua.h"
+#include "getpwd.h"
+#include "path.h"
 #include "private.h"
+#include "tokenize.h"
 #include "util.h"
 
 #include <lauxlib.h>
+#include <lua.h>
 
 #include <linux/limits.h>
 #include <unistd.h>

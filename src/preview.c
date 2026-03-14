@@ -1,6 +1,5 @@
 #include "preview.h"
 
-#include "bytes.h"
 #include "cdims.h"
 #include "config.h"
 #include "log.h"
@@ -8,6 +7,7 @@
 #include "memory.h"
 #include "ncutil.h"
 #include "sha256.h"
+#include "types/bytes.h"
 #include "util.h"
 #include <asm-generic/errno-base.h>
 #include <semaphore.h>

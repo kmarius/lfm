@@ -1,11 +1,11 @@
-#include "../config.h"
-#include "../infoline.h"
-#include "../ncutil.h"
-#include "../path.h"
-#include "../stc/cstr.h"
-#include "../tpool.h"
+#include "config.h"
+#include "infoline.h"
 #include "lua.h"
+#include "ncutil.h"
+#include "path.h"
 #include "private.h"
+#include "stc/cstr.h"
+#include "tpool.h"
 #include "util.h"
 
 #include <lauxlib.h>

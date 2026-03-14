@@ -1,8 +1,8 @@
 #pragma once
 
-#include "bytes.h"
 #include "macros.h"
 #include "stc/cstr.h"
+#include "types/bytes.h"
 
 #include <stdbool.h>
 #include <stdint.h>

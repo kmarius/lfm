@@ -1,5 +1,5 @@
-#include "../log.h"
-#include "../config.h"
+#include "config.h"
+#include "log.h"
 #include "private.h"
 
 #include <lauxlib.h>

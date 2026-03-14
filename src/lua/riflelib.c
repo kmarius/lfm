@@ -1,10 +1,10 @@
-#include "../log.h"
-#include "../path.h"
 #include "../util.h"
-
-#include "../stc/cstr.h"
-#include "../stc/zsview.h"
+#include "log.h"
+#include "path.h"
 #include "util.h"
+
+#include "stc/cstr.h"
+#include "stc/zsview.h"
 
 #include <lauxlib.h>
 #include <lua.h>

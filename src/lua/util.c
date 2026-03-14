@@ -1,10 +1,22 @@
 #include "util.h"
 
-#include "../config.h"
+#include "config.h"
 
 #include <lua.h>
 
 #include <linux/limits.h>
+#include <stdatomic.h>
+#include <stdint.h>
+
+// to use from lua via ffi
+
+int atomic_fetch_sub_(_Atomic int *atomic, int val) {
+  return atomic_fetch_sub(atomic, val);
+}
+
+int atomic_fetch_add_(_Atomic int *atomic, int val) {
+  return atomic_fetch_add(atomic, val);
+}
 
 void set_package_path(lua_State *L) {
   lua_getglobal(L, "package");

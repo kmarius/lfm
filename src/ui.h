@@ -3,7 +3,7 @@
 #include "cmdline.h"
 #include "preview.h"
 #include "trie.h"
-#include "vec_cstr.h"
+#include "types/vec_cstr.h"
 
 #include <ev.h>
 #include <notcurses/notcurses.h>

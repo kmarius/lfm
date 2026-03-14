@@ -1,11 +1,11 @@
 #pragma once
 
-#include "bytes.h"
 #include "dir.h"
 #include "keys.h"
-#include "vec_cstr.h"
-#include "vec_env.h"
-#include "vec_int.h"
+#include "types/bytes.h"
+#include "types/vec_cstr.h"
+#include "types/vec_env.h"
+#include "types/vec_int.h"
 
 #include <stdbool.h>
 #include <stdint.h>

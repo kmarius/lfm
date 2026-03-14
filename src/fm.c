@@ -3,6 +3,7 @@
 #include "async/async.h"
 #include "config.h"
 #include "dir.h"
+#include "getpwd.h"
 #include "hooks.h"
 #include "lfm.h"
 #include "loader.h"
@@ -11,7 +12,6 @@
 #include "notify.h"
 #include "path.h"
 #include "pathlist.h"
-#include "pwd.h"
 #include "stcutil.h"
 #include "util.h"
 

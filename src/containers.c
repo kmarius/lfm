@@ -2,21 +2,21 @@
 #include "stc/cstr.h"
 
 #define i_implement
-#include "vec_cstr.h"
+#include "types/vec_cstr.h"
 
 #include "stc/zsview.h"
 #define i_implement
-#include "vec_zsview.h"
+#include "types/vec_zsview.h"
 
-#include "bytes.h"
+#include "types/bytes.h"
 #define i_implement
-#include "vec_bytes.h"
-
-#define i_implement
-#include "vec_env.h"
+#include "types/vec_bytes.h"
 
 #define i_implement
-#include "vec_int.h"
+#include "types/vec_env.h"
 
 #define i_implement
-#include "vec_str.h"
+#include "types/vec_int.h"
+
+#define i_implement
+#include "types/vec_str.h"

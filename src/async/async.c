@@ -1,10 +1,10 @@
 #include "private.h"
 
-#include "../lfm.h"
-#include "../log.h"
-#include "../macros.h"
-#include "../stc/cstr.h"
-#include "../ui.h"
+#include "lfm.h"
+#include "log.h"
+#include "macros.h"
+#include "stc/cstr.h"
+#include "ui.h"
 
 #include <ev.h>
 

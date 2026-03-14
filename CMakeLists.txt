@@ -105,7 +105,10 @@ file(GLOB LFM_HEADERS
   ${PROJECT_SOURCE_DIR}/src/*.h
   ${PROJECT_SOURCE_DIR}/src/lua/*.h
   ${PROJECT_SOURCE_DIR}/src/async/*.h
+  ${PROJECT_SOURCE_DIR}/src/types/*.h
 )
+
+include_directories(${PROJECT_SOURCE_DIR}/src)
 
 add_subdirectory(config)
 list(APPEND LFM_GENERATED_SOURCES

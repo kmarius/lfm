@@ -1,6 +1,6 @@
 #include "path.h"
 
-#include "pwd.h"
+#include "getpwd.h"
 #include "stc/cstr.h"
 #include "stcutil.h"
 #include "util.h"

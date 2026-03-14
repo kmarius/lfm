@@ -1,14 +1,14 @@
 #include "private.h"
 
-#include "../dir.h"
-#include "../fm.h"
-#include "../lfm.h"
-#include "../loader.h"
-#include "../log.h"
-#include "../macros.h"
-#include "../memory.h"
-#include "../notify.h"
-#include "../stc/cstr.h"
+#include "dir.h"
+#include "fm.h"
+#include "lfm.h"
+#include "loader.h"
+#include "log.h"
+#include "macros.h"
+#include "memory.h"
+#include "notify.h"
+#include "stc/cstr.h"
 
 #include <ev.h>
 

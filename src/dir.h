@@ -2,10 +2,10 @@
 
 #include "file.h"
 #include "filter.h"
-#include "hmap_cstr.h"
 #include "macros.h"
 #include "path.h"
 #include "sort.h"
+#include "types/hmap_cstr.h"
 
 #include "stc/cstr.h"
 #include "stc/zsview.h"

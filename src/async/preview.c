@@ -11,15 +11,15 @@
 
 #include "private.h"
 
-#include "../config.h"
-#include "../lfm.h"
-#include "../loader.h"
-#include "../log.h"
-#include "../macros.h"
-#include "../memory.h"
-#include "../preview.h"
-#include "../stc/cstr.h"
-#include "../ui.h"
+#include "config.h"
+#include "lfm.h"
+#include "loader.h"
+#include "log.h"
+#include "macros.h"
+#include "memory.h"
+#include "preview.h"
+#include "stc/cstr.h"
+#include "ui.h"
 
 #include <ev.h>
 

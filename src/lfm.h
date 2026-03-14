@@ -6,10 +6,10 @@
 #include "loader.h"
 #include "mode.h"
 #include "notify.h"
+#include "types/vec_env.h"
+#include "types/vec_int.h"
+#include "types/vec_zsview.h"
 #include "ui.h"
-#include "vec_env.h"
-#include "vec_int.h"
-#include "vec_zsview.h"
 
 #include "stc/types.h"
 

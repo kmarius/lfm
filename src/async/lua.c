@@ -1,10 +1,10 @@
 #include "private.h"
 
-#include "../bytes.h"
-#include "../config.h"
-#include "../lfm.h"
-#include "../lua/thread.h"
-#include "../lua/util.h"
+#include "config.h"
+#include "lfm.h"
+#include "lua/thread.h"
+#include "lua/util.h"
+#include "types/bytes.h"
 
 #include <lauxlib.h>
 #include <lua.h>

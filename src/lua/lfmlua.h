@@ -5,7 +5,7 @@
  * callbacks etc.
  */
 
-#include "../stc/zsview.h"
+#include "stc/zsview.h"
 
 #include <lua.h>
 

@@ -1,10 +1,10 @@
 #include "lfmlua.h"
 
-#include "../config.h"
-#include "../log.h"
-#include "../profiling.h"
-#include "lfm.h"
+#include "config.h"
+#include "lfmlib.h"
+#include "log.h"
 #include "private.h"
+#include "profiling.h"
 
 #include <lauxlib.h>
 #include <linux/limits.h>

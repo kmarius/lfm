@@ -1,12 +1,12 @@
 #include "private.h"
 
-#include "../fm.h"
-#include "../hooks.h"
-#include "../lfm.h"
-#include "../macros.h"
-#include "../memory.h"
-#include "../pwd.h"
-#include "../stc/cstr.h"
+#include "fm.h"
+#include "getpwd.h"
+#include "hooks.h"
+#include "lfm.h"
+#include "macros.h"
+#include "memory.h"
+#include "stc/cstr.h"
 
 #include <ev.h>
 

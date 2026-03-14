@@ -1,9 +1,9 @@
 #include "lfm.h"
 
 #include "async/async.h"
-#include "bytes.h"
 #include "config.h"
 #include "fifo.h"
+#include "getpwd.h"
 #include "hooks.h"
 #include "input.h"
 #include "loader.h"
@@ -13,13 +13,13 @@
 #include "mode.h"
 #include "notify.h"
 #include "profiling.h"
-#include "pwd.h"
 #include "stc/common.h"
 #include "stc/cstr.h"
+#include "types/bytes.h"
+#include "types/vec_bytes.h"
+#include "types/vec_env.h"
 #include "ui.h"
 #include "util.h"
-#include "vec_bytes.h"
-#include "vec_env.h"
 
 #include <ev.h>
 #include <lauxlib.h>
