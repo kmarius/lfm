@@ -1,6 +1,6 @@
+#include "../util.h"
 #include "getpwd.h"
 #include "path.h"
-#include "private.h"
 #include "tokenize.h"
 #include "util.h"
 
@@ -13,7 +13,7 @@
 static int l_fn_normalize(lua_State *L) {
   char buf[PATH_MAX + 1];
   zsview path = luaL_checkzsview(L, 1);
-  zsview normalized = path_normalize3(path, fm_getpwd_str(fm), buf, sizeof buf);
+  zsview normalized = path_normalize3(path, NULL, buf, sizeof buf);
   if (zsview_is_empty(normalized)) {
     return luaL_error(L, "path too long");
   }
