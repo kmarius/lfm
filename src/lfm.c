@@ -184,6 +184,13 @@ static void prepare_cb(EV_P_ ev_prepare *w, int revents) {
   ev_prepare_stop(EV_A_ w);
 }
 
+static void check_cb(EV_P_ ev_check *w, int revents) {
+  (void)revents;
+  (void)w;
+  static int count = 0;
+  log_trace("ev_loop iteration % 5d", count++);
+}
+
 static void sigtstp_cb(EV_P_ ev_signal *w, int revents) {
   (void)revents;
   Lfm *lfm = w->data;
@@ -262,6 +269,12 @@ static inline void setup_signal_handlers(Lfm *lfm) {
   ev_prepare_init(&lfm->prepare_watcher, prepare_cb);
   lfm->prepare_watcher.data = lfm;
   ev_prepare_start(lfm->loop, &lfm->prepare_watcher);
+
+#ifndef NDEBUG
+  ev_prepare_init(&lfm->check_watcher, check_cb);
+  lfm->check_watcher.data = lfm;
+  ev_check_start(lfm->loop, &lfm->check_watcher);
+#endif
 
   // Catch some signals
   ev_signal_init(&lfm->sigint_watcher, sigint_cb, SIGINT);
