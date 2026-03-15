@@ -222,6 +222,7 @@ static int l_config_newindex(lua_State *L) {
     ui_redraw(ui, REDRAW_FM);
   } else if (streq(key, "hidden")) {
     fm_hidden_set(fm, lua_toboolean(L, 3));
+    ui_update_file_preview(ui);
     ui_redraw(ui, REDRAW_FM);
   } else if (streq(key, "ratios")) {
     luaL_checktype(L, 3, LUA_TTABLE);
