@@ -10,6 +10,7 @@
 #include "stc/cstr.h"
 #include "stc/zsview.h"
 
+#include <stdatomic.h>
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -89,8 +90,10 @@ typedef struct Dir {
 Dir *dir_create(zsview path);
 
 // Loads the directory at `path` from disk. Additionally count the files in each
-// subdirectory if `load_filecount` is `true`.
-Dir *dir_load(zsview path, bool load_dircount);
+// subdirectory if `load_fileinfo` is `true`.
+// If `load_fileinfo` is `true` and a `stop` signal is passed,
+// it is read with relaxed ordering after each file to possibly abort early.
+Dir *dir_load(zsview path, bool load_fileinfo, atomic_bool *stop);
 
 // Free all resources belonging to `dir`.
 void dir_destroy(Dir *dir);

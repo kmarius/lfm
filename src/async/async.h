@@ -3,6 +3,7 @@
 #include <ev.h>
 
 #include <pthread.h>
+#include <stdatomic.h>
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -23,6 +24,7 @@ struct result_queue {
 typedef struct Async {
   struct tpool *tpool;
   struct result_queue queue;
+  atomic_bool stop; // we store/load with relaxed
   ev_async result_watcher;
   vec_ev_child previewer_children; // a list of all previewer children to kill
                                    // on shutdown

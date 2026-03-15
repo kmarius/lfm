@@ -11,6 +11,7 @@
 
 #include <curses.h>
 #include <errno.h>
+#include <stdatomic.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -226,9 +227,11 @@ Dir *dir_create(zsview path) {
   return dir;
 }
 
-Dir *dir_load(zsview path, bool load_fileinfo) {
+Dir *dir_load(zsview path, bool load_fileinfo, atomic_bool *stop) {
   Dir *dir = dir_create(path);
   dir->has_fileinfo = load_fileinfo;
+  if (!load_fileinfo)
+    stop = NULL;
 
   if (stat(path.str, &dir->stat) == -1) {
     // TODO: figure out if/how we should handle errors here, we currently
@@ -261,6 +264,9 @@ Dir *dir_load(zsview path, bool load_fileinfo) {
     }
 
     File *file = file_create(path.str, entry->d_name, dir_fd, load_fileinfo);
+    if (stop && atomic_load_explicit(stop, memory_order_relaxed)) {
+      break;
+    }
     if (file != NULL) {
       vec_file_push(&files, file);
     }

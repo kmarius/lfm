@@ -18,6 +18,7 @@
 
 #include <dirent.h>
 #include <pthread.h>
+#include <stdatomic.h>
 #include <stdint.h>
 #include <sys/stat.h>
 #include <sys/sysinfo.h>
@@ -195,6 +196,8 @@ static void async_load_fileinfo(Async *async, Dir *dir,
 
       infos = fileinfos_init();
       latest = current_millis();
+      if (atomic_load_explicit(&async->stop, memory_order_relaxed))
+        goto finalize;
     }
   }
 
@@ -213,8 +216,13 @@ static void async_load_fileinfo(Async *async, Dir *dir,
 
       infos = fileinfos_init();
       latest = current_millis();
+
+      if (atomic_load_explicit(&async->stop, memory_order_relaxed))
+        goto finalize;
     }
   }
+
+finalize:
 
   for (uint32_t i = 0; i < n; i++) {
     xfree(files[i].path);
@@ -266,17 +274,20 @@ static void dir_update_callback(void *p, Lfm *lfm) {
 
 static void async_dir_load_worker(void *arg) {
   struct dir_update_data *work = arg;
+  Async *async = work->async;
 
   if (work->level > 0) {
     work->update = dir_load_flat(zsview_from(work->path), work->level,
                                  work->load_fileinfo);
   } else {
-    work->update = dir_load(zsview_from(work->path), work->load_fileinfo);
+    work->update =
+        dir_load(zsview_from(work->path), work->load_fileinfo, &async->stop);
   }
 
   uint32_t num_files = vec_file_size(&work->update->files_all);
 
-  if (work->load_fileinfo || num_files == 0) {
+  if (work->load_fileinfo || num_files == 0 ||
+      atomic_load_explicit(&async->stop, memory_order_relaxed)) {
     enqueue_and_signal(work->async, (struct result *)work);
     return;
   }
@@ -298,7 +309,6 @@ static void async_dir_load_worker(void *arg) {
    * extremely rare cases after we enqueue, and before we call
    * async_load_fileinfo */
   Dir *dir = work->dir;
-  Async *async = work->async;
   struct validity_check64 check = work->check;
 
   enqueue_and_signal(work->async, (struct result *)work);

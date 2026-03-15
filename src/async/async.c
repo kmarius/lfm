@@ -11,6 +11,7 @@
 #include <dirent.h>
 #include <errno.h>
 #include <pthread.h>
+#include <stdatomic.h>
 #include <stdint.h>
 #include <sys/stat.h>
 #include <sys/sysinfo.h>
@@ -34,8 +35,8 @@ static void async_result_cb(EV_P_ ev_async *w, int revents) {
 }
 
 void async_init(Async *async) {
-  async->queue.head = NULL;
-  async->queue.tail = NULL;
+  memset(async, 0, sizeof *async);
+
   pthread_mutex_init(&async->queue.mutex, NULL);
 
   ev_async_init(&async->result_watcher, async_result_cb);
@@ -55,6 +56,7 @@ void async_init(Async *async) {
 }
 
 void async_deinit(Async *async) {
+  atomic_store_explicit(&async->stop, 1, memory_order_relaxed);
   async_kill_previewers(async);
 
   tpool_wait(async->tpool);
