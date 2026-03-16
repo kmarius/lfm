@@ -3,7 +3,7 @@
 #include <limits.h>
 #include <notcurses/notcurses.h>
 
-static void spinner_draw(EV_P_ ev_timer *w, int revents);
+static void spinner_draw(EV_P_ ev_timer *w, i32 revents);
 
 struct spinner *spinner_init(struct spinner *spinner, const char *chars,
                              struct ev_loop *loop) {
@@ -15,7 +15,7 @@ struct spinner *spinner_init(struct spinner *spinner, const char *chars,
   return spinner;
 }
 
-static void spinner_draw(EV_P_ ev_timer *w, int revents) {
+static void spinner_draw(EV_P_ ev_timer *w, i32 revents) {
   (void)revents;
   struct spinner *spinner = (struct spinner *)w;
   struct ncplane *n = spinner->n;
@@ -28,8 +28,8 @@ static void spinner_draw(EV_P_ ev_timer *w, int revents) {
   spinner->i %= spinner->len;
 }
 
-void spinner_on(struct spinner *spinner, unsigned int y, unsigned int x,
-                uint64_t channels, uint16_t style, struct ncplane *n) {
+void spinner_on(struct spinner *spinner, i32 y, i32 x, u64 channels, u16 style,
+                struct ncplane *n) {
   spinner->y = y;
   spinner->x = x;
   spinner->channels = channels;

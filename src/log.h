@@ -7,6 +7,8 @@
 
 #pragma once
 
+#include "defs.h"
+
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -20,8 +22,8 @@ typedef struct {
   const char *file;
   struct tm *time;
   void *udata;
-  int line;
-  int level;
+  i32 line;
+  i32 level;
 } log_Event;
 
 typedef void (*log_LogFn)(log_Event *ev);
@@ -40,13 +42,13 @@ enum { LOG_TRACE, LOG_DEBUG, LOG_INFO, LOG_WARN, LOG_ERROR, LOG_FATAL };
 #define log_error(...) log_log(LOG_ERROR, __RELFILE__, __LINE__, __VA_ARGS__)
 #define log_fatal(...) log_log(LOG_FATAL, __RELFILE__, __LINE__, __VA_ARGS__)
 
-const char *log_level_string(int level);
+const char *log_level_string(i32 level);
 void log_set_lock(log_LockFn fn, void *udata);
-void log_set_level(int level);
+void log_set_level(i32 level);
 void log_set_quiet(bool enable);
-int log_add_callback(log_LogFn fn, void *udata, int level);
-int log_add_fp(FILE *fp, int level);
-void log_set_level_fp(FILE *fp, int level);
-int log_get_level_fp(FILE *fp);
+i32 log_add_callback(log_LogFn fn, void *udata, i32 level);
+i32 log_add_fp(FILE *fp, i32 level);
+void log_set_level_fp(FILE *fp, i32 level);
+i32 log_get_level_fp(FILE *fp);
 
-void log_log(int level, const char *file, int line, const char *fmt, ...);
+void log_log(i32 level, const char *file, i32 line, const char *fmt, ...);

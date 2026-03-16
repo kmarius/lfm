@@ -10,8 +10,8 @@ const char *sorttype_str[NUM_SORTTYPE] = {
     "natural", "name", "size", "ctime", "atime", "mtime", "random",
 };
 
-int sorttype_from_str(const char *str) {
-  for (int j = 0; j < NUM_SORTTYPE; j++) {
+i32 sorttype_from_str(const char *str) {
+  for (i32 j = 0; j < NUM_SORTTYPE; j++) {
     if (streq(str, sorttype_str[j])) {
       return j;
     }
@@ -19,32 +19,32 @@ int sorttype_from_str(const char *str) {
   return -1;
 }
 
-int compare_name(const void *a, const void *b) {
+i32 compare_name(const void *a, const void *b) {
   return strcasecmp(file_name_str(*(File **)a), file_name_str(*(File **)b));
 }
 
-int compare_size(const void *a, const void *b) {
+i32 compare_size(const void *a, const void *b) {
   const File *aa = *(File **)a;
   const File *bb = *(File **)b;
   long cmp = file_size(aa) - file_size(bb);
   if (cmp) {
-    // conversion from long to int breaks this for large files
+    // conversion from long to i32 breaks this for large files
     return cmp < 0 ? -1 : 1;
   }
   return aa->lstat.st_ino - bb->lstat.st_ino;
 }
 
-int compare_natural(const void *a, const void *b) {
+i32 compare_natural(const void *a, const void *b) {
   const File *aa = *(File **)a;
   const File *bb = *(File **)b;
-  int cmp = strnatcasecmp(file_name_str(aa), file_name_str(bb));
+  i32 cmp = strnatcasecmp(file_name_str(aa), file_name_str(bb));
   if (cmp) {
     return cmp;
   }
   return aa->lstat.st_ino - bb->lstat.st_ino;
 }
 
-int compare_ctime(const void *a, const void *b) {
+i32 compare_ctime(const void *a, const void *b) {
   const File *aa = *(File **)a;
   const File *bb = *(File **)b;
   long cmp = aa->lstat.st_ctim.tv_sec - bb->lstat.st_ctim.tv_sec;
@@ -58,7 +58,7 @@ int compare_ctime(const void *a, const void *b) {
   return aa->lstat.st_ino - bb->lstat.st_ino;
 }
 
-int compare_atime(const void *a, const void *b) {
+i32 compare_atime(const void *a, const void *b) {
   const File *aa = *(File **)a;
   const File *bb = *(File **)b;
   long cmp = aa->lstat.st_atim.tv_sec - bb->lstat.st_atim.tv_sec;
@@ -72,7 +72,7 @@ int compare_atime(const void *a, const void *b) {
   return aa->lstat.st_ino - bb->lstat.st_ino;
 }
 
-int compare_mtime(const void *a, const void *b) {
+i32 compare_mtime(const void *a, const void *b) {
   const File *aa = *(File **)a;
   const File *bb = *(File **)b;
   long cmp = aa->lstat.st_mtim.tv_sec - bb->lstat.st_mtim.tv_sec;
@@ -91,7 +91,7 @@ int compare_mtime(const void *a, const void *b) {
 // Only effective if N is much smaller than RAND_MAX;
 // if this may not be the case, use a better random
 // number generator.
-void shuffle(void *arr_, size_t n, size_t size) {
+void shuffle(void *arr_, usize n, usize size) {
   if (n <= 1) {
     return;
   }
@@ -99,9 +99,9 @@ void shuffle(void *arr_, size_t n, size_t size) {
   char *arr = arr_;
   char *tmp = xmalloc(size);
 
-  for (size_t i = 0; i < n - 1; ++i) {
-    const size_t rnd = (size_t)rand();
-    size_t j = i + rnd / (RAND_MAX / (n - i) + 1);
+  for (usize i = 0; i < n - 1; ++i) {
+    const usize rnd = (usize)rand();
+    usize j = i + rnd / (RAND_MAX / (n - i) + 1);
 
     memcpy(tmp, arr + j * size, size);
     memcpy(arr + j * size, arr + i * size, size);

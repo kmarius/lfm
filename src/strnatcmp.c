@@ -26,30 +26,31 @@
  * 2004-10-10 mbp: Lift out character type dependencies into macros.
  *
  * Eric Sosman pointed out that ctype functions take a parameter whose
- * value must be that of an unsigned int, even on platforms that have
+ * value must be that of an i32, even on platforms that have
  * negative chars in their default char type.
  */
 
 #include "strnatcmp.h"
+#include "defs.h"
 
 #include <ctype.h>
 
 /* These are defined as macros to make it easier to adapt this code to
  * different characters types or comparison functions. */
-static inline int nat_isdigit(nat_char a) {
-  return isdigit((unsigned char)a);
+static inline i32 nat_isdigit(nat_char a) {
+  return isdigit((u8)a);
 }
 
-static inline int nat_isspace(nat_char a) {
-  return isspace((unsigned char)a);
+static inline i32 nat_isspace(nat_char a) {
+  return isspace((u8)a);
 }
 
 static inline nat_char nat_toupper(nat_char a) {
-  return toupper((unsigned char)a);
+  return toupper((u8)a);
 }
 
-static int compare_right(nat_char const *a, nat_char const *b) {
-  int bias = 0;
+static i32 compare_right(nat_char const *a, nat_char const *b) {
+  i32 bias = 0;
 
   /* The longest run of digits wins.  That aside, the greatest
      value wins, but we can't know that it will until we've scanned
@@ -75,7 +76,7 @@ static int compare_right(nat_char const *a, nat_char const *b) {
   return 0;
 }
 
-static int compare_left(nat_char const *a, nat_char const *b) {
+static i32 compare_left(nat_char const *a, nat_char const *b) {
   /* Compare two left-aligned numbers: the first to have a
      different value wins. */
   for (;; a++, b++) {
@@ -94,10 +95,10 @@ static int compare_left(nat_char const *a, nat_char const *b) {
   return 0;
 }
 
-static int strnatcmp0(nat_char const *a, nat_char const *b, int fold_case) {
-  int ai, bi;
+static i32 strnatcmp0(nat_char const *a, nat_char const *b, i32 fold_case) {
+  i32 ai, bi;
   nat_char ca, cb;
-  int fractional, result;
+  i32 fractional, result;
 
   ai = bi = 0;
   while (1) {
@@ -146,11 +147,11 @@ static int strnatcmp0(nat_char const *a, nat_char const *b, int fold_case) {
   }
 }
 
-int strnatcmp(nat_char const *a, nat_char const *b) {
+i32 strnatcmp(nat_char const *a, nat_char const *b) {
   return strnatcmp0(a, b, 0);
 }
 
 /* Compare, recognizing numeric string and ignoring case. */
-int strnatcasecmp(nat_char const *a, nat_char const *b) {
+i32 strnatcasecmp(nat_char const *a, nat_char const *b) {
   return strnatcmp0(a, b, 1);
 }

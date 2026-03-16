@@ -2,6 +2,7 @@
 
 #include "cmdline.h"
 #include "config.h"
+#include "defs.h"
 #include "fm.h"
 #include "hooks.h"
 #include "keys.h"
@@ -24,10 +25,10 @@
 
 #define MAP_MAX_LENGTH 8
 
-static void input_buffer_cb(EV_P_ ev_idle *w, int revents);
-static void map_clear_timer_cb(EV_P_ ev_timer *w, int revents);
-static void map_suggestion_timer_cb(EV_P_ ev_timer *w, int revents);
-static void stdin_cb(EV_P_ ev_io *w, int revents);
+static void input_buffer_cb(EV_P_ ev_idle *w, i32 revents);
+static void map_clear_timer_cb(EV_P_ ev_timer *w, i32 revents);
+static void map_suggestion_timer_cb(EV_P_ ev_timer *w, i32 revents);
+static void stdin_cb(EV_P_ ev_io *w, i32 revents);
 
 void input_init(Lfm *lfm) {
   lfm->ui.input_watcher.data = lfm;
@@ -62,9 +63,9 @@ void input_suspend(Lfm *lfm) {
   ev_io_stop(lfm->loop, &lfm->ui.input_watcher);
 }
 
-int input_map(Trie *trie, zsview keys, int ref, zsview desc, int *out_ref) {
+i32 input_map(Trie *trie, zsview keys, i32 ref, zsview desc, i32 *out_ref) {
   input_t buf[MAP_MAX_LENGTH + 1];
-  int status = key_names_to_input(keys, buf, MAP_MAX_LENGTH + 1);
+  i32 status = key_names_to_input(keys, buf, MAP_MAX_LENGTH + 1);
   if (status < 0) {
     return status;
   }
@@ -77,12 +78,12 @@ int input_map(Trie *trie, zsview keys, int ref, zsview desc, int *out_ref) {
   return 0;
 }
 
-static void stdin_cb(EV_P_ ev_io *w, int revents) {
+static void stdin_cb(EV_P_ ev_io *w, i32 revents) {
   (void)revents;
   Lfm *lfm = w->data;
   ncinput in;
 
-  while (notcurses_get_nblock(lfm->ui.nc, &in) != (uint32_t)-1) {
+  while (notcurses_get_nblock(lfm->ui.nc, &in) != (u32)-1) {
     if (in.id == 0) {
       break;
     }
@@ -135,7 +136,7 @@ void input_buffer_add(struct Lfm *lfm, input_t in) {
   ev_idle_start(lfm->loop, &lfm->ui.input_buffer_watcher);
 }
 
-static void input_buffer_cb(EV_P_ ev_idle *w, int revents) {
+static void input_buffer_cb(EV_P_ ev_idle *w, i32 revents) {
   (void)revents;
   Lfm *lfm = w->data;
   ev_idle_stop(EV_A_ w);
@@ -184,7 +185,7 @@ void input_handle_key(Lfm *lfm, input_t in) {
       // current key sequence is a prefix/full match of a mode mapping, always
       // taking precedence
       if (lfm->ui.maps.cur->ref) {
-        int ref = lfm->ui.maps.cur->ref;
+        i32 ref = lfm->ui.maps.cur->ref;
         lfm->ui.maps.cur = NULL;
         llua_call_from_ref(lfm->L, ref, -1);
       }
@@ -202,7 +203,7 @@ void input_handle_key(Lfm *lfm, input_t in) {
           // current key sequence is a prefix/full match of a mode mapping,
           // always taking precedence
           if (lfm->ui.maps.cur_input->ref) {
-            int ref = lfm->ui.maps.cur_input->ref;
+            i32 ref = lfm->ui.maps.cur_input->ref;
             lfm->ui.maps.cur_input = NULL;
             llua_call_from_ref(lfm->L, ref, -1);
           } else {
@@ -211,7 +212,7 @@ void input_handle_key(Lfm *lfm, input_t in) {
         }
       } else if (iswprint(in)) {
         char buf[MB_LEN_MAX + 1];
-        int n = wctomb(buf, in);
+        i32 n = wctomb(buf, in);
         if (n < 0) {
           log_error("invalid input: %lu", in);
           n = 0;
@@ -245,7 +246,7 @@ void input_handle_key(Lfm *lfm, input_t in) {
     }
     lfm->ui.maps.cur = trie_find_child(lfm->ui.maps.cur, in);
     if (in == NCKEY_ESC) {
-      uint32_t mode = 0;
+      u32 mode = 0;
       if (!vec_input_is_empty(&lfm->ui.maps.seq)) {
         input_clear(lfm);
       } else {
@@ -269,8 +270,8 @@ void input_handle_key(Lfm *lfm, input_t in) {
     } else if (!lfm->ui.maps.cur) {
       vec_input_push(&lfm->ui.maps.seq, in);
       char buf[256];
-      size_t len;
-      int j = 0;
+      usize len;
+      i32 j = 0;
       c_foreach(it, vec_input, lfm->ui.maps.seq) {
         const char *str = input_to_key_name(*it.ref, &len);
         if (j + len > sizeof buf - 1) {
@@ -285,28 +286,28 @@ void input_handle_key(Lfm *lfm, input_t in) {
       input_clear(lfm);
     } else if (lfm->ui.maps.cur->is_leaf) {
       // A command is mapped to the current keysequence. Execute it and reset.
-      int ref = lfm->ui.maps.cur->ref;
+      i32 ref = lfm->ui.maps.cur->ref;
       input_clear(lfm);
-      uint64_t t0 = current_micros();
+      u64 t0 = current_micros();
       llua_call_from_ref(lfm->L, ref, lfm->ui.maps.count);
-      uint64_t t1 = current_micros();
+      u64 t1 = current_micros();
       log_trace("llua_call_from_ref %luus", t1 - t0);
     } else {
       vec_input_push(&lfm->ui.maps.seq, in);
       ui_redraw(ui, REDRAW_CMDLINE);
       lfm->ui.maps.accept_count = false;
 
-      lfm->ui.map_clear_timer.repeat = (float)cfg.map_clear_delay / 1000.0;
+      lfm->ui.map_clear_timer.repeat = (f64)cfg.map_clear_delay / 1000.0;
       ev_timer_again(lfm->loop, &lfm->ui.map_clear_timer);
 
       lfm->ui.map_suggestion_timer.repeat =
-          (float)cfg.map_suggestion_delay / 1000.0;
+          (f64)cfg.map_suggestion_delay / 1000.0;
       ev_timer_again(lfm->loop, &lfm->ui.map_suggestion_timer);
     }
   }
 }
 
-static void map_clear_timer_cb(EV_P_ ev_timer *w, int revents) {
+static void map_clear_timer_cb(EV_P_ ev_timer *w, i32 revents) {
   (void)revents;
   Lfm *lfm = w->data;
   input_clear(lfm);
@@ -314,7 +315,7 @@ static void map_clear_timer_cb(EV_P_ ev_timer *w, int revents) {
   ev_idle_start(EV_A_ & lfm->ui.redraw_watcher);
 }
 
-static void map_suggestion_timer_cb(EV_P_ ev_timer *w, int revents) {
+static void map_suggestion_timer_cb(EV_P_ ev_timer *w, i32 revents) {
   (void)revents;
   Lfm *lfm = w->data;
 

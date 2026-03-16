@@ -1,5 +1,6 @@
 #pragma once
 
+#include "defs.h"
 #include "stc/types.h"
 
 #include <stdbool.h>
@@ -23,7 +24,7 @@ typedef struct History {
   _history_list list;     // `history_entry` in a doubly linked list
   _history_list_iter cur; // points to the current history item, manipulated by
                           // history_prev, history_next, history_reset
-  size_t num_new_entries; // new entries to be written to the file (excluding
+  usize num_new_entries;  // new entries to be written to the file (excluding
                           // ones with leading space)
 } History;
 
@@ -35,7 +36,7 @@ void history_load(History *h, zsview path);
 /*
  * Write history to file `path`.
  */
-void history_write(History *h, zsview path, int histsize);
+void history_write(History *h, zsview path, i32 histsize);
 
 /*
  * Append a line to the history. Duplicates are eliminated and only the newest
@@ -66,7 +67,7 @@ zsview history_prev(History *h);
 /*
  * Get the number of lines in the history object.
  */
-size_t history_size(const History *h);
+usize history_size(const History *h);
 
 /*
  * Create an iterator for the history object.

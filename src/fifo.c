@@ -9,11 +9,11 @@
 #include <fcntl.h>
 
 static ev_io fifo_watcher;
-static int fifo_fd = -1;
+static i32 fifo_fd = -1;
 
-static void fifo_cb(EV_P_ ev_io *w, int revents);
+static void fifo_cb(EV_P_ ev_io *w, i32 revents);
 
-int fifo_init(Lfm *lfm) {
+i32 fifo_init(Lfm *lfm) {
   log_trace("setting up fifo");
 
   if ((mkfifo(cstr_str(&cfg.fifopath), 0600) == -1 && errno != EEXIST)) {
@@ -45,24 +45,24 @@ void fifo_deinit(void) {
   }
 }
 
-static void fifo_cb(EV_P_ ev_io *w, int revents) {
+static void fifo_cb(EV_P_ ev_io *w, i32 revents) {
   (void)revents;
 
   Lfm *lfm = w->data;
 
   char buf[512];
-  ssize_t nread = read(w->fd, buf, sizeof buf);
+  isize nread = read(w->fd, buf, sizeof buf);
 
   if (nread <= 0) {
     return;
   }
 
-  if ((size_t)nread < sizeof buf) {
+  if ((usize)nread < sizeof buf) {
     llua_evaln(lfm->L, buf, nread);
   } else {
-    size_t capacity = 2 * sizeof buf;
+    usize capacity = 2 * sizeof buf;
     char *dyn_buf = xmalloc(capacity);
-    size_t length = nread;
+    usize length = nread;
     memcpy(dyn_buf, buf, nread);
     while ((nread = read(fifo_fd, dyn_buf + length, capacity - length)) > 0) {
       length += nread;

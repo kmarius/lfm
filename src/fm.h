@@ -21,7 +21,7 @@ typedef enum paste_mode_e {
 typedef struct Fm {
 
   // Height of the fm.
-  uint32_t height;
+  u32 height;
 
   // Not guaranteed to coincide with PWD or this processe's working directory,
   // which is only set once we know the destination is reachable.
@@ -31,7 +31,7 @@ typedef struct Fm {
     // Visible directories excluding preview. Index 0 is the current directory,
     // all following elements are the parents
     vec_dir visible;
-    int max_visible;
+    i32 max_visible;
 
     // preview directory, NULL if there is none, e.g. if the cursor is resting
     // on a file.
@@ -61,7 +61,7 @@ typedef struct Fm {
     bool active;
 
     // Start index of the visual selection.
-    uint32_t anchor;
+    u32 anchor;
   } visual;
 
   // timer for delayed preview loading
@@ -97,19 +97,19 @@ void fm_recol(Fm *fm);
 #define fm_current_file(fm) dir_current_file(fm_current_dir(fm))
 
 // Move the cursor relative to the current position.
-bool fm_cursor_move(Fm *fm, int32_t ct);
+bool fm_cursor_move(Fm *fm, i32 ct);
 
-static inline bool fm_cursor_move_to_ind(Fm *fm, uint32_t ind) {
+static inline bool fm_cursor_move_to_ind(Fm *fm, u32 ind) {
   return fm_cursor_move(fm, ind - fm_current_dir(fm)->ind);
 }
 
 // Move cursor `ct` up in the current directory.
-static inline bool fm_up(Fm *fm, int32_t ct) {
+static inline bool fm_up(Fm *fm, i32 ct) {
   return fm_cursor_move(fm, -ct);
 }
 
 // Move cursor `ct` down in the current directory.
-static inline bool fm_down(Fm *fm, int32_t ct) {
+static inline bool fm_down(Fm *fm, i32 ct) {
   return fm_cursor_move(fm, ct);
 }
 
@@ -201,7 +201,7 @@ void fm_paste_mode_set(Fm *fm, paste_mode mode);
 // Clear copy/move buffer. Returns the size of the buffer bofore clearing.
 static inline bool fm_paste_buffer_clear(Fm *fm) {
   // TODO
-  size_t prev_size = pathlist_size(&fm->paste.buffer);
+  usize prev_size = pathlist_size(&fm->paste.buffer);
   if (prev_size > 0) {
     // swap paste_buffer and prev
     pathlist tmp = fm->selection.previous;
@@ -232,8 +232,8 @@ void fm_reload(Fm *fm);
 void fm_update_preview(Fm *fm);
 
 // Flatten the current directory up to `level`.
-void fm_flatten(Fm *fm, uint32_t level);
+void fm_flatten(Fm *fm, u32 level);
 
 // Must be called with the new height of the file manager when the Ui is
 // resized.
-void fm_on_resize(Fm *fm, uint32_t height);
+void fm_on_resize(Fm *fm, u32 height);

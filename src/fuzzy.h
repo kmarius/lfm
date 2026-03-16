@@ -29,16 +29,18 @@
 
 #pragma once
 
+#include "defs.h"
+
 #include <math.h>
 #include <stddef.h>
 
-typedef double score_t;
+typedef f64 score_t;
 #define SCORE_MAX INFINITY
 #define SCORE_MIN -INFINITY
 
 #define MATCH_MAX_LEN 1024
 
-int fzy_has_match(const char *needle, const char *haystack);
+i32 fzy_has_match(const char *needle, const char *haystack);
 score_t fzy_match_positions(const char *needle, const char *haystack,
-                            size_t *positions);
+                            usize *positions);
 score_t fzy_match(const char *needle, const char *haystack);

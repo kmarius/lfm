@@ -27,13 +27,13 @@
 typedef struct {
   log_LogFn fn;
   void *udata;
-  int level;
+  i32 level;
 } Callback;
 
 static struct {
   void *udata;
   log_LockFn lock;
-  int level;
+  i32 level;
   bool quiet;
   Callback callbacks[MAX_CALLBACKS];
 } L;
@@ -84,7 +84,7 @@ static void unlock(void) {
   }
 }
 
-const char *log_level_string(int level) {
+const char *log_level_string(i32 level) {
   return level_strings[level];
 }
 
@@ -93,7 +93,7 @@ void log_set_lock(log_LockFn fn, void *udata) {
   L.udata = udata;
 }
 
-void log_set_level(int level) {
+void log_set_level(i32 level) {
   L.level = level;
 }
 
@@ -101,8 +101,8 @@ void log_set_quiet(bool enable) {
   L.quiet = enable;
 }
 
-int log_add_callback(log_LogFn fn, void *udata, int level) {
-  for (int i = 0; i < MAX_CALLBACKS; i++) {
+i32 log_add_callback(log_LogFn fn, void *udata, i32 level) {
+  for (i32 i = 0; i < MAX_CALLBACKS; i++) {
     if (!L.callbacks[i].fn) {
       L.callbacks[i] = (Callback){fn, udata, level};
       return 0;
@@ -111,12 +111,12 @@ int log_add_callback(log_LogFn fn, void *udata, int level) {
   return -1;
 }
 
-int log_add_fp(FILE *fp, int level) {
+i32 log_add_fp(FILE *fp, i32 level) {
   return log_add_callback(file_callback, fp, level);
 }
 
-void log_set_level_fp(FILE *fp, int level) {
-  for (int i = 0; i < MAX_CALLBACKS && L.callbacks[i].fn; i++) {
+void log_set_level_fp(FILE *fp, i32 level) {
+  for (i32 i = 0; i < MAX_CALLBACKS && L.callbacks[i].fn; i++) {
     if (L.callbacks[i].udata == fp) {
       L.callbacks[i].level = level;
       return;
@@ -124,8 +124,8 @@ void log_set_level_fp(FILE *fp, int level) {
   }
 }
 
-int log_get_level_fp(FILE *fp) {
-  for (int i = 0; i < MAX_CALLBACKS && L.callbacks[i].fn; i++) {
+i32 log_get_level_fp(FILE *fp) {
+  for (i32 i = 0; i < MAX_CALLBACKS && L.callbacks[i].fn; i++) {
     if (L.callbacks[i].udata == fp) {
       return L.callbacks[i].level;
     }
@@ -141,7 +141,7 @@ static void init_event(log_Event *ev, void *udata) {
   ev->udata = udata;
 }
 
-void log_log(int level, const char *file, int line, const char *fmt, ...) {
+void log_log(i32 level, const char *file, i32 line, const char *fmt, ...) {
   log_Event ev = {
       .fmt = fmt,
       .file = file,
@@ -158,7 +158,7 @@ void log_log(int level, const char *file, int line, const char *fmt, ...) {
     va_end(ev.ap);
   }
 
-  for (int i = 0; i < MAX_CALLBACKS && L.callbacks[i].fn; i++) {
+  for (i32 i = 0; i < MAX_CALLBACKS && L.callbacks[i].fn; i++) {
     Callback *cb = &L.callbacks[i];
     if (level >= cb->level) {
       init_event(&ev, cb->udata);

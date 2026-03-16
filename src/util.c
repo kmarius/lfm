@@ -1,6 +1,7 @@
 #include "util.h"
 
 #include "config.h"
+#include "defs.h"
 
 #include "stc/cstr.h"
 
@@ -12,7 +13,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <strings.h> // strcasecmp
-#include <time.h>
 
 #include <linux/limits.h>
 #include <sys/stat.h>
@@ -66,8 +66,8 @@ bool hascaseprefix(const char *restrict string, const char *restrict prefix) {
   return true;
 }
 
-char *readable_filesize(double size, char *buf) {
-  int32_t i = 0;
+char *readable_filesize(f64 size, char *buf) {
+  i32 i = 0;
   const char *units[] = {"", "K", "M", "G", "T", "P", "E", "Z", "Y"};
   while (size > 1024) {
     size /= 1024;
@@ -77,19 +77,19 @@ char *readable_filesize(double size, char *buf) {
   return buf;
 }
 
-uint64_t current_micros(void) {
+u64 current_micros(void) {
   struct timeval tv;
   gettimeofday(&tv, NULL);
-  return ((uint64_t)tv.tv_sec) * 1000 * 1000 + tv.tv_usec;
+  return ((u64)tv.tv_sec) * 1000 * 1000 + tv.tv_usec;
 }
 
-uint64_t current_millis(void) {
+u64 current_millis(void) {
   struct timeval tv;
   gettimeofday(&tv, NULL);
-  return ((uint64_t)tv.tv_sec) * 1000 + tv.tv_usec / 1000;
+  return ((u64)tv.tv_sec) * 1000 + tv.tv_usec / 1000;
 }
 
-int mkdir_p(char *path, __mode_t mode) {
+i32 mkdir_p(char *path, __mode_t mode) {
   char *sep = strrchr(path, '/');
   if (sep && sep != path) {
     *sep = 0;
@@ -99,7 +99,7 @@ int mkdir_p(char *path, __mode_t mode) {
   return mkdir(path, mode);
 }
 
-int make_dirs(zsview path, __mode_t mode) {
+i32 make_dirs(zsview path, __mode_t mode) {
   static char buf[PATH_MAX + 1];
   if (zsview_is_empty(path)) {
     buf[0] = 0;
@@ -110,7 +110,7 @@ int make_dirs(zsview path, __mode_t mode) {
 }
 
 // https://stackoverflow.com/questions/9152978/include-unix-utility-file-in-c-program
-bool get_mimetype(const char *path, char *dest, size_t sz) {
+bool get_mimetype(const char *path, char *dest, usize sz) {
   bool ret = true;
   magic_t magic = magic_open(MAGIC_MIME_TYPE);
   magic_load(magic, NULL);
@@ -134,22 +134,22 @@ bool valgrind_active(void) {
   return (strstr(preload, "/valgrind/") || strstr(preload, "/vgpreload"));
 }
 
-int strcasecmp_strict(const char *s1, const char *s2) {
+i32 strcasecmp_strict(const char *s1, const char *s2) {
   while (*s1 && *s2) {
     char c1 = *s1;
     char c2 = *s2;
 
-    char lower1 = tolower((unsigned char)c1);
-    char lower2 = tolower((unsigned char)c2);
+    char lower1 = tolower((u8)c1);
+    char lower2 = tolower((u8)c2);
 
     if (lower1 != lower2) {
-      return (unsigned char)lower1 - (unsigned char)lower2;
+      return (u8)lower1 - (u8)lower2;
     }
 
     if (c1 != c2) {
-      if (isupper((unsigned char)c1) && islower((unsigned char)c2)) {
+      if (isupper((u8)c1) && islower((u8)c2)) {
         return 1;
-      } else if (islower((unsigned char)c1) && isupper((unsigned char)c2)) {
+      } else if (islower((u8)c1) && isupper((u8)c2)) {
         return -1;
       }
     }
@@ -159,18 +159,18 @@ int strcasecmp_strict(const char *s1, const char *s2) {
   }
 
   // End of one or both strings
-  return (unsigned char)*s1 - (unsigned char)*s2;
+  return (u8)*s1 - (u8)*s2;
 }
 
-int shorten_name(zsview name, char *buf, int max_len, bool has_ext) {
-  size_t pos = 0;
+i32 shorten_name(zsview name, char *buf, i32 max_len, bool has_ext) {
+  usize pos = 0;
   char *ptr = buf;
   if (max_len <= 0) {
     *ptr = 0;
     return 0;
   }
 
-  int name_len = zsview_u8_size(name);
+  i32 name_len = zsview_u8_size(name);
   if (name_len <= max_len) {
     // everything fits
     memcpy(buf, name.str, name.size + 1);
@@ -184,9 +184,9 @@ int shorten_name(zsview name, char *buf, int max_len, bool has_ext) {
       ext = zsview_tail(name, name.size - (ptr - name.str));
     }
   }
-  int ext_len = zsview_u8_size(ext);
+  i32 ext_len = zsview_u8_size(ext);
 
-  int trunc_len = strlen(cfg.truncatechar);
+  i32 trunc_len = strlen(cfg.truncatechar);
 
   if (max_len > ext_len + 1) {
     // print extension and as much of the name as possible

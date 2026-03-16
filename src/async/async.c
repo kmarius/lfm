@@ -1,8 +1,8 @@
 #include "private.h"
 
+#include "defs.h"
 #include "lfm.h"
 #include "log.h"
-#include "macros.h"
 #include "stc/cstr.h"
 #include "ui.h"
 
@@ -51,7 +51,7 @@ void async_init(Async *async) {
 
   ev_async_send(EV_DEFAULT_ & async->result_watcher);
 
-  const size_t nthreads = get_nprocs() + 1;
+  const usize nthreads = get_nprocs() + 1;
   async->tpool = tpool_create(nthreads);
 }
 

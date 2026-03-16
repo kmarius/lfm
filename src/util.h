@@ -1,15 +1,13 @@
 #pragma once
 
-#include "macros.h"
+#include "defs.h"
 
 #include "stc/zsview.h"
 
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 
 #include <bits/types.h>
 
@@ -17,11 +15,11 @@
 #define streq(X, Y) (*(char *)(X) == *(char *)(Y) && strcmp(X, Y) == 0)
 #endif
 
-static inline int min(int i, int j) {
+static inline i32 min(i32 i, i32 j) {
   return i < j ? i : j;
 }
 
-static inline int max(int i, int j) {
+static inline i32 max(i32 i, i32 j) {
   return i > j ? i : j;
 }
 
@@ -37,21 +35,21 @@ char *strcasestr(const char *str, const char *sub);
 
 bool hascaseprefix(const char *str, const char *pre);
 
-char *readable_filesize(double size, char *buf);
+char *readable_filesize(f64 size, char *buf);
 
-uint64_t current_micros(void);
+u64 current_micros(void);
 
-uint64_t current_millis(void);
+u64 current_millis(void);
 
 // recursive mkdir
-int mkdir_p(char *path, __mode_t mode);
+i32 mkdir_p(char *path, __mode_t mode);
 
 // make all directory components of the file at path
-int make_dirs(zsview path, __mode_t mode);
+i32 make_dirs(zsview path, __mode_t mode);
 
 // Writes the mimetype of the file at PATH into the buffer dest of length sz.
 // Returns true on success, false on failure with *dest == '\0'
-bool get_mimetype(const char *path, char *dest, size_t sz);
+bool get_mimetype(const char *path, char *dest, usize sz);
 
 bool valgrind_active(void);
 
@@ -64,6 +62,6 @@ static inline zsview getenv_zv(const char *name) {
 }
 
 // case insensitive cmp, but 'a' < 'A'
-int strcasecmp_strict(const char *s1, const char *s2);
+i32 strcasecmp_strict(const char *s1, const char *s2);
 
-int shorten_name(zsview name, char *buf, int max_len, bool has_ext);
+i32 shorten_name(zsview name, char *buf, i32 max_len, bool has_ext);

@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include "defs.h"
 #include "stc/cstr.h"
 #include "stc/types.h"
 
@@ -26,6 +27,6 @@ bool pathlist_contains(const pathlist *self, const cstr *path);
 void pathlist_add(pathlist *self, const cstr *path);
 bool pathlist_remove(pathlist *self, const cstr *path);
 void pathlist_clear(pathlist *self);
-size_t pathlist_size(const pathlist *self);
+usize pathlist_size(const pathlist *self);
 pathlist_iter pathlist_begin(const pathlist *self);
 void pathlist_next(pathlist_iter *it);

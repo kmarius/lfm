@@ -1,6 +1,7 @@
 #include "private.h"
 
 #include "config.h"
+#include "defs.h"
 #include "dir.h"
 #include "file.h"
 #include "fm.h"
@@ -8,7 +9,6 @@
 #include "lfm.h"
 #include "loader.h"
 #include "log.h"
-#include "macros.h"
 #include "memory.h"
 #include "stc/cstr.h"
 #include "ui.h"
@@ -93,7 +93,7 @@ void async_dir_check(Async *async, Dir *dir) {
 
 struct fileinfo {
   File *file;
-  int32_t count;    // number of files, if it is a directory, -1 if no result
+  i32 count;        // number of files, if it is a directory, -1 if no result
   struct stat stat; // stat of the link target, if it is a symlink
   int ret;          // -1: stat failed, 0: stat success, >0 no stat result
 };
@@ -125,7 +125,7 @@ static void fileinfo_result_destroy(void *p) {
 
 // set the dir count for a file in the given directory,
 // updates the dircounts cache in the directory
-static inline void set_dircount(Dir *dir, File *file, uint32 count) {
+static inline void set_dircount(Dir *dir, File *file, u32 count) {
   file_set_dircount(file, count);
   struct tuple_mtime_count tup = {
       .count = count,
@@ -188,15 +188,15 @@ fileinfo_result_create(Dir *dir, fileinfos infos, struct validity_check64 check,
 // TODO: this creates two fileinfo items for every symlink that points to a
 // directory
 static void async_load_fileinfo(Async *async, Dir *dir,
-                                struct validity_check64 check, uint32_t n,
+                                struct validity_check64 check, u32 n,
                                 struct file_path_tup *files,
                                 hmap_dircount dircounts) {
   fileinfos infos = fileinfos_init();
 
-  uint64_t latest = current_millis();
+  u64 latest = current_millis();
 
   // stat for symbolic links
-  for (uint32_t i = 0; i < n; i++) {
+  for (u32 i = 0; i < n; i++) {
     if (!S_ISLNK(files[i].mode)) {
       continue;
     }
@@ -209,7 +209,7 @@ static void async_load_fileinfo(Async *async, Dir *dir,
       files[i].mode = info->stat.st_mode;
     }
 
-    uint64_t now = current_millis();
+    u64 now = current_millis();
     if (now - latest > FILEINFO_THRESHOLD) {
       struct fileinfo_result *res =
           fileinfo_result_create(dir, infos, check, false);
@@ -223,7 +223,7 @@ static void async_load_fileinfo(Async *async, Dir *dir,
   }
 
   // load dircounts for directories
-  for (uint32_t i = 0; i < n; i++) {
+  for (u32 i = 0; i < n; i++) {
     if (!S_ISDIR(files[i].mode)) {
       continue;
     }
@@ -246,7 +246,7 @@ static void async_load_fileinfo(Async *async, Dir *dir,
       count = path_dircount(files[i].path);
     info->count = count;
 
-    uint64_t now = current_millis();
+    u64 now = current_millis();
     if (now - latest > FILEINFO_THRESHOLD) {
       struct fileinfo_result *res =
           fileinfo_result_create(dir, infos, check, false);
@@ -261,7 +261,7 @@ static void async_load_fileinfo(Async *async, Dir *dir,
   }
 
 finalize:
-  for (uint32_t i = 0; i < n; i++) {
+  for (u32 i = 0; i < n; i++) {
     xfree(files[i].path);
   }
 
@@ -279,7 +279,7 @@ struct dir_update_data {
   Dir *dir; // dir might not exist anymore, don't touch
   bool load_fileinfo;
   Dir *update;
-  uint32_t level;
+  u32 level;
   hmap_dircount dircounts;
   struct validity_check64 check; // lfm.loader.dir_cache_version
 };
@@ -337,7 +337,7 @@ static void async_dir_load_worker(void *arg) {
     }
   }
 
-  uint32_t num_files = vec_file_size(&work->update->files_all);
+  u32 num_files = vec_file_size(&work->update->files_all);
 
   if (work->load_fileinfo || num_files == 0 ||
       atomic_load_explicit(&async->stop, memory_order_relaxed)) {

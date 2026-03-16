@@ -44,7 +44,7 @@ zsview basename_zv(zsview path) {
   if (base == NULL) {
     return path;
   }
-  int len = base - path.str;
+  i32 len = base - path.str;
 
   return zsview_tail(path, path.size - len - 1);
 }
@@ -60,7 +60,7 @@ void dirname_cstr(cstr *path) {
     cstr_assign_n(path, ".", 1);
     return;
   }
-  size_t len = base - cstr_str(path);
+  usize len = base - cstr_str(path);
   if (len == 0) {
     // root keeps its trailing slash
     cstr_resize(path, 1, 0);
@@ -88,8 +88,7 @@ cstr path_replace_tilde(zsview path) {
 // replace //
 // replace /./
 // replace /../ and kill one component to the left
-static inline char *path_clean(char *const path, size_t len_in,
-                               ssize_t *len_out) {
+static inline char *path_clean(char *const path, usize len_in, isize *len_out) {
   char *p = path; // read position
   char *q = path; // write position
   const char *end = path + len_in;
@@ -127,12 +126,12 @@ static inline char *path_clean(char *const path, size_t len_in,
   return path;
 }
 
-zsview path_normalize3(zsview path, const char *pwd, char *buf, size_t bufsz) {
-  ssize_t len = 0;
+zsview path_normalize3(zsview path, const char *pwd, char *buf, usize bufsz) {
+  isize len = 0;
 
   if (zsview_eq(&path, &c_zv("~"))) {
     zsview home = getenv_zv("HOME");
-    if ((size_t)home.size + path.size - 1 > bufsz) {
+    if ((usize)home.size + path.size - 1 > bufsz) {
       // too long, abort
       return c_zv("");
     }
@@ -142,7 +141,7 @@ zsview path_normalize3(zsview path, const char *pwd, char *buf, size_t bufsz) {
     // this increases the length
 
     zsview home = getenv_zv("HOME");
-    if ((size_t)home.size + path.size - 1 > bufsz) {
+    if ((usize)home.size + path.size - 1 > bufsz) {
       // too long, abort
       return c_zv("");
     }
@@ -154,13 +153,13 @@ zsview path_normalize3(zsview path, const char *pwd, char *buf, size_t bufsz) {
 
     if (!pwd) {
       len = getpwd_buf(buf, bufsz);
-      if (len < 0 || len + path.size + 1 > (ssize_t)bufsz) {
+      if (len < 0 || len + path.size + 1 > (isize)bufsz) {
         // too long, abort
         return c_zv("");
       }
     } else {
       len = strlen(pwd);
-      if ((size_t)len + path.size + 1 > bufsz) {
+      if ((usize)len + path.size + 1 > bufsz) {
         // too long, abort
         return c_zv("");
       }
@@ -174,7 +173,7 @@ zsview path_normalize3(zsview path, const char *pwd, char *buf, size_t bufsz) {
   } else {
     // absolute path
 
-    if ((size_t)path.size + 1 > bufsz) {
+    if ((usize)path.size + 1 > bufsz) {
       // too long, abort
       return c_zv("");
     }
@@ -186,9 +185,9 @@ zsview path_normalize3(zsview path, const char *pwd, char *buf, size_t bufsz) {
   return zsview_from_n(buf, len);
 }
 
-ssize_t path_make_absolute(zsview path, char *buf, size_t bufsz) {
-  ssize_t len = getpwd_buf(buf, bufsz);
-  if (len < 0 || len + 1 + path.size + 1 > (ssize_t)bufsz) {
+isize path_make_absolute(zsview path, char *buf, usize bufsz) {
+  isize len = getpwd_buf(buf, bufsz);
+  if (len < 0 || len + 1 + path.size + 1 > (isize)bufsz) {
     // buffer too small
     return -1;
   }
@@ -201,7 +200,7 @@ ssize_t path_make_absolute(zsview path, char *buf, size_t bufsz) {
 zsview name_ext(const zsview *name) {
   const char *last_dot = strrchr(name->str, '.');
   if (last_dot) {
-    int pos = last_dot - name->str;
+    i32 pos = last_dot - name->str;
     if (pos > 0) {
       return zsview_from_pos(*name, pos);
     }
@@ -210,8 +209,8 @@ zsview name_ext(const zsview *name) {
   return zsview_from_pos(*name, name->size);
 }
 
-ssize_t path_concat(zsview dir, zsview name, char *buf, size_t bufsz) {
-  size_t len = dir.size + name.size + 1;
+isize path_concat(zsview dir, zsview name, char *buf, usize bufsz) {
+  usize len = dir.size + name.size + 1;
   if (len + 1 > bufsz) {
     return -1;
   }

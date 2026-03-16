@@ -10,20 +10,20 @@
 #define PROFILING_MAX_ENTRIES 128
 
 struct profiling_entry {
-  uint64_t ts, diff;
+  u64 ts, diff;
   const char *name;
-  int depth;
+  i32 depth;
   bool is_complete;
 };
 
 struct profiling_data {
-  uint64_t startup;
-  int num_entries;
+  u64 startup;
+  i32 num_entries;
   struct profiling_entry entries[PROFILING_MAX_ENTRIES];
 };
 
 extern struct profiling_data profiling_data;
-extern int profiling_depth;
+extern i32 profiling_depth;
 extern bool profiling_complete;
 
 #define PROFILING_INIT()                                                       \

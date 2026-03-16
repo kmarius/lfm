@@ -15,8 +15,8 @@ declare_hmap(previewcache, zsview, Preview *);
 typedef struct Loader {
   dircache dc;
   previewcache pc;
-  size_t dir_cache_version; // number of times the cache has been dropped
-  size_t preview_cache_version;
+  usize dir_cache_version; // number of times the cache has been dropped
+  usize preview_cache_version;
 
   list_loader_timer dir_timers;
   list_loader_timer preview_timers;

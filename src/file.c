@@ -1,7 +1,7 @@
 #include "file.h"
 
+#include "defs.h"
 #include "log.h"
-#include "macros.h"
 #include "memory.h"
 #include "path.h"
 #include "stc/cstr.h"
@@ -21,10 +21,10 @@
 #include <sys/stat.h>
 #include <unistd.h> // readlink
 
-File *file_create(const char *dir, const char *name, int fd, bool load_info) {
+File *file_create(const char *dir, const char *name, i32 fd, bool load_info) {
   char buf[PATH_MAX + 1];
 
-  int len = path_concat(zsview_from(dir), zsview_from(name), buf, sizeof buf);
+  i32 len = path_concat(zsview_from(dir), zsview_from(name), buf, sizeof buf);
   if (unlikely(len < 0)) {
     log_error("path too long");
     return NULL;
@@ -55,7 +55,7 @@ File *file_create(const char *dir, const char *name, int fd, bool load_info) {
         f->stat = f->lstat;
       }
     }
-    ssize_t len = readlinkat(fd, name, buf, sizeof buf);
+    isize len = readlinkat(fd, name, buf, sizeof buf);
     if (len == -1) {
       f->isbroken = true;
     } else {
@@ -73,7 +73,7 @@ File *file_create(const char *dir, const char *name, int fd, bool load_info) {
   return f;
 }
 
-uint32_t file_load_dircount(File *file) {
+u32 file_load_dircount(File *file) {
   if (file_isdir(file)) {
     file->dircount = path_dircount(file_path_str(file));
   }
@@ -89,9 +89,9 @@ void file_destroy(File *f) {
   xfree(f);
 }
 
-uint32_t path_dircount(const char *path) {
+u32 path_dircount(const char *path) {
   DIR *dirp = opendir(path);
-  uint32_t c = 0;
+  u32 c = 0;
   if (likely(dirp)) {
     while (readdir(dirp) != NULL)
       c++;
@@ -101,7 +101,7 @@ uint32_t path_dircount(const char *path) {
   return c;
 }
 
-static char filetypeletter(int mode) {
+static char filetypeletter(i32 mode) {
   char c;
 
   if (S_ISREG(mode)) {
@@ -146,7 +146,7 @@ const char *file_perms(const File *f) {
                               "r--", "r-x", "rw-", "rwx"};
   static char bits[11];
 
-  const int mode = f->stat.st_mode;
+  const i32 mode = f->stat.st_mode;
   bits[0] = filetypeletter(mode);
   strcpy(&bits[1], rwx[(mode >> 6) & 7]);
   strcpy(&bits[4], rwx[(mode >> 3) & 7]);
@@ -168,7 +168,7 @@ const char *file_owner(const File *f) {
   static char name[32];
   static uid_t cached_uid = UINT_MAX;
 
-  unsigned int uid = f->lstat.st_uid;
+  u32 uid = f->lstat.st_uid;
   if (uid != cached_uid) {
     struct passwd *pwd = getpwuid(uid);
     if (pwd) {
@@ -187,7 +187,7 @@ const char *file_group(const File *f) {
   static char name[32];
   static gid_t cached_gid = UINT_MAX;
 
-  unsigned int gid = f->lstat.st_gid;
+  u32 gid = f->lstat.st_gid;
   if (gid != cached_gid) {
     struct group *grp = getgrgid(gid);
     if (grp) {

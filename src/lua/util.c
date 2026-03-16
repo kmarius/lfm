@@ -23,7 +23,7 @@ void set_package_path(lua_State *L) {
   lua_getfield(L, -1, "path");
 
   char buf[PATH_MAX];
-  size_t len;
+  usize len;
 
   const char *path = lua_tolstring(L, -1, &len);
   memcpy(buf, path, len + 1);
@@ -31,7 +31,7 @@ void set_package_path(lua_State *L) {
   // remove ./?.lua, beware of trailing nuls
   char *ptr = strstr(buf, "./?.lua");
   if (ptr != NULL) {
-    int l = sizeof "./?.lua" - 1;
+    i32 l = sizeof "./?.lua" - 1;
     if (buf[l] == ';') {
       l++;
     }
@@ -58,7 +58,7 @@ void set_package_path(lua_State *L) {
   // remove ./?.so
   ptr = strstr(buf, "./?.so");
   if (ptr != NULL) {
-    int l = sizeof "./?.so" - 1;
+    i32 l = sizeof "./?.so" - 1;
     if (buf[l] == ';') {
       l++;
     }
@@ -133,10 +133,10 @@ int lua_decode(lua_State *L, bytes chunk) {
 }
 
 void lua_read_vec_cstr(lua_State *L, int idx, vec_cstr *vec) {
-  int n = lua_objlen(L, idx);
+  usize n = lua_objlen(L, idx);
   vec_cstr_clear(vec);
   vec_cstr_reserve(vec, n);
-  for (int i = 1; i <= n; i++) {
+  for (usize i = 1; i <= n; i++) {
     lua_rawgeti(L, idx, i);
     vec_cstr_push_back(vec, lua_tocstr(L, -1));
     lua_pop(L, 1);
@@ -144,10 +144,10 @@ void lua_read_vec_cstr(lua_State *L, int idx, vec_cstr *vec) {
 }
 
 void lua_read_vec_str(lua_State *L, int idx, vec_str *vec) {
-  int n = lua_objlen(L, idx);
+  usize n = lua_objlen(L, idx);
   vec_str_clear(vec);
   vec_str_reserve(vec, n);
-  for (int i = 1; i <= n; i++) {
+  for (usize i = 1; i <= n; i++) {
     lua_rawgeti(L, idx, i);
     vec_str_push_back(vec, lua_tostrdup(L, -1));
     lua_pop(L, 1);
@@ -155,10 +155,10 @@ void lua_read_vec_str(lua_State *L, int idx, vec_str *vec) {
 }
 
 void lua_read_vec_bytes(lua_State *L, int idx, vec_bytes *vec) {
-  int n = lua_objlen(L, idx);
+  usize n = lua_objlen(L, idx);
   vec_bytes_clear(vec);
   vec_bytes_reserve(vec, n);
-  for (int i = 1; i <= n; i++) {
+  for (usize i = 1; i <= n; i++) {
     lua_rawgeti(L, idx, i);
     vec_bytes_push_back(vec, lua_tobytes(L, -1));
     lua_pop(L, 1);
@@ -166,17 +166,17 @@ void lua_read_vec_bytes(lua_State *L, int idx, vec_bytes *vec) {
 }
 
 void lua_read_bytes_into_chunks(lua_State *L, int idx, vec_bytes *vec) {
-  size_t bufsz = 4096;
+  usize bufsz = 4096;
 
-  size_t n;
+  usize n;
   const char *data = lua_tolstring(L, idx, &n);
   vec_bytes_clear(vec);
   if (n == 0)
     return;
 
   vec_bytes_reserve(vec, n / bufsz + 1);
-  size_t chunksz = bufsz;
-  for (size_t idx = 0; idx < n; idx += chunksz) {
+  usize chunksz = bufsz;
+  for (usize idx = 0; idx < n; idx += chunksz) {
     if (idx + chunksz > n)
       chunksz = n - idx;
     bytes bytes = bytes_from_n(data + idx, chunksz);
@@ -185,19 +185,19 @@ void lua_read_bytes_into_chunks(lua_State *L, int idx, vec_bytes *vec) {
 }
 
 void lua_read_vec_bytes_into_chunks(lua_State *L, int idx, vec_bytes *vec) {
-  int n = lua_objlen(L, idx);
+  usize n = lua_objlen(L, idx);
   vec_bytes_clear(vec);
   if (n == 0)
     return;
   vec_bytes_reserve(vec, 4);
 
-  size_t bufsz = 4096;
+  usize bufsz = 4096;
   char *buf = malloc(bufsz);
-  int buf_idx = 0;
+  usize buf_idx = 0;
 
-  for (int i = 1; i <= n; i++) {
+  for (usize i = 1; i <= n; i++) {
     lua_rawgeti(L, idx, i);
-    size_t bytes_remaining;
+    usize bytes_remaining;
     const char *data = lua_tolstring(L, -1, &bytes_remaining);
 
     for (;;) {
@@ -234,7 +234,7 @@ void lua_read_vec_bytes_into_chunks(lua_State *L, int idx, vec_bytes *vec) {
 
 void lua_push_vec_cstr(lua_State *L, const vec_cstr *vec) {
   lua_createtable(L, vec_cstr_size(vec), 0);
-  int i = 1;
+  i32 i = 1;
   c_foreach(it, vec_cstr, *vec) {
     lua_pushlstring(L, cstr_str(it.ref), cstr_size(it.ref));
     lua_rawseti(L, -2, i++);
@@ -243,7 +243,7 @@ void lua_push_vec_cstr(lua_State *L, const vec_cstr *vec) {
 
 void lua_push_vec_bytes(lua_State *L, vec_bytes *vec) {
   lua_createtable(L, vec_bytes_size(vec), 0);
-  size_t i = 1;
+  i32 i = 1;
   c_foreach(it, vec_bytes, *vec) {
     lua_pushbytes(L, *it.ref);
     lua_rawseti(L, -2, i++);

@@ -45,8 +45,8 @@ static void lock_mutex(bool lock, void *ud);
 
 static Lfm lfm;
 
-int main(int argc, char **argv) {
-  int ret = EXIT_SUCCESS;
+i32 main(i32 argc, char **argv) {
+  i32 ret = EXIT_SUCCESS;
 
   PROFILING_INIT();
 
@@ -61,7 +61,7 @@ int main(int argc, char **argv) {
 
   FILE *log = fopen(cstr_str(&cfg.logpath), "w");
   log_set_quiet(true);
-  int log_level = LOG_INFO;
+  i32 log_level = LOG_INFO;
 
 #ifndef NDEBUG
   log_level = LOG_DEBUG;
@@ -69,7 +69,7 @@ int main(int argc, char **argv) {
 
   struct lfm_opts opts = {.log = log};
 
-  int opt;
+  i32 opt;
   while ((opt = getopt(argc, argv, ":c:hl:L:s:u:v")) != -1) {
     switch (opt) {
     case 'c':

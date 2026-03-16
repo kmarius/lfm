@@ -26,7 +26,7 @@ Trie *trie_find_child(const Trie *t, input_t key) {
   return NULL;
 }
 
-int trie_insert(Trie *t, const input_t *trie_keys, int ref, zsview keys,
+i32 trie_insert(Trie *t, const input_t *trie_keys, i32 ref, zsview keys,
                 zsview desc) {
   if (!t) {
     return 0;
@@ -42,26 +42,26 @@ int trie_insert(Trie *t, const input_t *trie_keys, int ref, zsview keys,
   cstr_assign_zv(&t->keys, keys);
   cstr_assign_zv(&t->desc, desc);
   t->is_leaf = !cstr_is_empty(&t->keys);
-  int oldref = t->ref;
+  i32 oldref = t->ref;
   t->ref = ref;
   return oldref;
 }
 
-int trie_remove(Trie *t, const input_t *trie_keys) {
+i32 trie_remove(Trie *t, const input_t *trie_keys) {
   if (!t) {
     return 0;
   }
   if (*trie_keys == 0) {
     cstr_clear(&t->keys);
     cstr_clear(&t->desc);
-    int oldref = t->ref;
+    i32 oldref = t->ref;
     t->ref = 0;
     return oldref;
   }
   Trie **prev = &t->child;
   for (Trie *n = t->child; n; n = n->next) {
     if (n->key == *trie_keys) {
-      int ret = trie_remove(n, trie_keys + 1);
+      i32 ret = trie_remove(n, trie_keys + 1);
       if (!n->child && !n->ref) {
         *prev = n->next;
         xfree(n);

@@ -1,8 +1,7 @@
-#include "pwd.h"
+#include "getpwd.h"
 #include "stc/cstr.h"
 
 #include <pthread.h>
-#include <stdio.h>
 
 static pthread_rwlock_t lock = PTHREAD_RWLOCK_INITIALIZER;
 static cstr PWD = cstr_init();
@@ -13,10 +12,10 @@ void setpwd(const char *path) {
   pthread_rwlock_unlock(&lock);
 }
 
-size_t getpwd_buf(char *buf, size_t bufzs) {
+isize getpwd_buf(char *buf, usize bufzs) {
   pthread_rwlock_rdlock(&lock);
-  ssize_t len = cstr_size(&PWD);
-  if (len + 1 > (ssize_t)bufzs) {
+  isize len = cstr_size(&PWD);
+  if (len + 1 > (isize)bufzs) {
     pthread_rwlock_unlock(&lock);
     return -1;
   }

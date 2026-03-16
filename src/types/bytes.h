@@ -1,6 +1,6 @@
 #pragma once
 
-#include "macros.h"
+#include "defs.h"
 #include "memory.h"
 
 #include <stdbool.h>
@@ -9,14 +9,14 @@
 // A slice of bytes with fixed length.
 typedef struct bytes {
   char *buf;
-  size_t size;
+  usize size;
 } bytes;
 
 static inline bytes bytes_init() {
   return (bytes){0};
 }
 
-static inline bytes bytes_from_n(const char *data, size_t size) {
+static inline bytes bytes_from_n(const char *data, usize size) {
   if (unlikely(size == 0)) {
     return bytes_init();
   }

@@ -31,11 +31,11 @@ void strchrsub(char *str, char c, char x) {
 ///
 /// @return Length of `src`. May be greater than `dsize - 1`, which would mean
 ///         that string was truncated.
-size_t xstrlcpy(char *restrict dst, const char *restrict src, size_t dsize) {
-  size_t slen = strlen(src);
+usize xstrlcpy(char *restrict dst, const char *restrict src, usize dsize) {
+  usize slen = strlen(src);
 
   if (dsize) {
-    size_t len = slen < dsize - 1 ? slen : dsize - 1;
+    usize len = slen < dsize - 1 ? slen : dsize - 1;
     memcpy(dst, src, len);
     dst[len] = '\0';
   }

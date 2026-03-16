@@ -1,5 +1,6 @@
 #pragma once
 
+#include "defs.h"
 #include "stcutil.h"
 #include "types/bytes.h"
 #include "types/vec_bytes.h"
@@ -42,27 +43,27 @@ static inline void lua_pushzsview(lua_State *L, zsview zv) {
 }
 
 static inline zsview lua_tozsview(lua_State *L, int idx) {
-  size_t len;
+  usize len;
   const char *str = lua_tolstring(L, idx, &len);
   return zsview_from_n(str ? str : "", len);
 }
 
 // efficiently create a copy of the string repr of the value at position idx
 static inline char *lua_tostrdup(lua_State *L, int idx) {
-  size_t len;
+  usize len;
   const char *s = lua_tolstring(L, idx, &len);
   return strndup(s, len);
 }
 
 static inline cstr lua_tocstr(lua_State *L, int idx) {
-  size_t len;
+  usize len;
   const char *str = lua_tolstring(L, idx, &len);
   return cstr_with_n(str, len);
 }
 
 // convert value at position idx to a string and then into a struct bytes
 static inline bytes lua_tobytes(lua_State *L, int idx) {
-  size_t len;
+  usize len;
   const char *data = lua_tolstring(L, idx, &len);
   return bytes_from_n(data, len);
 }

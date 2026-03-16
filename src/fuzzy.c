@@ -62,12 +62,12 @@
 const score_t bonus_states[3][256] = {
     {0},
     {
-        ['/'] = SCORE_MATCH_SLASH,
-        ['-'] = SCORE_MATCH_WORD,
-        ['_'] = SCORE_MATCH_WORD,
-        [' '] = SCORE_MATCH_WORD,
-        ['.'] = SCORE_MATCH_DOT,
-    },
+     ['/'] = SCORE_MATCH_SLASH,
+     ['-'] = SCORE_MATCH_WORD,
+     ['_'] = SCORE_MATCH_WORD,
+     [' '] = SCORE_MATCH_WORD,
+     ['.'] = SCORE_MATCH_DOT,
+     },
     {['/'] = SCORE_MATCH_SLASH,
      ['-'] = SCORE_MATCH_WORD,
      ['_'] = SCORE_MATCH_WORD,
@@ -75,9 +75,10 @@ const score_t bonus_states[3][256] = {
      ['.'] = SCORE_MATCH_DOT,
 
      /* ['a' ... 'z'] = SCORE_MATCH_CAPITAL, */
-     ASSIGN_LOWER(SCORE_MATCH_CAPITAL)}};
+     ASSIGN_LOWER(SCORE_MATCH_CAPITAL)}
+};
 
-const size_t bonus_index[256] = {
+const usize bonus_index[256] = {
     /* ['A' ... 'Z'] = 2 */
     ASSIGN_UPPER(2),
 
@@ -88,14 +89,14 @@ const size_t bonus_index[256] = {
     ASSIGN_DIGIT(1)};
 
 #define COMPUTE_BONUS(last_ch, ch)                                             \
-  (bonus_states[bonus_index[(unsigned char)(ch)]][(unsigned char)(last_ch)])
+  (bonus_states[bonus_index[(u8)(ch)]][(u8)(last_ch)])
 
 static inline char *strcasechr(const char *s, char c) {
   const char accept[3] = {c, toupper(c), 0};
   return strpbrk(s, accept);
 }
 
-int fzy_has_match(const char *needle, const char *haystack) {
+i32 fzy_has_match(const char *needle, const char *haystack) {
   while (*needle) {
     char nch = *needle++;
 
@@ -117,8 +118,8 @@ int fzy_has_match(const char *needle, const char *haystack) {
 #define max(a, b) (((a) > (b)) ? (a) : (b))
 
 struct match_struct {
-  int needle_len;
-  int haystack_len;
+  i32 needle_len;
+  i32 haystack_len;
 
   char lower_needle[MATCH_MAX_LEN];
   char lower_haystack[MATCH_MAX_LEN];
@@ -130,7 +131,7 @@ static inline void precompute_bonus(const char *haystack,
                                     score_t *match_bonus) {
   /* Which positions are beginning of words */
   char last_ch = '/';
-  for (int i = 0; haystack[i]; i++) {
+  for (i32 i = 0; haystack[i]; i++) {
     char ch = haystack[i];
     match_bonus[i] = COMPUTE_BONUS(last_ch, ch);
     last_ch = ch;
@@ -148,21 +149,21 @@ static inline void setup_match_struct(struct match_struct *match,
     return;
   }
 
-  for (int i = 0; i < match->needle_len; i++)
+  for (i32 i = 0; i < match->needle_len; i++)
     match->lower_needle[i] = tolower(needle[i]);
 
-  for (int i = 0; i < match->haystack_len; i++)
+  for (i32 i = 0; i < match->haystack_len; i++)
     match->lower_haystack[i] = tolower(haystack[i]);
 
   precompute_bonus(haystack, match->match_bonus);
 }
 
-static inline void match_row(const struct match_struct *match, int row,
+static inline void match_row(const struct match_struct *match, i32 row,
                              score_t *curr_D, score_t *curr_M,
                              const score_t *last_D, const score_t *last_M) {
-  int n = match->needle_len;
-  int m = match->haystack_len;
-  int i = row;
+  i32 n = match->needle_len;
+  i32 m = match->haystack_len;
+  i32 i = row;
 
   const char *lower_needle = match->lower_needle;
   const char *lower_haystack = match->lower_haystack;
@@ -171,7 +172,7 @@ static inline void match_row(const struct match_struct *match, int row,
   score_t prev_score = SCORE_MIN;
   score_t gap_score = i == n - 1 ? SCORE_GAP_TRAILING : SCORE_GAP_INNER;
 
-  for (int j = 0; j < m; j++) {
+  for (i32 j = 0; j < m; j++) {
     if (lower_needle[i] == lower_haystack[j]) {
       score_t score = SCORE_MIN;
       if (!i) {
@@ -198,8 +199,8 @@ score_t fzy_match(const char *needle, const char *haystack) {
   struct match_struct match;
   setup_match_struct(&match, needle, haystack);
 
-  int n = match.needle_len;
-  int m = match.haystack_len;
+  i32 n = match.needle_len;
+  i32 m = match.haystack_len;
 
   if (m > MATCH_MAX_LEN || n > m) {
     /*
@@ -230,7 +231,7 @@ score_t fzy_match(const char *needle, const char *haystack) {
   curr_D = D[1];
   curr_M = M[1];
 
-  for (int i = 0; i < n; i++) {
+  for (i32 i = 0; i < n; i++) {
     match_row(&match, i, curr_D, curr_M, last_D, last_M);
 
     SWAP(curr_D, last_D, score_t *);
@@ -241,15 +242,15 @@ score_t fzy_match(const char *needle, const char *haystack) {
 }
 
 score_t fzy_match_positions(const char *needle, const char *haystack,
-                            size_t *positions) {
+                            usize *positions) {
   if (!*needle)
     return SCORE_MIN;
 
   struct match_struct match;
   setup_match_struct(&match, needle, haystack);
 
-  int n = match.needle_len;
-  int m = match.haystack_len;
+  i32 n = match.needle_len;
+  i32 m = match.haystack_len;
 
   if (m > MATCH_MAX_LEN || n > m) {
     /*
@@ -264,7 +265,7 @@ score_t fzy_match_positions(const char *needle, const char *haystack,
      * strings themselves must also be equal (ignoring case).
      */
     if (positions)
-      for (int i = 0; i < n; i++)
+      for (i32 i = 0; i < n; i++)
         positions[i] = i;
     return SCORE_MAX;
   }
@@ -280,7 +281,7 @@ score_t fzy_match_positions(const char *needle, const char *haystack,
   score_t *last_D, *last_M = last_D = NULL;
   score_t *curr_D, *curr_M;
 
-  for (int i = 0; i < n; i++) {
+  for (i32 i = 0; i < n; i++) {
     curr_D = &D[i][0];
     curr_M = &M[i][0];
 
@@ -292,8 +293,8 @@ score_t fzy_match_positions(const char *needle, const char *haystack,
 
   /* backtrace to find the positions of optimal matching */
   if (positions) {
-    int match_required = 0;
-    for (int i = n - 1, j = m - 1; i >= 0; i--) {
+    i32 match_required = 0;
+    for (i32 i = n - 1, j = m - 1; i >= 0; i--) {
       for (; j >= 0; j--) {
         /*
          * There may be multiple paths which result in

@@ -2,6 +2,7 @@
 
 // misc utils to work with notcurses and/or stc
 
+#include "defs.h"
 #include "stc/cstr.h"
 #include "stc/csview.h"
 
@@ -25,75 +26,74 @@
 const char *ncplane_set_ansi_attrs(struct ncplane *n, const char *s,
                                    const char *end);
 
-static inline int ncplane_putzv(struct ncplane *n, zsview zv) {
+static inline i32 ncplane_putzv(struct ncplane *n, zsview zv) {
   return ncplane_putnstr(n, zv.size, zv.str);
 }
 
-static inline int ncplane_putcstr(struct ncplane *n, const cstr *str) {
+static inline i32 ncplane_putcstr(struct ncplane *n, const cstr *str) {
   return ncplane_putzv(n, cstr_zv(str));
 }
 
 // Adds a string to n, interpreting ansi escape sequences and setting the
 // attributes to n.
-int ncplane_putnstr_ansi_yx(struct ncplane *n, int y, int x, size_t s,
+i32 ncplane_putnstr_ansi_yx(struct ncplane *n, i32 y, i32 x, usize s,
                             const char *gclusters);
 
-static inline int ncplane_putnstr_ansi(struct ncplane *n, size_t s,
+static inline i32 ncplane_putnstr_ansi(struct ncplane *n, usize s,
                                        const char *gclusters) {
   return ncplane_putnstr_ansi_yx(n, -1, -1, s, gclusters);
 }
 
-static inline int ncplane_putstr_ansi_yx(struct ncplane *n, int y, int x,
+static inline i32 ncplane_putstr_ansi_yx(struct ncplane *n, i32 y, i32 x,
                                          const char *str) {
   return ncplane_putnstr_ansi_yx(n, y, x, strlen(str), str);
 }
 
-static inline int ncplane_putstr_ansi(struct ncplane *n, const char *str) {
+static inline i32 ncplane_putstr_ansi(struct ncplane *n, const char *str) {
   return ncplane_putstr_ansi_yx(n, -1, -1, str);
 }
 
-static inline int ncplane_putcs_ansi_yx(struct ncplane *n, int y, int x,
+static inline i32 ncplane_putcs_ansi_yx(struct ncplane *n, i32 y, i32 x,
                                         csview cs) {
   return ncplane_putnstr_ansi_yx(n, y, x, cs.size, cs.buf);
 }
 
-static inline int ncplane_putcs_ansi(struct ncplane *n, csview cs) {
+static inline i32 ncplane_putcs_ansi(struct ncplane *n, csview cs) {
   return ncplane_putcs_ansi_yx(n, -1, -1, cs);
 }
 
-static inline int ncplane_putzv_ansi_yx(struct ncplane *n, int y, int x,
+static inline i32 ncplane_putzv_ansi_yx(struct ncplane *n, i32 y, i32 x,
                                         zsview zs) {
   return ncplane_putnstr_ansi_yx(n, y, x, zs.size, zs.str);
 }
 
-static inline int ncplane_putzv_ansi(struct ncplane *n, zsview zv) {
+static inline i32 ncplane_putzv_ansi(struct ncplane *n, zsview zv) {
   return ncplane_putzv_ansi_yx(n, -1, -1, zv);
 }
 
-static inline int ncplane_putcstr_ansi_yx(struct ncplane *n, int y, int x,
+static inline i32 ncplane_putcstr_ansi_yx(struct ncplane *n, i32 y, i32 x,
                                           const cstr *str) {
   return ncplane_putcs_ansi_yx(n, y, x, cstr_sv(str));
 }
 
-static inline int ncplane_putcstr_ansi(struct ncplane *n, const cstr *str) {
+static inline i32 ncplane_putcstr_ansi(struct ncplane *n, const cstr *str) {
   return ncplane_putcstr_ansi_yx(n, -1, -1, str);
 }
 
 // stops once printed s cells
-int ncplane_putlcs_ansi_yx(struct ncplane *n, int y, int x, size_t s,
-                           csview cs);
+i32 ncplane_putlcs_ansi_yx(struct ncplane *n, i32 y, i32 x, usize s, csview cs);
 
 // stops once printed s cells
-static inline int ncplane_putlcstr_ansi_yx(struct ncplane *n, int y, int x,
-                                           size_t s, const cstr *str) {
+static inline i32 ncplane_putlcstr_ansi_yx(struct ncplane *n, i32 y, i32 x,
+                                           usize s, const cstr *str) {
   return ncplane_putlcs_ansi_yx(n, y, x, s, cstr_sv(str));
 }
 
-static inline void ncplane_putchar_rep(struct ncplane *n, char c, int rep) {
-  for (int i = 0; i < rep; i++) {
+static inline void ncplane_putchar_rep(struct ncplane *n, char c, i32 rep) {
+  for (i32 i = 0; i < rep; i++) {
     ncplane_putchar(n, c);
   }
 }
 
 // Returns the size of the string in wide chars with ansi codes removed.
-size_t ansi_mblen(const char *ptr);
+usize ansi_mblen(const char *ptr);

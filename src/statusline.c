@@ -1,17 +1,17 @@
 #include "statusline.h"
 
 #include "config.h"
+#include "defs.h"
 #include "file.h"
 #include "keys.h"
 #include "lfm.h"
 #include "macro.h"
-#include "macros.h"
 #include "ui.h"
 
 #include <curses.h>
 
-static inline char *my_strftime(time_t time, char *buffer, size_t bufsz);
-static inline uint32_t uint32_num_digits(uint32_t n);
+static inline char *my_strftime(time_t time, char *buffer, usize bufsz);
+static inline u32 uint32_num_digits(u32 n);
 
 void statusline_draw(Ui *ui) {
   Fm *fm = &to_lfm(ui)->fm;
@@ -25,8 +25,8 @@ void statusline_draw(Ui *ui) {
   ncplane_set_bg_default(n);
   ncplane_set_fg_default(n);
 
-  uint32_t rhs_sz = 0;
-  uint32_t lhs_sz = 0;
+  u32 rhs_sz = 0;
+  u32 lhs_sz = 0;
   ncplane_cursor_yx(n, 0, 0);
 
   const Dir *dir = fm_current_dir(fm);
@@ -55,7 +55,7 @@ void statusline_draw(Ui *ui) {
 
     rhs_sz =
         snprintf(nums, sizeof nums, "%u/%u",
-                 dir_length(dir) > 0 ? dir->ind + 1 : 0, (int)dir_length(dir));
+                 dir_length(dir) > 0 ? dir->ind + 1 : 0, (i32)dir_length(dir));
     ncplane_putstr_yx(n, 0, ui->x - rhs_sz, nums);
 
     // these are drawn right to left
@@ -70,7 +70,7 @@ void statusline_draw(Ui *ui) {
       ncplane_set_fg_default(n);
       ncplane_putchar(n, ' ');
     }
-    size_t paste_size = pathlist_size(&fm->paste.buffer);
+    usize paste_size = pathlist_size(&fm->paste.buffer);
     if (paste_size > 0) {
       if (fm->paste.mode == PASTE_MODE_COPY) {
         ncplane_set_channels(n, cfg.colors.copy);
@@ -78,14 +78,14 @@ void statusline_draw(Ui *ui) {
         ncplane_set_channels(n, cfg.colors.delete);
       }
 
-      size_t paste_size = pathlist_size(&fm->paste.buffer);
+      usize paste_size = pathlist_size(&fm->paste.buffer);
       rhs_sz += uint32_num_digits(paste_size) + 2 + 1;
       ncplane_printf_yx(n, 0, ui->x - rhs_sz, " %zu ", paste_size);
       ncplane_set_bg_default(n);
       ncplane_set_fg_default(n);
       ncplane_putchar(n, ' ');
     }
-    size_t sel_size = pathlist_size(&fm->selection.current);
+    usize sel_size = pathlist_size(&fm->selection.current);
     if (sel_size > 0) {
       ncplane_set_channels(n, cfg.colors.selection);
       rhs_sz += uint32_num_digits(sel_size) + 2 + 1;
@@ -116,8 +116,8 @@ void statusline_draw(Ui *ui) {
     if (vec_input_size(&ui->maps.seq) > 0) {
       // unlikely we get to print this much anyway
       char buf[256];
-      int j = 0;
-      size_t len;
+      i32 j = 0;
+      usize len;
       c_foreach(it, vec_input, ui->maps.seq) {
         const char *str = input_to_key_name(*it.ref, &len);
         if (j + len > sizeof buf - 1) {
@@ -139,13 +139,13 @@ void statusline_draw(Ui *ui) {
 }
 
 // Returns the the buffer instead of the number of printed bytes.
-static inline char *my_strftime(time_t time, char *buffer, size_t bufsz) {
+static inline char *my_strftime(time_t time, char *buffer, usize bufsz) {
   strftime(buffer, bufsz, "%Y-%m-%d %H:%M:%S", localtime(&time));
   return buffer;
 }
 
-static inline uint32_t uint32_num_digits(uint32_t n) {
-  uint32_t i = 1;
+static inline u32 uint32_num_digits(u32 n) {
+  u32 i = 1;
   while (n >= 10) {
     i++;
     n /= 10;

@@ -65,13 +65,13 @@ typedef struct Lfm {
   // Hence, all changes are collected and processed afterwards.
   vec_int hook_refs[LFM_NUM_HOOKS];
   vec_hook_change hook_changes;
-  int hook_callback_depth; // a callback could cause another hook to run
+  i32 hook_callback_depth; // a callback could cause another hook to run
 
   vec_message messages;
 
   struct lfm_opts opts;
 
-  int ret; /* set in lfm_quit and returned in main.c */
+  i32 ret; /* set in lfm_quit and returned in main.c */
 } Lfm;
 
 // Initialize lfm and all its components.
@@ -81,10 +81,10 @@ void lfm_init(Lfm *lfm, struct lfm_opts *opts);
 void lfm_deinit(Lfm *lfm);
 
 // Start the main event loop.
-int lfm_run(Lfm *lfm);
+i32 lfm_run(Lfm *lfm);
 
 // Stop the event loop.
-void lfm_quit(Lfm *lfm, int ret);
+void lfm_quit(Lfm *lfm, i32 ret);
 
 // call this on resize
 void lfm_on_resize(Lfm *lfm);
@@ -96,21 +96,21 @@ void lfm_on_resize(Lfm *lfm);
 // respective callbacks are called with each line of output/error and nothing
 // will be printed on the ui. `exit_ref` will be called with the return code
 // once the command finishes.
-int lfm_spawn(Lfm *lfm, const char *prog, char *const *args,
+i32 lfm_spawn(Lfm *lfm, const char *prog, char *const *args,
               struct vec_env *env, const struct vec_bytes *stdin_data,
-              int *stdin_fd, bool capture_stdout, bool capture_stderr,
-              int stdout_ref, int stderr_ref, int exit_ref,
+              i32 *stdin_fd, bool capture_stdout, bool capture_stderr,
+              i32 stdout_ref, i32 stderr_ref, i32 exit_ref,
               zsview working_directory);
 
 // Execute a foreground program. Uses execvp semantics. If stdout is passed,
 // lines from stdout are captured in the vector. Returns the exit status of the
 // process, or -1 if fork() fails.
-int lfm_execute(Lfm *lfm, const char *prog, char *const *args,
+i32 lfm_execute(Lfm *lfm, const char *prog, char *const *args,
                 struct vec_env *env, struct vec_bytes *stdin_data,
                 struct vec_bytes *stdout_lines, struct vec_bytes *stderr_lines);
 
 // Schedule callback of the function given by `ref` in `delay` milliseconds.
-void lfm_schedule(Lfm *lfm, int ref, uint32_t delay);
+void lfm_schedule(Lfm *lfm, i32 ref, u32 delay);
 
 // Print a message in the UI. `printf` formatting applies.
 void lfm_printf(Lfm *lfm, const char *format, ...);

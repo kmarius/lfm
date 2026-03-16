@@ -32,10 +32,10 @@ void input_buffer_add(struct Lfm *lfm, input_t in);
 // `ref == 0` unmaps. Returns -1 on invalid key sequence, -2 on input too long.
 // removed.
 __lfm_nonnull()
-int input_map(Trie *trie, zsview keys, int ref, zsview desc, int *out_ref);
+i32 input_map(Trie *trie, zsview keys, i32 ref, zsview desc, i32 *out_ref);
 
 // Unmap a key sequence.
 __lfm_nonnull()
-static inline int input_unmap(Trie *trie, zsview keys, int *out_ref) {
+static inline i32 input_unmap(Trie *trie, zsview keys, i32 *out_ref) {
   return input_map(trie, keys, 0, c_zv(""), out_ref);
 }

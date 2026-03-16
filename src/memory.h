@@ -1,5 +1,7 @@
 #pragma once
 
+#include "defs.h"
+
 #include <stdlib.h>
 #include <string.h>
 
@@ -9,15 +11,15 @@
 #define ALLOC __attribute__((malloc)) __attribute__((warn_unused_result))
 #endif
 
-ALLOC static inline void *xmalloc(size_t size) {
+ALLOC static inline void *xmalloc(usize size) {
   return malloc(size);
 }
 
-ALLOC static inline void *xcalloc(size_t nmemb, size_t size) {
+ALLOC static inline void *xcalloc(usize nmemb, usize size) {
   return calloc(nmemb, size);
 }
 
-ALLOC static inline void *xrealloc(void *ptr, size_t size) {
+ALLOC static inline void *xrealloc(void *ptr, usize size) {
   return realloc(ptr, size);
 }
 
@@ -25,11 +27,11 @@ static inline void xfree(void *p) {
   free(p);
 }
 
-size_t xstrlcpy(char *restrict dst, const char *restrict src, size_t dsize);
+usize xstrlcpy(char *restrict dst, const char *restrict src, usize dsize);
 
 void strchrsub(char *str, char c, char x);
 
-static inline void *memdup(const void *src, size_t n) {
+static inline void *memdup(const void *src, usize n) {
   void *mem = malloc(n);
   if (mem == NULL)
     return NULL;

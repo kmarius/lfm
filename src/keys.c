@@ -9,7 +9,7 @@
 #define MAX_KEY_WITH_MODIFIERS 2 + 9 + 2 + 2 + 2 /* <c-a-s-backspace> */
 
 static struct {
-  uint32_t id;
+  u32 id;
   char name[12];
 } key_names[] = {
     {' ',             "Space"    },
@@ -118,14 +118,14 @@ static struct {
     {NCKEY_REFRESH,   "Refresh"  }
 };
 
-static const int key_names_len = sizeof(key_names) / sizeof(key_names[0]);
+static const i32 key_names_len = sizeof(key_names) / sizeof(key_names[0]);
 
-const char *input_to_key_name(input_t in, size_t *len_out) {
+const char *input_to_key_name(input_t in, usize *len_out) {
   static char buf[MAX_KEY_WITH_MODIFIERS + 1];
-  uint32_t j = 0;
+  u32 j = 0;
   const char *name = NULL;
   if (ID(in) <= '<' || (ID(in) >= NCKEY_INVALID && ID(in) <= NCKEY_REFRESH)) {
-    for (uint32_t i = 0; i < key_names_len; i++) {
+    for (u32 i = 0; i < key_names_len; i++) {
       if (key_names[i].id == ID(in)) {
         name = key_names[i].name;
         break;
@@ -151,13 +151,13 @@ const char *input_to_key_name(input_t in, size_t *len_out) {
     buf[j++] = '-';
   }
   if (name != NULL) {
-    int len = strlen(name);
+    i32 len = strlen(name);
     memcpy(buf + j, name, len);
     j += len;
   } else {
     // not a special key
     // check if printable? otherwise notcurses won't print '>'
-    int n = wctomb(buf + j, ID(in));
+    i32 n = wctomb(buf + j, ID(in));
     if (n < 0) {
       buf[j++] = '?';
     } else {
@@ -173,14 +173,14 @@ const char *input_to_key_name(input_t in, size_t *len_out) {
   return buf;
 }
 
-int key_name_to_input(const char *key, input_t *out) {
+i32 key_name_to_input(const char *key, input_t *out) {
   bool shift = false;
   bool ctrl = false;
   bool alt = false;
 
   // handles "" too
   if (key[0] != '<') {
-    return mbtowc((int *)out, key, 8);
+    return mbtowc((i32 *)out, key, 8);
   }
 
   const char *ptr = key + 1;
@@ -218,10 +218,10 @@ int key_name_to_input(const char *key, input_t *out) {
   }
 
   // check special key names
-  int in = NCKEY_INVALID;
+  i32 in = NCKEY_INVALID;
   // currently longest would be backspace (9)
   if (end - ptr < 10) {
-    for (int i = 0; i < key_names_len; i++) {
+    for (i32 i = 0; i < key_names_len; i++) {
       if (key_names[i].name[end - ptr] == 0 &&
           strncasecmp(ptr, key_names[i].name, end - ptr) == 0) {
         ptr = end + 1;
@@ -242,7 +242,7 @@ int key_name_to_input(const char *key, input_t *out) {
     // some other key
 
     wchar_t w;
-    int l = mbtowc(&w, ptr, 8);
+    i32 l = mbtowc(&w, ptr, 8);
     if (l == -1) {
       return -1;
     }
@@ -270,13 +270,13 @@ int key_name_to_input(const char *key, input_t *out) {
   return ptr - key;
 }
 
-int key_names_to_input(zsview keys, input_t *buf, size_t bufsz) {
+i32 key_names_to_input(zsview keys, input_t *buf, usize bufsz) {
   const char *ptr = keys.str;
   const char *end = ptr + keys.size;
-  size_t j = 0;
+  usize j = 0;
 
   while (ptr < end) {
-    int len = key_name_to_input(ptr, &buf[j++]);
+    i32 len = key_name_to_input(ptr, &buf[j++]);
     if (len == -1 || j == bufsz) {
       buf[0] = 0;
       return j < bufsz ? -1 : -2;

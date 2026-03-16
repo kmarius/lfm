@@ -33,7 +33,7 @@ static inline void trim_dircount_cache(Dir *dir, uint32 num_dirs);
 // queue node to load flattened dirs
 typedef struct flat_dir_node {
   const char *path; // path to load
-  int level;        // depth from the root
+  i32 level;        // depth from the root
   bool hidden;      // true if any cmponent of path began with .
 } node;
 
@@ -70,7 +70,7 @@ typedef struct flat_dir_node {
 const char *fileinfo_str[] = {"size", "atime", "ctime", "mtime"};
 
 // doesn't check bounds
-static inline void vec_file_set(vec_file *vec, size_t i, File *file) {
+static inline void vec_file_set(vec_file *vec, usize i, File *file) {
   vec->data[i] = file;
 }
 
@@ -79,8 +79,8 @@ static inline void vec_file_set(vec_file *vec, size_t i, File *file) {
     qsort(vec.data, vec.size, sizeof *vec.data, cmp);                          \
   } while (0)
 
-static inline void reverse(File **a, size_t len) {
-  for (size_t i = 0; i < len / 2; i++) {
+static inline void reverse(File **a, usize len) {
+  for (usize i = 0; i < len / 2; i++) {
     c_swap(a + i, a + len - i - 1);
   }
 }
@@ -88,7 +88,7 @@ static inline void reverse(File **a, size_t len) {
 // does not attempt to keep the cursor position
 static void apply_filters(Dir *d) {
   if (d->filter) {
-    size_t i = 0;
+    usize i = 0;
     c_foreach(it, vec_file, d->files_sorted) {
       if (filter_match(d->filter, *it.ref)) {
         vec_file_set(&d->files, i++, *it.ref);
@@ -141,8 +141,8 @@ void dir_sort(Dir *d) {
     }
     d->sorted = true;
   }
-  size_t num_dirs = 0;
-  size_t j = 0;
+  usize num_dirs = 0;
+  usize j = 0;
   if (d->settings.hidden) {
     if (d->settings.dirfirst) {
       /* first pass: directories */
@@ -244,7 +244,7 @@ static inline void load_dircount_cached(Dir *dir, File *file) {
 
 // re-creates the hash map if it has over 50% stale entries
 static inline void trim_dircount_cache(Dir *dir, uint32 num_dirs) {
-  size_t cache_size = hmap_dircount_size(&dir->dircounts);
+  usize cache_size = hmap_dircount_size(&dir->dircounts);
   if (cache_size > 16 && cache_size > 2 * num_dirs) {
     hmap_dircount_clear(&dir->dircounts);
     c_foreach(it, vec_file, dir->files_all) {
@@ -282,7 +282,7 @@ Dir *dir_load(zsview path, hmap_dircount dircounts, bool load_fileinfo,
     dir->error = errno;
     return dir;
   }
-  int dir_fd = open(path.str, O_RDONLY);
+  i32 dir_fd = open(path.str, O_RDONLY);
   if (dir_fd < 0) {
     log_error("open: %s", strerror(errno));
     dir->error = errno;
@@ -291,7 +291,7 @@ Dir *dir_load(zsview path, hmap_dircount dircounts, bool load_fileinfo,
   }
 
   vec_file files = vec_file_init();
-  size_t num_dirs = 0;
+  usize num_dirs = 0;
 
   struct dirent *entry;
   while ((entry = readdir(dirp))) {
@@ -329,7 +329,7 @@ Dir *dir_load(zsview path, hmap_dircount dircounts, bool load_fileinfo,
   return dir;
 }
 
-Dir *dir_load_flat(zsview path, int level, hmap_dircount dircounts,
+Dir *dir_load_flat(zsview path, i32 level, hmap_dircount dircounts,
                    bool load_fileinfo, atomic_bool *stop) {
   Dir *dir = dir_create(path);
   dir->has_fileinfo = load_fileinfo;
@@ -350,7 +350,7 @@ Dir *dir_load_flat(zsview path, int level, hmap_dircount dircounts,
   struct queue_dirs queue = queue_dirs_init();
   queue_dirs_push(&queue, (node){path.str, 0, false});
 
-  size_t num_dirs = 0;
+  usize num_dirs = 0;
 
   while (!queue_dirs_is_empty(&queue)) {
     if (atomic_load_explicit(stop, memory_order_relaxed))
@@ -363,7 +363,7 @@ Dir *dir_load_flat(zsview path, int level, hmap_dircount dircounts,
     if (!dirp)
       continue;
 
-    int dir_fd = open(head.path, O_RDONLY);
+    i32 dir_fd = open(head.path, O_RDONLY);
     if (dir_fd < 0) {
       closedir(dirp);
       continue;
@@ -387,8 +387,8 @@ Dir *dir_load_flat(zsview path, int level, hmap_dircount dircounts,
           }
         }
         // name is a pointer into path, we can simply move it back
-        int pos = 0;
-        for (int i = 0; i < head.level; i++) {
+        i32 pos = 0;
+        for (i32 i = 0; i < head.level; i++) {
           pos -= 2;
           while (file->name.str[pos - 1] != '/') {
             pos--;
@@ -422,7 +422,7 @@ Dir *dir_load_flat(zsview path, int level, hmap_dircount dircounts,
   return dir;
 }
 
-void dir_cursor_move(Dir *d, int32_t ct, uint32_t height, uint32_t scrolloff) {
+void dir_cursor_move(Dir *d, i32 ct, u32 height, u32 scrolloff) {
   d->ind = max(min(d->ind + ct, dir_length(d) - 1), 0);
   if (ct < 0) {
     d->pos = min(max(scrolloff, d->pos + ct), d->ind);
@@ -432,14 +432,13 @@ void dir_cursor_move(Dir *d, int32_t ct, uint32_t height, uint32_t scrolloff) {
   }
 }
 
-static inline bool dir_cursor_move_to_sel(Dir *d, uint32_t height,
-                                          uint32_t scrolloff) {
+static inline bool dir_cursor_move_to_sel(Dir *d, u32 height, u32 scrolloff) {
   if (cstr_is_empty(&d->sel) || vec_file_is_empty(&d->files)) {
     return true;
   }
   bool ret = false;
 
-  int i = 0;
+  i32 i = 0;
   c_foreach(it, vec_file, d->files) {
     if (cstr_equals_zv(&d->sel, file_name(*it.ref))) {
       dir_cursor_move(d, i - d->ind, height, scrolloff);
@@ -455,8 +454,8 @@ static inline bool dir_cursor_move_to_sel(Dir *d, uint32_t height,
 }
 
 static inline bool dir_cursor_move_to_ino(Dir *d, dev_t dev, ino_t ino,
-                                          uint32_t height, uint32_t scrolloff) {
-  int i = 0;
+                                          u32 height, u32 scrolloff) {
+  i32 i = 0;
   c_foreach(it, vec_file, d->files) {
     if ((*it.ref)->lstat.st_dev == dev && (*it.ref)->lstat.st_ino == ino) {
       dir_cursor_move(d, i - d->ind, height, scrolloff);
@@ -468,8 +467,7 @@ static inline bool dir_cursor_move_to_ino(Dir *d, dev_t dev, ino_t ino,
   return false;
 }
 
-void dir_cursor_move_to(Dir *d, zsview name, uint32_t height,
-                        uint32_t scrolloff) {
+void dir_cursor_move_to(Dir *d, zsview name, u32 height, u32 scrolloff) {
   if (zsview_is_empty(name)) {
     return;
   }
@@ -479,7 +477,7 @@ void dir_cursor_move_to(Dir *d, zsview name, uint32_t height,
     return;
   }
 
-  int i = 0;
+  i32 i = 0;
   c_foreach(it, vec_file, d->files) {
     if (zsview_eq(file_name(*it.ref), &name)) {
       dir_cursor_move(d, i - d->ind, height, scrolloff);
@@ -499,19 +497,18 @@ static inline void drop_files(Dir *dir) {
   vec_file_drop(&dir->files);
 }
 
-static inline void apply_scroll(Dir *dir, uint32_t height, uint32_t scrolloff) {
+static inline void apply_scroll(Dir *dir, u32 height, u32 scrolloff) {
   (void)scrolloff;
-  int num_files = vec_file_size(&dir->files);
-  int files_above_viewport = dir->ind - dir->pos;
-  int num_files_below_cursor = num_files - dir->ind - 1;
-  int space_below_last_file = height - dir->pos - num_files_below_cursor - 1;
+  i32 num_files = vec_file_size(&dir->files);
+  i32 files_above_viewport = dir->ind - dir->pos;
+  i32 num_files_below_cursor = num_files - dir->ind - 1;
+  i32 space_below_last_file = height - dir->pos - num_files_below_cursor - 1;
   if (files_above_viewport > 0 && space_below_last_file > 0) {
     dir->pos += min(files_above_viewport, space_below_last_file);
   }
 }
 
-void dir_update_with(Dir *dir, Dir *update, uint32_t height,
-                     uint32_t scrolloff) {
+void dir_update_with(Dir *dir, Dir *update, u32 height, u32 scrolloff) {
   // will try to select the file the cursor is on, dev/inode take priority
   // in case of a rename. Otherwise, we use the name.
   // TODO: why do we store both ino and file name?
@@ -570,8 +567,8 @@ void dir_destroy(Dir *dir) {
   }
 }
 
-int fileinfo_from_str(const char *str) {
-  for (int i = 0; i < NUM_FILEINFO; i++) {
+i32 fileinfo_from_str(const char *str) {
+  for (i32 i = 0; i < NUM_FILEINFO; i++) {
     if (streq(str, fileinfo_str[i])) {
       return i;
     }

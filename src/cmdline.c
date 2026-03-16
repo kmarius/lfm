@@ -1,5 +1,4 @@
 #include "cmdline.h"
-#include "log.h"
 
 #define STC_CSTR_UTF8
 #include "stc/cstr.h"
@@ -8,8 +7,8 @@
 #include "stc/zsview.h"
 
 #include "config.h"
+#include "defs.h"
 #include "history.h"
-#include "macros.h"
 #include "ncutil.h"
 #include "profiling.h"
 #include "stcutil.h"
@@ -137,7 +136,7 @@ bool cmdline_delete_word(Self *self) {
     return false;
 
   zsview left = cstr_zv(&self->left);
-  int i = left.size;
+  i32 i = left.size;
   if (i > 0 && ispunct(left.str[i - 1])) {
     i--;
   }
@@ -161,7 +160,7 @@ bool cmdline_word_left(Self *self) {
     return false;
 
   zsview left = cstr_zv(&self->left);
-  int i = left.size;
+  i32 i = left.size;
   if (i > 0 && ispunct(left.str[i - 1])) {
     i--;
   }
@@ -187,7 +186,7 @@ bool cmdline_word_right(Self *self) {
 
   zsview right = cstr_zv(&self->right);
 
-  int i = 0;
+  i32 i = 0;
   if (i < right.size && iswpunct(right.str[i])) {
     i++;
   }
@@ -234,23 +233,23 @@ zsview cmdline_get(Self *self) {
   return cstr_zv(&self->buf);
 }
 
-int cmdline_draw(Self *self, struct ncplane *n) {
-  unsigned int ncol;
+i32 cmdline_draw(Self *self, struct ncplane *n) {
+  u32 ncol;
   ncplane_dim_yx(n, NULL, &ncol);
 
   ncplane_erase(n);
   ncplane_set_bg_default(n);
   ncplane_set_fg_default(n);
 
-  unsigned xpos = 0;
+  u32 xpos = 0;
   xpos += ncplane_putcstr_ansi_yx(n, 0, 0, &self->prefix);
-  unsigned remaining = ncol - xpos;
+  u32 remaining = ncol - xpos;
 
-  unsigned left_len = cstr_u8_size(&self->left);
-  unsigned right_len = cstr_u8_size(&self->right);
+  u32 left_len = cstr_u8_size(&self->left);
+  u32 right_len = cstr_u8_size(&self->right);
 
   // scroll some if the line is too long
-  int offset;
+  i32 offset;
   if (right_len == 0) {
     offset = left_len - remaining + 1;
   } else if (right_len > remaining / 2) {

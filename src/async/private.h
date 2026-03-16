@@ -1,4 +1,5 @@
 #include "async.h"
+#include "defs.h"
 #include "tpool.h"
 
 #include <stdint.h>
@@ -10,23 +11,23 @@ struct result {
 };
 
 struct validity_check8 {
-  uint8_t *ptr;
-  uint8_t val;
+  u8 *ptr;
+  u8 val;
 };
 
 struct validity_check16 {
-  uint16_t *ptr;
-  uint16_t val;
+  u16 *ptr;
+  u16 val;
 };
 
 struct validity_check32 {
-  uint32_t *ptr;
-  uint32_t val;
+  u32 *ptr;
+  u32 val;
 };
 
 struct validity_check64 {
-  uint64_t *ptr;
-  uint64_t val;
+  u64 *ptr;
+  u64 val;
 };
 
 #define CHECK_INIT(check, value)                                               \

@@ -25,8 +25,6 @@
 #include "lua/thread.h"
 #include "memory.h"
 
-#include <stdlib.h>
-
 #include <pthread.h>
 
 struct tpool_work {
@@ -42,9 +40,9 @@ struct tpool {
   pthread_mutex_t work_mutex;
   pthread_cond_t work_cond;
   pthread_cond_t working_cond;
-  size_t working_cnt;
-  size_t thread_cnt;
-  size_t kill_cnt;
+  usize working_cnt;
+  usize thread_cnt;
+  usize kill_cnt;
   bool stop;
 };
 
@@ -129,10 +127,10 @@ static void *tpool_worker(void *arg) {
   return NULL;
 }
 
-tpool_t *tpool_create(size_t num) {
+tpool_t *tpool_create(usize num) {
   tpool_t *tm;
   pthread_t thread;
-  size_t i;
+  usize i;
 
   if (num == 0)
     num = 2;
@@ -226,14 +224,14 @@ void tpool_wait(tpool_t *tm) {
   pthread_mutex_unlock(&(tm->work_mutex));
 }
 
-size_t tpool_size(const tpool_t *tm) {
+usize tpool_size(const tpool_t *tm) {
   if (tm == NULL)
     return 0;
 
   return tm->thread_cnt;
 }
 
-void tpool_resize(tpool_t *tm, size_t num) {
+void tpool_resize(tpool_t *tm, usize num) {
   if (tm == NULL)
     return;
 

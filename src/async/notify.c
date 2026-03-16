@@ -5,7 +5,7 @@
 #include "lfm.h"
 #include "loader.h"
 #include "log.h"
-#include "macros.h"
+#include "defs.h"
 #include "memory.h"
 #include "notify.h"
 #include "stc/cstr.h"

@@ -79,8 +79,8 @@ void history_load(History *h, zsview path) {
     return;
   }
 
-  ssize_t read;
-  size_t n;
+  isize read;
+  usize n;
   char *buf = NULL;
 
   while ((read = getline(&buf, &n, fp)) != -1) {
@@ -92,7 +92,7 @@ void history_load(History *h, zsview path) {
       log_error("missing tab in history item: %s", buf);
       continue;
     }
-    int pos = sep - buf;
+    i32 pos = sep - buf;
 
     zsview prefix = zsview_from_n(buf, pos);
     zsview line = zsview_from_n(sep + 1, read - pos - 1);
@@ -111,12 +111,12 @@ void history_load(History *h, zsview path) {
   assert(_history_list_count(&h->list) == _history_hmap_size(&h->map));
 }
 
-void history_write(History *h, zsview path, int histsize) {
+void history_write(History *h, zsview path, i32 histsize) {
   make_dirs(path, 755);
 
   char path_new[PATH_MAX + 1];
   snprintf(path_new, sizeof path_new - 1, "%s.XXXXXX", path.str);
-  int fd = mkstemp(path_new);
+  i32 fd = mkstemp(path_new);
   if (fd < 0) {
     log_error("mkstemp: %s", strerror(errno));
     return;
@@ -130,23 +130,23 @@ void history_write(History *h, zsview path, int histsize) {
   // We we read the history again here because another instace might have saved
   // its history since we loaded ours.
 
-  const int num_keep_old = histsize - h->num_new_entries;
+  const i32 num_keep_old = histsize - h->num_new_entries;
 
-  int num_lines_written = 0;
+  i32 num_lines_written = 0;
 
   if (num_keep_old > 0) {
     FILE *fp_old = fopen(path.str, "r");
     if (fp_old) {
-      int num_old_lines = 0;
-      int c;
+      i32 num_old_lines = 0;
+      i32 c;
       while ((c = fgetc(fp_old)) != EOF) {
         if (c == '\n') {
           num_old_lines++;
         }
       }
       rewind(fp_old);
-      const int num_skip_old = num_old_lines - num_keep_old;
-      int i = 0;
+      const i32 num_skip_old = num_old_lines - num_keep_old;
+      i32 i = 0;
       while (i < num_skip_old && (c = fgetc(fp_old)) != EOF) {
         if (c == '\n') {
           i++;
@@ -164,10 +164,10 @@ void history_write(History *h, zsview path, int histsize) {
   // new file now contains num_keep_old lines from the existing file if it was
   // positive, or nothing
 
-  int num_save_new = histsize - num_lines_written;
+  i32 num_save_new = histsize - num_lines_written;
 
   if (num_save_new > 0) {
-    int num_skip_new = h->num_new_entries - num_save_new;
+    i32 num_skip_new = h->num_new_entries - num_save_new;
 
     _history_list_iter it = _history_list_begin(&h->list);
 
@@ -249,7 +249,7 @@ zsview history_next_entry(History *h) {
   return cstr_zv(&h->cur.ref->line);
 }
 
-size_t history_size(const History *self) {
+usize history_size(const History *self) {
   return _history_hmap_size(&self->map);
 }
 

@@ -31,7 +31,7 @@ static inline bool cstr_equals_zv(const cstr *self, const zsview *zv) {
          (memcmp(cstr_str(self), zv->str, zv->size) == 0);
 }
 
-static inline zsview zsview_from_n(const char *str, size_t n) {
+static inline zsview zsview_from_n(const char *str, usize n) {
   return (zsview){str, n};
 }
 
@@ -40,8 +40,8 @@ static inline isize cstr_vfmt(cstr *self, isize start, const char *fmt,
                               va_list args) {
   va_list args2;
   va_copy(args2, args);
-  const int n = vsnprintf(NULL, 0ULL, fmt, args);
-  vsnprintf(cstr_reserve(self, start + n) + start, (size_t)n + 1, fmt, args2);
+  const i32 n = vsnprintf(NULL, 0ULL, fmt, args);
+  vsnprintf(cstr_reserve(self, start + n) + start, (usize)n + 1, fmt, args2);
   va_end(args2);
   _cstr_set_size(self, start + n);
   return n;

@@ -18,7 +18,7 @@ declare_vec(vec_ncplane, struct ncplane *);
 struct message {
   cstr text;   // the message text
   bool error;  // errors are shown in red and always logged
-  int timeout; // timeout in ms, after which the message is cleared (if > 0)
+  i32 timeout; // timeout in ms, after which the message is cleared (if > 0)
 };
 
 #define i_type vec_message, struct message
@@ -46,13 +46,13 @@ typedef struct Ui {
   bool running;
 
   // Current terminal dimensions.
-  uint32_t y, x;
+  u32 y, x;
 
   struct winsize winsize;
-  uint16_t ypixel_cell, xpixel_cell;
+  u16 ypixel_cell, xpixel_cell;
 
   // Number of ncplanes, including the preview.
-  uint32_t num_columns;
+  u32 num_columns;
 
   // notcurses state and ncplanes
   struct notcurses *nc;
@@ -64,11 +64,11 @@ typedef struct Ui {
     vec_ncplane dirs; // all planes from right to left, including preview
   } planes;
 
-  uint32_t redraw; // Bitfield indicating which components need to be drawn, see
-                   // REDRAW_*
+  u32 redraw; // Bitfield indicating which components need to be drawn, see
+              // REDRAW_*
   ev_idle redraw_watcher;
   ev_timer loading_indicator_timer;
-  int loading_indicator_timer_recheck_count;
+  i32 loading_indicator_timer_recheck_count;
 
   ev_io input_watcher;
   ev_idle input_buffer_watcher;
@@ -77,7 +77,7 @@ typedef struct Ui {
     struct Trie *cur;       // current leaf in the trie of the active mode
     struct Trie *cur_input; // current leaf in the trie of input maps
     vec_input seq;          // current key sequence
-    int count;
+    i32 count;
     bool accept_count;
     Trie *input;
     Trie *normal;
@@ -88,8 +88,8 @@ typedef struct Ui {
 
   struct {
     Preview *preview;
-    unsigned int y, x; // dimensions of the preview ncplane
-    bool hidden;       // temporarily hidden
+    u32 y, x;    // dimensions of the preview ncplane
+    bool hidden; // temporarily hidden
   } preview;
 
   vec_cstr menubuf;
@@ -126,14 +126,14 @@ void ui_draw(Ui *ui);
 void ui_update_file_preview(Ui *ui);
 void ui_update_file_preview_delayed(Ui *ui);
 
-static inline void ui_redraw(Ui *ui, uint32_t mode) {
+static inline void ui_redraw(Ui *ui, u32 mode) {
   ui->redraw |= mode;
 }
 
 void ui_display_message(Ui *ui, struct message msg);
 
 // takes ownership ov vec, if passed
-void ui_menu_show(Ui *ui, vec_cstr *vec, uint32_t delay);
+void ui_menu_show(Ui *ui, vec_cstr *vec, u32 delay);
 
 static inline void ui_menu_hide(Ui *ui) {
   ui_menu_show(ui, NULL, 0);

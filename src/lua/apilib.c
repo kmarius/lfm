@@ -114,7 +114,7 @@ static int l_get_keymap(lua_State *L) {
   bool prune = luaL_optbool(L, 2, false);
   vec_trie maps = trie_collect_leaves(mode->maps, prune);
   lua_createtable(L, vec_trie_size(&maps), 0);
-  size_t i = 0;
+  usize i = 0;
   c_foreach(it, vec_trie, maps) {
     Trie *map = *it.ref;
     lua_createtable(L, 0, 3);
@@ -137,7 +137,7 @@ static int l_cmd_line_get(lua_State *L) {
 }
 
 static int l_feedkeys(lua_State *L) {
-  size_t len;
+  usize len;
   const char *keys = luaL_checklstring(L, 1, &len);
   const char *end = keys + len;
   while (keys < end) {
@@ -153,7 +153,7 @@ static int l_feedkeys(lua_State *L) {
 }
 
 static int l_input(lua_State *L) {
-  size_t len;
+  usize len;
   const char *keys = luaL_checklstring(L, 1, &len);
   const char *end = keys + len;
   while (keys < end) {
@@ -496,7 +496,7 @@ static int l_push_files(lua_State *L) {
   }
 
   lua_createtable(L, dir_length(dir), 0);
-  size_t i = 1;
+  usize i = 1;
   c_foreach(it, Dir, dir) {
     lua_pushzsview(L, *file_name(*it.ref));
     lua_rawseti(L, -2, i++);
@@ -743,7 +743,7 @@ static int l_fm_paste_buffer_get(lua_State *L) {
 }
 
 static int l_fm_paste_buffer_set(lua_State *L) {
-  size_t prev_size = pathlist_size(&fm->paste.buffer);
+  usize prev_size = pathlist_size(&fm->paste.buffer);
   paste_mode prev_mode = fm->paste.mode;
   fm_paste_buffer_clear(fm);
 
@@ -757,9 +757,9 @@ static int l_fm_paste_buffer_set(lua_State *L) {
   }
 
   if (lua_type(L, 1) == LUA_TTABLE) {
-    const size_t l = lua_objlen(L, 1);
+    const usize l = lua_objlen(L, 1);
     cstr cs = cstr_init();
-    for (size_t i = 0; i < l; i++) {
+    for (usize i = 0; i < l; i++) {
       lua_rawgeti(L, 1, i + 1);
       zsview str = lua_tozsview(L, -1);
       cstr_assign_zv(&cs, str);
@@ -862,7 +862,7 @@ static int l_set_flatten_level(lua_State *L) {
 }
 
 static int l_fm_get_cache(lua_State *L) {
-  size_t n = dircache_size(&lfm->loader.dc);
+  usize n = dircache_size(&lfm->loader.dc);
   lua_createtable(L, n, 0);
   int i = 1;
   c_foreach(it, dircache, lfm->loader.dc) {
@@ -948,7 +948,7 @@ static int l_ui_get_height(lua_State *L) {
 
 static int l_ui_menu(lua_State *L) {
   vec_cstr menu = vec_cstr_init();
-  uint32_t delay = 0;
+  i32 delay = 0;
   if (lua_type(L, 1) == LUA_TTABLE) {
     lua_read_vec_cstr(L, 1, &menu);
 
@@ -1019,7 +1019,7 @@ static int l_notcurses_cantruecolor(lua_State *L) {
 
 static int l_macro_recording(lua_State *L) {
   if (macro_recording) {
-    size_t len;
+    usize len;
     const char *str = input_to_key_name(macro_identifier, &len);
     lua_pushlstring(L, str, len);
     return 1;

@@ -60,7 +60,7 @@ static void visual_on_exit(Lfm *lfm) {
   fm_on_visual_exit(&lfm->fm);
 }
 
-int lfm_mode_register(Lfm *lfm, struct mode *mode) {
+i32 lfm_mode_register(Lfm *lfm, struct mode *mode) {
   if (hmap_modes_contains(&lfm->modes, cstr_zv(&mode->name))) {
     return 1;
   }
@@ -76,7 +76,7 @@ int lfm_mode_register(Lfm *lfm, struct mode *mode) {
   return 0;
 }
 
-int lfm_mode_enter(Lfm *lfm, zsview name) {
+i32 lfm_mode_enter(Lfm *lfm, zsview name) {
   hmap_modes_value *v = hmap_modes_get_mut(&lfm->modes, name);
   if (v == NULL)
     return 1;
@@ -99,7 +99,7 @@ int lfm_mode_enter(Lfm *lfm, zsview name) {
   return 0;
 }
 
-int lfm_mode_exit(Lfm *lfm, zsview name) {
+i32 lfm_mode_exit(Lfm *lfm, zsview name) {
   if (cstr_equals_zv(&lfm->current_mode->name, &name)) {
     return lfm_mode_normal(lfm);
   }

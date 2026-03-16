@@ -1,10 +1,10 @@
 #include "loader.h"
 #include "async/async.h"
 #include "config.h"
+#include "defs.h"
 #include "dir.h"
 #include "hooks.h"
 #include "lfm.h"
-#include "macros.h"
 #include "path.h"
 #include "preview.h"
 #include "stc/common.h"
@@ -60,7 +60,7 @@ void loader_deinit(Loader *loader) {
   previewcache_drop(&loader->pc);
 }
 
-static void dir_timer_cb(EV_P_ ev_timer *w, int revents) {
+static void dir_timer_cb(EV_P_ ev_timer *w, i32 revents) {
   (void)revents;
   struct loader_timer *timer = (struct loader_timer *)w;
   Lfm *lfm = timer->lfm;
@@ -71,7 +71,7 @@ static void dir_timer_cb(EV_P_ ev_timer *w, int revents) {
                                list_loader_timer_get_node(timer));
 }
 
-static void pv_timer_cb(EV_P_ ev_timer *w, int revents) {
+static void pv_timer_cb(EV_P_ ev_timer *w, i32 revents) {
   (void)revents;
   struct loader_timer *timer = (struct loader_timer *)w;
   Lfm *lfm = timer->lfm;
@@ -81,7 +81,7 @@ static void pv_timer_cb(EV_P_ ev_timer *w, int revents) {
                                list_loader_timer_get_node(timer));
 }
 
-static inline void schedule_dir_load(Loader *loader, Dir *dir, uint64_t time) {
+static inline void schedule_dir_load(Loader *loader, Dir *dir, u64 time) {
   Lfm *lfm = to_lfm(loader);
   struct loader_timer *timer =
       list_loader_timer_push(&loader->dir_timers, (struct loader_timer){
@@ -97,7 +97,7 @@ static inline void schedule_dir_load(Loader *loader, Dir *dir, uint64_t time) {
 }
 
 static inline void schedule_preview_load(Loader *loader, Preview *pv,
-                                         uint64_t time) {
+                                         u64 time) {
   Lfm *lfm = to_lfm(loader);
   struct loader_timer *timer =
       list_loader_timer_push(&loader->preview_timers, (struct loader_timer){
@@ -114,8 +114,8 @@ void loader_dir_reload(Loader *loader, Dir *dir) {
     return;
   }
 
-  uint64_t now = current_millis();
-  uint64_t latest = dir->next_scheduled_load;
+  u64 now = current_millis();
+  u64 latest = dir->next_scheduled_load;
 
   // Never schedule the same directory more than once. Once the update
   // of the directory is applied we will check if we need to load again.
@@ -124,9 +124,9 @@ void loader_dir_reload(Loader *loader, Dir *dir) {
   }
 
   // Add a (small) delay so we don't show files that exist only very briefly
-  uint64_t next = now < latest + cfg.inotify_timeout
-                      ? latest + cfg.inotify_timeout + cfg.inotify_delay
-                      : now + cfg.inotify_delay;
+  u64 next = now < latest + cfg.inotify_timeout
+                 ? latest + cfg.inotify_timeout + cfg.inotify_delay
+                 : now + cfg.inotify_delay;
   if (dir->loading) {
     dir->next_requested_load = next;
   } else {
@@ -137,7 +137,7 @@ void loader_dir_reload(Loader *loader, Dir *dir) {
 void loader_dir_load_callback(Loader *loader, Dir *dir) {
   dir->scheduled = false;
   if (dir->next_requested_load > 0) {
-    uint64_t now = current_millis();
+    u64 now = current_millis();
     if (dir->next_requested_load <= now) {
       async_dir_load(&to_lfm(loader)->async, dir, true);
       dir->next_scheduled_load = now;
@@ -150,17 +150,17 @@ void loader_dir_load_callback(Loader *loader, Dir *dir) {
 }
 
 void loader_preview_reload(Loader *loader, Preview *pv) {
-  uint64_t now = current_millis();
-  uint64_t latest = pv->next; // possibly in the future
+  u64 now = current_millis();
+  u64 latest = pv->next; // possibly in the future
 
   if (latest >= now + cfg.inotify_timeout) {
     return; // discard
   }
 
   // Add a small delay so we don't show files that exist only very briefly
-  uint64_t next = now < latest + cfg.inotify_timeout
-                      ? latest + cfg.inotify_timeout + cfg.inotify_delay
-                      : now + cfg.inotify_delay;
+  u64 next = now < latest + cfg.inotify_timeout
+                 ? latest + cfg.inotify_timeout + cfg.inotify_delay
+                 : now + cfg.inotify_delay;
   schedule_preview_load(loader, pv, next);
   pv->next = next;
 }
@@ -226,7 +226,7 @@ Dir *loader_dir_from_path(Loader *loader, zsview path, bool do_load) {
 Preview *loader_preview_from_path(Loader *loader, zsview path, bool do_load) {
   char fullpath[PATH_MAX + 1];
   if (path_is_relative(path.str)) {
-    int len = path_make_absolute(path, fullpath, sizeof fullpath);
+    i32 len = path_make_absolute(path, fullpath, sizeof fullpath);
     path.str = fullpath;
     path.size = len;
   }
@@ -295,7 +295,7 @@ void loader_reschedule(Loader *loader) {
   }
   list_loader_timer_clear(&loader->preview_timers);
 
-  uint64_t next = current_millis() + cfg.inotify_timeout + cfg.inotify_delay;
+  u64 next = current_millis() + cfg.inotify_timeout + cfg.inotify_delay;
 
   c_foreach(it, set_dir, dirs) {
     schedule_dir_load(loader, *it.ref, next);

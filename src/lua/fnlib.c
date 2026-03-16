@@ -34,7 +34,7 @@ static int l_fn_mime(lua_State *L) {
 static int l_fn_tokenize(lua_State *L) {
   char buf1[512];
   char *buf = buf1;
-  size_t len;
+  usize len;
   const char *string = luaL_checklstring(L, 1, &len);
   if (len + 1 > sizeof buf1) {
     buf = xmalloc(len + 1);
@@ -57,14 +57,14 @@ static int l_fn_tokenize(lua_State *L) {
 }
 
 static int l_fn_split_last(lua_State *L) {
-  size_t len;
+  usize len;
   const char *string = luaL_checklstring(L, 1, &len);
   if (len == 0) {
     return luaL_error(L, "empty string");
   }
   bool esc = false;
-  unsigned last = 0;
-  for (unsigned i = 0; i < len; i++) {
+  u32 last = 0;
+  for (u32 i = 0; i < len; i++) {
     if (string[i] == '\\') {
       esc = !esc;
     } else {
@@ -82,7 +82,7 @@ static int l_fn_split_last(lua_State *L) {
 static int l_fn_unquote_space(lua_State *L) {
   char buf1[512];
   char *buf = buf1;
-  size_t len;
+  usize len;
   const char *string = luaL_checklstring(L, 1, &len);
   if (len + 1 > sizeof buf1) {
     buf = xmalloc(len + 1);
@@ -103,7 +103,7 @@ static int l_fn_unquote_space(lua_State *L) {
 static int l_fn_quote_space(lua_State *L) {
   char buf1[512];
   char *buf = buf1;
-  size_t len;
+  usize len;
   const char *string = luaL_checklstring(L, 1, &len);
   if (2 * len + 1 > sizeof buf1) {
     buf = xmalloc(len * 2 + 1);

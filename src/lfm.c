@@ -2,6 +2,7 @@
 
 #include "async/async.h"
 #include "config.h"
+#include "defs.h"
 #include "fifo.h"
 #include "getpwd.h"
 #include "hooks.h"
@@ -9,7 +10,6 @@
 #include "loader.h"
 #include "log.h"
 #include "lua/lfmlua.h"
-#include "macros.h"
 #include "mode.h"
 #include "notify.h"
 #include "profiling.h"
@@ -39,7 +39,7 @@
 
 struct sched_timer {
   ev_timer watcher;
-  int ref;
+  i32 ref;
 };
 
 #define i_declared
@@ -50,7 +50,7 @@ struct sched_timer {
 struct out_watcher {
   ev_io w;
   FILE *stream;
-  int ref;
+  i32 ref;
 };
 
 // ev_child wrapper for child processes with stdout/err
@@ -58,7 +58,7 @@ struct child_watcher {
   ev_child w;
   struct out_watcher wstdout; // valid if .stream != NULL
   struct out_watcher wstderr; // valid if .stream != NULL
-  int ref;                    // ref to lua callback
+  i32 ref;                    // ref to lua callback
 };
 
 static inline void destroy_child_watcher(struct child_watcher *w);
@@ -87,7 +87,7 @@ static inline void destroy_child_watcher(struct child_watcher *w) {
   }
 }
 
-static void child_exit_cb(EV_P_ ev_child *w, int revents) {
+static void child_exit_cb(EV_P_ ev_child *w, i32 revents) {
   (void)revents;
 
   struct child_watcher *child = (struct child_watcher *)w;
@@ -104,7 +104,7 @@ static void child_exit_cb(EV_P_ ev_child *w, int revents) {
   }
 
   if (child->ref) {
-    int status;
+    i32 status;
     if (WIFSIGNALED(w->rstatus)) {
       status = 128 + WTERMSIG(w->rstatus);
     } else {
@@ -119,15 +119,15 @@ static void child_exit_cb(EV_P_ ev_child *w, int revents) {
   ev_idle_start(EV_A_ & lfm->ui.redraw_watcher);
 }
 
-static void child_output_cb(EV_P_ ev_io *w, int revents) {
+static void child_output_cb(EV_P_ ev_io *w, i32 revents) {
   (void)revents;
 
   struct out_watcher *data = (struct out_watcher *)w;
   Lfm *lfm = w->data;
 
   char *line = NULL;
-  int read;
-  size_t n;
+  i32 read;
+  usize n;
 
   while ((read = getline(&line, &n, data->stream)) != -1) {
     if (line[read - 1] == '\n') {
@@ -150,7 +150,7 @@ static void child_output_cb(EV_P_ ev_io *w, int revents) {
   ev_idle_start(EV_A_ & lfm->ui.redraw_watcher);
 }
 
-static void schedule_timer_cb(EV_P_ ev_timer *w, int revents) {
+static void schedule_timer_cb(EV_P_ ev_timer *w, i32 revents) {
   (void)revents;
   struct sched_timer *timer = (struct sched_timer *)w;
   Lfm *lfm = w->data;
@@ -162,7 +162,7 @@ static void schedule_timer_cb(EV_P_ ev_timer *w, int revents) {
 
 // To run command line cmds after loop starts. I think it is called back before
 // every other cb.
-static void prepare_cb(EV_P_ ev_prepare *w, int revents) {
+static void prepare_cb(EV_P_ ev_prepare *w, i32 revents) {
   (void)revents;
   Lfm *lfm = w->data;
 
@@ -184,14 +184,14 @@ static void prepare_cb(EV_P_ ev_prepare *w, int revents) {
   ev_prepare_stop(EV_A_ w);
 }
 
-static void check_cb(EV_P_ ev_check *w, int revents) {
+static void check_cb(EV_P_ ev_check *w, i32 revents) {
   (void)revents;
   (void)w;
-  static int count = 0;
+  static i32 count = 0;
   log_trace("ev_loop iteration % 5d", count++);
 }
 
-static void sigtstp_cb(EV_P_ ev_signal *w, int revents) {
+static void sigtstp_cb(EV_P_ ev_signal *w, i32 revents) {
   (void)revents;
   Lfm *lfm = w->data;
   log_trace("received SIGTSTP");
@@ -204,7 +204,7 @@ static void sigtstp_cb(EV_P_ ev_signal *w, int revents) {
   ev_signal_start(loop, w);
 }
 
-static void sigint_cb(EV_P_ ev_signal *w, int revents) {
+static void sigint_cb(EV_P_ ev_signal *w, i32 revents) {
   (void)revents;
   Lfm *lfm = w->data;
   log_trace("received SIGINT");
@@ -213,7 +213,7 @@ static void sigint_cb(EV_P_ ev_signal *w, int revents) {
 }
 
 // unclear if this happens before/after resizecb is called by notcurses
-static void sigwinch_cb(EV_P_ ev_signal *w, int revents) {
+static void sigwinch_cb(EV_P_ ev_signal *w, i32 revents) {
   (void)revents;
   Lfm *lfm = w->data;
   log_trace("received SIGWINCH");
@@ -221,21 +221,21 @@ static void sigwinch_cb(EV_P_ ev_signal *w, int revents) {
   ev_idle_start(EV_A_ & lfm->ui.redraw_watcher);
 }
 
-static void sigterm_cb(EV_P_ ev_signal *w, int revents) {
+static void sigterm_cb(EV_P_ ev_signal *w, i32 revents) {
   (void)revents;
   (void)loop;
   log_trace("received SIGTERM");
   lfm_quit(w->data, 0);
 }
 
-static void sighup_cb(EV_P_ ev_signal *w, int revents) {
+static void sighup_cb(EV_P_ ev_signal *w, i32 revents) {
   (void)revents;
   (void)loop;
   log_trace("received SIGHUP");
   lfm_quit(w->data, 0);
 }
 
-static void sigpipe_cb(EV_P_ ev_signal *w, int revents) {
+static void sigpipe_cb(EV_P_ ev_signal *w, i32 revents) {
   (void)revents;
   (void)loop;
   (void)w;
@@ -351,12 +351,12 @@ void lfm_deinit(Lfm *lfm) {
   cstr_drop(&lfm->opts.startpath);
 }
 
-int lfm_run(Lfm *lfm) {
+i32 lfm_run(Lfm *lfm) {
   ev_run(lfm->loop, 0);
   return lfm->ret;
 }
 
-void lfm_quit(Lfm *lfm, int ret) {
+void lfm_quit(Lfm *lfm, i32 ret) {
   lfm_run_hook(lfm, LFM_HOOK_EXITPRE, ret);
   ev_break(lfm->loop, EVBREAK_ALL);
   // prevent lua error from flashing in the UI, we use it to immediately give
@@ -381,8 +381,8 @@ void lfm_on_resize(Lfm *lfm) {
   lfm_run_hook(lfm, LFM_HOOK_RESIZED);
 }
 
-static void init_io_watcher(struct out_watcher *data, Lfm *lfm, int fd,
-                            int ref) {
+static void init_io_watcher(struct out_watcher *data, Lfm *lfm, i32 fd,
+                            i32 ref) {
   if (fd == -1) {
     return;
   }
@@ -394,7 +394,7 @@ static void init_io_watcher(struct out_watcher *data, Lfm *lfm, int fd,
     return;
   }
 
-  int flags = fcntl(fd, F_GETFL, 0);
+  i32 flags = fcntl(fd, F_GETFL, 0);
   fcntl(fd, F_SETFL, flags | O_NONBLOCK);
 
   data->w.data = lfm;
@@ -406,18 +406,18 @@ static void init_io_watcher(struct out_watcher *data, Lfm *lfm, int fd,
 }
 
 // spawn a background program
-int lfm_spawn(Lfm *lfm, const char *prog, char *const *args, vec_env *env,
-              const vec_bytes *stdin_data, int *stdin_fd, bool capture_stdout,
-              bool capture_stderr, int stdout_ref, int stderr_ref, int exit_ref,
+i32 lfm_spawn(Lfm *lfm, const char *prog, char *const *args, vec_env *env,
+              const vec_bytes *stdin_data, i32 *stdin_fd, bool capture_stdout,
+              bool capture_stderr, i32 stdout_ref, i32 stderr_ref, i32 exit_ref,
               zsview working_directory) {
 
   bool send_stdin = stdin_data != NULL || stdin_fd != NULL;
   capture_stdout |= stdout_ref != 0;
   capture_stderr |= stderr_ref != 0;
 
-  int pipe_stdin[2];
-  int pipe_stdout[2];
-  int pipe_stderr[2];
+  i32 pipe_stdin[2];
+  i32 pipe_stdout[2];
+  i32 pipe_stderr[2];
 
   if (send_stdin) {
     pipe(pipe_stdin);
@@ -429,7 +429,7 @@ int lfm_spawn(Lfm *lfm, const char *prog, char *const *args, vec_env *env,
     pipe(pipe_stderr);
   }
 
-  int pid = fork();
+  i32 pid = fork();
   if (unlikely(pid < 0)) {
     if (send_stdin) {
       close(pipe_stdin[0]);
@@ -473,7 +473,7 @@ int lfm_spawn(Lfm *lfm, const char *prog, char *const *args, vec_env *env,
       dup2(pipe_stdout[1], 1);
       close(pipe_stdout[1]);
     } else {
-      int devnull = open("/dev/null", O_WRONLY | O_CREAT, 0666);
+      i32 devnull = open("/dev/null", O_WRONLY | O_CREAT, 0666);
       dup2(devnull, 1);
       close(devnull);
     }
@@ -483,7 +483,7 @@ int lfm_spawn(Lfm *lfm, const char *prog, char *const *args, vec_env *env,
       dup2(pipe_stderr[1], 2);
       close(pipe_stderr[1]);
     } else {
-      int devnull = open("/dev/null", O_WRONLY | O_CREAT, 0666);
+      i32 devnull = open("/dev/null", O_WRONLY | O_CREAT, 0666);
       dup2(devnull, 2);
       close(devnull);
     }
@@ -492,7 +492,7 @@ int lfm_spawn(Lfm *lfm, const char *prog, char *const *args, vec_env *env,
       if (chdir(working_directory.str) != 0) {
         if (capture_stderr) {
           char buf[128];
-          int len = snprintf(buf, sizeof buf - 1, "chdir: %s", strerror(errno));
+          i32 len = snprintf(buf, sizeof buf - 1, "chdir: %s", strerror(errno));
           write(2, buf, len);
         }
         _exit(1);
@@ -503,7 +503,7 @@ int lfm_spawn(Lfm *lfm, const char *prog, char *const *args, vec_env *env,
     log_error("execvp: %s", strerror(errno));
     if (capture_stderr) {
       char buf[128];
-      int len = snprintf(buf, sizeof buf - 1, "execvp: %s", strerror(errno));
+      i32 len = snprintf(buf, sizeof buf - 1, "execvp: %s", strerror(errno));
       write(2, buf, len);
     }
     _exit(ENOSYS);
@@ -551,10 +551,10 @@ int lfm_spawn(Lfm *lfm, const char *prog, char *const *args, vec_env *env,
 // by getting it straight to the lua state
 // TODO: we should just take the raw output and split by newlines when we
 // push the result into the lua state
-int lfm_execute(Lfm *lfm, const char *prog, char *const *args, vec_env *env,
+i32 lfm_execute(Lfm *lfm, const char *prog, char *const *args, vec_env *env,
                 vec_bytes *stdin_lines, vec_bytes *stdout_data,
                 vec_bytes *stderr_lines) {
-  int status, rc;
+  i32 status, rc;
   lfm_run_hook(lfm, LFM_HOOK_EXECPRE);
   ev_signal_stop(lfm->loop, &lfm->sigint_watcher);
   ev_signal_stop(lfm->loop, &lfm->sigtstp_watcher);
@@ -564,9 +564,9 @@ int lfm_execute(Lfm *lfm, const char *prog, char *const *args, vec_env *env,
   bool capture_stderr = stderr_lines != NULL;
   bool send_stdin = stdin_lines != NULL;
 
-  int pipe_stdout[2] = {0};
-  int pipe_stderr[2] = {0};
-  int pipe_stdin[2] = {0};
+  i32 pipe_stdout[2] = {0};
+  i32 pipe_stderr[2] = {0};
+  i32 pipe_stdin[2] = {0};
 
   if (send_stdin)
     pipe(pipe_stdin);
@@ -575,7 +575,7 @@ int lfm_execute(Lfm *lfm, const char *prog, char *const *args, vec_env *env,
   if (capture_stderr)
     pipe(pipe_stderr);
 
-  int pid = fork();
+  i32 pid = fork();
   if (unlikely(pid < 0)) {
     if (send_stdin) {
       close(pipe_stdin[0]);
@@ -640,7 +640,7 @@ int lfm_execute(Lfm *lfm, const char *prog, char *const *args, vec_env *env,
     log_error("execvp: %s", strerror(errno));
     if (capture_stderr) {
       char buf[128];
-      int len = snprintf(buf, sizeof buf - 1, "execvp: %s", strerror(errno));
+      i32 len = snprintf(buf, sizeof buf - 1, "execvp: %s", strerror(errno));
       write(2, buf, len);
     }
     _exit(127);
@@ -653,8 +653,8 @@ int lfm_execute(Lfm *lfm, const char *prog, char *const *args, vec_env *env,
   if (capture_stdout) {
     close(pipe_stdout[1]);
 
-    int fd = pipe_stdout[0];
-    int flags = fcntl(fd, F_GETFL, 0);
+    i32 fd = pipe_stdout[0];
+    i32 flags = fcntl(fd, F_GETFL, 0);
     fcntl(fd, F_SETFL, flags | O_NONBLOCK);
 
     file_stdout = fdopen(pipe_stdout[0], "r");
@@ -667,8 +667,8 @@ int lfm_execute(Lfm *lfm, const char *prog, char *const *args, vec_env *env,
   if (capture_stderr) {
     close(pipe_stderr[1]);
 
-    int fd = pipe_stderr[0];
-    int flags = fcntl(fd, F_GETFL, 0);
+    i32 fd = pipe_stderr[0];
+    i32 flags = fcntl(fd, F_GETFL, 0);
     fcntl(fd, F_SETFL, flags | O_NONBLOCK);
 
     file_stderr = fdopen(pipe_stderr[0], "r");
@@ -681,8 +681,8 @@ int lfm_execute(Lfm *lfm, const char *prog, char *const *args, vec_env *env,
   if (send_stdin) {
     close(pipe_stdin[0]);
 
-    int fd = pipe_stdin[1];
-    int flags = fcntl(fd, F_GETFL, 0);
+    i32 fd = pipe_stdin[1];
+    i32 flags = fcntl(fd, F_GETFL, 0);
     fcntl(fd, F_SETFL, flags | O_NONBLOCK);
   }
 
@@ -713,13 +713,13 @@ int lfm_execute(Lfm *lfm, const char *prog, char *const *args, vec_env *env,
     };
 
     // TODO: we need a dynamic buffer type
-    size_t bufsz[] = {512, 512};
+    usize bufsz[] = {512, 512};
     char *buf[] = {NULL, NULL};
-    size_t buf_idx[] = {0, 0};
+    usize buf_idx[] = {0, 0};
 
     char *line = NULL;
-    size_t n;
-    int num_open_fds = capture_stdout + capture_stderr;
+    usize n;
+    i32 num_open_fds = capture_stdout + capture_stderr;
     while (num_open_fds > 0 || send_stdin) {
       if (send_stdin) {
         // we can not write arbitrarily large data here because the pipes have
@@ -749,16 +749,16 @@ int lfm_execute(Lfm *lfm, const char *prog, char *const *args, vec_env *env,
         break;
       }
 
-      for (int i = 0; i < 2; i++) {
+      for (i32 i = 0; i < 2; i++) {
         if (pfds[i].revents != 0) {
           if (pfds[i].revents & POLLIN) {
-            int read;
+            i32 read;
             while ((read = getline(&line, &n, files[i])) != -1) {
               if (unlikely(line[read - 1] != '\n')) {
                 // fragment of a line, buffer it
                 // this happens rarely and I haven't found out why, yet
                 if (unlikely(buf[i] == NULL)) {
-                  while ((int)bufsz[i] < read * 2)
+                  while ((i32)bufsz[i] < read * 2)
                     bufsz[i] *= 2;
                   buf[i] = malloc(bufsz[i]);
                 }
@@ -823,7 +823,7 @@ int lfm_execute(Lfm *lfm, const char *prog, char *const *args, vec_env *env,
     rc = waitpid(pid, &status, 0);
   } while ((rc == -1) && (errno == EINTR));
 
-  int rstatus;
+  i32 rstatus;
   if (WIFSIGNALED(status)) {
     rstatus = 128 + WTERMSIG(status);
   } else {
@@ -878,7 +878,7 @@ void lfm_errorf(Lfm *lfm, const char *fmt, ...) {
   va_end(args);
 }
 
-void lfm_schedule(Lfm *lfm, int ref, uint32_t delay) {
+void lfm_schedule(Lfm *lfm, i32 ref, u32 delay) {
   struct sched_timer *data =
       list_timer_push(&lfm->schedule_timers, (struct sched_timer){
                                                  .ref = ref,

@@ -12,13 +12,12 @@
 #include <lualib.h>
 
 #include <stdint.h>
-#include <stdio.h>
 #include <string.h>
 
 typedef struct {
   const char *name;
-  const uint8_t *data;
-  size_t size;
+  const u8 *data;
+  usize size;
 } ModuleDef;
 
 #include "lua/lfm_module.generated.h"
@@ -48,11 +47,11 @@ int llua_pcall(lua_State *L, int nargs, int nresults) {
 // package preloading borrowed from neovim
 
 static int l_module_preloader(lua_State *L) {
-  size_t i = (size_t)lua_tointeger(L, lua_upvalueindex(1));
+  usize i = (usize)lua_tointeger(L, lua_upvalueindex(1));
   ModuleDef def = builtin_modules[i];
   char name[256];
   name[0] = '@';
-  size_t off = xstrlcpy(name + 1, def.name, (sizeof name) - 2);
+  usize off = xstrlcpy(name + 1, def.name, (sizeof name) - 2);
   strchrsub(name + 1, '.', '/');
   xstrlcpy(name + 1 + off, ".lua", (sizeof name) - 2 - off);
 
@@ -94,7 +93,7 @@ static inline bool llua_init_packages(lua_State *L) {
   // put builtin packages in preload
   lua_getglobal(L, "package");    // [package]
   lua_getfield(L, -1, "preload"); // [package, preload]
-  for (size_t i = 0; i < ARRAY_SIZE(builtin_modules); i++) {
+  for (usize i = 0; i < ARRAY_SIZE(builtin_modules); i++) {
     ModuleDef def = builtin_modules[i];
     lua_pushinteger(L, (long)i); // [package, preload, i]
     lua_pushcclosure(L, l_module_preloader,
@@ -158,7 +157,7 @@ void llua_run_child_callback(lua_State *L, int ref, int rstatus) {
 // line does not have to be nul terminated, in this case, len hase to be
 // passed; len is negative, strlen(line) is used
 void llua_run_stdout_callback(lua_State *L, int ref, const char *line,
-                              ssize_t len) {
+                              isize len) {
   // always call this, if line is NULL, we remove the callback from the
   // registry
   lua_get_callback(L, ref, line == NULL); // [f]
@@ -229,7 +228,7 @@ void lfm_lua_init_thread(lua_State *L) {
   lua_pushvalue(L, -1);
   lua_setglobal(L, "lfm");
 
-  for (size_t i = 0; i < ARRAY_SIZE(builtin_modules); i++) {
+  for (usize i = 0; i < ARRAY_SIZE(builtin_modules); i++) {
     ModuleDef def = builtin_modules[i];
     if (streq(def.name, "lfm.fs")) {
       if (luaL_loadbuffer(L, (const char *)def.data, def.size - 1, def.name)) {

@@ -19,12 +19,12 @@ typedef struct File {
   cstr link_target; // symlink target
   bool isbroken;    // broken symlink
   bool hidden;      // name starts with a dot
-  int32_t dircount; // in case of a directory, < 0 if not loaded yet
-  int error;        // errorno of the error that prevented loading
+  i32 dircount;     // in case of a directory, < 0 if not loaded yet
+  i32 error;        // errorno of the error that prevented loading
   score_t score;    // for convenience, used in fzy
 } File;
 
-File *file_create(const char *dir, const char *name, int fd, bool load_info);
+File *file_create(const char *dir, const char *name, i32 fd, bool load_info);
 
 void file_destroy(File *file);
 
@@ -82,19 +82,19 @@ static inline bool file_isbroken(const File *file) {
 
 // Returns the number of files in the directory `file`. A negative
 // number is returned when the count has not been loaded (yet).
-static inline int32_t file_dircount(const File *file) {
+static inline i32 file_dircount(const File *file) {
   return file->dircount;
 }
 
 // count the number of entries of the directory with the given path
-uint32_t path_dircount(const char *path);
+u32 path_dircount(const char *path);
 
 // Set `file->dircount` to `count`.
-static inline void file_set_dircount(File *file, int32_t ct) {
+static inline void file_set_dircount(File *file, i32 ct) {
   file->dircount = ct;
 }
 
-uint32_t file_load_dircount(File *file);
+u32 file_load_dircount(File *file);
 
 // Returns the modification time.
 static inline long file_mtime(const File *file) {
@@ -140,6 +140,6 @@ static inline bool file_hidden(const File *file) {
   return file->hidden;
 }
 
-static inline int file_error(const File *file) {
+static inline i32 file_error(const File *file) {
   return file->error;
 }

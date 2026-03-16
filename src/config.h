@@ -19,7 +19,7 @@
 // maps file extensions to fg/bg channel
 #define i_type hmap_channel
 #define i_keypro cstr
-#define i_val uint64_t
+#define i_val u64
 #define i_no_clone
 #include "stc/hmap.h"
 
@@ -54,32 +54,32 @@ typedef struct config {
   cstr fifopath;    // rundir/$PID.fifo
   cstr logpath;     // /tmp/lfm.$PID.log
 
-  int histsize;          // 100
+  u32 histsize;          // 100
   char truncatechar[16]; // '~'
   char linkchars[16];    // "->"
   char current_char;     // \0, unless 8 color terminal
-  int linkchars_len;
+  i32 linkchars_len;
   cstr infoline;
   bool preview;
   bool preview_images;
   bytes lua_previewer;
   cstr previewer;
-  uint32_t preview_delay;
+  u32 preview_delay;
   bool icons;
   bool tags;
   hmap_icon icon_map;
-  uint32_t scrolloff;
+  u32 scrolloff;
   cstr timefmt;
   vec_int ratios;
   input_t mapleader;
 
   vec_cstr inotify_blacklist;
-  uint32_t inotify_timeout;
-  uint32_t inotify_delay;
+  u32 inotify_timeout;
+  u32 inotify_delay;
 
-  uint32_t map_suggestion_delay;
-  uint32_t map_clear_delay;
-  uint32_t loading_indicator_delay;
+  u32 map_suggestion_delay;
+  u32 map_clear_delay;
+  u32 loading_indicator_delay;
 
   struct dir_settings dir_settings; // default dir_settings
   hmap_dirsetting dir_settings_map; // path -> dir_settings
@@ -89,15 +89,15 @@ typedef struct config {
   struct colors {
     hmap_channel color_map; // char* -> uint64
 
-    uint64_t normal;
-    uint64_t selection;
-    uint64_t copy;
-    uint64_t delete;
-    uint64_t search;
-    uint64_t broken;
-    uint64_t exec;
-    uint64_t dir;
-    uint32_t current; /* bg channel index only */
+    u64 normal;
+    u64 selection;
+    u64 copy;
+    u64 delete;
+    u64 search;
+    u64 broken;
+    u64 exec;
+    u64 dir;
+    u32 current; /* bg channel index only */
   } colors;
 } Config;
 

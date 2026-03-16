@@ -1,9 +1,9 @@
 #include "hooks.h"
 
+#include "defs.h"
 #include "lfm.h"
 #include "log.h"
 #include "lua/lfmlua.h"
-#include "macros.h"
 
 #include <lauxlib.h>
 #include <lua.h>
@@ -12,7 +12,7 @@
 
 struct hook_change {
   lfm_hook_id hook;
-  int ref;
+  i32 ref;
   bool remove;
 };
 
@@ -22,7 +22,7 @@ struct hook_change {
 
 // we fold the hook_id and the ref into an id that is returned to the user
 //     id == (hook_id << 20) | ref
-// TODO: we should probably explicitly use u32 instead of int
+// TODO: we should probably explicitly use u32 instead of i32
 
 #define REF_BITS 20
 #define REF_MASK ((1 << REF_BITS) - 1)
@@ -51,13 +51,13 @@ void lfm_hooks_init(Lfm *lfm) {
 }
 
 void lfm_hooks_deinit(Lfm *lfm) {
-  for (int i = 0; i < LFM_NUM_HOOKS; i++) {
+  for (i32 i = 0; i < LFM_NUM_HOOKS; i++) {
     vec_int_drop(&lfm->hook_refs[i]);
   }
   vec_hook_change_drop(&lfm->hook_changes);
 }
 
-int lfm_add_hook(Lfm *lfm, lfm_hook_id hook, int ref) {
+i32 lfm_add_hook(Lfm *lfm, lfm_hook_id hook, i32 ref) {
   if (unlikely(lfm->hook_callback_depth > 0)) {
     struct hook_change change = {
         .hook = hook,
@@ -71,8 +71,8 @@ int lfm_add_hook(Lfm *lfm, lfm_hook_id hook, int ref) {
 }
 
 // TODO: it is currently possible to remove the same ref twice during a callback
-int lfm_remove_hook(Lfm *lfm, int id) {
-  int ref = id & REF_MASK;
+i32 lfm_remove_hook(Lfm *lfm, i32 id) {
+  i32 ref = id & REF_MASK;
   lfm_hook_id hook = id >> REF_BITS;
   if (hook < 0 || hook >= LFM_NUM_HOOKS) {
     // invalid id
@@ -108,7 +108,7 @@ void lfm_apply_hook_changes(Lfm *lfm) {
   if (likely(lfm->hook_callback_depth == 0)) {
     c_foreach(it, vec_hook_change, lfm->hook_changes) {
       lfm_hook_id hook = it.ref->hook;
-      int ref = it.ref->ref;
+      i32 ref = it.ref->ref;
       if (ref == 0)
         continue; // invalidated
       if (it.ref->remove) {

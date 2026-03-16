@@ -5,15 +5,15 @@
  * threads.
  */
 
+#include "defs.h"
 #include "stc/cstr.h"
 
 #include <stddef.h>
-#include <stdio.h>
 
 void setpwd(const char *path);
 
 // returns -1 if the buffer is too short, otherwise the length
-size_t getpwd_buf(char *buf, size_t bufzs);
+isize getpwd_buf(char *buf, usize bufzs);
 
 // access with manual unlocking
 const char *getpwd_manual_unlock();

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "macros.h"
+#include "defs.h"
 #include "stc/cstr.h"
 #include "types/bytes.h"
 
@@ -24,17 +24,17 @@ typedef void (*preview_destroy_fun)(struct Preview *);
 
 typedef struct Preview {
   cstr path;
-  uint32_t width; // geometry of the preview window when this preview was loaded
-                  // requested width and height of this preview checked to see
-                  // if a reload is necessary, INT_MAX when disabled.
-  uint32_t height;
+  u32 width; // geometry of the preview window when this preview was loaded
+             // requested width and height of this preview checked to see
+             // if a reload is necessary, INT_MAX when disabled.
+  u32 height;
   union {
     bytes data;
     struct ncvisual *ncv;
   };
-  uint64_t next;
+  u64 next;
   time_t mtime;
-  uint64_t loadtime;
+  u64 loadtime;
   bool loading;
   pv_loading_status status;
   preview_draw_fun draw;
@@ -46,20 +46,20 @@ __lfm_nonnull()
 Preview *preview_error(Preview *p, const char *fmt, ...);
 
 __lfm_nonnull()
-Preview *preview_create_loading(zsview path, int height, int width);
+Preview *preview_create_loading(zsview path, i32 height, i32 width);
 
 __lfm_nonnull()
-Preview *preview_create_and_stat(zsview path, int height, int width);
+Preview *preview_create_and_stat(zsview path, i32 height, i32 width);
 
 __lfm_nonnull()
-Preview *preview_fork_previewer(zsview path, uint32_t width, uint32_t height,
-                                int *pid_out, int fd_out[2]);
+Preview *preview_fork_previewer(zsview path, u32 width, u32 height,
+                                i32 *pid_out, i32 fd_out[2]);
 
 __lfm_nonnull()
-Preview *preview_read_output(Preview *p, int fd[2]);
+Preview *preview_read_output(Preview *p, i32 fd[2]);
 
 __lfm_nonnull()
-Preview *preview_handle_exit_status(Preview *p, int status);
+Preview *preview_handle_exit_status(Preview *p, i32 status);
 
 __lfm_nonnull()
 static inline const cstr *preview_path(const Preview *pv) {

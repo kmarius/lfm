@@ -6,8 +6,8 @@
 
 #pragma once
 
+#include "defs.h"
 #include "dir.h"
-#include "macros.h"
 #include "stc/types.h"
 
 #include <ev.h>
@@ -15,20 +15,20 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-declare_hmap(map_wd_dir, int, Dir *);
-declare_hmap(map_dir_wd, Dir *, int);
+declare_hmap(map_wd_dir, i32, Dir *);
+declare_hmap(map_dir_wd, Dir *, i32);
 
 #define NOTIFY_TIMEOUT 1000 // minimum time between directory reloads
 #define NOTIFY_DELAY 50 // delay before reloading after an event is triggered
 
 typedef struct notify {
   ev_io watcher;  // io watcher for inotofy_fd
-  int inotify_fd; // read from when notified by inotify
-  int fifo_wd;    // watch descriptor for the fifo (usually under /run/user/...)
+  i32 inotify_fd; // read from when notified by inotify
+  i32 fifo_wd;    // watch descriptor for the fifo (usually under /run/user/...)
   map_wd_dir dirs; // map currently watched directories to their wds
   map_dir_wd wds;  // and vice versa
-  size_t version; // counter that is incremented, every time notify_set_watchers
-                  // is called
+  usize version; // counter that is incremented, every time notify_set_watchers
+                 // is called
 } Notify;
 
 // Initialize a Notify context. Returns false on failure.
@@ -47,7 +47,7 @@ bool notify_remove_watcher(Notify *notify, Dir *dir);
 // Replace the current set of watchers with `n` watchers for the directories
 // passed in `dirs`. Incremets the notify->version counter.
 __lfm_nonnull(1)
-void notify_set_watchers(Notify *notify, Dir **dirs, uint32_t n);
+void notify_set_watchers(Notify *notify, Dir **dirs, u32 n);
 
 // Remove all watchers. Incremets the notify->version counter.
 static inline void notify_remove_watchers(Notify *notify) {

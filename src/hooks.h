@@ -1,9 +1,9 @@
 #pragma once
 
+#include "defs.h"
 #include "log.h"
 #include "lua/lfmlua.h"
 #include "lua/util.h"
-#include "macros.h"
 
 #include <assert.h>
 #include <lauxlib.h>
@@ -36,7 +36,7 @@ void lfm_hooks_deinit(struct Lfm *lfm);
 
 // returns -1 for invalid hook name
 static inline lfm_hook_id hook_name_to_id(const char *name) {
-  for (int i = 0; i < LFM_NUM_HOOKS; i++) {
+  for (i32 i = 0; i < LFM_NUM_HOOKS; i++) {
     if (strcmp(name, hook_str[i]) == 0) {
       return i;
     }
@@ -45,10 +45,10 @@ static inline lfm_hook_id hook_name_to_id(const char *name) {
 }
 
 // Returns an id with which it can be removed later
-int lfm_add_hook(struct Lfm *lfm, lfm_hook_id hook, int ref);
+i32 lfm_add_hook(struct Lfm *lfm, lfm_hook_id hook, i32 ref);
 
 // Returns the reference of the callback, or 0 if no hook was removed.
-int lfm_remove_hook(struct Lfm *lfm, int id);
+i32 lfm_remove_hook(struct Lfm *lfm, i32 id);
 
 // apply all changes made to hooks during a hook callback
 void lfm_apply_hook_changes(struct Lfm *lfm);
@@ -70,11 +70,11 @@ void lfm_apply_hook_changes(struct Lfm *lfm);
       cstr *: lua_pushcstr,                                                    \
       zsview: lua_pushzsview,                                                  \
       float: lua_pushnumber,                                                   \
-      int: lua_pushnumber)((L), (ARG))
+      i32: lua_pushnumber)((L), (ARG))
 
 // Gets the previously stored (via lua_set_callback) element with reference ref
 // from the registry and leaves it at the top of the stack.
-static inline void lua_get_callback(lua_State *L, int ref, bool unref) {
+static inline void lua_get_callback(lua_State *L, i32 ref, bool unref) {
   assert(ref > 0);
   lua_rawgeti(L, LUA_REGISTRYINDEX, ref); // [elem]
   if (unref) {

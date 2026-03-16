@@ -12,10 +12,10 @@
 #include "private.h"
 
 #include "config.h"
+#include "defs.h"
 #include "lfm.h"
 #include "loader.h"
 #include "log.h"
-#include "macros.h"
 #include "memory.h"
 #include "preview.h"
 #include "stc/cstr.h"
@@ -44,7 +44,7 @@ struct preview_check_data {
   int height;
   int width;
   time_t mtime;
-  uint64_t loadtime;
+  u64 loadtime;
 };
 
 struct preview_load_data {
@@ -175,8 +175,8 @@ void async_preview_load(Async *async, Preview *pv) {
 
     // we could modify these to load extra lines, but we would need to make
     // changes because we resize images to thexe exact dimensions
-    uint32_t width = to_lfm(async)->ui.preview.x;
-    uint32_t height = to_lfm(async)->ui.preview.y;
+    u32 width = to_lfm(async)->ui.preview.x;
+    u32 height = to_lfm(async)->ui.preview.y;
 
     // first stage of loading the preview: fork the previewer process
     pid_t pid = 0;

@@ -1,9 +1,9 @@
 #include "infoline.h"
 
 #include "config.h"
+#include "defs.h"
 #include "lfm.h"
 #include "log.h"
-#include "macros.h"
 #include "ncutil.h"
 #include "spinner.h"
 #include "ui.h"
@@ -26,33 +26,33 @@
 #define STATIC_BUF_SZ 1024
 
 // static data we only set once
-static int uid = -1;
+static i32 uid = -1;
 static char user[64 + 1] = {0};
 static char host[HOST_NAME_MAX + 1] = {0};
 static char home[64 + 1] = {0};
-static int home_len = 0; // printed length of home
+static i32 home_len = 0; // printed length of home
 
 // this buffer holds any static text including ansi sequences etc.
 static char static_buf[STATIC_BUF_SZ];
 static char *static_buf_ptr;
 // this includes size of elements not in the static buf, e.g. 1 for the spinner
-static int static_len = 0;
+static i32 static_len = 0;
 
 char file_buf[128] = {0};
 
-static int num_placeholders = 0;
+static i32 num_placeholders = 0;
 static struct {
-  char *next; // points into buf, to print whatever follows this placeholder
-  char c;     // placeholder type
-  int16_t next_len;        // printed length of whatever follows
-  int16_t replacement_len; // printed length of the replaced placeholder, if
-                           // known, or 0
-  void *ptr; // data belonging to the placeholder, possibly a char *
+  char *next;   // points into buf, to print whatever follows this placeholder
+  char c;       // placeholder type
+  u16 next_len; // printed length of whatever follows
+  u16 replacement_len; // printed length of the replaced placeholder, if
+                       // known, or 0
+  void *ptr;           // data belonging to the placeholder, possibly a char *
 } placeholders[PLACEHOLDERS_MAX] = {0};
 
 // index positions of some placeholders
 static struct {
-  int file, path, spinner, spacer, mode;
+  i32 file, path, spinner, spacer, mode;
 } idx;
 
 // currently the only spinner instance in use
@@ -60,7 +60,7 @@ static struct spinner spinner;
 
 static inline void draw_custom(Ui *ui);
 static inline void draw_default(Ui *ui);
-static inline int shorten_path(zsview path, char *buf, int max_len);
+static inline i32 shorten_path(zsview path, char *buf, i32 max_len);
 
 static inline bool should_draw_default() {
   return static_len == 0;
@@ -197,8 +197,8 @@ void infoline_parse(zsview infoline) {
   *static_buf_ptr = 0;
 
   // length of all static tokens
-  for (int i = 0; i < num_placeholders; i++) {
-    size_t len = ansi_mblen(placeholders[i].next);
+  for (i32 i = 0; i < num_placeholders; i++) {
+    usize len = ansi_mblen(placeholders[i].next);
     placeholders[i].next_len = len;
     static_len += len;
     static_len += placeholders[i].replacement_len;
@@ -226,14 +226,14 @@ static inline void draw_custom(Ui *ui) {
   // longer file names/paths are truncated safely
   File *file = NULL;
   file_buf[0] = 0;
-  int file_len = 0;
+  i32 file_len = 0;
   bool file_is_dir = false;
 
   char path_buf[PATH_MAX] = {0};
 
   // we need to fit file/path placeholders into this
   // make sure to deduct any other dynamic placeholders from this
-  int remaining = ui->x - static_len;
+  i32 remaining = ui->x - static_len;
 
   if (idx.mode) {
     zsview mode = cstr_zv(&to_lfm(ui)->current_mode->name);
@@ -254,9 +254,9 @@ static inline void draw_custom(Ui *ui) {
   if (idx.path != 0) {
     const Dir *dir = fm_current_dir(&to_lfm(ui)->fm);
 
-    int path_remaining = remaining - file_len;
+    i32 path_remaining = remaining - file_len;
 
-    size_t buf_idx = 0;
+    usize buf_idx = 0;
 
     // replace $HOME with ~
     zsview path = cstr_zv(dir_path(dir));
@@ -270,7 +270,7 @@ static inline void draw_custom(Ui *ui) {
       path_remaining--; // extra trailing '/', later
     }
 
-    int u8_len;
+    i32 u8_len;
 
     if (path_remaining <= 1) {
       strcpy(path_buf, cfg.truncatechar);
@@ -308,7 +308,7 @@ static inline void draw_custom(Ui *ui) {
     placeholders[idx.file].ptr = file_buf;
   }
 
-  for (int i = 0; i < num_placeholders; i++) {
+  for (i32 i = 0; i < num_placeholders; i++) {
     switch (placeholders[i].c) {
     case 0:
       break;
@@ -319,11 +319,11 @@ static inline void draw_custom(Ui *ui) {
       ncplane_putstr(n, placeholders[i].ptr);
       break;
     case 's': {
-      unsigned int x;
+      u32 x;
       ncplane_cursor_yx(n, NULL, &x);
-      int remaining = ui->x - x;
-      int l = 0;
-      for (int j = i; j < num_placeholders; j++) {
+      i32 remaining = ui->x - x;
+      i32 l = 0;
+      for (i32 j = i; j < num_placeholders; j++) {
         l += placeholders[j].next_len;
         l += placeholders[j].replacement_len;
       }
@@ -336,10 +336,10 @@ static inline void draw_custom(Ui *ui) {
       break;
     case 'S': {
       // store style/colors and initialize the spinner
-      unsigned int x;
+      u32 x;
       ncplane_cursor_yx(n, NULL, &x);
-      uint64_t channels = ncplane_channels(n);
-      uint16_t style = ncplane_styles(n);
+      u64 channels = ncplane_channels(n);
+      u16 style = ncplane_styles(n);
 
       spinner_on(&spinner, 0, x, channels, style, n);
       // draw the current char immediately
@@ -377,7 +377,7 @@ static inline void draw_default(Ui *ui) {
 
   zsview path = cstr_zv(dir_path(dir));
 
-  unsigned remaining;
+  u32 remaining;
   ncplane_cursor_yx(n, NULL, &remaining);
   remaining = ui->x - remaining;
 
@@ -418,9 +418,9 @@ static inline void draw_default(Ui *ui) {
 
 // max_len is not a strict upper bound, but we try to make path as short as
 // possible. path probably shouldn't end with /
-static inline int shorten_path(zsview path, char *buf, int max_len) {
-  int trunc_len = strlen(cfg.truncatechar);
-  int max = max_len;
+static inline i32 shorten_path(zsview path, char *buf, i32 max_len) {
+  i32 trunc_len = strlen(cfg.truncatechar);
+  i32 max = max_len;
 
   char *ptr = buf;
 
@@ -439,7 +439,7 @@ static inline int shorten_path(zsview path, char *buf, int max_len) {
     return 0;
   }
 
-  int path_remaining_u8 = zsview_u8_size(path);
+  i32 path_remaining_u8 = zsview_u8_size(path);
   if (path_remaining_u8 <= max_len) {
     memcpy(buf, path.str, path.size + 1);
     return path_remaining_u8;
@@ -455,8 +455,8 @@ static inline int shorten_path(zsview path, char *buf, int max_len) {
 
     const char *next = strchr(cur.str, '/');
 
-    int len = 0;
-    int u8_len;
+    i32 len = 0;
+    i32 u8_len;
     if (next != NULL) {
       len = next - cur.str;
       u8_len = csview_u8_size(zsview_subview(cur, 0, len));
@@ -467,12 +467,12 @@ static inline int shorten_path(zsview path, char *buf, int max_len) {
 
     path_remaining_u8 -= u8_len;
 
-    if (path_remaining_u8 <= (int)max_len) {
+    if (path_remaining_u8 <= (i32)max_len) {
       // Everything after the next component fits, we can print some of this
       // one
 
       // fill this many cells
-      int m = max_len - path_remaining_u8;
+      i32 m = max_len - path_remaining_u8;
       if (m >= 2) {
         csview cs = zsview_u8_subview(cur, 0, m - 1);
         memcpy(ptr, cs.buf, cs.size);

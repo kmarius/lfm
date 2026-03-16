@@ -1,7 +1,7 @@
 #include "ncutil.h"
 
+#include "defs.h"
 #include "log.h"
-#include "macros.h"
 #include "stc/cstr.h"
 
 #include <curses.h>
@@ -18,9 +18,9 @@ static inline void normal(struct ncplane *n) {
   ncplane_set_bg_default(n);
 }
 
-static inline bool parse_number(const char **str, const char *end, int *num) {
+static inline bool parse_number(const char **str, const char *end, i32 *num) {
   const char *ptr = *str;
-  int acc = 0;
+  i32 acc = 0;
 
   if (unlikely((*ptr != '[' && *ptr != ';') || ptr + 1 >= end ||
                !isdigit(*++ptr)))
@@ -45,7 +45,7 @@ const char *ncplane_set_ansi_attrs(struct ncplane *n, const char *str,
     return str + 2;
   }
 
-  int num;
+  i32 num;
   while (str < end && *str != 'm') {
     if (!parse_number(&str, end, &num)) {
       goto err;
@@ -97,20 +97,20 @@ const char *ncplane_set_ansi_attrs(struct ncplane *n, const char *str,
         ncplane_off_styles(n, NCSTYLE_UNDERLINE);
         break;
       case 38: {
-        int op;
+        i32 op;
         if (!parse_number(&str, end, &op)) {
           goto err;
         }
         switch (op) {
         case 5: {
-          int p;
+          i32 p;
           if (!parse_number(&str, end, &p)) {
             goto err;
           }
           ncplane_set_fg_palindex(n, p);
         } break;
         case 2: {
-          int r, g, b;
+          i32 r, g, b;
           if (!parse_number(&str, end, &r) || !parse_number(&str, end, &g) ||
               !parse_number(&str, end, &b)) {
             goto err;
@@ -125,20 +125,20 @@ const char *ncplane_set_ansi_attrs(struct ncplane *n, const char *str,
         ncplane_set_fg_default(n);
         break;
       case 48: {
-        int op;
+        i32 op;
         if (!parse_number(&str, end, &op)) {
           goto err;
         }
         switch (op) {
         case 5: {
-          int p;
+          i32 p;
           if (!parse_number(&str, end, &p)) {
             goto err;
           }
           ncplane_set_bg_palindex(n, p);
         } break;
         case 2: {
-          int r, g, b;
+          i32 r, g, b;
           if (!parse_number(&str, end, &r) || !parse_number(&str, end, &g) ||
               !parse_number(&str, end, &b)) {
             goto err;
@@ -169,9 +169,9 @@ err:
   goto ret;
 }
 
-int ncplane_putnstr_ansi_yx(struct ncplane *n, int y, int x, size_t s,
+i32 ncplane_putnstr_ansi_yx(struct ncplane *n, i32 y, i32 x, usize s,
                             const char *gclusters) {
-  int ret = 0;
+  i32 ret = 0;
   ncplane_cursor_move_yx(n, y, x);
   const char *ptr = gclusters;
   const char *end = gclusters + s;
@@ -182,7 +182,7 @@ int ncplane_putnstr_ansi_yx(struct ncplane *n, int y, int x, size_t s,
       const char *cur;
       for (cur = ptr; ptr < end && *ptr != '\033'; ptr++) {
       }
-      int m = ncplane_putnstr(n, ptr - cur, cur);
+      i32 m = ncplane_putnstr(n, ptr - cur, cur);
       if (m < 0) {
         // EOL/error
         ret -= m;
@@ -194,9 +194,9 @@ int ncplane_putnstr_ansi_yx(struct ncplane *n, int y, int x, size_t s,
   return ret;
 }
 
-int ncplane_putlcs_ansi_yx(struct ncplane *n, int y, int x, size_t s,
+i32 ncplane_putlcs_ansi_yx(struct ncplane *n, i32 y, i32 x, usize s,
                            csview cs) {
-  int ret = 0;
+  i32 ret = 0;
   ncplane_cursor_move_yx(n, y, x);
   const char *ptr = cs.buf;
   const char *end = cs.buf + cs.size;
@@ -207,14 +207,14 @@ int ncplane_putlcs_ansi_yx(struct ncplane *n, int y, int x, size_t s,
       const char *cur;
       for (cur = ptr; ptr < end && *ptr != '\033'; ptr++)
         ;
-      int m = ncplane_putnstr(n, ptr - cur, cur);
+      i32 m = ncplane_putnstr(n, ptr - cur, cur);
       if (m < 0) {
         // EOL/error
         ret -= m;
         break;
       }
       ret += m;
-      if (ret >= (int)s) {
+      if (ret >= (i32)s) {
         break;
       }
     }
@@ -222,9 +222,9 @@ int ncplane_putlcs_ansi_yx(struct ncplane *n, int y, int x, size_t s,
   return ret;
 }
 
-size_t ansi_mblen(const char *ptr) {
+usize ansi_mblen(const char *ptr) {
   const char *end = ptr + strlen(ptr);
-  size_t len = 0;
+  usize len = 0;
   while (ptr < end) {
     if (*ptr == '\033') {
       while (ptr < end && *ptr != 'm')
@@ -232,7 +232,7 @@ size_t ansi_mblen(const char *ptr) {
       if (ptr < end)
         ptr++; // skip 'm'
     } else {
-      int l = mbtowc(NULL, ptr, end - ptr);
+      i32 l = mbtowc(NULL, ptr, end - ptr);
       if (l < 0)
         return len;
       ptr += l;
@@ -244,18 +244,18 @@ size_t ansi_mblen(const char *ptr) {
 
 // for ffi purposes
 
-int ncplane_putchar_yx_(struct ncplane *n, int y, int x, char c) {
+i32 ncplane_putchar_yx_(struct ncplane *n, i32 y, i32 x, char c) {
   nccell ce =
-      NCCELL_INITIALIZER((uint32_t)c, ncplane_styles(n), ncplane_channels(n));
+      NCCELL_INITIALIZER((u32)c, ncplane_styles(n), ncplane_channels(n));
   return ncplane_putc_yx(n, y, x, &ce);
 }
 
-int ncplane_putstr_yx_(struct ncplane *n, int y, int x, const char *gclusters) {
-  int ret = 0;
+i32 ncplane_putstr_yx_(struct ncplane *n, i32 y, i32 x, const char *gclusters) {
+  i32 ret = 0;
   while (*gclusters) {
-    size_t wcs;
-    int cols = ncplane_putegc_yx(n, y, x, gclusters, &wcs);
-    // fprintf(stderr, "wrote %.*s %d cols %zu bytes\n", (int)wcs, gclusters,
+    usize wcs;
+    i32 cols = ncplane_putegc_yx(n, y, x, gclusters, &wcs);
+    // fprintf(stderr, "wrote %.*s %d cols %zu bytes\n", (i32)wcs, gclusters,
     // cols, wcs);
     if (cols < 0) {
       return -ret;
@@ -273,7 +273,7 @@ int ncplane_putstr_yx_(struct ncplane *n, int y, int x, const char *gclusters) {
   return ret;
 }
 
-int notcurses_render_(struct notcurses *nc) {
+i32 notcurses_render_(struct notcurses *nc) {
   struct ncplane *stdn = notcurses_stdplane(nc);
   if (ncpile_render(stdn)) {
     return -1;

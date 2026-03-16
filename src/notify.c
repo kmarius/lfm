@@ -1,11 +1,11 @@
 #include "notify.h"
 
 #include "config.h"
+#include "defs.h"
 #include "dir.h"
 #include "lfm.h"
 #include "loader.h"
 #include "log.h"
-#include "macros.h"
 #include "util.h"
 
 #include <ev.h>
@@ -20,14 +20,14 @@
 
 #define i_declared
 #define i_type map_wd_dir
-#define i_key int
+#define i_key i32
 #define i_val Dir *
 #include "stc/hmap.h"
 
 #define i_declared
 #define i_type map_dir_wd
 #define i_key Dir *
-#define i_val int
+#define i_val i32
 #include "stc/hmap.h"
 
 // This is plenty of space, most file names are shorter and as long as
@@ -40,7 +40,7 @@
 #define NOTIFY_EVENTS                                                          \
   (IN_MODIFY | IN_CREATE | IN_DELETE | IN_MOVED_FROM | IN_MOVED_TO | IN_ATTRIB)
 
-static void inotify_cb(EV_P_ ev_io *w, int revents);
+static void inotify_cb(EV_P_ ev_io *w, i32 revents);
 
 bool notify_init(Notify *notify) {
   notify->inotify_fd = inotify_init1(IN_NONBLOCK);
@@ -69,14 +69,14 @@ void notify_deinit(Notify *notify) {
 
 /* TODO: we currently don't notice if the current directory is deleted while
  * empty (on 2021-11-18) */
-static void inotify_cb(EV_P_ ev_io *w, int revents) {
+static void inotify_cb(EV_P_ ev_io *w, i32 revents) {
   (void)loop;
   (void)revents;
 
   Lfm *lfm = w->data;
   Notify *notify = &lfm->notify;
 
-  int nread;
+  i32 nread;
   char buf[EVENT_BUFLEN], *p;
   struct inotify_event *event;
 
@@ -107,14 +107,14 @@ void notify_add_watcher(Notify *notify, Dir *dir) {
     return;
   }
 
-  const uint64_t t0 = current_millis();
-  int wd =
+  const u64 t0 = current_millis();
+  i32 wd =
       inotify_add_watch(notify->inotify_fd, dir_path_str(dir), NOTIFY_EVENTS);
   if (wd == -1) {
     log_error("inotify: %s", strerror(errno));
     return;
   }
-  const uint64_t t1 = current_millis();
+  const u64 t1 = current_millis();
 
   /* TODO: inotify_add_watch can take over 200ms for example on samba shares.
    * the only way to work around it is to add notify watches asnc. (on
@@ -131,7 +131,7 @@ void notify_add_watcher(Notify *notify, Dir *dir) {
 bool notify_remove_watcher(Notify *notify, Dir *dir) {
   map_dir_wd_iter it = map_dir_wd_find(&notify->wds, dir);
   if (it.ref) {
-    int wd = it.ref->second;
+    i32 wd = it.ref->second;
     inotify_rm_watch(notify->inotify_fd, wd);
     map_dir_wd_erase_at(&notify->wds, it);
     map_wd_dir_erase(&notify->dirs, wd);
@@ -140,14 +140,14 @@ bool notify_remove_watcher(Notify *notify, Dir *dir) {
   return false;
 }
 
-void notify_set_watchers(Notify *notify, Dir **dirs, uint32_t n) {
+void notify_set_watchers(Notify *notify, Dir **dirs, u32 n) {
   c_foreach(it, map_dir_wd, notify->wds) {
     inotify_rm_watch(notify->inotify_fd, it.ref->second);
   }
   map_dir_wd_clear(&notify->wds);
   map_wd_dir_clear(&notify->dirs);
 
-  for (uint32_t i = 0; i < n; i++) {
+  for (u32 i = 0; i < n; i++) {
     if (dirs[i]) {
       notify_add_watcher(notify, dirs[i]);
     }

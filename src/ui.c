@@ -4,6 +4,7 @@
 #include "cdims.h"
 #include "cmdline.h"
 #include "config.h"
+#include "defs.h"
 #include "dir.h"
 #include "file.h"
 #include "filter.h"
@@ -14,7 +15,6 @@
 #include "lfm.h"
 #include "loader.h"
 #include "log.h"
-#include "macros.h"
 #include "mode.h"
 #include "ncutil.h"
 #include "preview.h"
@@ -59,8 +59,8 @@
 
 struct cdims cdims = {0};
 
-static void message_clear_timer_cb(EV_P_ ev_timer *w, int revents);
-static void menu_delay_timer_cb(EV_P_ ev_timer *w, int revents);
+static void message_clear_timer_cb(EV_P_ ev_timer *w, i32 revents);
+static void menu_delay_timer_cb(EV_P_ ev_timer *w, i32 revents);
 static void draw_dirs(Ui *ui);
 static void plane_draw_dir(struct ncplane *n, Dir *dir, pathlist *sel,
                            pathlist *load, paste_mode mode, zsview highlight,
@@ -70,11 +70,11 @@ static void draw_menu(Ui *ui, const vec_cstr *menu);
 static void menu_resize(Ui *ui);
 static inline void print_message(Ui *ui, zsview msg, bool error);
 static inline void draw_cmdline(Ui *ui);
-static void redraw_cb(EV_P_ ev_idle *w, int revents);
-static int resize_cb(struct ncplane *n);
+static void redraw_cb(EV_P_ ev_idle *w, i32 revents);
+static i32 resize_cb(struct ncplane *n);
 static void draw_current(Ui *ui);
 
-static void on_cursor_resting(EV_P_ ev_timer *w, int revents);
+static void on_cursor_resting(EV_P_ ev_timer *w, i32 revents);
 
 static inline void clear_pane(struct ncplane *n) {
   ncplane_erase(n);
@@ -127,7 +127,7 @@ void ui_on_resize(Ui *ui) {
   ui_update_file_preview(ui);
 }
 
-static int resize_cb(struct ncplane *n) {
+static i32 resize_cb(struct ncplane *n) {
   Lfm *lfm = ncplane_userptr(n);
   lfm_on_resize(lfm);
   return 0;
@@ -214,7 +214,7 @@ void ui_suspend(Ui *ui) {
 }
 
 void kbblocking(bool blocking) {
-  int val = fcntl(STDIN_FILENO, F_GETFL, 0);
+  i32 val = fcntl(STDIN_FILENO, F_GETFL, 0);
   if (val != -1) {
     fcntl(STDIN_FILENO, F_SETFL,
           blocking ? val & ~O_NONBLOCK : val | O_NONBLOCK);
@@ -242,7 +242,7 @@ void ui_recol(Ui *ui) {
 
   ui->num_columns = vec_int_size(&cfg.ratios);
 
-  uint32_t sum = 0;
+  u32 sum = 0;
   c_foreach(it, vec_int, cfg.ratios) {
     sum += *it.ref;
   }
@@ -252,8 +252,8 @@ void ui_recol(Ui *ui) {
       .rows = ui->y > 2 ? ui->y - 2 : 1,
   };
 
-  uint32_t xpos = 0;
-  for (uint32_t i = 0; i < ui->num_columns - 1; i++) {
+  u32 xpos = 0;
+  for (u32 i = 0; i < ui->num_columns - 1; i++) {
     opts.cols =
         (ui->x - ui->num_columns + 1) * *vec_int_at(&cfg.ratios, i) / sum;
     if (opts.cols == 0) {
@@ -267,9 +267,9 @@ void ui_recol(Ui *ui) {
   opts.cols = ui->x - xpos - 1;
   vec_ncplane_push(&ui->planes.dirs, ncplane_create(ncstd, &opts));
   ui->planes.preview = *vec_ncplane_back(&ui->planes.dirs);
-  int len = vec_ncplane_size(&ui->planes.dirs);
+  i32 len = vec_ncplane_size(&ui->planes.dirs);
   // reverse vector
-  for (int i = 0; i < len / 2; i++) {
+  for (i32 i = 0; i < len / 2; i++) {
     c_swap(vec_ncplane_at_mut(&ui->planes.dirs, i),
            vec_ncplane_at_mut(&ui->planes.dirs, len - i - 1));
   }
@@ -281,16 +281,16 @@ void ui_recol(Ui *ui) {
 
 /* main drawing/echo/err {{{ */
 
-static void redraw_cb(EV_P_ ev_idle *w, int revents) {
+static void redraw_cb(EV_P_ ev_idle *w, i32 revents) {
   (void)revents;
   ui_draw(w->data);
   ev_idle_stop(EV_A_ w);
 }
 
 void ui_draw(Ui *ui) {
-  uint64_t t0 = current_micros();
+  u64 t0 = current_micros();
 
-  uint32_t mode = ui->redraw;
+  u32 mode = ui->redraw;
 
   if (mode & REDRAW_FM) {
     mode &= ~REDRAW_CURRENT;
@@ -314,7 +314,7 @@ void ui_draw(Ui *ui) {
 
   if (mode) {
     notcurses_render(ui->nc);
-    uint64_t t1 = current_micros();
+    u64 t1 = current_micros();
     log_trace("ui_draw completed in %.3fms (%d)", (t1 - t0) / 1000.0, mode);
   }
 
@@ -333,7 +333,7 @@ void ui_clear(Ui *ui) {
 static void draw_current(Ui *ui) {
   Fm *fm = &to_lfm(ui)->fm;
 
-  int idx = 0;
+  i32 idx = 0;
   if (cfg.preview && vec_ncplane_size(&ui->planes.dirs) > 1) {
     idx = 1;
   }
@@ -354,7 +354,7 @@ static void draw_dirs(Ui *ui) {
       clear_pane(*it.ref);
   }
 
-  int i = 0;
+  i32 i = 0;
   if (cfg.preview && vec_ncplane_size(&ui->planes.dirs) > 1) {
     i = 1;
   }
@@ -401,7 +401,7 @@ void ui_display_message(Ui *ui, struct message msg) {
 
   struct ev_loop *loop = to_lfm(ui)->loop;
   if (msg.timeout > 0) {
-    ev_timer_set(&ui->message_clear_timer, 0.0, (float)msg.timeout / 1000.0);
+    ev_timer_set(&ui->message_clear_timer, 0.0, (f64)msg.timeout / 1000.0);
     ev_timer_again(loop, &ui->message_clear_timer);
   } else {
     ev_timer_stop(loop, &ui->message_clear_timer);
@@ -411,7 +411,7 @@ void ui_display_message(Ui *ui, struct message msg) {
   ev_idle_start(loop, &ui->redraw_watcher);
 }
 
-static void message_clear_timer_cb(EV_P_ ev_timer *w, int revents) {
+static void message_clear_timer_cb(EV_P_ ev_timer *w, i32 revents) {
   (void)revents;
   ev_timer_stop(EV_A_ w);
 
@@ -439,13 +439,13 @@ static void draw_menu(Ui *ui, const vec_cstr *menubuf) {
   /* needed to draw over directories */
   ncplane_set_base(n, " ", 0, 0);
 
-  int i = 0;
+  i32 i = 0;
   c_foreach(it, vec_cstr, *menubuf) {
     ncplane_cursor_move_yx(n, i++, 0);
 
     const char *str = cstr_str(it.ref);
     const char *end = cstr_str(it.ref) + cstr_size(it.ref);
-    uint32_t xpos = 0;
+    u32 xpos = 0;
 
     while (str < end) {
       const char *start = str;
@@ -458,7 +458,7 @@ static void draw_menu(Ui *ui, const vec_cstr *menubuf) {
       } else if (*str == '\t') {
         ncplane_putchar(n, ' ');
         xpos++;
-        for (const uint32_t l = ((xpos / 8) + 1) * 8; xpos < l; xpos++) {
+        for (const u32 l = ((xpos / 8) + 1) * 8; xpos < l; xpos++) {
           ncplane_putchar(n, ' ');
         }
         str++;
@@ -468,8 +468,8 @@ static void draw_menu(Ui *ui, const vec_cstr *menubuf) {
 }
 
 static void menu_resize(Ui *ui) {
-  int buf_sz = vec_cstr_size(&ui->menubuf);
-  const uint32_t h = max(1, min(buf_sz, ui->y - 2));
+  i32 buf_sz = vec_cstr_size(&ui->menubuf);
+  const u32 h = max(1, min(buf_sz, ui->y - 2));
   ncplane_resize(ui->planes.menu, 0, 0, 0, 0, 0, 0, h, ui->x);
   ncplane_move_yx(ui->planes.menu, ui->y - 1 - h, 0);
   if (buf_sz) {
@@ -477,7 +477,7 @@ static void menu_resize(Ui *ui) {
   }
 }
 
-void ui_menu_show(Ui *ui, vec_cstr *vec, uint32_t delay) {
+void ui_menu_show(Ui *ui, vec_cstr *vec, u32 delay) {
   struct ev_loop *loop = to_lfm(ui)->loop;
   ev_timer_stop(EV_A_ & ui->menu_delay_timer);
   if (!vec_cstr_is_empty(&ui->menubuf)) {
@@ -490,7 +490,7 @@ void ui_menu_show(Ui *ui, vec_cstr *vec, uint32_t delay) {
     vec_cstr_take(&ui->menubuf, *vec);
 
     if (delay > 0) {
-      ui->menu_delay_timer.repeat = (float)delay / 1000.0;
+      ui->menu_delay_timer.repeat = (f64)delay / 1000.0;
       ev_timer_again(EV_A_ & ui->menu_delay_timer);
     } else {
       ev_invoke(EV_A_ & ui->menu_delay_timer, 0);
@@ -501,7 +501,7 @@ void ui_menu_show(Ui *ui, vec_cstr *vec, uint32_t delay) {
   }
 }
 
-static void menu_delay_timer_cb(EV_P_ ev_timer *w, int revents) {
+static void menu_delay_timer_cb(EV_P_ ev_timer *w, i32 revents) {
   (void)revents;
   Lfm *lfm = w->data;
   Ui *ui = &lfm->ui;
@@ -519,12 +519,12 @@ static void menu_delay_timer_cb(EV_P_ ev_timer *w, int revents) {
 
 /* draw_dir {{{ */
 
-static uint64_t ext_channel_get(const char *ext) {
+static u64 ext_channel_get(const char *ext) {
   char buf[EXT_MAX_LEN];
 
   if (ext) {
     // lowercase for ascii - good enough for now
-    size_t i;
+    usize i;
     for (i = 0; ext[i] && i < EXT_MAX_LEN - 1; i++) {
       buf[i] = tolower(ext[i]);
     }
@@ -537,13 +537,13 @@ static uint64_t ext_channel_get(const char *ext) {
   return 0;
 }
 
-static int print_short_hl(struct ncplane *n, zsview name, int hl_begin,
-                          int hl_end, int max_len, bool has_ext) {
+static i32 print_short_hl(struct ncplane *n, zsview name, i32 hl_begin,
+                          i32 hl_end, i32 max_len, bool has_ext) {
   if (max_len <= 0) {
     return 0;
   }
 
-  int name_len = zsview_u8_size(name);
+  i32 name_len = zsview_u8_size(name);
 
   zsview ext = zsview_tail(name, 0);
   if (has_ext) {
@@ -552,11 +552,11 @@ static int print_short_hl(struct ncplane *n, zsview name, int hl_begin,
       ext = zsview_from_pos(name, ptr - name.str);
     }
   }
-  int ext_begin = ext.str - name.str;
-  int ext_len = zsview_u8_size(ext);
+  i32 ext_begin = ext.str - name.str;
+  i32 ext_len = zsview_u8_size(ext);
 
-  uint64_t ch = ncplane_channels(n);
-  int x = 0;
+  u64 ch = ncplane_channels(n);
+  i32 x = 0;
 
   /* TODO: some of these branches can probably be optimized/combined (on
    * 2022-02-18) */
@@ -569,7 +569,7 @@ static int print_short_hl(struct ncplane *n, zsview name, int hl_begin,
     x += ncplane_putstr(n, name.str + hl_end);
   } else if (max_len > ext_len + 1) {
     // print extension and as much of the name as possible
-    int trunc_pos = max_len - ext_len - 1;
+    i32 trunc_pos = max_len - ext_len - 1;
     if (hl_begin < trunc_pos) {
       // highlight begins before truncate
       x += ncplane_putnstr(n, hl_begin, name.str);
@@ -613,7 +613,7 @@ static int print_short_hl(struct ncplane *n, zsview name, int hl_begin,
       }
     }
   } else if (max_len >= 5) {
-    int ext_trunc = max_len - 2 - 1;
+    i32 ext_trunc = max_len - 2 - 1;
     if (hl_begin == 0) {
       ncplane_set_channels(n, cfg.colors.search);
     }
@@ -646,7 +646,7 @@ static int print_short_hl(struct ncplane *n, zsview name, int hl_begin,
       x += ncplane_putstr(n, cfg.truncatechar);
     }
   } else if (max_len > 1) {
-    int name_end = max_len - 1;
+    i32 name_end = max_len - 1;
     if (hl_begin < name_end) {
       x += ncplane_putnstr(n, hl_begin, name.str);
       ncplane_set_channels(n, cfg.colors.search);
@@ -726,13 +726,13 @@ static void draw_file(struct ncplane *n, const File *file, bool iscurrent,
                       pathlist *sel, pathlist *load, paste_mode mode,
                       zsview highlight, bool print_info, fileinfo fileinfo,
                       const struct tags *tags) {
-  unsigned int ncol, y0;
-  unsigned int x = 0;
+  u32 ncol, y0;
+  u32 x = 0;
   char info[32];
   ncplane_dim_yx(n, NULL, &ncol);
   ncplane_cursor_yx(n, &y0, NULL);
 
-  int rightmargin = 0;
+  i32 rightmargin = 0;
 
   if (print_info) {
     switch (fileinfo) {
@@ -783,13 +783,13 @@ static void draw_file(struct ncplane *n, const File *file, bool iscurrent,
   if (tags) {
     const hmap_cstr_value *v = hmap_cstr_get(&tags->tags, *file_name(file));
     if (v != NULL) {
-      uint64_t channels = ncplane_channels(n);
-      uint16_t styles = ncplane_styles(n);
+      u64 channels = ncplane_channels(n);
+      u16 styles = ncplane_styles(n);
       ncplane_set_styles(n, NCSTYLE_NONE);
       ncplane_set_fg_default(n);
       ncplane_set_bg_default(n);
 
-      int len = ncplane_putlcstr_ansi_yx(n, -1, -1, tags->cols, &v->second);
+      i32 len = ncplane_putlcstr_ansi_yx(n, -1, -1, tags->cols, &v->second);
       if (len < 0) {
         ncplane_putchar_rep(n, ' ', tags->cols);
       } else if (len < tags->cols) {
@@ -833,7 +833,7 @@ static void draw_file(struct ncplane *n, const File *file, bool iscurrent,
   } else if (file_isexec(file)) {
     ncplane_set_channels(n, cfg.colors.exec);
   } else {
-    uint64_t ch = ext_channel_get(file_ext(file));
+    u64 ch = ext_channel_get(file_ext(file));
     if (ch > 0) {
       ncplane_set_channels(n, ch);
     } else {
@@ -844,8 +844,8 @@ static void draw_file(struct ncplane *n, const File *file, bool iscurrent,
 
   if (cfg.current_char) {
     if (iscurrent) {
-      uint64_t channels = ncplane_channels(n);
-      uint16_t styles = ncplane_styles(n);
+      u64 channels = ncplane_channels(n);
+      u16 styles = ncplane_styles(n);
       ncplane_set_styles(n, NCSTYLE_NONE);
       ncplane_set_fg_default(n);
       ncplane_set_bg_default(n);
@@ -887,7 +887,7 @@ static void draw_file(struct ncplane *n, const File *file, bool iscurrent,
     cstr_drop(&name_lower);
   }
 
-  int left_space =
+  i32 left_space =
       ncol - 3 - rightmargin - (cfg.icons ? 2 : 0) - (tags ? tags->cols : 0);
   if (left_space > 0) {
     if (hl_begin == c_NPOS) {
@@ -895,7 +895,7 @@ static void draw_file(struct ncplane *n, const File *file, bool iscurrent,
       shorten_name(*file_name(file), buf, left_space, !file_isdir(file));
       x += ncplane_putstr(n, buf);
     } else {
-      int hl_end = hl_begin + highlight.size;
+      i32 hl_end = hl_begin + highlight.size;
 
       x += print_short_hl(n, *file_name(file), hl_begin, hl_end, left_space,
                           !file_isdir(file));
@@ -927,7 +927,7 @@ static void plane_draw_dir(struct ncplane *n, Dir *dir, pathlist *sel,
                            bool print_info) {
   clear_pane(n);
 
-  unsigned int nrow;
+  u32 nrow;
   ncplane_dim_yx(n, &nrow, NULL);
 
   if (dir->error) {
@@ -945,15 +945,15 @@ static void plane_draw_dir(struct ncplane *n, Dir *dir, pathlist *sel,
   } else {
     dir->pos = min(min(dir->pos, nrow - 1), dir->ind);
 
-    uint32_t offset = max(dir->ind - dir->pos, 0);
+    u32 offset = max(dir->ind - dir->pos, 0);
 
-    if (dir_length(dir) <= (uint32_t)nrow) {
+    if (dir_length(dir) <= (u32)nrow) {
       offset = 0;
     }
 
     struct tags *tags = cfg.tags && dir->tags.cols > 0 ? &dir->tags : NULL;
-    const uint32_t l = min(dir_length(dir) - offset, nrow);
-    for (uint32_t i = 0; i < l; i++) {
+    const u32 l = min(dir_length(dir) - offset, nrow);
+    for (u32 i = 0; i < l; i++) {
       ncplane_cursor_move_yx(n, i, 0);
       File *file = *vec_file_at(&dir->files, i + offset);
       draw_file(n, file, i == dir->pos, sel, load, mode, highlight, print_info,
@@ -979,7 +979,7 @@ void ui_update_file_preview(Ui *ui) {
   on_cursor_moved(ui, false);
 }
 
-static void on_cursor_resting(EV_P_ ev_timer *w, int revents) {
+static void on_cursor_resting(EV_P_ ev_timer *w, i32 revents) {
   log_trace("on_cursor_resting revents=%d", revents);
 
   if (revents != 0) {
@@ -1017,8 +1017,8 @@ void ui_update_file_preview_delayed(Ui *ui) {
 static inline void on_cursor_moved(Ui *ui, bool delay_action) {
   delay_action &= cfg.preview_delay > 0;
 
-  static uint64_t last_time_called = 0;
-  uint64_t now = current_millis();
+  static u64 last_time_called = 0;
+  u64 now = current_millis();
   if (delay_action) {
     // cursor was resting, don't delay
     if (now - last_time_called > cfg.preview_delay) {
@@ -1035,7 +1035,7 @@ static inline void on_cursor_moved(Ui *ui, bool delay_action) {
   bool is_same_preview = file != NULL && preview != NULL &&
                          cstr_eq(preview_path(preview), file_path(file));
 
-  unsigned int ncol, nrow;
+  u32 ncol, nrow;
   ncplane_dim_yx(ui->planes.preview, &nrow, &ncol);
   bool dims_changed = preview != NULL && CHECK_DIMS(preview, nrow);
 
@@ -1099,7 +1099,7 @@ static inline void print_message(Ui *ui, zsview msg, bool error) {
 
 static inline void draw_cmdline(Ui *ui) {
   if (to_lfm(ui)->current_mode->is_input) {
-    int pos = cmdline_draw(&ui->cmdline, ui->planes.cmdline);
+    i32 pos = cmdline_draw(&ui->cmdline, ui->planes.cmdline);
     notcurses_cursor_enable(ui->nc, ui->y - 1, pos);
   } else {
     if (ui->running && ui->show_message) {
@@ -1111,7 +1111,7 @@ static inline void draw_cmdline(Ui *ui) {
   }
 }
 
-static void loading_indicator_timer_cb(EV_P_ ev_timer *w, int revents) {
+static void loading_indicator_timer_cb(EV_P_ ev_timer *w, i32 revents) {
   (void)revents;
   Ui *ui = w->data;
   Dir *dir = fm_current_dir(&to_lfm(ui)->fm);
@@ -1133,7 +1133,7 @@ void ui_start_loading_indicator_timer(Ui *ui) {
     }
     if (ui->loading_indicator_timer_recheck_count++ == 0) {
       ui->loading_indicator_timer_recheck_count++;
-      double delay = ((cfg.loading_indicator_delay + 10) / 2) / 1000.;
+      f64 delay = ((cfg.loading_indicator_delay + 10) / 2) / 1000.;
       ui->loading_indicator_timer.data = ui;
       ev_timer_init(&ui->loading_indicator_timer, loading_indicator_timer_cb, 0,
                     delay);

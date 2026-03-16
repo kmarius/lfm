@@ -2,13 +2,13 @@
 
 #include "async/async.h"
 #include "config.h"
+#include "defs.h"
 #include "dir.h"
 #include "getpwd.h"
 #include "hooks.h"
 #include "lfm.h"
 #include "loader.h"
 #include "log.h"
-#include "macros.h"
 #include "notify.h"
 #include "path.h"
 #include "pathlist.h"
@@ -35,7 +35,7 @@
 #include "stc/vec.h"
 
 static inline void on_cursor_moved(Fm *fm, bool delay_action);
-static void on_cursor_resting(EV_P_ ev_timer *w, int revents);
+static void on_cursor_resting(EV_P_ ev_timer *w, i32 revents);
 static void fm_update_watchers(Fm *fm);
 static void fm_remove_preview(Fm *fm);
 static void fm_populate(Fm *fm);
@@ -61,7 +61,7 @@ void fm_init(Fm *fm, struct lfm_opts *opts) {
     getpwd_unlock();
   }
 
-  int max = vec_int_size(&cfg.ratios);
+  i32 max = vec_int_size(&cfg.ratios);
   if (max > 1 && cfg.preview) {
     max--;
   }
@@ -98,7 +98,7 @@ static void fm_populate(Fm *fm) {
   dir->visible = true;
   vec_dir_push_back(&fm->dirs.visible, dir);
 
-  for (int i = 0; i < fm->dirs.max_visible - 1; i++) {
+  for (i32 i = 0; i < fm->dirs.max_visible - 1; i++) {
     zsview parent = path_parent(dir_path(dir));
     if (!zsview_is_empty(parent)) {
       dir = loader_dir_from_path(&to_lfm(fm)->loader, parent, true);
@@ -126,7 +126,7 @@ void fm_recol(Fm *fm) {
     (*it.ref)->visible = false;
   }
 
-  int max = vec_int_size(&cfg.ratios);
+  i32 max = vec_int_size(&cfg.ratios);
   if (max > 1 && cfg.preview) {
     max--;
   }
@@ -141,7 +141,7 @@ static inline bool fm_chdir_impl(Fm *fm, zsview path, bool save, bool hook,
                                  bool async) {
   char buf[PATH_MAX + 1];
   if (path_is_relative(path.str)) {
-    ssize_t len = path_make_absolute(path, buf, sizeof buf);
+    isize len = path_make_absolute(path, buf, sizeof buf);
     if (len < 0) {
       lfm_errorf(to_lfm(fm), "path too long: %s", path.str);
       return false;
@@ -278,7 +278,7 @@ static inline void fm_remove_preview(Fm *fm) {
 // ev calls this with revents == 256
 // we invoke it manually with revents == 0 to indicate that the actual loading
 // of the directory has already been arranged
-static void on_cursor_resting(EV_P_ ev_timer *w, int revents) {
+static void on_cursor_resting(EV_P_ ev_timer *w, i32 revents) {
   log_trace("on_cursor_resting revents=%d", revents);
   if (revents != 0) {
     ev_timer_stop(loop, w);
@@ -307,8 +307,8 @@ static inline void on_cursor_moved(Fm *fm, bool delay_action) {
 
   delay_action &= cfg.preview_delay > 0;
 
-  static uint64_t last_time_called = 0;
-  uint64_t now = current_millis();
+  static u64 last_time_called = 0;
+  u64 now = current_millis();
   if (delay_action) {
     // cursor was resting, don't delay
     if (now - last_time_called > cfg.preview_delay) {
@@ -430,9 +430,8 @@ void fm_on_visual_exit(Fm *fm) {
   pathlist_clear(&fm->selection.keep_in_visual);
 }
 
-static void selection_visual_update(Fm *fm, uint32_t origin, uint32_t from,
-                                    uint32_t to) {
-  uint32_t hi, lo;
+static void selection_visual_update(Fm *fm, u32 origin, u32 from, u32 to) {
+  u32 hi, lo;
   if (from >= origin) {
     if (to > from) {
       lo = from + 1;
@@ -506,9 +505,9 @@ void fm_paste_mode_set(Fm *fm, paste_mode mode) {
   pathlist_init(&fm->selection.current);
 }
 
-bool fm_cursor_move(Fm *fm, int32_t ct) {
+bool fm_cursor_move(Fm *fm, i32 ct) {
   Dir *dir = fm_current_dir(fm);
-  uint32_t cur = dir->ind;
+  u32 cur = dir->ind;
   dir_cursor_move(dir, ct, fm->height, cfg.scrolloff);
   if (dir->ind != cur) {
     if (fm->visual.active) {
@@ -526,7 +525,7 @@ void fm_move_cursor_to(Fm *fm, zsview name) {
 
 void fm_move_cursor_to_ptr(Fm *fm, const File *file) {
   Dir *dir = fm_current_dir(fm);
-  int i = 0;
+  i32 i = 0;
   c_foreach(it, Dir, dir) {
     if (*it.ref == file) {
       dir_cursor_move(dir, i - dir->ind, fm->height, cfg.scrolloff);
@@ -612,13 +611,13 @@ void fm_filter(Fm *fm, Filter *filter) {
 
 /* TODO: To reload flattened directories, more notify watchers are needed (on
  * 2022-02-06) */
-void fm_flatten(Fm *fm, uint32_t level) {
+void fm_flatten(Fm *fm, u32 level) {
   fm_current_dir(fm)->flatten_level = level;
   async_dir_load(&to_lfm(fm)->async, fm_current_dir(fm), level == 0);
 }
 
-void fm_on_resize(Fm *fm, uint32_t height) {
-  uint32_t scrolloff = cfg.scrolloff;
+void fm_on_resize(Fm *fm, u32 height) {
+  u32 scrolloff = cfg.scrolloff;
   if (height < cfg.scrolloff * 2) {
     scrolloff = height / 2;
   }
@@ -629,7 +628,7 @@ void fm_on_resize(Fm *fm, uint32_t height) {
     Dir *dir = v.ref->second;
     if (height > fm->height) {
       // terminal grew
-      uint32_t scrolloff_top = dir->ind;
+      u32 scrolloff_top = dir->ind;
       if (scrolloff_top > scrolloff) {
         scrolloff_top = scrolloff;
       }
@@ -641,7 +640,7 @@ void fm_on_resize(Fm *fm, uint32_t height) {
       }
     } else if (height < fm->height) {
       // terminal shrinked
-      uint32_t scrolloff = cfg.scrolloff;
+      u32 scrolloff = cfg.scrolloff;
       if (height < scrolloff * 2) {
         scrolloff = height / 2;
       }

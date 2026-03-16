@@ -1,12 +1,13 @@
 #pragma once
 
+#include "defs.h"
 #include "stc/zsview.h"
 
 #include <notcurses/notcurses.h>
 
 // if the highest 3 bits are used in notcurses at some point we need to go
-// move to uint64_t
-typedef uint32_t input_t;
+// move to u64
+typedef u32 input_t;
 
 #define SHIFT_MASK ((input_t)1 << (sizeof(input_t) * 8 - 1))
 #define CTRL_MASK ((input_t)1 << (sizeof(input_t) * 8 - 2))
@@ -29,12 +30,12 @@ typedef uint32_t input_t;
 
 // Map an `input_t` to a statically allocated string containing its readable
 // representation. Not thread safe.
-const char *input_to_key_name(input_t in, size_t *len_out);
+const char *input_to_key_name(input_t in, usize *len_out);
 
 // return -1 on error, length of the used chars otherwise
-int key_name_to_input(const char *key, input_t *out);
+i32 key_name_to_input(const char *key, input_t *out);
 
 // Map a string of inputs in its readable representation to a zero terminated
 // array of `input_t`s in the given buffer. `buf` should be of the size at
 // least `strlen(keys)+1`. Returns -1 on error.
-int key_names_to_input(zsview keys, input_t *buf, size_t bufsz);
+i32 key_names_to_input(zsview keys, input_t *buf, usize bufsz);

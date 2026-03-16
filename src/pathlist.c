@@ -53,7 +53,7 @@ bool pathlist_remove(pathlist *self, const cstr *path) {
   return val.ref != NULL;
 }
 
-size_t pathlist_size(const pathlist *self) {
+usize pathlist_size(const pathlist *self) {
   return _pathlist_hmap_size(&self->map);
 }
 

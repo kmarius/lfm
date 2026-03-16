@@ -49,7 +49,7 @@ void llua_call_ref1(lua_State *L, int ref, zsview line);
 
 // `line==NULL` removes callback from the registry.
 void llua_run_stdout_callback(lua_State *L, int ref, const char *line,
-                              ssize_t len);
+                              isize len);
 
 // Call a function from reference, passing an optional count if it is positive
 void llua_call_from_ref(lua_State *L, int ref, int count);

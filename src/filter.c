@@ -51,21 +51,21 @@ __compar_fn_t filter_cmp(const Filter *filter) {
 // general filtering
 
 struct subfilter {
-  uint32_t length;
+  u32 length;
   struct filter_atom *atoms;
 };
 
 typedef struct SubstringFilter {
   Filter super;
   char *buf;
-  uint32_t length;
+  u32 length;
   struct subfilter filters[];
 } SubstringFilter;
 
 struct filter_atom {
   bool (*pred)(const struct filter_atom *, const File *);
   union {
-    int64_t size;
+    i64 size;
     void *string;
   };
   bool negate;
@@ -87,7 +87,7 @@ static bool pred_size_eq(const struct filter_atom *atom, const File *file) {
   return file->lstat.st_size == atom->size;
 }
 
-static inline int size_atom(struct filter_atom *atom, const char *tok) {
+static inline i32 size_atom(struct filter_atom *atom, const char *tok) {
   assert(tok[0] == 's');
   if (tok[1] != '>' && tok[1] != '<' && tok[1] != '=') {
     return 1;
@@ -113,7 +113,7 @@ static inline int size_atom(struct filter_atom *atom, const char *tok) {
     atom->pred = pred_size_eq;
   }
   char *end;
-  double size = strtod(start, &end);
+  f64 size = strtod(start, &end);
   if (end != start) {
     switch (tolower(end[0])) {
     case 'g':
@@ -135,14 +135,14 @@ static inline int size_atom(struct filter_atom *atom, const char *tok) {
       // trailing char
       return 1;
     }
-    atom->size = (int64_t)size;
+    atom->size = (i64)size;
   }
 
   return 0;
 }
 
-static inline int charcnt(const char *s, char c) {
-  int ct = 0;
+static inline i32 charcnt(const char *s, char c) {
+  i32 ct = 0;
   while (*s) {
     if (*s++ == c) {
       ct++;
@@ -166,7 +166,7 @@ static void subfilter_init(struct subfilter *s, char *filter) {
       continue;
     }
 
-    int ret = 1;
+    i32 ret = 1;
     switch (tok[0]) {
     case 's':
       ret = size_atom(atom, tok);
@@ -193,7 +193,7 @@ Filter *filter_create_sub(zsview filter) {
     return NULL;
   }
 
-  int num_subfilters = (charcnt(filter.str, ' ') + 1);
+  i32 num_subfilters = (charcnt(filter.str, ' ') + 1);
 
   SubstringFilter *f =
       xcalloc(1, num_subfilters * sizeof(struct subfilter) + sizeof *f);
@@ -217,7 +217,7 @@ Filter *filter_create_sub(zsview filter) {
 
 void sub_destroy(Filter *filter) {
   SubstringFilter *f = (SubstringFilter *)filter;
-  for (uint32_t i = 0; i < f->length; i++) {
+  for (u32 i = 0; i < f->length; i++) {
     xfree(f->filters[i].atoms);
   }
   xfree(f->buf);
@@ -229,7 +229,7 @@ static inline bool atom_match(const struct filter_atom *a, const File *file) {
 
 static inline bool subfilter_match(const struct subfilter *s,
                                    const File *file) {
-  for (uint32_t i = 0; i < s->length; i++) {
+  for (u32 i = 0; i < s->length; i++) {
     if (atom_match(&s->atoms[i], file)) {
       return true;
     }
@@ -239,7 +239,7 @@ static inline bool subfilter_match(const struct subfilter *s,
 
 bool sub_match(const Filter *filter, const File *file) {
   const SubstringFilter *f = (SubstringFilter *)filter;
-  for (uint32_t i = 0; i < f->length; i++) {
+  for (u32 i = 0; i < f->length; i++) {
     if (!subfilter_match(&f->filters[i], file)) {
       return false;
     }
@@ -255,7 +255,7 @@ typedef struct FuzzyFilter {
 
 bool fuzzy_match(const Filter *filter, const File *file);
 void fuzzy_destroy(Filter *filter);
-static int cmpchoice(const void *_idx1, const void *_idx2);
+static i32 cmpchoice(const void *_idx1, const void *_idx2);
 
 Filter *filter_create_fuzzy(zsview filter) {
   FuzzyFilter *f = xcalloc(1, sizeof *f);
@@ -280,7 +280,7 @@ void fuzzy_destroy(Filter *filter) {
   (void)filter;
 }
 
-static int cmpchoice(const void *_idx1, const void *_idx2) {
+static i32 cmpchoice(const void *_idx1, const void *_idx2) {
   const File *a = *(File **)_idx1;
   const File *b = *(File **)_idx2;
 
@@ -308,13 +308,13 @@ static int cmpchoice(const void *_idx1, const void *_idx2) {
 typedef struct LuaFilter {
   Filter super;
   lua_State *L;
-  int ref;
+  i32 ref;
 } LuaFilter;
 
 bool lua_match(const Filter *filter, const File *file);
 void lua_destroy(Filter *filter);
 
-Filter *filter_create_lua(int ref, void *L) {
+Filter *filter_create_lua(i32 ref, void *L) {
   LuaFilter *f = xcalloc(1, sizeof *f);
   f->super.match = &lua_match;
   f->super.destroy = &lua_destroy;

@@ -2,8 +2,8 @@
 
 #include "auto/versiondef.h"
 #include "config.h"
+#include "defs.h"
 #include "lfmlib.h"
-#include "macros.h"
 #include "mode.h"
 #include "private.h"
 #include "search.h"
@@ -78,14 +78,14 @@ static int l_quit(lua_State *L) {
 static int l_print(lua_State *L) {
   int n = lua_gettop(L);
   lua_getglobal(L, "tostring");
-  size_t bufsz = 128;
+  usize bufsz = 128;
   char *buf = xcalloc(bufsz, 1);
-  size_t ind = 0;
+  usize ind = 0;
   for (int i = 1; i <= n; i++) {
     lua_pushvalue(L, -1);
     lua_pushvalue(L, i);
     lua_call(L, 1, 1);
-    size_t len;
+    usize len;
     const char *s = lua_tolstring(L, -1, &len);
     if (s == NULL) {
       xfree(buf);
@@ -160,9 +160,9 @@ static int l_proc_write(lua_State *L) {
                       proc->pid);
   }
 
-  size_t len;
+  usize len;
   const char *buf = lua_tolstring(L, 2, &len);
-  ssize_t n = write(proc->fd, buf, len);
+  isize n = write(proc->fd, buf, len);
 
   if (n == -1) {
     close(proc->fd);

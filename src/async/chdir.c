@@ -4,7 +4,7 @@
 #include "getpwd.h"
 #include "hooks.h"
 #include "lfm.h"
-#include "macros.h"
+#include "defs.h"
 #include "memory.h"
 #include "stc/cstr.h"
 

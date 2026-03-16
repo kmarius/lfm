@@ -1,8 +1,8 @@
 #pragma once
 
+#include "defs.h"
 #include "file.h"
 #include "filter.h"
-#include "macros.h"
 #include "path.h"
 #include "sort.h"
 #include "types/hmap_cstr.h"
@@ -20,7 +20,7 @@
 // we might have to use the full st_mtime, not just the seconds part
 struct tuple_mtime_count {
   time_t mtime;
-  size_t count;
+  usize count;
 };
 
 #define i_type hmap_dircount
@@ -71,27 +71,27 @@ typedef struct Dir {
   bool visible;
   dir_loading_status status;
 
-  int32_t error; // shows errno if an error occured during loading, 0 otherwise
+  i32 error; // shows errno if an error occured during loading, 0 otherwise
 
-  time_t load_time;             // used to check for changes
-  uint64_t last_loading_action; // Time (in milliseconds) at which the last
-                                // action started after which a "loading"
-                                // indicator should be shown for this directory.
-                                // 0 if there is no loading/checking.
+  time_t load_time;        // used to check for changes
+  u64 last_loading_action; // Time (in milliseconds) at which the last
+                           // action started after which a "loading"
+                           // indicator should be shown for this directory.
+                           // 0 if there is no loading/checking.
 
-  uint64_t next_scheduled_load; // time of the next (or latest) scheduled reload
-  uint64_t next_requested_load; // will be set if a reload is requested when
-                                // one is already scheduled, otherwise 0
-  bool loading;                 // is a reload in the process
-  bool scheduled;               // is a reload scheduled
+  u64 next_scheduled_load; // time of the next (or latest) scheduled reload
+  u64 next_requested_load; // will be set if a reload is requested when
+                           // one is already scheduled, otherwise 0
+  bool loading;            // is a reload in the process
+  bool scheduled;          // is a reload scheduled
 
-  uint32_t ind; // cursor position in files[]
-  uint32_t pos; // cursor position in the ui, offset from the top row
+  u32 ind; // cursor position in files[]
+  u32 pos; // cursor position in the ui, offset from the top row
   cstr sel;
 
   Filter *filter;
 
-  uint32_t flatten_level;
+  u32 flatten_level;
   bool has_fileinfo;
   bool sorted;
   struct dir_settings settings;
@@ -99,7 +99,7 @@ typedef struct Dir {
   // maps name -> string; displays up to cols chars before the file, if enabled
   struct tags {
     hmap_cstr tags;
-    int cols;
+    i32 cols;
   } tags;
 } Dir;
 
@@ -117,10 +117,10 @@ Dir *dir_load(zsview path, hmap_dircount dircounts, bool load_fileinfo,
               atomic_bool *stop);
 
 // Load a flat directorie showing files up `level`s deep.
-Dir *dir_load_flat(zsview path, int level, hmap_dircount dircounts,
+Dir *dir_load_flat(zsview path, i32 level, hmap_dircount dircounts,
                    bool load_dircount, atomic_bool *stop);
 
-static inline size_t dir_length(const Dir *dir) {
+static inline usize dir_length(const Dir *dir) {
   return vec_file_size(&dir->files);
 }
 
@@ -165,16 +165,14 @@ bool dir_check(const Dir *dir);
 
 // Move the cursor in the current dir by `ct`, respecting the `scrolloff`
 // setting by passing it and the current `height` of the viewport.
-void dir_cursor_move(Dir *dir, int32_t ct, uint32_t height, uint32_t scrolloff);
+void dir_cursor_move(Dir *dir, i32 ct, u32 height, u32 scrolloff);
 
 // Move the cursor in the current dir to the file `name`, respecting the
 // `scrolloff` setting by passing it and the current `height` of the viewport.
-void dir_cursor_move_to(Dir *dir, zsview name, uint32_t height,
-                        uint32_t scrolloff);
+void dir_cursor_move_to(Dir *dir, zsview name, u32 height, u32 scrolloff);
 
 // Replace files and metadata of `dir` with those of `update`. Frees `update`.
-void dir_update_with(Dir *dir, Dir *update, uint32_t height,
-                     uint32_t scrolloff);
+void dir_update_with(Dir *dir, Dir *update, u32 height, u32 scrolloff);
 
 // Returns true `d` is the root directory.
 static inline bool dir_isroot(const Dir *dir) {
@@ -186,4 +184,4 @@ static inline bool dir_isroot(const Dir *dir) {
 #define Dir_next vec_file_next
 #define Dir_begin(dir) vec_file_begin(dir->files)
 
-int fileinfo_from_str(const char *str);
+i32 fileinfo_from_str(const char *str);

@@ -2,8 +2,8 @@
 
 #include "cdims.h"
 #include "config.h"
+#include "defs.h"
 #include "log.h"
-#include "macros.h"
 #include "memory.h"
 #include "ncutil.h"
 #include "sha256.h"
@@ -23,7 +23,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
 
 #include <linux/limits.h>
 #include <sys/stat.h>
@@ -50,8 +49,8 @@ static void draw_image_preview(const Preview *p, struct ncplane *n);
 static void update_image_preview(Preview *p, Preview *u);
 static void destroy_image_preview(Preview *p);
 
-static inline Preview *preview_init(Preview *p, zsview path, int height,
-                                    int width) {
+static inline Preview *preview_init(Preview *p, zsview path, i32 height,
+                                    i32 width) {
   memset(p, 0, sizeof *p);
   p->path = cstr_from_zv(path);
   p->height = height;
@@ -66,7 +65,7 @@ static inline Preview *preview_init(Preview *p, zsview path, int height,
   return p;
 }
 
-static inline Preview *preview_create(zsview path, int height, int width) {
+static inline Preview *preview_create(zsview path, i32 height, i32 width) {
   return preview_init(xmalloc(sizeof(Preview)), path, height, width);
 }
 
@@ -80,7 +79,7 @@ static void destroy_text_preview(Preview *p) {
   destroy_preview(p);
 }
 
-Preview *preview_create_loading(zsview path, int height, int width) {
+Preview *preview_create_loading(zsview path, i32 height, i32 width) {
   Preview *p = preview_create(path, height, width);
   p->loading = true;
   return p;
@@ -118,21 +117,21 @@ static void update_image_preview(Preview *p, Preview *u) {
   destroy_preview(u);
 }
 
-static inline void data_from_stream(bytes *data, FILE *file, int max_lines) {
+static inline void data_from_stream(bytes *data, FILE *file, i32 max_lines) {
   char static_buf[4096];
 
   char *buf = static_buf;
-  size_t buf_sz = sizeof static_buf;
+  usize buf_sz = sizeof static_buf;
 
-  size_t size = fread(buf, 1, buf_sz, file);
+  usize size = fread(buf, 1, buf_sz, file);
   if (size == 0) {
     *data = bytes_init();
     return;
   }
 
-  int num_lines = 0;
+  i32 num_lines = 0;
   const char *last_newline = NULL;
-  for (size_t i = 0; i < size; i++) {
+  for (usize i = 0; i < size; i++) {
     if (static_buf[i] == '\n') {
       num_lines++;
       last_newline = static_buf + i;
@@ -149,7 +148,7 @@ static inline void data_from_stream(bytes *data, FILE *file, int max_lines) {
 
     // more input
     for (;;) {
-      size_t i = size;
+      usize i = size;
       size += fread(buf + size, 1, buf_sz - size, file);
 
       for (; i < size; i++) {
@@ -189,21 +188,21 @@ static inline void data_from_stream(bytes *data, FILE *file, int max_lines) {
 }
 
 // caller must pass a buffer of size PATH_MAX
-static inline int gen_cache_path(zsview path, char *buf, size_t buflen) {
-  uint8_t hash[32];
+static inline i32 gen_cache_path(zsview path, char *buf, usize buflen) {
+  u8 hash[32];
   SHA256_CTX ctx;
   sha256_init(&ctx);
-  sha256_update(&ctx, (uint8_t *)path.str, path.size);
+  sha256_update(&ctx, (u8 *)path.str, path.size);
   sha256_final(&ctx, hash);
 
-  size_t len = cstr_size(&cfg.cachedir);
+  usize len = cstr_size(&cfg.cachedir);
   memcpy(buf, cstr_str(&cfg.cachedir), len);
   buf[len++] = '/';
 
   if (len + 32 >= buflen) {
     return -1;
   }
-  for (size_t i = 0; i < 32; i++) {
+  for (usize i = 0; i < 32; i++) {
     const char upper = hash[i] >> 4;
     const char lower = hash[i] & 0x0f;
     buf[len++] = lower < 10 ? '0' + lower : 'a' + lower - 10;
@@ -219,14 +218,14 @@ Preview *preview_error(Preview *p, const char *fmt, ...) {
   va_start(args, fmt);
   bytes_drop(&p->data);
   char buf[128];
-  int len = vsnprintf(buf, sizeof buf - 1, fmt, args);
+  i32 len = vsnprintf(buf, sizeof buf - 1, fmt, args);
   p->data = bytes_from_n(buf, len);
   log_error("%s", buf);
   va_end(args);
   return p;
 }
 
-Preview *preview_create_and_stat(zsview path, int height, int width) {
+Preview *preview_create_and_stat(zsview path, i32 height, i32 width) {
   Preview *p = preview_create(path, height, width);
   p->loadtime = current_millis();
 
@@ -239,28 +238,28 @@ Preview *preview_create_and_stat(zsview path, int height, int width) {
 }
 
 // downscale images to fit the preview pane
-static void downscale_image(struct ncvisual *ncv, int y, int x) {
-  int cdimy = cdims.cdimy;
-  int cdimx = cdims.cdimx;
+static void downscale_image(struct ncvisual *ncv, i32 y, i32 x) {
+  i32 cdimy = cdims.cdimy;
+  i32 cdimx = cdims.cdimx;
 
   ncvgeom geom = {0};
   ncvisual_geom(NULL, ncv, NULL, &geom);
 
-  double scaley = 1.0 * geom.pixy / (y * cdimy);
-  double scale = 1.0 * geom.pixx / (x * cdimx);
+  f64 scaley = 1.0 * geom.pixy / (y * cdimy);
+  f64 scale = 1.0 * geom.pixx / (x * cdimx);
   if (scaley > scale) {
     scale = scaley;
   }
   if (scale > 1.0) {
-    int newy = (int)(geom.pixy / scale);
-    int newx = (int)(geom.pixx / scale);
+    i32 newy = (i32)(geom.pixy / scale);
+    i32 newx = (i32)(geom.pixx / scale);
     log_trace("resizing: %d %d pane: %d %d", y * cdimy, x * cdimx, newy, newx);
     ncvisual_resize(ncv, newy, newx);
   }
 }
 
-Preview *preview_fork_previewer(zsview path, uint32_t width, uint32_t height,
-                                int *pid_out, int fd[2]) {
+Preview *preview_fork_previewer(zsview path, u32 width, u32 height,
+                                i32 *pid_out, i32 fd[2]) {
   Preview *p = preview_create(path, height, width);
   p->loadtime = current_millis();
 
@@ -298,7 +297,7 @@ Preview *preview_fork_previewer(zsview path, uint32_t width, uint32_t height,
     return preview_error(p, "pipe: ", strerror(errno));
   }
 
-  int pid = fork();
+  i32 pid = fork();
 
   if (pid == 0) {
     // child
@@ -309,7 +308,7 @@ Preview *preview_fork_previewer(zsview path, uint32_t width, uint32_t height,
     close(fd[1]);
 
     // stderr (some program I can't remember didn't like closed stderr)
-    int devnull = open("/dev/null", O_WRONLY | O_CREAT, 0666);
+    i32 devnull = open("/dev/null", O_WRONLY | O_CREAT, 0666);
     dup2(devnull, 2);
     close(devnull);
 
@@ -330,7 +329,7 @@ Preview *preview_fork_previewer(zsview path, uint32_t width, uint32_t height,
   return p;
 }
 
-Preview *preview_read_output(Preview *p, int fd[2]) {
+Preview *preview_read_output(Preview *p, i32 fd[2]) {
   struct stat statbuf;
   p->mtime = stat(cstr_str(&p->path), &statbuf) != -1 ? statbuf.st_mtime : 0;
 
@@ -355,11 +354,11 @@ Preview *preview_read_output(Preview *p, int fd[2]) {
   return p;
 }
 
-Preview *preview_handle_exit_status(Preview *p, int status) {
+Preview *preview_handle_exit_status(Preview *p, i32 status) {
 
   // TODO: check other statuses?
   if (likely(WIFEXITED(status))) {
-    int rc = WEXITSTATUS(status);
+    i32 rc = WEXITSTATUS(status);
     switch (rc) {
     case PREVIEW_DISPLAY_STDOUT:
       break;
@@ -438,13 +437,13 @@ static void draw_text_preview(const Preview *p, struct ncplane *n) {
   if (bytes_is_empty(p->data))
     return;
 
-  unsigned int nrow;
+  u32 nrow;
   ncplane_dim_yx(n, &nrow, NULL);
 
   const char *pos = p->data.buf;
-  ssize_t remaining = p->data.size;
+  isize remaining = p->data.size;
 
-  for (int i = 0; i < (int)nrow && remaining > 0; i++) {
+  for (i32 i = 0; i < (i32)nrow && remaining > 0; i++) {
     ncplane_cursor_move_yx(n, i, 0);
     ncplane_set_fg_default(n);
     ncplane_set_bg_default(n);

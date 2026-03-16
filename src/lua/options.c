@@ -11,14 +11,12 @@
 #include <lauxlib.h>
 
 #include <stdint.h>
-#include <stdlib.h>
 
 #define DIRSETTINGS_META "Lfm.Dirsettings.Meta"
 #define OPTIONS_META "Lfm.Config.Meta"
 #define COLORS_META "Lfm.Colors.Meta"
 
 static inline int llua_dir_settings_set(lua_State *L, zsview path, int ind) {
-
   if (lua_isnil(L, ind)) {
     hmap_dirsetting_erase(&cfg.dir_settings_map, path);
     dircache_value *v = dircache_get_mut(&lfm->loader.dc, path);
@@ -119,9 +117,9 @@ static int l_config_index(lua_State *L) {
     lua_pushboolean(L, cfg.dir_settings.hidden);
     return 1;
   } else if (streq(key, "ratios")) {
-    const size_t l = vec_int_size(&cfg.ratios);
+    const usize l = vec_int_size(&cfg.ratios);
     lua_createtable(L, l, 0);
-    for (size_t i = 0; i < l; i++) {
+    for (usize i = 0; i < l; i++) {
       lua_pushinteger(L, *vec_int_at(&cfg.ratios, i));
       lua_rawseti(L, -2, i + 1);
     }
@@ -196,7 +194,7 @@ static int l_config_index(lua_State *L) {
     lua_pushstring(L, input_to_key_name(cfg.mapleader, NULL));
     return 1;
   } else if (streq(key, "extra_env")) {
-    size_t len = vec_env_size(&cfg.extra_env);
+    usize len = vec_env_size(&cfg.extra_env);
     lua_createtable(L, 0, len);
     c_foreach(it, vec_env, cfg.extra_env) {
       lua_pushstring(L, it.ref->val);
@@ -212,7 +210,7 @@ static int l_config_index(lua_State *L) {
 static int l_config_newindex(lua_State *L) {
   const char *key = luaL_checkstring(L, 2);
   if (streq(key, "truncatechar")) {
-    size_t len;
+    usize len;
     const char *val = luaL_checklstring(L, 3, &len);
     if (len > 0) {
       len = utf8_chr_size(val);
@@ -226,14 +224,14 @@ static int l_config_newindex(lua_State *L) {
     ui_redraw(ui, REDRAW_FM);
   } else if (streq(key, "ratios")) {
     luaL_checktype(L, 3, LUA_TTABLE);
-    const size_t l = lua_objlen(L, 3);
+    const usize l = lua_objlen(L, 3);
     if (l == 0) {
       luaL_argerror(L, 3, "no ratios given");
     }
     vec_int ratios = vec_int_init();
-    for (uint32_t i = 1; i <= l; i++) {
+    for (u32 i = 1; i <= l; i++) {
       lua_rawgeti(L, 3, i);
-      int32_t val = lua_tointeger(L, -1);
+      i32 val = lua_tointeger(L, -1);
       if (val <= 0) {
         vec_int_drop(&ratios);
         return luaL_error(L, "ratio must be non-negative");
@@ -250,19 +248,19 @@ static int l_config_newindex(lua_State *L) {
     luaL_checktype(L, 3, LUA_TTABLE);
     lua_read_vec_cstr(L, 3, &cfg.inotify_blacklist);
   } else if (streq(key, "inotify_timeout")) {
-    int n = luaL_checkinteger(L, 3);
+    long n = luaL_checkinteger(L, 3);
     if (n < 100) {
       luaL_argerror(L, 3, "timeout must be larger than 100");
     }
     cfg.inotify_timeout = n;
     loader_reschedule(&lfm->loader);
   } else if (streq(key, "inotify_delay")) {
-    int n = luaL_checkinteger(L, 3);
+    long n = luaL_checkinteger(L, 3);
     luaL_argcheck(L, 3, n >= 0, "inotify_delay must be non-negative");
     cfg.inotify_delay = n;
     loader_reschedule(&lfm->loader);
   } else if (streq(key, "scrolloff")) {
-    int n = luaL_checkinteger(L, 3);
+    long n = luaL_checkinteger(L, 3);
     luaL_argcheck(L, 3, n >= 0, "scrolloff must be non-negative");
     cfg.scrolloff = n;
   } else if (streq(key, "preview")) {
@@ -327,7 +325,7 @@ static int l_config_newindex(lua_State *L) {
     }
     ui_drop_cache(ui);
   } else if (streq(key, "threads")) {
-    const int num = luaL_checknumber(L, 3);
+    long num = luaL_checknumber(L, 3);
     luaL_argcheck(L, num >= 2, 3, "threads must be at least 2");
     tpool_resize(lfm->async.tpool, num);
   } else if (streq(key, "infoline")) {
@@ -336,25 +334,25 @@ static int l_config_newindex(lua_State *L) {
     infoline_parse(line);
     ui_redraw(ui, REDRAW_INFO);
   } else if (streq(key, "histsize")) {
-    int sz = luaL_checkinteger(L, 3);
+    long sz = luaL_checkinteger(L, 3);
     luaL_argcheck(L, sz >= 0, 3, "histsize must be non-negative");
     cfg.histsize = sz;
   } else if (streq(key, "map_suggestion_delay")) {
-    int delay = luaL_checkinteger(L, 3);
+    long delay = luaL_checkinteger(L, 3);
     luaL_argcheck(L, delay >= 0, 3,
                   "map_suggestion_delay must be non-negative");
     cfg.map_suggestion_delay = delay;
   } else if (streq(key, "map_clear_delay")) {
-    int delay = luaL_checkinteger(L, 3);
+    long delay = luaL_checkinteger(L, 3);
     luaL_argcheck(L, delay >= 0, 3, "map_clear_delay must be non-negative");
     cfg.map_clear_delay = delay;
   } else if (streq(key, "loading_indicator_delay")) {
-    int delay = luaL_checkinteger(L, 3);
+    long delay = luaL_checkinteger(L, 3);
     luaL_argcheck(L, delay >= 0, 3,
                   "loading_indicator_delay must be non-negative");
     cfg.loading_indicator_delay = delay;
   } else if (streq(key, "linkchars")) {
-    size_t len;
+    usize len;
     const char *val = luaL_checklstring(L, 3, &len);
     if (len > sizeof cfg.linkchars - 1) {
       return luaL_error(L, "linkchars too long");
@@ -367,7 +365,7 @@ static int l_config_newindex(lua_State *L) {
     cstr_assign_zv(&cfg.timefmt, fmt);
     ui_redraw(ui, REDRAW_FM);
   } else if (streq(key, "preview_delay")) {
-    int delay = luaL_checkinteger(L, 3);
+    long delay = luaL_checkinteger(L, 3);
     luaL_argcheck(L, delay >= 0, 3, "preview_delay must be non-negative");
     cfg.preview_delay = delay;
     lfm->fm.cursor_resting_timer.repeat = delay / 1000.0;
@@ -404,7 +402,7 @@ static const struct luaL_Reg options_mt[] = {
     {NULL,         NULL             },
 };
 
-static inline uint32_t read_channel(lua_State *L, int idx) {
+static inline u32 read_channel(lua_State *L, int idx) {
   switch (lua_type(L, idx)) {
   case LUA_TSTRING:
     return NCCHANNEL_INITIALIZER_PALINDEX(lua_tointeger(L, idx));
@@ -416,8 +414,8 @@ static inline uint32_t read_channel(lua_State *L, int idx) {
   }
 }
 
-static inline uint64_t read_color_pair(lua_State *L, int ind) {
-  uint32_t fg, bg = fg = 0;
+static inline u64 read_color_pair(lua_State *L, int ind) {
+  u32 fg, bg = fg = 0;
   ncchannel_set_default(&fg);
   ncchannel_set_default(&bg);
 
@@ -472,7 +470,7 @@ static int l_colors_newindex(lua_State *L) {
     if (lua_istable(L, 3)) {
       for (lua_pushnil(L); lua_next(L, 3); lua_pop(L, 1)) {
         lua_getfield(L, -1, "color");
-        const uint64_t ch = read_color_pair(L, -1);
+        const u64 ch = read_color_pair(L, -1);
         lua_pop(L, 1);
 
         lua_getfield(L, -1, "ext");
