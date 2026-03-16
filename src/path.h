@@ -24,6 +24,8 @@ static inline zsview basename_cstr(const cstr *path) {
   return basename_zv(cstr_zv(path));
 }
 
+ssize_t path_concat(zsview dir, zsview name, char *buf, size_t bufsz);
+
 // manipulates path
 void dirname_cstr(cstr *path);
 
@@ -66,3 +68,6 @@ static inline bool path_is_absolute_zv(zsview path) {
 // returns the length of the contents of buf (excluding nul), -1 if buffer too
 // small
 ssize_t path_make_absolute(zsview path, char *buf, size_t bufsz);
+
+// returns a zview into name
+zsview name_ext(const zsview *name);

@@ -304,8 +304,8 @@ void loader_reschedule(Loader *loader) {
     schedule_preview_load(loader, *it.ref, next);
   }
 
-  set_dir_clear(&dirs);
-  set_preview_clear(&previews);
+  set_dir_drop(&dirs);
+  set_preview_drop(&previews);
 }
 
 Preview *loader_preview_get(Loader *loader, zsview path) {

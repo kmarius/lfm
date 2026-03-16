@@ -90,9 +90,11 @@ static inline int32_t file_dircount(const File *file) {
 uint32_t path_dircount(const char *path);
 
 // Set `file->dircount` to `count`.
-static inline void file_dircount_set(File *file, int32_t ct) {
+static inline void file_set_dircount(File *file, int32_t ct) {
   file->dircount = ct;
 }
+
+uint32_t file_load_dircount(File *file);
 
 // Returns the modification time.
 static inline long file_mtime(const File *file) {

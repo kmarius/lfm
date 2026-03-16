@@ -99,9 +99,11 @@ struct fileinfo {
 };
 
 struct file_path_tup {
-  File *file;
+  File *file; // target file, must not be used, used to apply the result
   char *path;
+  const char *name;
   __mode_t mode;
+  time_t mtime;
 };
 
 #define i_TYPE fileinfos, struct fileinfo
@@ -111,7 +113,7 @@ struct fileinfo_result {
   struct result super;
   Dir *dir;
   fileinfos infos;
-  bool last_batch;
+  bool is_last_batch;
   struct validity_check64 check;
 };
 
@@ -121,21 +123,33 @@ static void fileinfo_result_destroy(void *p) {
   xfree(res);
 }
 
+// set the dir count for a file in the given directory,
+// updates the dircounts cache in the directory
+static inline void set_dircount(Dir *dir, File *file, uint32 count) {
+  file_set_dircount(file, count);
+  struct tuple_mtime_count tup = {
+      .count = count,
+      .mtime = file->stat.st_mtim.tv_sec,
+  };
+  hmap_dircount_emplace(&dir->dircounts, file_name_str(file), tup);
+}
+
 static void fileinfo_callback(void *p, Lfm *lfm) {
   struct fileinfo_result *res = p;
   // discard if any other update has been applied in the meantime
   if (CHECK_PASSES(res->check) && !res->dir->has_fileinfo) {
     c_foreach(it, fileinfos, res->infos) {
-      if (it.ref->count >= 0) {
-        file_dircount_set(it.ref->file, it.ref->count);
-      }
       if (it.ref->ret == 0) {
         it.ref->file->stat = it.ref->stat;
       } else if (it.ref->ret == -1) {
         it.ref->file->isbroken = true;
       }
+
+      if (it.ref->count >= 0) {
+        set_dircount(res->dir, it.ref->file, it.ref->count);
+      }
     }
-    if (res->last_batch) {
+    if (res->is_last_batch) {
       res->dir->has_fileinfo = true;
     }
     if (res->dir->ind != 0) {
@@ -157,26 +171,31 @@ static void fileinfo_callback(void *p, Lfm *lfm) {
 
 static inline struct fileinfo_result *
 fileinfo_result_create(Dir *dir, fileinfos infos, struct validity_check64 check,
-                       bool last) {
+                       bool is_last) {
   struct fileinfo_result *res = xcalloc(1, sizeof *res);
   res->super.callback = &fileinfo_callback;
   res->super.destroy = &fileinfo_result_destroy;
 
   res->dir = dir;
   res->infos = infos;
-  res->last_batch = last;
+  res->is_last_batch = is_last;
   res->check = check;
   return res;
 }
 
 // Not a worker function because we just call it from async_dir_load_worker
+// dircounts will be dropped and not returned to the original directory
+// TODO: this creates two fileinfo items for every symlink that points to a
+// directory
 static void async_load_fileinfo(Async *async, Dir *dir,
                                 struct validity_check64 check, uint32_t n,
-                                struct file_path_tup *files) {
+                                struct file_path_tup *files,
+                                hmap_dircount dircounts) {
   fileinfos infos = fileinfos_init();
 
   uint64_t latest = current_millis();
 
+  // stat for symbolic links
   for (uint32_t i = 0; i < n; i++) {
     if (!S_ISLNK(files[i].mode)) {
       continue;
@@ -186,36 +205,55 @@ static void async_load_fileinfo(Async *async, Dir *dir,
 
     info->ret = stat(files[i].path, &info->stat);
     if (info->ret == 0) {
+      // make sure we load directory counts afterwards
       files[i].mode = info->stat.st_mode;
     }
 
-    if (current_millis() - latest > FILEINFO_THRESHOLD) {
+    uint64_t now = current_millis();
+    if (now - latest > FILEINFO_THRESHOLD) {
       struct fileinfo_result *res =
           fileinfo_result_create(dir, infos, check, false);
       enqueue_and_signal(async, (struct result *)res);
 
       infos = fileinfos_init();
-      latest = current_millis();
+      latest = now;
       if (atomic_load_explicit(&async->stop, memory_order_relaxed))
         goto finalize;
     }
   }
 
+  // load dircounts for directories
   for (uint32_t i = 0; i < n; i++) {
     if (!S_ISDIR(files[i].mode)) {
       continue;
     }
-    int count = path_dircount(files[i].path);
-    fileinfos_push(
-        &infos, ((struct fileinfo){files[i].file, .count = count, .ret = 1}));
 
-    if (current_millis() - latest > FILEINFO_THRESHOLD) {
+    struct fileinfo *info =
+        fileinfos_push(&infos, ((struct fileinfo){files[i].file, .ret = 1}));
+
+    // try to get dircounts from cache
+    int count = -1;
+    hmap_dircount_iter it = hmap_dircount_find(&dircounts, files[i].name);
+    if (it.ref) {
+      struct tuple_mtime_count tup = it.ref->second;
+      if (tup.mtime == files[i].mtime) {
+        // use cached data
+        count = tup.count;
+      }
+    }
+
+    if (count < 0)
+      count = path_dircount(files[i].path);
+    info->count = count;
+
+    uint64_t now = current_millis();
+    if (now - latest > FILEINFO_THRESHOLD) {
       struct fileinfo_result *res =
           fileinfo_result_create(dir, infos, check, false);
       enqueue_and_signal(async, (struct result *)res);
 
       infos = fileinfos_init();
-      latest = current_millis();
+      latest = now;
 
       if (atomic_load_explicit(&async->stop, memory_order_relaxed))
         goto finalize;
@@ -223,7 +261,6 @@ static void async_load_fileinfo(Async *async, Dir *dir,
   }
 
 finalize:
-
   for (uint32_t i = 0; i < n; i++) {
     xfree(files[i].path);
   }
@@ -232,6 +269,7 @@ finalize:
   enqueue_and_signal(async, (struct result *)res);
 
   xfree(files);
+  hmap_dircount_drop(&dircounts);
 }
 
 struct dir_update_data {
@@ -242,12 +280,14 @@ struct dir_update_data {
   bool load_fileinfo;
   Dir *update;
   uint32_t level;
+  hmap_dircount dircounts;
   struct validity_check64 check; // lfm.loader.dir_cache_version
 };
 
 static void dir_update_destroy(void *p) {
   struct dir_update_data *res = p;
   dir_destroy(res->update);
+  hmap_dircount_drop(&res->dircounts);
   xfree(res->path);
   xfree(res);
 }
@@ -276,12 +316,25 @@ static void async_dir_load_worker(void *arg) {
   struct dir_update_data *work = arg;
   Async *async = work->async;
 
-  if (work->level > 0) {
-    work->update = dir_load_flat(zsview_from(work->path), work->level,
-                                 work->load_fileinfo);
-  } else {
+  hmap_dircount dircounts = hmap_dircount_move(&work->dircounts);
+
+  if (work->level == 0) {
     work->update =
-        dir_load(zsview_from(work->path), work->load_fileinfo, &async->stop);
+        dir_load(zsview_from(work->path), hmap_dircount_move(&dircounts),
+                 work->load_fileinfo, &async->stop);
+  } else {
+    if (work->load_fileinfo) {
+      // only pass dircounts if we use it now,
+      // otherwise it will be passed to the function that loads
+      // dircounts, and freed there
+      work->update = dir_load_flat(zsview_from(work->path), work->level,
+                                   hmap_dircount_move(&dircounts),
+                                   work->load_fileinfo, &async->stop);
+    } else {
+      work->update = dir_load_flat(zsview_from(work->path), work->level,
+                                   hmap_dircount_init(), work->load_fileinfo,
+                                   &async->stop);
+    }
   }
 
   uint32_t num_files = vec_file_size(&work->update->files_all);
@@ -289,6 +342,7 @@ static void async_dir_load_worker(void *arg) {
   if (work->load_fileinfo || num_files == 0 ||
       atomic_load_explicit(&async->stop, memory_order_relaxed)) {
     enqueue_and_signal(work->async, (struct result *)work);
+    hmap_dircount_drop(&dircounts);
     return;
   }
 
@@ -300,7 +354,11 @@ static void async_dir_load_worker(void *arg) {
     if (S_ISLNK(file->lstat.st_mode) || S_ISDIR(file->lstat.st_mode)) {
       files[j].file = file;
       files[j].path = cstr_strdup(file_path(file));
+      // if the directory is flattened, this can contain leading path components
+      files[j].name =
+          files[j].path + (file_name_str(file) - file_path_str(file));
       files[j].mode = file->lstat.st_mode;
+      files[j].mtime = file->stat.st_mtim.tv_sec;
       j++;
     }
   }
@@ -313,7 +371,7 @@ static void async_dir_load_worker(void *arg) {
 
   enqueue_and_signal(work->async, (struct result *)work);
 
-  async_load_fileinfo(async, dir, check, j, files);
+  async_load_fileinfo(async, dir, check, j, files, dircounts);
 }
 
 void async_dir_load(Async *async, Dir *dir, bool load_fileinfo) {
@@ -334,8 +392,10 @@ void async_dir_load(Async *async, Dir *dir, bool load_fileinfo) {
   work->path = cstr_strdup(dir_path(dir));
   work->load_fileinfo = load_fileinfo;
   work->level = dir->flatten_level;
+  work->dircounts = hmap_dircount_move(&dir->dircounts);
   CHECK_INIT(work->check, to_lfm(async)->loader.dir_cache_version);
 
-  log_trace("loading directory %s", dir_path_str(dir));
+  log_trace("loading directory %s level=%d", dir_path_str(dir),
+            dir->flatten_level);
   tpool_add_work(async->tpool, async_dir_load_worker, work, true);
 }

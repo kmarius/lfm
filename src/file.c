@@ -1,6 +1,9 @@
 #include "file.h"
 
+#include "log.h"
+#include "macros.h"
 #include "memory.h"
+#include "path.h"
 #include "stc/cstr.h"
 #include "stc/zsview.h"
 
@@ -18,48 +21,31 @@
 #include <sys/stat.h>
 #include <unistd.h> // readlink
 
-static inline zsview name_from_path(cstr *path) {
-  const char *last_slash = strrchr(cstr_str(path), '/') + 1;
-  int pos = last_slash - cstr_str(path);
-  return zsview_from_pos(cstr_zv(path), pos);
-}
-
-static inline zsview ext_from_name(zsview *name) {
-  const char *last_dot = strrchr(name->str, '.');
-  if (last_dot) {
-    int pos = last_dot - name->str;
-    if (pos > 0) {
-      return zsview_from_pos(*name, pos);
-    }
-  }
-  // no extension
-  return c_zv("");
-}
-
 File *file_create(const char *dir, const char *name, int fd, bool load_info) {
-  char buf[PATH_MAX + 1] = {0};
+  char buf[PATH_MAX + 1];
+
+  int len = path_concat(zsview_from(dir), zsview_from(name), buf, sizeof buf);
+  if (unlikely(len < 0)) {
+    log_error("path too long");
+    return NULL;
+  }
 
   File *f = xcalloc(1, sizeof *f);
 
+  f->path = cstr_with_n(buf, len);
+  f->name = basename_zv(cstr_zv(&f->path));
+  f->ext = name_ext(&f->name);
+  f->hidden = file_name(f)->str[0] == '.';
   f->dircount = -1;
 
-  const bool isroot = dir[1] == 0 && dir[0] == '/';
-  // neet to build stc to use cstr_from_fmt
-  int len = snprintf(buf, sizeof buf - 1, "%s/%s", isroot ? "" : dir, name);
-  f->path = cstr_with_n(buf, len);
-  f->name = name_from_path(&f->path);
-  f->ext = ext_from_name(&f->name);
-  f->hidden = file_name(f)->str[0] == '.';
-
-  if (fstatat(fd, name, &f->lstat, AT_SYMLINK_NOFOLLOW) == -1) {
+  if (unlikely(fstatat(fd, name, &f->lstat, AT_SYMLINK_NOFOLLOW) == -1)) {
     if (errno == ENOENT) {
       cstr_drop(&f->path);
       xfree(f);
       return NULL;
-    } else {
-      f->error = errno;
-      return f;
     }
+    f->error = errno;
+    return f;
   }
 
   if (S_ISLNK(f->lstat.st_mode)) {
@@ -82,18 +68,21 @@ File *file_create(const char *dir, const char *name, int fd, bool load_info) {
 
   if (file_isdir(f)) {
     f->ext = c_zv("");
-    if (load_info) {
-      f->dircount = path_dircount(file_path_str(f));
-    }
   }
 
   return f;
 }
 
-void file_destroy(File *f) {
-  if (!f) {
-    return;
+uint32_t file_load_dircount(File *file) {
+  if (file_isdir(file)) {
+    file->dircount = path_dircount(file_path_str(file));
   }
+  return file->dircount;
+}
+
+void file_destroy(File *f) {
+  if (unlikely(f == NULL))
+    return;
 
   cstr_drop(&f->path);
   cstr_drop(&f->link_target);
@@ -101,18 +90,15 @@ void file_destroy(File *f) {
 }
 
 uint32_t path_dircount(const char *path) {
-  struct dirent *dp;
-
   DIR *dirp = opendir(path);
-  if (!dirp) {
-    return 0;
+  uint32_t c = 0;
+  if (likely(dirp)) {
+    while (readdir(dirp) != NULL)
+      c++;
+    closedir(dirp);
+    c -= 2;
   }
-
-  uint32_t ct;
-  for (ct = 0; (dp = readdir(dirp)); ct++) {
-  }
-  closedir(dirp);
-  return ct - 2;
+  return c;
 }
 
 static char filetypeletter(int mode) {

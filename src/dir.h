@@ -17,6 +17,18 @@
 #define i_type vec_file, File *
 #include "stc/vec.h"
 
+// we might have to use the full st_mtime, not just the seconds part
+struct tuple_mtime_count {
+  time_t mtime;
+  size_t count;
+};
+
+#define i_type hmap_dircount
+#define i_keypro cstr
+#define i_val struct tuple_mtime_count
+#define c_pro_key
+#include "stc/hmap.h"
+
 typedef enum {
   INFO_SIZE = 0,
   INFO_ATIME,
@@ -50,6 +62,11 @@ typedef struct Dir {
   vec_file files;        // every visible file
   vec_file files_all;    // every file in the directory
   vec_file files_sorted; // every file, but sorted
+
+  // maps name -> (mtime, dircount) for every directory in this directory
+  // we hand it over to the thread that will reload the directory
+  // and get it back in the update
+  hmap_dircount dircounts;
 
   bool visible;
   dir_loading_status status;
@@ -86,17 +103,22 @@ typedef struct Dir {
   } tags;
 } Dir;
 
-// Creates a directory, no files are loaded.
+// Creates a directory, no files are loaded. Takes an absolute path.
 Dir *dir_create(zsview path);
+
+// Free all resources belonging to `dir`.
+void dir_destroy(Dir *dir);
 
 // Loads the directory at `path` from disk. Additionally count the files in each
 // subdirectory if `load_fileinfo` is `true`.
 // If `load_fileinfo` is `true` and a `stop` signal is passed,
 // it is read with relaxed ordering after each file to possibly abort early.
-Dir *dir_load(zsview path, bool load_fileinfo, atomic_bool *stop);
+Dir *dir_load(zsview path, hmap_dircount dircounts, bool load_fileinfo,
+              atomic_bool *stop);
 
-// Free all resources belonging to `dir`.
-void dir_destroy(Dir *dir);
+// Load a flat directorie showing files up `level`s deep.
+Dir *dir_load_flat(zsview path, int level, hmap_dircount dircounts,
+                   bool load_dircount, atomic_bool *stop);
 
 static inline size_t dir_length(const Dir *dir) {
   return vec_file_size(&dir->files);
@@ -158,9 +180,6 @@ void dir_update_with(Dir *dir, Dir *update, uint32_t height,
 static inline bool dir_isroot(const Dir *dir) {
   return path_is_root(dir_path(dir));
 }
-
-// Load a flat directorie showing files up `level`s deep.
-Dir *dir_load_flat(zsview path, int level, bool load_dircount);
 
 // define iterators so we can use c_foreach with Dir
 #define Dir_iter vec_file_iter

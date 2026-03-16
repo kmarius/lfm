@@ -197,3 +197,26 @@ ssize_t path_make_absolute(zsview path, char *buf, size_t bufsz) {
   path = zsview_from_n(buf, len);
   return len + path.size;
 }
+
+zsview name_ext(const zsview *name) {
+  const char *last_dot = strrchr(name->str, '.');
+  if (last_dot) {
+    int pos = last_dot - name->str;
+    if (pos > 0) {
+      return zsview_from_pos(*name, pos);
+    }
+  }
+  // no extension
+  return zsview_from_pos(*name, name->size);
+}
+
+ssize_t path_concat(zsview dir, zsview name, char *buf, size_t bufsz) {
+  size_t len = dir.size + name.size + 1;
+  if (len + 1 > bufsz) {
+    return -1;
+  }
+  memcpy(buf, dir.str, dir.size);
+  buf[dir.size] = '/';
+  memcpy(buf + dir.size + 1, name.str, name.size + 1); // includes nul
+  return len;
+}

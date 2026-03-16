@@ -5,6 +5,7 @@
 #include "memory.h"
 #include "path.h"
 #include "sort.h"
+#include "stc/common.h"
 #include "stc/cstr.h"
 #include "stcutil.h"
 #include "util.h"
@@ -12,6 +13,7 @@
 #include <curses.h>
 #include <errno.h>
 #include <stdatomic.h>
+#include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -25,7 +27,10 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-// queue to load flattened dirs
+static inline void load_dircount_cached(Dir *dir, File *file);
+static inline void trim_dircount_cache(Dir *dir, uint32 num_dirs);
+
+// queue node to load flattened dirs
 typedef struct flat_dir_node {
   const char *path; // path to load
   int level;        // depth from the root
@@ -208,37 +213,67 @@ bool dir_check(const Dir *dir) {
 
 Dir *dir_create(zsview path) {
   Dir *dir = xcalloc(1, sizeof *dir);
-
-  if (path.str[0] != '/') {
-    char buf[PATH_MAX + 1];
-    if (realpath(path.str, buf) == NULL) {
-      snprintf(buf, sizeof buf - 1, "error: %s\n", strerror(errno));
-    } else {
-      dir->path = cstr_from(buf);
-    }
-  } else {
-    dir->path = cstr_from_zv(path);
-  }
-
+  dir->path = cstr_from_zv(path);
+  dir->name = basename_zv(cstr_zv(&dir->path));
   dir->load_time = time(NULL);
-  int pos = basename(cstr_data(&dir->path)) - cstr_str(&dir->path);
-  dir->name = zsview_from_pos(cstr_zv(&dir->path), pos);
-
   return dir;
 }
 
-Dir *dir_load(zsview path, bool load_fileinfo, atomic_bool *stop) {
+static inline void load_dircount_cached(Dir *dir, File *file) {
+  hmap_dircount_iter it =
+      hmap_dircount_find(&dir->dircounts, file_name_str(file));
+  if (it.ref) {
+    struct tuple_mtime_count tup = it.ref->second;
+    if (tup.mtime == file->stat.st_mtim.tv_sec) {
+      // use cached data
+      file_set_dircount(file, tup.count);
+    } else {
+      // update the cache
+      it.ref->second.mtime = file->stat.st_mtim.tv_sec;
+      it.ref->second.count = file_load_dircount(file);
+    }
+  } else {
+    // add new data to cache
+    struct tuple_mtime_count tup = {
+        .mtime = file->stat.st_mtim.tv_sec,
+        .count = file_load_dircount(file),
+    };
+    hmap_dircount_emplace(&dir->dircounts, file_name_str(file), tup);
+  }
+}
+
+// re-creates the hash map if it has over 50% stale entries
+static inline void trim_dircount_cache(Dir *dir, uint32 num_dirs) {
+  size_t cache_size = hmap_dircount_size(&dir->dircounts);
+  if (cache_size > 16 && cache_size > 2 * num_dirs) {
+    hmap_dircount_clear(&dir->dircounts);
+    c_foreach(it, vec_file, dir->files_all) {
+      if (file_isdir(*it.ref)) {
+        struct tuple_mtime_count tup = {
+            .mtime = (*it.ref)->stat.st_mtim.tv_sec,
+            .count = file_dircount(*it.ref),
+        };
+        hmap_dircount_emplace(&dir->dircounts, file_name_str(*it.ref), tup);
+      }
+    }
+    // shrink, but leave some space for possible inserts, load factor is 0.8
+    // (which would be exactly factor 1.25)
+    hmap_dircount_reserve(&dir->dircounts, (long)(num_dirs * 1.3));
+  }
+}
+
+Dir *dir_load(zsview path, hmap_dircount dircounts, bool load_fileinfo,
+              atomic_bool *stop) {
   Dir *dir = dir_create(path);
   dir->has_fileinfo = load_fileinfo;
+  dir->dircounts = dircounts;
   if (!load_fileinfo)
     stop = NULL;
 
   if (stat(path.str, &dir->stat) == -1) {
-    // TODO: figure out if/how we should handle errors here, we currently
-    // only use the inode to check if we should reload
-    //
-    // also: do we need lstat?
-    log_debug("lstat: %s", strerror(errno));
+    log_debug("stat: %s", strerror(errno));
+    dir->error = errno;
+    return dir;
   }
 
   DIR *dirp = opendir(path.str);
@@ -256,6 +291,7 @@ Dir *dir_load(zsview path, bool load_fileinfo, atomic_bool *stop) {
   }
 
   vec_file files = vec_file_init();
+  size_t num_dirs = 0;
 
   struct dirent *entry;
   while ((entry = readdir(dirp))) {
@@ -264,11 +300,15 @@ Dir *dir_load(zsview path, bool load_fileinfo, atomic_bool *stop) {
     }
 
     File *file = file_create(path.str, entry->d_name, dir_fd, load_fileinfo);
+    if (file != NULL) {
+      if (load_fileinfo && file_isdir(file)) {
+        num_dirs++;
+        load_dircount_cached(dir, file);
+      }
+      vec_file_push(&files, file);
+    }
     if (stop && atomic_load_explicit(stop, memory_order_relaxed)) {
       break;
-    }
-    if (file != NULL) {
-      vec_file_push(&files, file);
     }
   }
   closedir(dirp);
@@ -279,22 +319,30 @@ Dir *dir_load(zsview path, bool load_fileinfo, atomic_bool *stop) {
   dir->files_sorted = vec_file_clone(files);
   dir->files = files;
 
+  if (load_fileinfo) {
+    trim_dircount_cache(dir, num_dirs);
+  }
+
   dir->status = DIR_LOADING_FULLY;
   dir->loading = false;
 
   return dir;
 }
 
-Dir *dir_load_flat(zsview path, int level, bool load_fileinfo) {
+Dir *dir_load_flat(zsview path, int level, hmap_dircount dircounts,
+                   bool load_fileinfo, atomic_bool *stop) {
   Dir *dir = dir_create(path);
   dir->has_fileinfo = load_fileinfo;
+  dir->dircounts = dircounts;
+
   if (level < 0)
     level = 0;
   dir->flatten_level = level;
 
   if (lstat(path.str, &dir->stat) == -1) {
-    // TODO: currently not saving an error if we can't read the root
     log_debug("lstat: %s", strerror(errno));
+    dir->error = errno;
+    return dir;
   }
 
   vec_file files = vec_file_init();
@@ -302,7 +350,12 @@ Dir *dir_load_flat(zsview path, int level, bool load_fileinfo) {
   struct queue_dirs queue = queue_dirs_init();
   queue_dirs_push(&queue, (node){path.str, 0, false});
 
+  size_t num_dirs = 0;
+
   while (!queue_dirs_is_empty(&queue)) {
+    if (atomic_load_explicit(stop, memory_order_relaxed))
+      break;
+
     node head = *queue_dirs_front(&queue);
     queue_dirs_pop(&queue);
 
@@ -318,9 +371,8 @@ Dir *dir_load_flat(zsview path, int level, bool load_fileinfo) {
 
     struct dirent *entry;
     while ((entry = readdir(dirp)) != NULL) {
-      if (path_is_dot_or_dotdot(entry->d_name)) {
+      if (path_is_dot_or_dotdot(entry->d_name))
         continue;
-      }
 
       File *file = file_create(head.path, entry->d_name, dir_fd, load_fileinfo);
       if (file != NULL) {
@@ -345,6 +397,11 @@ Dir *dir_load_flat(zsview path, int level, bool load_fileinfo) {
         file->name.str += pos;
         file->name.size -= pos;
 
+        if (load_fileinfo && file_isdir(file)) {
+          num_dirs++;
+          load_dircount_cached(dir, file);
+        }
+
         vec_file_push(&files, file);
       }
     }
@@ -357,6 +414,10 @@ Dir *dir_load_flat(zsview path, int level, bool load_fileinfo) {
   dir->files_all = vec_file_clone(files);
   dir->files_sorted = vec_file_clone(files);
   dir->files = files;
+
+  if (load_fileinfo) {
+    trim_dircount_cache(dir, num_dirs);
+  }
 
   return dir;
 }
@@ -471,6 +532,8 @@ void dir_update_with(Dir *dir, Dir *update, uint32_t height,
   dir->files_sorted = vec_file_move(&update->files_sorted);
   dir->files = vec_file_move(&update->files);
 
+  dir->dircounts = hmap_dircount_move(&update->dircounts);
+
   dir->load_time = update->load_time;
   dir->error = update->error;
   dir->flatten_level = update->flatten_level;
@@ -502,6 +565,7 @@ void dir_destroy(Dir *dir) {
     cstr_drop(&dir->sel);
     cstr_drop(&dir->path);
     hmap_cstr_drop(&dir->tags.tags);
+    hmap_dircount_drop(&dir->dircounts);
     xfree(dir);
   }
 }
