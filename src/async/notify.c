@@ -1,11 +1,11 @@
 #include "private.h"
 
+#include "defs.h"
 #include "dir.h"
 #include "fm.h"
 #include "lfm.h"
 #include "loader.h"
 #include "log.h"
-#include "defs.h"
 #include "memory.h"
 #include "notify.h"
 #include "stc/cstr.h"
@@ -25,7 +25,7 @@ struct notify_add_data {
   Async *async;
   char *path;
   Dir *dir;
-  struct validity_check64 check0;
+  struct validity_check32 check0;
   struct validity_check64 check1;
 };
 

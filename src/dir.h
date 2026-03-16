@@ -84,6 +84,7 @@ typedef struct Dir {
                            // one is already scheduled, otherwise 0
   bool loading;            // is a reload in the process
   bool scheduled;          // is a reload scheduled
+  u32 version;
 
   u32 ind; // cursor position in files[]
   u32 pos; // cursor position in the ui, offset from the top row

@@ -35,7 +35,7 @@ struct dir_check_data {
   time_t loadtime;
   __ino_t ino;
   bool reload;
-  struct validity_check64 check; // lfm.loader.dir_cache_version
+  struct validity_check64 check0; // lfm.loader.dir_cache_version
 };
 
 static void dir_check_destroy(void *p) {
@@ -46,7 +46,7 @@ static void dir_check_destroy(void *p) {
 
 static void dir_check_callback(void *p, Lfm *lfm) {
   struct dir_check_data *res = p;
-  if (CHECK_PASSES(res->check)) {
+  if (CHECK_PASSES(res->check0)) {
     if (res->reload) {
       loader_dir_reload(&lfm->loader, res->dir);
     } else {
@@ -85,7 +85,7 @@ void async_dir_check(Async *async, Dir *dir) {
   work->dir = dir;
   work->loadtime = dir->load_time;
   work->ino = dir->stat.st_ino;
-  CHECK_INIT(work->check, to_lfm(async)->loader.dir_cache_version);
+  CHECK_INIT(work->check0, to_lfm(async)->loader.dir_cache_version);
 
   log_trace("checking directory %s", dir_path_str(dir));
   tpool_add_work(async->tpool, async_dir_check_worker, work, true);
@@ -114,7 +114,8 @@ struct fileinfo_result {
   Dir *dir;
   fileinfos infos;
   bool is_last_batch;
-  struct validity_check64 check;
+  struct validity_check64 check0;
+  struct validity_check32 check1;
 };
 
 static void fileinfo_result_destroy(void *p) {
@@ -137,7 +138,8 @@ static inline void set_dircount(Dir *dir, File *file, u32 count) {
 static void fileinfo_callback(void *p, Lfm *lfm) {
   struct fileinfo_result *res = p;
   // discard if any other update has been applied in the meantime
-  if (CHECK_PASSES(res->check) && !res->dir->has_fileinfo) {
+  if (CHECK_PASSES(res->check0) && CHECK_PASSES(res->check1) &&
+      !res->dir->has_fileinfo) {
     c_foreach(it, fileinfos, res->infos) {
       if (it.ref->ret == 0) {
         it.ref->file->stat = it.ref->stat;
@@ -170,8 +172,9 @@ static void fileinfo_callback(void *p, Lfm *lfm) {
 }
 
 static inline struct fileinfo_result *
-fileinfo_result_create(Dir *dir, fileinfos infos, struct validity_check64 check,
-                       bool is_last) {
+fileinfo_result_create(Dir *dir, fileinfos infos,
+                       struct validity_check64 check0,
+                       struct validity_check32 check1, bool is_last) {
   struct fileinfo_result *res = xcalloc(1, sizeof *res);
   res->super.callback = &fileinfo_callback;
   res->super.destroy = &fileinfo_result_destroy;
@@ -179,7 +182,8 @@ fileinfo_result_create(Dir *dir, fileinfos infos, struct validity_check64 check,
   res->dir = dir;
   res->infos = infos;
   res->is_last_batch = is_last;
-  res->check = check;
+  res->check0 = check0;
+  res->check1 = check1;
   return res;
 }
 
@@ -188,7 +192,8 @@ fileinfo_result_create(Dir *dir, fileinfos infos, struct validity_check64 check,
 // TODO: this creates two fileinfo items for every symlink that points to a
 // directory
 static void async_load_fileinfo(Async *async, Dir *dir,
-                                struct validity_check64 check, u32 n,
+                                struct validity_check64 check0,
+                                struct validity_check32 check1, u32 n,
                                 struct file_path_tup *files,
                                 hmap_dircount dircounts) {
   fileinfos infos = fileinfos_init();
@@ -212,7 +217,7 @@ static void async_load_fileinfo(Async *async, Dir *dir,
     u64 now = current_millis();
     if (now - latest > FILEINFO_THRESHOLD) {
       struct fileinfo_result *res =
-          fileinfo_result_create(dir, infos, check, false);
+          fileinfo_result_create(dir, infos, check0, check1, false);
       enqueue_and_signal(async, (struct result *)res);
 
       infos = fileinfos_init();
@@ -249,7 +254,7 @@ static void async_load_fileinfo(Async *async, Dir *dir,
     u64 now = current_millis();
     if (now - latest > FILEINFO_THRESHOLD) {
       struct fileinfo_result *res =
-          fileinfo_result_create(dir, infos, check, false);
+          fileinfo_result_create(dir, infos, check0, check1, false);
       enqueue_and_signal(async, (struct result *)res);
 
       infos = fileinfos_init();
@@ -265,7 +270,8 @@ finalize:
     xfree(files[i].path);
   }
 
-  struct fileinfo_result *res = fileinfo_result_create(dir, infos, check, true);
+  struct fileinfo_result *res =
+      fileinfo_result_create(dir, infos, check0, check1, true);
   enqueue_and_signal(async, (struct result *)res);
 
   xfree(files);
@@ -281,7 +287,8 @@ struct dir_update_data {
   Dir *update;
   u32 level;
   hmap_dircount dircounts;
-  struct validity_check64 check; // lfm.loader.dir_cache_version
+  struct validity_check64 check0; // lfm.loader.dir_cache_version
+  struct validity_check32 check1; // dir.version
 };
 
 static void dir_update_destroy(void *p) {
@@ -294,7 +301,7 @@ static void dir_update_destroy(void *p) {
 
 static void dir_update_callback(void *p, Lfm *lfm) {
   struct dir_update_data *res = p;
-  if (CHECK_PASSES(res->check) &&
+  if (CHECK_PASSES(res->check0) &&
       res->dir->flatten_level == res->update->flatten_level) {
     loader_dir_load_callback(&lfm->loader, res->dir);
     dir_update_with(res->dir, res->update, lfm->fm.height, cfg.scrolloff);
@@ -367,11 +374,12 @@ static void async_dir_load_worker(void *arg) {
    * extremely rare cases after we enqueue, and before we call
    * async_load_fileinfo */
   Dir *dir = work->dir;
-  struct validity_check64 check = work->check;
+  struct validity_check64 check0 = work->check0;
+  struct validity_check32 check1 = work->check1;
 
   enqueue_and_signal(work->async, (struct result *)work);
 
-  async_load_fileinfo(async, dir, check, j, files, dircounts);
+  async_load_fileinfo(async, dir, check0, check1, j, files, dircounts);
 }
 
 void async_dir_load(Async *async, Dir *dir, bool load_fileinfo) {
@@ -393,7 +401,10 @@ void async_dir_load(Async *async, Dir *dir, bool load_fileinfo) {
   work->load_fileinfo = load_fileinfo;
   work->level = dir->flatten_level;
   work->dircounts = hmap_dircount_move(&dir->dircounts);
-  CHECK_INIT(work->check, to_lfm(async)->loader.dir_cache_version);
+
+  dir->version++;
+  CHECK_INIT(work->check0, to_lfm(async)->loader.dir_cache_version);
+  CHECK_INIT(work->check1, dir->version);
 
   log_trace("loading directory %s level=%d", dir_path_str(dir),
             dir->flatten_level);

@@ -27,8 +27,8 @@ typedef struct notify {
   i32 fifo_wd;    // watch descriptor for the fifo (usually under /run/user/...)
   map_wd_dir dirs; // map currently watched directories to their wds
   map_dir_wd wds;  // and vice versa
-  usize version; // counter that is incremented, every time notify_set_watchers
-                 // is called
+  u32 version; // counter that is incremented, every time notify_set_watchers
+               // is called
 } Notify;
 
 // Initialize a Notify context. Returns false on failure.
