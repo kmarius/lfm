@@ -210,12 +210,12 @@ zsview name_ext(const zsview *name) {
 }
 
 isize path_concat(zsview dir, zsview name, char *buf, usize bufsz) {
-  usize len = dir.size + name.size + 1;
-  if (len + 1 > bufsz) {
+  if (dir.size + name.size + 2 > (isize)bufsz)
     return -1;
-  }
   memcpy(buf, dir.str, dir.size);
-  buf[dir.size] = '/';
-  memcpy(buf + dir.size + 1, name.str, name.size + 1); // includes nul
-  return len;
+  usize pos = dir.size;
+  if (likely(pos > 1)) // not root
+    buf[pos++] = '/';
+  memcpy(buf + pos, name.str, name.size + 1); // includes nul
+  return pos + name.size;
 }
