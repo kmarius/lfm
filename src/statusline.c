@@ -47,7 +47,7 @@ void statusline_draw(Ui *ui) {
           }
         }
         lhs_sz = ncplane_printf(
-            n, "%s %2.ld %s %s %4s %s%s", file_perms(file), file_nlink(file),
+            n, "%s %4.ld %s %s %7s %s%s", file_perms(file), file_nlink(file),
             file_owner(file), file_group(file), file_size_readable(file, size),
             my_strftime(file_mtime(file), mtime, sizeof mtime), buf);
       }
