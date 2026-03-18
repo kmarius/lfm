@@ -1,5 +1,7 @@
+#include "cleanup.h"
 #include "config.h"
 #include "defs.h"
+#include "lfmlua.h"
 #include "loop.h"
 #include "private.h"
 #include "stc/zsview.h"
@@ -18,9 +20,17 @@
 declare_dlist(list_child, struct child_watcher);
 static list_child child_watchers;
 
+static void list_child_drop(const list_child *);
 static void child_output_cb(EV_P_ ev_io *w, int revents);
-
 static inline void destroy_child_watcher(struct child_watcher *w);
+
+static void deinit() {
+  list_child_drop(&child_watchers);
+}
+
+__attribute__((constructor)) static void init() {
+  add_dtor(deinit);
+}
 
 // ev_io wrapper for stdout/stderr
 struct io_watcher {
@@ -42,10 +52,6 @@ struct child_watcher {
 #define i_keydrop(p) (destroy_child_watcher(p))
 #define i_no_clone
 #include "stc/dlist.h"
-
-void destroy_child_watchers(void) {
-  list_child_drop(&child_watchers);
-}
 
 static void init_io_watcher(struct io_watcher *w, Lfm *lfm, int fd, int ref) {
   if (fd == -1)

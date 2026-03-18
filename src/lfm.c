@@ -1,6 +1,7 @@
 #include "lfm.h"
 
 #include "async/async.h"
+#include "cleanup.h"
 #include "config.h"
 #include "defs.h"
 #include "fifo.h"
@@ -235,6 +236,7 @@ void lfm_init(Lfm *lfm, struct lfm_opts *opts) {
 }
 
 void lfm_deinit(Lfm *lfm) {
+  call_dtors();
   lfm_modes_deinit(lfm);
   list_timer_drop(&lfm->schedule_timers);
   notify_deinit(&lfm->notify);
