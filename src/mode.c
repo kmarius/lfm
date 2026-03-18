@@ -18,15 +18,18 @@ void lfm_modes_init(Lfm *lfm) {
   lfm->modes = hmap_modes_init();
   lfm_mode_register(lfm, &(struct mode){
                              .name = cstr_lit("normal"),
+                             .type = MODE_BUILTIN,
                              .on_enter = normal_on_enter,
                          });
   lfm_mode_register(lfm, &(struct mode){
                              .name = cstr_lit("input"),
+                             .type = MODE_BUILTIN,
                              .is_input = true,
                          });
   lfm_mode_register(lfm, &(struct mode){
                              .name = cstr_lit("visual"),
                              .is_input = false,
+                             .type = MODE_BUILTIN,
                              .on_enter = visual_on_enter,
                              .on_exit = visual_on_exit,
                          });
@@ -107,40 +110,45 @@ i32 lfm_mode_exit(Lfm *lfm, zsview name) {
 }
 
 void mode_on_enter(struct mode *mode, Lfm *lfm) {
-  if (mode->on_enter) {
-    mode->on_enter(lfm);
+  if (mode->type == MODE_BUILTIN) {
+    if (mode->on_enter)
+      mode->on_enter(lfm);
   } else if (mode->on_enter_ref) {
     llua_call_ref(lfm->L, mode->on_enter_ref);
   }
 }
 
 void mode_on_return(struct mode *mode, struct Lfm *lfm, zsview line) {
-  if (mode->on_return) {
-    mode->on_return(lfm, line);
+  if (mode->type == MODE_BUILTIN) {
+    if (mode->on_return)
+      mode->on_return(lfm, line);
   } else if (mode->on_return_ref) {
     llua_call_ref1(lfm->L, mode->on_return_ref, line);
   }
 }
 
 void mode_on_change(struct mode *mode, Lfm *lfm) {
-  if (mode->on_change) {
-    mode->on_change(lfm);
+  if (mode->type == MODE_BUILTIN) {
+    if (mode->on_change)
+      mode->on_change(lfm);
   } else if (mode->on_change_ref) {
     llua_call_ref(lfm->L, mode->on_change_ref);
   }
 }
 
 void mode_on_esc(struct mode *mode, Lfm *lfm) {
-  if (mode->on_esc) {
-    mode->on_esc(lfm);
+  if (mode->type == MODE_BUILTIN) {
+    if (mode->on_esc)
+      mode->on_esc(lfm);
   } else if (mode->on_esc_ref) {
     llua_call_ref(lfm->L, mode->on_esc_ref);
   }
 }
 
 void mode_on_exit(struct mode *mode, Lfm *lfm) {
-  if (mode->on_exit) {
-    mode->on_exit(lfm);
+  if (mode->type == MODE_BUILTIN) {
+    if (mode->on_exit)
+      mode->on_exit(lfm);
   } else if (mode->on_exit_ref) {
     llua_call_ref(lfm->L, mode->on_exit_ref);
   }

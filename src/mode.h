@@ -9,21 +9,35 @@
 
 struct Lfm;
 
+typedef enum mode_type {
+  MODE_BUILTIN,
+  MODE_LUA,
+} mode_type;
+
 struct mode {
-  cstr name;                       // name of the mode
-  bool is_input;                   // capture command line input
-  cstr prefix;                     // prefix to show in case is_input is true
-  i32 on_enter_ref;                // lua ref to on_enter function
-  i32 on_change_ref;               // lua ref to on_change function
-  i32 on_return_ref;               // lua ref to on_return function
-  i32 on_esc_ref;                  // lua ref to on_escape function
-  i32 on_exit_ref;                 // lua ref to on_exit function
-  void (*on_enter)(struct Lfm *);  // pointer to on_enter function
-  void (*on_change)(struct Lfm *); // pointer to on_change function
-  void (*on_return)(struct Lfm *,
-                    zsview);     // pointer to on_return function
-  void (*on_esc)(struct Lfm *);  // pointer to on_esc function
-  void (*on_exit)(struct Lfm *); // pointer to on_exit function
+  cstr name;     // name of the mode
+  bool is_input; // capture command line input
+  cstr prefix;   // prefix to show in case is_input is true
+  mode_type type;
+  union {
+    // if type == MODE_BUILTIN
+    struct {
+      void (*on_enter)(struct Lfm *);  // pointer to on_enter function
+      void (*on_change)(struct Lfm *); // pointer to on_change function
+      void (*on_return)(struct Lfm *,
+                        zsview);     // pointer to on_return function
+      void (*on_esc)(struct Lfm *);  // pointer to on_esc function
+      void (*on_exit)(struct Lfm *); // pointer to on_exit function
+    };
+    // if type == MODE_LUA
+    struct {
+      i32 on_enter_ref;  // lua ref to on_enter function
+      i32 on_change_ref; // lua ref to on_change function
+      i32 on_return_ref; // lua ref to on_return function
+      i32 on_esc_ref;    // lua ref to on_escape function
+      i32 on_exit_ref;   // lua ref to on_exit function
+    };
+  };
   Trie *maps;
 };
 

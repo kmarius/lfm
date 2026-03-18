@@ -1180,7 +1180,9 @@ static int l_mode(lua_State *L) {
 static int l_create_mode(lua_State *L) {
   luaL_checktype(L, 1, LUA_TTABLE);
 
-  struct mode mode = {0};
+  struct mode mode = {
+      .type = MODE_LUA,
+  };
 
   lua_getfield(L, 1, "name");
   if (lua_isnil(L, -1)) {
