@@ -253,7 +253,7 @@ static int lua_proc_create(lua_State *L, int pid, int fd) {
   return 1;
 }
 
-struct spawn_data {
+struct spawn_opts {
   vec_str args;             // program arguments
   vec_env env;              // environment overrides
   zsview working_directory; // working directory for the child
@@ -274,7 +274,7 @@ static inline void close_pipe_safe(int fd[2]) {
     close(fd[1]);
 }
 
-static inline int spawn(const struct spawn_data *data, int *stdin_fd) {
+static inline int spawn(const struct spawn_opts *data, int *stdin_fd) {
   int pipe_stdin[2] = {-1, -1};
   int pipe_stdout[2] = {-1, -1};
   int pipe_stderr[2] = {-1, -1};
@@ -403,7 +403,7 @@ fail:
 int l_spawn(lua_State *L) {
   LUA_CHECK_ARGMAX(L, 2);
 
-  struct spawn_data data = {};
+  struct spawn_opts opts = {};
 
   luaL_checktype(L, 1, LUA_TTABLE); // [cmd, opts?]
   if (lua_gettop(L) == 2) {
@@ -413,48 +413,48 @@ int l_spawn(lua_State *L) {
   const int n = lua_objlen(L, 1);
   luaL_argcheck(L, n > 0, 1, "no command given");
 
-  vec_str_reserve(&data.args, n + 1);
-  lua_read_vec_str(L, 1, &data.args);
-  vec_str_push(&data.args, NULL);
+  vec_str_reserve(&opts.args, n + 1);
+  lua_read_vec_str(L, 1, &opts.args);
+  vec_str_push(&opts.args, NULL);
 
   if (lua_gettop(L) == 2) {
     lua_getfield(L, 2, "stdin"); // [cmd, opts, opts.stdin]
     if (lua_isboolean(L, -1)) {
       bool val = lua_toboolean(L, -1);
-      data.keep_stdin_open = val;
-      data.pipe_stdin = val;
+      opts.keep_stdin_open = val;
+      opts.pipe_stdin = val;
     } else if (lua_isstring(L, -1)) {
-      lua_read_bytes_into_chunks(L, -1, &data.stdin_data);
-      data.pipe_stdin = true;
+      lua_read_bytes_into_chunks(L, -1, &opts.stdin_data);
+      opts.pipe_stdin = true;
     } else if (lua_istable(L, -1)) {
-      lua_read_vec_bytes_into_chunks(L, -1, &data.stdin_data);
-      data.pipe_stdin = true;
+      lua_read_vec_bytes_into_chunks(L, -1, &opts.stdin_data);
+      opts.pipe_stdin = true;
     }
     lua_pop(L, 1); // [cmd, opts]
 
     lua_getfield(L, 2, "on_stdout"); // [cmd, opts, opts.on_stdout]
     if (lua_isfunction(L, -1)) {
-      data.stdout_ref =
+      opts.stdout_ref =
           lua_register_callback(L, -1); // [cmd, opts, opts.on_stdout]
-      data.capture_stdout = true;
+      opts.capture_stdout = true;
     } else {
-      data.capture_stdout = lua_toboolean(L, -1);
+      opts.capture_stdout = lua_toboolean(L, -1);
     }
     lua_pop(L, 1); // [cmd, opts]
 
     lua_getfield(L, 2, "on_stderr"); // [cmd, opts, opts.on_stderr]
     if (lua_isfunction(L, -1)) {
-      data.stderr_ref =
+      opts.stderr_ref =
           lua_register_callback(L, -1); // [cmd, opts, opts.on_stderr]
-      data.capture_stderr = true;
+      opts.capture_stderr = true;
     } else {
-      data.capture_stderr = lua_toboolean(L, -1);
+      opts.capture_stderr = lua_toboolean(L, -1);
     }
     lua_pop(L, 1); // [cmd, opts]
 
     lua_getfield(L, 2, "on_exit"); // [cmd, opts, opts.on_exit]
     if (lua_isfunction(L, -1)) {
-      data.exit_ref = lua_register_callback(L, -1); // [cmd, opts, opts.on_exit]
+      opts.exit_ref = lua_register_callback(L, -1); // [cmd, opts, opts.on_exit]
     }
     lua_pop(L, 1); // [cmd, opts]
 
@@ -466,24 +466,24 @@ int l_spawn(lua_State *L) {
         // we make copies of these values because the luajit source code
         // suggests that, if value is not a string, gc may run and invalidate
         // other values that have been stored
-        vec_env_push_back(&data.env, (struct env_entry){lua_tostrdup(L, -2),
+        vec_env_push_back(&opts.env, (struct env_entry){lua_tostrdup(L, -2),
                                                         lua_tostrdup(L, -1)});
       }
     }
     lua_pop(L, 1); // [cmd, opts]
     lua_getfield(L, 2, "dir");
     if (!lua_isnil(L, -1)) {
-      data.working_directory = lua_tozsview(L, -1);
+      opts.working_directory = lua_tozsview(L, -1);
     }
     lua_pop(L, 1);
   }
 
   int stdin_fd = -1;
-  int pid = spawn(&data, &stdin_fd);
+  int pid = spawn(&opts, &stdin_fd);
 
-  vec_str_drop(&data.args);
-  vec_env_drop(&data.env);
-  vec_bytes_drop(&data.stdin_data);
+  vec_str_drop(&opts.args);
+  vec_env_drop(&opts.env);
+  vec_bytes_drop(&opts.stdin_data);
 
   if (pid == -1) {
     lua_pushnil(L);

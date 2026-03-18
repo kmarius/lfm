@@ -16,55 +16,59 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-// execute a foreground program
+struct execute_opts {
+  vec_str args;             // program arguments
+  vec_env env;              // environment overrides
+  zsview working_directory; // working directory for the child
+  bool pipe_stdin;          // open a pipe to the child's stdin
+  vec_bytes stdin_data;     // data to send to the child's stdin
+  bool capture_stdout;      // connect a pipe to child's stdout
+  bool capture_stderr;      // connect a pipe to child's stderr
+};
+
+static inline void close_pipe_safe(int fd[2]) {
+  if (fd[0] > 0)
+    close(fd[0]);
+  if (fd[1] > 0)
+    close(fd[1]);
+}
+
 // TODO: we could avoid all the output buffering and allocations
 // by getting it straight to the lua state
 // TODO: we should just take the raw output and split by newlines when we
 // push the result into the lua state
-static inline i32 execute(Lfm *lfm, const char *prog, char *const *args,
-                          vec_env *env, vec_bytes *stdin_lines,
-                          vec_bytes *stdout_data, vec_bytes *stderr_lines) {
-  i32 status, rc;
+
+// execute a foreground program, returns negative value if there command
+// was an error during init or fork, leaves output/error untouched
+static inline int execute(const struct execute_opts *data,
+                          vec_bytes *stdout_data, vec_bytes *stderr_data) {
+  int rc, status = 0;
+
   lfm_run_hook(lfm, LFM_HOOK_EXECPRE);
   ev_signal_stop(lfm->loop, &lfm->sigint_watcher);
   ev_signal_stop(lfm->loop, &lfm->sigtstp_watcher);
   ui_suspend(&lfm->ui);
 
-  bool capture_stdout = stdout_data != NULL;
-  bool capture_stderr = stderr_lines != NULL;
-  bool send_stdin = stdin_lines != NULL;
+  int pipe_stdin[2] = {-1, -1};
+  int pipe_stdout[2] = {-1, -1};
+  int pipe_stderr[2] = {-1, -1};
 
-  i32 pipe_stdout[2] = {0};
-  i32 pipe_stderr[2] = {0};
-  i32 pipe_stdin[2] = {0};
+  if (data->pipe_stdin)
+    status |= pipe(pipe_stdin);
+  if (data->capture_stdout)
+    status |= pipe(pipe_stdout);
+  if (data->capture_stderr)
+    status |= pipe(pipe_stderr);
 
-  if (send_stdin)
-    pipe(pipe_stdin);
-  if (capture_stdout)
-    pipe(pipe_stdout);
-  if (capture_stderr)
-    pipe(pipe_stderr);
+  if (unlikely(status != 0)) {
+    lfm_errorf(lfm, "pipe: %s", strerror(errno));
+    goto fail;
+  }
 
-  i32 pid = fork();
+  int pid = fork();
   if (unlikely(pid < 0)) {
-    if (send_stdin) {
-      close(pipe_stdin[0]);
-      close(pipe_stdin[1]);
-    }
-    if (capture_stdout) {
-      close(pipe_stdout[0]);
-      close(pipe_stdout[1]);
-    }
-    if (capture_stderr) {
-      close(pipe_stderr[0]);
-      close(pipe_stderr[1]);
-    }
-    ui_resume(&lfm->ui);
-    ev_signal_start(lfm->loop, &lfm->sigint_watcher);
-    ev_signal_start(lfm->loop, &lfm->sigtstp_watcher);
-    lfm_run_hook(lfm, LFM_HOOK_EXECPOST);
     lfm_errorf(lfm, "fork: %s", strerror(errno));
-    return -1;
+    goto fail;
   }
 
   if (pid == 0) {
@@ -75,11 +79,9 @@ static inline i32 execute(Lfm *lfm, const char *prog, char *const *args,
       setenv(v.key, v.val, 1);
     }
 
-    if (env) {
-      c_foreach(n, vec_env, *env) {
-        vec_env_raw v = vec_env_value_toraw(n.ref);
-        setenv(v.key, v.val, 1);
-      }
+    c_foreach(n, vec_env, data->env) {
+      vec_env_raw v = vec_env_value_toraw(n.ref);
+      setenv(v.key, v.val, 1);
     }
 
     signal(SIGINT, SIG_DFL);
@@ -88,27 +90,27 @@ static inline i32 execute(Lfm *lfm, const char *prog, char *const *args,
       _exit(1);
     }
 
-    if (send_stdin) {
+    if (data->pipe_stdin) {
       close(pipe_stdin[1]);
       dup2(pipe_stdin[0], 0);
       close(pipe_stdin[0]);
     }
 
-    if (capture_stdout) {
+    if (data->capture_stdout) {
       close(pipe_stdout[0]);
       dup2(pipe_stdout[1], 1);
       close(pipe_stdout[1]);
     }
 
-    if (capture_stderr) {
+    if (data->capture_stderr) {
       close(pipe_stderr[0]);
       dup2(pipe_stderr[1], 2);
       close(pipe_stderr[1]);
     }
 
-    execvp(prog, (char *const *)args);
+    execvp(data->args.data[0], (char *const *)data->args.data);
     log_error("execvp: %s", strerror(errno));
-    if (capture_stderr) {
+    if (data->capture_stderr) {
       char buf[128];
       i32 len = snprintf(buf, sizeof buf - 1, "execvp: %s", strerror(errno));
       write(2, buf, len);
@@ -120,7 +122,7 @@ static inline i32 execute(Lfm *lfm, const char *prog, char *const *args,
   FILE *file_stderr = NULL;
   FILE *file_stdout = NULL;
 
-  if (capture_stdout) {
+  if (data->capture_stdout) {
     close(pipe_stdout[1]);
 
     i32 fd = pipe_stdout[0];
@@ -134,11 +136,11 @@ static inline i32 execute(Lfm *lfm, const char *prog, char *const *args,
     }
   }
 
-  if (capture_stderr) {
+  if (data->capture_stderr) {
     close(pipe_stderr[1]);
 
-    i32 fd = pipe_stderr[0];
-    i32 flags = fcntl(fd, F_GETFL, 0);
+    int fd = pipe_stderr[0];
+    int flags = fcntl(fd, F_GETFL, 0);
     fcntl(fd, F_SETFL, flags | O_NONBLOCK);
 
     file_stderr = fdopen(pipe_stderr[0], "r");
@@ -148,27 +150,26 @@ static inline i32 execute(Lfm *lfm, const char *prog, char *const *args,
     }
   }
 
-  if (send_stdin) {
+  if (data->pipe_stdin) {
     close(pipe_stdin[0]);
-
-    i32 fd = pipe_stdin[1];
-    i32 flags = fcntl(fd, F_GETFL, 0);
+    int fd = pipe_stdin[1];
+    int flags = fcntl(fd, F_GETFL, 0);
     fcntl(fd, F_SETFL, flags | O_NONBLOCK);
   }
 
   // TODO: should we support binary (not newline delimited) output
-  if (capture_stdout || capture_stderr || send_stdin) {
+  if (data->capture_stdout || data->capture_stderr || data->pipe_stdin) {
     struct pollfd pfds[2] = {0};
 
     vec_bytes_iter it = {0};
-    if (send_stdin)
-      it = vec_bytes_begin(stdin_lines);
+    if (data->pipe_stdin)
+      it = vec_bytes_begin(&data->stdin_data);
 
-    if (capture_stdout) {
+    if (data->capture_stdout) {
       pfds[0].fd = fileno(file_stdout);
       pfds[0].events = POLLIN;
     }
-    if (capture_stderr) {
+    if (data->capture_stderr) {
       pfds[1].fd = fileno(file_stderr);
       pfds[1].events = POLLIN;
     }
@@ -178,8 +179,9 @@ static inline i32 execute(Lfm *lfm, const char *prog, char *const *args,
         file_stderr,
     };
     vec_bytes *vecs[2] = {
+        // we are not polling the respective fds if these are NULL
         stdout_data,
-        stderr_lines,
+        stderr_data,
     };
 
     // TODO: we need a dynamic buffer type
@@ -187,11 +189,13 @@ static inline i32 execute(Lfm *lfm, const char *prog, char *const *args,
     char *buf[] = {NULL, NULL};
     usize buf_idx[] = {0, 0};
 
+    bool sending_input = data->pipe_stdin;
+
     char *line = NULL;
     usize n;
-    i32 num_open_fds = capture_stdout + capture_stderr;
-    while (num_open_fds > 0 || send_stdin) {
-      if (send_stdin) {
+    i32 num_open_fds = data->capture_stdout + data->capture_stderr;
+    while (num_open_fds > 0 || sending_input) {
+      if (sending_input) {
         // we can not write arbitrarily large data here because the pipes have
         // limited size. we don't chunk the data here, it is already chunked in
         // the vectors
@@ -199,7 +203,7 @@ static inline i32 execute(Lfm *lfm, const char *prog, char *const *args,
           if (write(pipe_stdin[1], it.ref->buf, it.ref->size) == -1) {
             if (waitpid(pid, &status, WNOHANG) == -1) {
               // child died
-              send_stdin = false;
+              sending_input = false;
             }
           } else {
             vec_bytes_next(&it);
@@ -208,7 +212,7 @@ static inline i32 execute(Lfm *lfm, const char *prog, char *const *args,
         if (it.ref == NULL) {
           close(pipe_stdin[1]);
           pipe_stdin[1] = -1;
-          send_stdin = false;
+          sending_input = false;
         }
       }
 
@@ -271,11 +275,12 @@ static inline i32 execute(Lfm *lfm, const char *prog, char *const *args,
         }
       }
     }
+
     if (pipe_stdin[1] > 0)
       close(pipe_stdin[1]);
-    if (capture_stdout)
+    if (data->capture_stdout)
       fclose(file_stdout);
-    if (capture_stderr)
+    if (data->capture_stderr)
       fclose(file_stderr);
     free(line);
 
@@ -293,7 +298,7 @@ static inline i32 execute(Lfm *lfm, const char *prog, char *const *args,
     rc = waitpid(pid, &status, 0);
   } while ((rc == -1) && (errno == EINTR));
 
-  i32 rstatus;
+  int rstatus;
   if (WIFSIGNALED(status)) {
     rstatus = 128 + WTERMSIG(status);
   } else {
@@ -301,31 +306,26 @@ static inline i32 execute(Lfm *lfm, const char *prog, char *const *args,
   }
   log_trace("child %d finished with status %d", pid, rstatus);
 
+resume:
   ui_resume(&lfm->ui);
   ev_signal_start(lfm->loop, &lfm->sigint_watcher);
   ev_signal_start(lfm->loop, &lfm->sigtstp_watcher);
   lfm_run_hook(lfm, LFM_HOOK_EXECPOST);
 
-  if (status == -1) {
-    // if commands return this, we need different error signalling
-    lfm_errorf(lfm, "command returned -1");
-  }
-
   return rstatus;
+
+fail:
+  close_pipe_safe(pipe_stdin);
+  close_pipe_safe(pipe_stdout);
+  close_pipe_safe(pipe_stderr);
+  rstatus = -1;
+  goto resume;
 }
 
 int l_execute(lua_State *L) {
   LUA_CHECK_ARGMAX(L, 2);
 
-  vec_str args = vec_str_init();
-  vec_bytes stdout_lines = vec_bytes_init();
-  vec_bytes stderr_lines = vec_bytes_init();
-  vec_bytes stdin_lines = vec_bytes_init();
-  vec_env env = vec_env_init();
-
-  bool capture_stdout = false;
-  bool capture_stderr = false;
-  bool send_stdin = false;
+  struct execute_opts opts = {};
 
   luaL_checktype(L, 1, LUA_TTABLE);
   if (lua_gettop(L) == 2) {
@@ -335,73 +335,71 @@ int l_execute(lua_State *L) {
   const int n = lua_objlen(L, 1);
   luaL_argcheck(L, n > 0, 1, "no command given");
 
-  vec_str_reserve(&args, n + 1);
-  lua_read_vec_str(L, 1, &args);
-  vec_str_push(&args, NULL);
+  vec_str_reserve(&opts.args, n + 1);
+  lua_read_vec_str(L, 1, &opts.args);
+  vec_str_push(&opts.args, NULL);
 
   if (lua_gettop(L) == 2) {
     // [cmd, opts]
     lua_getfield(L, 2, "stdin"); // [cmd, opts, opts.stdin]
-    send_stdin = lua_toboolean(L, -1);
     if (lua_isstring(L, -1)) {
-      lua_read_bytes_into_chunks(L, -1, &stdin_lines);
+      lua_read_bytes_into_chunks(L, -1, &opts.stdin_data);
+      opts.pipe_stdin = true;
     } else if (lua_istable(L, -1)) {
-      lua_read_vec_bytes_into_chunks(L, -1, &stdin_lines);
+      lua_read_vec_bytes_into_chunks(L, -1, &opts.stdin_data);
+      log_debug("%lu", vec_bytes_size(&opts.stdin_data));
+      opts.pipe_stdin = true;
     }
     lua_pop(L, 1); // [cmd, opts]
 
     lua_getfield(L, 2, "capture_stdout"); //[cmd, opts, opts.capture_stdout]
-    capture_stdout = lua_toboolean(L, -1);
+    opts.capture_stdout = lua_toboolean(L, -1);
     lua_pop(L, 1); //[cmd, opts]
 
     lua_getfield(L, 2, "capture_stderr"); //[cmd, opts, opts.capture_stderr]
-    capture_stderr = lua_toboolean(L, -1);
+    opts.capture_stderr = lua_toboolean(L, -1);
     lua_pop(L, 1); //[cmd, opts]
 
     lua_getfield(L, 2, "env"); // [cmd, opts, opts.env]
     if (lua_istable(L, -1)) {
       for (lua_pushnil(L); lua_next(L, -2) != 0; lua_pop(L, 1)) {
         // [cmd, opts, opts.env, key, val]
-        vec_env_push_back(
-            &env, (struct env_entry){lua_tostrdup(L, -2), lua_tostrdup(L, -1)});
+        vec_env_push_back(&opts.env, (struct env_entry){lua_tostrdup(L, -2),
+                                                        lua_tostrdup(L, -1)});
       }
     }
     lua_pop(L, 1); // [cmd, opts]
   }
 
-  int status = execute(lfm, args.data[0], args.data, &env,
-                       send_stdin ? &stdin_lines : NULL,
-                       capture_stdout ? &stdout_lines : NULL,
-                       capture_stderr ? &stderr_lines : NULL);
+  vec_bytes stdout_data = vec_bytes_init();
+  vec_bytes stderr_data = vec_bytes_init();
+  int status = execute(&opts, &stdout_data, &stderr_data);
 
-  vec_env_drop(&env);
-  vec_str_drop(&args);
-  vec_bytes_drop(&stdin_lines);
+  vec_env_drop(&opts.env);
+  vec_str_drop(&opts.args);
+  vec_bytes_drop(&opts.stdin_data);
 
   if (status < 0) {
-    vec_bytes_drop(&stdout_lines);
-    vec_bytes_drop(&stderr_lines);
     lua_pushnil(L);
-    // not sure if something even sets errno
     lua_pushstring(L, strerror(errno));
     return 2;
-  } else {
-    lua_createtable(L, 0, 4);
-    lua_pushnumber(L, status);
-    lua_setfield(L, -2, "status");
-
-    if (capture_stdout) {
-      lua_push_vec_bytes(L, &stdout_lines);
-      lua_setfield(L, -2, "stdout");
-      vec_bytes_drop(&stdout_lines);
-    }
-
-    if (capture_stderr) {
-      lua_push_vec_bytes(L, &stderr_lines);
-      lua_setfield(L, -2, "stderr");
-      vec_bytes_drop(&stderr_lines);
-    }
-
-    return 1;
   }
+
+  lua_createtable(L, 0, 4);
+  lua_pushnumber(L, status);
+  lua_setfield(L, -2, "status");
+
+  if (opts.capture_stdout) {
+    lua_push_vec_bytes(L, &stdout_data);
+    lua_setfield(L, -2, "stdout");
+  }
+
+  if (opts.capture_stderr) {
+    lua_push_vec_bytes(L, &stderr_data);
+    lua_setfield(L, -2, "stderr");
+  }
+
+  vec_bytes_drop(&stdout_data);
+  vec_bytes_drop(&stderr_data);
+  return 1;
 }
