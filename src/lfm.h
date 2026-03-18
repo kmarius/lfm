@@ -6,7 +6,6 @@
 #include "loader.h"
 #include "mode.h"
 #include "notify.h"
-#include "types/vec_env.h"
 #include "types/vec_int.h"
 #include "types/vec_zsview.h"
 #include "ui.h"
@@ -69,7 +68,7 @@ typedef struct Lfm {
 
   struct lfm_opts opts;
 
-  i32 ret; /* set in lfm_quit and returned in main.c */
+  int ret; /* set in lfm_quit and returned by lfm_run */
 } Lfm;
 
 // Initialize lfm and all its components.
@@ -86,26 +85,6 @@ void lfm_quit(Lfm *lfm, i32 ret);
 
 // call this on resize
 void lfm_on_resize(Lfm *lfm);
-
-// Spawn a background command. execvp semantics hold for `prog`, `args`.
-// A vector of strings can be passed by `stdin_lines` and will be send to the
-// commands standard input. If `out` or `err` are true, output/errors will be
-// shown in the ui. If `stdout_ref` or `stderr_ref` are set (>0), the
-// respective callbacks are called with each line of output/error and nothing
-// will be printed on the ui. `exit_ref` will be called with the return code
-// once the command finishes.
-i32 lfm_spawn(Lfm *lfm, const char *prog, char *const *args,
-              struct vec_env *env, const struct vec_bytes *stdin_data,
-              i32 *stdin_fd, bool capture_stdout, bool capture_stderr,
-              i32 stdout_ref, i32 stderr_ref, i32 exit_ref,
-              zsview working_directory);
-
-// Execute a foreground program. Uses execvp semantics. If stdout is passed,
-// lines from stdout are captured in the vector. Returns the exit status of the
-// process, or -1 if fork() fails.
-i32 lfm_execute(Lfm *lfm, const char *prog, char *const *args,
-                struct vec_env *env, struct vec_bytes *stdin_data,
-                struct vec_bytes *stdout_lines, struct vec_bytes *stderr_lines);
 
 // Schedule callback of the function given by `ref` in `delay` milliseconds.
 void lfm_schedule(Lfm *lfm, i32 ref, u32 delay);

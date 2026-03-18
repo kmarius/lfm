@@ -7,13 +7,11 @@
 #include "mode.h"
 #include "private.h"
 #include "search.h"
-#include "types/vec_env.h"
 #include "util.h"
 
 #include <lauxlib.h>
 #include <lua.h>
 
-#include <errno.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <string.h>
@@ -23,6 +21,9 @@
 
 // spawn.c
 int l_spawn(lua_State *L);
+
+// execute.c
+int l_execute(lua_State *L);
 
 static int l_schedule(lua_State *L) {
   LUA_CHECK_ARGMAX(L, 2);
@@ -146,98 +147,6 @@ static int l_print2(lua_State *L) {
 
   ui_display_message(ui, msg);
   return 0;
-}
-
-static int l_execute(lua_State *L) {
-  LUA_CHECK_ARGMAX(L, 2);
-
-  vec_str args = vec_str_init();
-  vec_bytes stdout_lines = vec_bytes_init();
-  vec_bytes stderr_lines = vec_bytes_init();
-  vec_bytes stdin_lines = vec_bytes_init();
-  vec_env env = vec_env_init();
-
-  bool capture_stdout = false;
-  bool capture_stderr = false;
-  bool send_stdin = false;
-
-  luaL_checktype(L, 1, LUA_TTABLE);
-  if (lua_gettop(L) == 2) {
-    luaL_checktype(L, 2, LUA_TTABLE);
-  }
-
-  const int n = lua_objlen(L, 1);
-  luaL_argcheck(L, n > 0, 1, "no command given");
-
-  vec_str_reserve(&args, n + 1);
-  lua_read_vec_str(L, 1, &args);
-  vec_str_push(&args, NULL);
-
-  if (lua_gettop(L) == 2) {
-    // [cmd, opts]
-    lua_getfield(L, 2, "stdin"); // [cmd, opts, opts.stdin]
-    send_stdin = lua_toboolean(L, -1);
-    if (lua_isstring(L, -1)) {
-      lua_read_bytes_into_chunks(L, -1, &stdin_lines);
-    } else if (lua_istable(L, -1)) {
-      lua_read_vec_bytes_into_chunks(L, -1, &stdin_lines);
-    }
-    lua_pop(L, 1); // [cmd, opts]
-
-    lua_getfield(L, 2, "capture_stdout"); //[cmd, opts, opts.capture_stdout]
-    capture_stdout = lua_toboolean(L, -1);
-    lua_pop(L, 1); //[cmd, opts]
-
-    lua_getfield(L, 2, "capture_stderr"); //[cmd, opts, opts.capture_stderr]
-    capture_stderr = lua_toboolean(L, -1);
-    lua_pop(L, 1); //[cmd, opts]
-
-    lua_getfield(L, 2, "env"); // [cmd, opts, opts.env]
-    if (lua_istable(L, -1)) {
-      for (lua_pushnil(L); lua_next(L, -2) != 0; lua_pop(L, 1)) {
-        // [cmd, opts, opts.env, key, val]
-        vec_env_push_back(
-            &env, (struct env_entry){lua_tostrdup(L, -2), lua_tostrdup(L, -1)});
-      }
-    }
-    lua_pop(L, 1); // [cmd, opts]
-  }
-
-  int status = lfm_execute(lfm, args.data[0], args.data, &env,
-                           send_stdin ? &stdin_lines : NULL,
-                           capture_stdout ? &stdout_lines : NULL,
-                           capture_stderr ? &stderr_lines : NULL);
-
-  vec_env_drop(&env);
-  vec_str_drop(&args);
-  vec_bytes_drop(&stdin_lines);
-
-  if (status < 0) {
-    vec_bytes_drop(&stdout_lines);
-    vec_bytes_drop(&stderr_lines);
-    lua_pushnil(L);
-    // not sure if something even sets errno
-    lua_pushstring(L, strerror(errno));
-    return 2;
-  } else {
-    lua_createtable(L, 0, 4);
-    lua_pushnumber(L, status);
-    lua_setfield(L, -2, "status");
-
-    if (capture_stdout) {
-      lua_push_vec_bytes(L, &stdout_lines);
-      lua_setfield(L, -2, "stdout");
-      vec_bytes_drop(&stdout_lines);
-    }
-
-    if (capture_stderr) {
-      lua_push_vec_bytes(L, &stderr_lines);
-      lua_setfield(L, -2, "stderr");
-      vec_bytes_drop(&stderr_lines);
-    }
-
-    return 1;
-  }
 }
 
 static int l_thread(lua_State *L) {
