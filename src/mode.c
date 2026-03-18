@@ -50,6 +50,10 @@ void lfm_modes_deinit(Lfm *lfm) {
   hmap_modes_drop(&lfm->modes);
 }
 
+bool lfm_mode_exists(Lfm *lfm, zsview name) {
+  return hmap_modes_contains(&lfm->modes, name);
+}
+
 static void normal_on_enter(Lfm *lfm) {
   cmdline_clear(&lfm->ui.cmdline);
 }
@@ -64,7 +68,7 @@ static void visual_on_exit(Lfm *lfm) {
 }
 
 i32 lfm_mode_register(Lfm *lfm, struct mode *mode) {
-  if (hmap_modes_contains(&lfm->modes, cstr_zv(&mode->name))) {
+  if (lfm_mode_exists(lfm, cstr_zv(&mode->name))) {
     return 1;
   }
   // TODO: modes might change when if the table is resized, this dangerous, we

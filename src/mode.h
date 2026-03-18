@@ -77,6 +77,11 @@ void lfm_modes_init(struct Lfm *lfm);
 void lfm_modes_deinit(struct Lfm *lfm);
 
 /*
+ * Check whether a mode exists.
+ */
+bool lfm_mode_exists(struct Lfm *lfm, zsview name);
+
+/*
  * Register a new mode. Returns 1 if a mode with the same name already exists, 0
  * otherwise.
  */

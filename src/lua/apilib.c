@@ -1188,7 +1188,11 @@ static int l_create_mode(lua_State *L) {
   if (lua_isnil(L, -1)) {
     return luaL_error(L, "register_mode: missing field 'name'");
   }
-  mode.name = cstr_from_zv(lua_tozsview(L, -1));
+  zsview name = lua_tozsview(L, -1);
+  if (lfm_mode_exists(lfm, name)) {
+    return luaL_error(L, "register_mode: mode '%s' already exists", name.str);
+  }
+  mode.name = cstr_from_zv(name);
   lua_pop(L, 1);
 
   lua_getfield(L, 1, "input");
@@ -1229,9 +1233,7 @@ static int l_create_mode(lua_State *L) {
   }
   lua_pop(L, 1);
 
-  if (lfm_mode_register(lfm, &mode) != 0) {
-    return luaL_error(L, "mode \"%s\" already exists", mode.name);
-  }
+  lfm_mode_register(lfm, &mode);
 
   return 0;
 }
