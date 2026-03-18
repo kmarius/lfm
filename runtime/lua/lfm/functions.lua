@@ -193,7 +193,7 @@ function M.follow_link()
 		error(err)
 	end
 	api.chdir(fs.dirname(target), true)
-	api.fm_sel(fs.basename(target) --[[@as string]])
+	api.select(fs.basename(target) --[[@as string]])
 end
 
 -- TODO: this is useful, expose it somewhere (on 2022-03-11)

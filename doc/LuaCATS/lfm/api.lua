@@ -1187,3 +1187,14 @@ function lfm.api.add_hook(name, f) end
 ---
 ---@param id integer
 function lfm.api.del_hook(id) end
+
+---
+---Move the cursor to a file in the current directory.
+---
+---Example:
+---```lua
+---  lfm.api.select("file.txt")
+---```
+---
+---@param name string
+function lfm.api.select(name) end

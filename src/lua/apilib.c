@@ -386,7 +386,7 @@ static int l_fm_load(lua_State *L) {
   return 0;
 }
 
-static int l_fm_sel(lua_State *L) {
+static int l_select(lua_State *L) {
   fm_move_cursor_to(fm, luaL_checkzsview(L, 1));
   ui_update_file_preview(ui);
   ui_redraw(ui, REDRAW_FM);
@@ -883,7 +883,7 @@ static const struct luaL_Reg fm_funcs[] = {
     {"fm_scroll_down",      l_fm_scroll_down             },
     {"fm_scroll_up",        l_fm_scroll_up               },
     {"sort",                l_fm_sort                    },
-    {"fm_sel",              l_fm_sel                     },
+    {"select",              l_select                     },
     {"set_info",            l_fm_set_info                },
     {"fm_get_info",         l_fm_get_info                },
     {"set_flatten_level",   l_set_flatten_level          },
