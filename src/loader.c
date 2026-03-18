@@ -5,6 +5,7 @@
 #include "dir.h"
 #include "hooks.h"
 #include "lfm.h"
+#include "loop.h"
 #include "path.h"
 #include "preview.h"
 #include "stc/common.h"
@@ -90,7 +91,7 @@ static inline void schedule_dir_load(Loader *loader, Dir *dir, u64 time) {
                                                   });
   ev_timer_init(&timer->watcher, dir_timer_cb, 0,
                 (time - current_millis()) / 1000.);
-  ev_timer_again(lfm->loop, &timer->watcher);
+  ev_timer_again(event_loop, &timer->watcher);
   dir->next_scheduled_load = time;
   dir->next_requested_load = 0;
   dir->scheduled = true;
@@ -106,7 +107,7 @@ static inline void schedule_preview_load(Loader *loader, Preview *pv,
                                                       });
   ev_timer_init(&timer->watcher, pv_timer_cb, 0,
                 (time - current_millis()) / 1000.);
-  ev_timer_again(lfm->loop, &timer->watcher);
+  ev_timer_again(event_loop, &timer->watcher);
 }
 
 void loader_dir_reload(Loader *loader, Dir *dir) {
@@ -266,7 +267,7 @@ void loader_drop_preview_cache(Loader *loader) {
   loader->preview_cache_version++;
   previewcache_clear(&loader->pc);
   c_foreach(it, list_loader_timer, loader->preview_timers) {
-    ev_timer_stop(to_lfm(loader)->loop, &it.ref->watcher);
+    ev_timer_stop(event_loop, &it.ref->watcher);
   }
   list_loader_timer_clear(&loader->preview_timers);
 }
@@ -275,7 +276,7 @@ void loader_drop_dir_cache(Loader *loader) {
   loader->dir_cache_version++;
   dircache_clear(&loader->dc);
   c_foreach(it, list_loader_timer, loader->dir_timers) {
-    ev_timer_stop(to_lfm(loader)->loop, &it.ref->watcher);
+    ev_timer_stop(event_loop, &it.ref->watcher);
   }
   list_loader_timer_clear(&loader->dir_timers);
 }
@@ -284,14 +285,14 @@ void loader_reschedule(Loader *loader) {
   set_dir dirs = set_dir_init();
   c_foreach(it, list_loader_timer, loader->dir_timers) {
     set_dir_insert(&dirs, it.ref->dir);
-    ev_timer_stop(to_lfm(loader)->loop, &it.ref->watcher);
+    ev_timer_stop(event_loop, &it.ref->watcher);
   }
   list_loader_timer_clear(&loader->dir_timers);
 
   set_preview previews = set_preview_init();
   c_foreach(it, list_loader_timer, loader->preview_timers) {
     set_preview_insert(&previews, it.ref->preview);
-    ev_timer_stop(to_lfm(loader)->loop, &it.ref->watcher);
+    ev_timer_stop(event_loop, &it.ref->watcher);
   }
   list_loader_timer_clear(&loader->preview_timers);
 

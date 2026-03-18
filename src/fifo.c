@@ -3,6 +3,7 @@
 #include "config.h"
 #include "lfm.h"
 #include "log.h"
+#include "loop.h"
 
 #include <errno.h>
 #include <ev.h>
@@ -32,7 +33,7 @@ i32 fifo_init(Lfm *lfm) {
 
   ev_io_init(&fifo_watcher, fifo_cb, fifo_fd, EV_READ);
   fifo_watcher.data = lfm;
-  ev_io_start(lfm->loop, &fifo_watcher);
+  ev_io_start(event_loop, &fifo_watcher);
 
   return 0;
 }

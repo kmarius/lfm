@@ -3,6 +3,7 @@
 #include "defs.h"
 #include "lfm.h"
 #include "log.h"
+#include "loop.h"
 #include "stc/cstr.h"
 #include "ui.h"
 
@@ -40,7 +41,7 @@ void async_init(Async *async) {
   pthread_mutex_init(&async->queue.mutex, NULL);
 
   ev_async_init(&async->result_watcher, async_result_cb);
-  ev_async_start(to_lfm(async)->loop, &async->result_watcher);
+  ev_async_start(event_loop, &async->result_watcher);
 
   if (pthread_mutex_init(&async->queue.mutex, NULL) != 0) {
     log_error("pthread_mutex_init: %s", strerror(errno));

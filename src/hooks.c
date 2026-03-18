@@ -2,7 +2,6 @@
 
 #include "defs.h"
 #include "lfm.h"
-#include "log.h"
 #include "lua/lfmlua.h"
 
 #include <lauxlib.h>

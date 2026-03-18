@@ -40,7 +40,6 @@ typedef struct Lfm {
   Notify notify;
   Loader loader;
   Async async;
-  struct ev_loop *loop;
 
   lua_State *L;
 

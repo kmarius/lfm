@@ -8,6 +8,7 @@
 #include "keys.h"
 #include "lfm.h"
 #include "log.h"
+#include "loop.h"
 #include "lua/lfmlua.h"
 #include "macro.h"
 #include "mode.h"
@@ -50,17 +51,17 @@ void input_init(Lfm *lfm) {
 void input_deinit(Lfm *lfm) {
   macros_deinit();
   vec_input_drop(&lfm->ui.maps.seq);
-  ev_timer_stop(lfm->loop, &lfm->ui.map_clear_timer);
+  ev_timer_stop(event_loop, &lfm->ui.map_clear_timer);
 }
 
 void input_resume(Lfm *lfm) {
   ev_io_init(&lfm->ui.input_watcher, stdin_cb,
              notcurses_inputready_fd(lfm->ui.nc), EV_READ);
-  ev_io_start(lfm->loop, &lfm->ui.input_watcher);
+  ev_io_start(event_loop, &lfm->ui.input_watcher);
 }
 
 void input_suspend(Lfm *lfm) {
-  ev_io_stop(lfm->loop, &lfm->ui.input_watcher);
+  ev_io_stop(event_loop, &lfm->ui.input_watcher);
 }
 
 i32 input_map(Trie *trie, zsview keys, i32 ref, zsview desc, i32 *out_ref) {
@@ -133,7 +134,7 @@ static inline void input_clear(Lfm *lfm) {
 
 void input_buffer_add(struct Lfm *lfm, input_t in) {
   queue_input_push(&lfm->ui.input_buffer, in);
-  ev_idle_start(lfm->loop, &lfm->ui.input_buffer_watcher);
+  ev_idle_start(event_loop, &lfm->ui.input_buffer_watcher);
 }
 
 static void input_buffer_cb(EV_P_ ev_idle *w, i32 revents) {
@@ -158,8 +159,8 @@ void input_handle_key(Lfm *lfm, input_t in) {
     return;
   }
 
-  ev_timer_stop(lfm->loop, &lfm->ui.map_clear_timer);
-  ev_timer_stop(lfm->loop, &lfm->ui.map_suggestion_timer);
+  ev_timer_stop(event_loop, &lfm->ui.map_clear_timer);
+  ev_timer_stop(event_loop, &lfm->ui.map_suggestion_timer);
   if (lfm->current_mode->is_input) {
     if (!lfm->ui.maps.cur && !lfm->ui.maps.cur_input) {
       // reset the buffer/trie only if no mode map and no input map are possible
@@ -298,11 +299,11 @@ void input_handle_key(Lfm *lfm, input_t in) {
       lfm->ui.maps.accept_count = false;
 
       lfm->ui.map_clear_timer.repeat = (f64)cfg.map_clear_delay / 1000.0;
-      ev_timer_again(lfm->loop, &lfm->ui.map_clear_timer);
+      ev_timer_again(event_loop, &lfm->ui.map_clear_timer);
 
       lfm->ui.map_suggestion_timer.repeat =
           (f64)cfg.map_suggestion_delay / 1000.0;
-      ev_timer_again(lfm->loop, &lfm->ui.map_suggestion_timer);
+      ev_timer_again(event_loop, &lfm->ui.map_suggestion_timer);
     }
   }
 }

@@ -9,6 +9,7 @@
 #include "lfm.h"
 #include "loader.h"
 #include "log.h"
+#include "loop.h"
 #include "notify.h"
 #include "path.h"
 #include "pathlist.h"
@@ -344,9 +345,9 @@ static inline void on_cursor_moved(Fm *fm, bool delay_action) {
     // directory
 
     if (delay_action) {
-      ev_timer_again(to_lfm(fm)->loop, &fm->cursor_resting_timer);
+      ev_timer_again(event_loop, &fm->cursor_resting_timer);
     } else {
-      ev_invoke(to_lfm(fm)->loop, &fm->cursor_resting_timer, 0);
+      ev_invoke(event_loop, &fm->cursor_resting_timer, 0);
     }
   }
 }

@@ -3,6 +3,7 @@
 #include "history.h"
 #include "hooks.h"
 #include "input.h"
+#include "loop.h"
 #include "macro.h"
 #include "path.h"
 #include "search.h"
@@ -973,7 +974,7 @@ static int l_ui_redraw(lua_State *L) {
   if (luaL_optbool(L, 1, false)) {
     ui_redraw(ui, REDRAW_FULL);
   }
-  ev_idle_start(lfm->loop, &ui->redraw_watcher);
+  ev_idle_start(event_loop, &ui->redraw_watcher);
   return 0;
 }
 

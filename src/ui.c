@@ -15,6 +15,7 @@
 #include "lfm.h"
 #include "loader.h"
 #include "log.h"
+#include "loop.h"
 #include "mode.h"
 #include "ncutil.h"
 #include "preview.h"
@@ -89,7 +90,7 @@ static inline void clear_pane(struct ncplane *n) {
 void ui_init(Ui *ui) {
   ev_idle_init(&ui->redraw_watcher, redraw_cb);
   ui->redraw_watcher.data = ui;
-  ev_idle_start(to_lfm(ui)->loop, &ui->redraw_watcher);
+  ev_idle_start(event_loop, &ui->redraw_watcher);
 
   ev_timer_init(&ui->preview_load_timer, on_cursor_resting, 0,
                 cfg.preview_delay / 1000.0);
@@ -399,16 +400,15 @@ void ui_display_message(Ui *ui, struct message msg) {
 
   ui->show_message = true;
 
-  struct ev_loop *loop = to_lfm(ui)->loop;
   if (msg.timeout > 0) {
     ev_timer_set(&ui->message_clear_timer, 0.0, (f64)msg.timeout / 1000.0);
-    ev_timer_again(loop, &ui->message_clear_timer);
+    ev_timer_again(event_loop, &ui->message_clear_timer);
   } else {
-    ev_timer_stop(loop, &ui->message_clear_timer);
+    ev_timer_stop(event_loop, &ui->message_clear_timer);
   }
 
   ui_redraw(ui, REDRAW_CMDLINE);
-  ev_idle_start(loop, &ui->redraw_watcher);
+  ev_idle_start(event_loop, &ui->redraw_watcher);
 }
 
 static void message_clear_timer_cb(EV_P_ ev_timer *w, i32 revents) {
@@ -478,8 +478,7 @@ static void menu_resize(Ui *ui) {
 }
 
 void ui_menu_show(Ui *ui, vec_cstr *vec, u32 delay) {
-  struct ev_loop *loop = to_lfm(ui)->loop;
-  ev_timer_stop(EV_A_ & ui->menu_delay_timer);
+  ev_timer_stop(event_loop, &ui->menu_delay_timer);
   if (!vec_cstr_is_empty(&ui->menubuf)) {
     ncplane_erase(ui->planes.menu);
     ncplane_move_bottom(ui->planes.menu);
@@ -491,9 +490,9 @@ void ui_menu_show(Ui *ui, vec_cstr *vec, u32 delay) {
 
     if (delay > 0) {
       ui->menu_delay_timer.repeat = (f64)delay / 1000.0;
-      ev_timer_again(EV_A_ & ui->menu_delay_timer);
+      ev_timer_again(event_loop, &ui->menu_delay_timer);
     } else {
-      ev_invoke(EV_A_ & ui->menu_delay_timer, 0);
+      ev_invoke(event_loop, &ui->menu_delay_timer, 0);
     }
   }
   if (!vec_cstr_is_empty(&ui->menubuf)) {
@@ -1057,9 +1056,9 @@ static inline void on_cursor_moved(Ui *ui, bool delay_action) {
 
   ui->preview.hidden = delay_action;
   if (delay_action) {
-    ev_timer_again(to_lfm(ui)->loop, &ui->preview_load_timer);
+    ev_timer_again(event_loop, &ui->preview_load_timer);
   } else {
-    ev_invoke(to_lfm(ui)->loop, &ui->preview_load_timer, 0);
+    ev_invoke(event_loop, &ui->preview_load_timer, 0);
   }
 }
 
@@ -1137,7 +1136,7 @@ void ui_start_loading_indicator_timer(Ui *ui) {
       ui->loading_indicator_timer.data = ui;
       ev_timer_init(&ui->loading_indicator_timer, loading_indicator_timer_cb, 0,
                     delay);
-      ev_timer_again(to_lfm(ui)->loop, &ui->loading_indicator_timer);
+      ev_timer_again(event_loop, &ui->loading_indicator_timer);
     }
   }
 }

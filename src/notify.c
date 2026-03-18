@@ -6,6 +6,7 @@
 #include "lfm.h"
 #include "loader.h"
 #include "log.h"
+#include "loop.h"
 #include "util.h"
 
 #include <ev.h>
@@ -52,7 +53,7 @@ bool notify_init(Notify *notify) {
   ev_io_init(&notify->watcher, inotify_cb, notify->inotify_fd, EV_READ);
   Lfm *lfm = to_lfm(notify);
   notify->watcher.data = lfm;
-  ev_io_start(lfm->loop, &notify->watcher);
+  ev_io_start(event_loop, &notify->watcher);
 
   return true;
 }

@@ -4,10 +4,10 @@
 
 struct Ui;
 
-void infoline_init(struct Ui *ui);
+void infoline_init();
 
 // needs to be called after suspending the ui
-void infoline_suspend(struct Ui *ui);
+void infoline_suspend();
 
 void infoline_parse(zsview infoline);
 

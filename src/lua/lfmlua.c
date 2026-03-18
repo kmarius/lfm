@@ -3,6 +3,7 @@
 #include "config.h"
 #include "lfmlib.h"
 #include "log.h"
+#include "loop.h"
 #include "private.h"
 #include "profiling.h"
 
@@ -259,7 +260,7 @@ void lfm_lua_init(Lfm *lfm_) {
 
   lua_State *L = luaL_newstate();
   lfm->L = L;
-  ev_set_userdata(lfm->loop, lfm->L);
+  ev_set_userdata(event_loop, lfm->L);
 
   luaL_openlibs(L);
   luaopen_jit(L);

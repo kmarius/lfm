@@ -165,43 +165,38 @@ static inline void setup_signal_handlers(Lfm *lfm) {
   // runs the LfmEnter hook
   ev_prepare_init(&lfm->prepare_watcher, prepare_cb);
   lfm->prepare_watcher.data = lfm;
-  ev_prepare_start(lfm->loop, &lfm->prepare_watcher);
+  ev_prepare_start(event_loop, &lfm->prepare_watcher);
 
 #ifndef NDEBUG
   ev_prepare_init(&lfm->check_watcher, check_cb);
   lfm->check_watcher.data = lfm;
-  ev_check_start(lfm->loop, &lfm->check_watcher);
+  ev_check_start(event_loop, &lfm->check_watcher);
 #endif
 
   // Catch some signals
   ev_signal_init(&lfm->sigint_watcher, sigint_cb, SIGINT);
   lfm->sigint_watcher.data = lfm;
-  ev_signal_start(lfm->loop, &lfm->sigint_watcher);
+  ev_signal_start(event_loop, &lfm->sigint_watcher);
 
   ev_signal_init(&lfm->sigwinch_watcher, sigwinch_cb, SIGWINCH);
   lfm->sigwinch_watcher.data = lfm;
-  ev_signal_start(lfm->loop, &lfm->sigwinch_watcher);
+  ev_signal_start(event_loop, &lfm->sigwinch_watcher);
 
   ev_signal_init(&lfm->sigterm_watcher, sigterm_cb, SIGTERM);
   lfm->sigterm_watcher.data = lfm;
-  ev_signal_start(lfm->loop, &lfm->sigterm_watcher);
+  ev_signal_start(event_loop, &lfm->sigterm_watcher);
 
   ev_signal_init(&lfm->sighup_watcher, sighup_cb, SIGHUP);
   lfm->sighup_watcher.data = lfm;
-  ev_signal_start(lfm->loop, &lfm->sighup_watcher);
+  ev_signal_start(event_loop, &lfm->sighup_watcher);
 
   ev_signal_init(&lfm->sigpipe_watcher, sigpipe_cb, SIGPIPE);
   lfm->sigpipe_watcher.data = lfm;
-  ev_signal_start(lfm->loop, &lfm->sigpipe_watcher);
+  ev_signal_start(event_loop, &lfm->sigpipe_watcher);
 
   ev_signal_init(&lfm->sigtstp_watcher, sigtstp_cb, SIGTSTP);
   lfm->sigtstp_watcher.data = lfm;
-  ev_signal_start(lfm->loop, &lfm->sigtstp_watcher);
-}
-
-static inline void init_loop(Lfm *lfm) {
-  event_loop = ev_default_loop(EVFLAG_NOENV);
-  lfm->loop = event_loop;
+  ev_signal_start(event_loop, &lfm->sigtstp_watcher);
 }
 
 void lfm_init(Lfm *lfm, struct lfm_opts *opts) {
@@ -210,7 +205,8 @@ void lfm_init(Lfm *lfm, struct lfm_opts *opts) {
 
   setpwd(getenv("PWD"));
 
-  init_loop(lfm);
+  event_loop = ev_default_loop(EVFLAG_NOENV);
+
   init_dirs(lfm);
   fifo_init(lfm);
 
@@ -250,13 +246,13 @@ void lfm_deinit(Lfm *lfm) {
 }
 
 i32 lfm_run(Lfm *lfm) {
-  ev_run(lfm->loop, 0);
+  ev_run(event_loop, 0);
   return lfm->ret;
 }
 
 void lfm_quit(Lfm *lfm, i32 ret) {
   lfm_run_hook(lfm, LFM_HOOK_EXITPRE, ret);
-  ev_break(lfm->loop, EVBREAK_ALL);
+  ev_break(event_loop, EVBREAK_ALL);
   // prevent lua error from flashing in the UI, we use it to immediately give
   // back control to the host program.
   lfm->ui.running = false;
@@ -320,5 +316,5 @@ void lfm_schedule(Lfm *lfm, i32 ref, u32 delay) {
                                              });
   ev_timer_init(&data->watcher, schedule_timer_cb, 1.0 * delay / 1000, 0);
   data->watcher.data = lfm;
-  ev_timer_start(lfm->loop, &data->watcher);
+  ev_timer_start(event_loop, &data->watcher);
 }

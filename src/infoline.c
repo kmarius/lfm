@@ -4,6 +4,7 @@
 #include "defs.h"
 #include "lfm.h"
 #include "log.h"
+#include "loop.h"
 #include "ncutil.h"
 #include "spinner.h"
 #include "ui.h"
@@ -66,7 +67,7 @@ static inline bool should_draw_default() {
   return static_len == 0;
 }
 
-void infoline_init(Ui *ui) {
+void infoline_init() {
   gethostname(host, sizeof host);
   uid = getuid();
   strncpy(user, getenv("USER"), sizeof user - 1);
@@ -82,7 +83,7 @@ void infoline_init(Ui *ui) {
     home_len = mbstowcs(NULL, home, 0);
   }
 
-  spinner_init(&spinner, spinner_chars, to_lfm(ui)->loop);
+  spinner_init(&spinner, spinner_chars, event_loop);
 }
 
 void infoline_parse(zsview infoline) {
@@ -511,7 +512,6 @@ static inline i32 shorten_path(zsview path, char *buf, i32 max_len) {
   return max;
 }
 
-void infoline_suspend(struct Ui *ui) {
-  (void)ui;
+void infoline_suspend() {
   spinner_off(&spinner);
 }

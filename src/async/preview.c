@@ -16,6 +16,7 @@
 #include "lfm.h"
 #include "loader.h"
 #include "log.h"
+#include "loop.h"
 #include "memory.h"
 #include "preview.h"
 #include "stc/cstr.h"
@@ -186,7 +187,7 @@ void async_preview_load(Async *async, Preview *pv) {
 
     // install the child watcher and set up signal
     ev_child_init(&work->watcher, child_exit_cb, pid, 0);
-    ev_child_start(to_lfm(async)->loop, &work->watcher);
+    ev_child_start(event_loop, &work->watcher);
     sem_init(&work->semaphore, 0, 0);
     vec_ev_child_push(&async->previewer_children, &work->watcher);
 

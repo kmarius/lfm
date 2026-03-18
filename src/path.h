@@ -7,7 +7,6 @@
 #include <libgen.h>
 #include <linux/limits.h>
 #include <stdbool.h>
-#include <string.h>
 
 // zvsiew into static buffer
 zsview path_parent_zv(zsview path);
