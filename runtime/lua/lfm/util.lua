@@ -1,6 +1,7 @@
 local M = { _NAME = ... }
 
 local lfm = lfm
+local api = lfm.api
 
 ---
 ---Create a shallow copy of a table.
@@ -147,5 +148,22 @@ local function apply_default_options(opts, dflt)
 	return opts
 end
 M.apply_default_options = apply_default_options
+
+---
+---Get the current selection or file under the cursor.
+---
+---Example:
+---```lua
+---  local files = util.selection()
+---  for i, file in ipairs(files) do
+---    print(i, file)
+---  end
+---```
+---
+---@return string[] selection
+function M.selection()
+	local sel = api.selection_get()
+	return #sel > 0 and sel or { api.current_file() }
+end
 
 return M

@@ -2,6 +2,7 @@ local M = {}
 
 local lfm = lfm
 local api = lfm.api
+local util = lfm.util
 
 -- Trash command, e.g. `{ "trash-put" }`, or `{ "gtrash", "put", "--" }`
 ---@type string[]?
@@ -43,7 +44,7 @@ function M.trash_selection()
 	if not M.command then
 		error("lfm.trash.command not set")
 	end
-	local files = api.fm_sel_or_cur()
+	local files = util.selection()
 	if #files == 0 then
 		error("no files")
 	end

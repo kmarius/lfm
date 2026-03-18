@@ -3,6 +3,7 @@ local M = { _NAME = ... }
 local lfm = lfm
 
 local api = lfm.api
+local util = lfm.util
 
 local stat = require("posix.sys.stat")
 local unistd = require("posix.unistd")
@@ -38,7 +39,7 @@ end
 ---```
 ---
 function M.yank_path()
-	local files = api.fm_sel_or_cur()
+	local files = util.selection()
 	if #files > 0 then
 		wl_copy(files, true)
 	end
@@ -53,7 +54,7 @@ end
 ---```
 ---
 function M.yank_name()
-	local files = api.fm_sel_or_cur()
+	local files = util.selection()
 	if #files > 0 then
 		for i, file in pairs(files) do
 			files[i] = fs.basename(file)

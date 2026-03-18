@@ -4,6 +4,7 @@ M._NAME = ...
 local lfm = lfm
 
 local api = lfm.api
+local util = lfm.util
 
 local config
 
@@ -89,7 +90,7 @@ end
 ---```
 ---
 function M.ask()
-	local file = api.fm_sel_or_cur()[1]
+	local file = util.selection()
 	if file then
 		local menu = {}
 		for _, rule in pairs(M.query(file)) do

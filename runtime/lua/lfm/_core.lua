@@ -386,24 +386,6 @@ api.set_keymap("dm", function()
 	lfm.quickmarks.prompt_delete()
 end, { desc = "Save quickmark" })
 
----
----Get the current selection or file under the cursor.
----
----Example:
----```lua
----  local files = api.fm_sel_or_cur()
----  for i, file in ipairs(files) do
----    print(i, file)
----  end
----```
----
----@return string[] selection
-local function sel_or_cur()
-	local sel = api.selection_get()
-	return #sel > 0 and sel or { api.current_file() }
-end
-api.fm_sel_or_cur = sel_or_cur
-
 api.create_command("quit", quit, { desc = "Quit Lfm" })
 api.create_command("q", quit, { desc = "Quit Lfm" })
 api.create_command(
