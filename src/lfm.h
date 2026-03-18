@@ -47,7 +47,9 @@ typedef struct Lfm {
   struct mode *current_mode;
 
   ev_prepare prepare_watcher;
+#ifndef NDEBUG
   ev_check check_watcher;
+#endif
   ev_signal sigint_watcher;
   ev_signal sigtstp_watcher;
   ev_signal sigwinch_watcher;

@@ -81,12 +81,14 @@ static void prepare_cb(EV_P_ ev_prepare *w, i32 revents) {
   ev_prepare_stop(EV_A_ w);
 }
 
+#ifndef NDEBUG
 static void check_cb(EV_P_ ev_check *w, i32 revents) {
   (void)revents;
   (void)w;
   static i32 count = 0;
   log_trace("ev_loop iteration % 5d", count++);
 }
+#endif
 
 static void sigtstp_cb(EV_P_ ev_signal *w, i32 revents) {
   (void)revents;
