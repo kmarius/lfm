@@ -33,34 +33,7 @@ function M.open(...)
 		end
 		local match = M.query(files[1], { pick = pick, limit = 1 })[1]
 		if match then
-			if match.command == "ask" then
-				api.mode("command")
-				api.cmdline_line_set("shell ", ' "${files[@]}"')
-			elseif match.lfm then
-				local f, err = loadstring(match.command)
-				if not f then
-					error(err)
-				end
-				local res = f(unpack(files))
-				if res then
-					if type(res) == "table" then
-						res = lfm.inspect(res)
-					end
-					print(res)
-				end
-			elseif match.term then
-				local term = M.query_mime("rifle/x-terminal-emulator", { limit = 1 })[1]
-				if not term then
-					error("rifle: no terminal configured" .. (config and " in " .. config or ""))
-				end
-				lfm.spawn({ "sh", "-c", term.command, "_", "sh", "-c", match.command, unpack(files) })
-			else
-				if match.fork then
-					lfm.spawn({ "sh", "-c", match.command, "_", unpack(files) })
-				else
-					lfm.execute({ "sh", "-c", match.command, "_", unpack(files) })
-				end
-			end
+			M.exec(match, files)
 		else
 			if #t > 0 then
 				-- assume arguments are a command
@@ -71,6 +44,37 @@ function M.open(...)
 			else
 				print("no matching rules for " .. lfm.fn.mime(files[1]))
 			end
+		end
+	end
+end
+
+function M.exec(match, files)
+	if match.command == "ask" then
+		api.mode("command")
+		api.cmdline_line_set("shell ", ' "${files[@]}"')
+	elseif match.lfm then
+		local f, err = loadstring(match.command)
+		if not f then
+			error(err)
+		end
+		local res = f(unpack(files))
+		if res then
+			if type(res) == "table" then
+				res = lfm.inspect(res)
+			end
+			print(res)
+		end
+	elseif match.term then
+		local term = M.query_mime("rifle/x-terminal-emulator", { limit = 1 })[1]
+		if not term then
+			error("rifle: no terminal configured" .. (config and " in " .. config or ""))
+		end
+		lfm.spawn({ "sh", "-c", term.command, "_", "sh", "-c", match.command, unpack(files) })
+	else
+		if match.fork then
+			lfm.spawn({ "sh", "-c", match.command, "_", unpack(files) })
+		else
+			lfm.execute({ "sh", "-c", match.command, "_", unpack(files) })
 		end
 	end
 end

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "types/bytes.h"
+
 #define i_header
 #define i_type vec_bytes, struct bytes
 #define i_keyclone bytes_clone

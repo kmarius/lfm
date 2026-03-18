@@ -9,6 +9,7 @@
 #include "input.h"
 #include "loader.h"
 #include "log.h"
+#include "loop.h"
 #include "lua/lfmlua.h"
 #include "mode.h"
 #include "notify.h"
@@ -37,6 +38,8 @@
 #include <sys/socket.h>
 #include <sys/wait.h>
 
+struct ev_loop *event_loop;
+
 struct sched_timer {
   ev_timer watcher;
   i32 ref;
@@ -45,110 +48,6 @@ struct sched_timer {
 #define i_declared
 #define i_type list_timer, struct sched_timer
 #include "stc/dlist.h"
-
-// ev_io wrapper for stdout/stderr
-struct out_watcher {
-  ev_io w;
-  FILE *stream;
-  i32 ref;
-};
-
-// ev_child wrapper for child processes with stdout/err
-struct child_watcher {
-  ev_child w;
-  struct out_watcher wstdout; // valid if .stream != NULL
-  struct out_watcher wstderr; // valid if .stream != NULL
-  i32 ref;                    // ref to lua callback
-};
-
-static inline void destroy_child_watcher(struct child_watcher *w);
-
-#define i_declared
-#define i_type list_child, struct child_watcher
-#define i_keydrop(p) (destroy_child_watcher(p))
-#define i_no_clone
-#include "stc/dlist.h"
-
-// watcher and corresponding stdout/-err watchers need to be stopped before
-// calling this function
-static inline void destroy_child_watcher(struct child_watcher *w) {
-  if (w) {
-    Lfm *lfm = w->w.data;
-    if (w->wstdout.stream) {
-      if (w->wstdout.ref)
-        llua_run_stdout_callback(lfm->L, w->wstdout.ref, NULL, 0);
-      fclose(w->wstdout.stream);
-    }
-    if (w->wstderr.stream) {
-      if (w->wstderr.ref)
-        llua_run_stdout_callback(lfm->L, w->wstderr.ref, NULL, 0);
-      fclose(w->wstderr.stream);
-    }
-  }
-}
-
-static void child_exit_cb(EV_P_ ev_child *w, i32 revents) {
-  (void)revents;
-
-  struct child_watcher *child = (struct child_watcher *)w;
-  Lfm *lfm = w->data;
-
-  if (child->wstdout.stream) {
-    ev_invoke(EV_A_ & child->wstdout.w, 0);
-    ev_io_stop(EV_A_ & child->wstdout.w);
-  }
-
-  if (child->wstderr.stream) {
-    ev_invoke(EV_A_ & child->wstderr.w, 0);
-    ev_io_stop(EV_A_ & child->wstderr.w);
-  }
-
-  if (child->ref) {
-    i32 status;
-    if (WIFSIGNALED(w->rstatus)) {
-      status = 128 + WTERMSIG(w->rstatus);
-    } else {
-      status = WEXITSTATUS(w->rstatus);
-    }
-    llua_run_child_callback(lfm->L, child->ref, status);
-  }
-
-  ev_child_stop(EV_A_ w);
-
-  list_child_erase_node(&lfm->child_watchers, list_child_get_node(child));
-  ev_idle_start(EV_A_ & lfm->ui.redraw_watcher);
-}
-
-static void child_output_cb(EV_P_ ev_io *w, i32 revents) {
-  (void)revents;
-
-  struct out_watcher *data = (struct out_watcher *)w;
-  Lfm *lfm = w->data;
-
-  char *line = NULL;
-  i32 read;
-  usize n;
-
-  while ((read = getline(&line, &n, data->stream)) != -1) {
-    if (line[read - 1] == '\n') {
-      read--;
-    }
-
-    if (data->ref) {
-      llua_run_stdout_callback(lfm->L, data->ref, line, read);
-    } else {
-      lfm_printf(lfm, "%s", line);
-    }
-  }
-  xfree(line);
-
-  // this seems to prevent the callback being immediately called again by libev
-  if (errno == EAGAIN) {
-    clearerr(data->stream);
-  }
-
-  ev_idle_start(EV_A_ & lfm->ui.redraw_watcher);
-}
 
 static void schedule_timer_cb(EV_P_ ev_timer *w, i32 revents) {
   (void)revents;
@@ -303,7 +202,8 @@ static inline void setup_signal_handlers(Lfm *lfm) {
 }
 
 static inline void init_loop(Lfm *lfm) {
-  lfm->loop = ev_default_loop(EVFLAG_NOENV);
+  event_loop = ev_default_loop(EVFLAG_NOENV);
+  lfm->loop = event_loop;
 }
 
 void lfm_init(Lfm *lfm, struct lfm_opts *opts) {
@@ -336,7 +236,6 @@ void lfm_init(Lfm *lfm, struct lfm_opts *opts) {
 
 void lfm_deinit(Lfm *lfm) {
   lfm_modes_deinit(lfm);
-  list_child_drop(&lfm->child_watchers);
   list_timer_drop(&lfm->schedule_timers);
   notify_deinit(&lfm->notify);
   ui_deinit(&lfm->ui);
@@ -379,171 +278,6 @@ void lfm_on_resize(Lfm *lfm) {
   ui_on_resize(&lfm->ui);
   fm_on_resize(&lfm->fm, lfm->ui.y - 2);
   lfm_run_hook(lfm, LFM_HOOK_RESIZED);
-}
-
-static void init_io_watcher(struct out_watcher *data, Lfm *lfm, i32 fd,
-                            i32 ref) {
-  if (fd == -1) {
-    return;
-  }
-
-  FILE *file = fdopen(fd, "r");
-  if (file == NULL) {
-    log_error("fdopen: %s", strerror(errno));
-    close(fd);
-    return;
-  }
-
-  i32 flags = fcntl(fd, F_GETFL, 0);
-  fcntl(fd, F_SETFL, flags | O_NONBLOCK);
-
-  data->w.data = lfm;
-  data->stream = file;
-  data->ref = ref;
-
-  ev_io_init(&data->w, child_output_cb, fd, EV_READ);
-  ev_io_start(lfm->loop, &data->w);
-}
-
-// spawn a background program
-i32 lfm_spawn(Lfm *lfm, const char *prog, char *const *args, vec_env *env,
-              const vec_bytes *stdin_data, i32 *stdin_fd, bool capture_stdout,
-              bool capture_stderr, i32 stdout_ref, i32 stderr_ref, i32 exit_ref,
-              zsview working_directory) {
-
-  bool send_stdin = stdin_data != NULL || stdin_fd != NULL;
-  capture_stdout |= stdout_ref != 0;
-  capture_stderr |= stderr_ref != 0;
-
-  i32 pipe_stdin[2];
-  i32 pipe_stdout[2];
-  i32 pipe_stderr[2];
-
-  if (send_stdin) {
-    pipe(pipe_stdin);
-  }
-  if (capture_stdout) {
-    pipe(pipe_stdout);
-  }
-  if (capture_stderr) {
-    pipe(pipe_stderr);
-  }
-
-  i32 pid = fork();
-  if (unlikely(pid < 0)) {
-    if (send_stdin) {
-      close(pipe_stdin[0]);
-      close(pipe_stdin[1]);
-    }
-    if (capture_stdout) {
-      close(pipe_stdout[0]);
-      close(pipe_stdout[1]);
-    }
-    if (capture_stderr) {
-      close(pipe_stderr[0]);
-      close(pipe_stderr[1]);
-    }
-    lfm_errorf(lfm, "fork: %s", strerror(errno));
-    return -1;
-  }
-
-  if (pid == 0) {
-    // child
-
-    c_foreach(n, vec_env, cfg.extra_env) {
-      vec_env_raw v = vec_env_value_toraw(n.ref);
-      setenv(v.key, v.val, 1);
-    }
-
-    if (env) {
-      c_foreach(n, vec_env, *env) {
-        vec_env_raw v = vec_env_value_toraw(n.ref);
-        setenv(v.key, v.val, 1);
-      }
-    }
-
-    if (send_stdin) {
-      close(pipe_stdin[1]);
-      dup2(pipe_stdin[0], 0);
-      close(pipe_stdin[0]);
-    }
-
-    if (capture_stdout) {
-      close(pipe_stdout[0]);
-      dup2(pipe_stdout[1], 1);
-      close(pipe_stdout[1]);
-    } else {
-      i32 devnull = open("/dev/null", O_WRONLY | O_CREAT, 0666);
-      dup2(devnull, 1);
-      close(devnull);
-    }
-
-    if (capture_stderr) {
-      close(pipe_stderr[0]);
-      dup2(pipe_stderr[1], 2);
-      close(pipe_stderr[1]);
-    } else {
-      i32 devnull = open("/dev/null", O_WRONLY | O_CREAT, 0666);
-      dup2(devnull, 2);
-      close(devnull);
-    }
-
-    if (!zsview_is_empty(working_directory)) {
-      if (chdir(working_directory.str) != 0) {
-        if (capture_stderr) {
-          char buf[128];
-          i32 len = snprintf(buf, sizeof buf - 1, "chdir: %s", strerror(errno));
-          write(2, buf, len);
-        }
-        _exit(1);
-      }
-    }
-
-    execvp(prog, (char **)args);
-    log_error("execvp: %s", strerror(errno));
-    if (capture_stderr) {
-      char buf[128];
-      i32 len = snprintf(buf, sizeof buf - 1, "execvp: %s", strerror(errno));
-      write(2, buf, len);
-    }
-    _exit(ENOSYS);
-  }
-
-  if (exit_ref != 0 || capture_stdout || capture_stderr) {
-    struct child_watcher *data =
-        list_child_push(&lfm->child_watchers, (struct child_watcher){
-                                                  .ref = exit_ref,
-                                              });
-    if (capture_stdout) {
-      close(pipe_stdout[1]);
-      init_io_watcher(&data->wstdout, lfm, pipe_stdout[0], stdout_ref);
-    }
-    if (capture_stderr) {
-      close(pipe_stderr[1]);
-      init_io_watcher(&data->wstderr, lfm, pipe_stderr[0], stderr_ref);
-    }
-    ev_child_init(&data->w, child_exit_cb, pid, 0);
-    data->w.data = lfm;
-    ev_child_start(lfm->loop, &data->w);
-  }
-
-  if (send_stdin) {
-    close(pipe_stdin[0]);
-    if (stdin_data) {
-      // TODO: this will block if the process doesn't read its input in a
-      // timely manner. We really should do this in an io watcher.
-      c_foreach(it, vec_bytes, *stdin_data) {
-        write(pipe_stdin[1], it.ref->buf, it.ref->size);
-      }
-    }
-    if (stdin_fd) {
-      *stdin_fd = pipe_stdin[1];
-    } else {
-      close(pipe_stdin[1]);
-    }
-  }
-
-  return pid;
 }
 
 // execute a foreground program

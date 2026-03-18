@@ -24,6 +24,8 @@ void lfm_lua_init_thread(lua_State *L);
 
 void lfm_lua_deinit(struct Lfm *lfm);
 
+void destroy_child_watchers();
+
 int llua_pcall(lua_State *L, int nargs, int nresults);
 
 // Evaluate an expr, which is either a chunk of lua code or a registered command

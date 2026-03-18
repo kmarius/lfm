@@ -20,7 +20,6 @@
 
 declare_vec(vec_hook_change, struct hook_change);
 declare_dlist(list_timer, struct sched_timer);
-declare_dlist(list_child, struct child_watcher);
 struct vec_str;
 struct vec_env;
 struct vec_bytes;
@@ -59,7 +58,6 @@ typedef struct Lfm {
   ev_signal sigpipe_watcher;
 
   list_timer schedule_timers;
-  list_child child_watchers;
 
   // We can not make changes to hooks while in a hook callback.
   // Hence, all changes are collected and processed afterwards.
