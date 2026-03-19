@@ -2,7 +2,7 @@ local M = { _NAME = ... }
 
 local lfm = lfm
 
-local util = lfm.util
+local util = require("lfm.util")
 
 ---@enum Lfm.Shell.FilesVia
 local FilesVia = {
@@ -96,7 +96,7 @@ do
 		local cmd = { "sh", "-c", command }
 		if opts.files_via == ARGV then
 			cmd[#cmd + 1] = "_"
-			for _, file in ipairs(util.selection()()) do
+			for _, file in ipairs(util.selection()) do
 				cmd[#cmd + 1] = file
 			end
 		elseif opts.files_via == ARRAY then
@@ -132,7 +132,7 @@ do
 		local cmd = { "sh", "-c", command }
 		if opts.files_via == ARGV then
 			cmd[#cmd + 1] = "_"
-			for _, file in ipairs(util.selection()()) do
+			for _, file in ipairs(util.selection()) do
 				cmd[#cmd + 1] = file
 			end
 		elseif opts.files_via == ARRAY then
@@ -206,12 +206,12 @@ do
 		local cmd = { "bash", "-c", command }
 		if opts.files_via == ARGV then
 			cmd[#cmd + 1] = "_"
-			for _, file in ipairs(util.selection()()) do
+			for _, file in ipairs(util.selection()) do
 				cmd[#cmd + 1] = file
 			end
 		else
 			if opts.files_via == ARRAY then
-				cmd[3] = string.format("files=(%s); %s", escape(util.selection()()), command)
+				cmd[3] = string.format("files=(%s); %s", escape(util.selection()), command)
 			end
 			local n = select("#", ...)
 			if n > 0 then
@@ -243,12 +243,12 @@ do
 		local cmd = { "bash", "-c", command }
 		if opts.files_via == ARGV then
 			cmd[#cmd + 1] = "_"
-			for _, file in ipairs(util.selection()()) do
+			for _, file in ipairs(util.selection()) do
 				cmd[#cmd + 1] = file
 			end
 		else
 			if opts.files_via == ARRAY then
-				cmd[3] = string.format("files=(%s); %s", escape(util.selection()()), command)
+				cmd[3] = string.format("files=(%s); %s", escape(util.selection()), command)
 			end
 			local n = select("#", ...)
 			if n > 0 then
@@ -317,13 +317,13 @@ do
 		local cmd = { "fish", "-c", command }
 		if opts.files_via == ARGV then
 			cmd[#cmd + 1] = "_"
-			for _, file in ipairs(util.selection()()) do
+			for _, file in ipairs(util.selection()) do
 				cmd[#cmd + 1] = file
 			end
 		else
 			if opts.files_via == ARRAY then
 				table.insert(cmd, 2, "-c")
-				table.insert(cmd, 2, "set files " .. escape(util.selection()()))
+				table.insert(cmd, 2, "set files " .. escape(util.selection()))
 			end
 			local n = select("#", ...)
 			if n > 0 then
@@ -355,13 +355,13 @@ do
 		local cmd = { "fish", "-c", command }
 		if opts.files_via == ARGV then
 			cmd[#cmd + 1] = "--"
-			for _, file in ipairs(util.selection()()) do
+			for _, file in ipairs(util.selection()) do
 				cmd[#cmd + 1] = file
 			end
 		else
 			if opts.files_via == ARRAY then
 				table.insert(cmd, 2, "-c")
-				table.insert(cmd, 2, "set files " .. escape(util.selection()()))
+				table.insert(cmd, 2, "set files " .. escape(util.selection()))
 			end
 			local n = select("#", ...)
 			if n > 0 then
