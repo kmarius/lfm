@@ -469,6 +469,7 @@ static int l_rifle_query_mime(lua_State *L) {
 }
 
 static int l_rifle_query(lua_State *L) {
+  log_debug("query");
   Rifle *rifle = lua_touserdata(L, lua_upvalueindex(1));
 
   zsview file = luaL_checkzsview(L, 1);
@@ -627,12 +628,12 @@ static int l_rifle_gc(lua_State *L) {
 }
 
 static const luaL_Reg rifle_lib[] = {
-    {"fileinfo",   l_rifle_fileinfo  },
-    {"nrules",     l_rifle_nrules    },
-    {"query",      l_rifle_query     },
-    {"query_mime", l_rifle_query_mime},
-    {"setup",      l_rifle_setup     },
-    {NULL,         NULL              },
+    {"_fileinfo",   l_rifle_fileinfo  },
+    {"_nrules",     l_rifle_nrules    },
+    {"_query",      l_rifle_query     },
+    {"_query_mime", l_rifle_query_mime},
+    {"_setup",      l_rifle_setup     },
+    {NULL,          NULL              },
 };
 
 int luaopen_rifle(lua_State *L) {
