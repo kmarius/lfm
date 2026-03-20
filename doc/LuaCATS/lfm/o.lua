@@ -10,12 +10,12 @@
 ---@alias Lfm.Color string|integer
 
 ---@class Lfm.ColorPair
----@field fg Lfm.Color
----@field bg Lfm.Color
+---@field fg? Lfm.Color
+---@field bg? Lfm.Color
 
 ---@class Lfm.ExtColor
 ---@field ext string[]
----@field color Lfm.ColorPair
+---@field color? Lfm.ColorPair nil removes from the map
 
 ---@class Lfm.Colors
 ---@field patterns Lfm.ExtColor[]
