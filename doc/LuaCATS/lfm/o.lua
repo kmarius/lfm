@@ -26,7 +26,7 @@
 ---@field exec Lfm.ColorPair
 ---@field search Lfm.ColorPair
 ---@field normal Lfm.ColorPair
----@field current Lfm.ColorPair
+---@field current Lfm.Color
 
 ---@class Lfm.Options
 ---@field timefmt string Time format used to print dates for file info (default: "%Y-%m-%d %H:%M")

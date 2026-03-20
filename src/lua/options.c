@@ -414,6 +414,22 @@ static inline u32 read_channel(lua_State *L, int idx) {
   }
 }
 
+static inline void push_channel(lua_State *L, u32 channel) {
+  if (channel & NC_BG_PALETTE) {
+    lua_pushfstring(L, "%d", channel & 0xFF);
+  } else {
+    lua_pushinteger(L, channel & 0xFFFFFF);
+  }
+}
+
+static inline void push_channels(lua_State *L, u64 channels) {
+  lua_createtable(L, 0, 2);
+  push_channel(L, channels);
+  lua_setfield(L, -2, "fg");
+  push_channel(L, channels >> 32);
+  lua_setfield(L, -2, "bg");
+}
+
 static inline u64 read_color_pair(lua_State *L, int ind) {
   u32 fg, bg = fg = 0;
   ncchannel_set_default(&fg);
@@ -432,6 +448,44 @@ static inline u64 read_color_pair(lua_State *L, int ind) {
   lua_pop(L, 1);
 
   return ncchannels_combine(fg, bg);
+}
+
+static int l_colors_index(lua_State *L) {
+  const char *key = luaL_checkstring(L, 2);
+  if (streq(key, "copy")) {
+    if (lua_istable(L, 3)) {
+      push_channels(L, cfg.colors.copy);
+    }
+  } else if (streq(key, "delete")) {
+    if (lua_istable(L, 3)) {
+      push_channels(L, cfg.colors.delete);
+    }
+  } else if (streq(key, "dir")) {
+    if (lua_istable(L, 3)) {
+      push_channels(L, cfg.colors.dir);
+    }
+  } else if (streq(key, "broken")) {
+    if (lua_istable(L, 3)) {
+      push_channels(L, cfg.colors.broken);
+    }
+  } else if (streq(key, "exec")) {
+    if (lua_istable(L, 3)) {
+      push_channels(L, cfg.colors.exec);
+    }
+  } else if (streq(key, "search")) {
+    if (lua_istable(L, 3)) {
+      push_channels(L, cfg.colors.search);
+    }
+  } else if (streq(key, "normal")) {
+    push_channels(L, cfg.colors.normal);
+  } else if (streq(key, "current")) {
+    push_channel(L, cfg.colors.current);
+  } else if (streq(key, "patterns")) {
+    return luaL_error(L, "not implemented");
+  } else {
+    return luaL_error(L, "unexpected key %s", key);
+  }
+  return 1;
 }
 
 static int l_colors_newindex(lua_State *L) {
@@ -490,6 +544,7 @@ static int l_colors_newindex(lua_State *L) {
 
 static const struct luaL_Reg colors_mt[] = {
     {"__newindex", l_colors_newindex},
+    {"__index",    l_colors_index   },
     {NULL,         NULL             },
 };
 
