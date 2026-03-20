@@ -464,7 +464,7 @@ api.create_command("delete", function(args)
 	if args then
 		error("command takes no arguments")
 	end
-	spawn({ "rm", "-rf", "--", unpack(sel_or_cur()) }, { on_stderr = true })
+	spawn({ "rm", "-rf", "--", unpack(util.selection()) }, { on_stderr = true })
 	api.selection_set()
 end, { desc = "Delete current selection without asking for confirmation." })
 
