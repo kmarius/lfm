@@ -44,12 +44,9 @@ void input_init(Lfm *lfm) {
 
   ev_timer_init(&lfm->ui.map_suggestion_timer, map_suggestion_timer_cb, 0, 0);
   lfm->ui.map_suggestion_timer.data = lfm;
-
-  macros_init();
 }
 
 void input_deinit(Lfm *lfm) {
-  macros_deinit();
   vec_input_drop(&lfm->ui.maps.seq);
   ev_timer_stop(event_loop, &lfm->ui.map_clear_timer);
 }

@@ -402,10 +402,20 @@ static const struct luaL_Reg options_mt[] = {
     {NULL,         NULL             },
 };
 
+static inline u32 read_channel(lua_State *L, int idx) {
+  switch (lua_type(L, idx)) {
+  case LUA_TSTRING:
+    return NCCHANNEL_INITIALIZER_PALINDEX(lua_tointeger(L, idx));
+  case LUA_TNUMBER:
+    return NCCHANNEL_INITIALIZER_HEX(lua_tointeger(L, idx));
+  default:
+    luaL_typerror(L, idx, "string or number required");
+    return 0;
+  }
+}
+
 static inline void push_channel(lua_State *L, u32 channel) {
-  if (!(channel & NC_BGDEFAULT_MASK)) {
-    lua_pushnil(L);
-  } else if (channel & NC_BG_PALETTE) {
+  if (channel & NC_BG_PALETTE) {
     lua_pushfstring(L, "%d", channel & 0xFF);
   } else {
     lua_pushinteger(L, channel & 0xFFFFFF);
@@ -420,30 +430,21 @@ static inline void push_channels(lua_State *L, u64 channels) {
   lua_setfield(L, -2, "bg");
 }
 
-static inline u32 read_channel(lua_State *L, int idx) {
-  switch (lua_type(L, idx)) {
-  case LUA_TSTRING:
-    return NCCHANNEL_INITIALIZER_PALINDEX(lua_tointeger(L, idx));
-  case LUA_TNUMBER:
-    return NCCHANNEL_INITIALIZER_HEX(lua_tointeger(L, idx));
-  case LUA_TNIL:
-    return 0;
-  default:
-    return luaL_typerror(L, idx, "string, number or nil required");
-  }
-}
-
 static inline u64 read_color_pair(lua_State *L, int ind) {
   u32 fg, bg = fg = 0;
+  ncchannel_set_default(&fg);
+  ncchannel_set_default(&bg);
 
   lua_getfield(L, ind, "fg");
-  if (!lua_isnil(L, -1))
+  if (!lua_isnil(L, -1)) {
     fg = read_channel(L, -1);
+  }
   lua_pop(L, 1);
 
   lua_getfield(L, ind, "bg");
-  if (!lua_isnil(L, -1))
+  if (!lua_isnil(L, -1)) {
     bg = read_channel(L, -1);
+  }
   lua_pop(L, 1);
 
   return ncchannels_combine(fg, bg);

@@ -1,5 +1,6 @@
 #include "macro.h"
 
+#include "cleanup.h"
 #include "input.h"
 #include "keys.h"
 #include "lfm.h"
@@ -15,13 +16,16 @@ bool macro_playing = false;
 input_t macro_identifier;
 
 static macros_map macros = {0};
+
+// the macro we are currently recording
 static struct vec_input *current = NULL;
 
-void macros_init() {
+static void deinit() {
+  macros_map_drop(&macros);
 }
 
-void macros_deinit() {
-  macros_map_drop(&macros);
+__attribute__((constructor)) static void init() {
+  add_dtor(deinit);
 }
 
 i32 macro_record(input_t id) {

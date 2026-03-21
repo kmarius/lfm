@@ -11,9 +11,6 @@ extern bool macro_recording;     // true, if currently recording a macro
 extern bool macro_playing;       // true, if currently playing a macro
 extern input_t macro_identifier; // identifier of the macro being recorded
 
-void macros_init(void);
-void macros_deinit(void);
-
 // Begin recording the macro with the id `id`.
 // Returns 0 on success, -1 if already recording a macro.
 i32 macro_record(input_t id);
