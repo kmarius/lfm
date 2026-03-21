@@ -147,6 +147,22 @@ void ui_resume(Ui *ui) {
     exit(EXIT_FAILURE);
   }
 
+  {
+    // TODO: (2026-03-21) revisit in the future in case notcurses/tmux receives
+    // updates.
+    // There is some issue in tmux 3.6_a-1 where notcurses receives
+    // additional input during startup; we simply drain everything here
+    ncinput in;
+    u32 count = 0;
+    while (notcurses_get_nblock(ui->nc, &in) != (u32)-1) {
+      if (in.id == 0)
+        break;
+      count++;
+    }
+    if (count > 0)
+      log_warn("discarded %u input(s) after notcurses init");
+  }
+
   if (notcurses_palette_size(ui->nc) == 8) {
     if (cfg.current_char == 0) {
       cfg.current_char = '>';
