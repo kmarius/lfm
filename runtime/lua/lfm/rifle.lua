@@ -11,8 +11,8 @@ local util = lfm.util
 local config
 
 ---@class Lfm.Rifle.QueryOpts
----@field pick string|number Choose the match with the label pick, match number n.
----@field limit integer Limit the number of results.
+---@field pick? string|number Choose the match with the label pick, match number n.
+---@field limit? integer Limit the number of results.
 
 ---@class Lfm.Rifle.Match
 ---@field command string Command to execute
