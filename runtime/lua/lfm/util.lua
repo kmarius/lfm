@@ -122,32 +122,34 @@ end
 
 ---
 ---Merges a table of default options into a given table. Applied recursively on subtables.
----opts table is mutated in the process and returned.
+---`opts` table is mutated in the process and returned.
 ---
 ---Example:
 ---```lua
----  local dflt = { next = "n", prev = "p" }
+---  local defaults = { next = "n", prev = "p" }
 ---  local opts = { next = "<right>" }
----  opts = apply_default_options(opts, dflt)
+---  opts = merge_defaults(opts, dflt)
 ---  assert(opts.next == "<right>")
 ---  assert(opts.prev == "p")
 ---```
 ---
----@param opts table Table of options
----@param dflt table Table of default options
----@return table
-local function apply_default_options(opts, dflt)
+---@generic S, T
+---@param opts? S Table of options
+---@param defaults T Table of default options
+---@return T
+local function merge_defaults(opts, defaults)
+	-- TODO: we probably should copy the defaults, the receiver could mutate it
 	opts = opts or {}
-	for key, value in pairs(dflt) do
+	for key, value in pairs(defaults) do
 		if type(value) == "table" then
-			opts[key] = apply_default_options(opts[key], value)
+			opts[key] = merge_defaults(opts[key], value)
 		else
 			opts[key] = opts[key] or value
 		end
 	end
 	return opts
 end
-M.apply_default_options = apply_default_options
+M.merge_defaults = merge_defaults
 
 ---
 ---Get the current selection or file under the cursor.
