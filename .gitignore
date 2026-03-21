@@ -6,6 +6,7 @@
 /.luarc.lua
 /.cache
 /.yabs
+/.syncthing.*
 /tags
 /tags.lock
 /tags.temp
