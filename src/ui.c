@@ -100,7 +100,7 @@ void ui_init(Ui *ui) {
   ui->message_clear_timer.data = ui;
 
   cmdline_init(&ui->cmdline);
-  infoline_init(ui);
+  infoline_init();
   input_init(to_lfm(ui));
   ui_resume(ui);
 
@@ -197,7 +197,7 @@ void ui_suspend(Ui *ui) {
   // invalid notcurses spinner_off(&ui->spinner);
   input_suspend(to_lfm(ui));
   vec_ncplane_clear(&ui->planes.dirs);
-  infoline_suspend(ui);
+  infoline_suspend();
   ncplane_destroy(ui->planes.cmdline);
   ncplane_destroy(ui->planes.menu);
   ncplane_destroy(ui->planes.info);

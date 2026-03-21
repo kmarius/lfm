@@ -67,7 +67,7 @@ static inline bool should_draw_default() {
   return static_len == 0;
 }
 
-void infoline_init() {
+void infoline_init(void) {
   gethostname(host, sizeof host);
   uid = getuid();
   strncpy(user, getenv("USER"), sizeof user - 1);
@@ -512,6 +512,6 @@ static inline i32 shorten_path(zsview path, char *buf, i32 max_len) {
   return max;
 }
 
-void infoline_suspend() {
+void infoline_suspend(void) {
   spinner_off(&spinner);
 }
