@@ -1132,7 +1132,7 @@ void ui_start_loading_indicator_timer(Ui *ui) {
     }
     if (ui->loading_indicator_timer_recheck_count++ == 0) {
       ui->loading_indicator_timer_recheck_count++;
-      f64 delay = ((cfg.loading_indicator_delay + 10) / 2) / 1000.;
+      f64 delay = ((f64)(cfg.loading_indicator_delay + 10) / 2) / 1000.;
       ui->loading_indicator_timer.data = ui;
       ev_timer_init(&ui->loading_indicator_timer, loading_indicator_timer_cb, 0,
                     delay);
