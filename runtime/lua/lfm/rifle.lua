@@ -112,20 +112,50 @@ function M.exec(match, files)
 end
 
 ---
----Navigate into a directory or open files with rifle.
+---Open one or more files with rifle
 ---
 ---Example:
 ---```lua
----  rifle.open()
+---  rifle.open("file.txt")
+---```
+---
+---Pass multiple files and let rifle pick a rule with label `"editor"`
+---```lua
+---  rifle.open({ "file1.txt", "file2.txt" }, { pick = "editor" })
+---```
+---
+---@param files string|string[]
+---@param pick? string|number
+function M.open(files, pick)
+	local file
+	if type(files) == "table" then
+		file = files[1]
+	else
+		file = files
+		files = { files }
+	end
+	local match = M.query(file, { pick = pick, limit = 1 })[1]
+	if match then
+		M.exec(match, files)
+		return true
+	end
+end
+
+---
+---Navigate into a directory or open files with rifle. To be used as an Lfm command.
+---
+---Example:
+---```lua
+---  rifle.open_command()
 ---```
 ---
 ---Use opener from rifle with label 1 to open the current file/selection:
 ---```lua
----  rifle.open(1)
+---  rifle.open_command(1)
 ---```
 ---
 ---@param ... string|number
-function M.open(...)
+function M.open_command(...)
 	local t = { ... }
 	local pick = t[1]
 	local file = api.fm_open()
@@ -135,18 +165,15 @@ function M.open(...)
 		if #files == 0 then
 			files = { file }
 		end
-		local match = M.query(files[1], { pick = pick, limit = 1 })[1]
-		if match then
-			M.exec(match, files)
-		else
-			if #t > 0 then
+		if not M.open(files, pick) then
+			if #t == 0 then
+				lfm.printf("no matching rules for %s %s", files[0], lfm.fn.mime(files[1]))
+			else
 				-- assume arguments are a command
 				for _, e in pairs(files) do
 					table.insert(t, e)
 				end
 				lfm.execute(t)
-			else
-				print("no matching rules for " .. lfm.fn.mime(files[1]))
 			end
 		end
 	end
@@ -210,7 +237,7 @@ function M.setup(opts)
 	opts = opts or {}
 	config = opts.config
 	M._setup(opts)
-	api.create_command("open", M.open, { tokenize = true, desc = "Open file(s)." })
+	api.create_command("open", M.open_command, { tokenize = true, desc = "Open file(s)." })
 	api.set_keymap("r", M.ask, { desc = "show opener options" })
 end
 
