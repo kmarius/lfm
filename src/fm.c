@@ -595,9 +595,10 @@ bool fm_updir(Fm *fm) {
     return false;
   }
 
-  zsview path = path_parent(dir_path(fm_current_dir(fm)));
+  Dir *dir = fm_current_dir(fm);
+  zsview path = path_parent(dir_path(dir));
   fm_async_chdir(fm, path, false, true);
-  on_cursor_moved(fm, false);
+  fm_move_cursor_to(fm, *dir_name(dir));
   return true;
 }
 
