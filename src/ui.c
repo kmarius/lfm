@@ -988,25 +988,21 @@ static inline void remove_preview(Ui *ui) {
   ui->preview.preview = NULL;
 }
 
-static inline void on_cursor_moved(Ui *ui, bool delay_action);
+static inline void on_cursor_moved(Ui *ui, bool immediate);
 
 void ui_update_file_preview(Ui *ui) {
-  on_cursor_moved(ui, false);
+  on_cursor_moved(ui, true);
 }
 
 static void on_cursor_resting(EV_P_ ev_timer *w, i32 revents) {
-  log_trace("on_cursor_resting revents=%d", revents);
-
-  if (revents != 0) {
-    ev_timer_stop(loop, w);
-  }
+  ev_timer_stop(loop, w);
 
   Lfm *lfm = w->data;
   Ui *ui = &lfm->ui;
 
   Preview *preview = ui->preview.preview;
   if (preview) {
-    if (revents != 0) {
+    if (revents != 0) { // called by libev, need to check/load here
       if (preview->status == PV_LOADING_DELAYED) {
         async_preview_load(&lfm->async, preview);
       } else {
@@ -1020,45 +1016,41 @@ static void on_cursor_resting(EV_P_ ev_timer *w, i32 revents) {
 }
 
 void ui_update_file_preview_delayed(Ui *ui) {
-  if (!cfg.preview || ui->num_columns == 1) {
+  if (!cfg.preview || ui->num_columns == 1)
     return;
-  }
-  on_cursor_moved(ui, true);
+  on_cursor_moved(ui, false);
 }
 
 // check if the dimensions changed and the preview should be reloaded
 #define CHECK_DIMS(pv, nrow) (!(pv)->loading && (pv)->height < (nrow))
 
-static inline void on_cursor_moved(Ui *ui, bool delay_action) {
-  delay_action &= cfg.preview_delay > 0;
+static inline void on_cursor_moved(Ui *ui, bool immediate) {
+  immediate |= cfg.preview_delay == 0;
 
   static u64 last_time_called = 0;
   u64 now = current_millis();
-  if (delay_action) {
+  if (!immediate) {
     // cursor was resting, don't delay
-    if (now - last_time_called > cfg.preview_delay) {
-      delay_action = false;
-    }
+    if (now - last_time_called > cfg.preview_delay)
+      immediate = true;
   }
   last_time_called = now;
-
-  log_trace("on_cursor_moved delay_action=%d", delay_action);
 
   File *file = fm_current_file(&to_lfm(ui)->fm);
   Preview *preview = ui->preview.preview;
   bool is_file_preview = file && !file_isdir(file);
-  bool is_same_preview = file != NULL && preview != NULL &&
-                         cstr_eq(preview_path(preview), file_path(file));
+  bool preview_changed = file == NULL || preview == NULL ||
+                         !cstr_eq(preview_path(preview), file_path(file));
 
   u32 ncol, nrow;
   ncplane_dim_yx(ui->planes.preview, &nrow, &ncol);
   bool dims_changed = preview != NULL && CHECK_DIMS(preview, nrow);
 
-  if (is_same_preview && dims_changed) {
+  if (!preview_changed && dims_changed) {
     preview->status = PV_LOADING_DELAYED;
   }
 
-  if (!is_same_preview) {
+  if (preview_changed) {
     remove_preview(ui);
   }
 
@@ -1067,14 +1059,14 @@ static inline void on_cursor_moved(Ui *ui, bool delay_action) {
     // delay_action, loads the preview in the background (or checks and
     // reloads it)
     ui->preview.preview = loader_preview_from_path(
-        &to_lfm(ui)->loader, cstr_zv(file_path(file)), !delay_action);
+        &to_lfm(ui)->loader, cstr_zv(file_path(file)), immediate);
   }
 
-  ui->preview.hidden = delay_action;
-  if (delay_action) {
-    ev_timer_again(event_loop, &ui->preview_load_timer);
-  } else {
+  ui->preview.hidden = !immediate;
+  if (immediate) {
     ev_invoke(event_loop, &ui->preview_load_timer, 0);
+  } else {
+    ev_timer_again(event_loop, &ui->preview_load_timer);
   }
 }
 
