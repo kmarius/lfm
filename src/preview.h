@@ -62,8 +62,8 @@ __lfm_nonnull()
 Preview *preview_handle_exit_status(Preview *p, i32 status);
 
 __lfm_nonnull()
-static inline const cstr *preview_path(const Preview *pv) {
-  return &pv->path;
+static inline zsview preview_path(const Preview *pv) {
+  return cstr_zv(&pv->path);
 }
 
 __lfm_nonnull()

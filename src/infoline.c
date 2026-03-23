@@ -260,7 +260,7 @@ static inline void draw_custom(Ui *ui) {
     usize buf_idx = 0;
 
     // replace $HOME with ~
-    zsview path = cstr_zv(dir_path(dir));
+    zsview path = dir_path(dir);
     if (zsview_starts_with(path, home)) {
       path = zsview_from_pos(path, home_len);
       path_buf[buf_idx++] = '~';
@@ -376,7 +376,7 @@ static inline void draw_default(Ui *ui) {
   const Dir *dir = fm_current_dir(&to_lfm(ui)->fm);
   const File *file = dir_current_file(dir);
 
-  zsview path = cstr_zv(dir_path(dir));
+  zsview path = dir_path(dir);
 
   u32 remaining;
   ncplane_cursor_yx(n, NULL, &remaining);

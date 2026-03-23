@@ -29,8 +29,8 @@ File *file_create(const char *dir, const char *name, i32 fd, bool load_info);
 void file_destroy(File *file);
 
 // Returns the full path of the file.
-static inline const cstr *file_path(const File *file) {
-  return &file->path;
+static inline zsview file_path(const File *file) {
+  return cstr_zv(&file->path);
 }
 
 // Returns the full path of the file as const char*

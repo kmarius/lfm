@@ -84,6 +84,7 @@ typedef struct Dir {
                            // one is already scheduled, otherwise 0
   bool loading;            // is a reload in the process
   bool scheduled;          // is a reload scheduled
+  bool lua_ref_exists;     // there's a reference to this directory in lua
   u32 version;
 
   u32 ind; // cursor position in files[]
@@ -125,8 +126,8 @@ static inline usize dir_length(const Dir *dir) {
   return vec_file_size(&dir->files);
 }
 
-static inline const cstr *dir_path(const Dir *dir) {
-  return &dir->path;
+static inline zsview dir_path(const Dir *dir) {
+  return cstr_zv(&dir->path);
 }
 
 static inline const char *dir_path_str(const Dir *dir) {

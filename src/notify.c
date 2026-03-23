@@ -99,7 +99,7 @@ static void inotify_cb(EV_P_ ev_io *w, i32 revents) {
 
 void notify_add_watcher(Notify *notify, Dir *dir) {
   c_foreach(it, vec_cstr, cfg.inotify_blacklist) {
-    if (cstr_starts_with_sv(dir_path(dir), cstr_sv(it.ref))) {
+    if (zsview_starts_with_sv(dir_path(dir), cstr_sv(it.ref))) {
       return;
     }
   }

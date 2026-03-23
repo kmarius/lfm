@@ -306,7 +306,7 @@ void async_lua_preview(Async *async, struct Preview *pv) {
   work->async = async;
   work->chunk = bytes_clone(cfg.lua_previewer);
   work->preview = pv;
-  work->path = cstr_strdup(preview_path(pv));
+  work->path = zsview_strdup(preview_path(pv));
   work->width = to_lfm(async)->ui.preview.x;
   work->height = to_lfm(async)->ui.preview.y;
   CHECK_INIT(work->check, to_lfm(async)->loader.preview_cache_version);

@@ -97,7 +97,7 @@ void async_preview_check(Async *async, Preview *pv) {
   work->super.next = NULL;
 
   work->async = async;
-  work->path = cstr_strdup(preview_path(pv));
+  work->path = zsview_strdup(preview_path(pv));
   work->height = pv->height;
   work->width = pv->width;
   work->mtime = pv->mtime;

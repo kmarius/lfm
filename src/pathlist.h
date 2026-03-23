@@ -8,11 +8,12 @@
 #include "defs.h"
 #include "stc/cstr.h"
 #include "stc/types.h"
+#include "stc/zsview.h"
 
 #include <stdbool.h>
 
 declare_dlist(_pathlist_list, cstr);
-declare_hmap(_pathlist_hmap, cstr, _pathlist_list_node *);
+declare_hmap(_pathlist_hmap, zsview, _pathlist_list_node *);
 
 typedef struct pathlist {
   _pathlist_hmap map;
@@ -23,9 +24,9 @@ typedef _pathlist_list_iter pathlist_iter;
 
 void pathlist_init(pathlist *self);
 void pathlist_drop(pathlist *self);
-bool pathlist_contains(const pathlist *self, const cstr *path);
-void pathlist_add(pathlist *self, const cstr *path);
-bool pathlist_remove(pathlist *self, const cstr *path);
+bool pathlist_contains(const pathlist *self, zsview path);
+void pathlist_add(pathlist *self, zsview path);
+bool pathlist_remove(pathlist *self, zsview path);
 void pathlist_clear(pathlist *self);
 usize pathlist_size(const pathlist *self);
 pathlist_iter pathlist_begin(const pathlist *self);

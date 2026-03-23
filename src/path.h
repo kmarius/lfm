@@ -12,8 +12,8 @@
 zsview path_parent_zv(zsview path);
 
 // zvsiew into static buffer
-static inline zsview path_parent(const cstr *path) {
-  return path_parent_zv(cstr_zv(path));
+static inline zsview path_parent(zsview path) {
+  return path_parent_zv(path);
 }
 
 // subview into path, or c_zv(".")
@@ -29,12 +29,8 @@ isize path_concat(zsview dir, zsview name, char *buf, usize bufsz);
 // manipulates path
 void dirname_cstr(cstr *path);
 
-static inline bool path_is_root_zv(zsview path) {
+static inline bool path_is_root(zsview path) {
   return !zsview_is_empty(path) && path.str[0] == '/' && path.str[1] == 0;
-}
-
-static inline bool path_is_root(const cstr *path) {
-  return path_is_root_zv(cstr_zv(path));
 }
 
 static inline bool path_is_dot_or_dotdot(const char *name) {

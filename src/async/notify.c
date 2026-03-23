@@ -70,7 +70,7 @@ void async_notify_add(Async *async, Dir *dir) {
   work->super.destroy = &notify_add_result_destroy;
 
   work->async = async;
-  work->path = cstr_strdup(dir_path(dir));
+  work->path = zsview_strdup(dir_path(dir));
   work->dir = dir;
   CHECK_INIT(work->check0, to_lfm(async)->notify.version);
   CHECK_INIT(work->check1, to_lfm(async)->loader.dir_cache_version);
@@ -85,7 +85,7 @@ void async_notify_preview_add(Async *async, Dir *dir) {
   work->super.destroy = &notify_add_result_destroy;
 
   work->async = async;
-  work->path = cstr_strdup(dir_path(dir));
+  work->path = zsview_strdup(dir_path(dir));
   work->dir = dir;
   CHECK_INIT(work->check0, to_lfm(async)->notify.version);
   CHECK_INIT(work->check1, to_lfm(async)->fm.dirs.preview);

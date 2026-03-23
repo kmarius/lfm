@@ -81,7 +81,7 @@ void async_dir_check(Async *async, Dir *dir) {
   }
 
   work->async = async;
-  work->path = cstr_strdup(dir_path(dir));
+  work->path = zsview_strdup(dir_path(dir));
   work->dir = dir;
   work->loadtime = dir->load_time;
   work->ino = dir->stat.st_ino;
@@ -360,7 +360,7 @@ static void async_dir_load_worker(void *arg) {
     File *file = *it.ref;
     if (S_ISLNK(file->lstat.st_mode) || S_ISDIR(file->lstat.st_mode)) {
       files[j].file = file;
-      files[j].path = cstr_strdup(file_path(file));
+      files[j].path = zsview_strdup(file_path(file));
       // if the directory is flattened, this can contain leading path components
       files[j].name =
           files[j].path + (file_name_str(file) - file_path_str(file));
@@ -397,7 +397,7 @@ void async_dir_load(Async *async, Dir *dir, bool load_fileinfo) {
 
   work->async = async;
   work->dir = dir;
-  work->path = cstr_strdup(dir_path(dir));
+  work->path = zsview_strdup(dir_path(dir));
   work->load_fileinfo = load_fileinfo;
   work->level = dir->flatten_level;
   work->dircounts = hmap_dircount_move(&dir->dircounts);

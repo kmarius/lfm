@@ -1040,7 +1040,7 @@ static inline void on_cursor_moved(Ui *ui, bool immediate) {
   Preview *preview = ui->preview.preview;
   bool is_file_preview = file && !file_isdir(file);
   bool preview_changed = file == NULL || preview == NULL ||
-                         !cstr_eq(preview_path(preview), file_path(file));
+                         !zsview_eq2(preview_path(preview), file_path(file));
 
   u32 ncol, nrow;
   ncplane_dim_yx(ui->planes.preview, &nrow, &ncol);
@@ -1058,8 +1058,8 @@ static inline void on_cursor_moved(Ui *ui, bool immediate) {
     // gives us the existing preview or a dummy and, depending on
     // delay_action, loads the preview in the background (or checks and
     // reloads it)
-    ui->preview.preview = loader_preview_from_path(
-        &to_lfm(ui)->loader, cstr_zv(file_path(file)), immediate);
+    ui->preview.preview = loader_preview_from_path(&to_lfm(ui)->loader,
+                                                   file_path(file), immediate);
   }
 
   ui->preview.hidden = !immediate;

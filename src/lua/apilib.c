@@ -468,7 +468,7 @@ static int l_fm_open(lua_State *L) {
       return lua_quit(L, lfm);
     }
 
-    lua_pushcstr(L, file_path(file));
+    lua_pushzsview(L, file_path(file));
     return 1;
   } else {
     /* changed directory */
@@ -483,7 +483,7 @@ static int l_fm_open(lua_State *L) {
 static int l_fm_current_file(lua_State *L) {
   File *file = fm_current_file(fm);
   if (file != NULL) {
-    lua_pushcstr(L, file_path(file));
+    lua_pushzsview(L, file_path(file));
     return 1;
   }
   return 0;
@@ -510,7 +510,7 @@ static int l_fm_current_dir(lua_State *L) {
   const Dir *dir = fm_current_dir(fm);
   lua_createtable(L, 0, 3);
 
-  lua_pushcstr(L, dir_path(dir));
+  lua_pushzsview(L, dir_path(dir));
   lua_setfield(L, -2, "path");
 
   lua_pushzsview(L, *dir_name(dir));
@@ -525,7 +525,7 @@ static int l_fm_current_dir(lua_State *L) {
   lua_setfield(L, -2, "reverse");
   lua_setfield(L, -2, "sortopts");
 
-  lua_pushcstr(L, dir_path(dir));
+  lua_pushzsview(L, dir_path(dir));
   lua_pushcclosure(L, l_push_files, 1);
   lua_setfield(L, -2, "files");
 
@@ -603,22 +603,16 @@ static int l_fm_selection_add(lua_State *L) {
   char buf[PATH_MAX];
   luaL_checktype(L, 1, LUA_TTABLE);
   int n = lua_objlen(L, 1);
-  cstr cs = cstr_init();
   for (int i = 1; i <= n; i++) {
     lua_rawgeti(L, 1, i);
-
     zsview path = lua_tozsview(L, -1);
     zsview normalized =
         path_normalize3(path, fm_getpwd_str(fm), buf, sizeof buf);
-    if (zsview_is_empty(normalized)) {
-      cstr_drop(&cs);
+    if (zsview_is_empty(normalized))
       return luaL_error(L, "path too long");
-    }
-    cstr_assign_zv(&cs, normalized);
-    fm_selection_add(fm, &cs, false);
+    fm_selection_add(fm, zsview_from(buf), false);
     lua_pop(L, 1);
   }
-  cstr_drop(&cs);
   if (n > 0) {
     lfm_run_hook(lfm, LFM_HOOK_SELECTION);
     ui_redraw(ui, REDRAW_FM);
@@ -634,19 +628,14 @@ static int l_fm_selection_set(lua_State *L) {
   fm_selection_clear(fm);
   lfm_mode_exit(lfm, c_zv("visual"));
   if (lua_istable(L, 1)) {
-    cstr cs = cstr_init();
     for (lua_pushnil(L); lua_next(L, -2); lua_pop(L, 1)) {
       zsview str = lua_tozsview(L, -1);
       zsview normalized =
           path_normalize3(str, fm_getpwd_str(fm), buf, sizeof buf);
-      if (zsview_is_empty(normalized)) {
-        cstr_drop(&cs);
+      if (zsview_is_empty(normalized))
         return luaL_error(L, "path too long");
-      }
-      cstr_assign_zv(&cs, normalized);
-      fm_selection_add(fm, &cs, false);
+      fm_selection_add(fm, zsview_from(buf), false);
     }
-    cstr_drop(&cs);
   }
   lfm_run_hook(lfm, LFM_HOOK_SELECTION);
   ui_redraw(ui, REDRAW_FM);
@@ -759,15 +748,12 @@ static int l_fm_paste_buffer_set(lua_State *L) {
 
   if (lua_type(L, 1) == LUA_TTABLE) {
     const usize l = lua_objlen(L, 1);
-    cstr cs = cstr_init();
     for (usize i = 0; i < l; i++) {
       lua_rawgeti(L, 1, i + 1);
-      zsview str = lua_tozsview(L, -1);
-      cstr_assign_zv(&cs, str);
-      fm_paste_buffer_add(fm, &cs);
+      zsview path = lua_tozsview(L, -1);
+      fm_paste_buffer_add(fm, path);
       lua_pop(L, 1);
     }
-    cstr_drop(&cs);
   }
 
   if (luaL_optbool(L, 3, true) &&
@@ -867,7 +853,7 @@ static int l_fm_get_cache(lua_State *L) {
   lua_createtable(L, n, 0);
   int i = 1;
   c_foreach(it, dircache, lfm->loader.dc) {
-    lua_pushcstr(L, dir_path(it.ref->second));
+    lua_pushzsview(L, dir_path(it.ref->second));
     lua_rawseti(L, -2, i++);
   }
   return 1;

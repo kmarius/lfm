@@ -7,6 +7,17 @@
 #include <stdarg.h>
 #include <string.h>
 
+// the builtin version is for containers and uses pointers
+static inline bool zsview_eq2(zsview x, zsview y) {
+  return x.size == y.size && !c_memcmp(x.str, y.str, x.size);
+}
+
+static inline bool zsview_starts_with_sv(zsview self, csview sub) {
+  if (sub.size > self.size)
+    return false;
+  return !c_memcmp(self.str, sub.buf, sub.size);
+}
+
 static inline char *cstr_assign_zv(cstr *self, zsview zv) {
   return cstr_assign_n(self, zv.str, zv.size);
 }

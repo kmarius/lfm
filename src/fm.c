@@ -169,7 +169,7 @@ static inline bool fm_chdir_impl(Fm *fm, zsview path, bool save, bool hook,
     if (fm_current_dir(fm)->error) {
       cstr_clear(&fm->automark);
     } else {
-      cstr_copy(&fm->automark, *dir_path(fm_current_dir(fm)));
+      cstr_assign_zv(&fm->automark, dir_path(fm_current_dir(fm)));
     }
   }
 
@@ -319,15 +319,16 @@ static inline void on_cursor_moved(Fm *fm, bool immediate) {
 
   const File *file = fm_current_file(fm);
   bool is_directory_preview = file != NULL && file_isdir(file);
-  bool preview_changed = file == NULL || fm->dirs.preview == NULL ||
-                         !cstr_eq(dir_path(fm->dirs.preview), file_path(file));
+  bool preview_changed =
+      file == NULL || fm->dirs.preview == NULL ||
+      !zsview_eq2(dir_path(fm->dirs.preview), file_path(file));
 
   if (preview_changed)
     fm_remove_preview(fm);
 
   if (is_directory_preview && preview_changed) {
-    fm->dirs.preview = loader_dir_from_path(
-        &to_lfm(fm)->loader, cstr_zv(file_path(file)), immediate);
+    fm->dirs.preview =
+        loader_dir_from_path(&to_lfm(fm)->loader, file_path(file), immediate);
     fm->dirs.preview->visible = true;
   }
 
@@ -344,8 +345,7 @@ static inline void on_cursor_moved(Fm *fm, bool immediate) {
   }
 }
 
-static inline void fm_selection_toggle(Fm *fm, const cstr *path,
-                                       bool run_hook) {
+static inline void fm_selection_toggle(Fm *fm, zsview path, bool run_hook) {
   if (!pathlist_remove(&fm->selection.current, path)) {
     fm_selection_add(fm, path, false);
   }
@@ -364,7 +364,7 @@ void fm_selection_toggle_current(Fm *fm) {
   }
 }
 
-void fm_selection_add(Fm *fm, const cstr *path, bool run_hook) {
+void fm_selection_add(Fm *fm, zsview path, bool run_hook) {
   pathlist_add(&fm->selection.current, path);
   if (run_hook) {
     lfm_run_hook(to_lfm(fm), LFM_HOOK_SELECTION);
@@ -408,7 +408,7 @@ void fm_on_visual_enter(Fm *fm) {
   fm_selection_add(fm, file_path(dir_current_file(dir)), false);
   pathlist_clear(&fm->selection.keep_in_visual);
   c_foreach(it, pathlist, fm->selection.current) {
-    pathlist_add(&fm->selection.keep_in_visual, it.ref);
+    pathlist_add(&fm->selection.keep_in_visual, cstr_zv(it.ref));
   }
   lfm_run_hook(to_lfm(fm), LFM_HOOK_SELECTION);
 }
@@ -451,7 +451,7 @@ static void selection_visual_update(Fm *fm, u32 origin, u32 from, u32 to) {
   const Dir *dir = fm_current_dir(fm);
   for (; lo <= hi; lo++) {
     // never unselect the old selection
-    const cstr *path = file_path(*vec_file_at(&dir->files, lo));
+    zsview path = file_path(*vec_file_at(&dir->files, lo));
     if (!pathlist_contains(&fm->selection.keep_in_visual, path)) {
       fm_selection_toggle(fm, path, false);
     }
@@ -576,7 +576,7 @@ File *fm_open(Fm *fm) {
     return file;
   }
 
-  fm_async_chdir(fm, cstr_zv(file_path(file)), false, true);
+  fm_async_chdir(fm, file_path(file), false, true);
   return NULL;
 }
 

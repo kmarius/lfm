@@ -13,7 +13,7 @@
 #include <sys/types.h>
 
 zsview path_parent_zv(zsview path) {
-  if (zsview_is_empty(path) || path_is_root_zv(path)) {
+  if (zsview_is_empty(path) || path_is_root(path)) {
     return c_zv("");
   }
 

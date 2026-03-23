@@ -183,7 +183,7 @@ void fm_on_visual_exit(Fm *fm);
 void fm_selection_toggle_current(Fm *fm);
 
 // Add `path` to the current selection if not already contained.
-void fm_selection_add(Fm *fm, const cstr *path, bool run_hook);
+void fm_selection_add(Fm *fm, zsview path, bool run_hook);
 
 // Clear the selection completely.
 bool fm_selection_clear(Fm *fm);
@@ -213,8 +213,8 @@ static inline bool fm_paste_buffer_clear(Fm *fm) {
 }
 
 // Add a path to the paste buffer.
-static inline void fm_paste_buffer_add(Fm *fm, const cstr *file) {
-  pathlist_add(&fm->paste.buffer, file);
+static inline void fm_paste_buffer_add(Fm *fm, zsview path) {
+  pathlist_add(&fm->paste.buffer, path);
 }
 
 // Get the mode current load, one of `MODE_COPY`, `MODE_MOVE`.

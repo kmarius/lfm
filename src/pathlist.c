@@ -12,10 +12,10 @@
 // work
 #define i_declared
 #define i_type _pathlist_hmap
-#define i_key cstr
+#define i_key zsview
 #define i_val _pathlist_list_node *
-#define i_eq cstr_eq
-#define i_hash cstr_hash
+#define i_eq zsview_eq
+#define i_hash zsview_hash
 #include "stc/hmap.h"
 
 void pathlist_init(pathlist *self) {
@@ -33,19 +33,20 @@ void pathlist_clear(pathlist *self) {
   _pathlist_hmap_clear(&self->map);
 }
 
-bool pathlist_contains(const pathlist *self, const cstr *path) {
-  return _pathlist_hmap_contains(&self->map, *path);
+bool pathlist_contains(const pathlist *self, zsview path) {
+  return _pathlist_hmap_contains(&self->map, path);
 }
 
-void pathlist_add(pathlist *self, const cstr *path) {
+void pathlist_add(pathlist *self, zsview path) {
   if (!pathlist_contains(self, path)) {
-    cstr *val = _pathlist_list_push_back(&self->list, cstr_clone(*path));
-    _pathlist_hmap_insert(&self->map, *val, _pathlist_list_get_node(val));
+    cstr *val = _pathlist_list_push_back(&self->list, cstr_from_zv(path));
+    _pathlist_hmap_insert(&self->map, cstr_zv(val),
+                          _pathlist_list_get_node(val));
   }
 }
 
-bool pathlist_remove(pathlist *self, const cstr *path) {
-  const _pathlist_hmap_iter val = _pathlist_hmap_find(&self->map, *path);
+bool pathlist_remove(pathlist *self, zsview path) {
+  const _pathlist_hmap_iter val = _pathlist_hmap_find(&self->map, path);
   if (val.ref) {
     _pathlist_list_erase_node(&self->list, val.ref->second);
     _pathlist_hmap_erase_at(&self->map, val);
