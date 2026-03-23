@@ -22,6 +22,9 @@
 #include <notcurses/notcurses.h>
 #include <stdint.h>
 
+// lua/dir.c
+int l_get_dir(lua_State *L);
+
 static int l_set_keymap(lua_State *L) {
   luaL_checktype(L, 2, LUA_TFUNCTION);
 
@@ -1247,6 +1250,7 @@ int l_del_hook(lua_State *L) {
 }
 
 static const struct luaL_Reg api_funcs[] = {
+    {"get_dir",      l_get_dir     },
     {"add_hook",     l_add_hook    },
     {"del_hook",     l_del_hook    },
     {"mode",         l_mode        },

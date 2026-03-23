@@ -29,6 +29,8 @@
 static inline void load_dircount_cached(Dir *dir, File *file);
 static inline void trim_dircount_cache(Dir *dir, uint32 num_dirs);
 
+static inline void drop_files(Dir *dir);
+
 // queue node to load flattened dirs
 typedef struct flat_dir_node {
   const char *path; // path to load
@@ -487,15 +489,6 @@ void dir_cursor_move_to(Dir *d, zsview name, u32 height, u32 scrolloff) {
   d->ind = min(d->ind, dir_length(d));
 }
 
-static inline void drop_files(Dir *dir) {
-  c_foreach(it, vec_file, dir->files_all) {
-    file_destroy(*it.ref);
-  }
-  vec_file_drop(&dir->files_all);
-  vec_file_drop(&dir->files_sorted);
-  vec_file_drop(&dir->files);
-}
-
 static inline void apply_scroll(Dir *dir, u32 height, u32 scrolloff) {
   (void)scrolloff;
   i32 num_files = vec_file_size(&dir->files);
@@ -554,16 +547,42 @@ void dir_update_with(Dir *dir, Dir *update, u32 height, u32 scrolloff) {
   dir_destroy(update);
 }
 
+static inline void drop_files(Dir *dir) {
+  c_foreach(it, vec_file, dir->files_all) {
+    file_destroy(*it.ref);
+  }
+  vec_file_drop(&dir->files_all);
+  vec_file_drop(&dir->files_sorted);
+  vec_file_drop(&dir->files);
+}
+
+static inline void drop_fields(Dir *dir) {
+  cstr_drop(&dir->path);
+  drop_files(dir);
+  filter_destroy(dir->filter);
+  cstr_drop(&dir->sel);
+  hmap_cstr_drop(&dir->tags.tags);
+  hmap_dircount_drop(&dir->dircounts);
+}
+
 void dir_destroy(Dir *dir) {
   if (dir) {
-    drop_files(dir);
-    filter_destroy(dir->filter);
-    cstr_drop(&dir->sel);
-    cstr_drop(&dir->path);
-    hmap_cstr_drop(&dir->tags.tags);
-    hmap_dircount_drop(&dir->dircounts);
+    drop_fields(dir);
     xfree(dir);
   }
+}
+
+void dir_unload(Dir *dir) {
+  cstr path = cstr_move(&dir->path);
+  u32 lua_ref_count = dir->lua_ref_count;
+
+  drop_fields(dir);
+
+  memset(dir, 0, sizeof *dir);
+  dir->path = path;
+  dir->name = basename_zv(cstr_zv(&dir->path));
+  dir->lua_ref_count = lua_ref_count;
+  dir->load_time = time(NULL);
 }
 
 i32 fileinfo_from_str(const char *str) {

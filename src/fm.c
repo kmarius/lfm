@@ -31,10 +31,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#define i_declared
-#define i_TYPE vec_dir, Dir *
-#include "stc/vec.h"
-
 static inline void on_cursor_moved(Fm *fm, bool immediate);
 static void on_cursor_resting(EV_P_ ev_timer *w, i32 revents);
 static void fm_update_watchers(Fm *fm);

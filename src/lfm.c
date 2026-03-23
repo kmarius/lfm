@@ -231,6 +231,7 @@ void lfm_init(Lfm *lfm, struct lfm_opts *opts) {
 }
 
 void lfm_deinit(Lfm *lfm) {
+  lfm_lua_deinit(lfm);
   call_dtors();
   lfm_modes_deinit(lfm);
   list_timer_drop(&lfm->schedule_timers);
@@ -239,7 +240,6 @@ void lfm_deinit(Lfm *lfm) {
   fm_deinit(&lfm->fm);
   lfm_hooks_deinit(lfm);
   loader_deinit(&lfm->loader);
-  lfm_lua_deinit(lfm);
   async_deinit(&lfm->async);
   fifo_deinit();
 

@@ -10,7 +10,9 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-declare_vec(vec_dir, Dir *);
+#define i_type vec_dir, Dir *
+#include "stc/vec.h"
+
 struct lfm_opts;
 
 typedef enum paste_mode_e {

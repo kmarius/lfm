@@ -84,7 +84,7 @@ typedef struct Dir {
                            // one is already scheduled, otherwise 0
   bool loading;            // is a reload in the process
   bool scheduled;          // is a reload scheduled
-  bool lua_ref_exists;     // there's a reference to this directory in lua
+  u32 lua_ref_count;       // number of lua objects referencing this dir
   u32 version;
 
   u32 ind; // cursor position in files[]
@@ -110,6 +110,9 @@ Dir *dir_create(zsview path);
 
 // Free all resources belonging to `dir`.
 void dir_destroy(Dir *dir);
+
+// Bring the directory back into its "unloaded" state.
+void dir_unload(Dir *dir);
 
 // Loads the directory at `path` from disk. Additionally count the files in each
 // subdirectory if `load_fileinfo` is `true`.

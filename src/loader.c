@@ -3,6 +3,7 @@
 #include "config.h"
 #include "defs.h"
 #include "dir.h"
+#include "fm.h"
 #include "hooks.h"
 #include "lfm.h"
 #include "loop.h"
@@ -48,6 +49,8 @@ struct loader_timer {
 
 #define i_TYPE set_preview, Preview *
 #include "stc/hset.h"
+
+static inline void apply_dir_settings(Dir *dir);
 
 void loader_init(Loader *loader) {
   loader->dc = dircache_init();
@@ -206,11 +209,9 @@ Dir *loader_dir_from_path(Loader *loader, zsview path, bool do_load) {
     }
   } else {
     dir = dir_create(path);
-    hmap_dirsetting_value *v =
-        hmap_dirsetting_get_mut(&cfg.dir_settings_map, path);
-    struct dir_settings *s = v ? &v->second : &cfg.dir_settings;
-    memcpy(&dir->settings, s, sizeof *s);
-    dircache_insert(&loader->dc, cstr_zv(&dir->path), dir);
+    apply_dir_settings(dir);
+
+    dircache_insert(&loader->dc, dir_path(dir), dir);
     if (do_load) {
       async_dir_load(&to_lfm(loader)->async, dir, false);
       dir->last_loading_action = current_millis();
@@ -274,7 +275,26 @@ void loader_drop_preview_cache(Loader *loader) {
 
 void loader_drop_dir_cache(Loader *loader) {
   loader->dir_cache_version++;
+
+  // we can't drop dirs that are referenced by lua
+  // unload those instead and re-insert afterwards
+  vec_dir dirs = vec_dir_init();
+  c_foreach(it, dircache, loader->dc) {
+    Dir *dir = it.ref->second;
+    if (dir->lua_ref_count > 0) {
+      vec_dir_push_back(&dirs, dir);
+      dir_unload(dir);
+      apply_dir_settings(dir);
+      // null the node so the clear does not drop our directory
+      memset(it.ref, 0, sizeof *it.ref);
+    }
+  }
   dircache_clear(&loader->dc);
+  c_foreach(it, vec_dir, dirs) {
+    dircache_insert(&loader->dc, dir_path(*it.ref), *it.ref);
+  }
+  vec_dir_drop(&dirs);
+
   c_foreach(it, list_loader_timer, loader->dir_timers) {
     ev_timer_stop(event_loop, &it.ref->watcher);
   }
@@ -312,4 +332,11 @@ void loader_reschedule(Loader *loader) {
 Preview *loader_preview_get(Loader *loader, zsview path) {
   previewcache_value *v = previewcache_get_mut(&loader->pc, path);
   return v ? v->second : NULL;
+}
+
+static inline void apply_dir_settings(Dir *dir) {
+  hmap_dirsetting_value *v =
+      hmap_dirsetting_get_mut(&cfg.dir_settings_map, dir_path(dir));
+  struct dir_settings *s = v ? &v->second : &cfg.dir_settings;
+  memcpy(&dir->settings, s, sizeof *s);
 }

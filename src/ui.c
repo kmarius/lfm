@@ -47,10 +47,6 @@
 #include "stc/common.h"
 
 #define i_declared
-#define i_TYPE vec_dir, Dir *
-#include "stc/vec.h"
-
-#define i_declared
 #define i_type vec_ncplane, struct ncplane *
 #define i_keydrop(p) (ncplane_destroy(*(p)))
 #define i_no_clone
