@@ -35,7 +35,7 @@ File *file_create(const char *dir, const char *name, i32 fd, bool load_info) {
   f->path = cstr_with_n(buf, len);
   f->name = basename_zv(cstr_zv(&f->path));
   f->ext = name_ext(&f->name);
-  f->hidden = file_name(f)->str[0] == '.';
+  f->hidden = file_name(f).str[0] == '.';
   f->dircount = -1;
 
   if (unlikely(fstatat(fd, name, &f->lstat, AT_SYMLINK_NOFOLLOW) == -1)) {

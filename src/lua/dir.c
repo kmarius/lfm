@@ -56,7 +56,7 @@ int l_dir__index(lua_State *L) {
   if (streq(field, "path")) {
     lua_pushzsview(L, dir_path(dir));
   } else if (streq(field, "name")) {
-    lua_pushzsview(L, *dir_name(dir));
+    lua_pushzsview(L, dir_name(dir));
   } else if (streq(field, "parent")) {
     if (dir_isroot(dir))
       return 0;
@@ -71,15 +71,16 @@ int l_dir__index(lua_State *L) {
     lua_createtable(L, dir_length(dir), 0);
     usize i = 1;
     c_foreach(it, Dir, dir) {
-      lua_pushzsview(L, *file_name(*it.ref));
+      lua_pushzsview(L, file_name(*it.ref));
       lua_rawseti(L, -2, i++);
     }
   } else if (streq(field, "current_file")) {
     File *file = dir_current_file(dir);
     if (!file)
       return 0;
-    lua_pushzsview(L, *file_name(file));
+    lua_pushzsview(L, file_name(file));
   } else {
+    return luaL_error(L, "invalid field: %s", field);
   }
   return 1;
 }

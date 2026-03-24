@@ -107,7 +107,7 @@ i32 lfm_mode_enter(Lfm *lfm, zsview name) {
 }
 
 i32 lfm_mode_exit(Lfm *lfm, zsview name) {
-  if (cstr_equals_zv(&lfm->current_mode->name, &name)) {
+  if (cstr_equals_zv(&lfm->current_mode->name, name)) {
     return lfm_mode_normal(lfm);
   }
   return 1;

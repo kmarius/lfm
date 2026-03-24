@@ -792,7 +792,7 @@ static void draw_file(struct ncplane *n, const File *file, bool iscurrent,
   }
 
   if (tags) {
-    const hmap_cstr_value *v = hmap_cstr_get(&tags->tags, *file_name(file));
+    const hmap_cstr_value *v = hmap_cstr_get(&tags->tags, file_name(file));
     if (v != NULL) {
       u64 channels = ncplane_channels(n);
       u16 styles = ncplane_styles(n);
@@ -893,7 +893,7 @@ static void draw_file(struct ncplane *n, const File *file, bool iscurrent,
   // there is also cstr_casefold, which is meant to be used for searching
   isize hl_begin = c_NPOS;
   if (!zsview_is_empty(highlight)) {
-    cstr name_lower = cstr_tolower_sv(zsview_sv(*file_name(file)));
+    cstr name_lower = cstr_tolower_sv(zsview_sv(file_name(file)));
     hl_begin = cstr_find_sv(&name_lower, zsview_sv(highlight));
     cstr_drop(&name_lower);
   }
@@ -903,12 +903,12 @@ static void draw_file(struct ncplane *n, const File *file, bool iscurrent,
   if (left_space > 0) {
     if (hl_begin == c_NPOS) {
       char buf[PATH_MAX];
-      shorten_name(*file_name(file), buf, left_space, !file_isdir(file));
+      shorten_name(file_name(file), buf, left_space, !file_isdir(file));
       x += ncplane_putstr(n, buf);
     } else {
       i32 hl_end = hl_begin + highlight.size;
 
-      x += print_short_hl(n, *file_name(file), hl_begin, hl_end, left_space,
+      x += print_short_hl(n, file_name(file), hl_begin, hl_end, left_space,
                           !file_isdir(file));
     }
 

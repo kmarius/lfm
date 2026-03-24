@@ -502,7 +502,7 @@ static int l_push_files(lua_State *L) {
   lua_createtable(L, dir_length(dir), 0);
   usize i = 1;
   c_foreach(it, Dir, dir) {
-    lua_pushzsview(L, *file_name(*it.ref));
+    lua_pushzsview(L, file_name(*it.ref));
     lua_rawseti(L, -2, i++);
   }
 
@@ -516,7 +516,7 @@ static int l_fm_current_dir(lua_State *L) {
   lua_pushzsview(L, dir_path(dir));
   lua_setfield(L, -2, "path");
 
-  lua_pushzsview(L, *dir_name(dir));
+  lua_pushzsview(L, dir_name(dir));
   lua_setfield(L, -2, "name");
 
   lua_createtable(L, 0, 3);

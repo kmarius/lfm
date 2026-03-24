@@ -159,7 +159,7 @@ static void fileinfo_callback(void *p, Lfm *lfm) {
       File *file = dir_current_file(res->dir);
       dir_sort(res->dir);
       if (file && dir_current_file(res->dir) != file) {
-        dir_cursor_move_to(res->dir, *file_name(file), lfm->fm.height,
+        dir_cursor_move_to(res->dir, file_name(file), lfm->fm.height,
                            cfg.scrolloff);
       }
     } else {

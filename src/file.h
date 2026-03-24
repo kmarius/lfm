@@ -39,8 +39,8 @@ static inline const char *file_path_str(const File *file) {
 }
 
 // Returns the name of the file.
-static inline const zsview *file_name(const File *file) {
-  return &file->name;
+static inline zsview file_name(const File *file) {
+  return file->name;
 }
 
 // Returns the name of the file.

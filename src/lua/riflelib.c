@@ -451,7 +451,7 @@ static int l_rifle_query_mime(lua_State *L) {
         int ind = atoi(pick.str);
         bool ok = (ind != 0 || pick.str[0] == '0');
         if ((ok && ind != ct_match - 1) ||
-            (!ok && (!cstr_equals_zv(&r->label, &pick)))) {
+            (!ok && (!cstr_equals_zv(&r->label, pick)))) {
           continue;
         }
       }
@@ -517,7 +517,7 @@ static int l_rifle_query(lua_State *L) {
         int ind = atoi(pick.str);
         bool ok = (ind != 0 || pick.str[0] == '0');
         if ((ok && ind != ct_match - 1) ||
-            (!ok && (!cstr_equals_zv(&r->label, &pick)))) {
+            (!ok && (!cstr_equals_zv(&r->label, pick)))) {
           continue;
         }
       }

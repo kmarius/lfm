@@ -137,8 +137,8 @@ static inline const char *dir_path_str(const Dir *dir) {
   return cstr_str(&dir->path);
 }
 
-static inline const zsview *dir_name(const Dir *dir) {
-  return &dir->name;
+static inline zsview dir_name(const Dir *dir) {
+  return dir->name;
 }
 
 // Is the directory in the process of being loaded?

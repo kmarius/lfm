@@ -247,7 +247,7 @@ static inline void draw_custom(Ui *ui) {
     file_buf[0] = 0;
     file = fm_current_file(&to_lfm(ui)->fm);
     if (file != NULL) {
-      file_len = zsview_u8_size(*file_name(file));
+      file_len = zsview_u8_size(file_name(file));
       file_is_dir = file_isdir(file);
     }
   }
@@ -299,7 +299,7 @@ static inline void draw_custom(Ui *ui) {
 
   if (idx.file != 0) {
     if (file != NULL) {
-      shorten_name(*file_name(file), file_buf, remaining, !file_is_dir);
+      shorten_name(file_name(file), file_buf, remaining, !file_is_dir);
       if (remaining < file_len) {
         file_len = remaining;
       }
@@ -383,7 +383,7 @@ static inline void draw_default(Ui *ui) {
   remaining = ui->x - remaining;
 
   if (file != NULL) {
-    remaining -= zsview_u8_size(*file_name(file));
+    remaining -= zsview_u8_size(file_name(file));
   }
 
   ncplane_set_fg_palindex(n, COLOR_BLUE);
@@ -409,7 +409,7 @@ static inline void draw_default(Ui *ui) {
     ncplane_cursor_yx(n, NULL, &remaining);
     remaining = ui->x - remaining;
     ncplane_set_fg_default(n);
-    shorten_name(*file_name(file), buf, remaining, !file_isdir(file));
+    shorten_name(file_name(file), buf, remaining, !file_isdir(file));
     ncplane_putstr(n, buf);
   }
 }

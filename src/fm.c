@@ -102,7 +102,7 @@ static void fm_populate(Fm *fm) {
       dir->visible = true;
       vec_dir_push_back(&fm->dirs.visible, dir);
       if (dir_loading(dir)) {
-        zsview name = *dir_name(*vec_dir_at(
+        zsview name = dir_name(*vec_dir_at(
             &fm->dirs.visible, vec_dir_size(&fm->dirs.visible) - 2));
 
         dir_cursor_move_to(dir, name, fm->height, cfg.scrolloff);
@@ -213,7 +213,7 @@ static inline void fm_sort_and_reselect(Fm *fm, Dir *dir) {
   const File *file = dir_current_file(dir);
   dir_sort(dir);
   if (file) {
-    dir_cursor_move_to(dir, *file_name(file), fm->height, cfg.scrolloff);
+    dir_cursor_move_to(dir, file_name(file), fm->height, cfg.scrolloff);
   }
 }
 
@@ -586,7 +586,7 @@ bool fm_updir(Fm *fm) {
   Dir *dir = fm_current_dir(fm);
   zsview path = path_parent(dir_path(dir));
   fm_async_chdir(fm, path, false, true);
-  fm_move_cursor_to(fm, *dir_name(dir));
+  fm_move_cursor_to(fm, dir_name(dir));
   return true;
 }
 
@@ -594,7 +594,7 @@ void fm_filter(Fm *fm, Filter *filter) {
   Dir *dir = fm_current_dir(fm);
   File *file = dir_current_file(dir);
   dir_filter(dir, filter);
-  dir_cursor_move_to(dir, file ? *file_name(file) : c_zv(""), fm->height,
+  dir_cursor_move_to(dir, file ? file_name(file) : c_zv(""), fm->height,
                      cfg.scrolloff);
   on_cursor_moved(fm, true);
 }
