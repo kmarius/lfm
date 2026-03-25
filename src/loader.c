@@ -205,7 +205,7 @@ Dir *loader_dir_from_path(Loader *loader, zsview path, bool do_load) {
       }
       /* TODO: no (on 2022-10-09) */
       dir->settings.hidden = cfg.dir_settings.hidden;
-      dir_sort(dir);
+      dir_sort(dir, false);
     }
   } else {
     dir = dir_create(path);

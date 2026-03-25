@@ -204,17 +204,15 @@ static inline void fm_update_watchers(Fm *fm) {
 /* TODO: maybe we can select the closest non-hidden file in case the
  * current one will be hidden (on 2021-10-17) */
 static inline void fm_sort_and_reselect(Fm *fm, Dir *dir) {
-  if (!dir) {
+  if (!dir)
     return;
-  }
 
   /* TODO: shouldn't apply the global hidden setting (on 2022-10-09) */
   dir->settings.hidden = cfg.dir_settings.hidden;
   const File *file = dir_current_file(dir);
-  dir_sort(dir);
-  if (file) {
+  dir_sort(dir, false);
+  if (file)
     dir_cursor_move_to(dir, file_name(file), fm->height, cfg.scrolloff);
-  }
 }
 
 void fm_sort(Fm *fm) {
@@ -295,6 +293,10 @@ static void on_cursor_resting(EV_P_ ev_timer *w, i32 revents) {
 
 void fm_update_preview(Fm *fm) {
   on_cursor_moved(fm, true);
+}
+
+void fm_update_preview_delayed(Fm *fm) {
+  on_cursor_moved(fm, false);
 }
 
 static inline void on_cursor_moved(Fm *fm, bool immediate) {
@@ -419,7 +421,10 @@ void fm_on_visual_exit(Fm *fm) {
   pathlist_clear(&fm->selection.keep_in_visual);
 }
 
-static void selection_visual_update(Fm *fm, u32 origin, u32 from, u32 to) {
+void fm_update_visual_selection(Fm *fm, u32 from, u32 to) {
+  if (!fm->visual.active)
+    return;
+  u32 origin = fm->visual.anchor;
   u32 hi, lo;
   if (from >= origin) {
     if (to > from) {
@@ -499,9 +504,7 @@ bool fm_cursor_move(Fm *fm, i32 ct) {
   u32 cur = dir->ind;
   dir_cursor_move(dir, ct, fm->height, cfg.scrolloff);
   if (dir->ind != cur) {
-    if (fm->visual.active) {
-      selection_visual_update(fm, fm->visual.anchor, cur, dir->ind);
-    }
+    fm_update_visual_selection(fm, cur, dir->ind);
     on_cursor_moved(fm, false);
   }
   return dir->ind != cur;

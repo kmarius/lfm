@@ -157,8 +157,9 @@ static inline File *dir_current_file(const Dir *dir) {
 }
 
 // Sort `dir` with respect to `dir->hidden`, `dir->dirfirst`, `dir->reverse`,
-// `dir->sorttype`.
-void dir_sort(Dir *dir);
+// `dir->sorttype`. If `force` is not set, the directory is only sorted if its
+// `sorted` flag is false. Filters are always applied.
+void dir_sort(Dir *dir, bool force);
 
 // Lfmlies the filter string `filter` to `dir`. `NULL` or `""` clears the
 // filter.

@@ -17,26 +17,135 @@ static inline Dir *checkdir(lua_State *L, int idx) {
   return *(Dir **)luaL_checkudata(L, idx, DIR_META);
 }
 
+// update fm state, call when the current directory is changed
+static inline void update_preview() {
+  fm_update_preview_delayed(fm);
+  ui_update_file_preview_delayed(ui);
+}
+
+static inline void move_cursor(Dir *dir, i32 ct) {
+  u32 cur = dir->ind;
+  dir_cursor_move(dir, ct, fm->height, cfg.scrolloff);
+  if (dir->ind != cur) {
+    if (dir == fm_current_dir(fm)) {
+      fm_update_visual_selection(fm, cur, dir->ind);
+      update_preview();
+    }
+    if (dir->visible)
+      ui_redraw(ui, REDRAW_FM);
+  }
+}
+
+static inline void move_cursor_to_name(Dir *dir, zsview name) {
+  dir_cursor_move_to(dir, name, fm->height, cfg.scrolloff);
+  if (dir == fm_current_dir(fm))
+    update_preview();
+  if (dir->visible)
+    ui_redraw(ui, REDRAW_FM);
+}
+
+static inline void restore_cursor(Dir *dir, File *file) {
+  if (file) {
+    move_cursor_to_name(dir, file_name(file));
+  }
+}
+
 /* methods */
 
 int l_dir_up(lua_State *L) {
   Dir *dir = checkdir(L, 1);
-  i32 ct = luaL_optint(L, 2, 1);
-  dir_cursor_move(dir, ct, fm->height, cfg.scrolloff);
+  move_cursor(dir, -luaL_optint(L, 2, 1));
   return 0;
 }
 
 int l_dir_down(lua_State *L) {
   Dir *dir = checkdir(L, 1);
-  i32 ct = luaL_optint(L, 2, 1);
-  dir_cursor_move(dir, -ct, fm->height, cfg.scrolloff);
+  move_cursor(dir, luaL_optint(L, 2, 1));
   return 0;
 }
 
 int l_dir_select(lua_State *L) {
   Dir *dir = checkdir(L, 1);
   zsview name = luaL_checkzsview(L, 2);
-  dir_cursor_move_to(dir, name, fm->height, cfg.scrolloff);
+  move_cursor_to_name(dir, name);
+  return 0;
+}
+
+static int l_dir_sort(lua_State *L) {
+  Dir *dir = checkdir(L, 1);
+  luaL_checktype(L, 2, LUA_TTABLE);
+
+  struct dir_settings settings = dir->settings;
+  lua_getfield(L, 2, "dirfirst");
+  if (!lua_isnil(L, -1))
+    settings.dirfirst = lua_toboolean(L, -1);
+  lua_pop(L, 1);
+
+  lua_getfield(L, 2, "reverse");
+  if (!lua_isnil(L, -1))
+    settings.reverse = lua_toboolean(L, -1);
+  lua_pop(L, 1);
+
+  lua_getfield(L, 2, "type");
+  if (!lua_isnil(L, -1)) {
+    const char *op = luaL_checkstring(L, -1);
+    int type = sorttype_from_str(op);
+    if (type < 0)
+      return luaL_error(L, "unrecognized sort type: %s", op);
+    settings.sorttype = type;
+  }
+  lua_pop(L, 1);
+
+  // no error, apply settings
+  dir->settings = settings;
+
+  File *file = dir_current_file(dir);
+  dir_sort(dir, true);
+  restore_cursor(dir, file);
+
+  if (dir == fm_current_dir(fm))
+    update_preview();
+  if (dir->visible)
+    ui_redraw(ui, REDRAW_FM);
+
+  return 0;
+}
+
+// not sure if we want to keep the filter definition as a table,
+// it is often not convenient
+static inline int filter(lua_State *L, int idx, Dir *dir) {
+  Filter *filter = NULL;
+  if (lua_type(L, idx) == LUA_TSTRING) {
+    filter = filter_create_sub(lua_tozsview(L, idx));
+  } else if (lua_type(L, idx) == LUA_TTABLE) {
+    lua_getfield(L, idx, "type");
+    const char *type = luaL_checkstring(L, -1);
+
+    if (streq(type, "substring")) {
+      lua_getfield(L, idx, "string");
+      filter = filter_create_sub(lua_tozsview(L, -1));
+    } else if (streq(type, "fuzzy")) {
+      lua_getfield(L, idx, "string");
+      filter = filter_create_fuzzy(lua_tozsview(L, -1));
+    } else if (streq(type, "lua")) {
+      lua_getfield(L, idx, "match");
+      int ref = lua_register_callback(L, -1);
+      filter = filter_create_lua(ref, L);
+    } else {
+      return luaL_error(L, "unrecognized filter type: %s", type);
+    }
+    lua_pop(L, 2);
+  }
+
+  File *file = dir_current_file(dir);
+  dir_filter(dir, filter);
+  restore_cursor(dir, file);
+
+  if (dir == fm_current_dir(fm))
+    update_preview();
+  if (dir->visible)
+    ui_redraw(ui, REDRAW_FM);
+
   return 0;
 }
 
@@ -79,6 +188,31 @@ int l_dir__index(lua_State *L) {
     if (!file)
       return 0;
     lua_pushzsview(L, file_name(file));
+  } else if (streq(field, "filter")) {
+    Dir *dir = checkdir(L, 1);
+    Filter *filter = dir->filter;
+    if (!filter)
+      return 0;
+    lua_newtable(L);
+    lua_pushzsview(L, filter_string(filter));
+    lua_setfield(L, -2, "string");
+    lua_pushzsview(L, filter_type(filter));
+    lua_setfield(L, -2, "type");
+  } else {
+    return luaL_error(L, "invalid field: %s", field);
+  }
+  return 1;
+}
+
+int l_dir__newindex(lua_State *L) {
+  Dir *dir = checkdir(L, 1);
+  const char *field = luaL_checkstring(L, 2);
+  if (streq(field, "index")) {
+    i32 ind = luaL_checkinteger(L, 3) - 1;
+    i64 cur = dir->ind;
+    move_cursor(dir, ind - cur);
+  } else if (streq(field, "filter")) {
+    filter(L, 3, dir);
   } else {
     return luaL_error(L, "invalid field: %s", field);
   }
@@ -95,13 +229,15 @@ static const struct luaL_Reg dir_methods[] = {
     {"up",     l_dir_up    },
     {"down",   l_dir_down  },
     {"select", l_dir_select},
+    {"sort",   l_dir_sort  },
     {NULL,     NULL        }
 };
 
 static const struct luaL_Reg dir_metamethods[] = {
-    {"__gc",    l_dir__gc   },
-    {"__index", l_dir__index},
-    {NULL,      NULL        }
+    {"__gc",       l_dir__gc      },
+    {"__index",    l_dir__index   },
+    {"__newindex", l_dir__newindex},
+    {NULL,         NULL           }
 };
 
 static inline void pushdir(lua_State *L, Dir *dir) {
@@ -126,7 +262,10 @@ static inline void pushdir_from_path(lua_State *L, zsview path) {
 
 // registered in apilib.c
 int l_get_dir(lua_State *L) {
-  zsview path = luaL_checkzsview(L, 1);
-  pushdir_from_path(L, path);
+  if (lua_isnoneornil(L, 1)) {
+    pushdir(L, fm_current_dir(fm));
+  } else {
+    pushdir_from_path(L, luaL_checkzsview(L, 1));
+  }
   return 1;
 }

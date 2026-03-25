@@ -587,8 +587,7 @@ static int l_fm_sort(lua_State *L) {
   // it is convenient to keep the cursor position in a (fresh)
   // directory if it hasn't been moved when sorting
   const File *file = dir_current_file(dir);
-  dir->sorted = false;
-  dir_sort(dir);
+  dir_sort(dir, true);
   fm_move_cursor_to_ptr(fm, file);
   ui_update_file_preview(ui);
   ui_redraw(ui, REDRAW_FM);

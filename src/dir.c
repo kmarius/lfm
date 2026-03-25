@@ -110,12 +110,12 @@ static void apply_filters(Dir *d) {
 }
 
 /* sort allfiles and copy non-hidden ones to sortedfiles */
-void dir_sort(Dir *d) {
+void dir_sort(Dir *d, bool force) {
   if (vec_file_is_empty(&d->files_all)) {
     d->sorted = true;
     return;
   }
-  if (!d->sorted) {
+  if (force || !d->sorted) {
     switch (d->settings.sorttype) {
     case SORT_NATURAL:
       files_natural_sort(d->files_all.data, d->files_all.size);
@@ -469,9 +469,8 @@ static inline bool dir_cursor_move_to_ino(Dir *d, dev_t dev, ino_t ino,
 }
 
 void dir_cursor_move_to(Dir *d, zsview name, u32 height, u32 scrolloff) {
-  if (zsview_is_empty(name)) {
+  if (zsview_is_empty(name))
     return;
-  }
 
   if (vec_file_is_empty(&d->files)) {
     cstr_assign_zv(&d->sel, name);
@@ -530,8 +529,7 @@ void dir_update_with(Dir *dir, Dir *update, u32 height, u32 scrolloff) {
   dir->status = DIR_LOADING_FULLY;
   dir->loading = false;
 
-  dir->sorted = false;
-  dir_sort(dir);
+  dir_sort(dir, true);
 
   // TODO: if the cursor rest in the middle of the viewport, and files are
   // inserted above, the cursor is moved down, instead we could keep the cursor

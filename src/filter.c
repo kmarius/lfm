@@ -189,9 +189,8 @@ bool sub_match(const Filter *filter, const File *file);
 void sub_destroy(Filter *filter);
 
 Filter *filter_create_sub(zsview filter) {
-  if (filter.str[0] == 0) {
+  if (filter.size == 0)
     return NULL;
-  }
 
   i32 num_subfilters = (charcnt(filter.str, ' ') + 1);
 
@@ -258,6 +257,9 @@ void fuzzy_destroy(Filter *filter);
 static i32 cmpchoice(const void *_idx1, const void *_idx2);
 
 Filter *filter_create_fuzzy(zsview filter) {
+  if (filter.size == 0)
+    return NULL;
+
   FuzzyFilter *f = xcalloc(1, sizeof *f);
   f->super.match = &fuzzy_match;
   f->super.destroy = &fuzzy_destroy;

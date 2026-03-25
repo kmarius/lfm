@@ -157,13 +157,13 @@ static void fileinfo_callback(void *p, Lfm *lfm) {
     if (res->dir->ind != 0) {
       // if the cursor doesn't rest on the first file, try to reselect it
       File *file = dir_current_file(res->dir);
-      dir_sort(res->dir);
+      dir_sort(res->dir, false);
       if (file && dir_current_file(res->dir) != file) {
         dir_cursor_move_to(res->dir, file_name(file), lfm->fm.height,
                            cfg.scrolloff);
       }
     } else {
-      dir_sort(res->dir);
+      dir_sort(res->dir, false);
     }
     fm_update_preview(&lfm->fm);
     ui_redraw(&lfm->ui, REDRAW_FM);

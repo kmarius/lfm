@@ -233,9 +233,13 @@ void fm_reload(Fm *fm);
 // Update preview (e.g. after moving the cursor).
 void fm_update_preview(Fm *fm);
 
+void fm_update_preview_delayed(Fm *fm);
+
 // Flatten the current directory up to `level`.
 void fm_flatten(Fm *fm, u32 level);
 
 // Must be called with the new height of the file manager when the Ui is
 // resized.
 void fm_on_resize(Fm *fm, u32 height);
+
+void fm_update_visual_selection(Fm *fm, u32 from, u32 to);
