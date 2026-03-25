@@ -5,7 +5,6 @@
 #include "log.h"
 #include "loop.h"
 #include "stc/cstr.h"
-#include "ui.h"
 
 #include <ev.h>
 
@@ -31,8 +30,6 @@ static void async_result_cb(EV_P_ ev_async *w, int revents) {
     res->callback(res, to_lfm(async));
   }
   pthread_mutex_unlock(&async->queue.mutex);
-
-  ev_idle_start(EV_A_ & to_lfm(async)->ui.redraw_watcher);
 }
 
 void async_init(Async *async) {

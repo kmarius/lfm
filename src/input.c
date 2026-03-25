@@ -115,8 +115,6 @@ static void stdin_cb(EV_P_ ev_io *w, i32 revents) {
       input_handle_key(lfm, key);
     }
   }
-
-  ev_idle_start(EV_A_ & lfm->ui.redraw_watcher);
 }
 
 // clear keys in the input buffer
@@ -144,7 +142,6 @@ static void input_buffer_cb(EV_P_ ev_idle *w, i32 revents) {
     queue_input_pop(&lfm->ui.input_buffer);
     input_handle_key(lfm, in);
   }
-  ev_idle_start(EV_A_ & lfm->ui.redraw_watcher);
 }
 
 void input_handle_key(Lfm *lfm, input_t in) {
@@ -311,7 +308,6 @@ static void map_clear_timer_cb(EV_P_ ev_timer *w, i32 revents) {
   Lfm *lfm = w->data;
   input_clear(lfm);
   ev_timer_stop(EV_A_ w);
-  ev_idle_start(EV_A_ & lfm->ui.redraw_watcher);
 }
 
 static void map_suggestion_timer_cb(EV_P_ ev_timer *w, i32 revents) {

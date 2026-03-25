@@ -980,10 +980,8 @@ static int l_ui_menu(lua_State *L) {
 }
 
 static int l_ui_redraw(lua_State *L) {
-  if (luaL_optbool(L, 1, false)) {
+  if (luaL_optbool(L, 1, false))
     ui_redraw(ui, REDRAW_FULL);
-  }
-  ev_idle_start(event_loop, &ui->redraw_watcher);
   return 0;
 }
 

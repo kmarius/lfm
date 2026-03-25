@@ -75,6 +75,4 @@ static void fifo_cb(EV_P_ ev_io *w, i32 revents) {
     llua_evaln(lfm->L, dyn_buf, length);
     xfree(dyn_buf);
   }
-
-  ev_idle_start(loop, &lfm->ui.redraw_watcher);
 }

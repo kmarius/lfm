@@ -46,19 +46,19 @@ static inline void restore_cursor(Dir *dir, File *file) {
 
 /* methods */
 
-int l_dir_up(lua_State *L) {
+static int l_dir_up(lua_State *L) {
   Dir *dir = checkdir(L, 1);
   move_cursor(dir, -luaL_optint(L, 2, 1));
   return 0;
 }
 
-int l_dir_down(lua_State *L) {
+static int l_dir_down(lua_State *L) {
   Dir *dir = checkdir(L, 1);
   move_cursor(dir, luaL_optint(L, 2, 1));
   return 0;
 }
 
-int l_dir_select(lua_State *L) {
+static int l_dir_select(lua_State *L) {
   Dir *dir = checkdir(L, 1);
   zsview name = luaL_checkzsview(L, 2);
   move_cursor_to_name(dir, name);
@@ -143,7 +143,7 @@ static inline int filter(lua_State *L, int idx, Dir *dir) {
 
 /* metamethods */
 
-int l_dir__index(lua_State *L) {
+static int l_dir__index(lua_State *L) {
   const char *field = luaL_checkstring(L, 2);
 
   // check if the field is a method
@@ -196,7 +196,7 @@ int l_dir__index(lua_State *L) {
   return 1;
 }
 
-int l_dir__newindex(lua_State *L) {
+static int l_dir__newindex(lua_State *L) {
   Dir *dir = checkdir(L, 1);
   const char *field = luaL_checkstring(L, 2);
   if (streq(field, "index")) {
@@ -211,7 +211,7 @@ int l_dir__newindex(lua_State *L) {
   return 1;
 }
 
-int l_dir__gc(lua_State *L) {
+static int l_dir__gc(lua_State *L) {
   Dir *dir = checkdir(L, 1);
   dir->lua_ref_count--;
   return 0;
@@ -233,7 +233,7 @@ static const struct luaL_Reg dir_metamethods[] = {
 };
 
 static inline void pushdir(lua_State *L, Dir *dir) {
-  struct Dir **ud = lua_newuserdata(L, sizeof *ud);
+  Dir **ud = lua_newuserdata(L, sizeof *ud);
   *ud = dir;
   dir->lua_ref_count++;
 

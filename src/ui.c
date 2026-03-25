@@ -85,7 +85,6 @@ static inline void clear_pane(struct ncplane *n) {
 void ui_init(Ui *ui) {
   ev_idle_init(&ui->redraw_watcher, redraw_cb);
   ui->redraw_watcher.data = ui;
-  ev_idle_start(event_loop, &ui->redraw_watcher);
 
   ev_timer_init(&ui->preview_load_timer, on_cursor_resting, 0,
                 cfg.preview_delay / 1000.0);
@@ -419,7 +418,6 @@ void ui_display_message(Ui *ui, struct message msg) {
   }
 
   ui_redraw(ui, REDRAW_CMDLINE);
-  ev_idle_start(event_loop, &ui->redraw_watcher);
 }
 
 static void message_clear_timer_cb(EV_P_ ev_timer *w, i32 revents) {
@@ -430,7 +428,6 @@ static void message_clear_timer_cb(EV_P_ ev_timer *w, i32 revents) {
 
   ui->show_message = false;
   ui_redraw(ui, REDRAW_CMDLINE);
-  ev_idle_start(EV_A_ & ui->redraw_watcher);
 }
 
 /* }}} */
@@ -522,7 +519,6 @@ static void menu_delay_timer_cb(EV_P_ ev_timer *w, i32 revents) {
   }
   ui_redraw(ui, REDRAW_MENU);
   ev_timer_stop(EV_A_ w);
-  ev_idle_start(EV_A_ & ui->redraw_watcher);
 }
 
 /* }}} */
@@ -1001,7 +997,6 @@ static void on_cursor_resting(EV_P_ ev_timer *w, i32 revents) {
   }
   ui->preview.hidden = false;
   ui_redraw(&lfm->ui, REDRAW_PREVIEW);
-  ev_idle_start(EV_A_ & ui->redraw_watcher);
 }
 
 void ui_update_file_preview_delayed(Ui *ui) {
@@ -1115,7 +1110,6 @@ static void loading_indicator_timer_cb(EV_P_ ev_timer *w, i32 revents) {
       current_millis() - dir->last_loading_action >=
           cfg.loading_indicator_delay) {
     ui_redraw(ui, REDRAW_CMDLINE);
-    ev_idle_start(EV_A_ & ui->redraw_watcher);
   }
   if (--ui->loading_indicator_timer_recheck_count == 0) {
     ev_timer_stop(EV_A_ w);

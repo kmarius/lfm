@@ -126,7 +126,6 @@ static void child_exit_cb(EV_P_ ev_child *w, int revents) {
   ev_child_stop(EV_A_ w);
 
   list_child_erase_node(&child_watchers, list_child_get_node(child));
-  ev_idle_start(EV_A_ & lfm->ui.redraw_watcher);
 }
 
 static void child_output_cb(EV_P_ ev_io *w, int revents) {
@@ -153,8 +152,6 @@ static void child_output_cb(EV_P_ ev_io *w, int revents) {
   // this prevents the callback being immediately called again by libev
   if (errno == EAGAIN)
     clearerr(data->stream);
-
-  ev_idle_start(EV_A_ & lfm->ui.redraw_watcher);
 }
 
 // lua userdata to represent a spawned process

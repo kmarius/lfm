@@ -59,7 +59,6 @@ static void schedule_timer_cb(EV_P_ ev_timer *w, i32 revents) {
   ev_timer_stop(EV_A_ w);
   llua_run_callback(lfm->L, timer->ref);
   list_timer_erase_node(&lfm->schedule_timers, list_timer_get_node(timer));
-  ev_idle_start(EV_A_ & lfm->ui.redraw_watcher);
 }
 
 // To run command line cmds after loop starts. I think it is called back before
@@ -104,7 +103,6 @@ static void sigtstp_cb(EV_P_ ev_signal *w, i32 revents) {
   raise(SIGTSTP);
   ui_resume(&lfm->ui);
   ui_redraw(&lfm->ui, REDRAW_FULL);
-  ev_idle_start(EV_A_ & lfm->ui.redraw_watcher);
   ev_signal_start(loop, w);
 }
 
@@ -113,7 +111,6 @@ static void sigint_cb(EV_P_ ev_signal *w, i32 revents) {
   Lfm *lfm = w->data;
   log_trace("received SIGINT");
   input_handle_key(lfm, CTRL('C'));
-  ev_idle_start(EV_A_ & lfm->ui.redraw_watcher);
 }
 
 // unclear if this happens before/after resizecb is called by notcurses
@@ -122,7 +119,6 @@ static void sigwinch_cb(EV_P_ ev_signal *w, i32 revents) {
   Lfm *lfm = w->data;
   log_trace("received SIGWINCH");
   ui_clear(&lfm->ui);
-  ev_idle_start(EV_A_ & lfm->ui.redraw_watcher);
 }
 
 static void sigterm_cb(EV_P_ ev_signal *w, i32 revents) {

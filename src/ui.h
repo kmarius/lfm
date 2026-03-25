@@ -1,6 +1,7 @@
 #pragma once
 
 #include "cmdline.h"
+#include "loop.h"
 #include "preview.h"
 #include "trie.h"
 #include "types/vec_cstr.h"
@@ -66,7 +67,7 @@ typedef struct Ui {
 
   u32 redraw; // Bitfield indicating which components need to be drawn, see
               // REDRAW_*
-  ev_idle redraw_watcher;
+  ev_idle redraw_watcher; // draws when the loop is idle
   ev_timer loading_indicator_timer;
   i32 loading_indicator_timer_recheck_count;
 
@@ -127,6 +128,7 @@ void ui_update_preview(Ui *ui, bool immediate);
 
 static inline void ui_redraw(Ui *ui, u32 mode) {
   ui->redraw |= mode;
+  ev_idle_start(event_loop, &ui->redraw_watcher);
 }
 
 void ui_display_message(Ui *ui, struct message msg);
