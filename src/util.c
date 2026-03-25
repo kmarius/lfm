@@ -8,6 +8,7 @@
 #include <magic.h>
 
 #include <ctype.h>
+#include <errno.h>
 #include <libgen.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -96,7 +97,10 @@ i32 mkdir_p(char *path, __mode_t mode) {
     mkdir_p(path, mode);
     *sep = '/';
   }
-  return mkdir(path, mode);
+  // probably wrong if it exists but is not a dir
+  if (mkdir(path, mode) && errno != EEXIST)
+    return 1;
+  return 0;
 }
 
 i32 make_dirs(zsview path, __mode_t mode) {
