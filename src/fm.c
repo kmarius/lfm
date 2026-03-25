@@ -19,11 +19,8 @@
 #include "stc/cstr.h"
 #include "stc/zsview.h"
 
-#include <errno.h>
 #include <ev.h>
 #include <stdint.h>
-#include <stdio.h>
-#include <string.h>
 
 #include <libgen.h>
 #include <linux/limits.h>
@@ -31,7 +28,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-static inline void on_cursor_moved(Fm *fm, bool immediate);
 static void on_cursor_resting(EV_P_ ev_timer *w, i32 revents);
 static void fm_update_watchers(Fm *fm);
 static void fm_remove_preview(Fm *fm);
@@ -46,7 +42,7 @@ void fm_init(Fm *fm, struct lfm_opts *opts) {
 
   if (!cstr_is_empty(&opts->startpath)) {
     if (chdir(cstr_str(&opts->startpath)) != 0) {
-      lfm_errorf(to_lfm(fm), "chdir: %s", strerror(errno));
+      lfm_perror(to_lfm(fm), "chdir");
     } else {
       fm->pwd = cstr_move(&opts->startpath);
     }
@@ -71,11 +67,13 @@ void fm_init(Fm *fm, struct lfm_opts *opts) {
 
   fm_populate(fm);
   if (!cstr_is_empty(&opts->startfile)) {
-    fm_move_cursor_to(fm, cstr_zv(&opts->startfile));
+    Dir *dir = fm_current_dir(fm);
+    dir_move_cursor_to_name(dir, cstr_zv(&opts->startfile), fm->height,
+                            cfg.scrolloff);
   }
 
   fm_update_watchers(fm);
-  on_cursor_moved(fm, true);
+  fm_update_preview(fm, true);
 }
 
 void fm_deinit(Fm *fm) {
@@ -105,7 +103,7 @@ static void fm_populate(Fm *fm) {
         zsview name = dir_name(*vec_dir_at(
             &fm->dirs.visible, vec_dir_size(&fm->dirs.visible) - 2));
 
-        dir_cursor_move_to(dir, name, fm->height, cfg.scrolloff);
+        dir_move_cursor_to_name(dir, name, fm->height, cfg.scrolloff);
       }
     }
   }
@@ -124,14 +122,14 @@ void fm_recol(Fm *fm) {
   }
 
   i32 max = vec_int_size(&cfg.ratios);
-  if (max > 1 && cfg.preview) {
+  if (max > 1 && cfg.preview)
     max--;
-  }
+
   fm->dirs.max_visible = max;
 
   fm_populate(fm);
   fm_update_watchers(fm);
-  on_cursor_moved(fm, true);
+  fm_update_preview(fm, true);
 }
 
 static inline bool fm_chdir_impl(Fm *fm, zsview path, bool save, bool hook,
@@ -140,7 +138,7 @@ static inline bool fm_chdir_impl(Fm *fm, zsview path, bool save, bool hook,
   if (path_is_relative(path.str)) {
     isize len = path_make_absolute(path, buf, sizeof buf);
     if (len < 0) {
-      lfm_errorf(to_lfm(fm), "path too long: %s", path.str);
+      lfm_errorf(to_lfm(fm), "path too long");
       return false;
     }
     path = zsview_from_n(buf, len);
@@ -152,7 +150,7 @@ static inline bool fm_chdir_impl(Fm *fm, zsview path, bool save, bool hook,
     if (chdir(path.str) == 0) {
       setpwd(path.str);
     } else {
-      lfm_errorf(to_lfm(fm), "chdir: %s", strerror(errno));
+      lfm_perror(to_lfm(fm), "chdir");
       return false;
     }
   }
@@ -176,7 +174,7 @@ static inline bool fm_chdir_impl(Fm *fm, zsview path, bool save, bool hook,
 
   fm_populate(fm);
   fm_update_watchers(fm);
-  on_cursor_moved(fm, true);
+  fm_update_preview(fm, true);
 
   if (!async && hook) {
     lfm_run_hook(to_lfm(fm), LFM_HOOK_CHDIRPOST, &fm->pwd);
@@ -203,29 +201,22 @@ static inline void fm_update_watchers(Fm *fm) {
 
 /* TODO: maybe we can select the closest non-hidden file in case the
  * current one will be hidden (on 2021-10-17) */
-static inline void fm_sort_and_reselect(Fm *fm, Dir *dir) {
+static inline void sort_and_reselect(Fm *fm, Dir *dir) {
   if (!dir)
     return;
 
   /* TODO: shouldn't apply the global hidden setting (on 2022-10-09) */
   dir->settings.hidden = cfg.dir_settings.hidden;
-  const File *file = dir_current_file(dir);
+  File *file = dir_current_file(dir);
   dir_sort(dir, false);
-  if (file)
-    dir_cursor_move_to(dir, file_name(file), fm->height, cfg.scrolloff);
+  dir_move_cursor_to_ptr(dir, file, fm->height, cfg.scrolloff);
 }
 
 void fm_sort(Fm *fm) {
   c_foreach(it, vec_dir, fm->dirs.visible) {
-    fm_sort_and_reselect(fm, *it.ref);
+    sort_and_reselect(fm, *it.ref);
   }
-  fm_sort_and_reselect(fm, fm->dirs.preview);
-}
-
-void fm_hidden_set(Fm *fm, bool hidden) {
-  cfg.dir_settings.hidden = hidden;
-  fm_sort(fm);
-  on_cursor_moved(fm, true);
+  sort_and_reselect(fm, fm->dirs.preview);
 }
 
 void fm_check_dirs(const Fm *fm) {
@@ -249,7 +240,7 @@ void fm_drop_cache(Fm *fm) {
 
   fm_populate(fm);
   fm_update_watchers(fm);
-  on_cursor_moved(fm, true);
+  fm_update_preview(fm, true);
 }
 
 void fm_reload(Fm *fm) {
@@ -291,15 +282,7 @@ static void on_cursor_resting(EV_P_ ev_timer *w, i32 revents) {
   }
 }
 
-void fm_update_preview(Fm *fm) {
-  on_cursor_moved(fm, true);
-}
-
-void fm_update_preview_delayed(Fm *fm) {
-  on_cursor_moved(fm, false);
-}
-
-static inline void on_cursor_moved(Fm *fm, bool immediate) {
+void fm_update_preview(Fm *fm, bool immediate) {
   immediate |= cfg.preview_delay == 0;
 
   static u64 last_time_called = 0;
@@ -343,237 +326,13 @@ static inline void on_cursor_moved(Fm *fm, bool immediate) {
   }
 }
 
-static inline void fm_selection_toggle(Fm *fm, zsview path, bool run_hook) {
-  if (!pathlist_remove(&fm->selection.current, path)) {
-    fm_selection_add(fm, path, false);
-  }
-  if (run_hook) {
-    lfm_run_hook(to_lfm(fm), LFM_HOOK_SELECTION);
-  }
-}
-
-void fm_selection_toggle_current(Fm *fm) {
-  if (fm->visual.active) {
-    return;
-  }
-  File *file = fm_current_file(fm);
-  if (file) {
-    fm_selection_toggle(fm, file_path(file), true);
-  }
-}
-
-void fm_selection_add(Fm *fm, zsview path, bool run_hook) {
-  pathlist_add(&fm->selection.current, path);
-  if (run_hook) {
-    lfm_run_hook(to_lfm(fm), LFM_HOOK_SELECTION);
-  }
-}
-
-bool fm_selection_clear(Fm *fm) {
-  log_trace("fm_selection_clear");
-  if (pathlist_size(&fm->selection.current) > 0) {
-    pathlist tmp = fm->selection.previous;
-    fm->selection.previous = fm->selection.current;
-    fm->selection.current = tmp;
-    pathlist_clear(&fm->selection.current);
-    lfm_run_hook(to_lfm(fm), LFM_HOOK_SELECTION);
-    return true;
-  }
-  return false;
-}
-
-void fm_selection_reverse(Fm *fm) {
-  const Dir *dir = fm_current_dir(fm);
-  c_foreach(it, Dir, dir) {
-    fm_selection_toggle(fm, file_path(*it.ref), false);
-  }
-  lfm_run_hook(to_lfm(fm), LFM_HOOK_SELECTION);
-}
-
-void fm_on_visual_enter(Fm *fm) {
-  if (fm->visual.active) {
-    return;
-  }
-
-  Dir *dir = fm_current_dir(fm);
-  if (dir_length(dir) == 0) {
-    return;
-  }
-
-  fm->visual.active = true;
-  fm->visual.anchor = dir->ind;
-
-  fm_selection_add(fm, file_path(dir_current_file(dir)), false);
-  pathlist_clear(&fm->selection.keep_in_visual);
-  c_foreach(it, pathlist, fm->selection.current) {
-    pathlist_add(&fm->selection.keep_in_visual, cstr_zv(it.ref));
-  }
-  lfm_run_hook(to_lfm(fm), LFM_HOOK_SELECTION);
-}
-
-void fm_on_visual_exit(Fm *fm) {
-  if (!fm->visual.active) {
-    return;
-  }
-
-  fm->visual.active = false;
-  fm->visual.anchor = 0;
-  pathlist_clear(&fm->selection.keep_in_visual);
-}
-
-void fm_update_visual_selection(Fm *fm, u32 from, u32 to) {
-  if (!fm->visual.active)
-    return;
-  u32 origin = fm->visual.anchor;
-  u32 hi, lo;
-  if (from >= origin) {
-    if (to > from) {
-      lo = from + 1;
-      hi = to;
-    } else if (to < origin) {
-      hi = from;
-      lo = to;
-    } else {
-      hi = from;
-      lo = to + 1;
-    }
-  } else {
-    if (to < from) {
-      lo = to;
-      hi = from - 1;
-    } else if (to > origin) {
-      lo = from;
-      hi = to;
-    } else {
-      lo = from;
-      hi = to - 1;
-    }
-  }
-  const Dir *dir = fm_current_dir(fm);
-  for (; lo <= hi; lo++) {
-    // never unselect the old selection
-    zsview path = file_path(*vec_file_at(&dir->files, lo));
-    if (!pathlist_contains(&fm->selection.keep_in_visual, path)) {
-      fm_selection_toggle(fm, path, false);
-    }
-  }
-  lfm_run_hook(to_lfm(fm), LFM_HOOK_SELECTION);
-}
-
-void fm_selection_write(const Fm *fm, zsview path) {
-  if (path.size > PATH_MAX) {
-    lfm_errorf(to_lfm(fm), "fm_selection_write: path too long");
-    return;
-  }
-
-  make_dirs(path, 755);
-
-  FILE *fp = fopen(path.str, "w");
-  if (!fp) {
-    lfm_errorf(to_lfm(fm), "selfile: %s", strerror(errno));
-    return;
-  }
-
-  if (pathlist_size(&fm->selection.current) > 0) {
-    c_foreach(it, pathlist, fm->selection.current) {
-      fwrite(cstr_str(it.ref), 1, cstr_size(it.ref), fp);
-      fputc('\n', fp);
-    }
-  } else {
-    const File *file = fm_current_file(fm);
-    if (file) {
-      fputs(file_path_str(file), fp);
-      fputc('\n', fp);
-    }
-  }
-  fclose(fp);
-}
-
-void fm_paste_mode_set(Fm *fm, paste_mode mode) {
-  fm->paste.mode = mode;
-  if (pathlist_size(&fm->selection.current) == 0) {
-    fm_selection_toggle_current(fm);
-  }
-  pathlist_drop(&fm->paste.buffer);
-  fm->paste.buffer = fm->selection.current;
-  pathlist_init(&fm->selection.current);
-}
-
-bool fm_cursor_move(Fm *fm, i32 ct) {
-  Dir *dir = fm_current_dir(fm);
-  u32 cur = dir->ind;
-  dir_cursor_move(dir, ct, fm->height, cfg.scrolloff);
-  if (dir->ind != cur) {
-    fm_update_visual_selection(fm, cur, dir->ind);
-    on_cursor_moved(fm, false);
-  }
-  return dir->ind != cur;
-}
-
-void fm_move_cursor_to(Fm *fm, zsview name) {
-  dir_cursor_move_to(fm_current_dir(fm), name, fm->height, cfg.scrolloff);
-  on_cursor_moved(fm, true);
-}
-
-void fm_move_cursor_to_ptr(Fm *fm, const File *file) {
-  Dir *dir = fm_current_dir(fm);
-  i32 i = 0;
-  c_foreach(it, Dir, dir) {
-    if (*it.ref == file) {
-      dir_cursor_move(dir, i - dir->ind, fm->height, cfg.scrolloff);
-      break;
-    }
-    i++;
-  }
-  dir->ind = min(dir->ind, dir_length(dir));
-  on_cursor_moved(fm, true);
-}
-
-bool fm_scroll_up(Fm *fm) {
-  Dir *dir = fm_current_dir(fm);
-  if (dir->ind > 0 && dir->ind == dir->pos) {
-    return fm_up(fm, 1);
-  }
-  if (dir->pos < fm->height - cfg.scrolloff - 1) {
-    dir->pos++;
-  } else {
-    dir->pos = fm->height - cfg.scrolloff - 1;
-    dir->ind--;
-    if (dir->ind > dir_length(dir) - cfg.scrolloff - 1) {
-      dir->ind = dir_length(dir) - cfg.scrolloff - 1;
-    }
-    on_cursor_moved(fm, true);
-  }
-  return true;
-}
-
-bool fm_scroll_down(Fm *fm) {
-  Dir *dir = fm_current_dir(fm);
-  if (dir_length(dir) - dir->ind + dir->pos - 1 < fm->height) {
-    return fm_down(fm, 1);
-  }
-  if (dir->pos > cfg.scrolloff) {
-    dir->pos--;
-  } else {
-    dir->pos = cfg.scrolloff;
-    dir->ind++;
-    if (dir->ind < dir->pos) {
-      dir->ind = dir->pos;
-    }
-    on_cursor_moved(fm, true);
-  }
-  return true;
-}
-
 File *fm_open(Fm *fm) {
   File *file = fm_current_file(fm);
-  if (!file) {
+  if (!file)
     return NULL;
-  }
 
-  if (!file_isdir(file)) {
+  if (!file_isdir(file))
     return file;
-  }
 
   fm_async_chdir(fm, file_path(file), false, true);
   return NULL;
@@ -582,31 +341,15 @@ File *fm_open(Fm *fm) {
 /* TODO: allow updir into directories that don't exist so we can move out of
  * deleted directories (on 2021-11-18) */
 bool fm_updir(Fm *fm) {
-  if (dir_isroot(fm_current_dir(fm))) {
+  if (dir_is_root(fm_current_dir(fm)))
     return false;
-  }
 
   Dir *dir = fm_current_dir(fm);
   zsview path = path_parent(dir_path(dir));
   fm_async_chdir(fm, path, false, true);
-  fm_move_cursor_to(fm, dir_name(dir));
+  dir_move_cursor_to_name(dir, dir_name(dir), fm->height, cfg.scrolloff);
+  fm_update_preview(fm, true);
   return true;
-}
-
-void fm_filter(Fm *fm, Filter *filter) {
-  Dir *dir = fm_current_dir(fm);
-  File *file = dir_current_file(dir);
-  dir_filter(dir, filter);
-  dir_cursor_move_to(dir, file ? file_name(file) : c_zv(""), fm->height,
-                     cfg.scrolloff);
-  on_cursor_moved(fm, true);
-}
-
-/* TODO: To reload flattened directories, more notify watchers are needed (on
- * 2022-02-06) */
-void fm_flatten(Fm *fm, u32 level) {
-  fm_current_dir(fm)->flatten_level = level;
-  async_dir_load(&to_lfm(fm)->async, fm_current_dir(fm), level == 0);
 }
 
 void fm_on_resize(Fm *fm, u32 height) {

@@ -1,4 +1,5 @@
 #include "cmdline.h"
+#include "config.h"
 #include "fm.h"
 #include "history.h"
 #include "hooks.h"
@@ -7,6 +8,7 @@
 #include "macro.h"
 #include "path.h"
 #include "search.h"
+#include "selection.h"
 #include "stc/cstr.h"
 #include "ui.h"
 
@@ -391,23 +393,29 @@ static int l_fm_load(lua_State *L) {
 }
 
 static int l_select(lua_State *L) {
-  fm_move_cursor_to(fm, luaL_checkzsview(L, 1));
-  ui_update_file_preview(ui);
+  Dir *dir = fm_current_dir(fm);
+  dir_move_cursor_to_name(dir, luaL_checkzsview(L, 1), fm->height,
+                          cfg.scrolloff);
+  update_preview(true);
   ui_redraw(ui, REDRAW_FM);
   return 0;
 }
 
 static int l_fm_up(lua_State *L) {
-  if (fm_up(fm, luaL_optint(L, 1, 1))) {
-    ui_update_file_preview_delayed(ui);
+  (void)L;
+  Dir *dir = fm_current_dir(fm);
+  if (dir_move_cursor(dir, -1, fm->height, cfg.scrolloff)) {
+    update_preview(false);
     ui_redraw(ui, REDRAW_FM);
   }
   return 0;
 }
 
 static int l_fm_down(lua_State *L) {
-  if (fm_down(fm, luaL_optint(L, 1, 1))) {
-    ui_update_file_preview_delayed(ui);
+  (void)L;
+  Dir *dir = fm_current_dir(fm);
+  if (dir_move_cursor(dir, 1, fm->height, cfg.scrolloff)) {
+    update_preview(false);
     ui_redraw(ui, REDRAW_FM);
   }
   return 0;
@@ -415,26 +423,9 @@ static int l_fm_down(lua_State *L) {
 
 static int l_fm_top(lua_State *L) {
   (void)L;
-  if (fm_top(fm)) {
-    ui_update_file_preview(ui);
-    ui_redraw(ui, REDRAW_FM);
-  }
-  return 0;
-}
-
-static int l_fm_scroll_up(lua_State *L) {
-  (void)L;
-  if (fm_scroll_up(fm)) {
-    ui_update_file_preview(ui);
-    ui_redraw(ui, REDRAW_FM);
-  }
-  return 0;
-}
-
-static int l_fm_scroll_down(lua_State *L) {
-  (void)L;
-  if (fm_scroll_down(fm)) {
-    ui_update_file_preview(ui);
+  Dir *dir = fm_current_dir(fm);
+  if (dir_set_cursor(dir, 0, fm->height, cfg.scrolloff)) {
+    update_preview(true);
     ui_redraw(ui, REDRAW_FM);
   }
   return 0;
@@ -442,8 +433,30 @@ static int l_fm_scroll_down(lua_State *L) {
 
 static int l_fm_bot(lua_State *L) {
   (void)L;
-  if (fm_bot(fm)) {
-    ui_update_file_preview(ui);
+  Dir *dir = fm_current_dir(fm);
+  // dir_set_ind deals with underflow
+  if (dir_set_cursor(dir, dir_length(dir) - 1, fm->height, cfg.scrolloff)) {
+    update_preview(true);
+    ui_redraw(ui, REDRAW_FM);
+  }
+  return 0;
+}
+
+static int l_fm_scroll_up(lua_State *L) {
+  (void)L;
+  Dir *dir = fm_current_dir(fm);
+  if (dir_scroll_up(dir, fm->height, cfg.scrolloff)) {
+    update_preview(true);
+    ui_redraw(ui, REDRAW_FM);
+  }
+  return 0;
+}
+
+static int l_fm_scroll_down(lua_State *L) {
+  (void)L;
+  Dir *dir = fm_current_dir(fm);
+  if (dir_scroll_down(dir, fm->height, cfg.scrolloff)) {
+    update_preview(true);
     ui_redraw(ui, REDRAW_FM);
   }
   return 0;
@@ -456,7 +469,7 @@ static int l_fm_updir(lua_State *L) {
     // since we are also not running the pre hook
     // lfm_run_hook(lfm, LFM_HOOK_CHDIRPOST, &fm->pwd);
     search_nohighlight(lfm);
-    ui_update_file_preview(ui);
+    ui_update_preview(ui, true);
     ui_redraw(ui, REDRAW_FM);
   }
   return 0;
@@ -467,7 +480,7 @@ static int l_fm_open(lua_State *L) {
   File *file = fm_open(fm);
   if (file) {
     if (lfm->opts.selection_path) {
-      fm_selection_write(&lfm->fm, zsview_from(lfm->opts.selection_path));
+      selection_write(&lfm->fm, zsview_from(lfm->opts.selection_path));
       return lua_quit(L, lfm);
     }
 
@@ -476,7 +489,7 @@ static int l_fm_open(lua_State *L) {
   } else {
     /* changed directory */
     // lfm_run_hook(lfm, LFM_HOOK_CHDIRPOST, &fm->pwd);
-    ui_update_file_preview(ui);
+    ui_update_preview(ui, true);
     ui_redraw(ui, REDRAW_FM);
     search_nohighlight(lfm);
     return 0;
@@ -588,16 +601,19 @@ static int l_fm_sort(lua_State *L) {
   // directory if it hasn't been moved when sorting
   const File *file = dir_current_file(dir);
   dir_sort(dir, true);
-  fm_move_cursor_to_ptr(fm, file);
-  ui_update_file_preview(ui);
+  dir_move_cursor_to_ptr(dir, file, fm->height, cfg.scrolloff);
+  ui_update_preview(ui, true);
   ui_redraw(ui, REDRAW_FM);
   return 0;
 }
 
 static int l_fm_selection_toggle_current(lua_State *L) {
   (void)L;
-  fm_selection_toggle_current(fm);
-  ui_redraw(ui, REDRAW_FM);
+  File *file = fm_current_file(fm);
+  if (file) {
+    selection_toggle_path(fm, file_path(file), true);
+    ui_redraw(ui, REDRAW_FM);
+  }
   return 0;
 }
 
@@ -612,7 +628,7 @@ static int l_fm_selection_add(lua_State *L) {
         path_normalize3(path, fm_getpwd_str(fm), buf, sizeof buf);
     if (zsview_is_empty(normalized))
       return luaL_error(L, "path too long");
-    fm_selection_add(fm, zsview_from(buf), false);
+    selection_add_path(fm, zsview_from(buf), false);
     lua_pop(L, 1);
   }
   if (n > 0) {
@@ -627,7 +643,7 @@ static int l_fm_selection_set(lua_State *L) {
     return luaL_argerror(L, 1, "table or nil required");
   }
   char buf[PATH_MAX];
-  fm_selection_clear(fm);
+  selection_clear(fm);
   lfm_mode_exit(lfm, c_zv("visual"));
   if (lua_istable(L, 1)) {
     for (lua_pushnil(L); lua_next(L, -2); lua_pop(L, 1)) {
@@ -636,7 +652,7 @@ static int l_fm_selection_set(lua_State *L) {
           path_normalize3(str, fm_getpwd_str(fm), buf, sizeof buf);
       if (zsview_is_empty(normalized))
         return luaL_error(L, "path too long");
-      fm_selection_add(fm, zsview_from(buf), false);
+      selection_add_path(fm, zsview_from(buf), false);
     }
   }
   lfm_run_hook(lfm, LFM_HOOK_SELECTION);
@@ -656,7 +672,7 @@ static int l_fm_selection_get(lua_State *L) {
 
 static int l_fm_selection_reverse(lua_State *L) {
   (void)L;
-  fm_selection_reverse(fm);
+  selection_reverse(fm, fm_current_dir(fm));
   ui_redraw(ui, REDRAW_FM);
   return 0;
 }
@@ -695,7 +711,7 @@ static int l_chdir(lua_State *L) {
   } else {
     fm_async_chdir(fm, path, should_save, true);
   }
-  ui_update_file_preview(ui);
+  ui_update_preview(ui, true);
   ui_redraw(ui, REDRAW_FM);
   return 0;
 }
@@ -737,7 +753,7 @@ static int l_fm_paste_buffer_get(lua_State *L) {
 static int l_fm_paste_buffer_set(lua_State *L) {
   usize prev_size = pathlist_size(&fm->paste.buffer);
   paste_mode prev_mode = fm->paste.mode;
-  fm_paste_buffer_clear(fm);
+  paste_buffer_clear(fm);
 
   const char *mode = luaL_optstring(L, 2, "copy");
   if (streq(mode, "copy")) {
@@ -753,7 +769,7 @@ static int l_fm_paste_buffer_set(lua_State *L) {
     for (usize i = 0; i < l; i++) {
       lua_rawgeti(L, 1, i + 1);
       zsview path = lua_tozsview(L, -1);
-      fm_paste_buffer_add(fm, path);
+      paste_buffer_add(fm, path);
       lua_pop(L, 1);
     }
   }
@@ -772,7 +788,7 @@ static int l_fm_paste_buffer_set(lua_State *L) {
 static int l_fm_copy(lua_State *L) {
   (void)L;
   lfm_mode_exit(lfm, c_zv("visual"));
-  fm_paste_mode_set(fm, PASTE_MODE_COPY);
+  paste_mode_set(fm, PASTE_MODE_COPY);
   lfm_run_hook(lfm, LFM_HOOK_PASTEBUF);
   ui_redraw(ui, REDRAW_FM);
   return 0;
@@ -781,7 +797,7 @@ static int l_fm_copy(lua_State *L) {
 static int l_fm_cut(lua_State *L) {
   (void)L;
   lfm_mode_exit(lfm, c_zv("visual"));
-  fm_paste_mode_set(fm, PASTE_MODE_MOVE);
+  paste_mode_set(fm, PASTE_MODE_MOVE);
   lfm_run_hook(lfm, LFM_HOOK_PASTEBUF);
   ui_redraw(ui, REDRAW_FM);
   return 0;
@@ -798,22 +814,23 @@ static int l_fm_filter_get(lua_State *L) {
 }
 
 static int l_fm_filter(lua_State *L) {
-  if (lua_isnoneornil(L, 1)) {
-    fm_filter(fm, NULL);
-  } else {
+  Dir *dir = fm_current_dir(fm);
+  Filter *filter = NULL;
+  if (!lua_isnoneornil(L, 1)) {
     const char *type = lua_tostring(L, 2);
     if (!type || streq(type, "substring")) {
-      fm_filter(fm, filter_create_sub(lua_tozsview(L, 1)));
+      filter = filter_create_sub(lua_tozsview(L, 1));
     } else if (streq(type, "fuzzy")) {
-      fm_filter(fm, filter_create_fuzzy(lua_tozsview(L, 1)));
+      filter = filter_create_fuzzy(lua_tozsview(L, 1));
     } else if (streq(type, "lua")) {
       int ref = lua_register_callback(L, 1);
-      fm_filter(fm, filter_create_lua(ref, L));
+      filter = filter_create_lua(ref, L);
     } else {
       return luaL_error(L, "unrecognized filter type: %s", type);
     }
   }
-  ui_update_file_preview_delayed(ui);
+  dir_filter(dir, filter, fm->height, cfg.scrolloff);
+  update_preview(false);
   ui_redraw(ui, REDRAW_FM);
   return 0;
 }
@@ -830,7 +847,7 @@ static int l_jump_automark(lua_State *L) {
   lfm_run_hook(lfm, LFM_HOOK_CHDIRPRE, &fm->pwd);
   lfm_mode_exit(lfm, c_zv("visual"));
   fm_jump_automark(fm);
-  ui_update_file_preview(ui);
+  ui_update_preview(ui, true);
   ui_redraw(ui, REDRAW_FM);
   return 0;
 }
@@ -842,10 +859,14 @@ static int l_get_flatten_level(lua_State *L) {
 
 static int l_set_flatten_level(lua_State *L) {
   int level = luaL_optinteger(L, 1, 0);
-  if (level < 0) {
+  if (level < 0)
     level = 0;
-  }
-  fm_flatten(fm, level);
+
+  /* TODO: To reload flattened directories properly, more inotify watchers are
+   * needed (on 2022-02-06) */
+  Dir *dir = fm_current_dir(fm);
+  dir->flatten_level = level;
+  async_dir_load(&to_lfm(fm)->async, dir, level == 0);
   ui_redraw(ui, REDRAW_FM);
   return 0;
 }

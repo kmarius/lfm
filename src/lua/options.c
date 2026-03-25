@@ -219,8 +219,10 @@ static int l_config_newindex(lua_State *L) {
     cfg.truncatechar[len] = 0;
     ui_redraw(ui, REDRAW_FM);
   } else if (streq(key, "hidden")) {
-    fm_hidden_set(fm, lua_toboolean(L, 3));
-    ui_update_file_preview(ui);
+    cfg.dir_settings.hidden = lua_toboolean(L, 3);
+    fm_sort(fm);
+    fm_update_preview(fm, true);
+    ui_update_preview(ui, true);
     ui_redraw(ui, REDRAW_FM);
   } else if (streq(key, "ratios")) {
     luaL_checktype(L, 3, LUA_TTABLE);

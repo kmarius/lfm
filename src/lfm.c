@@ -36,7 +36,8 @@
 #include <sys/socket.h>
 #include <sys/wait.h>
 
-struct ev_loop *event_loop;
+struct ev_loop *event_loop = NULL;
+static Lfm *instance = NULL;
 
 struct sched_timer {
   ev_timer watcher;
@@ -46,6 +47,10 @@ struct sched_timer {
 #define i_declared
 #define i_type list_timer, struct sched_timer
 #include "stc/dlist.h"
+
+Lfm *lfm_instance(void) {
+  return instance;
+}
 
 static void schedule_timer_cb(EV_P_ ev_timer *w, i32 revents) {
   (void)revents;
@@ -208,6 +213,7 @@ void lfm_init(Lfm *lfm, struct lfm_opts *opts) {
   setpwd(getenv("PWD"));
 
   event_loop = ev_default_loop(EVFLAG_NOENV);
+  instance = lfm;
 
   init_dirs(lfm);
   fifo_init(lfm);

@@ -159,13 +159,13 @@ static void fileinfo_callback(void *p, Lfm *lfm) {
       File *file = dir_current_file(res->dir);
       dir_sort(res->dir, false);
       if (file && dir_current_file(res->dir) != file) {
-        dir_cursor_move_to(res->dir, file_name(file), lfm->fm.height,
-                           cfg.scrolloff);
+        dir_move_cursor_to_name(res->dir, file_name(file), lfm->fm.height,
+                                cfg.scrolloff);
       }
     } else {
       dir_sort(res->dir, false);
     }
-    fm_update_preview(&lfm->fm);
+    fm_update_preview(&lfm->fm, true);
     ui_redraw(&lfm->ui, REDRAW_FM);
   }
   fileinfo_result_destroy(p);
@@ -307,9 +307,9 @@ static void dir_update_callback(void *p, Lfm *lfm) {
     dir_update_with(res->dir, res->update, lfm->fm.height, cfg.scrolloff);
     lfm_run_hook(lfm, LFM_HOOK_DIRUPDATED, dir_path(res->dir));
     if (res->dir->visible) {
-      fm_update_preview(&lfm->fm);
+      fm_update_preview(&lfm->fm, true);
       if (fm_current_dir(&lfm->fm) == res->dir) {
-        ui_update_file_preview(&lfm->ui);
+        ui_update_preview(&lfm->ui, true);
       }
       ui_redraw(&lfm->ui, REDRAW_FM);
     }

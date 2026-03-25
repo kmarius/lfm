@@ -11,7 +11,6 @@
 #include "fm.h"
 #include "infoline.h"
 #include "input.h"
-#include "keys.h"
 #include "lfm.h"
 #include "loader.h"
 #include "log.h"
@@ -121,7 +120,7 @@ void ui_on_resize(Ui *ui) {
   ncplane_move_yx(ui->planes.cmdline, ui->y - 1, 0);
   ui_recol(ui);
   menu_resize(ui);
-  ui_update_file_preview(ui);
+  ui_update_preview(ui, true);
 }
 
 static i32 resize_cb(struct ncplane *n) {
@@ -196,7 +195,7 @@ void ui_resume(Ui *ui) {
   ui->menu_delay_timer.data = to_lfm(ui);
 
   input_resume(to_lfm(ui));
-  ui_update_file_preview(ui);
+  ui_update_preview(ui, true);
   ui_redraw(ui, REDRAW_FM);
   ui->running = true;
 }
@@ -397,7 +396,7 @@ static void draw_preview(Ui *ui) {
       if (ui->preview.preview) {
         preview_draw(ui->preview.preview, ui->planes.preview);
       } else {
-        ui_update_file_preview(ui);
+        ui_update_preview(ui, true);
         ncplane_erase(ui->planes.preview);
       }
     }
@@ -984,12 +983,6 @@ static inline void remove_preview(Ui *ui) {
   ui->preview.preview = NULL;
 }
 
-static inline void on_cursor_moved(Ui *ui, bool immediate);
-
-void ui_update_file_preview(Ui *ui) {
-  on_cursor_moved(ui, true);
-}
-
 static void on_cursor_resting(EV_P_ ev_timer *w, i32 revents) {
   ev_timer_stop(loop, w);
 
@@ -1014,13 +1007,13 @@ static void on_cursor_resting(EV_P_ ev_timer *w, i32 revents) {
 void ui_update_file_preview_delayed(Ui *ui) {
   if (!cfg.preview || ui->num_columns == 1)
     return;
-  on_cursor_moved(ui, false);
+  ui_update_preview(ui, false);
 }
 
 // check if the dimensions changed and the preview should be reloaded
 #define CHECK_DIMS(pv, nrow) (!(pv)->loading && (pv)->height < (nrow))
 
-static inline void on_cursor_moved(Ui *ui, bool immediate) {
+void ui_update_preview(Ui *ui, bool immediate) {
   immediate |= cfg.preview_delay == 0;
 
   static u64 last_time_called = 0;
@@ -1072,7 +1065,7 @@ void ui_drop_cache(Ui *ui) {
     ui->preview.preview = NULL;
   }
   loader_drop_preview_cache(&to_lfm(ui)->loader);
-  ui_update_file_preview(ui);
+  ui_update_preview(ui, true);
   ui_redraw(ui, REDRAW_CMDLINE | REDRAW_PREVIEW);
 }
 

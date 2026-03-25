@@ -1,5 +1,6 @@
 #include "search.h"
 
+#include "config.h"
 #include "dir.h"
 #include "fm.h"
 #include "lfm.h"
@@ -43,9 +44,8 @@ void search(Lfm *lfm, zsview string, bool forward) {
 }
 
 static void search_next_forward(Lfm *lfm, bool inclusive) {
-  if (cstr_is_empty(&lfm->ui.search_string)) {
+  if (cstr_is_empty(&lfm->ui.search_string))
     return;
-  }
 
   Dir *dir = fm_current_dir(&lfm->fm);
   search_rehighlight(&lfm->ui);
@@ -53,9 +53,10 @@ static void search_next_forward(Lfm *lfm, bool inclusive) {
     u32 idx = (dir->ind + i) % dir_length(dir);
     if (strcasestr(file_name_str(*vec_file_at(&dir->files, idx)),
                    cstr_str(&lfm->ui.search_string))) {
-      if (fm_cursor_move_to_ind(&lfm->fm, idx)) {
+      if (dir_set_cursor(dir, idx, lfm->fm.height, cfg.scrolloff)) {
+        fm_update_preview(&lfm->fm, true);
+        ui_update_preview(&lfm->ui, true);
         ui_redraw(&lfm->ui, REDRAW_CURRENT);
-        ui_update_file_preview(&lfm->ui);
       }
       return;
     }
@@ -63,9 +64,8 @@ static void search_next_forward(Lfm *lfm, bool inclusive) {
 }
 
 static void search_next_backwards(Lfm *lfm, bool inclusive) {
-  if (cstr_is_empty(&lfm->ui.search_string)) {
+  if (cstr_is_empty(&lfm->ui.search_string))
     return;
-  }
 
   Dir *dir = fm_current_dir(&lfm->fm);
   search_rehighlight(&lfm->ui);
@@ -73,9 +73,10 @@ static void search_next_backwards(Lfm *lfm, bool inclusive) {
     u32 idx = (dir->ind + dir_length(dir) - i) % dir_length(dir);
     if (strcasestr(file_name_str(*vec_file_at(&dir->files, idx)),
                    cstr_str(&lfm->ui.search_string))) {
-      if (fm_cursor_move_to_ind(&lfm->fm, idx)) {
+      if (dir_set_cursor(dir, idx, lfm->fm.height, cfg.scrolloff)) {
+        fm_update_preview(&lfm->fm, true);
+        ui_update_preview(&lfm->ui, true);
         ui_redraw(&lfm->ui, REDRAW_CURRENT);
-        ui_update_file_preview(&lfm->ui);
       }
       return;
     }

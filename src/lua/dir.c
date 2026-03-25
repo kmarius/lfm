@@ -1,9 +1,9 @@
 #include "dir.h"
 #include "config.h"
-#include "stc/cstr.h"
-
 #include "private.h"
+#include "stc/cstr.h"
 #include "util.h"
+#include "visual.h"
 
 #include <lauxlib.h>
 #include <lua.h>
@@ -17,19 +17,13 @@ static inline Dir *checkdir(lua_State *L, int idx) {
   return *(Dir **)luaL_checkudata(L, idx, DIR_META);
 }
 
-// update fm state, call when the current directory is changed
-static inline void update_preview() {
-  fm_update_preview_delayed(fm);
-  ui_update_file_preview_delayed(ui);
-}
-
 static inline void move_cursor(Dir *dir, i32 ct) {
   u32 cur = dir->ind;
-  dir_cursor_move(dir, ct, fm->height, cfg.scrolloff);
+  dir_move_cursor(dir, ct, fm->height, cfg.scrolloff);
   if (dir->ind != cur) {
     if (dir == fm_current_dir(fm)) {
-      fm_update_visual_selection(fm, cur, dir->ind);
-      update_preview();
+      visual_update_selection(fm, cur, dir->ind);
+      update_preview(false);
     }
     if (dir->visible)
       ui_redraw(ui, REDRAW_FM);
@@ -37,9 +31,9 @@ static inline void move_cursor(Dir *dir, i32 ct) {
 }
 
 static inline void move_cursor_to_name(Dir *dir, zsview name) {
-  dir_cursor_move_to(dir, name, fm->height, cfg.scrolloff);
+  dir_move_cursor_to_name(dir, name, fm->height, cfg.scrolloff);
   if (dir == fm_current_dir(fm))
-    update_preview();
+    update_preview(false);
   if (dir->visible)
     ui_redraw(ui, REDRAW_FM);
 }
@@ -104,7 +98,7 @@ static int l_dir_sort(lua_State *L) {
   restore_cursor(dir, file);
 
   if (dir == fm_current_dir(fm))
-    update_preview();
+    update_preview(false);
   if (dir->visible)
     ui_redraw(ui, REDRAW_FM);
 
@@ -137,12 +131,10 @@ static inline int filter(lua_State *L, int idx, Dir *dir) {
     lua_pop(L, 2);
   }
 
-  File *file = dir_current_file(dir);
-  dir_filter(dir, filter);
-  restore_cursor(dir, file);
+  dir_filter(dir, filter, fm->height, cfg.scrolloff);
 
   if (dir == fm_current_dir(fm))
-    update_preview();
+    update_preview(false);
   if (dir->visible)
     ui_redraw(ui, REDRAW_FM);
 
@@ -167,7 +159,7 @@ int l_dir__index(lua_State *L) {
   } else if (streq(field, "name")) {
     lua_pushzsview(L, dir_name(dir));
   } else if (streq(field, "parent")) {
-    if (dir_isroot(dir))
+    if (dir_is_root(dir))
       return 0;
     zsview path = path_parent_zv(dir_path(dir));
     pushdir_from_path(L, path);

@@ -15,6 +15,7 @@
 #include <ev.h>
 #include <lua.h>
 
+#include <errno.h>
 #include <stdint.h>
 
 declare_vec(vec_hook_change, struct hook_change);
@@ -72,6 +73,8 @@ typedef struct Lfm {
   int ret; /* set in lfm_quit and returned by lfm_run */
 } Lfm;
 
+Lfm *lfm_instance(void);
+
 // Initialize lfm and all its components.
 void lfm_init(Lfm *lfm, struct lfm_opts *opts);
 
@@ -95,3 +98,7 @@ void lfm_printf(Lfm *lfm, const char *format, ...);
 
 // Print an error in the UI. `printf` formatting applies.
 void lfm_errorf(Lfm *lfm, const char *format, ...);
+
+static inline void lfm_perror(Lfm *lfm, const char *s) {
+  lfm_errorf(lfm, "%s: %s", s, strerror(errno));
+}

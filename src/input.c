@@ -13,6 +13,7 @@
 #include "macro.h"
 #include "mode.h"
 #include "search.h"
+#include "selection.h"
 #include "stc/cstr.h"
 #include "stcutil.h"
 #include "trie.h"
@@ -248,10 +249,10 @@ void input_handle_key(Lfm *lfm, input_t in) {
       if (!vec_input_is_empty(&lfm->ui.maps.seq)) {
         input_clear(lfm);
       } else {
-        if (fm_selection_clear(&lfm->fm)) {
+        if (selection_clear(&lfm->fm)) {
           mode |= REDRAW_FM;
         }
-        if (fm_paste_buffer_clear(fm)) {
+        if (paste_buffer_clear(fm)) {
           lfm_run_hook(lfm, LFM_HOOK_PASTEBUF);
           mode |= REDRAW_FM;
         }

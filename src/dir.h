@@ -37,6 +37,8 @@ typedef enum {
   NUM_FILEINFO
 } fileinfo;
 
+i32 fileinfo_from_str(const char *str);
+
 typedef enum {
   DIR_LOADING_DELAYED = 0,
   DIR_LOADING_INITIAL,
@@ -114,6 +116,9 @@ void dir_destroy(Dir *dir);
 // Bring the directory back into its "unloaded" state.
 void dir_unload(Dir *dir);
 
+// Replace files and metadata of `dir` with those of `update`. Frees `update`.
+void dir_update_with(Dir *dir, Dir *update, u32 height, u32 scrolloff);
+
 // Loads the directory at `path` from disk. Additionally count the files in each
 // subdirectory if `load_fileinfo` is `true`.
 // If `load_fileinfo` is `true` and a `stop` signal is passed,
@@ -161,9 +166,9 @@ static inline File *dir_current_file(const Dir *dir) {
 // `sorted` flag is false. Filters are always applied.
 void dir_sort(Dir *dir, bool force);
 
-// Lfmlies the filter string `filter` to `dir`. `NULL` or `""` clears the
-// filter.
-void dir_filter(Dir *dir, Filter *filter);
+// Applies the filter to `dir`. `NULL` clears the
+// filter. Attempts to re-select the previously selected file.
+void dir_filter(Dir *dir, Filter *filter, u32 height, u32 scrolloff);
 
 // Check `dir` for changes on disk by comparing mtime. Returns `true` if there
 // are no changes, `false` otherwise.
@@ -171,17 +176,28 @@ bool dir_check(const Dir *dir);
 
 // Move the cursor in the current dir by `ct`, respecting the `scrolloff`
 // setting by passing it and the current `height` of the viewport.
-void dir_cursor_move(Dir *dir, i32 ct, u32 height, u32 scrolloff);
+int dir_move_cursor(Dir *dir, i32 ct, u32 height, u32 scrolloff);
+
+int dir_move_cursor_to_ptr(Dir *dir, const File *file, u32 height,
+                           u32 scrolloff);
+
+static inline bool dir_set_cursor(Dir *dir, u32 ind, u32 height,
+                                  u32 scrolloff) {
+  return dir_move_cursor(dir, ind - dir->ind, height, scrolloff);
+}
 
 // Move the cursor in the current dir to the file `name`, respecting the
 // `scrolloff` setting by passing it and the current `height` of the viewport.
-void dir_cursor_move_to(Dir *dir, zsview name, u32 height, u32 scrolloff);
+void dir_move_cursor_to_name(Dir *dir, zsview name, u32 height, u32 scrolloff);
 
-// Replace files and metadata of `dir` with those of `update`. Frees `update`.
-void dir_update_with(Dir *dir, Dir *update, u32 height, u32 scrolloff);
+// Scroll up the directory while keeping the cursor position if possible.
+bool dir_scroll_up(Dir *dir, u32 height, u32 scrolloff);
+
+// Scroll down the directory while keeping the cursor position if possible.
+bool dir_scroll_down(Dir *dir, u32 height, u32 scrolloff);
 
 // Returns true `d` is the root directory.
-static inline bool dir_isroot(const Dir *dir) {
+static inline bool dir_is_root(const Dir *dir) {
   return path_is_root(dir_path(dir));
 }
 
@@ -189,5 +205,3 @@ static inline bool dir_isroot(const Dir *dir) {
 #define Dir_iter vec_file_iter
 #define Dir_next vec_file_next
 #define Dir_begin(dir) vec_file_begin(dir->files)
-
-i32 fileinfo_from_str(const char *str);

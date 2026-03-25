@@ -123,8 +123,7 @@ void ui_clear(Ui *ui);
 
 void ui_draw(Ui *ui);
 
-void ui_update_file_preview(Ui *ui);
-void ui_update_file_preview_delayed(Ui *ui);
+void ui_update_preview(Ui *ui, bool immediate);
 
 static inline void ui_redraw(Ui *ui, u32 mode) {
   ui->redraw |= mode;

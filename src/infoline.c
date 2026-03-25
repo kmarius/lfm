@@ -267,7 +267,7 @@ static inline void draw_custom(Ui *ui) {
       path_remaining--;
     }
 
-    if (!dir_isroot(dir) && path_remaining > 0) {
+    if (!dir_is_root(dir) && path_remaining > 0) {
       path_remaining--; // extra trailing '/', later
     }
 
@@ -283,7 +283,7 @@ static inline void draw_custom(Ui *ui) {
     }
 
     // trailing slash
-    if (!dir_isroot(dir)) {
+    if (!dir_is_root(dir)) {
       if (buf_idx < sizeof path_buf - 1) {
         path_buf[buf_idx] = '/';
         path_buf[buf_idx + 1] = 0;
@@ -393,7 +393,7 @@ static inline void draw_default(Ui *ui) {
     path = zsview_from_pos(path, home_len);
   }
 
-  if (!dir_isroot(dir)) {
+  if (!dir_is_root(dir)) {
     remaining--; // printing another '/' after path
   }
 
@@ -401,7 +401,7 @@ static inline void draw_default(Ui *ui) {
   shorten_path(path, buf, remaining);
   ncplane_putstr(n, buf);
 
-  if (!dir_isroot(dir)) {
+  if (!dir_is_root(dir)) {
     ncplane_putchar(n, '/');
   }
 

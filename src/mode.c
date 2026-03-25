@@ -1,13 +1,13 @@
 #include "mode.h"
 
 #include "cmdline.h"
-#include "fm.h"
 #include "hooks.h"
 #include "lfm.h"
 #include "lua/lfmlua.h"
 #include "stc/cstr.h"
 #include "trie.h"
 #include "ui.h"
+#include "visual.h"
 
 static void normal_on_enter(Lfm *lfm);
 
@@ -59,12 +59,12 @@ static void normal_on_enter(Lfm *lfm) {
 }
 
 static void visual_on_enter(Lfm *lfm) {
-  fm_on_visual_enter(&lfm->fm);
+  visual_enter_mode(&lfm->fm);
   ui_redraw(&lfm->ui, REDRAW_FM);
 }
 
 static void visual_on_exit(Lfm *lfm) {
-  fm_on_visual_exit(&lfm->fm);
+  visual_exit_mode(&lfm->fm);
 }
 
 i32 lfm_mode_register(Lfm *lfm, struct mode *mode) {

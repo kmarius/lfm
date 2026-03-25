@@ -1,0 +1,72 @@
+#include "visual.h"
+
+#include "hooks.h"
+#include "lfm.h"
+#include "selection.h"
+
+void visual_update_selection(Fm *fm, u32 from, u32 to) {
+  if (!fm->visual.active)
+    return;
+  u32 origin = fm->visual.anchor;
+  u32 hi, lo;
+  if (from >= origin) {
+    if (to > from) {
+      lo = from + 1;
+      hi = to;
+    } else if (to < origin) {
+      hi = from;
+      lo = to;
+    } else {
+      hi = from;
+      lo = to + 1;
+    }
+  } else {
+    if (to < from) {
+      lo = to;
+      hi = from - 1;
+    } else if (to > origin) {
+      lo = from;
+      hi = to;
+    } else {
+      lo = from;
+      hi = to - 1;
+    }
+  }
+  const Dir *dir = fm_current_dir(fm);
+  for (; lo <= hi; lo++) {
+    // never unselect the old selection
+    zsview path = file_path(*vec_file_at(&dir->files, lo));
+    if (!pathlist_contains(&fm->selection.keep_in_visual, path)) {
+      selection_toggle_path(fm, path, false);
+    }
+  }
+  lfm_run_hook(lfm_instance(), LFM_HOOK_SELECTION);
+}
+
+void visual_enter_mode(Fm *fm) {
+  if (fm->visual.active)
+    return;
+
+  Dir *dir = fm_current_dir(fm);
+  if (dir_length(dir) == 0)
+    return;
+
+  fm->visual.active = true;
+  fm->visual.anchor = dir->ind;
+
+  selection_add_path(fm, file_path(dir_current_file(dir)), false);
+  pathlist_clear(&fm->selection.keep_in_visual);
+  c_foreach(it, pathlist, fm->selection.current) {
+    pathlist_add(&fm->selection.keep_in_visual, cstr_zv(it.ref));
+  }
+  lfm_run_hook(lfm_instance(), LFM_HOOK_SELECTION);
+}
+
+void visual_exit_mode(Fm *fm) {
+  if (!fm->visual.active)
+    return;
+
+  fm->visual.active = false;
+  fm->visual.anchor = 0;
+  pathlist_clear(&fm->selection.keep_in_visual);
+}
