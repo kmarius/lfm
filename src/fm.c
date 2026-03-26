@@ -347,7 +347,8 @@ bool fm_updir(Fm *fm) {
   Dir *dir = fm_current_dir(fm);
   zsview path = path_parent(dir_path(dir));
   fm_async_chdir(fm, path, false, true);
-  dir_move_cursor_to_name(dir, dir_name(dir), fm->height, cfg.scrolloff);
+  Dir *parent = fm_current_dir(fm);
+  dir_move_cursor_to_name(parent, dir_name(dir), fm->height, cfg.scrolloff);
   fm_update_preview(fm, true);
   return true;
 }

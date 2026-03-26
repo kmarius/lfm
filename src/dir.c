@@ -484,7 +484,7 @@ void dir_move_cursor_to_name(Dir *d, zsview name, u32 height, u32 scrolloff) {
   i32 i = 0;
   c_foreach(it, vec_file, d->files) {
     if (zsview_eq2(file_name(*it.ref), name)) {
-      dir_move_cursor(d, i - d->ind, height, scrolloff);
+      dir_set_cursor(d, i, height, scrolloff);
       return;
     }
     i++;
