@@ -11,6 +11,7 @@
 #include "selection.h"
 #include "stc/cstr.h"
 #include "ui.h"
+#include "visual.h"
 
 #include "private.h"
 #include "util.h"
@@ -404,8 +405,10 @@ static int l_select(lua_State *L) {
 static int l_fm_up(lua_State *L) {
   i32 ct = luaL_optinteger(L, 1, 1);
   Dir *dir = fm_current_dir(fm);
+  u32 ind = dir->ind;
   if (dir_move_cursor(dir, -ct, fm->height, cfg.scrolloff)) {
     update_preview(false);
+    visual_update_selection(fm, ind, dir->ind);
     ui_redraw(ui, REDRAW_FM);
   }
   return 0;
@@ -414,8 +417,10 @@ static int l_fm_up(lua_State *L) {
 static int l_fm_down(lua_State *L) {
   i32 ct = luaL_optinteger(L, 1, 1);
   Dir *dir = fm_current_dir(fm);
+  u32 ind = dir->ind;
   if (dir_move_cursor(dir, ct, fm->height, cfg.scrolloff)) {
     update_preview(false);
+    visual_update_selection(fm, ind, dir->ind);
     ui_redraw(ui, REDRAW_FM);
   }
   return 0;
@@ -424,8 +429,10 @@ static int l_fm_down(lua_State *L) {
 static int l_fm_top(lua_State *L) {
   (void)L;
   Dir *dir = fm_current_dir(fm);
+  u32 ind = dir->ind;
   if (dir_set_cursor(dir, 0, fm->height, cfg.scrolloff)) {
     update_preview(true);
+    visual_update_selection(fm, ind, dir->ind);
     ui_redraw(ui, REDRAW_FM);
   }
   return 0;
@@ -434,8 +441,10 @@ static int l_fm_top(lua_State *L) {
 static int l_fm_bot(lua_State *L) {
   (void)L;
   Dir *dir = fm_current_dir(fm);
+  u32 ind = dir->ind;
   if (dir_set_cursor(dir, dir_length(dir) /*-1*/, fm->height, cfg.scrolloff)) {
     update_preview(true);
+    visual_update_selection(fm, ind, dir->ind);
     ui_redraw(ui, REDRAW_FM);
   }
   return 0;
