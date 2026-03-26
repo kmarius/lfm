@@ -395,7 +395,6 @@ static void draw_preview(Ui *ui) {
       if (ui->preview.preview) {
         preview_draw(ui->preview.preview, ui->planes.preview);
       } else {
-        ui_update_preview(ui, true);
         ncplane_erase(ui->planes.preview);
       }
     }
