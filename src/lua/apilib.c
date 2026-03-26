@@ -394,17 +394,17 @@ static int l_fm_load(lua_State *L) {
 
 static int l_select(lua_State *L) {
   Dir *dir = fm_current_dir(fm);
-  dir_move_cursor_to_name(dir, luaL_checkzsview(L, 1), fm->height,
-                          cfg.scrolloff);
+  zsview name = luaL_checkzsview(L, 1);
+  dir_move_cursor_to_name(dir, name, fm->height, cfg.scrolloff);
   update_preview(true);
   ui_redraw(ui, REDRAW_FM);
   return 0;
 }
 
 static int l_fm_up(lua_State *L) {
-  (void)L;
+  i32 ct = luaL_optinteger(L, 1, 1);
   Dir *dir = fm_current_dir(fm);
-  if (dir_move_cursor(dir, -1, fm->height, cfg.scrolloff)) {
+  if (dir_move_cursor(dir, -ct, fm->height, cfg.scrolloff)) {
     update_preview(false);
     ui_redraw(ui, REDRAW_FM);
   }
@@ -412,9 +412,9 @@ static int l_fm_up(lua_State *L) {
 }
 
 static int l_fm_down(lua_State *L) {
-  (void)L;
+  i32 ct = luaL_optinteger(L, 1, 1);
   Dir *dir = fm_current_dir(fm);
-  if (dir_move_cursor(dir, 1, fm->height, cfg.scrolloff)) {
+  if (dir_move_cursor(dir, ct, fm->height, cfg.scrolloff)) {
     update_preview(false);
     ui_redraw(ui, REDRAW_FM);
   }
@@ -434,8 +434,7 @@ static int l_fm_top(lua_State *L) {
 static int l_fm_bot(lua_State *L) {
   (void)L;
   Dir *dir = fm_current_dir(fm);
-  // dir_set_ind deals with underflow
-  if (dir_set_cursor(dir, dir_length(dir) - 1, fm->height, cfg.scrolloff)) {
+  if (dir_set_cursor(dir, dir_length(dir) /*-1*/, fm->height, cfg.scrolloff)) {
     update_preview(true);
     ui_redraw(ui, REDRAW_FM);
   }
