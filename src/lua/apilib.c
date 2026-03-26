@@ -935,17 +935,12 @@ static int l_ui_get_height(lua_State *L) {
 
 static int l_ui_menu(lua_State *L) {
   vec_cstr menu = vec_cstr_init();
-  i32 delay = 0;
+  i32 delay = luaL_optinteger(L, 2, 0);
+  luaL_argcheck(L, delay >= 0, 2, "delay must be non-negative");
+
   if (lua_type(L, 1) == LUA_TTABLE) {
     lua_read_vec_cstr(L, 1, &menu);
-
-    if (lua_gettop(L) == 2) {
-      luaL_checktype(L, 2, LUA_TNUMBER);
-      int d = lua_tonumber(L, 2);
-      luaL_argcheck(L, d >= 0, 2, "delay must be non-negative");
-      delay = d;
-    }
-  } else if (lua_type(L, -1) == LUA_TSTRING) {
+  } else if (lua_type(L, 1) == LUA_TSTRING) {
     const char *str = lua_tostring(L, 1);
     for (const char *nl; (nl = strchr(str, '\n')); str = nl + 1) {
       vec_cstr_push(&menu, cstr_with_n(str, nl - str));
