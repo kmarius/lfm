@@ -4,7 +4,6 @@
 #include "history.h"
 #include "hooks.h"
 #include "input.h"
-#include "loop.h"
 #include "macro.h"
 #include "path.h"
 #include "search.h"
@@ -37,18 +36,16 @@ static int l_set_keymap(lua_State *L) {
 
   if (lua_type(L, 3) == LUA_TTABLE) {
     lua_getfield(L, 3, "desc");
-    if (!lua_isnil(L, -1)) {
+    if (!lua_isnil(L, -1))
       desc = lua_tozsview(L, -1);
-    }
     lua_pop(L, 1);
 
     lua_getfield(L, 3, "mode");
     if (!lua_isnil(L, -1)) {
       const hmap_modes_value *mode =
           hmap_modes_get(&lfm->modes, lua_tozsview(L, -1));
-      if (mode == NULL) {
+      if (mode == NULL)
         return luaL_error(L, "no such mode: %s", lua_tostring(L, -1));
-      }
       trie = mode->second.maps;
     }
     lua_pop(L, 1);
@@ -64,13 +61,13 @@ static int l_set_keymap(lua_State *L) {
 
   int status = input_map(trie, keys, ref, desc, &oldref);
   if (status < 0) {
-    if (ref != 0) {
+    if (ref != 0)
       luaL_unref(L, LUA_REGISTRYINDEX, ref);
-    }
-    if (status == -2)
+    if (status == -2) {
       return luaL_error(L, "key sequence too long");
-    else
+    } else {
       return luaL_error(L, "malformed key sequence");
+    }
   }
 
   if (oldref)
@@ -88,9 +85,8 @@ static int l_del_keymap(lua_State *L) {
     if (!lua_isnil(L, -1)) {
       const hmap_modes_value *mode =
           hmap_modes_get(&lfm->modes, lua_tozsview(L, -1));
-      if (mode == NULL) {
+      if (mode == NULL)
         return luaL_error(L, "no such mode: %s", lua_tostring(L, -1));
-      }
       trie = mode->second.maps;
     }
     lua_pop(L, 1);
@@ -115,9 +111,9 @@ static int l_del_keymap(lua_State *L) {
 static int l_get_keymap(lua_State *L) {
   zsview name = luaL_checkzsview(L, 1);
   const struct mode *mode = hmap_modes_at(&lfm->modes, name);
-  if (!mode) {
+  if (!mode)
     return luaL_error(L, "no such mode: %s", name);
-  }
+
   bool prune = luaL_optbool(L, 2, false);
   vec_trie maps = trie_collect_leaves(mode->maps, prune);
   lua_createtable(L, vec_trie_size(&maps), 0);
@@ -146,15 +142,13 @@ static int l_cmd_line_get(lua_State *L) {
 static int l_feedkeys(lua_State *L) {
   usize len;
   const char *keys = luaL_checklstring(L, 1, &len);
-  const char *end = keys + len;
-  while (keys < end) {
+  for (const char *end = keys + len; keys < end;) {
     input_t u;
-    int len = key_name_to_input(keys, &u);
-    if (len < 0) {
+    i32 n = key_name_to_input(keys, &u);
+    if (n < 0)
       return luaL_error(L, "invalid key");
-    }
-    keys += len;
     input_handle_key(lfm, u);
+    keys += n;
   }
   return 0;
 }
@@ -162,15 +156,13 @@ static int l_feedkeys(lua_State *L) {
 static int l_input(lua_State *L) {
   usize len;
   const char *keys = luaL_checklstring(L, 1, &len);
-  const char *end = keys + len;
-  while (keys < end) {
+  for (const char *end = keys + len; keys < end;) {
     input_t u;
-    int len = key_name_to_input(keys, &u);
-    if (len < 0) {
+    i32 n = key_name_to_input(keys, &u);
+    if (n < 0)
       return luaL_error(L, "invalid key");
-    }
-    keys += len;
     input_buffer_add(lfm, u);
+    keys += n;
   }
   return 0;
 }
@@ -180,26 +172,23 @@ static int l_cmd_line_set(lua_State *L) {
 
   ui->show_message = false;
 
-  if (cmdline_set(&ui->cmdline, lua_tozsview(L, 1), lua_tozsview(L, 2))) {
+  if (cmdline_set(&ui->cmdline, lua_tozsview(L, 1), lua_tozsview(L, 2)))
     ui_redraw(ui, REDRAW_CMDLINE);
-  }
 
   return 0;
 }
 
 static int l_cmd_toggle_overwrite(lua_State *L) {
   (void)L;
-  if (cmdline_toggle_overwrite(&ui->cmdline)) {
+  if (cmdline_toggle_overwrite(&ui->cmdline))
     ui_redraw(ui, REDRAW_CMDLINE);
-  }
   return 0;
 }
 
 static int l_cmd_clear(lua_State *L) {
   (void)L;
-  if (cmdline_clear(&ui->cmdline)) {
+  if (cmdline_clear(&ui->cmdline))
     ui_redraw(ui, REDRAW_CMDLINE);
-  }
   return 0;
 }
 
@@ -243,33 +232,29 @@ static int l_cmd_insert(lua_State *L) {
 
 static int l_cmd_left(lua_State *L) {
   (void)L;
-  if (cmdline_left(&ui->cmdline)) {
+  if (cmdline_left(&ui->cmdline))
     ui_redraw(ui, REDRAW_CMDLINE);
-  }
   return 0;
 }
 
 static int l_cmd_right(lua_State *L) {
   (void)L;
-  if (cmdline_right(&ui->cmdline)) {
+  if (cmdline_right(&ui->cmdline))
     ui_redraw(ui, REDRAW_CMDLINE);
-  }
   return 0;
 }
 
 static int l_cmd_word_left(lua_State *L) {
   (void)L;
-  if (cmdline_word_left(&ui->cmdline)) {
+  if (cmdline_word_left(&ui->cmdline))
     ui_redraw(ui, REDRAW_CMDLINE);
-  }
   return 0;
 }
 
 static int l_cmd_word_right(lua_State *L) {
   (void)L;
-  if (cmdline_word_right(&ui->cmdline)) {
+  if (cmdline_word_right(&ui->cmdline))
     ui_redraw(ui, REDRAW_CMDLINE);
-  }
   return 0;
 }
 
@@ -284,17 +269,15 @@ static int l_cmd_delete_line_left(lua_State *L) {
 
 static int l_cmd_home(lua_State *L) {
   (void)L;
-  if (cmdline_home(&ui->cmdline)) {
+  if (cmdline_home(&ui->cmdline))
     ui_redraw(ui, REDRAW_CMDLINE);
-  }
   return 0;
 }
 
 static int l_cmd_end(lua_State *L) {
   (void)L;
-  if (cmdline_end(&ui->cmdline)) {
+  if (cmdline_end(&ui->cmdline))
     ui_redraw(ui, REDRAW_CMDLINE);
-  }
   return 0;
 }
 
@@ -306,18 +289,16 @@ static int l_cmd_history_append(lua_State *L) {
 
 static int l_cmd_history_prev(lua_State *L) {
   zsview line = history_prev(&ui->cmdline.history);
-  if (zsview_is_empty(line)) {
+  if (zsview_is_empty(line))
     return 0;
-  }
   lua_pushzsview(L, line);
   return 1;
 }
 
 static int l_cmd_history_next(lua_State *L) {
   zsview line = history_next_entry(&ui->cmdline.history);
-  if (zsview_is_empty(line)) {
+  if (zsview_is_empty(line))
     return 0;
-  }
   lua_pushzsview(L, line);
   return 1;
 }
@@ -375,10 +356,8 @@ static int l_fm_reload(lua_State *L) {
 
 static int l_fm_check(lua_State *L) {
   (void)L;
-  Dir *d = fm_current_dir(fm);
-  if (!dir_check(d)) {
-    async_dir_load(&lfm->async, d, true);
-  }
+  Dir *dir = fm_current_dir(fm);
+  async_dir_check(&lfm->async, dir);
   return 0;
 }
 
@@ -386,9 +365,8 @@ static int l_fm_load(lua_State *L) {
   char buf[PATH_MAX + 1];
   zsview path = luaL_checkzsview(L, 1);
   zsview normalized = path_normalize3(path, fm_getpwd_str(fm), buf, sizeof buf);
-  if (zsview_is_empty(normalized)) {
+  if (zsview_is_empty(normalized))
     return luaL_error(L, "path too long");
-  }
   loader_dir_from_path(&lfm->loader, normalized, true);
   return 0;
 }
@@ -506,19 +484,17 @@ static int l_fm_open(lua_State *L) {
 
 static int l_fm_current_file(lua_State *L) {
   File *file = fm_current_file(fm);
-  if (file != NULL) {
-    lua_pushzsview(L, file_path(file));
-    return 1;
-  }
-  return 0;
+  if (!file)
+    return 0;
+  lua_pushzsview(L, file_path(file));
+  return 1;
 }
 
 static int l_push_files(lua_State *L) {
   zsview path = lua_tozsview(L, lua_upvalueindex(1));
   Dir *dir = loader_dir_from_path(&lfm->loader, path, false);
-  if (dir == NULL) {
+  if (dir == NULL)
     return luaL_error(L, "no such directory: %s", path.str);
-  }
 
   lua_createtable(L, dir_length(dir), 0);
   usize i = 1;
@@ -565,9 +541,8 @@ static int l_fm_get_info(lua_State *L) {
 static int l_fm_set_info(lua_State *L) {
   const char *val = luaL_checkstring(L, 1);
   int info = fileinfo_from_str(val);
-  if (info < 0) {
+  if (info < 0)
     return luaL_error(L, "invalid option for info: %s", val);
-  }
   Dir *dir = fm_current_dir(fm);
   dir->settings.fileinfo = info;
   ui_redraw(ui, REDRAW_FM);
@@ -581,24 +556,21 @@ static int l_fm_sort(lua_State *L) {
 
   struct dir_settings settings = dir->settings;
   lua_getfield(L, 1, "dirfirst");
-  if (!lua_isnil(L, -1)) {
+  if (!lua_isnil(L, -1))
     settings.dirfirst = lua_toboolean(L, -1);
-  }
   lua_pop(L, 1);
 
   lua_getfield(L, 1, "reverse");
-  if (!lua_isnil(L, -1)) {
+  if (!lua_isnil(L, -1))
     settings.reverse = lua_toboolean(L, -1);
-  }
   lua_pop(L, 1);
 
   lua_getfield(L, 1, "type");
   if (!lua_isnil(L, -1)) {
     const char *op = luaL_checkstring(L, -1);
     int type = sorttype_from_str(op);
-    if (type < 0) {
+    if (type < 0)
       return luaL_error(L, "unrecognized sort type: %s", op);
-    }
     settings.sorttype = type;
   }
   lua_pop(L, 1);
@@ -707,9 +679,8 @@ static int l_chdir(lua_State *L) {
                       (last_slash != NULL && last_slash[1] != 0));
 
   zsview path = path_normalize3(arg, fm_getpwd_str(fm), buf, sizeof buf);
-  if (zsview_is_empty(path)) {
+  if (zsview_is_empty(path))
     return luaL_error(L, "path too long");
-  }
 
   search_nohighlight(lfm);
   lfm_mode_exit(lfm, c_zv("visual"));
@@ -737,11 +708,10 @@ static int l_fm_paste_mode_set(lua_State *L) {
   } else if (streq(mode, "move")) {
     fm->paste.mode = PASTE_MODE_MOVE;
   } else {
-    return luaL_error(L, "unrecognized paste mode: %s", mode);
+    return luaL_error(L, "invalid paste mode: %s", mode);
   }
-  if (fm->paste.mode != prev) {
+  if (fm->paste.mode != prev)
     lfm_run_hook(lfm, LFM_HOOK_PASTEBUF);
-  }
   ui_redraw(ui, REDRAW_FM);
 
   return 0;
@@ -813,12 +783,11 @@ static int l_fm_cut(lua_State *L) {
 
 static int l_fm_filter_get(lua_State *L) {
   Filter *filter = fm_current_dir(fm)->filter;
-  if (filter) {
-    lua_pushzsview(L, filter_string(filter));
-    lua_pushzsview(L, filter_type(filter));
-    return 2;
-  }
-  return 0;
+  if (!filter)
+    return 0;
+  lua_pushzsview(L, filter_string(filter));
+  lua_pushzsview(L, filter_type(filter));
+  return 2;
 }
 
 static int l_fm_filter(lua_State *L) {
@@ -1046,31 +1015,26 @@ static int l_macro_recording(lua_State *L) {
 static int l_macro_record(lua_State *L) {
   const char *str = luaL_checkstring(L, 1);
   input_t in;
-  if (key_name_to_input(str, &in) <= 0) {
+  if (key_name_to_input(str, &in) <= 0)
     return luaL_error(L, "converting to input_t");
-  }
-  if (macro_record(in)) {
+  if (macro_record(in))
     return luaL_error(L, "already recording");
-  }
-  return 1;
+  return 0;
 }
 
 static int l_macro_stop_record(lua_State *L) {
-  if (macro_stop_record()) {
+  if (macro_stop_record())
     return luaL_error(L, "currently not recording");
-  }
   return 0;
 }
 
 static int l_macro_play(lua_State *L) {
   const char *str = luaL_checkstring(L, 1);
   input_t in;
-  if (key_name_to_input(str, &in) <= 0) {
+  if (key_name_to_input(str, &in) <= 0)
     return luaL_error(L, "converting to input_t");
-  }
-  if (macro_play(in, lfm)) {
+  if (macro_play(in, lfm))
     return luaL_error(L, "no such macro");
-  }
   return 0;
 }
 
@@ -1080,9 +1044,9 @@ static int l_get_tags(lua_State *L) {
   zsview path = lua_tozsview(L, 1);
   dircache_value *v = dircache_get_mut(&lfm->loader.dc, path);
   lua_newtable(L);
-  if (v == NULL) {
+  if (v == NULL)
     return 1;
-  }
+
   Dir *dir = v->second;
   c_foreach_kv(k, v, hmap_cstr, dir->tags.tags) {
     lua_pushcstr(L, v);
@@ -1128,9 +1092,9 @@ static int l_set_tags(lua_State *L) {
   }
   lua_pop(L, 1);
 
-  if (cols > -1) {
+  if (cols > -1)
     v->second->tags.cols = cols;
-  }
+
   ui_redraw(ui, REDRAW_FULL);
 
   lua_pushboolean(L, true);
@@ -1186,9 +1150,8 @@ static int l_get_modes(lua_State *L) {
 }
 
 static int l_mode(lua_State *L) {
-  if (lfm_mode_enter(lfm, luaL_checkzsview(L, 1)) != 0) {
+  if (lfm_mode_enter(lfm, luaL_checkzsview(L, 1)) != 0)
     return luaL_error(L, "no such mode: %s", lua_tostring(L, -1));
-  }
   return 0;
 }
 
@@ -1200,13 +1163,12 @@ static int l_create_mode(lua_State *L) {
   };
 
   lua_getfield(L, 1, "name");
-  if (lua_isnil(L, -1)) {
+  if (lua_isnil(L, -1))
     return luaL_error(L, "register_mode: missing field 'name'");
-  }
+
   zsview name = lua_tozsview(L, -1);
-  if (lfm_mode_exists(lfm, name)) {
+  if (lfm_mode_exists(lfm, name))
     return luaL_error(L, "register_mode: mode '%s' already exists", name.str);
-  }
   mode.name = cstr_from_zv(name);
   lua_pop(L, 1);
 
@@ -1219,33 +1181,28 @@ static int l_create_mode(lua_State *L) {
   lua_pop(L, 1);
 
   lua_getfield(L, 1, "on_enter");
-  if (!lua_isnil(L, -1)) {
+  if (!lua_isnil(L, -1))
     mode.on_enter_ref = lua_register_callback(L, -1);
-  }
   lua_pop(L, 1);
 
   lua_getfield(L, 1, "on_change");
-  if (!lua_isnil(L, -1)) {
+  if (!lua_isnil(L, -1))
     mode.on_change_ref = lua_register_callback(L, -1);
-  }
   lua_pop(L, 1);
 
   lua_getfield(L, 1, "on_return");
-  if (!lua_isnil(L, -1)) {
+  if (!lua_isnil(L, -1))
     mode.on_return_ref = lua_register_callback(L, -1);
-  }
   lua_pop(L, 1);
 
   lua_getfield(L, 1, "on_esc");
-  if (!lua_isnil(L, -1)) {
+  if (!lua_isnil(L, -1))
     mode.on_esc_ref = lua_register_callback(L, -1);
-  }
   lua_pop(L, 1);
 
   lua_getfield(L, 1, "on_exit");
-  if (!lua_isnil(L, -1)) {
+  if (!lua_isnil(L, -1))
     mode.on_exit_ref = lua_register_callback(L, -1);
-  }
   lua_pop(L, 1);
 
   lfm_mode_register(lfm, &mode);
@@ -1257,9 +1214,8 @@ int l_add_hook(lua_State *L) {
   LUA_CHECK_ARGC(L, 2);
   const char *name = luaL_checkstring(L, 1);
   int id = hook_name_to_id(name);
-  if (id == -1) {
+  if (id == -1)
     return luaL_error(L, "no such hook: %s", name);
-  }
   id = lfm_add_hook(lfm, id, lua_register_callback(L, 2));
   lua_pushnumber(L, id);
   return 1;
@@ -1268,9 +1224,8 @@ int l_add_hook(lua_State *L) {
 int l_del_hook(lua_State *L) {
   int id = luaL_checknumber(L, 1);
   int ref = lfm_remove_hook(lfm, id);
-  if (!ref) {
+  if (!ref)
     return luaL_error(L, "no hook with id %d", id);
-  }
   luaL_unref(L, LUA_REGISTRYINDEX, ref);
   return 0;
 }

@@ -992,7 +992,7 @@ function lfm.api.macro_recording() end
 
 ---
 ---Start recording a macro. Keytrokes are recorded until macro_stop_record is called.
----Returns false if a macro is already being recorded.
+---Throws an error if a macro is already being recorded.
 ---
 ---Example:
 ---```lua
@@ -1000,7 +1000,6 @@ function lfm.api.macro_recording() end
 ---```
 ---
 ---@param id string First found wchar is used as an id.
----@return boolean
 function lfm.api.macro_record(id) end
 
 ---
