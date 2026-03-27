@@ -97,3 +97,34 @@ static inline void ncplane_putchar_rep(struct ncplane *n, char c, i32 rep) {
 
 // Returns the size of the string in wide chars with ansi codes removed.
 usize ansi_mblen(const char *ptr);
+
+// This function prints a ? if it comes across a character it can't print
+static inline int ncplane_putstr_sanitized_yx(struct ncplane *n, int y, int x,
+                                              const char *gclusters) {
+  int ret = 0;
+  while (*gclusters) {
+    size_t wcs;
+    int cols = ncplane_putegc_yx(n, y, x, gclusters, &wcs);
+    if (unlikely(cols < 0)) {
+      // possible broken char, try to print a ?
+      cols = ncplane_putegc_yx(n, y, x, "?", &wcs);
+      if (cols < 0) {
+        return -ret;
+      }
+    }
+    if (wcs == 0) {
+      break;
+    }
+    y = -1;
+    x = -1;
+    gclusters += wcs;
+    ret += cols;
+  }
+  return ret;
+}
+
+// This function prints a ? if it comes across a character it can't print
+static inline int ncplane_putstr_sanitized(struct ncplane *n,
+                                           const char *gclusters) {
+  return ncplane_putstr_sanitized_yx(n, -1, -1, gclusters);
+}

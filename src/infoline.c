@@ -39,7 +39,7 @@ static char *static_buf_ptr;
 // this includes size of elements not in the static buf, e.g. 1 for the spinner
 static i32 static_len = 0;
 
-char file_buf[128] = {0};
+char file_buf[FILENAME_MAX + 1] = {0};
 
 static i32 num_placeholders = 0;
 static struct {
@@ -61,7 +61,8 @@ static struct spinner spinner;
 
 static inline void draw_custom(Ui *ui);
 static inline void draw_default(Ui *ui);
-static inline i32 shorten_path(zsview path, char *buf, i32 max_len);
+static inline i32 shorten_path(zsview path, i32 max_len, char *buf,
+                               usize bufsz);
 
 static inline bool should_draw_default() {
   return static_len == 0;
@@ -230,7 +231,7 @@ static inline void draw_custom(Ui *ui) {
   i32 file_len = 0;
   bool file_is_dir = false;
 
-  char path_buf[PATH_MAX] = {0};
+  char path_buf[PATH_MAX + 1] = {0};
 
   // we need to fit file/path placeholders into this
   // make sure to deduct any other dynamic placeholders from this
@@ -278,8 +279,14 @@ static inline void draw_custom(Ui *ui) {
       buf_idx = strlen(path_buf);
       u8_len = 1;
     } else {
-      u8_len = shorten_path(path, &path_buf[buf_idx], path_remaining);
-      buf_idx = strlen(path_buf);
+      u8_len = shorten_path(path, path_remaining, &path_buf[buf_idx],
+                            sizeof path_buf - buf_idx);
+      if (u8_len >= 0) {
+        buf_idx = strlen(path_buf);
+      } else {
+        path_buf[buf_idx] = 0;
+        u8_len = 0;
+      }
     }
 
     // trailing slash
@@ -299,7 +306,9 @@ static inline void draw_custom(Ui *ui) {
 
   if (idx.file != 0) {
     if (file != NULL) {
-      shorten_name(file_name(file), file_buf, remaining, !file_is_dir);
+      if (shorten_name(file_name(file), remaining, !file_is_dir, file_buf,
+                       sizeof file_buf) < 0)
+        file_buf[0] = 0;
       if (remaining < file_len) {
         file_len = remaining;
       }
@@ -314,10 +323,10 @@ static inline void draw_custom(Ui *ui) {
     case 0:
       break;
     case 'f':
-      ncplane_putstr(n, placeholders[i].ptr);
+      ncplane_putstr_sanitized(n, placeholders[i].ptr);
       break;
     case 'p':
-      ncplane_putstr(n, placeholders[i].ptr);
+      ncplane_putstr_sanitized(n, placeholders[i].ptr);
       break;
     case 's': {
       u32 x;
@@ -397,9 +406,9 @@ static inline void draw_default(Ui *ui) {
     remaining--; // printing another '/' after path
   }
 
-  char buf[PATH_MAX];
-  shorten_path(path, buf, remaining);
-  ncplane_putstr(n, buf);
+  char buf[PATH_MAX + 1];
+  if (shorten_path(path, remaining, buf, sizeof buf) >= 0)
+    ncplane_putstr(n, buf);
 
   if (!dir_is_root(dir)) {
     ncplane_putchar(n, '/');
@@ -409,8 +418,9 @@ static inline void draw_default(Ui *ui) {
     ncplane_cursor_yx(n, NULL, &remaining);
     remaining = ui->x - remaining;
     ncplane_set_fg_default(n);
-    shorten_name(file_name(file), buf, remaining, !file_isdir(file));
-    ncplane_putstr(n, buf);
+    if (shorten_name(file_name(file), remaining, !file_isdir(file), buf,
+                     sizeof buf) >= 0)
+      ncplane_putstr(n, buf);
   }
 }
 
@@ -418,8 +428,12 @@ static inline void draw_default(Ui *ui) {
  * (and make the callers use it) (on 2022-10-29) */
 
 // max_len is not a strict upper bound, but we try to make path as short as
-// possible. path probably shouldn't end with /
-static inline i32 shorten_path(zsview path, char *buf, i32 max_len) {
+// possible. returns -1 if the buffer is too short
+static inline i32 shorten_path(zsview path, i32 max_len, char *buf,
+                               usize bufsz) {
+  if (path.size + 1 > (isize)bufsz)
+    return -1;
+
   i32 trunc_len = strlen(cfg.truncatechar);
   i32 max = max_len;
 

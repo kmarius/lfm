@@ -166,18 +166,21 @@ i32 strcasecmp_strict(const char *s1, const char *s2) {
   return (u8)*s1 - (u8)*s2;
 }
 
-i32 shorten_name(zsview name, char *buf, i32 max_len, bool has_ext) {
+// TODO: add bufsz parameter
+i32 shorten_name(zsview name, i32 max_len, bool has_ext, char *buf,
+                 usize bufsz) {
   usize pos = 0;
   char *ptr = buf;
-  if (max_len <= 0) {
-    *ptr = 0;
+  *ptr = 0;
+  if (max_len <= 0)
     return 0;
-  }
 
   i32 name_len = zsview_u8_size(name);
   if (name_len <= max_len) {
     // everything fits
-    memcpy(buf, name.str, name.size + 1);
+    if (name.size + 1 > (isize)bufsz)
+      return -1;
+    memcpy(buf, name.str, name.size + 1); // includes nul
     return name_len;
   }
 
@@ -194,10 +197,12 @@ i32 shorten_name(zsview name, char *buf, i32 max_len, bool has_ext) {
 
   if (max_len > ext_len + 1) {
     // print extension and as much of the name as possible
-    csview cs = zsview_u8_subview(name, 0, max_len - ext_len - 1);
+    csview pre = zsview_u8_subview(name, 0, max_len - ext_len - 1);
+    if (pre.size + trunc_len + ext.size + 1 > (isize)bufsz)
+      return -1;
 
-    memcpy(buf + pos, cs.buf, cs.size);
-    pos += cs.size;
+    memcpy(buf + pos, pre.buf, pre.size);
+    pos += pre.size;
 
     memcpy(buf + pos, cfg.truncatechar, trunc_len);
     pos += trunc_len;
@@ -205,24 +210,28 @@ i32 shorten_name(zsview name, char *buf, i32 max_len, bool has_ext) {
     memcpy(buf + pos, ext.str, ext.size + 1);
   } else if (max_len >= 5) {
     // print first char of the name and as mutch of the extension as possible
-    csview cs = zsview_u8_subview(name, 0, 1);
+    csview pre = zsview_u8_subview(name, 0, 1);
+    csview suff = zsview_u8_subview(ext, 0, max_len - 2 - 1);
+    if (pre.size + 2 * trunc_len + suff.size + 1 > (isize)bufsz)
+      return -1;
 
-    memcpy(buf + pos, cs.buf, cs.size);
-    pos += cs.size;
+    memcpy(buf + pos, pre.buf, pre.size);
+    pos += pre.size;
 
     memcpy(buf + pos, cfg.truncatechar, trunc_len);
     pos += trunc_len;
 
-    cs = zsview_u8_subview(ext, 0, max_len - 2 - 1);
-
-    memcpy(buf + pos, cs.buf, cs.size);
-    pos += cs.size;
+    memcpy(buf + pos, suff.buf, suff.size);
+    pos += suff.size;
 
     memcpy(buf + pos, cfg.truncatechar, trunc_len + 1);
   } else if (max_len > 1) {
-    csview cs = zsview_u8_subview(name, 0, max_len - 1);
-    memcpy(buf + pos, cs.buf, cs.size);
-    pos += cs.size;
+    csview pre = zsview_u8_subview(name, 0, max_len - 1);
+    if (pre.size + trunc_len + 1 > (isize)bufsz)
+      return -1;
+
+    memcpy(buf + pos, pre.buf, pre.size);
+    pos += pre.size;
 
     memcpy(buf + pos, cfg.truncatechar, trunc_len + 1);
   } else {

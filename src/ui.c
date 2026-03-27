@@ -732,7 +732,7 @@ static void draw_file(struct ncplane *n, const File *file, bool iscurrent,
                       zsview highlight, bool print_info, fileinfo fileinfo,
                       const struct tags *tags) {
   u32 ncol, y0;
-  u32 x = 0;
+  u32 xpos = 0;
   char info[32];
   ncplane_dim_yx(n, NULL, &ncol);
   ncplane_cursor_yx(n, &y0, NULL);
@@ -896,17 +896,18 @@ static void draw_file(struct ncplane *n, const File *file, bool iscurrent,
       ncol - 3 - rightmargin - (cfg.icons ? 2 : 0) - (tags ? tags->cols : 0);
   if (left_space > 0) {
     if (hl_begin == c_NPOS) {
-      char buf[PATH_MAX];
-      shorten_name(file_name(file), buf, left_space, !file_isdir(file));
-      x += ncplane_putstr(n, buf);
+      char buf[PATH_MAX + 1];
+      shorten_name(file_name(file), left_space, !file_isdir(file), buf,
+                   sizeof buf);
+      xpos += ncplane_putstr_sanitized(n, buf);
     } else {
       i32 hl_end = hl_begin + highlight.size;
 
-      x += print_short_hl(n, file_name(file), hl_begin, hl_end, left_space,
-                          !file_isdir(file));
+      xpos += print_short_hl(n, file_name(file), hl_begin, hl_end, left_space,
+                             !file_isdir(file));
     }
 
-    for (; x < ncol - rightmargin - 1; x++) {
+    for (; xpos < ncol - rightmargin - 1; xpos++) {
       ncplane_putchar(n, ' ');
     }
   }
