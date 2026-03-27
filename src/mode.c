@@ -11,9 +11,6 @@
 
 static void normal_on_enter(Lfm *lfm);
 
-static void visual_on_enter(Lfm *lfm);
-static void visual_on_exit(Lfm *lfm);
-
 void lfm_modes_init(Lfm *lfm) {
   lfm->modes = hmap_modes_init();
   lfm_mode_register(lfm, &(struct mode){
@@ -26,13 +23,8 @@ void lfm_modes_init(Lfm *lfm) {
                              .type = MODE_BUILTIN,
                              .is_input = true,
                          });
-  lfm_mode_register(lfm, &(struct mode){
-                             .name = cstr_lit("visual"),
-                             .is_input = false,
-                             .type = MODE_BUILTIN,
-                             .on_enter = visual_on_enter,
-                             .on_exit = visual_on_exit,
-                         });
+  lfm_mode_register(lfm, &visual_mode);
+
   const struct mode *input = hmap_modes_at(&lfm->modes, c_zv("input"));
   lfm->ui.maps.input = input->maps;
   lfm->current_mode = hmap_modes_at_mut(&lfm->modes, c_zv("normal"));
@@ -56,15 +48,6 @@ bool lfm_mode_exists(Lfm *lfm, zsview name) {
 
 static void normal_on_enter(Lfm *lfm) {
   cmdline_clear(&lfm->ui.cmdline);
-}
-
-static void visual_on_enter(Lfm *lfm) {
-  visual_enter_mode(&lfm->fm);
-  ui_redraw(&lfm->ui, REDRAW_FM);
-}
-
-static void visual_on_exit(Lfm *lfm) {
-  visual_exit_mode(&lfm->fm);
 }
 
 i32 lfm_mode_register(Lfm *lfm, struct mode *mode) {

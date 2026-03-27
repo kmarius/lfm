@@ -3,6 +3,20 @@
 #include "hooks.h"
 #include "lfm.h"
 #include "selection.h"
+struct mode visual_mode;
+
+static void visual_on_enter(struct Lfm *lfm);
+static void visual_on_exit(struct Lfm *lfm);
+
+void __attribute__((constructor)) init() {
+  visual_mode = (struct mode){
+      .name = cstr_lit("visual"),
+      .is_input = false,
+      .type = MODE_BUILTIN,
+      .on_enter = visual_on_enter,
+      .on_exit = visual_on_exit,
+  };
+}
 
 void visual_update_selection(Fm *fm, u32 from, u32 to) {
   if (!fm->visual.active)
@@ -43,7 +57,8 @@ void visual_update_selection(Fm *fm, u32 from, u32 to) {
   lfm_run_hook(lfm_instance(), LFM_HOOK_SELECTION);
 }
 
-void visual_enter_mode(Fm *fm) {
+static void visual_on_enter(Lfm *lfm) {
+  Fm *fm = &lfm->fm;
   if (fm->visual.active)
     return;
 
@@ -60,9 +75,11 @@ void visual_enter_mode(Fm *fm) {
     pathlist_add(&fm->selection.keep_in_visual, cstr_zv(it.ref));
   }
   lfm_run_hook(lfm_instance(), LFM_HOOK_SELECTION);
+  ui_redraw(&lfm->ui, REDRAW_FM);
 }
 
-void visual_exit_mode(Fm *fm) {
+static void visual_on_exit(Lfm *lfm) {
+  Fm *fm = &lfm->fm;
   if (!fm->visual.active)
     return;
 
