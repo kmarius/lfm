@@ -37,12 +37,14 @@ bool pathlist_contains(const pathlist *self, zsview path) {
   return _pathlist_hmap_contains(&self->map, path);
 }
 
-void pathlist_add(pathlist *self, zsview path) {
+bool pathlist_add(pathlist *self, zsview path) {
   if (!pathlist_contains(self, path)) {
     cstr *val = _pathlist_list_push_back(&self->list, cstr_from_zv(path));
     _pathlist_hmap_insert(&self->map, cstr_zv(val),
                           _pathlist_list_get_node(val));
+    return true;
   }
+  return false;
 }
 
 bool pathlist_remove(pathlist *self, zsview path) {

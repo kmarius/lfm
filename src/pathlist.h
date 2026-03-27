@@ -25,9 +25,12 @@ typedef _pathlist_list_iter pathlist_iter;
 void pathlist_init(pathlist *self);
 void pathlist_drop(pathlist *self);
 bool pathlist_contains(const pathlist *self, zsview path);
-void pathlist_add(pathlist *self, zsview path);
+bool pathlist_add(pathlist *self, zsview path);
 bool pathlist_remove(pathlist *self, zsview path);
 void pathlist_clear(pathlist *self);
 usize pathlist_size(const pathlist *self);
+static inline bool pathlist_empty(const pathlist *self) {
+  return pathlist_size(self) == 0;
+}
 pathlist_iter pathlist_begin(const pathlist *self);
 void pathlist_next(pathlist_iter *it);

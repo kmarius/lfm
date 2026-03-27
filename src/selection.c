@@ -5,37 +5,24 @@
 #include "fm.h"
 #include "hooks.h"
 #include "lfm.h"
-
-void fm_selection_toggle_current(Fm *fm) {
-  if (fm->visual.active)
-    return;
-
-  File *file = fm_current_file(fm);
-  if (file) {
-    selection_toggle_path(fm, file_path(file), true);
-  }
-}
+#include "stc/common.h"
 
 void selection_toggle_path(Fm *fm, zsview path, bool run_hook) {
   if (!pathlist_remove(&fm->selection.current, path))
     selection_add_path(fm, path, false);
-  if (run_hook) {
+  if (run_hook)
     lfm_run_hook(lfm_instance(), LFM_HOOK_SELECTION);
-  }
 }
 
 void selection_add_path(Fm *fm, zsview path, bool run_hook) {
-  pathlist_add(&fm->selection.current, path);
-  if (run_hook) {
+  if (pathlist_add(&fm->selection.current, path) && run_hook) {
     lfm_run_hook(lfm_instance(), LFM_HOOK_SELECTION);
   }
 }
 
 bool selection_clear(Fm *fm) {
-  if (pathlist_size(&fm->selection.current) > 0) {
-    pathlist tmp = fm->selection.previous;
-    fm->selection.previous = fm->selection.current;
-    fm->selection.current = tmp;
+  if (!pathlist_empty(&fm->selection.current)) {
+    c_swap(&fm->selection.current, &fm->selection.previous);
     pathlist_clear(&fm->selection.current);
     lfm_run_hook(lfm_instance(), LFM_HOOK_SELECTION);
     return true;
@@ -67,13 +54,13 @@ void selection_write(Fm *fm, zsview path) {
     return;
   }
 
-  if (pathlist_size(&fm->selection.current) > 0) {
+  if (!pathlist_empty(&fm->selection.current)) {
     c_foreach(it, pathlist, fm->selection.current) {
       fwrite(cstr_str(it.ref), 1, cstr_size(it.ref), fp);
       fputc('\n', fp);
     }
   } else {
-    const File *file = fm_current_file(fm);
+    File *file = fm_current_file(fm);
     if (file) {
       fputs(file_path_str(file), fp);
       fputc('\n', fp);
@@ -84,12 +71,13 @@ void selection_write(Fm *fm, zsview path) {
 
 void paste_mode_set(Fm *fm, paste_mode mode) {
   fm->paste.mode = mode;
-  if (pathlist_size(&fm->selection.current) == 0)
-    fm_selection_toggle_current(fm);
-
-  pathlist_drop(&fm->paste.buffer);
-  fm->paste.buffer = fm->selection.current;
-  pathlist_init(&fm->selection.current);
+  if (pathlist_empty(&fm->selection.current)) {
+    File *file = fm_current_file(fm);
+    if (file)
+      selection_toggle_path(fm, file_path(file), true);
+  }
+  pathlist_clear(&fm->paste.buffer);
+  c_swap(&fm->paste.buffer, &fm->selection.current);
 }
 
 paste_mode paste_mode_get(const struct Fm *fm) {
