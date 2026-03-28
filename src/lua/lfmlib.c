@@ -24,10 +24,16 @@ int l_execute(lua_State *L);
 static int l_schedule(lua_State *L) {
   LUA_CHECK_ARGMAX(L, 2);
   int delay = luaL_optinteger(L, 2, 0);
-  if (delay < 0) {
+  if (delay < 0)
     delay = 0;
-  }
-  lfm_schedule(lfm, lua_register_callback(L, 1), delay);
+  u32 id = lfm_schedule(lfm, lua_register_callback(L, 1), delay);
+  lua_pushinteger(L, id);
+  return 1;
+}
+
+static int l_cancel(lua_State *L) {
+  u32 id = luaL_checkinteger(L, 1);
+  lfm_cancel(lfm, id);
   return 0;
 }
 
@@ -178,6 +184,7 @@ static int l_thread(lua_State *L) {
 
 static const struct luaL_Reg lfm_lib[] = {
     {"schedule",      l_schedule        },
+    {"cancel",        l_cancel          },
     {"colors_clear",  l_colors_clear    },
     {"execute",       l_execute         },
     {"spawn",         l_spawn           },

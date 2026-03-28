@@ -19,7 +19,7 @@
 #include <stdint.h>
 
 declare_vec(vec_hook_change, struct hook_change);
-declare_dlist(list_timer, struct sched_timer);
+declare_hmap(timers, u32, struct sched_timer *);
 struct vec_str;
 struct vec_env;
 struct vec_bytes;
@@ -58,7 +58,10 @@ typedef struct Lfm {
   ev_signal sighup_watcher;
   ev_signal sigpipe_watcher;
 
-  list_timer schedule_timers;
+  // maps timer id -> schedule_timer
+  timers schedule_timers;
+  // counter for timer id
+  u32 timers_ct;
 
   // We can not make changes to hooks while in a hook callback.
   // Hence, all changes are collected and processed afterwards.
@@ -91,7 +94,10 @@ void lfm_quit(Lfm *lfm, i32 ret);
 void lfm_on_resize(Lfm *lfm);
 
 // Schedule callback of the function given by `ref` in `delay` milliseconds.
-void lfm_schedule(Lfm *lfm, i32 ref, u32 delay);
+i32 lfm_schedule(Lfm *lfm, i32 ref, u32 delay);
+
+// Cancel a scheduled timer.
+void lfm_cancel(Lfm *lfm, u32 id);
 
 // Print a message in the UI. `printf` formatting applies.
 void lfm_printf(Lfm *lfm, const char *format, ...);

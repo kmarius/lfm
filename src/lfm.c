@@ -41,12 +41,18 @@ static Lfm *instance = NULL;
 
 struct sched_timer {
   ev_timer watcher;
-  i32 ref;
+  i32 ref; // lua ref
+  u32 id;  // timer id, key in lfm->schedule_timers
 };
 
 #define i_declared
-#define i_type list_timer, struct sched_timer
-#include "stc/dlist.h"
+#define i_type timers, u32, struct sched_timer *
+#define i_valraw struct sched_timer
+#define i_valtoraw(p) (**(p))
+#define i_valfrom heapify
+#define i_valdrop(p) xfree(*(p))
+#define i_no_clone
+#include "stc/hmap.h"
 
 Lfm *lfm_instance(void) {
   return instance;
@@ -58,7 +64,7 @@ static void schedule_timer_cb(EV_P_ ev_timer *w, i32 revents) {
   Lfm *lfm = w->data;
   ev_timer_stop(EV_A_ w);
   llua_run_callback(lfm->L, timer->ref);
-  list_timer_erase_node(&lfm->schedule_timers, list_timer_get_node(timer));
+  timers_erase(&lfm->schedule_timers, timer->id);
 }
 
 // To run command line cmds after loop starts. I think it is called back before
@@ -236,7 +242,7 @@ void lfm_deinit(Lfm *lfm) {
   lfm_lua_deinit(lfm);
   call_dtors();
   lfm_modes_deinit(lfm);
-  list_timer_drop(&lfm->schedule_timers);
+  timers_drop(&lfm->schedule_timers);
   notify_deinit(&lfm->notify);
   ui_deinit(&lfm->ui);
   fm_deinit(&lfm->fm);
@@ -313,12 +319,24 @@ void lfm_errorf(Lfm *lfm, const char *fmt, ...) {
   va_end(args);
 }
 
-void lfm_schedule(Lfm *lfm, i32 ref, u32 delay) {
-  struct sched_timer *data =
-      list_timer_push(&lfm->schedule_timers, (struct sched_timer){
-                                                 .ref = ref,
-                                             });
+i32 lfm_schedule(Lfm *lfm, i32 ref, u32 delay) {
+  u32 id = lfm->timers_ct++;
+  timers_result res = timers_emplace(&lfm->schedule_timers, id,
+                                     (struct sched_timer){
+                                         .ref = ref,
+                                         .id = id,
+                                     });
+  struct sched_timer *data = res.ref->second;
   ev_timer_init(&data->watcher, schedule_timer_cb, 1.0 * delay / 1000, 0);
   data->watcher.data = lfm;
   ev_timer_start(event_loop, &data->watcher);
+  return id;
+}
+
+void lfm_cancel(Lfm *lfm, u32 id) {
+  timers_iter it = timers_find(&lfm->schedule_timers, id);
+  if (it.ref) {
+    ev_timer_stop(event_loop, &it.ref->second->watcher);
+    timers_erase_at(&lfm->schedule_timers, it);
+  }
 }

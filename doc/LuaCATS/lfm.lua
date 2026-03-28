@@ -296,8 +296,7 @@ function lfm.spawn(command, opts) end
 function lfm.thread(chunk, on_exit, arg) end
 
 ---
----Schedule a lua function to run after `delay` milliseconds. Runs `f` immediately after the programs main loop is back in control.
----if `delay` non-positive.
+---Schedule a lua function to run after `delay` milliseconds. Runs `f` immediately after the programs main loop is back in control if `delay` non-positive.
 ---
 ---Example:
 ---```lua
@@ -306,9 +305,24 @@ function lfm.thread(chunk, on_exit, arg) end
 ---  end, 5000)
 ---```
 ---
----@param f function
+---@param func function
 ---@param delay? integer delay in milliseconds
-function lfm.schedule(f, delay) end
+---@return integer id timer id
+function lfm.schedule(func, delay) end
+
+---
+---Cancel a scheduled timer.
+---
+---Example:
+---```lua
+---  local id = lfm.schedule(function()
+---    print("Printed after 5 seconds")
+---  end, 5000)
+---  lfm.cancel(id) -- cancelled
+---```
+---
+---@param id integer timer id as returned by lfm.schedule
+function lfm.cancel(id) end
 
 ---
 ---Search files in the current directory.

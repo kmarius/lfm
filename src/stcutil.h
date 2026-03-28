@@ -7,6 +7,19 @@
 #include <stdarg.h>
 #include <string.h>
 
+// use heapify as i_valfrom to move a struct to the heap
+//  i_valraw <the struct>
+//  i_valtoraw(p) (**(p))
+//  i_valfrom heapify
+//  i_valdrop(p) xfree(*(p)) // or some destructor
+//  i_no_clone
+static inline void *heapify_(void *ptr, usize sz) {
+  void *mem = malloc(sz);
+  memcpy(mem, ptr, sz);
+  return mem;
+}
+#define heapify(p) (heapify_(&(p), sizeof(p)))
+
 // the builtin version is for containers and uses pointers
 static inline bool zsview_eq2(zsview x, zsview y) {
   return x.size == y.size && !c_memcmp(x.str, y.str, x.size);
