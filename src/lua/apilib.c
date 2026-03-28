@@ -1205,6 +1205,22 @@ static int l_create_mode(lua_State *L) {
   return 0;
 }
 
+static int l_update_mode(lua_State *L) {
+  zsview name = luaL_checkzsview(L, 1);
+  luaL_checktype(L, 2, LUA_TTABLE);
+
+  if (!lfm_mode_exists(lfm, name))
+    return luaL_error(L, "no such mode '%s'", name.str);
+  struct mode *mode = hmap_modes_at_mut(&lfm->modes, name);
+
+  lua_getfield(L, 2, "prefix");
+  if (!lua_isnil(L, -1))
+    cstr_assign_zv(&mode->prefix, lua_tozsview(L, -1));
+  lua_pop(L, 1);
+
+  return 0;
+}
+
 int l_add_hook(lua_State *L) {
   LUA_CHECK_ARGC(L, 2);
   const char *name = luaL_checkstring(L, 1);
@@ -1233,6 +1249,7 @@ static const struct luaL_Reg api_funcs[] = {
     {"current_mode", l_current_mode},
     {"get_modes",    l_get_modes   },
     {"create_mode",  l_create_mode },
+    {"update_mode",  l_update_mode },
     {NULL,           NULL          },
 };
 

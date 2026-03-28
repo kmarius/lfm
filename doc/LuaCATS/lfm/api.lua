@@ -1077,8 +1077,11 @@ function lfm.api.get_cached_dirs() end
 ---@field on_esc? function A function that is called when pressing esc while the mode is active.
 ---@field on_exit? function A function that is called when the mode is exited.
 
+---@class Lfm.ModeUpdate
+---@field prefix? string The prefix, a string, shown in the command line.
+
 ---
----Create a mode to lfm. A mode is given by a table t containing the following fields:
+---Create a mode to lfm.
 ---
 ---Example:
 ---```lua
@@ -1101,6 +1104,20 @@ function lfm.api.get_cached_dirs() end
 ---
 ---@param def Lfm.ModeDef
 function lfm.api.create_mode(def) end
+
+---
+---Update an existing mode (currently only the prefix field).
+---
+---Example:
+---```lua
+---  lfm.api.update_mode("filter", {
+---    prefix = "FILTER: ",
+---  })
+---```
+---
+---@param name string
+---@param upd Lfm.ModeUpdate
+function lfm.api.update_mode(name, upd) end
 
 ---
 ---Enter a mode.
