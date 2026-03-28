@@ -15,7 +15,7 @@ lfm.api = {}
 ---
 ---### Basic usage:
 ---```lua
----  lfm.api.set_map("P", function()
+---  lfm.api.set_keymap("P", function()
 ---    print("hey")
 ---  end, { desc = "My cool mapping" })
 ---```
@@ -23,7 +23,7 @@ lfm.api = {}
 ---### Mode mappings:
 ---```lua
 ---  -- Only active "my-mode"
----  lfm.api.set_map("P", function()
+---  lfm.api.set_keymap("P", function()
 ---    print("hey")
 ---  end, { desc = "My cool mapping", mode = "my-mode" })
 ---```
@@ -31,7 +31,7 @@ lfm.api = {}
 ---### Accepting a command count:
 ---```lua
 ---  -- typing 2P prints "count: 2"
----  lfm.api.set_map("P", function(ct)
+---  lfm.api.set_keymap("P", function(ct)
 ---     if ct then
 ---       print("count: " .. ct)
 ---     else
@@ -40,10 +40,10 @@ lfm.api = {}
 ---  end, { desc = "My cool mapping" })
 ---```
 ---
----@param seq string
----@param f? function
+---@param lhs string
+---@param rhs function
 ---@param opts? Lfm.MapOpts
-function lfm.api.set_keymap(seq, f, opts) end
+function lfm.api.set_keymap(lhs, rhs, opts) end
 
 ---
 ---Delete a keymap.
@@ -53,20 +53,19 @@ function lfm.api.set_keymap(seq, f, opts) end
 ---  lfm.del_keymap("<c-d>", { mode = "command" })
 ---```
 ---
----@param seq string
+---@param lhs string
 ---@param opts? Lfm.DelMapOpts
-function lfm.api.del_keymap(seq, opts) end
+function lfm.api.del_keymap(lhs, opts) end
 
 ---@class Lfm.Keymap
 ---@field desc string
----@field keys string
----@field f function
+---@field lhs string
+---@field rhs function
 
 ---
----Get a table of all maps for a mode. Pass the special mode `"input"` to get keys
----mapped via `lfm.cmap`. If the `prune` parameter is set, only reachable maps are
----returned, i.e. if both `"g"` and `"gn"` are mapped, `"gn"` is not reachable and
----therefore not included.
+---Get a table of all maps for a mode. If the `prune` parameter is set,
+---only reachable maps are returned, i.e. if both `"g"` and `"gn"` are mapped,
+---`"gn"` is not reachable and therefore not included.
 ---
 ---```lua
 ---  local maps = lfm.api.get_keymap("normal")

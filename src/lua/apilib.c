@@ -30,7 +30,7 @@ int l_get_dir(lua_State *L);
 static int l_set_keymap(lua_State *L) {
   luaL_checktype(L, 2, LUA_TFUNCTION);
 
-  zsview keys = luaL_checkzsview(L, 1);
+  zsview lhs = luaL_checkzsview(L, 1);
   Trie *trie = lfm->ui.maps.normal;
   zsview desc = zsview_init();
 
@@ -59,7 +59,7 @@ static int l_set_keymap(lua_State *L) {
 
   int oldref;
 
-  int status = input_map(trie, keys, ref, desc, &oldref);
+  int status = input_map(trie, lhs, ref, desc, &oldref);
   if (status < 0) {
     if (ref != 0)
       luaL_unref(L, LUA_REGISTRYINDEX, ref);
@@ -77,7 +77,7 @@ static int l_set_keymap(lua_State *L) {
 }
 
 static int l_del_keymap(lua_State *L) {
-  zsview keys = luaL_checkzsview(L, 1);
+  zsview lhs = luaL_checkzsview(L, 1);
   Trie *trie = lfm->ui.maps.normal;
 
   if (lua_type(L, 3) == LUA_TTABLE) {
@@ -94,7 +94,7 @@ static int l_del_keymap(lua_State *L) {
 
   int oldref;
 
-  int status = input_map(trie, keys, 0, zsview_init(), &oldref);
+  int status = input_map(trie, lhs, 0, zsview_init(), &oldref);
   if (status < 0) {
     if (status == -2)
       return luaL_error(L, "key sequence too long");
@@ -124,9 +124,9 @@ static int l_get_keymap(lua_State *L) {
     lua_pushcstr(L, &map->desc);
     lua_setfield(L, -2, "desc");
     lua_pushcstr(L, &map->keys);
-    lua_setfield(L, -2, "keys");
+    lua_setfield(L, -2, "lhs");
     lua_rawgeti(L, LUA_REGISTRYINDEX, map->ref);
-    lua_setfield(L, -2, "f");
+    lua_setfield(L, -2, "rhs");
     lua_rawseti(L, -2, i + 1);
     i++;
   }
