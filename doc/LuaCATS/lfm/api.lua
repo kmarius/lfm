@@ -1077,8 +1077,14 @@ function lfm.api.get_cached_dirs() end
 ---@field on_esc? function A function that is called when pressing esc while the mode is active.
 ---@field on_exit? function A function that is called when the mode is exited.
 
+---Callbacks can only be changed for lua modes, not builtin modes, where it will silently fail.
 ---@class Lfm.ModeUpdate
 ---@field prefix? string The prefix, a string, shown in the command line.
+---@field on_enter? function|false Set `on_enter` callback. `false` removes
+---@field on_return? function|false Set `on_enter` callback. `false` removes
+---@field on_change? function|false Set `on_enter` callback. `false` removes
+---@field on_esc? function|false Set `on_enter` callback. `false` removes
+---@field on_exit? function|false Set `on_enter` callback. `false` removes
 
 ---
 ---Create a mode to lfm.

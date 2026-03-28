@@ -1218,6 +1218,34 @@ static int l_update_mode(lua_State *L) {
     cstr_assign_zv(&mode->prefix, lua_tozsview(L, -1));
   lua_pop(L, 1);
 
+  if (mode->type == MODE_LUA) {
+
+    lua_getfield(L, 2, "on_enter");
+    if (!lua_isnil(L, -1))
+      lua_replace_callback(L, -1, &mode->on_enter_ref);
+    lua_pop(L, 1);
+
+    lua_getfield(L, 2, "on_change");
+    if (!lua_isnil(L, -1))
+      lua_replace_callback(L, -1, &mode->on_change_ref);
+    lua_pop(L, 1);
+
+    lua_getfield(L, 2, "on_return");
+    if (!lua_isnil(L, -1))
+      lua_replace_callback(L, -1, &mode->on_return_ref);
+    lua_pop(L, 1);
+
+    lua_getfield(L, 2, "on_esc");
+    if (!lua_isnil(L, -1))
+      lua_replace_callback(L, -1, &mode->on_esc_ref);
+    lua_pop(L, 1);
+
+    lua_getfield(L, 2, "on_exit");
+    if (!lua_isnil(L, -1))
+      lua_replace_callback(L, -1, &mode->on_exit_ref);
+    lua_pop(L, 1);
+  }
+
   return 0;
 }
 
