@@ -54,12 +54,11 @@ i32 lfm_mode_register(Lfm *lfm, struct mode *mode) {
   if (lfm_mode_exists(lfm, cstr_zv(&mode->name))) {
     return 1;
   }
-  // TODO: modes might change when if the table is resized, this dangerous, we
-  // hand out references to lua
   cstr current = lfm->current_mode ? lfm->current_mode->name : cstr_init();
   hmap_modes_result res =
       hmap_modes_emplace(&lfm->modes, cstr_zv(&mode->name), *mode);
   res.ref->first = res.ref->second.name;
+  // reassign current mode, table might have been resized
   if (!cstr_is_empty(&current)) {
     lfm->current_mode = hmap_modes_at_mut(&lfm->modes, cstr_zv(&current));
   }

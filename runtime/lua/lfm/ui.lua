@@ -67,7 +67,7 @@ function M.input(opts, on_confirm)
 	else
 		mode.on_change = function() end
 	end
-	lfm.modes[mode.name].prefix = opts.prompt or ""
+	api.update_mode(mode.name, { prefix = opts.prompt or "" })
 	api.mode(mode.name)
 end
 

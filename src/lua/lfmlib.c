@@ -4,7 +4,6 @@
 #include "config.h"
 #include "defs.h"
 #include "lfmlib.h"
-#include "mode.h"
 #include "private.h"
 #include "search.h"
 #include "util.h"
@@ -15,9 +14,6 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <string.h>
-
-#define MODES_META "Lfm.Modes.Meta"
-#define MODE_META "Lfm.Mode.Meta"
 
 // spawn.c
 int l_spawn(lua_State *L);
@@ -199,65 +195,6 @@ static const struct luaL_Reg lfm_lib[] = {
     {NULL,            NULL              },
 };
 
-static int l_modes_index(lua_State *L) {
-  zsview key = luaL_checkzsview(L, 2);
-  hmap_modes_value *md = hmap_modes_get_mut(&lfm->modes, key);
-  if (md == NULL) {
-    return 0;
-  }
-
-  struct mode **mode = lua_newuserdata(L, sizeof *mode);
-  *mode = &md->second;
-  luaL_newmetatable(L, MODE_META);
-  lua_setmetatable(L, -2);
-
-  return 1;
-}
-
-static int l_mode_index(lua_State *L) {
-  struct mode *mode = *(struct mode **)luaL_checkudata(L, 1, MODE_META);
-  const char *key = luaL_checkstring(L, 2);
-  if (streq(key, "name")) {
-    lua_pushcstr(L, &mode->name);
-    return 1;
-  } else if (streq(key, "prefix")) {
-    lua_pushcstr(L, &mode->prefix);
-    return 1;
-  } else if (streq(key, "input")) {
-    lua_pushboolean(L, mode->is_input);
-    return 1;
-  } else {
-    return luaL_error(L, "no such field: %s", key);
-  }
-  return 0;
-}
-
-static int l_mode_newindex(lua_State *L) {
-  struct mode *mode = *(struct mode **)luaL_checkudata(L, 1, MODE_META);
-  const char *key = luaL_checkstring(L, 2);
-  if (streq(key, "prefix")) {
-    if (!mode->is_input) {
-      return luaL_error(L, "can only set prefix for input modes");
-    }
-    zsview prefix = lua_tozsview(L, 3);
-    cstr_assign_zv(&mode->prefix, prefix);
-  } else {
-    return luaL_error(L, "no such field: %s", key);
-  }
-  return 0;
-}
-
-static const struct luaL_Reg lfm_modes_mt[] = {
-    {"__index", l_modes_index},
-    {NULL,      NULL         }
-};
-
-static const struct luaL_Reg lfm_mode_mt[] = {
-    {"__index",    l_mode_index   },
-    {"__newindex", l_mode_newindex},
-    {NULL,         NULL           }
-};
-
 int luaopen_lfm(lua_State *L) {
   lua_pushcfunction(L, l_print);
   lua_setglobal(L, "print");
@@ -281,16 +218,6 @@ int luaopen_lfm(lua_State *L) {
 
   luaopen_rifle(L);
   lua_setfield(L, -2, "rifle");
-
-  luaL_newmetatable(L, MODE_META);
-  luaL_register(L, NULL, lfm_mode_mt);
-  lua_pop(L, 1);
-
-  lua_newtable(L);
-  luaL_newmetatable(L, MODES_META);
-  luaL_register(L, NULL, lfm_modes_mt);
-  lua_setmetatable(L, -2);
-  lua_setfield(L, -2, "modes");
 
   lua_newtable(L);
   lua_pushzsview(L, c_zv(LFM_VERSION));

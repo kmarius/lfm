@@ -1,10 +1,5 @@
 ---@meta
 
----@class Lfm.Mode
----@field name string Name of the mode.
----@field input boolean True, if the modes takes input form the command line.
----@field prefix string Prefix shown in the command line for an input mode.
-
 ---@class Lfm.Dir
 ---@field path string
 ---@field name string
@@ -43,7 +38,6 @@
 ---@alias Lfm.FilterFunction fun(name: string):any
 
 ---@class Lfm
----@field modes table<string, Lfm.Mode>
 lfm = {}
 
 -- Preloaded modules:
