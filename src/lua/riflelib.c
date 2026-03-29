@@ -579,7 +579,7 @@ static inline int llua_parse_rules(lua_State *L, int idx, Rifle *rifle) {
       log_error("malformed rule: %s", str);
     }
 
-    Rule r;
+    Rule r = {0};
     if (rule_init(&r, buf, command) != 0) {
       log_error("malformed rule: %s", str);
       continue;

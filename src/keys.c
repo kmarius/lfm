@@ -180,7 +180,7 @@ i32 key_name_to_input(const char *key, input_t *out) {
 
   // handles "" too
   if (key[0] != '<') {
-    return mbtowc((i32 *)out, key, 8);
+    return mbtowc((wchar_t *)out, key, 8);
   }
 
   const char *ptr = key + 1;
