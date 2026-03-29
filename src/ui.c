@@ -502,9 +502,8 @@ void ui_menu_show(Ui *ui, vec_cstr *vec, u32 delay) {
       ev_invoke(event_loop, &ui->menu_delay_timer, 0);
     }
   }
-  if (!vec_cstr_is_empty(&ui->menubuf)) {
+  if (!vec_cstr_is_empty(&ui->menubuf))
     ui_redraw(ui, REDRAW_MENU);
-  }
 }
 
 static void menu_delay_timer_cb(EV_P_ ev_timer *w, i32 revents) {

@@ -344,10 +344,12 @@ static int l_config_newindex(lua_State *L) {
     luaL_argcheck(L, delay >= 0, 3,
                   "map_suggestion_delay must be non-negative");
     cfg.map_suggestion_delay = delay;
+    ui->map_suggestion_timer.repeat = (f64)delay / 1000.0;
   } else if (streq(key, "map_clear_delay")) {
     long delay = luaL_checkinteger(L, 3);
     luaL_argcheck(L, delay >= 0, 3, "map_clear_delay must be non-negative");
     cfg.map_clear_delay = delay;
+    ui->map_clear_timer.repeat = (f64)delay / 1000.0;
   } else if (streq(key, "loading_indicator_delay")) {
     long delay = luaL_checkinteger(L, 3);
     luaL_argcheck(L, delay >= 0, 3,

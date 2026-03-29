@@ -18,7 +18,6 @@
 #include "stcutil.h"
 #include "trie.h"
 #include "ui.h"
-#include "util.h"
 
 #include <notcurses/nckeys.h>
 #include <notcurses/notcurses.h>
@@ -27,29 +26,31 @@
 
 #define MAP_MAX_LENGTH 8
 
+static void stdin_cb(EV_P_ ev_io *w, i32 revents);
 static void input_buffer_cb(EV_P_ ev_idle *w, i32 revents);
 static void map_clear_timer_cb(EV_P_ ev_timer *w, i32 revents);
 static void map_suggestion_timer_cb(EV_P_ ev_timer *w, i32 revents);
-static void stdin_cb(EV_P_ ev_io *w, i32 revents);
 
 void input_init(Lfm *lfm) {
-  lfm->ui.input_watcher.data = lfm;
+  Ui *ui = &lfm->ui;
+  ui->input_watcher.data = lfm;
 
-  ev_idle_init(&lfm->ui.input_buffer_watcher, input_buffer_cb);
-  lfm->ui.input_buffer_watcher.data = lfm;
+  ev_idle_init(&ui->input_buffer_watcher, input_buffer_cb);
+  ui->input_buffer_watcher.data = lfm;
   // increase the priority so we handle input before redrawing
-  ev_set_priority(&lfm->ui.input_buffer_watcher, 1);
+  ev_set_priority(&ui->input_buffer_watcher, 1);
 
-  ev_timer_init(&lfm->ui.map_clear_timer, map_clear_timer_cb, 0, 0);
-  lfm->ui.map_clear_timer.data = lfm;
+  f64 repeat = (f64)cfg.map_clear_delay / 1000.0;
+  ev_timer_init(&ui->map_clear_timer, map_clear_timer_cb, 0, repeat);
+  ui->map_clear_timer.data = lfm;
 
-  ev_timer_init(&lfm->ui.map_suggestion_timer, map_suggestion_timer_cb, 0, 0);
-  lfm->ui.map_suggestion_timer.data = lfm;
+  repeat = (f64)cfg.map_suggestion_delay / 1000.0;
+  ev_timer_init(&ui->map_suggestion_timer, map_suggestion_timer_cb, 0, repeat);
+  ui->map_suggestion_timer.data = lfm;
 }
 
 void input_deinit(Lfm *lfm) {
   vec_input_drop(&lfm->ui.maps.seq);
-  ev_timer_stop(event_loop, &lfm->ui.map_clear_timer);
 }
 
 void input_resume(Lfm *lfm) {
@@ -60,6 +61,8 @@ void input_resume(Lfm *lfm) {
 
 void input_suspend(Lfm *lfm) {
   ev_io_stop(event_loop, &lfm->ui.input_watcher);
+  ev_timer_stop(event_loop, &lfm->ui.map_suggestion_timer);
+  ev_timer_stop(event_loop, &lfm->ui.map_clear_timer);
 }
 
 i32 input_map(Trie *trie, zsview keys, i32 ref, zsview desc, i32 *out_ref) {
@@ -83,9 +86,8 @@ static void stdin_cb(EV_P_ ev_io *w, i32 revents) {
   ncinput in;
 
   while (notcurses_get_nblock(lfm->ui.nc, &in) != (u32)-1) {
-    if (in.id == 0) {
+    if (in.id == 0)
       break;
-    }
 
     if (in.id == NCKEY_EOF) {
       log_debug("received EOF, quitting");
@@ -117,14 +119,14 @@ static void stdin_cb(EV_P_ ev_io *w, i32 revents) {
   }
 }
 
-// clear keys in the input buffer
+// clear the current key sequence and reset the state
 static inline void input_clear(Lfm *lfm) {
   Ui *ui = &lfm->ui;
   ui->maps.cur = NULL;
   ui_menu_hide(ui);
-  if (vec_input_size(&ui->maps.seq) > 0) {
-    ui_redraw(ui, REDRAW_CMDLINE);
+  if (!vec_input_is_empty(&ui->maps.seq)) {
     vec_input_clear(&ui->maps.seq);
+    ui_redraw(ui, REDRAW_CMDLINE);
   }
 }
 
@@ -144,10 +146,181 @@ static void input_buffer_cb(EV_P_ ev_idle *w, i32 revents) {
   }
 }
 
-void input_handle_key(Lfm *lfm, input_t in) {
+static inline void handle_non_input_mode_key(Lfm *lfm, input_t in) {
   Ui *ui = &lfm->ui;
   Fm *fm = &lfm->fm;
 
+  // reset pointer to the trie's root
+  if (!lfm->ui.maps.cur) {
+    lfm->ui.maps.cur = lfm->current_mode->maps;
+    vec_input_clear(&lfm->ui.maps.seq);
+    lfm->ui.maps.count = -1;
+    lfm->ui.maps.accept_count = true;
+  }
+
+  // accumulate numbers to pass as a count to the next command
+  if (lfm->ui.maps.accept_count && '0' <= in && in <= '9') {
+    if (lfm->ui.maps.count < 0) {
+      lfm->ui.maps.count = in - '0';
+    } else {
+      lfm->ui.maps.count = lfm->ui.maps.count * 10 + in - '0';
+    }
+    if (lfm->ui.maps.count > 0) {
+      vec_input_push(&lfm->ui.maps.seq, in);
+      ui_redraw(ui, REDRAW_CMDLINE);
+    }
+    return;
+  }
+
+  lfm->ui.maps.cur = trie_find_child(lfm->ui.maps.cur, in);
+
+  // handle escape key
+  if (in == NCKEY_ESC) {
+    u32 mode = 0;
+    if (!vec_input_is_empty(&lfm->ui.maps.seq)) {
+      input_clear(lfm);
+    } else {
+      if (selection_clear(&lfm->fm))
+        mode |= REDRAW_FM;
+      if (paste_buffer_clear(fm)) {
+        lfm_run_hook(lfm, LFM_HOOK_PASTEBUF);
+        mode |= REDRAW_FM;
+      }
+      search_nohighlight(lfm);
+      ui_menu_hide(&lfm->ui);
+      mode_on_esc(lfm->current_mode, lfm);
+      lfm_mode_normal(lfm);
+    }
+    if (ui->show_message) {
+      ui->show_message = false;
+      mode |= REDRAW_CMDLINE;
+    }
+    ui_redraw(ui, mode);
+    return;
+  }
+
+  // key sequence is not in the trie, log and reset state
+  if (!lfm->ui.maps.cur) {
+    vec_input_push(&lfm->ui.maps.seq, in);
+    char buf[256];
+    usize len;
+    u32 i = 0;
+    c_foreach(it, vec_input, lfm->ui.maps.seq) {
+      const char *str = input_to_key_name(*it.ref, &len);
+      if (i + len > sizeof buf - 1)
+        break;
+      memcpy(buf + i, str, len);
+      i += len;
+    }
+    buf[i] = 0;
+    log_debug("unmapped key sequence: %s (id=%d shift=%d ctrl=%d alt=%d)", buf,
+              ID(in), ISSHIFT(in), ISCTRL(in), ISALT(in));
+    input_clear(lfm);
+    return;
+  }
+
+  // key sequence ends at a leaf in the trie, reset state and execute
+  if (lfm->ui.maps.cur->is_leaf) {
+    i32 ref = lfm->ui.maps.cur->ref;
+    input_clear(lfm);
+    lfm_lua_cb_with_count(lfm->L, ref, lfm->ui.maps.count);
+    return;
+  }
+
+  // accumulate input and wait for more
+  vec_input_push(&lfm->ui.maps.seq, in);
+  lfm->ui.maps.accept_count = false;
+  ui_redraw(ui, REDRAW_CMDLINE);
+
+  ev_timer_again(event_loop, &lfm->ui.map_clear_timer);
+  ev_timer_again(event_loop, &lfm->ui.map_suggestion_timer);
+}
+
+static inline void handle_input_mode_key(Lfm *lfm, input_t in) {
+  Ui *ui = &lfm->ui;
+
+  // reset the buffer/trie only if no mode map and no input map are possible
+  if (!lfm->ui.maps.cur && !lfm->ui.maps.cur_input) {
+    lfm->ui.maps.cur = lfm->current_mode->maps;
+    vec_input_clear(&lfm->ui.maps.seq);
+    lfm->ui.maps.count = -1;
+    lfm->ui.maps.accept_count = true;
+  }
+
+  lfm->ui.maps.cur = trie_find_child(lfm->ui.maps.cur, in);
+
+  // TODO: currently, if all but the last keys match the mapping of in a mode,
+  // and the last one is printable, it will be added to the input field
+
+  // handle esc, reset state and switch to normal mode
+  if (in == NCKEY_ESC) {
+    mode_on_esc(lfm->current_mode, lfm);
+    input_clear(lfm);
+    lfm_mode_normal(lfm);
+    return;
+  }
+
+  // handle return key
+  if (in == NCKEY_ENTER) {
+    zsview line = cmdline_get(&ui->cmdline);
+    input_clear(lfm);
+    mode_on_return(lfm->current_mode, lfm, line);
+    return;
+  }
+
+  if (lfm->ui.maps.cur) {
+    // current key sequence is a prefix/full match of a mode mapping, always
+    // taking precedence
+    if (lfm->ui.maps.cur->ref) {
+      i32 ref = lfm->ui.maps.cur->ref;
+      lfm->ui.maps.cur = NULL;
+      lfm_lua_cb_with_count(lfm->L, ref, -1);
+    }
+    return;
+  }
+
+  if (!iswprint(in) && lfm->ui.maps.cur_input == NULL) {
+    // If the character is not printable, check for input maps.
+    // this way one can map e.g. <c-d>a in insert mode without 'a' getting added
+    // to the command line
+    lfm->ui.maps.cur_input = lfm->ui.maps.input;
+  }
+
+  // if input map trie is active (started by a non-printable key), check for a
+  // map even if the key is printable
+  if (lfm->ui.maps.cur_input != NULL) {
+    lfm->ui.maps.cur_input = trie_find_child(lfm->ui.maps.cur_input, in);
+    if (lfm->ui.maps.cur_input) {
+      // current key sequence is a prefix/full match of a mode mapping,
+      // always taking precedence
+      if (lfm->ui.maps.cur_input->ref) {
+        i32 ref = lfm->ui.maps.cur_input->ref;
+        lfm->ui.maps.cur_input = NULL;
+        lfm_lua_cb_with_count(lfm->L, ref, -1);
+      } else {
+        // TODO: we could show possible mappings on screen
+      }
+    }
+    return;
+  }
+
+  // otherwise, add the input to the command line
+  assert(iswprint(in));
+
+  char buf[MB_LEN_MAX + 1];
+  i32 n = wctomb(buf, in);
+  if (n < 0) {
+    log_error("invalid input: %lu", in);
+    n = 0;
+  }
+  buf[n] = '\0';
+  if (cmdline_insert(&ui->cmdline, zsview_from_n(buf, n))) {
+    mode_on_change(lfm->current_mode, lfm);
+    ui_redraw(ui, REDRAW_CMDLINE);
+  }
+}
+
+void input_handle_key(Lfm *lfm, input_t in) {
   if (in == CTRL('Q') || in == CTRL('q')) {
     log_debug("received ctrl-q, quitting");
     lfm_quit(lfm, 0);
@@ -156,150 +329,11 @@ void input_handle_key(Lfm *lfm, input_t in) {
 
   ev_timer_stop(event_loop, &lfm->ui.map_clear_timer);
   ev_timer_stop(event_loop, &lfm->ui.map_suggestion_timer);
+
   if (lfm->current_mode->is_input) {
-    if (!lfm->ui.maps.cur && !lfm->ui.maps.cur_input) {
-      // reset the buffer/trie only if no mode map and no input map are possible
-      lfm->ui.maps.cur = lfm->current_mode->maps;
-      vec_input_clear(&lfm->ui.maps.seq);
-      lfm->ui.maps.count = -1;
-      lfm->ui.maps.accept_count = true;
-    }
-    lfm->ui.maps.cur = trie_find_child(lfm->ui.maps.cur, in);
-    // TODO: currently, if all but the last keys match the mapping of in a mode,
-    // and the last one is printable, it will be added to the input field
-    if (in == NCKEY_ESC) {
-      // escape key pressed, switch to normal
-      mode_on_esc(lfm->current_mode, lfm);
-      input_clear(lfm);
-      lfm_mode_normal(lfm);
-    } else if (in == NCKEY_ENTER) {
-      // return key pressed, call the callback in the mode
-      zsview line = cmdline_get(&ui->cmdline);
-      input_clear(lfm);
-      mode_on_return(lfm->current_mode, lfm, line);
-    } else if (lfm->ui.maps.cur) {
-      // current key sequence is a prefix/full match of a mode mapping, always
-      // taking precedence
-      if (lfm->ui.maps.cur->ref) {
-        i32 ref = lfm->ui.maps.cur->ref;
-        lfm->ui.maps.cur = NULL;
-        llua_call_from_ref(lfm->L, ref, -1);
-      }
-    } else {
-      // definitely no mode map. if the character is not printable, check for
-      // input maps
-      if (!iswprint(in) && lfm->ui.maps.cur_input == NULL) {
-        lfm->ui.maps.cur_input = lfm->ui.maps.input;
-      }
-      // if input map trie is active, check for a map even if the key is
-      // printable
-      if (lfm->ui.maps.cur_input != NULL) {
-        lfm->ui.maps.cur_input = trie_find_child(lfm->ui.maps.cur_input, in);
-        if (lfm->ui.maps.cur_input) {
-          // current key sequence is a prefix/full match of a mode mapping,
-          // always taking precedence
-          if (lfm->ui.maps.cur_input->ref) {
-            i32 ref = lfm->ui.maps.cur_input->ref;
-            lfm->ui.maps.cur_input = NULL;
-            llua_call_from_ref(lfm->L, ref, -1);
-          } else {
-            // map still possible, we might even show the mappings on screen
-          }
-        }
-      } else if (iswprint(in)) {
-        char buf[MB_LEN_MAX + 1];
-        i32 n = wctomb(buf, in);
-        if (n < 0) {
-          log_error("invalid input: %lu", in);
-          n = 0;
-        }
-        buf[n] = '\0';
-        if (cmdline_insert(&ui->cmdline, zsview_from_n(buf, n))) {
-          ui_redraw(ui, REDRAW_CMDLINE);
-        }
-        mode_on_change(lfm->current_mode, lfm);
-      }
-    }
+    handle_input_mode_key(lfm, in);
   } else {
-    // non-input mode, printable keys are mappings
-    if (!lfm->ui.maps.cur) {
-      lfm->ui.maps.cur = lfm->current_mode->maps;
-      vec_input_clear(&lfm->ui.maps.seq);
-      lfm->ui.maps.count = -1;
-      lfm->ui.maps.accept_count = true;
-    }
-    if (lfm->ui.maps.accept_count && '0' <= in && in <= '9') {
-      if (lfm->ui.maps.count < 0) {
-        lfm->ui.maps.count = in - '0';
-      } else {
-        lfm->ui.maps.count = lfm->ui.maps.count * 10 + in - '0';
-      }
-      if (lfm->ui.maps.count > 0) {
-        vec_input_push(&lfm->ui.maps.seq, in);
-        ui_redraw(ui, REDRAW_CMDLINE);
-      }
-      return;
-    }
-    lfm->ui.maps.cur = trie_find_child(lfm->ui.maps.cur, in);
-    if (in == NCKEY_ESC) {
-      u32 mode = 0;
-      if (!vec_input_is_empty(&lfm->ui.maps.seq)) {
-        input_clear(lfm);
-      } else {
-        if (selection_clear(&lfm->fm)) {
-          mode |= REDRAW_FM;
-        }
-        if (paste_buffer_clear(fm)) {
-          lfm_run_hook(lfm, LFM_HOOK_PASTEBUF);
-          mode |= REDRAW_FM;
-        }
-        search_nohighlight(lfm);
-        ui_menu_hide(&lfm->ui);
-        mode_on_esc(lfm->current_mode, lfm);
-        lfm_mode_normal(lfm);
-      }
-      if (ui->show_message) {
-        ui->show_message = false;
-        mode |= REDRAW_CMDLINE;
-      }
-      ui_redraw(ui, mode);
-    } else if (!lfm->ui.maps.cur) {
-      vec_input_push(&lfm->ui.maps.seq, in);
-      char buf[256];
-      usize len;
-      i32 j = 0;
-      c_foreach(it, vec_input, lfm->ui.maps.seq) {
-        const char *str = input_to_key_name(*it.ref, &len);
-        if (j + len > sizeof buf - 1) {
-          break;
-        }
-        memcpy(buf + j, str, len);
-        j += len;
-      }
-      buf[j] = 0;
-      log_debug("unmapped key sequence: %s (id=%d shift=%d ctrl=%d alt=%d)",
-                buf, ID(in), ISSHIFT(in), ISCTRL(in), ISALT(in));
-      input_clear(lfm);
-    } else if (lfm->ui.maps.cur->is_leaf) {
-      // A command is mapped to the current keysequence. Execute it and reset.
-      i32 ref = lfm->ui.maps.cur->ref;
-      input_clear(lfm);
-      u64 t0 = current_micros();
-      llua_call_from_ref(lfm->L, ref, lfm->ui.maps.count);
-      u64 t1 = current_micros();
-      log_trace("llua_call_from_ref %luus", t1 - t0);
-    } else {
-      vec_input_push(&lfm->ui.maps.seq, in);
-      ui_redraw(ui, REDRAW_CMDLINE);
-      lfm->ui.maps.accept_count = false;
-
-      lfm->ui.map_clear_timer.repeat = (f64)cfg.map_clear_delay / 1000.0;
-      ev_timer_again(event_loop, &lfm->ui.map_clear_timer);
-
-      lfm->ui.map_suggestion_timer.repeat =
-          (f64)cfg.map_suggestion_delay / 1000.0;
-      ev_timer_again(event_loop, &lfm->ui.map_suggestion_timer);
-    }
+    handle_non_input_mode_key(lfm, in);
   }
 }
 
@@ -312,6 +346,7 @@ static void map_clear_timer_cb(EV_P_ ev_timer *w, i32 revents) {
 
 static void map_suggestion_timer_cb(EV_P_ ev_timer *w, i32 revents) {
   (void)revents;
+  ev_timer_stop(EV_A_ w);
   Lfm *lfm = w->data;
 
   vec_trie maps = trie_collect_leaves(lfm->ui.maps.cur, true);
@@ -331,5 +366,4 @@ static void map_suggestion_timer_cb(EV_P_ ev_timer *w, i32 revents) {
   }
   vec_trie_drop(&maps);
   ui_menu_show(&lfm->ui, &lines, 0);
-  ev_timer_stop(EV_A_ w);
 }

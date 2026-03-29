@@ -120,7 +120,7 @@ static void child_exit_cb(EV_P_ ev_child *w, int revents) {
     } else {
       status = WEXITSTATUS(w->rstatus);
     }
-    llua_run_child_callback(lfm->L, child->ref, status);
+    lfm_lua_child_exit_cb(lfm->L, child->ref, status);
   }
 
   ev_child_stop(EV_A_ w);

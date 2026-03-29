@@ -63,7 +63,7 @@ static void schedule_timer_cb(EV_P_ ev_timer *w, i32 revents) {
   struct sched_timer *timer = (struct sched_timer *)w;
   Lfm *lfm = w->data;
   ev_timer_stop(EV_A_ w);
-  llua_run_callback(lfm->L, timer->ref);
+  lfm_lua_cb(lfm->L, timer->ref);
   timers_erase(&lfm->schedule_timers, timer->id);
 }
 

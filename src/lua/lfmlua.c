@@ -121,7 +121,7 @@ static inline bool llua_init_packages(lua_State *L) {
   return true;
 }
 
-void llua_run_callback(lua_State *L, int ref) {
+void lfm_lua_cb(lua_State *L, int ref) {
   lua_get_callback(L, ref, true); // [f]
   if (llua_pcall(L, 0, 0)) {      // []
     lfm_errorf(lfm, "%s", lua_tostring(L, -1));
@@ -146,7 +146,7 @@ void llua_call_ref1(lua_State *L, int ref, zsview line) {
   }
 }
 
-void llua_run_child_callback(lua_State *L, int ref, int rstatus) {
+void lfm_lua_child_exit_cb(lua_State *L, int ref, int rstatus) {
   lua_get_callback(L, ref, true); // [f]
   lua_pushnumber(L, rstatus);     // [f, rstatus]
   if (llua_pcall(L, 1, 0)) {      // []
@@ -177,7 +177,7 @@ void llua_run_stdout_callback(lua_State *L, int ref, const char *line,
   }
 }
 
-void llua_call_from_ref(lua_State *L, int ref, int count) {
+void lfm_lua_cb_with_count(lua_State *L, int ref, int count) {
   lua_rawgeti(L, LUA_REGISTRYINDEX, ref); // [f]
   if (count > 0) {
     lua_pushnumber(L, count); // [f, count]

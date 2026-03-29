@@ -41,9 +41,9 @@ static inline void llua_eval_zsview(lua_State *L, zsview expr) {
 }
 
 //  Run callback for finished child.
-void llua_run_child_callback(lua_State *L, int ref, int rstatus);
+void lfm_lua_child_exit_cb(lua_State *L, int ref, int rstatus);
 
-void llua_run_callback(lua_State *L, int ref);
+void lfm_lua_cb(lua_State *L, int ref);
 
 void llua_call_ref(lua_State *L, int ref);
 
@@ -54,6 +54,6 @@ void llua_run_stdout_callback(lua_State *L, int ref, const char *line,
                               isize len);
 
 // Call a function from reference, passing an optional count if it is positive
-void llua_call_from_ref(lua_State *L, int ref, int count);
+void lfm_lua_cb_with_count(lua_State *L, int ref, int count);
 
 bool llua_filter(lua_State *L, int ref, zsview name);
