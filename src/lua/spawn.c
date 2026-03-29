@@ -2,6 +2,7 @@
 #include "config.h"
 #include "defs.h"
 #include "lfmlua.h"
+#include "log.h"
 #include "loop.h"
 #include "private.h"
 #include "stc/zsview.h"
@@ -87,12 +88,12 @@ static inline void destroy_child_watcher(struct child_watcher *w) {
   Lfm *lfm = w->w.data;
   if (w->wstdout.stream) {
     if (w->wstdout.ref)
-      llua_run_stdout_callback(lfm->L, w->wstdout.ref, NULL, 0);
+      lfm_lua_child_stdout_cb(lfm->L, w->wstdout.ref, NULL, 0);
     fclose(w->wstdout.stream);
   }
   if (w->wstderr.stream) {
     if (w->wstderr.ref)
-      llua_run_stdout_callback(lfm->L, w->wstderr.ref, NULL, 0);
+      lfm_lua_child_stdout_cb(lfm->L, w->wstderr.ref, NULL, 0);
     fclose(w->wstderr.stream);
   }
 }
@@ -142,7 +143,7 @@ static void child_output_cb(EV_P_ ev_io *w, int revents) {
       read--;
 
     if (data->ref) {
-      llua_run_stdout_callback(lfm->L, data->ref, line, read);
+      lfm_lua_child_stdout_cb(lfm->L, data->ref, line, read);
     } else {
       lfm_printf(lfm, "%s", line);
     }

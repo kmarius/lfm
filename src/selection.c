@@ -11,12 +11,12 @@ void selection_toggle_path(Fm *fm, zsview path, bool run_hook) {
   if (!pathlist_remove(&fm->selection.current, path))
     selection_add_path(fm, path, false);
   if (run_hook)
-    lfm_run_hook(lfm_instance(), LFM_HOOK_SELECTION);
+    LFM_RUN_HOOK(lfm_instance(), LFM_HOOK_SELECTION);
 }
 
 void selection_add_path(Fm *fm, zsview path, bool run_hook) {
   if (pathlist_add(&fm->selection.current, path) && run_hook) {
-    lfm_run_hook(lfm_instance(), LFM_HOOK_SELECTION);
+    LFM_RUN_HOOK(lfm_instance(), LFM_HOOK_SELECTION);
   }
 }
 
@@ -24,7 +24,7 @@ bool selection_clear(Fm *fm) {
   if (!pathlist_empty(&fm->selection.current)) {
     c_swap(&fm->selection.current, &fm->selection.previous);
     pathlist_clear(&fm->selection.current);
-    lfm_run_hook(lfm_instance(), LFM_HOOK_SELECTION);
+    LFM_RUN_HOOK(lfm_instance(), LFM_HOOK_SELECTION);
     return true;
   }
   return false;
@@ -34,7 +34,7 @@ void selection_reverse(Fm *fm, Dir *dir) {
   c_foreach(it, Dir, dir) {
     selection_toggle_path(fm, file_path(*it.ref), false);
   }
-  lfm_run_hook(lfm_instance(), LFM_HOOK_SELECTION);
+  LFM_RUN_HOOK(lfm_instance(), LFM_HOOK_SELECTION);
 }
 
 void selection_write(Fm *fm, zsview path) {

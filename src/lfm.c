@@ -63,7 +63,7 @@ static void schedule_timer_cb(EV_P_ ev_timer *w, i32 revents) {
   struct sched_timer *timer = (struct sched_timer *)w;
   Lfm *lfm = w->data;
   ev_timer_stop(EV_A_ w);
-  lfm_lua_cb(lfm->L, timer->ref);
+  lfm_lua_cb(lfm->L, timer->ref, true);
   timers_erase(&lfm->schedule_timers, timer->id);
 }
 
@@ -83,11 +83,11 @@ static void prepare_cb(EV_P_ ev_prepare *w, i32 revents) {
 
   vec_zsview commands = vec_zsview_move(&lfm->opts.commands);
   c_foreach(it, vec_zsview, commands) {
-    llua_eval_zsview(lfm->L, *it.ref);
+    lfm_lua_eval_zsview(lfm->L, *it.ref);
   }
   vec_zsview_drop(&commands);
 
-  lfm_run_hook(lfm, LFM_HOOK_ENTER);
+  LFM_RUN_HOOK(lfm, LFM_HOOK_ENTER);
   ev_prepare_stop(EV_A_ w);
 }
 
@@ -234,7 +234,7 @@ void lfm_init(Lfm *lfm, struct lfm_opts *opts) {
   // fm initialization.
   PROFILE("lua_init", { lfm_lua_init(lfm); });
   c_foreach(v, dircache, lfm->loader.dc) {
-    lfm_run_hook(lfm, LFM_HOOK_DIRLOADED, dir_path(v.ref->second));
+    LFM_RUN_HOOK(lfm, LFM_HOOK_DIRLOADED, dir_path(v.ref->second));
   }
 }
 
@@ -261,7 +261,7 @@ i32 lfm_run(Lfm *lfm) {
 }
 
 void lfm_quit(Lfm *lfm, i32 ret) {
-  lfm_run_hook(lfm, LFM_HOOK_EXITPRE, ret);
+  LFM_RUN_HOOK(lfm, LFM_HOOK_EXITPRE, ret);
   ev_break(event_loop, EVBREAK_ALL);
   // prevent lua error from flashing in the UI, we use it to immediately give
   // back control to the host program.
@@ -282,7 +282,7 @@ void lfm_quit(Lfm *lfm, i32 ret) {
 void lfm_on_resize(Lfm *lfm) {
   ui_on_resize(&lfm->ui);
   fm_on_resize(&lfm->fm, lfm->ui.y - 2);
-  lfm_run_hook(lfm, LFM_HOOK_RESIZED);
+  LFM_RUN_HOOK(lfm, LFM_HOOK_RESIZED);
 }
 
 void lfm_printf(Lfm *lfm, const char *fmt, ...) {

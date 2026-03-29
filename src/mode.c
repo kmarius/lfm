@@ -82,7 +82,7 @@ i32 lfm_mode_enter(Lfm *lfm, zsview name) {
     cmdline_prefix_set(&lfm->ui.cmdline, cstr_zv(&mode->prefix));
   }
   lfm->ui.maps.cur_input = NULL;
-  lfm_run_hook(lfm, LFM_HOOK_MODECHANGED, &mode->name);
+  LFM_RUN_HOOK(lfm, LFM_HOOK_MODECHANGED, &mode->name);
 
   ui_redraw(&lfm->ui, REDRAW_INFO | REDRAW_CMDLINE);
   return 0;
@@ -100,7 +100,7 @@ void mode_on_enter(struct mode *mode, Lfm *lfm) {
     if (mode->on_enter)
       mode->on_enter(lfm);
   } else if (mode->on_enter_ref) {
-    llua_call_ref(lfm->L, mode->on_enter_ref);
+    lfm_lua_cb(lfm->L, mode->on_enter_ref, false);
   }
 }
 
@@ -109,7 +109,7 @@ void mode_on_return(struct mode *mode, struct Lfm *lfm, zsview line) {
     if (mode->on_return)
       mode->on_return(lfm, line);
   } else if (mode->on_return_ref) {
-    llua_call_ref1(lfm->L, mode->on_return_ref, line);
+    lfm_lua_cb1(lfm->L, mode->on_return_ref, line);
   }
 }
 
@@ -118,7 +118,7 @@ void mode_on_change(struct mode *mode, Lfm *lfm) {
     if (mode->on_change)
       mode->on_change(lfm);
   } else if (mode->on_change_ref) {
-    llua_call_ref(lfm->L, mode->on_change_ref);
+    lfm_lua_cb(lfm->L, mode->on_change_ref, false);
   }
 }
 
@@ -127,7 +127,7 @@ void mode_on_esc(struct mode *mode, Lfm *lfm) {
     if (mode->on_esc)
       mode->on_esc(lfm);
   } else if (mode->on_esc_ref) {
-    llua_call_ref(lfm->L, mode->on_esc_ref);
+    lfm_lua_cb(lfm->L, mode->on_esc_ref, false);
   }
 }
 
@@ -136,6 +136,6 @@ void mode_on_exit(struct mode *mode, Lfm *lfm) {
     if (mode->on_exit)
       mode->on_exit(lfm);
   } else if (mode->on_exit_ref) {
-    llua_call_ref(lfm->L, mode->on_exit_ref);
+    lfm_lua_cb(lfm->L, mode->on_exit_ref, false);
   }
 }

@@ -59,7 +59,7 @@ static void fifo_cb(EV_P_ ev_io *w, i32 revents) {
   }
 
   if ((usize)nread < sizeof buf) {
-    llua_evaln(lfm->L, buf, nread);
+    lfm_lua_evaln(lfm->L, buf, nread);
   } else {
     usize capacity = 2 * sizeof buf;
     char *dyn_buf = xmalloc(capacity);
@@ -72,7 +72,7 @@ static void fifo_cb(EV_P_ ev_io *w, i32 revents) {
         dyn_buf = xrealloc(dyn_buf, capacity);
       }
     }
-    llua_evaln(lfm->L, dyn_buf, length);
+    lfm_lua_evaln(lfm->L, dyn_buf, length);
     xfree(dyn_buf);
   }
 }

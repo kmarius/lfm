@@ -5,8 +5,10 @@
  * callbacks etc.
  */
 
+#include "defs.h"
 #include "stc/zsview.h"
 
+#include <lauxlib.h>
 #include <lua.h>
 
 #include <stdbool.h>
@@ -14,46 +16,55 @@
 #include <sys/types.h>
 
 struct Lfm;
-struct Preview;
-struct Async;
 
 // Initialize lua state, load libraries.
 void lfm_lua_init(struct Lfm *lfm);
 
+// Initialize a lua state for a thread with limited functionality
 void lfm_lua_init_thread(lua_State *L);
 
 void lfm_lua_deinit(struct Lfm *lfm);
 
-void destroy_child_watchers();
-
-int llua_pcall(lua_State *L, int nargs, int nresults);
+// pcall with traceback
+int lfm_lua_pcall(lua_State *L, int nargs, int nresults);
 
 // Evaluate an expr, which is either a chunk of lua code or a registered command
 // (with arguments) as if typed in the command line.
-void llua_evaln(lua_State *L, const char *expr, int len);
+void lfm_lua_evaln(lua_State *L, const char *expr, int len);
 
-static inline void llua_eval(lua_State *L, const char *expr) {
-  llua_evaln(L, expr, strlen(expr));
+static inline void lfm_lua_eval(lua_State *L, const char *expr) {
+  lfm_lua_evaln(L, expr, strlen(expr));
 }
 
-static inline void llua_eval_zsview(lua_State *L, zsview expr) {
-  llua_evaln(L, expr.str, expr.size);
+static inline void lfm_lua_eval_zsview(lua_State *L, zsview expr) {
+  lfm_lua_evaln(L, expr.str, expr.size);
 }
+
+// Run a callback, optionally unref
+void lfm_lua_cb(lua_State *L, int ref, bool unref);
+
+// Callback with one string argument
+void lfm_lua_cb1(lua_State *L, int ref, zsview line);
+
+// Callback with count argument, only passed if > 0
+void lfm_lua_cb_with_count(lua_State *L, int ref, int count);
 
 //  Run callback for finished child.
 void lfm_lua_child_exit_cb(lua_State *L, int ref, int rstatus);
 
-void lfm_lua_cb(lua_State *L, int ref);
+// `line==NULL` removes callback from the registry. Set len < 0 if not known.
+void lfm_lua_child_stdout_cb(lua_State *L, int ref, const char *line,
+                             isize len);
 
-void llua_call_ref(lua_State *L, int ref);
+// Evaluate a filter predicate on a file name
+bool lfm_lua_filter(lua_State *L, int ref, zsview name);
 
-void llua_call_ref1(lua_State *L, int ref, zsview line);
-
-// `line==NULL` removes callback from the registry.
-void llua_run_stdout_callback(lua_State *L, int ref, const char *line,
-                              isize len);
-
-// Call a function from reference, passing an optional count if it is positive
-void lfm_lua_cb_with_count(lua_State *L, int ref, int count);
-
-bool llua_filter(lua_State *L, int ref, zsview name);
+// Gets the previously stored (via lua_set_callback) element with reference ref
+// from the registry and leaves it at the top of the stack.
+static inline void lfm_lua_push_callback(lua_State *L, i32 ref, bool unref) {
+  if (unlikely(!L))
+    return;
+  lua_rawgeti(L, LUA_REGISTRYINDEX, ref); // [elem]
+  if (unref)
+    luaL_unref(L, LUA_REGISTRYINDEX, ref);
+}

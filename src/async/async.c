@@ -1,7 +1,7 @@
 #include "private.h"
 
 #include "defs.h"
-#include "lfm.h"
+#include "lfm.h" // to_lfm
 #include "log.h"
 #include "loop.h"
 #include "stc/cstr.h"

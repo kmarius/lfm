@@ -1,5 +1,6 @@
 #include "config.h"
 #include "defs.h"
+#include "log.h"
 #include "loop.h"
 #include "private.h"
 #include "stc/zsview.h"
@@ -45,7 +46,7 @@ static inline int execute(const struct execute_opts *data,
                           vec_bytes *stdout_data, vec_bytes *stderr_data) {
   int rc, status = 0;
 
-  lfm_run_hook(lfm, LFM_HOOK_EXECPRE);
+  LFM_RUN_HOOK(lfm, LFM_HOOK_EXECPRE);
   ev_signal_stop(event_loop, &lfm->sigint_watcher);
   ev_signal_stop(event_loop, &lfm->sigtstp_watcher);
   ui_suspend(&lfm->ui);
@@ -311,7 +312,7 @@ resume:
   ui_resume(&lfm->ui);
   ev_signal_start(event_loop, &lfm->sigint_watcher);
   ev_signal_start(event_loop, &lfm->sigtstp_watcher);
-  lfm_run_hook(lfm, LFM_HOOK_EXECPOST);
+  LFM_RUN_HOOK(lfm, LFM_HOOK_EXECPOST);
 
   return rstatus;
 

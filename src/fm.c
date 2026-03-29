@@ -177,7 +177,7 @@ static inline bool fm_chdir_impl(Fm *fm, zsview path, bool save, bool hook,
   fm_update_preview(fm, true);
 
   if (!async && hook) {
-    lfm_run_hook(to_lfm(fm), LFM_HOOK_CHDIRPOST, &fm->pwd);
+    LFM_RUN_HOOK(to_lfm(fm), LFM_HOOK_CHDIRPOST, &fm->pwd);
   }
 
   return true;

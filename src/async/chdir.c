@@ -1,10 +1,10 @@
 #include "private.h"
 
+#include "defs.h"
 #include "fm.h"
 #include "getpwd.h"
 #include "hooks.h"
 #include "lfm.h"
-#include "defs.h"
 #include "memory.h"
 #include "stc/cstr.h"
 
@@ -55,7 +55,7 @@ static void chdir_callback(void *p, Lfm *lfm) {
     } else {
       setpwd(res->destination);
       if (res->run_hook) {
-        lfm_run_hook(lfm, LFM_HOOK_CHDIRPOST, res->destination);
+        LFM_RUN_HOOK(lfm, LFM_HOOK_CHDIRPOST, res->destination);
       }
     }
   }

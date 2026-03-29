@@ -54,7 +54,7 @@ void visual_update_selection(Fm *fm, u32 from, u32 to) {
       selection_toggle_path(fm, path, false);
     }
   }
-  lfm_run_hook(lfm_instance(), LFM_HOOK_SELECTION);
+  LFM_RUN_HOOK(lfm_instance(), LFM_HOOK_SELECTION);
 }
 
 static void visual_on_enter(Lfm *lfm) {
@@ -74,7 +74,7 @@ static void visual_on_enter(Lfm *lfm) {
   c_foreach(it, pathlist, fm->selection.current) {
     pathlist_add(&fm->selection.keep_in_visual, cstr_zv(it.ref));
   }
-  lfm_run_hook(lfm_instance(), LFM_HOOK_SELECTION);
+  LFM_RUN_HOOK(lfm_instance(), LFM_HOOK_SELECTION);
   ui_redraw(&lfm->ui, REDRAW_FM);
 }
 

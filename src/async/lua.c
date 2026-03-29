@@ -2,6 +2,7 @@
 
 #include "config.h"
 #include "lfm.h"
+#include "log.h"
 #include "lua/thread.h"
 #include "lua/util.h"
 #include "types/bytes.h"
@@ -50,7 +51,7 @@ static void lua_result_callback(void *p, Lfm *lfm) {
     goto cleanup;
   }
 
-  lua_get_callback(L, res->ref, true); // [cb]
+  lfm_lua_push_callback(L, res->ref, true); // [cb]
 
   if (res->error) {
     // res->result is error message, nil inserted later
@@ -72,7 +73,7 @@ static void lua_result_callback(void *p, Lfm *lfm) {
 
   // everything went well
 
-  if (llua_pcall(L, 1, 0)) {
+  if (lfm_lua_pcall(L, 1, 0)) {
     // [err]
     lfm_errorf(lfm, "%s", lua_tostring(L, -1));
     lua_pop(L, 1);
@@ -88,7 +89,7 @@ err:
   // [cb, err]
   lua_pushnil(L);    // [cb, err, nil]
   lua_insert(L, -2); // [cb, nil, err]
-  if (llua_pcall(L, 2, 0)) {
+  if (lfm_lua_pcall(L, 2, 0)) {
     // [err]
     lfm_errorf(lfm, "%s", lua_tostring(L, -1));
     lua_pop(L, 1); // []

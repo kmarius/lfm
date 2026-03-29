@@ -138,7 +138,7 @@ static int l_updir(lua_State *L) {
   if (fm_updir(fm)) {
     // I don't remember why we run th chdir post hook here,
     // since we are also not running the pre hook
-    // lfm_run_hook(lfm, LFM_HOOK_CHDIRPOST, &fm->pwd);
+    // LFM_RUN_HOOK(lfm, LFM_HOOK_CHDIRPOST, &fm->pwd);
     search_nohighlight(lfm);
     ui_update_preview(ui, true);
     ui_redraw(ui, REDRAW_FM);
@@ -159,7 +159,7 @@ static int l_open(lua_State *L) {
     return 1;
   } else {
     /* changed directory */
-    // lfm_run_hook(lfm, LFM_HOOK_CHDIRPOST, &fm->pwd);
+    // LFM_RUN_HOOK(lfm, LFM_HOOK_CHDIRPOST, &fm->pwd);
     ui_update_preview(ui, true);
     ui_redraw(ui, REDRAW_FM);
     search_nohighlight(lfm);
@@ -297,7 +297,7 @@ static int l_add_selection(lua_State *L) {
     lua_pop(L, 1);
   }
   if (n > 0) {
-    lfm_run_hook(lfm, LFM_HOOK_SELECTION);
+    LFM_RUN_HOOK(lfm, LFM_HOOK_SELECTION);
     ui_redraw(ui, REDRAW_FM);
   }
   return 0;
@@ -320,7 +320,7 @@ static int l_set_selection(lua_State *L) {
       selection_add_path(fm, zsview_from(buf), false);
     }
   }
-  lfm_run_hook(lfm, LFM_HOOK_SELECTION);
+  LFM_RUN_HOOK(lfm, LFM_HOOK_SELECTION);
   ui_redraw(ui, REDRAW_FM);
   return 0;
 }
@@ -347,7 +347,7 @@ static int l_restore_selection(lua_State *L) {
   pathlist tmp = fm->selection.current;
   fm->selection.current = fm->selection.previous;
   fm->selection.previous = tmp;
-  lfm_run_hook(lfm, LFM_HOOK_SELECTION);
+  LFM_RUN_HOOK(lfm, LFM_HOOK_SELECTION);
   ui_redraw(ui, REDRAW_FM);
   return 0;
 }
@@ -369,7 +369,7 @@ static int l_chdir(lua_State *L) {
 
   search_nohighlight(lfm);
   lfm_mode_exit(lfm, c_zv("visual"));
-  lfm_run_hook(lfm, LFM_HOOK_CHDIRPRE, &fm->pwd);
+  LFM_RUN_HOOK(lfm, LFM_HOOK_CHDIRPRE, &fm->pwd);
   if (force_sync || macro_playing) {
     fm_sync_chdir(fm, path, should_save, true);
   } else {
@@ -396,7 +396,7 @@ static int l_get_paste_mode(lua_State *L) {
     return luaL_error(L, "invalid paste mode: %s", mode);
   }
   if (fm->paste.mode != prev)
-    lfm_run_hook(lfm, LFM_HOOK_PASTEBUF);
+    LFM_RUN_HOOK(lfm, LFM_HOOK_PASTEBUF);
   ui_redraw(ui, REDRAW_FM);
 
   return 0;
@@ -440,7 +440,7 @@ static int l_set_paste_buffer(lua_State *L) {
   if (luaL_optbool(L, 3, true) &&
       (pathlist_size(&fm->paste.buffer) != prev_size ||
        fm->paste.mode != prev_mode)) {
-    lfm_run_hook(lfm, LFM_HOOK_PASTEBUF);
+    LFM_RUN_HOOK(lfm, LFM_HOOK_PASTEBUF);
   }
 
   ui_redraw(ui, REDRAW_FM);
@@ -452,7 +452,7 @@ static int l_copy(lua_State *L) {
   (void)L;
   lfm_mode_exit(lfm, c_zv("visual"));
   paste_mode_set(fm, PASTE_MODE_COPY);
-  lfm_run_hook(lfm, LFM_HOOK_PASTEBUF);
+  LFM_RUN_HOOK(lfm, LFM_HOOK_PASTEBUF);
   ui_redraw(ui, REDRAW_FM);
   return 0;
 }
@@ -461,7 +461,7 @@ static int l_cut(lua_State *L) {
   (void)L;
   lfm_mode_exit(lfm, c_zv("visual"));
   paste_mode_set(fm, PASTE_MODE_MOVE);
-  lfm_run_hook(lfm, LFM_HOOK_PASTEBUF);
+  LFM_RUN_HOOK(lfm, LFM_HOOK_PASTEBUF);
   ui_redraw(ui, REDRAW_FM);
   return 0;
 }
@@ -506,7 +506,7 @@ static int l_get_automark(lua_State *L) {
 
 static int l_jump_automark(lua_State *L) {
   (void)L;
-  lfm_run_hook(lfm, LFM_HOOK_CHDIRPRE, &fm->pwd);
+  LFM_RUN_HOOK(lfm, LFM_HOOK_CHDIRPRE, &fm->pwd);
   lfm_mode_exit(lfm, c_zv("visual"));
   fm_jump_automark(fm);
   ui_update_preview(ui, true);

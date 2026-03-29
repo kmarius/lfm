@@ -1,9 +1,8 @@
 #pragma once
 
 #include "defs.h"
-#include "log.h"
 #include "lua/lfmlua.h"
-#include "lua/util.h"
+#include "lua/util.h" // lfm <-> stc functions
 
 #include <assert.h>
 #include <lauxlib.h>
@@ -34,6 +33,15 @@ void lfm_hooks_init(struct Lfm *lfm);
 
 void lfm_hooks_deinit(struct Lfm *lfm);
 
+// Returns an id with which it can be removed later
+i32 lfm_add_hook(struct Lfm *lfm, lfm_hook_id hook, i32 ref);
+
+// Returns the reference of the callback, or 0 if no hook was removed.
+i32 lfm_remove_hook(struct Lfm *lfm, i32 id);
+
+// apply all changes made to hooks during a hook callback
+void lfm_apply_hook_changes(struct Lfm *lfm);
+
 // returns -1 for invalid hook name
 static inline lfm_hook_id hook_name_to_id(const char *name) {
   for (i32 i = 0; i < LFM_NUM_HOOKS; i++) {
@@ -44,25 +52,8 @@ static inline lfm_hook_id hook_name_to_id(const char *name) {
   return -1;
 }
 
-// Returns an id with which it can be removed later
-i32 lfm_add_hook(struct Lfm *lfm, lfm_hook_id hook, i32 ref);
-
-// Returns the reference of the callback, or 0 if no hook was removed.
-i32 lfm_remove_hook(struct Lfm *lfm, i32 id);
-
-// apply all changes made to hooks during a hook callback
-void lfm_apply_hook_changes(struct Lfm *lfm);
-
-// make variadic lfm_run_hook macro that delegates to the macro with the
-// correct number of arguments (currently, 0 to 3 arguments)
-#define EXPAND(x) x
-#define GET_MACRO(_1, _2, _3, _4, _5, name, ...) name
-#define lfm_run_hook(...)                                                      \
-  EXPAND(GET_MACRO(__VA_ARGS__, _lfm_run_hook3, _lfm_run_hook2,                \
-                   _lfm_run_hook1, _lfm_run_hook0)(__VA_ARGS__))
-
 // generic push macro (add missing types as needed)
-#define lua_push(L, ARG)                                                       \
+#define LUA_PUSH_GENERIC(L, ARG)                                               \
   _Generic((ARG),                                                              \
       const char *: lua_pushstring,                                            \
       char *: lua_pushstring,                                                  \
@@ -72,90 +63,27 @@ void lfm_apply_hook_changes(struct Lfm *lfm);
       float: lua_pushnumber,                                                   \
       i32: lua_pushnumber)((L), (ARG))
 
-// Gets the previously stored (via lua_set_callback) element with reference ref
-// from the registry and leaves it at the top of the stack.
-static inline void lua_get_callback(lua_State *L, i32 ref, bool unref) {
-  if (unlikely(!L))
-    return;
-  assert(ref > 0);
-  lua_rawgeti(L, LUA_REGISTRYINDEX, ref); // [elem]
-  if (unref) {
-    luaL_unref(L, LUA_REGISTRYINDEX, ref);
-  }
-  assert(!lua_isnil(L, -1));
-}
-
-#define _lfm_run_hook0(lfm, hook)                                              \
+#define LFM_RUN_HOOK_(lfm, hook, N, ...)                                       \
   do {                                                                         \
-    log_trace("running hook: %s", hook_str[(hook)]);                           \
-    lfm->hook_callback_depth++;                                                \
-    c_foreach(it, vec_int, (lfm)->hook_refs[(hook)]) {                         \
-      lua_get_callback((lfm)->L, *it.ref, false);                              \
-      if (llua_pcall((lfm)->L, 0, 0) != LUA_OK) {                              \
-        lfm_errorf(lfm, "%s", lua_tostring((lfm)->L, -1));                     \
-        lua_pop((lfm)->L, 1);                                                  \
+    if (!vec_int_is_empty(&(lfm)->hook_refs[hook])) {                          \
+      (lfm)->hook_callback_depth++;                                            \
+      FOR_EACH1(LUA_PUSH_GENERIC, (lfm)->L, __VA_ARGS__);                      \
+      c_foreach(it, vec_int, (lfm)->hook_refs[hook]) {                         \
+        lfm_lua_push_callback((lfm)->L, *it.ref, false);                       \
+        if (N) /* the weird comparison shuts up the compiler */                \
+          for (u32 hooks_h_i = 0; hooks_h_i < (N ? N : 1); hooks_h_i++)        \
+            lua_pushvalue((lfm)->L, -(N + 1));                                 \
+        if (lfm_lua_pcall((lfm)->L, N, 0) != LUA_OK) {                         \
+          lfm_errorf(lfm, "%s", lua_tostring((lfm)->L, -1));                   \
+          lua_pop((lfm)->L, 1);                                                \
+        }                                                                      \
       }                                                                        \
+      if (N)                                                                   \
+        lua_pop((lfm)->L, N);                                                  \
+      if (--(lfm)->hook_callback_depth == 0)                                   \
+        lfm_apply_hook_changes(lfm);                                           \
     }                                                                          \
-    if (--lfm->hook_callback_depth == 0)                                       \
-      lfm_apply_hook_changes(lfm);                                             \
-  } while (false)
+  } while (0)
 
-#define _lfm_run_hook1(lfm, hook, ARG1)                                        \
-  do {                                                                         \
-    log_trace("running hook: %s", hook_str[(hook)]);                           \
-    lfm->hook_callback_depth++;                                                \
-    lua_push((lfm)->L, (ARG1)); /* push ARG1 */                                \
-    c_foreach(it, vec_int, (lfm)->hook_refs[(hook)]) {                         \
-      lua_get_callback((lfm)->L, *it.ref, false);                              \
-      lua_pushvalue((lfm)->L, -2); /* push copy of ARG1 */                     \
-      if (llua_pcall((lfm)->L, 1, 0) != LUA_OK) {                              \
-        lfm_errorf(lfm, "%s", lua_tostring((lfm)->L, -1));                     \
-        lua_pop((lfm)->L, 1);                                                  \
-      }                                                                        \
-    }                                                                          \
-    lua_pop((lfm)->L, 1); /* pop ARGs */                                       \
-    if (--lfm->hook_callback_depth == 0)                                       \
-      lfm_apply_hook_changes(lfm);                                             \
-  } while (false)
-
-#define _lfm_run_hook2(lfm, hook, ARG1, ARG2)                                  \
-  do {                                                                         \
-    log_trace("running hook: %s", hook_str[(hook)]);                           \
-    lfm->hook_callback_depth++;                                                \
-    lua_push((lfm)->L, (ARG1)); /* push ARG1 */                                \
-    lua_push((lfm)->L, (ARG2)); /* push ARG2 */                                \
-    c_foreach(it, vec_int, (lfm)->hook_refs[(hook)]) {                         \
-      lua_get_callback((lfm)->L, *it.ref, false);                              \
-      lua_pushvalue((lfm)->L, -3); /* push copy of ARG1 */                     \
-      lua_pushvalue((lfm)->L, -3); /* push copy of ARG2 (stack changed) */     \
-      if (llua_pcall((lfm)->L, 2, 0) != LUA_OK) {                              \
-        lfm_errorf(lfm, "%s", lua_tostring((lfm)->L, -1));                     \
-        lua_pop((lfm)->L, 1);                                                  \
-      }                                                                        \
-    }                                                                          \
-    lua_pop((lfm)->L, 2); /* pop ARGs */                                       \
-    if (--lfm->hook_callback_depth == 0)                                       \
-      lfm_apply_hook_changes(lfm);                                             \
-  } while (false)
-
-#define _lfm_run_hook3(lfm, hook, ARG1, ARG2, ARG3)                            \
-  do {                                                                         \
-    log_trace("running hook: %s", hook_str[(hook)]);                           \
-    lfm->hook_callback_depth++;                                                \
-    lua_push((lfm)->L, (ARG1)); /* push ARG1 */                                \
-    lua_push((lfm)->L, (ARG2)); /* push ARG2 */                                \
-    lua_push((lfm)->L, (ARG3)); /* push ARG2 */                                \
-    c_foreach(it, vec_int, (lfm)->hook_refs[(hook)]) {                         \
-      lua_get_callback((lfm)->L, *it.ref, false);                              \
-      lua_pushvalue((lfm)->L, -4); /* push copy of ARG1 */                     \
-      lua_pushvalue((lfm)->L, -4); /* push copy of ARG2 (stack changed) */     \
-      lua_pushvalue((lfm)->L, -4); /* push copy of ARG3 (stack changed) */     \
-      if (llua_pcall((lfm)->L, 3, 0) != LUA_OK) {                              \
-        lfm_errorf(lfm, "%s", lua_tostring((lfm)->L, -1));                     \
-        lua_pop((lfm)->L, 1);                                                  \
-      }                                                                        \
-    }                                                                          \
-    lua_pop((lfm)->L, 3); /* pop ARGs */                                       \
-    if (--lfm->hook_callback_depth == 0)                                       \
-      lfm_apply_hook_changes(lfm);                                             \
-  } while (false)
+#define LFM_RUN_HOOK(lfm, hook, ...)                                           \
+  LFM_RUN_HOOK_((lfm), (hook), (FOR_EACH_NARG(__VA_ARGS__)), __VA_ARGS__)
