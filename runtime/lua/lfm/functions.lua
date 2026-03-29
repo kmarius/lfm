@@ -3,6 +3,7 @@ local M = { _NAME = ... }
 local lfm = lfm
 
 local api = lfm.api
+local fm = lfm.fm
 local util = lfm.util
 
 local stat = require("posix.sys.stat")
@@ -73,7 +74,7 @@ end
 ---
 ---@param name string
 function M.rename(name)
-	local file = api.current_file()
+	local file = fm.current_file()
 	if file then
 		if fs.exists(name) then
 			error("file exists")
@@ -90,7 +91,7 @@ end
 ---  M.rename_until_ext()
 ---```
 function M.rename_until_ext()
-	local file = fs.basename(api.current_file())
+	local file = fs.basename(fm.current_file())
 	if file then
 		local _, ext = fs.split_ext(file)
 		api.mode("command")
@@ -107,7 +108,7 @@ end
 ---```
 ---
 function M.rename_before_ext()
-	local file = fs.basename(api.current_file())
+	local file = fs.basename(fm.current_file())
 	if file then
 		local stem, ext = fs.split_ext(file)
 		api.mode("command")
@@ -125,7 +126,7 @@ end
 ---
 function M.rename_before()
 	api.mode("command")
-	api.cmdline_line_set("rename ", fs.basename(api.current_file()))
+	api.cmdline_line_set("rename ", fs.basename(fm.current_file()))
 end
 
 ---
@@ -138,7 +139,7 @@ end
 ---
 function M.rename_after()
 	api.mode("command")
-	api.cmdline_line_set("rename " .. fs.basename(api.current_file()), "")
+	api.cmdline_line_set("rename " .. fs.basename(fm.current_file()), "")
 end
 
 ---
@@ -151,13 +152,13 @@ end
 ---```
 ---
 function M.symlink()
-	local files, mode = api.fm_paste_buffer_get()
+	local files, mode = fm.get_paste_buffer()()
 	if mode == "copy" then
 		for _, f in pairs(files) do
 			lfm.spawn({ "ln", "-s", "--", f }, { on_stderr = true })
 		end
 	end
-	api.fm_paste_buffer_set({})
+	fm.set_paste_buffer({})
 end
 
 ---
@@ -170,13 +171,13 @@ end
 ---```
 ---
 function M.symlink_relative()
-	local files, mode = api.fm_paste_buffer_get()
+	local files, mode = fm.get_paste_buffer()
 	if mode == "copy" then
 		for _, f in pairs(files) do
 			lfm.spawn({ "ln", "-s", "--relative", "--", f }, { on_stderr = true })
 		end
 	end
-	api.fm_paste_buffer_set({})
+	fm.set_paste_buffer({})
 end
 
 ---
@@ -188,13 +189,13 @@ end
 ---```
 ---
 function M.follow_link()
-	local file = api.current_file()
+	local file = fm.current_file()
 	local target, err = unistd.readlink(file)
 	if err then
 		error(err)
 	end
-	api.chdir(fs.dirname(target), true)
-	api.select(fs.basename(target) --[[@as string]])
+	fm.chdir(fs.dirname(target), true)
+	fm.select(fs.basename(target) --[[@as string]])
 end
 
 -- TODO: this is useful, expose it somewhere (on 2022-03-11)
@@ -242,7 +243,7 @@ local clear = c27 .. "[0m"
 ---```
 ---
 function M.paste()
-	local files, mode = api.fm_paste_buffer_get()
+	local files, mode = fm.get_paste_buffer()
 	if #files == 0 then
 		return
 	end
@@ -256,7 +257,7 @@ function M.paste()
 	end
 	local on_exit = function(ret)
 		for dir, _ in pairs(reload_dirs) do
-			api.fm_load(dir)
+			fm.load(dir)
 		end
 		if ret ~= 0 then
 			return
@@ -280,7 +281,7 @@ function M.paste()
 			return { "cp", "-r", "--", file, target }
 		end
 	end, files, { errexit = true, on_stderr = true, on_exit = on_exit })
-	api.fm_paste_buffer_set({})
+	fm.set_paste_buffer({})
 end
 
 ---
@@ -292,8 +293,8 @@ end
 ---```
 ---
 function M.toggle_paste()
-	local mode = api.fm_paste_mode_get()
-	api.fm_paste_mode_set(mode == "copy" and "move" or "copy")
+	local mode = fm.get_paste_mode()
+	fm.set_paste_mode(mode == "copy" and "move" or "copy")
 end
 
 ---
@@ -305,7 +306,7 @@ end
 ---```
 ---
 function M.paste_overwrite()
-	local files, mode = api.fm_paste_buffer_get()
+	local files, mode = fm.get_paste_buffer()
 	if #files == 0 then
 		return
 	end
@@ -317,7 +318,7 @@ function M.paste_overwrite()
 	end
 	local on_exit = function(ret)
 		for dir, _ in pairs(reload_dirs) do
-			api.fm_load(dir)
+			fm.load(dir)
 		end
 		if ret ~= 0 then
 			return
@@ -338,7 +339,7 @@ function M.paste_overwrite()
 	end
 	table.insert(cmd, "./")
 	lfm.spawn(cmd, { on_exit = on_exit, on_stderr = true })
-	api.fm_paste_buffer_set({})
+	fm.set_paste_buffer({})
 end
 
 return M

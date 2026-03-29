@@ -1,7 +1,7 @@
 local M = { _NAME = ... }
 
 local lfm = lfm
-local api = lfm.api
+local fm = lfm.fm
 
 ---
 ---Create a shallow copy of a table.
@@ -46,7 +46,7 @@ end
 ---
 ---Example:
 ---```lua
----  lfm.util.c(lfm.api.fm_load_clear, lfm.api.redraw)()
+---  lfm.util.c(lfm.api.clear, lfm.api.redraw)()
 ---```
 ---
 ---@param ... function
@@ -164,8 +164,8 @@ M.merge_defaults = merge_defaults
 ---
 ---@return string[] selection
 function M.selection()
-	local sel = api.selection_get()
-	return #sel > 0 and sel or { api.current_file() }
+	local sel = fm.get_selection()
+	return #sel > 0 and sel or { fm.current_file() }
 end
 
 return M

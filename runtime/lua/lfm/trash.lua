@@ -1,7 +1,7 @@
 local M = {}
 
 local lfm = lfm
-local api = lfm.api
+local fm = lfm.fm
 local util = lfm.util
 
 -- Trash command, e.g. `{ "trash-put" }`, or `{ "gtrash", "put", "--" }`
@@ -52,7 +52,7 @@ function M.trash_selection()
 	lfm.ui.input({ prompt = prompt, single_key = true }, function(input)
 		if input == "y" then
 			M.put(files)
-			api.selection_set({})
+			fm.set_selection({})
 		end
 	end)
 end

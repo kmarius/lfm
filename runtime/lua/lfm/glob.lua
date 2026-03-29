@@ -9,6 +9,7 @@ local M = { _NAME = ... }
 local lfm = lfm
 
 local api = lfm.api
+local fm = lfm.fm
 local fs = lfm.fs
 
 local dirent = require("posix.dirent")
@@ -150,7 +151,7 @@ end
 ---@param glob string
 function M.glob_select(glob)
 	local files = glob_files_single(".", glob, { full_paths = true })
-	api.selection_set(files)
+	fm.set_selection(files)
 end
 
 ---
@@ -169,7 +170,7 @@ function M.glob_select_recursive(glob)
 		return M.matches(file, pattern, match_dot)
 	end
 	local files = fs.find(filter, { path = lfm.fn.getpwd(), limit = 1000000, follow = true })
-	api.selection_set(files)
+	fm.set_selection(files)
 end
 
 -- glob-select mode
@@ -181,7 +182,7 @@ api.create_mode({
 		api.mode("normal")
 	end,
 	on_esc = function()
-		api.selection_set({})
+		fm.set_selection({})
 	end,
 	on_change = function()
 		M.glob_select(api.cmdline_line_get())

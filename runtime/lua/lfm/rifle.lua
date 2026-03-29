@@ -1,11 +1,14 @@
 -- documentation moved to docs/LuaCATS/lfm/rifle.lua
 
+---@meta
+
 local M = lfm.rifle
 M._NAME = ...
 
 local lfm = lfm
 
 local api = lfm.api
+local fm = lfm.fm
 local util = lfm.util
 
 local config
@@ -158,10 +161,10 @@ end
 function M.open_command(...)
 	local t = { ... }
 	local pick = t[1]
-	local file = api.fm_open()
+	local file = lfm.fm.open()
 	if file then
 		-- selection takes priority
-		local files = api.selection_get()
+		local files = fm.get_selection()
 		if #files == 0 then
 			files = { file }
 		end

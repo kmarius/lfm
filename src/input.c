@@ -148,7 +148,7 @@ void input_handle_key(Lfm *lfm, input_t in) {
   Ui *ui = &lfm->ui;
   Fm *fm = &lfm->fm;
 
-  if (in == CTRL('Q')) {
+  if (in == CTRL('Q') || in == CTRL('q')) {
     log_debug("received ctrl-q, quitting");
     lfm_quit(lfm, 0);
     return;

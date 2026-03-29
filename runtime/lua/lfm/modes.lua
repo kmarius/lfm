@@ -4,6 +4,7 @@ local lfm = lfm
 
 local options = lfm.o
 local api = lfm.api
+local fm = lfm.fm
 local fs = lfm.fs
 local complete = require("lfm.complete")
 local util = require("lfm.util")
@@ -52,20 +53,20 @@ do
 		input = true,
 		prefix = "filter: ",
 		on_enter = function()
-			local filter, type = api.get_filter()
+			local filter, type = fm.get_filter()
 			if type ~= "substring" then
-				api.set_filter(filter)
+				fm.set_filter(filter)
 			end
 			api.cmdline_line_set(filter)
 		end,
 		on_change = function()
-			api.set_filter(api.cmdline_line_get())
+			fm.set_filter(api.cmdline_line_get())
 		end,
 		on_return = function()
 			api.mode("normal")
 		end,
 		on_esc = function()
-			api.set_filter("")
+			fm.set_filter("")
 		end,
 	}
 	api.create_mode(mode)
@@ -80,28 +81,28 @@ do
 		input = true,
 		prefix = "fuzzy: ",
 		on_enter = function()
-			local filter, type = api.get_filter()
+			local filter, type = fm.get_filter()
 			if type ~= "fuzzy" then
-				api.set_filter(filter, "fuzzy")
+				fm.set_filter(filter, "fuzzy")
 			end
 			api.cmdline_line_set(filter)
 		end,
 		on_change = function()
 			local filter = api.cmdline_line_get()
-			api.set_filter(filter, "fuzzy")
-			api.fm_top()
+			fm.set_filter(filter, "fuzzy")
+			fm.top()
 		end,
 		on_return = function()
 			api.mode("normal")
 		end,
 		on_esc = function()
-			api.set_filter()
+			fm.set_filter()
 		end,
 	}
 	api.create_mode(mode)
 	api.set_keymap("zF", a(api.mode, "fuzzy"), { desc = "Enter FUZZY mode" })
-	api.set_keymap("<c-n>", api.fm_down, { mode = "fuzzy", desc = "down" })
-	api.set_keymap("<c-p>", api.fm_up, { mode = "fuzzy", desc = "up" })
+	api.set_keymap("<c-n>", fm.down, { mode = "fuzzy", desc = "down" })
+	api.set_keymap("<c-p>", fm.up, { mode = "fuzzy", desc = "up" })
 end
 
 -- TRAVEL mode
@@ -115,10 +116,10 @@ do
 			hidden = options.hidden
 		end,
 		on_return = function()
-			local file = api.current_file()
+			local file = fm.current_file()
 			if file then
-				api.set_filter("")
-				if api.fm_open() then
+				fm.set_filter("")
+				if fm.open() then
 					api.mode("normal")
 					lfm.eval("open")
 				else
@@ -138,10 +139,10 @@ do
 					options.hidden = false
 				end
 			end
-			api.set_filter(line)
+			fm.set_filter(line)
 		end,
 		on_exit = function()
-			api.set_filter("")
+			fm.set_filter("")
 			if not hidden then
 				options.hidden = false
 			end
@@ -154,13 +155,13 @@ do
 	}
 	api.create_mode(mode)
 	api.set_keymap("f", a(api.mode, "travel"), { desc = "Enter TRAVEL mode" })
-	api.set_keymap("<c-n>", api.fm_down, { mode = "travel" })
-	api.set_keymap("<c-p>", api.fm_up, { mode = "travel" })
-	api.set_keymap("<Up>", api.fm_up, { mode = "travel" })
-	api.set_keymap("<Down>", api.fm_down, { mode = "travel" })
+	api.set_keymap("<c-n>", fm.down, { mode = "travel" })
+	api.set_keymap("<c-p>", fm.up, { mode = "travel" })
+	api.set_keymap("<Up>", fm.up, { mode = "travel" })
+	api.set_keymap("<Down>", fm.down, { mode = "travel" })
 	api.set_keymap("<a-h>", function()
-		api.set_filter("")
-		api.fm_updir()
+		fm.set_filter("")
+		fm.updir()
 		api.cmdline_line_set()
 	end, { mode = "travel", desc = "Move to parent directory" })
 end
@@ -176,10 +177,10 @@ do
 			hidden = options.hidden
 		end,
 		on_return = function()
-			local file = api.current_file()
+			local file = fm.current_file()
 			if file then
-				api.set_filter()
-				if api.fm_open() then
+				fm.set_filter()
+				if fm.open() then
 					api.mode("normal")
 					lfm.eval("open")
 				else
@@ -199,11 +200,11 @@ do
 					options.hidden = false
 				end
 			end
-			api.set_filter(line, "fuzzy")
-			api.fm_top()
+			fm.set_filter(line, "fuzzy")
+			fm.top()
 		end,
 		on_exit = function()
-			api.set_filter()
+			fm.set_filter()
 			if not hidden then
 				options.hidden = false
 			end
@@ -216,13 +217,13 @@ do
 	}
 	api.create_mode(mode)
 	api.set_keymap("F", a(api.mode, "travel-fuzzy"), { desc = "Enter travel-fuzzy mode" })
-	api.set_keymap("<c-n>", api.fm_down, { mode = "travel-fuzzy" })
-	api.set_keymap("<c-p>", api.fm_up, { mode = "travel-fuzzy" })
-	api.set_keymap("<Up>", api.fm_up, { mode = "travel-fuzzy" })
-	api.set_keymap("<Down>", api.fm_down, { mode = "travel-fuzzy" })
+	api.set_keymap("<c-n>", fm.down, { mode = "travel-fuzzy" })
+	api.set_keymap("<c-p>", fm.up, { mode = "travel-fuzzy" })
+	api.set_keymap("<Up>", fm.up, { mode = "travel-fuzzy" })
+	api.set_keymap("<Down>", fm.down, { mode = "travel-fuzzy" })
 	api.set_keymap("<a-h>", function()
-		api.set_filter("")
-		api.fm_updir()
+		fm.set_filter("")
+		fm.updir()
 		api.cmdline_line_set()
 	end, { mode = "travel-fuzzy", desc = "Move to parent directory" })
 end
@@ -237,7 +238,7 @@ do
 		prefix = "/",
 		on_enter = function()
 			lfm.nohighlight()
-			file = api.current_file()
+			file = fm.current_file()
 		end,
 		on_change = function()
 			lfm.search(api.cmdline_line_get())

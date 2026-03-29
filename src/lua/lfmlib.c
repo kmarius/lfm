@@ -214,6 +214,9 @@ int luaopen_lfm(lua_State *L) {
   luaopen_api(L);
   lua_setfield(L, -2, "api");
 
+  luaopen_fm(L);
+  lua_setfield(L, -2, "fm");
+
   luaopen_paths(L);
   lua_setfield(L, -2, "paths");
 

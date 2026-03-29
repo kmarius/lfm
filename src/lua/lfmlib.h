@@ -3,6 +3,7 @@
 #include <lua.h>
 
 int luaopen_api(lua_State *L);
+int luaopen_fm(lua_State *L);
 int luaopen_options(lua_State *L);
 int luaopen_fn(lua_State *L);
 int luaopen_lfm(lua_State *L);

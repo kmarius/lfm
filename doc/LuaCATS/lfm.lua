@@ -35,8 +35,6 @@
 ---| '"fuzzy"'
 ---| '"lua"'
 
----@alias Lfm.FilterFunction fun(name: string):any
-
 ---@class Lfm
 lfm = {}
 
@@ -44,6 +42,7 @@ lfm = {}
 
 lfm.api = require("lfm.api")
 lfm.complete = require("lfm.complete")
+lfm.fm = require("lfm.fm")
 lfm.fs = require("lfm.fs")
 lfm.functions = require("lfm.functions")
 lfm.inspect = require("lfm.inspect")

@@ -3,6 +3,7 @@ local M = { _NAME = ... }
 local lfm = lfm
 
 local api = lfm.api
+local fm = lfm.fm
 
 ---
 ---Set the flatten level of the current directory.
@@ -25,11 +26,11 @@ local api = lfm.api
 ---@param level integer | ("+"|"-") The level or "+"/"-" to increment/decrement respectively
 function M.flatten(level)
 	if level == "+" then
-		level = api.get_flatten_level() + 1
+		level = fm.get_flatten_level() + 1
 	elseif level == "-" then
-		level = api.get_flatten_level() - 1
+		level = fm.get_flatten_level() - 1
 	end
-	api.set_flatten_level(level --[[@as integer]])
+	fm.set_flatten_level(level --[[@as integer]])
 end
 
 ---
@@ -41,8 +42,8 @@ end
 ---```
 ---
 function M.increment()
-	if api.get_flatten_level() == 0 then
-		api.sort({ dirfirst = false })
+	if fm.get_flatten_level() == 0 then
+		fm.sort({ dirfirst = false })
 	end
 	M.flatten("+")
 end
@@ -58,8 +59,8 @@ end
 ---
 function M.decrement()
 	M.flatten("-")
-	if api.get_flatten_level() == 0 then
-		api.sort({ dirfirst = true })
+	if fm.get_flatten_level() == 0 then
+		fm.sort({ dirfirst = true })
 	end
 end
 

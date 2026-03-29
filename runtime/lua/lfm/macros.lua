@@ -6,7 +6,7 @@ local ui = lfm.ui
 
 local prev -- identifier of the last run macro
 
-lfm.api.set_keymap("w", function()
+api.set_keymap("w", function()
 	if api.macro_recording() then
 		api.macro_stop_record()
 	else

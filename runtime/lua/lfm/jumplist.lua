@@ -1,6 +1,7 @@
 local M = { _NAME = ... }
 
 local lfm = lfm
+local fm = lfm.fm
 local api = lfm.api
 
 local list = { lfm.fn.getpwd() }
@@ -57,7 +58,7 @@ function M.jump_to(idx)
 	if idx >= 1 and idx <= #list then
 		ind = idx
 		disable_hook = true
-		api.chdir(list[ind])
+		fm.chdir(list[ind])
 	end
 end
 
@@ -72,7 +73,7 @@ end
 function M.jump_next()
 	if ind < #list then
 		ind = ind + 1
-		api.chdir(list[ind])
+		fm.chdir(list[ind])
 	end
 end
 
@@ -87,7 +88,7 @@ end
 function M.jump_prev()
 	if ind > 1 then
 		ind = ind - 1
-		api.chdir(list[ind])
+		fm.chdir(list[ind])
 	end
 end
 

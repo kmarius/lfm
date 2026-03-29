@@ -2,13 +2,14 @@ local M = { _NAME = ... }
 
 local lfm = lfm
 
----@alias Char string
----@alias Path string
+local api = lfm.api
+local fn = lfm.fn
+local fs = lfm.fs
 
 local stdio = require("posix.stdio")
 
-local fn = lfm.fn
-local fs = lfm.fs
+---@alias Char string
+---@alias Path string
 
 ---Path to quickmarks file
 M.path = fs.joinpath(lfm.paths.state_dir, "quickmarks.lua")
@@ -33,7 +34,7 @@ local function mark_set(char, loc)
 	end
 	loc = loc or fn.getpwd()
 	local cmd = "cd " .. loc
-	lfm.api.set_keymap("'" .. char, function()
+	api.set_keymap("'" .. char, function()
 		lfm.eval(cmd)
 	end, { desc = cmd })
 	marks[char] = loc
@@ -117,7 +118,7 @@ end
 function M.delete(char)
 	if marks[char] then
 		load_from_file()
-		lfm.api.del_keymap("'" .. char)
+		api.del_keymap("'" .. char)
 		marks[char] = nil
 		write_to_file()
 	end
