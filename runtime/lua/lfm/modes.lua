@@ -251,7 +251,7 @@ do
 		on_esc = function()
 			lfm.nohighlight()
 			if file then
-				api.select(fs.basename(file) --[[@as string]])
+				fm.select(fs.basename(file) --[[@as string]])
 			end
 		end,
 	}
@@ -275,7 +275,7 @@ do
 		on_esc = function()
 			lfm.nohighlight()
 			if file then
-				api.select(fs.basename(file) --[[@as string]])
+				fm.select(fs.basename(file) --[[@as string]])
 			end
 		end,
 	}
