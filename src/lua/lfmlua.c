@@ -8,6 +8,7 @@
 #include "profiling.h"
 #include "stc/cstr.h"
 
+#include <ev.h>
 #include <lauxlib.h>
 #include <linux/limits.h>
 #include <lua.h>
@@ -27,6 +28,9 @@ typedef struct {
 static inline bool init_packages(lua_State *L);
 static inline bool load_file(lua_State *L, const char *path,
                              bool err_on_non_exist);
+#ifndef NDEBUG
+static void check_lua_stack_cb(EV_P_ ev_check *w, i32 revents);
+#endif
 
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof(arr[0]))
 
@@ -64,6 +68,12 @@ void lfm_lua_init(Lfm *lfm_) {
       load_file(L, cstr_str(&cfg.configpath), false);
     }
   });
+
+#ifndef NDEBUG
+  ev_check_init(&lfm->check_lua_stack, check_lua_stack_cb);
+  lfm->check_lua_stack.data = L;
+  ev_check_start(event_loop, &lfm->check_lua_stack);
+#endif
 }
 
 void lfm_lua_init_thread(lua_State *L) {
@@ -107,6 +117,18 @@ void lfm_lua_deinit(Lfm *lfm) {
   lfm->L = NULL;
   modules_drop(&imported);
 }
+
+#ifndef NDEBUG
+// chack that we are not leaving stuff on the lua stack between iterations
+static void check_lua_stack_cb(EV_P_ ev_check *w, i32 revents) {
+  (void)revents;
+  static i32 top = -1;
+  i32 new_top = lua_gettop(w->data);
+  if (top >= 0 && new_top != top)
+    log_error("stack %d -> %d", top, new_top);
+  top = new_top;
+}
+#endif
 
 static inline bool load_file(lua_State *L, const char *path,
                              bool err_on_non_exist) {

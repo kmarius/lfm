@@ -1,6 +1,7 @@
 #include "config.h"
 #include "fm.h"
 #include "hooks.h"
+#include "lfmlua.h"
 #include "macro.h"
 #include "path.h"
 #include "search.h"
@@ -234,43 +235,7 @@ static int l_set_info(lua_State *L) {
   return 0;
 }
 
-static int l_sort(lua_State *L) {
-  lfm_mode_exit(lfm, c_zv("visual"));
-  luaL_checktype(L, 1, LUA_TTABLE);
-  Dir *dir = fm_current_dir(fm);
-
-  struct dir_settings settings = dir->settings;
-  lua_getfield(L, 1, "dirfirst");
-  if (!lua_isnil(L, -1))
-    settings.dirfirst = lua_toboolean(L, -1);
-  lua_pop(L, 1);
-
-  lua_getfield(L, 1, "reverse");
-  if (!lua_isnil(L, -1))
-    settings.reverse = lua_toboolean(L, -1);
-  lua_pop(L, 1);
-
-  lua_getfield(L, 1, "type");
-  if (!lua_isnil(L, -1)) {
-    const char *op = luaL_checkstring(L, -1);
-    int type = sorttype_from_str(op);
-    if (type < 0)
-      return luaL_error(L, "unrecognized sort type: %s", op);
-    settings.sorttype = type;
-  }
-  lua_pop(L, 1);
-
-  dir->settings = settings;
-
-  // it is convenient to keep the cursor position in a (fresh)
-  // directory if it hasn't been moved when sorting
-  const File *file = dir_current_file(dir);
-  dir_sort(dir, true);
-  dir_move_cursor_to_ptr(dir, file, fm->height, cfg.scrolloff);
-  ui_update_preview(ui, true);
-  ui_redraw(ui, REDRAW_FM);
-  return 0;
-}
+int l_fm_sort(lua_State *L);
 
 static int l_toggle_selection(lua_State *L) {
   (void)L;
@@ -554,7 +519,7 @@ static const struct luaL_Reg fm_funcs[] = {
     {"open",              l_open             },
     {"scroll_down",       l_scroll_down      },
     {"scroll_up",         l_scroll_up        },
-    {"sort",              l_sort             },
+    {"sort",              l_fm_sort          },
     {"select",            l_select           },
     {"set_info",          l_set_info         },
     {"get_info",          l_get_info         },

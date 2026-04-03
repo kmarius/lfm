@@ -7,7 +7,7 @@
 #include <strings.h> // strcasecmp
 
 const char *sorttype_str[NUM_SORTTYPE] = {
-    "natural", "name", "size", "ctime", "atime", "mtime", "random",
+    "natural", "name", "size", "ctime", "atime", "mtime", "lua", "random",
 };
 
 i32 sorttype_from_str(const char *str) {
@@ -84,6 +84,12 @@ i32 compare_mtime(const void *a, const void *b) {
     return cmp;
   }
   return aa->lstat.st_ino - bb->lstat.st_ino;
+}
+
+i32 compare_lua(const void *a, const void *b) {
+  const File *aa = *(File **)a;
+  const File *bb = *(File **)b;
+  return aa->key - bb->key;
 }
 
 // https://stackoverflow.com/questions/6127503/shuffle-array-in-c

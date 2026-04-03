@@ -68,6 +68,10 @@ typedef struct flat_dir_node {
 #define i_cmp compare_mtime
 #include "stc/sort.h"
 
+#define i_type files_lua, File *
+#define i_cmp compare_lua
+#include "stc/sort.h"
+
 const char *fileinfo_str[] = {"size", "atime", "ctime", "mtime"};
 
 // doesn't check bounds
@@ -134,6 +138,9 @@ void dir_sort(Dir *d, bool force) {
       break;
     case SORT_MTIME:
       files_mtime_sort(d->files_all.data, d->files_all.size);
+      break;
+    case SORT_LUA:
+      files_lua_sort(d->files_all.data, d->files_all.size);
       break;
     case SORT_RAND:
       shuffle(d->files_all.data, d->files_all.size, sizeof(File *));

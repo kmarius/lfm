@@ -65,22 +65,22 @@ static int l_dir_select(lua_State *L) {
   return 0;
 }
 
-static int l_dir_sort(lua_State *L) {
-  Dir *dir = checkdir(L, 1);
-  luaL_checktype(L, 2, LUA_TTABLE);
+// sort the given directory, options table at idx
+static inline int sort_dir(lua_State *L, int idx, Dir *dir) {
+  luaL_checktype(L, idx, LUA_TTABLE);
 
   struct dir_settings settings = dir->settings;
-  lua_getfield(L, 2, "dirfirst");
+  lua_getfield(L, idx, "dirfirst");
   if (!lua_isnil(L, -1))
     settings.dirfirst = lua_toboolean(L, -1);
   lua_pop(L, 1);
 
-  lua_getfield(L, 2, "reverse");
+  lua_getfield(L, idx, "reverse");
   if (!lua_isnil(L, -1))
     settings.reverse = lua_toboolean(L, -1);
   lua_pop(L, 1);
 
-  lua_getfield(L, 2, "type");
+  lua_getfield(L, idx, "type");
   if (!lua_isnil(L, -1)) {
     const char *op = luaL_checkstring(L, -1);
     int type = sorttype_from_str(op);
@@ -90,12 +90,47 @@ static int l_dir_sort(lua_State *L) {
   }
   lua_pop(L, 1);
 
-  // no error, apply settings
+  bool have_keyfunc = false;
+  lua_getfield(L, idx, "keyfunc");
+  if (!lua_isnil(L, -1)) {
+    luaL_checktype(L, -1, LUA_TFUNCTION);
+    lfm_lua_store_keyfunc(lfm, -1, dir_path(dir));
+    settings.sorttype = SORT_LUA;
+    have_keyfunc = true;
+  }
+  lua_pop(L, 1);
+
+  if (settings.sorttype == SORT_LUA && !have_keyfunc)
+    return luaL_error(L, "missing field: keyfunc");
+
   dir->settings = settings;
 
+  if (settings.sorttype == SORT_LUA)
+    lfm_lua_apply_keyfunc(lfm, dir, true);
+
+  // sort and restore cursor
   File *file = dir_current_file(dir);
   dir_sort(dir, true);
   restore_cursor(dir, file);
+
+  return 0;
+}
+
+// lfm.fm.sort
+int l_fm_sort(lua_State *L) {
+  lfm_mode_exit(lfm, c_zv("visual"));
+  Dir *dir = fm_current_dir(fm);
+  sort_dir(L, 1, dir);
+
+  ui_update_preview(ui, true);
+  ui_redraw(ui, REDRAW_FM);
+  return 0;
+}
+
+// method
+static int l_dir_sort(lua_State *L) {
+  Dir *dir = checkdir(L, 1);
+  sort_dir(L, 2, dir);
 
   if (dir == fm_current_dir(fm))
     update_preview(false);

@@ -16,6 +16,7 @@
 #include <sys/types.h>
 
 struct Lfm;
+struct Dir;
 
 // Initialize lua state, load libraries.
 void lfm_lua_init(struct Lfm *lfm);
@@ -68,3 +69,6 @@ static inline void lfm_lua_push_callback(lua_State *L, i32 ref, bool unref) {
   if (unref)
     luaL_unref(L, LUA_REGISTRYINDEX, ref);
 }
+
+void lfm_lua_store_keyfunc(struct Lfm *lfm, i32 idx, zsview path);
+int lfm_lua_apply_keyfunc(struct Lfm *lfm, struct Dir *dir, bool throw);

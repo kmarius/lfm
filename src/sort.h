@@ -10,6 +10,7 @@ typedef enum {
   SORT_CTIME,
   SORT_ATIME,
   SORT_MTIME,
+  SORT_LUA,
   SORT_RAND,
   NUM_SORTTYPE,
 } sorttype;
@@ -29,5 +30,9 @@ i32 compare_ctime(const void *a, const void *b);
 i32 compare_atime(const void *a, const void *b);
 
 i32 compare_mtime(const void *a, const void *b);
+
+i32 compare_lua(const void *a, const void *b);
+
+i32 compare_lua(const void *a, const void *b);
 
 void shuffle(void *arr, usize n, usize size);

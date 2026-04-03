@@ -212,6 +212,19 @@ function lfm.fm.get_flatten_level() end
 ---  lfm.fm.sort({ type = "ctime", dirfirst = true, reverse = false })
 ---```
 ---
+---Sort using a lua function to extract a key from the file name:
+---```lua
+---  lfm.fm.sort({
+---  	keyfunc = function(name)
+---  		local m = string.match(name, "%(([0-9]+)%)$")
+---  		if not m then
+---  			return 0
+---  		end
+---  		return tonumber(m)
+---  	end,
+---  })
+---```
+---
 ---@param opts Lfm.SortOpts
 function lfm.fm.sort(opts) end
 

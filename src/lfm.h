@@ -50,6 +50,7 @@ typedef struct Lfm {
   ev_prepare prepare_watcher;
 #ifndef NDEBUG
   ev_check check_watcher;
+  ev_check check_lua_stack;
 #endif
   ev_signal sigint_watcher;
   ev_signal sigtstp_watcher;

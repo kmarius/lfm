@@ -22,6 +22,7 @@ typedef struct File {
   i32 dircount;     // in case of a directory, < 0 if not loaded yet
   i32 error;        // errorno of the error that prevented loading
   score_t score;    // for convenience, used in fzy
+  i64 key;
 } File;
 
 File *file_create(const char *dir, const char *name, i32 fd, bool load_info);

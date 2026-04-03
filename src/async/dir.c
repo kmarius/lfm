@@ -305,6 +305,8 @@ static void dir_update_callback(void *p, Lfm *lfm) {
       res->dir->flatten_level == res->update->flatten_level) {
     loader_dir_load_callback(&lfm->loader, res->dir);
     dir_update_with(res->dir, res->update, lfm->fm.height, cfg.scrolloff);
+    if (res->dir->settings.sorttype == SORT_LUA)
+      lfm_lua_apply_keyfunc(lfm, res->dir, false);
     LFM_RUN_HOOK(lfm, LFM_HOOK_DIRUPDATED, dir_path(res->dir));
     if (res->dir->visible) {
       fm_update_preview(&lfm->fm, true);

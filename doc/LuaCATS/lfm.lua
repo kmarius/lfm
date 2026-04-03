@@ -19,6 +19,7 @@
 ---@field type? Lfm.SortType
 ---@field dirfirst? boolean
 ---@field reverse? boolean
+---@field keyfunc? fun(name: string):integer
 
 ---@alias Lfm.PasteMode
 ---| '"copy"'
