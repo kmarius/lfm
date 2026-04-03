@@ -152,7 +152,7 @@ end
 ---```
 ---
 function M.symlink()
-	local files, mode = fm.get_paste_buffer()()
+	local files, mode = fm.get_paste_buffer()
 	if mode == "copy" then
 		for _, f in pairs(files) do
 			lfm.spawn({ "ln", "-s", "--", f }, { on_stderr = true })
