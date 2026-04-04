@@ -1,9 +1,10 @@
 #include "trie.h"
 
+#include "defs.h"
 #include "memory.h"
 #include "stcutil.h"
 
-static inline Trie *trie_node_create(input_t key, Trie *next) {
+static inline Trie *create_node(input_t key, Trie *next) {
   Trie *n = xcalloc(1, sizeof *n);
   n->key = key;
   n->next = next;
@@ -11,31 +12,40 @@ static inline Trie *trie_node_create(input_t key, Trie *next) {
 }
 
 Trie *trie_create(void) {
-  return trie_node_create(0, NULL);
+  return create_node(0, NULL);
 }
 
-Trie *trie_find_child(const Trie *t, input_t key) {
-  if (!t) {
-    return NULL;
-  }
-  for (Trie *n = t->child; n; n = n->next) {
-    if (n->key == key) {
-      return n;
+// if not found, and pred_out is passed, a new node containing the key
+// should be inserted at *pred_out
+__lfm_nonnull(1)
+static inline Trie *find_child_impl(Trie *t, input_t key, Trie ***pred_out) {
+  Trie *res = NULL;
+  Trie **pred = &t->child;
+  for (Trie *n = t->child; n; pred = &n->next, n = n->next) {
+    if (n->key <= key) {
+      if (n->key == key)
+        res = n;
+      break;
     }
   }
-  return NULL;
+  if (pred_out)
+    *pred_out = pred;
+  return res;
+}
+
+Trie *trie_find_child(Trie *t, input_t key) {
+  return find_child_impl(t, key, NULL);
 }
 
 i32 trie_insert(Trie *t, const input_t *trie_keys, i32 ref, zsview keys,
                 zsview desc) {
-  if (!t) {
-    return 0;
-  }
   for (const input_t *c = trie_keys; *c != 0; c++) {
-    Trie *n = trie_find_child(t, *c);
+    Trie **pre;
+    Trie *n = find_child_impl(t, *c, &pre);
     if (!n) {
-      n = trie_node_create(*c, t->child);
-      t->child = n;
+      // insert after predecessor
+      n = create_node(*c, *pre);
+      *pre = n;
     }
     t = n;
   }
@@ -47,42 +57,52 @@ i32 trie_insert(Trie *t, const input_t *trie_keys, i32 ref, zsview keys,
   return oldref;
 }
 
-i32 trie_remove(Trie *t, const input_t *trie_keys) {
-  if (!t) {
-    return 0;
-  }
-  if (*trie_keys == 0) {
-    cstr_clear(&t->keys);
-    cstr_clear(&t->desc);
-    i32 oldref = t->ref;
-    t->ref = 0;
-    return oldref;
-  }
-  Trie **prev = &t->child;
-  for (Trie *n = t->child; n; n = n->next) {
-    if (n->key == *trie_keys) {
-      i32 ret = trie_remove(n, trie_keys + 1);
-      if (!n->child && !n->ref) {
-        *prev = n->next;
-        xfree(n);
-      }
-      return ret;
-    }
-    prev = &n->next;
-  }
-  return 0;
+static inline i32 clear_node(Trie *t) {
+  cstr_drop(&t->keys);
+  cstr_drop(&t->desc);
+  i32 ref = t->ref;
+  t->ref = 0;
+  return ref;
 }
 
+i32 trie_remove(Trie *t, const input_t *trie_keys) {
+  if (*trie_keys == 0)
+    return clear_node(t);
+
+  Trie **pre;
+  Trie *n = find_child_impl(t, *trie_keys, &pre);
+  if (!n)
+    return 0;
+
+  i32 ref = trie_remove(n, trie_keys + 1);
+  if (!n->child && !n->ref) {
+    // no children, not a leaf, unlink
+    *pre = (*pre)->next;
+    xfree(n);
+  }
+
+  return ref;
+}
+
+void trie_destroy(Trie *t) {
+  if (!t)
+    return;
+
+  for (Trie *next, *n = t->child; n; n = next) {
+    next = n->next;
+    trie_destroy(n);
+  }
+  clear_node(t);
+  xfree(t);
+}
+
+__lfm_nonnull()
 static inline void trie_collect_leaves_impl(Trie *t, vec_trie *vec,
                                             bool prune) {
-  if (!t) {
-    return;
-  }
   if (t->ref) {
     vec_trie_push(vec, t);
-    if (prune) {
+    if (prune)
       return;
-    }
   }
   for (Trie *n = t->child; n; n = n->next) {
     trie_collect_leaves_impl(n, vec, prune);
@@ -90,20 +110,7 @@ static inline void trie_collect_leaves_impl(Trie *t, vec_trie *vec,
 }
 
 vec_trie trie_collect_leaves(Trie *trie, bool prune) {
-  vec_trie vec = {0};
+  vec_trie vec = vec_trie_init();
   trie_collect_leaves_impl(trie, &vec, prune);
   return vec;
-}
-
-void trie_destroy(Trie *t) {
-  if (!t) {
-    return;
-  }
-  for (Trie *next, *n = t->child; n; n = next) {
-    next = n->next;
-    trie_destroy(n);
-  }
-  cstr_drop(&t->desc);
-  cstr_drop(&t->keys);
-  xfree(t);
 }

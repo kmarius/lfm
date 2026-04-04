@@ -2,9 +2,10 @@
 
 #include "keys.h"
 #include "stc/cstr.h"
-#include "util.h"
+#include "util.h" // strcasecmp_strict
 
 #include <strings.h>
+#include <sys/cdefs.h>
 
 // Stores key-values of input_t* -> i32. Can't store 0 because it signals that a
 // node is empty.
@@ -36,15 +37,19 @@ void trie_destroy(Trie *trie);
 // Insert a new key/val tuple into the tree. `keys` should be the (printable)
 // key sequence, `desc` an optional description of the command.
 // Returns the value that was replaced (or 0 if none was).
+__lfm_nonnull(1, 2)
 i32 trie_insert(Trie *trie, const input_t *trie_keys, i32 ref, zsview keys,
                 zsview desc);
 
 // Remove a key/val from the trie and returns the value.
+__lfm_nonnull(1, 2)
 i32 trie_remove(Trie *trie, const input_t *trie_keys);
 
 // Finds the top level child belonging to key if it exists, NULL otherwise.
-Trie *trie_find_child(const Trie *trie, input_t key);
+__lfm_nonnull(1)
+Trie *trie_find_child(Trie *trie, input_t key);
 
 // Collect leaves and in the vector. If `prune` is `true`, only
 // reachable leaves are collected.
+__lfm_nonnull(1)
 vec_trie trie_collect_leaves(Trie *trie, bool prune);
