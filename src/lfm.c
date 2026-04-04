@@ -58,15 +58,6 @@ Lfm *lfm_instance(void) {
   return instance;
 }
 
-static void schedule_timer_cb(EV_P_ ev_timer *w, i32 revents) {
-  (void)revents;
-  struct sched_timer *timer = (struct sched_timer *)w;
-  Lfm *lfm = w->data;
-  ev_timer_stop(EV_A_ w);
-  lfm_lua_cb(lfm->L, timer->ref, true);
-  timers_erase(&lfm->schedule_timers, timer->id);
-}
-
 // To run command line cmds after loop starts. I think it is called back before
 // every other cb.
 static void prepare_cb(EV_P_ ev_prepare *w, i32 revents) {
@@ -271,7 +262,7 @@ void lfm_quit(Lfm *lfm, i32 ret) {
   if (lfm->opts.lastdir_path) {
     FILE *fp = fopen(lfm->opts.lastdir_path, "w");
     if (fp == NULL) {
-      log_error("lastdir: %s", strerror(errno));
+      lfm_perror(lfm, "fopen");
       return;
     }
     fwrite(cstr_str(&lfm->fm.pwd), 1, cstr_size(&lfm->fm.pwd), fp);
@@ -319,17 +310,26 @@ void lfm_errorf(Lfm *lfm, const char *fmt, ...) {
   va_end(args);
 }
 
+static void schedule_timer_cb(EV_P_ ev_timer *w, i32 revents) {
+  (void)revents;
+  struct sched_timer *timer = (struct sched_timer *)w;
+  Lfm *lfm = w->data;
+  ev_timer_stop(EV_A_ w);
+  lfm_lua_cb(lfm->L, timer->ref, true);
+  timers_erase(&lfm->schedule_timers, timer->id);
+}
+
 i32 lfm_schedule(Lfm *lfm, i32 ref, u32 delay) {
   u32 id = lfm->timers_ct++;
-  timers_result res = timers_emplace(&lfm->schedule_timers, id,
-                                     (struct sched_timer){
-                                         .ref = ref,
-                                         .id = id,
-                                     });
-  struct sched_timer *data = res.ref->second;
-  ev_timer_init(&data->watcher, schedule_timer_cb, 1.0 * delay / 1000, 0);
-  data->watcher.data = lfm;
-  ev_timer_start(event_loop, &data->watcher);
+  struct sched_timer timer_ = {
+      .ref = ref,
+      .id = id,
+  };
+  timers_result res = timers_emplace(&lfm->schedule_timers, id, timer_);
+  struct sched_timer *timer = res.ref->second;
+  ev_timer_init(&timer->watcher, schedule_timer_cb, (f64)delay / 1000, 0);
+  timer->watcher.data = lfm;
+  ev_timer_start(event_loop, &timer->watcher);
   return id;
 }
 
