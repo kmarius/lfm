@@ -30,6 +30,9 @@ struct chdir_data {
   bool run_hook;
 };
 
+// reference to the previous chdir request so we can cancel it
+static struct result *in_progress = NULL;
+
 static void chdir_destroy(void *p) {
   struct chdir_data *res = p;
   if (res->fd > 0)
@@ -41,23 +44,22 @@ static void chdir_destroy(void *p) {
 
 static void chdir_callback(void *p, Lfm *lfm) {
   struct chdir_data *res = p;
-  // check that we have not moved in the meantime
-  // TODO: there's better ways to do this
-  if (cstr_equals(&lfm->fm.pwd, res->destination)) {
-    lfm_mode_exit(lfm, c_zv("visual"));
-    if (res->err) {
-      // back to the where we cd'ed from
-      lfm_errorf(lfm, "open: %s", strerror(res->err));
-      fm_sync_chdir(&lfm->fm, zsview_from(res->origin), false, false);
-    } else if (fchdir(res->fd) != 0) {
-      lfm_errorf(lfm, "fchdir: %s", strerror(errno));
-      fm_sync_chdir(&lfm->fm, zsview_from(res->origin), false, false);
-    } else {
-      setpwd(res->destination);
-      if (res->run_hook) {
-        LFM_RUN_HOOK(lfm, LFM_HOOK_CHDIRPOST, res->destination);
-      }
-    }
+
+  if (in_progress == p)
+    in_progress = NULL;
+
+  lfm_mode_exit(lfm, c_zv("visual"));
+  if (res->err) {
+    // back to the where we cd'ed from
+    lfm_perror(lfm, "open");
+    fm_sync_chdir(&lfm->fm, zsview_from(res->origin), false, false);
+  } else if (fchdir(res->fd) != 0) {
+    lfm_perror(lfm, "fchdir");
+    fm_sync_chdir(&lfm->fm, zsview_from(res->origin), false, false);
+  } else {
+    setpwd(res->destination);
+    if (res->run_hook)
+      LFM_RUN_HOOK(lfm, LFM_HOOK_CHDIRPOST, res->destination);
   }
 }
 
@@ -81,6 +83,10 @@ void async_chdir(Async *async, const char *path, bool hook) {
   work->origin = cstr_strdup(&to_lfm(async)->fm.pwd);
   work->async = async;
   work->run_hook = hook;
+
+  if (in_progress)
+    in_progress->cancelled = true;
+  in_progress = &work->super;
 
   tpool_add_work(async->tpool, async_chdir_worker, work, true);
 }
