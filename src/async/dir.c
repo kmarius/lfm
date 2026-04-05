@@ -304,13 +304,13 @@ static void dir_update_callback(void *p, Lfm *lfm) {
   if (CHECK_PASSES(res->check0) &&
       res->dir->flatten_level == res->update->flatten_level) {
     loader_dir_load_callback(&lfm->loader, res->dir);
-    dir_update_with(res->dir, res->update, lfm->fm.height, cfg.scrolloff);
     if (res->dir->settings.sorttype == SORT_LUA)
-      lfm_lua_apply_keyfunc(lfm, res->dir, false);
+      lfm_lua_apply_keyfunc(lfm, res->update, false);
+    dir_update_with(res->dir, res->update, lfm->fm.height, cfg.scrolloff);
     LFM_RUN_HOOK(lfm, LFM_HOOK_DIRUPDATED, dir_path(res->dir));
     if (res->dir->visible) {
-      fm_update_preview(&lfm->fm, true);
       if (fm_current_dir(&lfm->fm) == res->dir) {
+        fm_update_preview(&lfm->fm, true);
         ui_update_preview(&lfm->ui, true);
       }
       ui_redraw(&lfm->ui, REDRAW_FM);
