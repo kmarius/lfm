@@ -2,13 +2,30 @@
 #include "defs.h"
 #include "tpool.h"
 
+#include <stdatomic.h>
 #include <stdint.h>
 
 struct result {
   struct result *next;
+  // atomic_bool cancelled;
+  bool cancelled;
   void (*callback)(void *, struct Lfm *);
   void (*destroy)(void *);
 };
+
+#define i_type set_result, struct result *
+#include "stc/hset.h"
+
+// we only cancel from the main thread
+static inline void cancel(struct result *res) {
+  // atomic_store_explicit(&res->cancelled, memory_order_relaxed, true);
+  res->cancelled = true;
+}
+
+static inline bool is_cancelled(struct result *res) {
+  // return atomic_load_explicit(&res->cancelled, memory_order_relaxed);
+  return res->cancelled;
+}
 
 struct validity_check8 {
   u8 *ptr;

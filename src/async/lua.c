@@ -82,7 +82,6 @@ static void lua_result_callback(void *p, Lfm *lfm) {
   // []
 
 cleanup:
-  lua_result_destroy(p);
   return;
 
 err:

@@ -2,17 +2,16 @@
 
 #include "defs.h"
 #include "lfm.h" // to_lfm
-#include "log.h"
 #include "loop.h"
 #include "stc/cstr.h"
 
 #include <ev.h>
 
 #include <dirent.h>
-#include <errno.h>
 #include <pthread.h>
 #include <stdatomic.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <sys/stat.h>
 #include <sys/sysinfo.h>
 #include <sys/types.h>
@@ -23,13 +22,13 @@ static struct result *result_queue_get(struct result_queue *queue);
 static void async_result_cb(EV_P_ ev_async *w, int revents) {
   (void)revents;
   Async *async = w->data;
-  struct result *res;
 
-  pthread_mutex_lock(&async->queue.mutex);
+  struct result *res;
   while ((res = result_queue_get(&async->queue))) {
-    res->callback(res, to_lfm(async));
+    if (!is_cancelled(res))
+      res->callback(res, to_lfm(async));
+    res->destroy(res);
   }
-  pthread_mutex_unlock(&async->queue.mutex);
 }
 
 void async_init(Async *async) {
@@ -41,7 +40,7 @@ void async_init(Async *async) {
   ev_async_start(event_loop, &async->result_watcher);
 
   if (pthread_mutex_init(&async->queue.mutex, NULL) != 0) {
-    log_error("pthread_mutex_init: %s", strerror(errno));
+    perror("pthread_mutex_init");
     exit(EXIT_FAILURE);
   }
 
@@ -61,42 +60,38 @@ void async_deinit(Async *async) {
   tpool_destroy(async->tpool);
 
   struct result *res;
-  while ((res = result_queue_get(&async->queue))) {
+  while ((res = result_queue_get(&async->queue)))
     res->destroy(res);
-  }
   pthread_mutex_destroy(&async->queue.mutex);
 }
 
-static inline void result_queue_put(struct result_queue *t,
+static inline void result_queue_put(struct result_queue *queue,
                                     struct result *res) {
-  if (!t->head) {
-    t->head = res;
-    t->tail = res;
+  pthread_mutex_lock(&queue->mutex);
+  if (!queue->head) {
+    queue->head = res;
+    queue->tail = res;
   } else {
-    t->tail->next = res;
-    t->tail = res;
+    queue->tail->next = res;
+    queue->tail = res;
   }
+  pthread_mutex_unlock(&queue->mutex);
 }
 
-static inline struct result *result_queue_get(struct result_queue *t) {
-  struct result *res = t->head;
-
-  if (!res) {
-    return NULL;
+static inline struct result *result_queue_get(struct result_queue *queue) {
+  pthread_mutex_lock(&queue->mutex);
+  struct result *res = queue->head;
+  if (res) {
+    queue->head = res->next;
+    res->next = NULL;
+    if (queue->tail == res)
+      queue->tail = NULL;
   }
-
-  t->head = res->next;
-  res->next = NULL;
-  if (t->tail == res) {
-    t->tail = NULL;
-  }
-
+  pthread_mutex_unlock(&queue->mutex);
   return res;
 }
 
 void enqueue_and_signal(Async *async, struct result *res) {
-  pthread_mutex_lock(&async->queue.mutex);
   result_queue_put(&async->queue, res);
-  pthread_mutex_unlock(&async->queue.mutex);
   ev_async_send(EV_DEFAULT_ & async->result_watcher);
 }

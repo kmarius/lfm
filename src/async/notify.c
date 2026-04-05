@@ -40,7 +40,6 @@ static void notify_add_result_callback(void *p, Lfm *lfm) {
   if (CHECK_PASSES(res->check0) && CHECK_PASSES(res->check1)) {
     notify_add_watcher(&lfm->notify, res->dir);
   }
-  notify_add_result_destroy(p);
 }
 
 void async_notify_add_worker(void *arg) {

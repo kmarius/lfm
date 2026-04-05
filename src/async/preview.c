@@ -69,10 +69,8 @@ static void preview_check_destroy(void *p) {
 static void preview_check_callback(void *p, Lfm *lfm) {
   struct preview_check_data *res = p;
   Preview *pv = loader_preview_get(&lfm->loader, zsview_from(res->path));
-  if (pv) {
+  if (pv)
     loader_preview_reload(&lfm->loader, pv);
-  }
-  preview_check_destroy(p);
 }
 
 static void async_preview_check_worker(void *arg) {
@@ -129,7 +127,6 @@ static void preview_load_callback(void *p, Lfm *lfm) {
     ui_redraw(&lfm->ui, REDRAW_PREVIEW);
     res->update = NULL;
   }
-  preview_load_destroy(p);
 }
 
 static void async_preview_load_worker(void *arg) {

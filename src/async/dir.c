@@ -53,7 +53,6 @@ static void dir_check_callback(void *p, Lfm *lfm) {
       res->dir->last_loading_action = 0;
     }
   }
-  dir_check_destroy(p);
 }
 
 static void async_dir_check_worker(void *arg) {
@@ -168,7 +167,6 @@ static void fileinfo_callback(void *p, Lfm *lfm) {
     fm_update_preview(&lfm->fm, true);
     ui_redraw(&lfm->ui, REDRAW_FM);
   }
-  fileinfo_result_destroy(p);
 }
 
 static inline struct fileinfo_result *
@@ -318,7 +316,6 @@ static void dir_update_callback(void *p, Lfm *lfm) {
     res->dir->last_loading_action = 0;
     res->update = NULL;
   }
-  dir_update_destroy(p);
 }
 
 static void async_dir_load_worker(void *arg) {

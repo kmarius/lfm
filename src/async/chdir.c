@@ -59,7 +59,6 @@ static void chdir_callback(void *p, Lfm *lfm) {
       }
     }
   }
-  chdir_destroy(p);
 }
 
 static void async_chdir_worker(void *arg) {
