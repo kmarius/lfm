@@ -57,3 +57,6 @@ struct validity_check64 {
 #define CHECK_PASSES(cmp) (*(cmp).ptr == (cmp).val)
 
 void enqueue_and_signal(Async *async, struct result *res);
+
+// cancel pending lua previews
+void async_cancel_lua_previews(Async *async);

@@ -205,4 +205,6 @@ void async_kill_previewers(Async *async, bool drop) {
     vec_ev_child_drop(&async->previewer_children);
   else
     vec_ev_child_clear(&async->previewer_children);
+
+  async_cancel_lua_previews(async);
 }

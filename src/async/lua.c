@@ -11,6 +11,8 @@
 #include <lua.h>
 #include <lualib.h>
 
+static set_result in_progress = {0};
+
 static int init_lua_thread_state() {
   if (L_thread == NULL) {
     lua_State *L = luaL_newstate();
@@ -195,7 +197,6 @@ struct lua_preview_data {
   int width;
   int height;
   Preview *update;
-  struct validity_check64 check;
 };
 
 static void lua_preview_destroy(void *p) {
@@ -208,12 +209,10 @@ static void lua_preview_destroy(void *p) {
 
 static void lua_preview_callback(void *p, Lfm *lfm) {
   struct lua_preview_data *res = p;
-  if (CHECK_PASSES(res->check)) {
-    preview_update(res->preview, res->update);
-    ui_redraw(&lfm->ui, REDRAW_PREVIEW);
-    res->update = NULL;
-  }
-  lua_preview_destroy(p);
+  preview_update(res->preview, res->update);
+  res->update = NULL;
+  ui_redraw(&lfm->ui, REDRAW_PREVIEW);
+  set_result_erase(&in_progress, p);
 }
 
 void async_lua_preview_worker(void *arg) {
@@ -309,8 +308,17 @@ void async_lua_preview(Async *async, struct Preview *pv) {
   work->path = zsview_strdup(preview_path(pv));
   work->width = to_lfm(async)->ui.preview.x;
   work->height = to_lfm(async)->ui.preview.y;
-  CHECK_INIT(work->check, to_lfm(async)->loader.preview_cache_version);
+
+  set_result_insert(&in_progress, &work->super);
 
   log_trace("async_lua_preview %s", work->path);
   tpool_add_work(async->tpool, async_lua_preview_worker, work, true);
+}
+
+void async_cancel_lua_previews(Async *async) {
+  (void)async;
+  c_foreach(it, set_result, in_progress) {
+    cancel(*it.ref);
+  }
+  set_result_clear(&in_progress);
 }
