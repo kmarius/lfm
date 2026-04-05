@@ -58,6 +58,9 @@ void async_notify_add(Async *async, struct Dir *dir);
 
 void async_notify_preview_add(Async *async, struct Dir *dir);
 
+// cancel when dropping dir cache, and before setting multiple watchers
+void async_notify_cancel(Async *async);
+
 // Takes ownership of chunk and arg
 void async_lua(struct Async *async, struct bytes *chunk, struct bytes *arg,
                int ref);

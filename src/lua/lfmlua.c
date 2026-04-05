@@ -1,6 +1,7 @@
 #include "lfmlua.h"
 
 #include "config.h"
+#include "defs.h"
 #include "lfmlib.h"
 #include "log.h"
 #include "loop.h"
@@ -242,6 +243,8 @@ void lfm_lua_cb1(lua_State *L, int ref, zsview line) {
 }
 
 void lfm_lua_child_exit_cb(lua_State *L, int ref, int rstatus) {
+  if (unlikely(!L))
+    return;
   lfm_lua_push_callback(L, ref, true); // [f]
   lua_pushnumber(L, rstatus);          // [f, rstatus]
   if (lfm_lua_pcall(L, 1, 0)) {        // []
@@ -254,6 +257,8 @@ void lfm_lua_child_exit_cb(lua_State *L, int ref, int rstatus) {
 // passed; len is negative, strlen(line) is used
 void lfm_lua_child_stdout_cb(lua_State *L, int ref, const char *line,
                              isize len) {
+  if (unlikely(!L))
+    return;
 
   lfm_lua_push_callback(L, ref, line == NULL); // [f]
   if (!line) {

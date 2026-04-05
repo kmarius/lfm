@@ -2,10 +2,7 @@
 
 #include "defs.h"
 #include "dir.h"
-#include "fm.h"
 #include "lfm.h"
-#include "loader.h"
-#include "log.h"
 #include "memory.h"
 #include "notify.h"
 #include "stc/cstr.h"
@@ -13,6 +10,7 @@
 #include <ev.h>
 
 #include <dirent.h>
+#include <fcntl.h>
 #include <pthread.h>
 #include <stdint.h>
 #include <sys/stat.h>
@@ -25,9 +23,11 @@ struct notify_add_data {
   Async *async;
   char *path;
   Dir *dir;
-  struct validity_check32 check0;
-  struct validity_check64 check1;
+  bool ok;
 };
+
+static set_result in_progress = {0};
+static struct result *in_progress_preview = NULL;
 
 static void notify_add_result_destroy(void *p) {
   struct notify_add_data *res = p;
@@ -37,28 +37,24 @@ static void notify_add_result_destroy(void *p) {
 
 static void notify_add_result_callback(void *p, Lfm *lfm) {
   struct notify_add_data *res = p;
-  if (CHECK_PASSES(res->check0) && CHECK_PASSES(res->check1)) {
+  if (res->ok)
     notify_add_watcher(&lfm->notify, res->dir);
-  }
+  set_result_erase(&in_progress, p);
+  if (in_progress_preview == p)
+    in_progress_preview = NULL;
 }
 
 void async_notify_add_worker(void *arg) {
   struct notify_add_data *work = arg;
 
-  struct stat statbuf;
-  if (stat(work->path, &statbuf) == -1) {
-    notify_add_result_destroy(work);
-    return;
-  }
-  // We open the directory here so that adding the notify watcher
+  // We open the directory here so that the notify watcher
   // can be added immediately. Otherwise, the call to inotify_add_watch
   // can block for several seconds e.g. on automounted nfs mounts.
-  DIR *dirp = opendir(work->path);
-  if (!dirp) {
-    notify_add_result_destroy(work);
-    return;
+  int fd = open(work->path, O_RDONLY);
+  if (likely(fd > 0)) {
+    work->ok = true;
+    close(fd);
   }
-  closedir(dirp);
 
   enqueue_and_signal(work->async, (struct result *)work);
 }
@@ -71,10 +67,8 @@ void async_notify_add(Async *async, Dir *dir) {
   work->async = async;
   work->path = zsview_strdup(dir_path(dir));
   work->dir = dir;
-  CHECK_INIT(work->check0, to_lfm(async)->notify.version);
-  CHECK_INIT(work->check1, to_lfm(async)->loader.dir_cache_version);
 
-  log_trace("watching %s", dir_path_str(dir));
+  set_result_insert(&in_progress, &work->super);
   tpool_add_work(async->tpool, async_notify_add_worker, work, true);
 }
 
@@ -86,9 +80,20 @@ void async_notify_preview_add(Async *async, Dir *dir) {
   work->async = async;
   work->path = zsview_strdup(dir_path(dir));
   work->dir = dir;
-  CHECK_INIT(work->check0, to_lfm(async)->notify.version);
-  CHECK_INIT(work->check1, to_lfm(async)->fm.dirs.preview);
 
-  log_trace("watching %s", dir_path_str(dir));
+  set_result_insert(&in_progress, &work->super);
+  if (in_progress_preview)
+    cancel(in_progress_preview);
+  in_progress_preview = &work->super;
+
   tpool_add_work(async->tpool, async_notify_add_worker, work, true);
+}
+
+void async_notify_cancel(Async *async) {
+  (void)async;
+  c_foreach(it, set_result, in_progress) {
+    cancel(*it.ref);
+  }
+  set_result_clear(&in_progress);
+  in_progress_preview = NULL;
 }

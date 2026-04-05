@@ -156,6 +156,7 @@ static inline bool fm_chdir_impl(Fm *fm, zsview path, bool save, bool hook,
   }
 
   notify_remove_watchers(&to_lfm(fm)->notify);
+  async_notify_cancel(&to_lfm(fm)->async);
 
   cstr_assign_zv(&fm->pwd, path);
 
@@ -194,6 +195,7 @@ bool fm_async_chdir(Fm *fm, zsview path, bool save, bool hook) {
 static inline void fm_update_watchers(Fm *fm) {
   // watcher for preview is updated in update_preview
   notify_remove_watchers(&to_lfm(fm)->notify);
+  async_notify_cancel(&to_lfm(fm)->async);
   c_foreach(it, vec_dir, fm->dirs.visible) {
     async_notify_add(&to_lfm(fm)->async, *it.ref);
   }
@@ -234,8 +236,8 @@ void fm_drop_cache(Fm *fm) {
   log_trace("fm_drop_cache");
 
   notify_remove_watchers(&to_lfm(fm)->notify);
+  async_notify_cancel(&to_lfm(fm)->async);
   fm_remove_preview(fm);
-
   loader_drop_dir_cache(&to_lfm(fm)->loader);
 
   fm_populate(fm);
