@@ -1058,6 +1058,7 @@ void ui_drop_cache(Ui *ui) {
   if (ui->preview.preview) {
     ui->preview.preview = NULL;
   }
+  async_kill_previewers(&to_lfm(ui)->async, false);
   loader_drop_preview_cache(&to_lfm(ui)->loader);
   ui_update_preview(ui, true);
   ui_redraw(ui, REDRAW_CMDLINE | REDRAW_PREVIEW);

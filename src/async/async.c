@@ -54,7 +54,7 @@ void async_init(Async *async) {
 
 void async_deinit(Async *async) {
   atomic_store_explicit(&async->stop, 1, memory_order_relaxed);
-  async_kill_previewers(async);
+  async_kill_previewers(async, true);
 
   tpool_wait(async->tpool);
   tpool_destroy(async->tpool);

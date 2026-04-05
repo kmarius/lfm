@@ -48,8 +48,9 @@ void async_preview_check(Async *async, struct Preview *pv);
 // Reloads preview of the file at `path` with `nrow` lines from disk.
 void async_preview_load(Async *async, struct Preview *pv);
 
-// kills all preview loading processes
-void async_kill_previewers(Async *async);
+// kills all preview loading processes, if drop is true, drops the used data
+// structures
+void async_kill_previewers(Async *async, bool drop);
 
 void async_chdir(Async *async, const char *path, bool hook);
 

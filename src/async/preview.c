@@ -57,7 +57,6 @@ struct preview_load_data {
   sem_t semaphore;
   int status;
   int fd[2]; // stdout pipe of the process
-  struct validity_check64 check;
 };
 
 static void preview_check_destroy(void *p) {
@@ -111,6 +110,7 @@ static void preview_load_destroy(void *p) {
     close(res->fd[0]);
   sem_destroy(&res->semaphore);
   preview_destroy(res->update);
+  ev_child_stop(EV_DEFAULT_ & res->watcher);
   c_foreach(it, vec_ev_child, res->async->previewer_children) {
     if (*it.ref == &res->watcher) {
       vec_ev_child_erase_at(&res->async->previewer_children, it);
@@ -122,11 +122,10 @@ static void preview_load_destroy(void *p) {
 
 static void preview_load_callback(void *p, Lfm *lfm) {
   struct preview_load_data *res = p;
-  if (CHECK_PASSES(res->check)) {
-    preview_update(res->preview, res->update);
+  preview_update(res->preview, res->update);
+  res->update = NULL;
+  if (res->preview == lfm->ui.preview.preview)
     ui_redraw(&lfm->ui, REDRAW_PREVIEW);
-    res->update = NULL;
-  }
 }
 
 static void async_preview_load_worker(void *arg) {
@@ -158,8 +157,9 @@ static void child_exit_cb(EV_P_ ev_child *w, int revents) {
 }
 
 void async_preview_load(Async *async, Preview *pv) {
-  if (bytes_is_empty(cfg.lua_previewer)) {
-
+  if (!bytes_is_empty(cfg.lua_previewer)) {
+    async_lua_preview(async, pv);
+  } else {
     struct preview_load_data *work = xcalloc(1, sizeof *work);
     work->super.callback = preview_load_callback;
     work->super.destroy = preview_load_destroy;
@@ -188,21 +188,21 @@ void async_preview_load(Async *async, Preview *pv) {
     sem_init(&work->semaphore, 0, 0);
     vec_ev_child_push(&async->previewer_children, &work->watcher);
 
-    CHECK_INIT(work->check, to_lfm(async)->loader.preview_cache_version);
-
     log_trace("loading preview for %s", preview_path_str(pv));
     tpool_add_work(async->tpool, async_preview_load_worker, work, true);
-  } else {
-    async_lua_preview(async, pv);
   }
 }
 
-void async_kill_previewers(Async *async) {
+void async_kill_previewers(Async *async, bool drop) {
   c_foreach(it, vec_ev_child, async->previewer_children) {
     struct preview_load_data *work =
         container_of(*it.ref, struct preview_load_data, watcher);
     kill(work->watcher.pid, SIGTERM);
     sem_post(&work->semaphore);
+    cancel(&work->super);
   }
-  vec_ev_child_drop(&async->previewer_children);
+  if (drop)
+    vec_ev_child_drop(&async->previewer_children);
+  else
+    vec_ev_child_clear(&async->previewer_children);
 }
