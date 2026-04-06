@@ -30,9 +30,6 @@ struct chdir_data {
   bool run_hook;
 };
 
-// reference to the previous chdir request so we can cancel it
-static struct result *in_progress = NULL;
-
 static void chdir_destroy(void *p) {
   struct chdir_data *res = p;
   if (res->fd > 0)
@@ -45,8 +42,8 @@ static void chdir_destroy(void *p) {
 static void chdir_callback(void *p, Lfm *lfm) {
   struct chdir_data *res = p;
 
-  if (in_progress == p)
-    in_progress = NULL;
+  if (lfm->async.in_progress.chdir == p)
+    lfm->async.in_progress.chdir = NULL;
 
   lfm_mode_exit(lfm, c_zv("visual"));
   if (res->err) {
@@ -84,9 +81,9 @@ void async_chdir(Async *async, const char *path, bool hook) {
   work->async = async;
   work->run_hook = hook;
 
-  if (in_progress)
-    in_progress->cancelled = true;
-  in_progress = &work->super;
+  if (async->in_progress.chdir)
+    cancel(async->in_progress.chdir);
+  async->in_progress.chdir = &work->super;
 
   tpool_add_work(async->tpool, async_chdir_worker, work, true);
 }

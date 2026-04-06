@@ -54,7 +54,11 @@ void async_init(Async *async) {
 
 void async_deinit(Async *async) {
   atomic_store_explicit(&async->stop, 1, memory_order_relaxed);
-  async_kill_previewers(async, true);
+  async_preview_cancel(async);
+  set_result_drop(&async->in_progress.lua_previews);
+  set_result_drop(&async->in_progress.notify);
+  set_result_drop(&async->in_progress.dirs);
+  set_ev_child_drop(&async->in_progress.previewer_children);
 
   tpool_wait(async->tpool);
   tpool_destroy(async->tpool);

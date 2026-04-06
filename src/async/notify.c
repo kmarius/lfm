@@ -26,9 +26,6 @@ struct notify_add_data {
   bool ok;
 };
 
-static set_result in_progress = {0};
-static struct result *in_progress_preview = NULL;
-
 static void notify_add_result_destroy(void *p) {
   struct notify_add_data *res = p;
   xfree(res->path);
@@ -39,9 +36,9 @@ static void notify_add_result_callback(void *p, Lfm *lfm) {
   struct notify_add_data *res = p;
   if (res->ok)
     notify_add_watcher(&lfm->notify, res->dir);
-  set_result_erase(&in_progress, p);
-  if (in_progress_preview == p)
-    in_progress_preview = NULL;
+  set_result_erase(&lfm->async.in_progress.notify, p);
+  if (lfm->async.in_progress.notify_preview == p)
+    lfm->async.in_progress.notify_preview = NULL;
 }
 
 void async_notify_add_worker(void *arg) {
@@ -68,7 +65,7 @@ void async_notify_add(Async *async, Dir *dir) {
   work->path = zsview_strdup(dir_path(dir));
   work->dir = dir;
 
-  set_result_insert(&in_progress, &work->super);
+  set_result_insert(&async->in_progress.notify, &work->super);
   tpool_add_work(async->tpool, async_notify_add_worker, work, true);
 }
 
@@ -81,19 +78,19 @@ void async_notify_preview_add(Async *async, Dir *dir) {
   work->path = zsview_strdup(dir_path(dir));
   work->dir = dir;
 
-  set_result_insert(&in_progress, &work->super);
-  if (in_progress_preview)
-    cancel(in_progress_preview);
-  in_progress_preview = &work->super;
+  set_result_insert(&async->in_progress.notify, &work->super);
+  if (async->in_progress.notify_preview)
+    cancel(async->in_progress.notify_preview);
+  async->in_progress.notify_preview = &work->super;
 
   tpool_add_work(async->tpool, async_notify_add_worker, work, true);
 }
 
 void async_notify_cancel(Async *async) {
   (void)async;
-  c_foreach(it, set_result, in_progress) {
+  c_foreach(it, set_result, async->in_progress.notify) {
     cancel(*it.ref);
   }
-  set_result_clear(&in_progress);
-  in_progress_preview = NULL;
+  set_result_clear(&async->in_progress.notify);
+  async->in_progress.notify_preview = NULL;
 }

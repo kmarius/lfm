@@ -27,8 +27,6 @@
 
 #define FILEINFO_THRESHOLD 200 // send batches of dircounts around every 200ms
 
-static set_result in_progress = {0};
-
 struct dir_check_data {
   struct result super;
   Async *async;
@@ -52,7 +50,7 @@ static void dir_check_callback(void *p, Lfm *lfm) {
   } else {
     res->dir->last_loading_action = 0;
   }
-  set_result_erase(&in_progress, &res->super);
+  set_result_erase(&lfm->async.in_progress.dirs, &res->super);
 }
 
 static void async_dir_check_worker(void *arg) {
@@ -85,7 +83,7 @@ void async_dir_check(Async *async, Dir *dir) {
   work->loadtime = dir->load_time;
   work->ino = dir->stat.st_ino;
 
-  set_result_insert(&in_progress, &work->super);
+  set_result_insert(&async->in_progress.dirs, &work->super);
 
   log_trace("checking directory %s", dir_path_str(dir));
   tpool_add_work(async->tpool, async_dir_check_worker, work, true);
@@ -413,8 +411,8 @@ void async_dir_load(Async *async, Dir *dir, bool load_fileinfo) {
 
 void async_dir_cancel(Async *async) {
   (void)async;
-  c_foreach(it, set_result, in_progress) {
+  c_foreach(it, set_result, async->in_progress.dirs) {
     cancel(*it.ref);
   }
-  set_result_clear(&in_progress);
+  set_result_clear(&async->in_progress.dirs);
 }

@@ -11,8 +11,6 @@
 #include <lua.h>
 #include <lualib.h>
 
-static set_result in_progress = {0};
-
 static int init_lua_thread_state() {
   if (L_thread == NULL) {
     lua_State *L = luaL_newstate();
@@ -212,7 +210,7 @@ static void lua_preview_callback(void *p, Lfm *lfm) {
   preview_update(res->preview, res->update);
   res->update = NULL;
   ui_redraw(&lfm->ui, REDRAW_PREVIEW);
-  set_result_erase(&in_progress, p);
+  set_result_erase(&lfm->async.in_progress.lua_previews, p);
 }
 
 void async_lua_preview_worker(void *arg) {
@@ -309,16 +307,8 @@ void async_lua_preview(Async *async, struct Preview *pv) {
   work->width = to_lfm(async)->ui.preview.x;
   work->height = to_lfm(async)->ui.preview.y;
 
-  set_result_insert(&in_progress, &work->super);
+  set_result_insert(&async->in_progress.lua_previews, &work->super);
 
   log_trace("async_lua_preview %s", work->path);
   tpool_add_work(async->tpool, async_lua_preview_worker, work, true);
-}
-
-void async_cancel_lua_previews(Async *async) {
-  (void)async;
-  c_foreach(it, set_result, in_progress) {
-    cancel(*it.ref);
-  }
-  set_result_clear(&in_progress);
 }

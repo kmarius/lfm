@@ -34,10 +34,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#define i_declared
-#define i_type vec_ev_child, struct ev_child *
-#include "stc/vec.h"
-
 struct preview_check_data {
   struct result super;
   Async *async;
@@ -111,12 +107,8 @@ static void preview_load_destroy(void *p) {
   sem_destroy(&res->semaphore);
   preview_destroy(res->update);
   ev_child_stop(EV_DEFAULT_ & res->watcher);
-  c_foreach(it, vec_ev_child, res->async->previewer_children) {
-    if (*it.ref == &res->watcher) {
-      vec_ev_child_erase_at(&res->async->previewer_children, it);
-      break;
-    }
-  }
+  set_ev_child_erase(&res->async->in_progress.previewer_children,
+                     &res->watcher);
   xfree(res);
 }
 
@@ -186,25 +178,25 @@ void async_preview_load(Async *async, Preview *pv) {
     ev_child_init(&work->watcher, child_exit_cb, pid, 0);
     ev_child_start(event_loop, &work->watcher);
     sem_init(&work->semaphore, 0, 0);
-    vec_ev_child_push(&async->previewer_children, &work->watcher);
+    set_ev_child_push(&async->in_progress.previewer_children, &work->watcher);
 
     log_trace("loading preview for %s", preview_path_str(pv));
     tpool_add_work(async->tpool, async_preview_load_worker, work, true);
   }
 }
 
-void async_kill_previewers(Async *async, bool drop) {
-  c_foreach(it, vec_ev_child, async->previewer_children) {
+void async_preview_cancel(Async *async) {
+  c_foreach(it, set_ev_child, async->in_progress.previewer_children) {
     struct preview_load_data *work =
         container_of(*it.ref, struct preview_load_data, watcher);
     kill(work->watcher.pid, SIGTERM);
     sem_post(&work->semaphore);
     cancel(&work->super);
   }
-  if (drop)
-    vec_ev_child_drop(&async->previewer_children);
-  else
-    vec_ev_child_clear(&async->previewer_children);
+  set_ev_child_clear(&async->in_progress.previewer_children);
 
-  async_cancel_lua_previews(async);
+  c_foreach(it, set_result, async->in_progress.lua_previews) {
+    cancel(*it.ref);
+  }
+  set_result_clear(&async->in_progress.lua_previews);
 }

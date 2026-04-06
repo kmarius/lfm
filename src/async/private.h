@@ -13,7 +13,12 @@ struct result {
   void (*destroy)(void *);
 };
 
+#define i_declared
 #define i_type set_result, struct result *
+#include "stc/hset.h"
+
+#define i_declared
+#define i_type set_ev_child, struct ev_child *
 #include "stc/hset.h"
 
 // we only cancel from the main thread
@@ -57,6 +62,3 @@ struct validity_check64 {
 #define CHECK_PASSES(cmp) (*(cmp).ptr == (cmp).val)
 
 void enqueue_and_signal(Async *async, struct result *res);
-
-// cancel pending lua previews
-void async_cancel_lua_previews(Async *async);
