@@ -55,7 +55,7 @@ static inline void condition_drop(Condition *self) {
 #define i_TYPE conditions, Condition
 #define i_keydrop condition_drop
 #define i_no_clone
-#include "../stc/vec.h"
+#include "stc/vec.h"
 
 typedef struct Rule {
   conditions conditions;
@@ -78,7 +78,7 @@ static inline void rule_drop(Rule *self) {
 #define i_TYPE rules, Rule
 #define i_keydrop rule_drop
 #define i_no_clone
-#include "../stc/vec.h"
+#include "stc/vec.h"
 
 typedef struct FileInfo {
   zsview file;

@@ -36,7 +36,7 @@
 
 #define i_declared
 #define i_type vec_ev_child, struct ev_child *
-#include "../stc/vec.h"
+#include "stc/vec.h"
 
 struct preview_check_data {
   struct result super;

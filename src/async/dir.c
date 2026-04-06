@@ -107,7 +107,7 @@ struct file_path_tup {
 };
 
 #define i_TYPE fileinfos, struct fileinfo
-#include "../stc/vec.h"
+#include "stc/vec.h"
 
 struct fileinfo_result {
   struct result super;

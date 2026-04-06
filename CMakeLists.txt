@@ -109,6 +109,7 @@ file(GLOB LFM_HEADERS
 )
 
 include_directories(${PROJECT_SOURCE_DIR}/src)
+include_directories(${PROJECT_SOURCE_DIR}/third-party/STC/include)
 
 add_subdirectory(config)
 list(APPEND LFM_GENERATED_SOURCES

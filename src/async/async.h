@@ -12,7 +12,7 @@ struct Preview;
 struct Lfm;
 struct bytes;
 
-#include "../stc/types.h"
+#include "stc/types.h"
 declare_vec(vec_ev_child, struct ev_child *);
 
 struct result_queue {
