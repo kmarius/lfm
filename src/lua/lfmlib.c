@@ -158,14 +158,13 @@ static int l_thread(lua_State *L) {
   if (lua_type(L, 1) == LUA_TFUNCTION) {
     // try to string.dump the function and insert it at position 1
     // TODO: we could store a ref to encode
-    if (lua_string_dump(L, 1)) {
+    if (lua_string_dump(L, 1))
       return lua_error(L);
-    }
     lua_replace(L, 1);
   }
   luaL_checktype(L, 1, LUA_TSTRING);
-  if (lua_gettop(L) > 1) {
-    if (!lua_isnoneornil(L, 2)) {
+  if (lua_gettop(L) >= 2) {
+    if (!lua_isnil(L, 2)) {
       ref = lua_register_callback(L, 2);
     }
   }
@@ -178,7 +177,7 @@ static int l_thread(lua_State *L) {
       return lua_error(L);
     }
   }
-  async_lua(&lfm->async, &chunk, &arg, ref);
+  async_lua(&lfm->async, chunk, arg, ref);
   return 0;
 }
 

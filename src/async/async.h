@@ -78,7 +78,7 @@ void async_dir_cancel(Async *async);
 void async_preview_cancel(Async *async);
 
 // Takes ownership of chunk and arg
-void async_lua(struct Async *async, struct bytes *chunk, struct bytes *arg,
+void async_lua(struct Async *async, struct bytes chunk, struct bytes arg,
                int ref);
 
 void async_lua_preview(struct Async *async, struct Preview *pv);

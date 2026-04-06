@@ -172,14 +172,14 @@ err:
   goto end;
 }
 
-void async_lua(Async *async, bytes *chunk, bytes *arg, int ref) {
+void async_lua(Async *async, bytes chunk, bytes arg, int ref) {
   struct lua_data *work = xcalloc(1, sizeof *work);
   work->super.callback = &lua_result_callback;
   work->super.destroy = &lua_result_destroy;
 
   work->async = async;
-  work->chunk = bytes_move(chunk);
-  work->arg = bytes_move(arg);
+  work->chunk = chunk;
+  work->arg = arg;
   work->ref = ref;
 
   log_trace("async_lua");
