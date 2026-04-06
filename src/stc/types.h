@@ -39,7 +39,7 @@
 #define declare_dlist(C, VAL) _c_dlist_types(C, VAL)
 #define declare_list(C, VAL) _c_list_types(C, VAL)
 #define declare_hmap(C, KEY, VAL) _c_htable_types(C, KEY, VAL, c_true, c_false)
-#define declare_hset(C, KEY) _c_htable_types(C, cset, KEY, KEY, c_false, c_true)
+#define declare_hset(C, KEY) _c_htable_types(C, KEY, KEY, c_false, c_true)
 #define declare_smap(C, KEY, VAL) _c_aatree_types(C, KEY, VAL, c_true, c_false)
 #define declare_sset(C, KEY) _c_aatree_types(C, KEY, KEY, c_false, c_true)
 #define declare_stack(C, VAL) _c_stack_types(C, VAL)
