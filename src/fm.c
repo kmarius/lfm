@@ -237,6 +237,7 @@ void fm_drop_cache(Fm *fm) {
 
   notify_remove_watchers(&to_lfm(fm)->notify);
   async_notify_cancel(&to_lfm(fm)->async);
+  async_dir_cancel(&to_lfm(fm)->async);
   fm_remove_preview(fm);
   loader_drop_dir_cache(&to_lfm(fm)->loader);
 

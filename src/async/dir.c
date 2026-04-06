@@ -27,6 +27,8 @@
 
 #define FILEINFO_THRESHOLD 200 // send batches of dircounts around every 200ms
 
+static set_result in_progress = {0};
+
 struct dir_check_data {
   struct result super;
   Async *async;
@@ -35,7 +37,6 @@ struct dir_check_data {
   time_t loadtime;
   __ino_t ino;
   bool reload;
-  struct validity_check64 check0; // lfm.loader.dir_cache_version
 };
 
 static void dir_check_destroy(void *p) {
@@ -46,13 +47,12 @@ static void dir_check_destroy(void *p) {
 
 static void dir_check_callback(void *p, Lfm *lfm) {
   struct dir_check_data *res = p;
-  if (CHECK_PASSES(res->check0)) {
-    if (res->reload) {
-      loader_dir_reload(&lfm->loader, res->dir);
-    } else {
-      res->dir->last_loading_action = 0;
-    }
+  if (res->reload) {
+    loader_dir_reload(&lfm->loader, res->dir);
+  } else {
+    res->dir->last_loading_action = 0;
   }
+  set_result_erase(&in_progress, &res->super);
 }
 
 static void async_dir_check_worker(void *arg) {
@@ -84,7 +84,8 @@ void async_dir_check(Async *async, Dir *dir) {
   work->dir = dir;
   work->loadtime = dir->load_time;
   work->ino = dir->stat.st_ino;
-  CHECK_INIT(work->check0, to_lfm(async)->loader.dir_cache_version);
+
+  set_result_insert(&in_progress, &work->super);
 
   log_trace("checking directory %s", dir_path_str(dir));
   tpool_add_work(async->tpool, async_dir_check_worker, work, true);
@@ -408,4 +409,12 @@ void async_dir_load(Async *async, Dir *dir, bool load_fileinfo) {
   log_trace("loading directory %s level=%d", dir_path_str(dir),
             dir->flatten_level);
   tpool_add_work(async->tpool, async_dir_load_worker, work, true);
+}
+
+void async_dir_cancel(Async *async) {
+  (void)async;
+  c_foreach(it, set_result, in_progress) {
+    cancel(*it.ref);
+  }
+  set_result_clear(&in_progress);
 }

@@ -41,6 +41,8 @@ void async_dir_check(Async *async, struct Dir *dir);
 // Reloads `dir` from disk.
 void async_dir_load(Async *async, struct Dir *dir, bool dircounts);
 
+void async_dir_cancel(Async *async);
+
 // Check the modification time of `pv` on disk. Possibly generates a `res_t` to
 // trigger reloading the preview.
 void async_preview_check(Async *async, struct Preview *pv);
