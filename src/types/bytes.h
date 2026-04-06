@@ -2,6 +2,7 @@
 
 #include "defs.h"
 #include "memory.h"
+#include "stc/cstr.h"
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -42,4 +43,21 @@ static inline void bytes_drop(bytes *self) {
 
 static inline bool bytes_is_empty(bytes bs) {
   return bs.size == 0;
+}
+
+static inline bytes *bytes_take(bytes *self, const bytes s) {
+  if (self->buf != s.buf)
+    bytes_drop(self);
+  *self = s;
+  return self;
+}
+
+static inline bytes *bytes_take_cstr(bytes *self, const cstr s) {
+  bytes_drop(self);
+  if (cstr_is_long(&s)) {
+    *self = (bytes){s.lon.data, .size = s.lon.size};
+  } else {
+    *self = bytes_from_n(s.sml.data, cstr_s_size(&s));
+  }
+  return self;
 }

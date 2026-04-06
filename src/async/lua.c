@@ -278,11 +278,7 @@ void async_lua_preview_worker(void *arg) {
       cstr_append(&buf, "\n");
       lua_pop(L, 1);
     }
-    if (cstr_is_long(&buf)) {
-      pv->data = (bytes){buf.lon.data, .size = buf.lon.size};
-    } else {
-      pv->data = bytes_from_n(cstr_str(&buf), cstr_size(&buf));
-    }
+    bytes_take_cstr(&pv->data, buf);
     lua_pop(L, 1); // [encode, decode]
   }
 
