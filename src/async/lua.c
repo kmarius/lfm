@@ -233,7 +233,7 @@ void async_lua_preview_worker(void *arg) {
   lua_State *L = L_thread;
 
   bytes chunk = work->chunk;
-  if (luaL_loadbuffer(L, chunk.buf, chunk.size, chunk.buf)) {
+  if (luaL_loadbuffer(L, chunk.buf, chunk.size, "chunk")) {
     // [encode, decode, err]
     preview_error(pv, "%s", lua_tostring(L_thread, -1));
     lua_pop(L, 1);
@@ -262,6 +262,13 @@ void async_lua_preview_worker(void *arg) {
     // TODO: leave preview empty? dont return?
     lua_pop(L, 1);
   } else {
+    if (lua_type(L, -1) != LUA_TTABLE) {
+      lua_newtable(L);
+      lua_insert(L, -2);
+      lua_tostring(L, -1);
+      lua_rawseti(L, -2, 1);
+    }
+
     // [encode, decode, res]
     int n = lua_objlen(L, -1);
     cstr buf = cstr_init();
