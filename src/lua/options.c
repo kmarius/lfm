@@ -314,16 +314,14 @@ static int l_config_newindex(lua_State *L) {
     }
     ui_drop_cache(ui);
   } else if (streq(key, "lua_previewer")) {
-    if (lua_isnoneornil(L, 3)) {
-      cstr_clear(&cfg.previewer);
-    } else {
+    bytes_drop(&cfg.lua_previewer);
+    cfg.lua_previewer = bytes_init();
+    if (!lua_isnil(L, 3)) {
+      // TODO: consider string.dump if value is function
+      luaL_checkstring(L, 3);
       bytes chunk = lua_tobytes(L, 3);
-      if (bytes_is_empty(chunk)) {
-        cstr_clear(&cfg.previewer);
-      } else {
-        bytes_drop(&cfg.lua_previewer);
+      if (!bytes_is_empty(chunk))
         cfg.lua_previewer = chunk;
-      }
     }
     ui_drop_cache(ui);
   } else if (streq(key, "threads")) {
