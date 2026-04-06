@@ -151,6 +151,8 @@ static void child_exit_cb(EV_P_ ev_child *w, int revents) {
 void async_preview_load(Async *async, Preview *pv) {
   if (!bytes_is_empty(cfg.lua_previewer)) {
     async_lua_preview(async, pv);
+  } else if (cstr_is_empty(&cfg.previewer)) {
+    log_error("no previewer configured");
   } else {
     struct preview_load_data *work = xcalloc(1, sizeof *work);
     work->super.callback = preview_load_callback;

@@ -1008,6 +1008,11 @@ void ui_update_file_preview_delayed(Ui *ui) {
 #define CHECK_DIMS(pv, nrow) (!(pv)->loading && (pv)->height < (nrow))
 
 void ui_update_preview(Ui *ui, bool immediate) {
+  if (!cfg.preview) {
+    remove_preview(ui);
+    return;
+  }
+
   immediate |= cfg.preview_delay == 0;
 
   static u64 last_time_called = 0;
