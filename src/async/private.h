@@ -23,8 +23,9 @@ struct result {
 
 // we only cancel from the main thread
 static inline void cancel(struct result *res) {
+  if (res)
+    res->cancelled = true;
   // atomic_store_explicit(&res->cancelled, memory_order_relaxed, true);
-  res->cancelled = true;
 }
 
 static inline bool is_cancelled(struct result *res) {
