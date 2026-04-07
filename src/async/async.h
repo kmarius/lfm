@@ -64,8 +64,8 @@ void async_chdir(Async *async, const char *path, bool hook);
 // add a notify watcher for the given directory
 void async_notify_add(Async *async, struct Dir *dir);
 
-// cancel preview loads when clearing the cache
-void async_notify_preview_add(Async *async, struct Dir *dir);
+// add a notify watcher for a previewed directory
+void async_notify_add_previewed(Async *async, struct Dir *dir);
 
 // cancel when dropping dir cache, and before setting multiple watchers
 void async_notify_cancel(Async *async);

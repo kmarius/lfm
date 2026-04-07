@@ -82,7 +82,7 @@ Preview *preview_inc_ref(Preview *Preview) {
 
 void preview_dec_ref(Preview *p) {
   assert(p->refcount > 0);
-  if (atomic_fetch_sub(&p->refcount, 1) == 1) {
+  if (unlikely(atomic_fetch_sub(&p->refcount, 1) == 1)) {
     preview_destroy(p);
   }
 }

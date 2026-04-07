@@ -281,7 +281,7 @@ static void on_cursor_resting(EV_P_ ev_timer *w, i32 revents) {
         async_dir_check(&lfm->async, dir);
       }
     }
-    async_notify_preview_add(&lfm->async, lfm->fm.dirs.preview);
+    async_notify_add_previewed(&lfm->async, lfm->fm.dirs.preview);
   }
 }
 

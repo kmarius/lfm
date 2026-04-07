@@ -603,7 +603,7 @@ Dir *dir_inc_ref(Dir *dir) {
 
 void dir_dec_ref(Dir *dir) {
   assert(dir->refcount > 0);
-  if (atomic_fetch_sub(&dir->refcount, 1) == 1) {
+  if (unlikely(atomic_fetch_sub(&dir->refcount, 1) == 1)) {
     dir_destroy(dir);
   }
 }

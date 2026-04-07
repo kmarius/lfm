@@ -18,22 +18,21 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-struct notify_add_data {
+struct notify_data {
   struct result super;
   Async *async;
-  char *path;
   Dir *dir;
   bool ok;
 };
 
-static void notify_add_result_destroy(void *p) {
-  struct notify_add_data *res = p;
-  xfree(res->path);
+static void notify_result_destroy(void *p) {
+  struct notify_data *res = p;
+  dir_dec_ref(res->dir);
   xfree(res);
 }
 
-static void notify_add_result_callback(void *p, Lfm *lfm) {
-  struct notify_add_data *res = p;
+static void notify_result_callback(void *p, Lfm *lfm) {
+  struct notify_data *res = p;
   set_result_erase(&lfm->async.in_progress.notify, p);
   if (res->ok)
     notify_add_watcher(&lfm->notify, res->dir);
@@ -41,13 +40,13 @@ static void notify_add_result_callback(void *p, Lfm *lfm) {
     lfm->async.in_progress.notify_preview = NULL;
 }
 
-void async_notify_add_worker(void *arg) {
-  struct notify_add_data *work = arg;
+static void async_notify_worker(void *arg) {
+  struct notify_data *work = arg;
 
   // We open the directory here so that the notify watcher
   // can be added immediately. Otherwise, the call to inotify_add_watch
   // can block for several seconds e.g. on automounted nfs mounts.
-  int fd = open(work->path, O_RDONLY);
+  int fd = open(dir_path(work->dir).str, O_RDONLY);
   if (likely(fd > 0)) {
     work->ok = true;
     close(fd);
@@ -57,31 +56,29 @@ void async_notify_add_worker(void *arg) {
 }
 
 void async_notify_add(Async *async, Dir *dir) {
-  struct notify_add_data *work = xcalloc(1, sizeof *work);
-  work->super.callback = &notify_add_result_callback;
-  work->super.destroy = &notify_add_result_destroy;
+  struct notify_data *work = xcalloc(1, sizeof *work);
+  work->super.callback = &notify_result_callback;
+  work->super.destroy = &notify_result_destroy;
 
   work->async = async;
-  work->path = zsview_strdup(dir_path(dir));
-  work->dir = dir;
+  work->dir = dir_inc_ref(dir);
 
   set_result_insert(&async->in_progress.notify, &work->super);
-  tpool_add_work(async->tpool, async_notify_add_worker, work, true);
+  tpool_add_work(async->tpool, async_notify_worker, work, true);
 }
 
-void async_notify_preview_add(Async *async, Dir *dir) {
-  struct notify_add_data *work = xcalloc(1, sizeof *work);
-  work->super.callback = &notify_add_result_callback;
-  work->super.destroy = &notify_add_result_destroy;
+void async_notify_add_previewed(Async *async, Dir *dir) {
+  struct notify_data *work = xcalloc(1, sizeof *work);
+  work->super.callback = &notify_result_callback;
+  work->super.destroy = &notify_result_destroy;
 
   work->async = async;
-  work->path = zsview_strdup(dir_path(dir));
-  work->dir = dir;
+  work->dir = dir_inc_ref(dir);
 
   cancel(async->in_progress.notify_preview);
   async->in_progress.notify_preview = &work->super;
 
-  tpool_add_work(async->tpool, async_notify_add_worker, work, true);
+  tpool_add_work(async->tpool, async_notify_worker, work, true);
 }
 
 void async_notify_cancel(Async *async) {
