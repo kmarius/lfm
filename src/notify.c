@@ -7,6 +7,7 @@
 #include "loader.h"
 #include "log.h"
 #include "loop.h"
+#include "types/set_int.h"
 #include "util.h"
 
 #include <ev.h>
@@ -31,12 +32,12 @@
 #define i_val i32
 #include "stc/hmap.h"
 
-// This is plenty of space, most file names are shorter and as long as
-// *one* event fits we should not get overwhelmed
-#define EVENT_MAX 8
-#define EVENT_MAX_LEN 128 // max filename length, arbitrary
-#define EVENT_SIZE (sizeof(struct inotify_event))
-#define EVENT_BUFLEN (EVENT_MAX * (EVENT_SIZE + EVENT_MAX_LEN))
+#define i_declared
+#define i_type set_int, int
+#include "stc/hset.h"
+
+// should fit at least one inotify event (which might contain a long file name)
+#define EVENT_BUFZS 4096
 
 #define NOTIFY_EVENTS                                                          \
   (IN_MODIFY | IN_CREATE | IN_DELETE | IN_MOVED_FROM | IN_MOVED_TO | IN_ATTRIB)
@@ -46,13 +47,12 @@ static void inotify_cb(EV_P_ ev_io *w, i32 revents);
 bool notify_init(Notify *notify) {
   notify->inotify_fd = inotify_init1(IN_NONBLOCK);
   if (notify->inotify_fd == -1) {
-    fprintf(stderr, "inotify_init1: %s\n", strerror(errno));
+    perror("inotify_init1");
     exit(EXIT_FAILURE);
   }
 
   ev_io_init(&notify->watcher, inotify_cb, notify->inotify_fd, EV_READ);
-  Lfm *lfm = to_lfm(notify);
-  notify->watcher.data = lfm;
+  notify->watcher.data = notify;
   ev_io_start(event_loop, &notify->watcher);
 
   return true;
@@ -64,6 +64,7 @@ void notify_deinit(Notify *notify) {
   }
   map_wd_dir_drop(&notify->dirs);
   map_dir_wd_drop(&notify->wds);
+  set_int_drop(&notify->wds_dedup);
   close(notify->inotify_fd);
   notify->inotify_fd = -1;
 }
@@ -74,26 +75,33 @@ static void inotify_cb(EV_P_ ev_io *w, i32 revents) {
   (void)loop;
   (void)revents;
 
-  Lfm *lfm = w->data;
-  Notify *notify = &lfm->notify;
+  Notify *notify = w->data;
 
-  i32 nread;
-  char buf[EVENT_BUFLEN], *p;
-  struct inotify_event *event;
-
-  while ((nread = read(notify->inotify_fd, buf, EVENT_BUFLEN)) > 0) {
-    for (p = buf; p < buf + nread; p += EVENT_SIZE + event->len) {
+  char buf[EVENT_BUFZS];
+  isize nread;
+  while ((nread = read(w->fd, buf, sizeof buf)) > 0) {
+    struct inotify_event *event;
+    for (char *p = buf; p < buf + nread; p += sizeof *event + event->len) {
       event = (struct inotify_event *)p;
 
-      if (event->len == 0) {
+      // changes to the directory itself (e.g. from touch'ing it) result
+      // in an event without name, we are currently not really interested in
+      // those
+      // TODO: could we detect deletion?
+      if (event->len == 0)
         continue;
-      }
 
-      const map_wd_dir_value *v = map_wd_dir_get(&notify->dirs, event->wd);
-      if (v != NULL) {
-        loader_dir_reload(&lfm->loader, v->second);
-      }
+      set_int_insert(&notify->wds_dedup, event->wd);
     }
+  }
+  if (!set_int_is_empty(&notify->wds_dedup)) {
+    Loader *loader = &to_lfm(notify)->loader;
+    c_foreach(it, set_int, notify->wds_dedup) {
+      const map_wd_dir_value *v = map_wd_dir_get(&notify->dirs, *it.ref);
+      if (v)
+        loader_dir_reload(loader, v->second);
+    }
+    set_int_clear(&notify->wds_dedup);
   }
 }
 
@@ -153,6 +161,4 @@ void notify_set_watchers(Notify *notify, Dir **dirs, u32 n) {
       notify_add_watcher(notify, dirs[i]);
     }
   }
-
-  notify->version++;
 }

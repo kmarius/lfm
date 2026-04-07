@@ -20,3 +20,7 @@
 
 #define i_implement
 #include "types/vec_str.h"
+
+// TODO: something is wonky in stc, revisit with version 6
+// #define i_implement
+// #include "types/set_int.h"

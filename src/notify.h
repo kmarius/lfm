@@ -8,27 +8,28 @@
 
 #include "defs.h"
 #include "dir.h"
-#include "stc/types.h"
 
 #include <ev.h>
 
 #include <stdbool.h>
 #include <stdint.h>
 
-declare_hmap(map_wd_dir, i32, Dir *);
-declare_hmap(map_dir_wd, Dir *, i32);
+#include "stc/types.h"
+declare_hmap(map_wd_dir, int, Dir *);
+declare_hmap(map_dir_wd, Dir *, int);
+declare_hset(set_int, int);
 
+// defaults used in the config, can be changed from lua
 #define NOTIFY_TIMEOUT 1000 // minimum time between directory reloads
 #define NOTIFY_DELAY 50 // delay before reloading after an event is triggered
 
 typedef struct notify {
-  ev_io watcher;  // io watcher for inotofy_fd
-  i32 inotify_fd; // read from when notified by inotify
-  i32 fifo_wd;    // watch descriptor for the fifo (usually under /run/user/...)
-  map_wd_dir dirs; // map currently watched directories to their wds
-  map_dir_wd wds;  // and vice versa
-  u32 version; // counter that is incremented, every time notify_set_watchers
-               // is called
+  ev_io watcher;  // io watcher for inotify_fd
+  int inotify_fd; // read from when notified by inotify
+  int fifo_wd;    // watch descriptor for the fifo (usually under /run/user/...)
+  map_wd_dir dirs;   // map currently watched directories to their wds
+  map_dir_wd wds;    // and vice versa
+  set_int wds_dedup; // dedup wds when we receive multiple events
 } Notify;
 
 // Initialize a Notify context. Returns false on failure.
