@@ -25,7 +25,7 @@
 #define i_type previewcache
 #define i_key zsview
 #define i_val Preview *
-#define i_valdrop(p) preview_destroy(*(p))
+#define i_valdrop(p) preview_dec_ref(*(p))
 #define i_eq zsview_eq
 #define i_hash zsview_hash
 #define i_no_clone
@@ -153,12 +153,14 @@ void loader_dir_load_callback(Loader *loader, Dir *dir) {
 }
 
 void loader_preview_reload(Loader *loader, Preview *pv) {
+  if (pv->status == PV_LOADING_DISOWNED)
+    return;
+
   u64 now = current_millis();
   u64 latest = pv->next; // possibly in the future
 
-  if (latest >= now + cfg.inotify_timeout) {
+  if (latest >= now + cfg.inotify_timeout)
     return; // discard
-  }
 
   // Add a small delay so we don't show files that exist only very briefly
   u64 next = now < latest + cfg.inotify_timeout
@@ -255,6 +257,7 @@ Preview *loader_preview_from_path(Loader *loader, zsview path, bool do_load) {
   } else {
     pv = preview_create_loading(path, to_lfm(loader)->ui.y,
                                 to_lfm(loader)->ui.x);
+    preview_inc_ref(pv);
     previewcache_insert(&loader->pc, cstr_zv(&pv->path), pv);
     if (do_load) {
       async_preview_load(&to_lfm(loader)->async, pv);
@@ -264,6 +267,9 @@ Preview *loader_preview_from_path(Loader *loader, zsview path, bool do_load) {
 }
 
 void loader_drop_preview_cache(Loader *loader) {
+  c_foreach(it, previewcache, loader->pc) {
+    (*it.ref).second->status = PV_LOADING_DISOWNED;
+  }
   previewcache_clear(&loader->pc);
   c_foreach(it, list_loader_timer, loader->preview_timers) {
     ev_timer_stop(event_loop, &it.ref->watcher);

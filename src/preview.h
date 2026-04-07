@@ -4,6 +4,7 @@
 #include "stc/cstr.h"
 #include "types/bytes.h"
 
+#include <stdatomic.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <sys/types.h>
@@ -15,7 +16,8 @@ struct Preview;
 typedef enum {
   PV_LOADING_DELAYED = 0,
   PV_LOADING_INITIAL,
-  PV_LOADING_NORMAL
+  PV_LOADING_NORMAL,
+  PV_LOADING_DISOWNED,
 } pv_loading_status;
 
 typedef void (*preview_draw_fun)(const struct Preview *, struct ncplane *);
@@ -23,6 +25,7 @@ typedef void (*preview_update_fun)(struct Preview *, struct Preview *);
 typedef void (*preview_destroy_fun)(struct Preview *);
 
 typedef struct Preview {
+  atomic_uint refcount;
   cstr path;
   u32 width; // geometry of the preview window when this preview was loaded
              // requested width and height of this preview checked to see
@@ -86,3 +89,6 @@ static inline void preview_destroy(Preview *pv) {
     pv->destroy(pv);
   }
 }
+
+Preview *preview_inc_ref(Preview *Preview);
+void preview_dec_ref(Preview *p);

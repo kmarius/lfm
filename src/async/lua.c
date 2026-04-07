@@ -189,9 +189,8 @@ void async_lua(Async *async, bytes chunk, bytes arg, int ref) {
 struct lua_preview_data {
   struct result super;
   Async *async;
-  Preview *preview; // not guaranteed to exist, do not touch
-  bytes chunk;      // lua code to execute
-  char *path;       // optional argument
+  Preview *preview;
+  bytes chunk; // lua code to execute
   int width;
   int height;
   Preview *update;
@@ -201,7 +200,7 @@ static void lua_preview_destroy(void *p) {
   struct lua_preview_data *res = p;
   bytes_drop(&res->chunk);
   preview_destroy(res->update);
-  free(res->path);
+  preview_dec_ref(res->preview);
   free(res);
 }
 
@@ -216,8 +215,8 @@ static void lua_preview_callback(void *p, Lfm *lfm) {
 void async_lua_preview_worker(void *arg) {
   struct lua_preview_data *work = arg;
 
-  Preview *pv = preview_create_and_stat(zsview_from(work->path), work->height,
-                                        work->width);
+  Preview *pv = preview_create_and_stat(preview_path(work->preview),
+                                        work->height, work->width);
   work->update = pv;
 
   if (L_thread == NULL) {
@@ -242,7 +241,8 @@ void async_lua_preview_worker(void *arg) {
 
   // [encode, decode, func]
 
-  lua_pushstring(L, work->path);   // [encode, decode, func, path]
+  lua_pushzsview(L,
+                 preview_path(work->preview)); // [encode, decode, func, path]
   lua_pushnumber(L, work->height); // [encode, decode, func, path, height]
   lua_pushnumber(L, work->width); // [encode, decode, func, path, height, width]
   int nargs = 3;
@@ -305,13 +305,12 @@ void async_lua_preview(Async *async, struct Preview *pv) {
 
   work->async = async;
   work->chunk = bytes_clone(cfg.lua_previewer);
-  work->preview = pv;
-  work->path = zsview_strdup(preview_path(pv));
+  work->preview = preview_inc_ref(pv);
   work->width = to_lfm(async)->ui.preview.x;
   work->height = to_lfm(async)->ui.preview.y;
 
   set_result_insert(&async->in_progress.lua_previews, &work->super);
 
-  log_trace("async_lua_preview %s", work->path);
+  log_trace("async_lua_preview %s", preview_path(pv).str);
   tpool_add_work(async->tpool, async_lua_preview_worker, work, true);
 }

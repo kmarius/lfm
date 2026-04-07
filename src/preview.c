@@ -70,8 +70,21 @@ static inline Preview *preview_create(zsview path, i32 height, i32 width) {
 }
 
 static inline void destroy_preview(Preview *p) {
+  assert(p->refcount == 0);
   cstr_drop(&p->path);
   xfree(p);
+}
+
+Preview *preview_inc_ref(Preview *Preview) {
+  atomic_fetch_add(&Preview->refcount, 1);
+  return Preview;
+}
+
+void preview_dec_ref(Preview *p) {
+  assert(p->refcount > 0);
+  if (atomic_fetch_sub(&p->refcount, 1) == 1) {
+    preview_destroy(p);
+  }
 }
 
 static void destroy_text_preview(Preview *p) {

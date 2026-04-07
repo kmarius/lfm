@@ -34,10 +34,12 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+// TODO: maybe we don't need some of these members since we can now acces the
+// preview from the other thread
 struct preview_check_data {
   struct result super;
   Async *async;
-  char *path;
+  Preview *preview;
   int height;
   int width;
   time_t mtime;
@@ -47,7 +49,7 @@ struct preview_check_data {
 struct preview_load_data {
   struct result super;
   Async *async;
-  Preview *preview; // not guaranteed to exist, do not touch
+  Preview *preview;
   Preview *update;
   ev_child watcher;
   sem_t semaphore;
@@ -57,15 +59,13 @@ struct preview_load_data {
 
 static void preview_check_destroy(void *p) {
   struct preview_check_data *res = p;
-  xfree(res->path);
+  preview_dec_ref(res->preview);
   xfree(res);
 }
 
 static void preview_check_callback(void *p, Lfm *lfm) {
   struct preview_check_data *res = p;
-  Preview *pv = loader_preview_get(&lfm->loader, zsview_from(res->path));
-  if (pv)
-    loader_preview_reload(&lfm->loader, pv);
+  loader_preview_reload(&lfm->loader, res->preview);
 }
 
 static void async_preview_check_worker(void *arg) {
@@ -73,7 +73,7 @@ static void async_preview_check_worker(void *arg) {
   struct stat statbuf;
 
   /* TODO: can we actually use st_mtim.tv_nsec? (on 2022-03-07) */
-  if (stat(work->path, &statbuf) == -1 ||
+  if (stat(preview_path(work->preview).str, &statbuf) == -1 ||
       (statbuf.st_mtime <= work->mtime &&
        statbuf.st_mtime <= (long)(work->loadtime / 1000 - 1))) {
     preview_check_destroy(work);
@@ -90,7 +90,7 @@ void async_preview_check(Async *async, Preview *pv) {
   work->super.next = NULL;
 
   work->async = async;
-  work->path = zsview_strdup(preview_path(pv));
+  work->preview = preview_inc_ref(pv);
   work->height = pv->height;
   work->width = pv->width;
   work->mtime = pv->mtime;
@@ -109,6 +109,7 @@ static void preview_load_destroy(void *p) {
   ev_child_stop(EV_DEFAULT_ & res->watcher);
   set_ev_child_erase(&res->async->in_progress.previewer_children,
                      &res->watcher);
+  preview_dec_ref(res->preview);
   xfree(res);
 }
 
@@ -149,6 +150,10 @@ static void child_exit_cb(EV_P_ ev_child *w, int revents) {
 }
 
 void async_preview_load(Async *async, Preview *pv) {
+  if (pv->status == PV_LOADING_DISOWNED) {
+    log_error("not reloading disowned preview %s", preview_path(pv).str);
+    return;
+  }
   if (!bytes_is_empty(cfg.lua_previewer)) {
     async_lua_preview(async, pv);
   } else if (cstr_is_empty(&cfg.previewer)) {
@@ -163,7 +168,7 @@ void async_preview_load(Async *async, Preview *pv) {
     pv->loading = true;
 
     work->async = async;
-    work->preview = pv;
+    work->preview = preview_inc_ref(pv);
 
     // we could modify these to load extra lines, but we would need to make
     // changes because we resize images to thexe exact dimensions
