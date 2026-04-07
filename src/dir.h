@@ -43,6 +43,7 @@ typedef enum {
   DIR_LOADING_DELAYED = 0,
   DIR_LOADING_INITIAL,
   DIR_LOADING_FULLY,
+  DIR_DISOWNED, // removed from loader cache, should not be scheduled
 } dir_loading_status;
 
 extern const char *fileinfo_str[NUM_FILEINFO];
@@ -56,6 +57,11 @@ struct dir_settings {
 };
 
 typedef struct Dir {
+  // refcounting dirs makes reloading and passing dirs to lua much easier.
+  // Currently, we count refs for direcories in the loader/dir cache,
+  // when a directory is requested to be reloaded and whenever a reference
+  // is passed to lua
+  atomic_uint refcount;
   cstr path;
   zsview name;
 
@@ -86,8 +92,7 @@ typedef struct Dir {
                            // one is already scheduled, otherwise 0
   bool loading;            // is a reload in the process
   bool scheduled;          // is a reload scheduled
-  u32 lua_ref_count;       // number of lua objects referencing this dir
-  u32 version;
+  u32 cookie;
 
   u32 ind; // cursor position in files[]
   u32 pos; // cursor position in the ui, offset from the top row
@@ -113,16 +118,19 @@ Dir *dir_create(zsview path);
 // Free all resources belonging to `dir`.
 void dir_destroy(Dir *dir);
 
+Dir *dir_inc_ref(Dir *dir);
+void dir_dec_ref(Dir *dir);
+
 // Bring the directory back into its "unloaded" state.
 void dir_unload(Dir *dir);
 
 // Replace files and metadata of `dir` with those of `update`. Frees `update`.
 void dir_update_with(Dir *dir, Dir *update, u32 height, u32 scrolloff);
 
-// Loads the directory at `path` from disk. Additionally count the files in each
-// subdirectory if `load_fileinfo` is `true`.
-// If `load_fileinfo` is `true` and a `stop` signal is passed,
-// it is read with relaxed ordering after each file to possibly abort early.
+// Loads the directory at `path` from disk. Additionally count the files in
+// each subdirectory if `load_fileinfo` is `true`. If `load_fileinfo` is
+// `true` and a `stop` signal is passed, it is read with relaxed ordering
+// after each file to possibly abort early.
 Dir *dir_load(zsview path, hmap_dircount dircounts, bool load_fileinfo,
               atomic_bool *stop);
 

@@ -7,7 +7,7 @@
 #define i_type dircache
 #define i_key zsview
 #define i_val Dir *
-#define i_valdrop(p) dir_destroy(*(p))
+#define i_valdrop(p) dir_dec_ref(*(p))
 #define i_eq zsview_eq
 #define i_hash zsview_hash
 #define i_no_clone

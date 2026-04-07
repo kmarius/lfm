@@ -114,9 +114,8 @@ static inline void schedule_preview_load(Loader *loader, Preview *pv,
 }
 
 void loader_dir_reload(Loader *loader, Dir *dir) {
-  if (dir->scheduled) {
+  if (dir->scheduled || dir->status == DIR_DISOWNED)
     return;
-  }
 
   u64 now = current_millis();
   u64 latest = dir->next_scheduled_load;
@@ -211,7 +210,7 @@ Dir *loader_dir_from_path(Loader *loader, zsview path, bool do_load) {
     dir = dir_create(path);
     apply_dir_settings(dir);
 
-    dircache_insert(&loader->dc, dir_path(dir), dir);
+    dircache_insert(&loader->dc, dir_path(dir), dir_inc_ref(dir));
     if (do_load) {
       async_dir_load(&to_lfm(loader)->async, dir, false);
       dir->last_loading_action = current_millis();
@@ -265,7 +264,6 @@ Preview *loader_preview_from_path(Loader *loader, zsview path, bool do_load) {
 }
 
 void loader_drop_preview_cache(Loader *loader) {
-  loader->preview_cache_version++;
   previewcache_clear(&loader->pc);
   c_foreach(it, list_loader_timer, loader->preview_timers) {
     ev_timer_stop(event_loop, &it.ref->watcher);
@@ -274,26 +272,12 @@ void loader_drop_preview_cache(Loader *loader) {
 }
 
 void loader_drop_dir_cache(Loader *loader) {
-  loader->dir_cache_version++;
-
   // we can't drop dirs that are referenced by lua
   // unload those instead and re-insert afterwards
-  vec_dir dirs = vec_dir_init();
   c_foreach(it, dircache, loader->dc) {
-    Dir *dir = it.ref->second;
-    if (dir->lua_ref_count > 0) {
-      vec_dir_push_back(&dirs, dir);
-      dir_unload(dir);
-      apply_dir_settings(dir);
-      // null the node so the clear does not drop our directory
-      memset(it.ref, 0, sizeof *it.ref);
-    }
+    (*it.ref).second->status = DIR_DISOWNED;
   }
   dircache_clear(&loader->dc);
-  c_foreach(it, vec_dir, dirs) {
-    dircache_insert(&loader->dc, dir_path(*it.ref), *it.ref);
-  }
-  vec_dir_drop(&dirs);
 
   c_foreach(it, list_loader_timer, loader->dir_timers) {
     ev_timer_stop(event_loop, &it.ref->watcher);

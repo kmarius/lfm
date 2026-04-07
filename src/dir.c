@@ -590,21 +590,32 @@ static inline void drop_fields(Dir *dir) {
 
 void dir_destroy(Dir *dir) {
   if (dir) {
+    assert(dir->refcount == 0);
     drop_fields(dir);
     xfree(dir);
   }
 }
 
+Dir *dir_inc_ref(Dir *dir) {
+  atomic_fetch_add(&dir->refcount, 1);
+  return dir;
+}
+
+void dir_dec_ref(Dir *dir) {
+  assert(dir->refcount > 0);
+  if (atomic_fetch_sub(&dir->refcount, 1) == 1) {
+    dir_destroy(dir);
+  }
+}
+
 void dir_unload(Dir *dir) {
   cstr path = cstr_move(&dir->path);
-  u32 lua_ref_count = dir->lua_ref_count;
 
   drop_fields(dir);
 
   memset(dir, 0, sizeof *dir);
   dir->path = path;
   dir->name = basename_zv(cstr_zv(&dir->path));
-  dir->lua_ref_count = lua_ref_count;
   dir->load_time = time(NULL);
 }
 

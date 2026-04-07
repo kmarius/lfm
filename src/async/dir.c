@@ -30,8 +30,7 @@
 struct dir_check_data {
   struct result super;
   Async *async;
-  char *path;
-  Dir *dir; // dir might not exist anymore, don't touch
+  Dir *dir;
   time_t loadtime;
   __ino_t ino;
   bool reload;
@@ -39,7 +38,7 @@ struct dir_check_data {
 
 static void dir_check_destroy(void *p) {
   struct dir_check_data *res = p;
-  xfree(res->path);
+  dir_dec_ref(res->dir);
   xfree(res);
 }
 
@@ -57,7 +56,7 @@ static void async_dir_check_worker(void *arg) {
   struct dir_check_data *work = arg;
   struct stat statbuf;
 
-  if (stat(work->path, &statbuf) == -1 ||
+  if (stat(dir_path(work->dir).str, &statbuf) == -1 ||
       (statbuf.st_ino == work->ino && statbuf.st_mtime <= work->loadtime)) {
     work->reload = false;
   } else {
@@ -78,8 +77,7 @@ void async_dir_check(Async *async, Dir *dir) {
   }
 
   work->async = async;
-  work->path = zsview_strdup(dir_path(dir));
-  work->dir = dir;
+  work->dir = dir_inc_ref(dir);
   work->loadtime = dir->load_time;
   work->ino = dir->stat.st_ino;
 
@@ -110,15 +108,16 @@ struct file_path_tup {
 struct fileinfo_result {
   struct result super;
   Dir *dir;
+  u32 cookie;
   fileinfos infos;
   bool is_last_batch;
-  struct validity_check64 check0;
-  struct validity_check32 check1;
 };
 
 static void fileinfo_result_destroy(void *p) {
   struct fileinfo_result *res = p;
   fileinfos_drop(&res->infos);
+  if (res->is_last_batch)
+    dir_dec_ref(res->dir);
   xfree(res);
 }
 
@@ -135,9 +134,8 @@ static inline void set_dircount(Dir *dir, File *file, u32 count) {
 
 static void fileinfo_callback(void *p, Lfm *lfm) {
   struct fileinfo_result *res = p;
-  // discard if any other update has been applied in the meantime
-  if (CHECK_PASSES(res->check0) && CHECK_PASSES(res->check1) &&
-      !res->dir->has_fileinfo) {
+  // discard if any other update has been scheduled in the meantime
+  if (res->cookie == res->dir->cookie) {
     c_foreach(it, fileinfos, res->infos) {
       if (it.ref->ret == 0) {
         it.ref->file->stat = it.ref->stat;
@@ -169,18 +167,15 @@ static void fileinfo_callback(void *p, Lfm *lfm) {
 }
 
 static inline struct fileinfo_result *
-fileinfo_result_create(Dir *dir, fileinfos infos,
-                       struct validity_check64 check0,
-                       struct validity_check32 check1, bool is_last) {
+fileinfo_result_create(Dir *dir, u32 cookie, fileinfos infos, bool is_last) {
   struct fileinfo_result *res = xcalloc(1, sizeof *res);
   res->super.callback = &fileinfo_callback;
   res->super.destroy = &fileinfo_result_destroy;
 
   res->dir = dir;
+  res->cookie = cookie;
   res->infos = infos;
   res->is_last_batch = is_last;
-  res->check0 = check0;
-  res->check1 = check1;
   return res;
 }
 
@@ -188,9 +183,7 @@ fileinfo_result_create(Dir *dir, fileinfos infos,
 // dircounts will be dropped and not returned to the original directory
 // TODO: this creates two fileinfo items for every symlink that points to a
 // directory
-static void async_load_fileinfo(Async *async, Dir *dir,
-                                struct validity_check64 check0,
-                                struct validity_check32 check1, u32 n,
+static void async_load_fileinfo(Async *async, Dir *dir, u32 cookie, u32 n,
                                 struct file_path_tup *files,
                                 hmap_dircount dircounts) {
   fileinfos infos = fileinfos_init();
@@ -214,7 +207,7 @@ static void async_load_fileinfo(Async *async, Dir *dir,
     u64 now = current_millis();
     if (now - latest > FILEINFO_THRESHOLD) {
       struct fileinfo_result *res =
-          fileinfo_result_create(dir, infos, check0, check1, false);
+          fileinfo_result_create(dir, cookie, infos, false);
       enqueue_and_signal(async, (struct result *)res);
 
       infos = fileinfos_init();
@@ -251,7 +244,7 @@ static void async_load_fileinfo(Async *async, Dir *dir,
     u64 now = current_millis();
     if (now - latest > FILEINFO_THRESHOLD) {
       struct fileinfo_result *res =
-          fileinfo_result_create(dir, infos, check0, check1, false);
+          fileinfo_result_create(dir, cookie, infos, false);
       enqueue_and_signal(async, (struct result *)res);
 
       infos = fileinfos_init();
@@ -268,7 +261,7 @@ finalize:
   }
 
   struct fileinfo_result *res =
-      fileinfo_result_create(dir, infos, check0, check1, true);
+      fileinfo_result_create(dir, cookie, infos, true);
   enqueue_and_signal(async, (struct result *)res);
 
   xfree(files);
@@ -278,28 +271,25 @@ finalize:
 struct dir_update_data {
   struct result super;
   Async *async;
-  char *path;
-  Dir *dir; // dir might not exist anymore, don't touch
+  Dir *dir; // only access constant properties, such as path
+  u32 cookie;
   bool load_fileinfo;
   Dir *update;
   u32 level;
   hmap_dircount dircounts;
-  struct validity_check64 check0; // lfm.loader.dir_cache_version
-  struct validity_check32 check1; // dir.version
 };
 
 static void dir_update_destroy(void *p) {
   struct dir_update_data *res = p;
+  dir_dec_ref(res->dir);
   dir_destroy(res->update);
   hmap_dircount_drop(&res->dircounts);
-  xfree(res->path);
   xfree(res);
 }
 
 static void dir_update_callback(void *p, Lfm *lfm) {
   struct dir_update_data *res = p;
-  if (CHECK_PASSES(res->check0) &&
-      res->dir->flatten_level == res->update->flatten_level) {
+  if (res->dir->cookie == res->cookie) {
     loader_dir_load_callback(&lfm->loader, res->dir);
     if (res->dir->settings.sorttype == SORT_LUA)
       lfm_lua_apply_keyfunc(lfm, res->update, false);
@@ -324,21 +314,20 @@ static void async_dir_load_worker(void *arg) {
   hmap_dircount dircounts = hmap_dircount_move(&work->dircounts);
 
   if (work->level == 0) {
-    work->update =
-        dir_load(zsview_from(work->path), hmap_dircount_move(&dircounts),
-                 work->load_fileinfo, &async->stop);
+    work->update = dir_load(dir_path(work->dir), hmap_dircount_move(&dircounts),
+                            work->load_fileinfo, &async->stop);
   } else {
     if (work->load_fileinfo) {
       // only pass dircounts if we use it now,
       // otherwise it will be passed to the function that loads
       // dircounts, and freed there
-      work->update = dir_load_flat(zsview_from(work->path), work->level,
+      work->update = dir_load_flat(dir_path(work->dir), work->level,
                                    hmap_dircount_move(&dircounts),
                                    work->load_fileinfo, &async->stop);
     } else {
-      work->update = dir_load_flat(zsview_from(work->path), work->level,
-                                   hmap_dircount_init(), work->load_fileinfo,
-                                   &async->stop);
+      work->update =
+          dir_load_flat(dir_path(work->dir), work->level, hmap_dircount_init(),
+                        work->load_fileinfo, &async->stop);
     }
   }
 
@@ -348,6 +337,9 @@ static void async_dir_load_worker(void *arg) {
       atomic_load_explicit(&async->stop, memory_order_relaxed)) {
     enqueue_and_signal(work->async, (struct result *)work);
     hmap_dircount_drop(&dircounts);
+    if (!work->load_fileinfo)
+      dir_dec_ref(work->dir); // release the extra ref
+
     return;
   }
 
@@ -372,15 +364,18 @@ static void async_dir_load_worker(void *arg) {
    * extremely rare cases after we enqueue, and before we call
    * async_load_fileinfo */
   Dir *dir = work->dir;
-  struct validity_check64 check0 = work->check0;
-  struct validity_check32 check1 = work->check1;
 
   enqueue_and_signal(work->async, (struct result *)work);
 
-  async_load_fileinfo(async, dir, check0, check1, j, files, dircounts);
+  async_load_fileinfo(async, dir, work->cookie, j, files, dircounts);
 }
 
 void async_dir_load(Async *async, Dir *dir, bool load_fileinfo) {
+  assert(dir->status != DIR_DISOWNED);
+  if (dir->status == DIR_DISOWNED) {
+    log_error("requested reload of disowned directory: %s", dir_path(dir).str);
+    return;
+  }
   struct dir_update_data *work = xcalloc(1, sizeof *work);
   work->super.callback = &dir_update_callback;
   work->super.destroy = &dir_update_destroy;
@@ -393,16 +388,23 @@ void async_dir_load(Async *async, Dir *dir, bool load_fileinfo) {
     ui_start_loading_indicator_timer(&to_lfm(async)->ui);
   }
 
+  // count an extra ref in case we load file info delayed
+  // refcounts are decremented when the result struct is destroyed
+  // and in case of delayed updates, when the last file info result
+  // is destroyed. If the directory contains no files or no additional
+  // must be loaded, we remove a reference there.
+  dir_inc_ref(dir);
+  if (!load_fileinfo)
+    dir_inc_ref(dir);
+
   work->async = async;
   work->dir = dir;
-  work->path = zsview_strdup(dir_path(dir));
   work->load_fileinfo = load_fileinfo;
   work->level = dir->flatten_level;
   work->dircounts = hmap_dircount_move(&dir->dircounts);
-
-  dir->version++;
-  CHECK_INIT(work->check0, to_lfm(async)->loader.dir_cache_version);
-  CHECK_INIT(work->check1, dir->version);
+  // we simply discard the update in the callback if another reload is requested
+  // before the previous one is applied.
+  work->cookie = ++dir->cookie;
 
   log_trace("loading directory %s level=%d", dir_path_str(dir),
             dir->flatten_level);

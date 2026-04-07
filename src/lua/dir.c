@@ -248,7 +248,7 @@ static int l_dir__newindex(lua_State *L) {
 
 static int l_dir__gc(lua_State *L) {
   Dir *dir = checkdir(L, 1);
-  dir->lua_ref_count--;
+  dir_dec_ref(dir);
   return 0;
 }
 
@@ -269,8 +269,7 @@ static const struct luaL_Reg dir_metamethods[] = {
 
 static inline void pushdir(lua_State *L, Dir *dir) {
   Dir **ud = lua_newuserdata(L, sizeof *ud);
-  *ud = dir;
-  dir->lua_ref_count++;
+  *ud = dir_inc_ref(dir);
 
   if (luaL_newmetatable(L, DIR_META)) {
     luaL_register(L, NULL, dir_metamethods);
