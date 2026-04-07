@@ -388,9 +388,9 @@ static int l_config_newindex(lua_State *L) {
   } else if (streq(key, "extra_env")) {
     vec_env_clear(&cfg.extra_env);
     for (lua_pushnil(L); lua_next(L, -2) != 0; lua_pop(L, 1)) {
-      vec_env_push_back(
-          &cfg.extra_env,
-          (struct env_entry){lua_tostrdup(L, -2), lua_tostrdup(L, -1)});
+      const char *key = lua_tostring(L, -2);
+      const char *val = lua_tostring(L, -1);
+      vec_env_emplace(&cfg.extra_env, (env_entry_raw){key, val});
     }
   } else {
     return luaL_error(L, "unexpected key %s", key);

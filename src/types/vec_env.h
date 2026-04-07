@@ -1,14 +1,14 @@
 #pragma once
 
-struct env_entry_raw {
+typedef struct env_entry_raw {
   const char *key;
   const char *val;
-};
+} env_entry_raw;
 
-struct env_entry {
+typedef struct env_entry {
   char *key;
   char *val;
-};
+} env_entry;
 
 #define i_header
 #define i_type vec_env, struct env_entry
