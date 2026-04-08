@@ -177,7 +177,7 @@ static int l_thread(lua_State *L) {
       return lua_error(L);
     }
   }
-  async_lua(&lfm->async, chunk, arg, ref);
+  async_lua(async, chunk, arg, ref);
   return 0;
 }
 

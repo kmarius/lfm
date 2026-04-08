@@ -42,7 +42,7 @@ static int l_reload(lua_State *L) {
 static int l_check(lua_State *L) {
   (void)L;
   Dir *dir = fm_current_dir(fm);
-  async_dir_check(&lfm->async, dir);
+  async_dir_check(async, dir);
   return 0;
 }
 
@@ -492,7 +492,7 @@ static int l_set_flatten_level(lua_State *L) {
    * needed (on 2022-02-06) */
   Dir *dir = fm_current_dir(fm);
   dir->flatten_level = level;
-  async_dir_load(&to_lfm(fm)->async, dir, level == 0);
+  async_dir_load(async, dir, level == 0);
   ui_redraw(ui, REDRAW_FM);
   return 0;
 }

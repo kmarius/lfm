@@ -163,7 +163,7 @@ static int l_config_index(lua_State *L) {
     lua_setmetatable(L, -2);
     return 1;
   } else if (streq(key, "threads")) {
-    lua_pushnumber(L, tpool_size(lfm->async.tpool));
+    lua_pushnumber(L, tpool_size(async->tpool));
     return 1;
   } else if (streq(key, "infoline")) {
     lua_pushcstr(L, &cfg.infoline);
@@ -329,7 +329,7 @@ static int l_config_newindex(lua_State *L) {
   } else if (streq(key, "threads")) {
     long num = luaL_checknumber(L, 3);
     luaL_argcheck(L, num >= 2, 3, "threads must be at least 2");
-    tpool_resize(lfm->async.tpool, num);
+    tpool_resize(async->tpool, num);
   } else if (streq(key, "infoline")) {
     zsview line = lua_tozsview(L, 3);
     cstr_assign_zv(&cfg.infoline, line);

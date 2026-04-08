@@ -36,6 +36,7 @@ static void check_lua_stack_cb(EV_P_ ev_check *w, i32 revents);
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof(arr[0]))
 
 Lfm *lfm = NULL;
+struct async_ctx *async = NULL;
 Ui *ui = NULL;
 Fm *fm = NULL;
 
@@ -48,6 +49,7 @@ static modules imported = {0};
 
 void lfm_lua_init(Lfm *lfm_) {
   lfm = lfm_;
+  async = &lfm_->async;
   ui = &lfm_->ui;
   fm = &lfm_->fm;
 

@@ -8,6 +8,7 @@
 #include <lua.h>
 
 extern Lfm *lfm;
+extern struct async_ctx *async;
 extern Ui *ui;
 extern Fm *fm;
 
