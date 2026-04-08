@@ -3,7 +3,6 @@
 #include "keys.h"
 
 #include <stdbool.h>
-#include <stdint.h>
 
 struct Lfm;
 

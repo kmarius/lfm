@@ -1,6 +1,6 @@
 #pragma once
 
-#include "stc/zsview.h"
+#include <stc/zsview.h>
 
 struct Ui;
 

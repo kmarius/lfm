@@ -4,13 +4,11 @@
 #include "ncutil.h"
 #include "path.h"
 #include "private.h"
-#include "stc/cstr.h"
 #include "tpool.h"
 #include "util.h"
 
 #include <lauxlib.h>
-
-#include <stdint.h>
+#include <stc/cstr.h>
 
 #define DIRSETTINGS_META "Lfm.Dirsettings.Meta"
 #define OPTIONS_META "Lfm.Config.Meta"

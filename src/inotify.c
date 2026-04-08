@@ -22,17 +22,17 @@
 #define i_type map_int_dir
 #define i_key i32
 #define i_val Dir *
-#include "stc/hmap.h"
+#include <stc/hmap.h>
 
 #define i_declared
 #define i_type map_dir_int
 #define i_key Dir *
 #define i_val i32
-#include "stc/hmap.h"
+#include <stc/hmap.h>
 
 #define i_declared
 #define i_type set_int, int
-#include "stc/hset.h"
+#include <stc/hset.h>
 
 // should fit at least one inotify event (which might contain a long file name)
 #define EVENT_BUFZS 4096

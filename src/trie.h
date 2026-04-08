@@ -1,14 +1,16 @@
 #pragma once
 
 #include "keys.h"
-#include "stc/cstr.h"
 #include "util.h" // strcasecmp_strict
 
+#include <stc/cstr.h>
+
 #include <strings.h>
+
 #include <sys/cdefs.h>
 
-// Stores key-values of input_t* -> i32. Can't store 0 because it signals that a
-// node is empty.
+// Stores key-values of input_t* -> (i32, keys, desc). Can't store 0 because it
+// signals that a node is empty.
 
 typedef struct Trie {
   input_t key;
@@ -26,7 +28,7 @@ typedef struct Trie {
 #define i_type vec_trie, Trie *
 #define i_cmp(l, r)                                                            \
   (strcasecmp_strict(cstr_str(&(*l)->keys), cstr_str(&(*r)->keys)))
-#include "stc/vec.h"
+#include <stc/vec.h>
 
 // Allocate a new trie root.
 Trie *trie_create(void);

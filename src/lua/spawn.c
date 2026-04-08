@@ -5,15 +5,16 @@
 #include "log.h"
 #include "loop.h"
 #include "private.h"
-#include "stc/zsview.h"
 #include "types/vec_bytes.h"
 #include "types/vec_env.h"
 
 #include <ev.h>
+#include <stc/zsview.h>
 
 #include <errno.h>
-#include <fcntl.h>
 #include <stdio.h>
+
+#include <fcntl.h>
 #include <unistd.h>
 
 #define PROC_META "Lfm.Proc.Meta"
@@ -52,7 +53,7 @@ struct child_watcher {
 #define i_type list_child, struct child_watcher
 #define i_keydrop(p) (destroy_child_watcher(p))
 #define i_no_clone
-#include "stc/dlist.h"
+#include <stc/dlist.h>
 
 static void init_io_watcher(struct io_watcher *w, Lfm *lfm, int fd, int ref) {
   if (fd == -1)

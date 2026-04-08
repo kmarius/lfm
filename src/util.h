@@ -2,11 +2,9 @@
 
 #include "defs.h"
 
-#include "stc/zsview.h"
+#include <stc/zsview.h>
 
-#include <stdarg.h>
 #include <stdbool.h>
-#include <stdint.h>
 #include <stdlib.h>
 
 #include <bits/types.h>

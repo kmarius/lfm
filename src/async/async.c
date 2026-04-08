@@ -3,19 +3,15 @@
 #include "defs.h"
 #include "lfm.h" // to_lfm
 #include "loop.h"
-#include "stc/cstr.h"
 
 #include <ev.h>
+#include <stc/cstr.h>
 
-#include <dirent.h>
-#include <pthread.h>
 #include <stdatomic.h>
-#include <stdint.h>
 #include <stdio.h>
-#include <sys/stat.h>
+
+#include <pthread.h>
 #include <sys/sysinfo.h>
-#include <sys/types.h>
-#include <unistd.h>
 
 static struct result *result_queue_get(struct result_queue *queue);
 

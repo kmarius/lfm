@@ -1,6 +1,6 @@
 #pragma once
 
-#include "defs.h"
+#include <stc/zsview.h>
 
 #include <stdbool.h>
 

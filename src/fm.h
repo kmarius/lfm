@@ -4,15 +4,14 @@
 #include "file.h"
 #include "pathlist.h"
 #include "selection.h"
-#include "stc/types.h"
 
 #include <ev.h>
+#include <stc/types.h>
 
 #include <stdbool.h>
-#include <stdint.h>
 
 #define i_type vec_dir, Dir *
-#include "stc/vec.h"
+#include <stc/vec.h>
 
 struct lfm_opts;
 

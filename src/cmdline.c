@@ -1,10 +1,11 @@
 #include "cmdline.h"
 
+// include these stc headers early for utf8 support
 #define STC_CSTR_UTF8
-#include "stc/cstr.h"
+#include <stc/cstr.h>
 
 #define STC_CSTR_UTF8
-#include "stc/zsview.h"
+#include <stc/zsview.h>
 
 #include "config.h"
 #include "defs.h"
@@ -13,8 +14,6 @@
 #include "profiling.h"
 #include "stcutil.h"
 #include "ui.h"
-
-#include <stdint.h>
 
 #define get_ui(cmdline_) container_of(cmdline_, struct Ui, cmdline)
 #define Self Cmdline

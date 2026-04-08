@@ -2,16 +2,16 @@
 
 #include "log.h"
 #include "memory.h"
-#include "stc/cstr.h"
 #include "stcutil.h"
 #include "util.h"
 
+#include <stc/cstr.h>
+
 #include <errno.h>
-#include <linux/limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <libgen.h>
+#include <linux/limits.h>
 
 struct history_entry_raw {
   zsview prefix; // small string optimized, this is fine
@@ -32,7 +32,7 @@ struct history_entry_raw {
                               (p)->is_new})
 #define i_no_clone
 #define i_keydrop(p) (cstr_drop(&(p)->line), cstr_drop(&(p)->prefix))
-#include "stc/dlist.h"
+#include <stc/dlist.h>
 
 // note that we don't emplace entries, raw entries are never converted
 // this map doesn't own the cstr keys and no i_keydrop is needed
@@ -46,7 +46,7 @@ struct history_entry_raw {
 #define i_hash zsview_hash
 #define i_eq zsview_eq
 #define i_no_clone
-#include "stc/hmap.h"
+#include <stc/hmap.h>
 
 /* TODO: signal errors on load/write (on 2021-10-23) */
 /* TODO: only show history items with matching prefixes (on 2021-07-24) */

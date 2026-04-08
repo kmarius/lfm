@@ -5,25 +5,18 @@
 #include "memory.h"
 #include "path.h"
 #include "sort.h"
-#include "stc/common.h"
-#include "stc/cstr.h"
 #include "stcutil.h"
 #include "util.h"
 
-#include <curses.h>
+#include <stc/cstr.h>
+
 #include <errno.h>
 #include <stdatomic.h>
-#include <stddef.h>
-#include <stdint.h>
 #include <stdlib.h>
-#include <string.h>
 
 #include <dirent.h>
 #include <fcntl.h>
-#include <libgen.h>
-#include <linux/limits.h>
 #include <sys/stat.h>
-#include <sys/types.h>
 #include <unistd.h>
 
 static inline void load_dircount_cached(Dir *dir, File *file);
@@ -40,37 +33,37 @@ typedef struct flat_dir_node {
 
 #define i_type queue_dirs
 #define i_key struct flat_dir_node
-#include "stc/queue.h"
+#include <stc/queue.h>
 
 // define templated sorting functions
 
 #define i_type files_natural, File *
 #define i_cmp compare_natural
-#include "stc/sort.h"
+#include <stc/sort.h>
 
 #define i_type files_name, File *
 #define i_cmp compare_name
-#include "stc/sort.h"
+#include <stc/sort.h>
 
 #define i_type files_size, File *
 #define i_cmp compare_size
-#include "stc/sort.h"
+#include <stc/sort.h>
 
 #define i_type files_atime, File *
 #define i_cmp compare_atime
-#include "stc/sort.h"
+#include <stc/sort.h>
 
 #define i_type files_ctime, File *
 #define i_cmp compare_ctime
-#include "stc/sort.h"
+#include <stc/sort.h>
 
 #define i_type files_mtime, File *
 #define i_cmp compare_mtime
-#include "stc/sort.h"
+#include <stc/sort.h>
 
 #define i_type files_lua, File *
 #define i_cmp compare_lua
-#include "stc/sort.h"
+#include <stc/sort.h>
 
 const char *fileinfo_str[] = {"size", "atime", "ctime", "mtime"};
 

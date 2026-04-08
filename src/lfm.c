@@ -15,26 +15,17 @@
 #include "lua/lfmlua.h"
 #include "mode.h"
 #include "profiling.h"
-#include "stc/common.h"
-#include "stc/cstr.h"
 #include "ui.h"
 #include "util.h"
 
 #include <ev.h>
-#include <lauxlib.h>
-#include <notcurses/notcurses.h>
+#include <stc/common.h>
+#include <stc/cstr.h>
 
 #include <errno.h>
-#include <sched.h>
-#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include <fcntl.h>
-#include <poll.h>
-#include <sys/socket.h>
-#include <sys/wait.h>
 
 struct ev_loop *event_loop = NULL;
 static Lfm *instance = NULL;
@@ -52,7 +43,7 @@ struct sched_timer {
 #define i_valfrom heapify
 #define i_valdrop(p) xfree(*(p))
 #define i_no_clone
-#include "stc/hmap.h"
+#include <stc/hmap.h>
 
 Lfm *lfm_instance(void) {
   return instance;

@@ -7,15 +7,13 @@
 #include "loop.h"
 #include "private.h"
 #include "profiling.h"
-#include "stc/cstr.h"
 
 #include <ev.h>
 #include <lauxlib.h>
-#include <linux/limits.h>
 #include <lua.h>
 #include <lualib.h>
+#include <stc/cstr.h>
 
-#include <stdint.h>
 #include <string.h>
 
 typedef struct {
@@ -42,7 +40,7 @@ Fm *fm = NULL;
 
 #define i_type modules
 #define i_keypro cstr
-#include "stc/hset.h"
+#include <stc/hset.h>
 
 // moduels that have been imported (and profiled)
 static modules imported = {0};

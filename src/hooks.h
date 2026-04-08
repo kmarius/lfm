@@ -4,7 +4,6 @@
 #include "lua/lfmlua.h"
 #include "lua/util.h" // lfm <-> stc functions
 
-#include <assert.h>
 #include <lauxlib.h>
 
 struct Lfm;

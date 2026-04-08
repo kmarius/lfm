@@ -5,14 +5,13 @@
 #include <pthread.h>
 #include <stdatomic.h>
 #include <stdbool.h>
-#include <stdint.h>
 
 struct Dir;
 struct Preview;
 struct Lfm;
 struct bytes;
 
-#include "stc/types.h"
+#include <stc/types.h>
 declare_hset(set_ev_child, struct ev_child *);
 declare_hset(set_result, struct result *);
 

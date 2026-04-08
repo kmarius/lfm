@@ -1,9 +1,9 @@
 #pragma once
 
 #include "defs.h"
-#include "stc/zsview.h"
 
 #include <notcurses/notcurses.h>
+#include <stc/zsview.h>
 
 // if the highest 3 bits are used in notcurses at some point we need to go
 // move to u64

@@ -14,13 +14,13 @@
 #include "mode.h"
 #include "search.h"
 #include "selection.h"
-#include "stc/cstr.h"
 #include "stcutil.h"
 #include "trie.h"
 #include "ui.h"
 
 #include <notcurses/nckeys.h>
 #include <notcurses/notcurses.h>
+#include <stc/cstr.h>
 
 #include <wctype.h>
 

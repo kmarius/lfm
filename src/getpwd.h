@@ -6,9 +6,8 @@
  */
 
 #include "defs.h"
-#include "stc/cstr.h"
 
-#include <stddef.h>
+#include <stc/zsview.h>
 
 void setpwd(const char *path);
 

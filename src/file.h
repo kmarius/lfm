@@ -3,10 +3,9 @@
 #include "fuzzy.h"
 #include "util.h"
 
-#include "stc/cstr.h"
+#include <stc/cstr.h>
 
 #include <stdbool.h>
-#include <stdint.h>
 
 #include <sys/stat.h>
 

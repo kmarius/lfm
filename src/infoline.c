@@ -10,11 +10,10 @@
 #include "ui.h"
 #include "util.h"
 
-#include "stc/csview.h"
-#include "stc/zsview.h"
-
 #include <curses.h>
 #include <notcurses/notcurses.h>
+#include <stc/csview.h>
+#include <stc/zsview.h>
 
 #include <linux/limits.h>
 #include <string.h>

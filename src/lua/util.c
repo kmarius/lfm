@@ -4,9 +4,9 @@
 
 #include <lua.h>
 
-#include <linux/limits.h>
 #include <stdatomic.h>
-#include <stdint.h>
+
+#include <linux/limits.h>
 
 // to use from lua via ffi
 

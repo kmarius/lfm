@@ -16,16 +16,11 @@
 #include "stcutil.h"
 #include "util.h"
 
-#include "stc/cstr.h"
-#include "stc/zsview.h"
-
 #include <ev.h>
-#include <stdint.h>
+#include <stc/cstr.h>
+#include <stc/zsview.h>
 
-#include <libgen.h>
 #include <linux/limits.h>
-#include <sys/stat.h>
-#include <sys/types.h>
 #include <unistd.h>
 
 static void on_cursor_resting(EV_P_ ev_timer *w, i32 revents);

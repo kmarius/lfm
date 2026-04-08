@@ -17,4 +17,4 @@ typedef struct env_entry {
 #define i_keyfrom(p) ((struct env_entry){strdup((p).key), strdup((p).val)})
 #define i_keydrop(p) (free((p)->key), free((p)->val))
 #define i_keyclone i_keyfrom
-#include "stc/vec.h"
+#include <stc/vec.h>

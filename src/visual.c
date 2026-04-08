@@ -3,6 +3,7 @@
 #include "hooks.h"
 #include "lfm.h"
 #include "selection.h"
+
 struct mode visual_mode;
 
 static void visual_on_enter(struct Lfm *lfm);

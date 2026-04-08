@@ -4,7 +4,7 @@
 #include "memory.h"
 #include "strnatcmp.h"
 
-#include <strings.h> // strcasecmp
+#include <strings.h>
 
 const char *sorttype_str[NUM_SORTTYPE] = {
     "natural", "name", "size", "ctime", "atime", "mtime", "lua", "random",

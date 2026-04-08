@@ -5,9 +5,11 @@
 #include "log.h"
 #include "loop.h"
 
-#include <errno.h>
 #include <ev.h>
+
+#include <errno.h>
 #include <fcntl.h>
+#include <unistd.h>
 
 static ev_io fifo_watcher;
 static i32 fifo_fd = -1;

@@ -8,9 +8,6 @@
 #include "types/vec_int.h"
 
 #include <stdbool.h>
-#include <stdint.h>
-
-#include <unistd.h>
 
 #define MAP_SUGGESTION_DELAY 1000
 #define MAP_CLEAR_DELAY 10000
@@ -21,13 +18,13 @@
 #define i_keypro cstr
 #define i_val u64
 #define i_no_clone
-#include "stc/hmap.h"
+#include <stc/hmap.h>
 
 #define i_type hmap_icon
 #define i_keypro cstr
 #define i_valpro cstr
 #define i_no_clone
-#include "stc/hmap.h"
+#include <stc/hmap.h>
 
 #define i_type hmap_dirsetting
 #define i_val struct dir_settings
@@ -39,7 +36,7 @@
 #define i_eq zsview_eq
 #define i_hash zsview_hash
 #define i_no_clone
-#include "stc/hmap.h"
+#include <stc/hmap.h>
 
 typedef struct config {
   cstr configdir;   // ~/.config/lfm

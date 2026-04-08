@@ -1,16 +1,16 @@
 #include "path.h"
 
 #include "getpwd.h"
-#include "stc/cstr.h"
 #include "stcutil.h"
 #include "util.h"
 
+#include <stc/cstr.h>
+
 #include <assert.h>
+#include <string.h>
 
 #include <libgen.h>
 #include <linux/limits.h>
-#include <string.h>
-#include <sys/types.h>
 
 zsview path_parent_zv(zsview path) {
   if (zsview_is_empty(path) || path_is_root(path)) {

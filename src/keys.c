@@ -1,10 +1,11 @@
 #include "keys.h"
+
 #include "config.h"
 
 #include <string.h>
 #include <strings.h>
 #include <wchar.h>
-#include <wctype.h> /* towlower, towlupper */
+#include <wctype.h>
 
 #define MAX_KEY_WITH_MODIFIERS 2 + 9 + 2 + 2 + 2 /* <c-a-s-backspace> */
 

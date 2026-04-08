@@ -6,10 +6,8 @@
 #include "lfm.h"
 #include "log.h"
 
-#include <stdint.h>
-
 #define i_type macros_map, input_t, vec_input
-#include "stc/hmap.h"
+#include <stc/hmap.h>
 
 bool macro_recording = false;
 bool macro_playing = false;

@@ -2,7 +2,8 @@
 
 #include "defs.h"
 #include "memory.h"
-#include "stc/cstr.h"
+
+#include <stc/cstr.h>
 
 #include <stdbool.h>
 #include <stddef.h>

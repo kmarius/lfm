@@ -1,8 +1,9 @@
 #pragma once
 
 #include "defs.h"
-#include "stc/cstr.h"
-#include "stc/zsview.h"
+
+#include <stc/cstr.h>
+#include <stc/zsview.h>
 
 #include <stdarg.h>
 #include <string.h>

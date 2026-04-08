@@ -1,10 +1,9 @@
 #include "dir.h"
 #include "lfm.h"
 #include "lfmlua.h"
-#include "lua.h"
 #include "util.h"
 
-#include "private.h"
+#include <lua.h>
 
 #define KEYFUNCS "Lfm.Keyfuncs"
 

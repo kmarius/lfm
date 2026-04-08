@@ -1,7 +1,8 @@
 #include "spinner.h"
 
-#include <limits.h>
 #include <notcurses/notcurses.h>
+
+#include <limits.h>
 
 static void spinner_draw(EV_P_ ev_timer *w, i32 revents);
 

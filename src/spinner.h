@@ -4,7 +4,6 @@
 
 #include <ev.h>
 #include <notcurses/notcurses.h>
-#include <stdint.h>
 
 #define SPINNER_INTERVAL 80
 

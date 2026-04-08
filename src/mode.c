@@ -4,10 +4,11 @@
 #include "hooks.h"
 #include "lfm.h"
 #include "lua/lfmlua.h"
-#include "stc/cstr.h"
 #include "trie.h"
 #include "ui.h"
 #include "visual.h"
+
+#include <stc/cstr.h>
 
 static void normal_on_enter(Lfm *lfm);
 

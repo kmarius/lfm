@@ -6,16 +6,13 @@
 #include "profiling.h"
 #include "util.h"
 
-#include <ev.h>
-
 #include <errno.h>
-#include <libgen.h>
 #include <locale.h>
-#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
+
+#include <pthread.h>
 #include <sys/stat.h>
-#include <sys/time.h>
 #include <unistd.h>
 
 #define USAGE_FMT                                                              \

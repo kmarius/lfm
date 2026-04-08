@@ -5,7 +5,7 @@
 #define i_declared
 #define i_type _pathlist_list
 #define i_keypro cstr
-#include "stc/dlist.h"
+#include <stc/dlist.h>
 
 // we don't use keypro here because keys are owned by the list
 // using i_keypro cstr makes it impossible to look up cstr, only const char*
@@ -16,7 +16,8 @@
 #define i_val _pathlist_list_node *
 #define i_eq zsview_eq
 #define i_hash zsview_hash
-#include "stc/hmap.h"
+#define i_no_clone
+#include <stc/hmap.h>
 
 void pathlist_init(pathlist *self) {
   self->map = _pathlist_hmap_init();

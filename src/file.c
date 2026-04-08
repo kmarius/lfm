@@ -4,22 +4,22 @@
 #include "log.h"
 #include "memory.h"
 #include "path.h"
-#include "stc/cstr.h"
-#include "stc/zsview.h"
+
+#include <stc/cstr.h>
+#include <stc/zsview.h>
 
 #include <errno.h>
 #include <limits.h>
 #include <stdio.h>
 #include <string.h>
 
-#include <bits/types.h>
 #include <dirent.h>
 #include <fcntl.h>
 #include <grp.h>
-#include <linux/limits.h> // PATH_MAX
+#include <linux/limits.h>
 #include <pwd.h>
 #include <sys/stat.h>
-#include <unistd.h> // readlink
+#include <unistd.h>
 
 File *file_create(const char *dir, const char *name, i32 fd, bool load_info) {
   char buf[PATH_MAX + 1];

@@ -2,15 +2,12 @@
 
 #include "inotify.h"
 #include "ncutil.h"
-#include "stc/common.h"
-#include "stc/cstr.h"
 
-#include <ncurses.h> // COLOR_ constants
-#include <notcurses/notcurses.h>
+#include <ncurses.h>
+#include <stc/common.h>
+#include <stc/cstr.h>
 
-#include <stdlib.h>
-
-#include <linux/limits.h>
+#include <unistd.h> // getpid
 
 // automatically generated, see config/pathdefs.c.in
 extern char *default_data_dir;

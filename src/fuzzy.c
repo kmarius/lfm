@@ -27,10 +27,7 @@
 #include "memory.h"
 
 #include <ctype.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
-#include <strings.h>
 
 #define SCORE_GAP_LEADING -0.005
 #define SCORE_GAP_TRAILING -0.005

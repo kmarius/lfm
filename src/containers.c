@@ -1,10 +1,10 @@
 #define i_implement
-#include "stc/cstr.h"
+#include <stc/cstr.h>
 
 #define i_implement
 #include "types/vec_cstr.h"
 
-#include "stc/zsview.h"
+#include <stc/zsview.h>
 #define i_implement
 #include "types/vec_zsview.h"
 

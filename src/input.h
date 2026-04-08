@@ -1,8 +1,9 @@
 #pragma once
 
 #include "keys.h"
-#include "stc/zsview.h"
 #include "trie.h"
+
+#include <stc/zsview.h>
 
 struct Lfm;
 

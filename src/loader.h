@@ -1,18 +1,15 @@
 #pragma once
 
-#include "dir.h"      // must be included before dircache.h
-#include "stc/cstr.h" // must be included before dircache.h
-
+#include "dir.h"
 #include "preview.h"
 
-#include "dir.h"
-#include "stc/cstr.h"
+#include <stc/cstr.h>
 
 struct load_timer;
 struct Preview;
 struct Dir;
 
-#include "stc/types.h"
+#include <stc/types.h>
 declare_dlist(list_load_timer, struct load_timer);
 declare_hmap(map_zsview_preview, zsview, struct Preview *);
 
@@ -24,7 +21,7 @@ declare_hmap(map_zsview_preview, zsview, struct Preview *);
 #define i_eq zsview_eq
 #define i_hash zsview_hash
 #define i_no_clone
-#include "stc/hmap.h"
+#include <stc/hmap.h>
 
 struct loader_ctx {
   map_zsview_dir dir_cache;

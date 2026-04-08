@@ -3,10 +3,9 @@
 // misc utils to work with notcurses and/or stc
 
 #include "defs.h"
-#include "stc/cstr.h"
-#include "stc/csview.h"
 
 #include <notcurses/notcurses.h>
+#include <stc/cstr.h>
 
 #define NCCHANNEL_INITIALIZER_PALINDEX(ind)                                    \
   (ind < 0 ? ~NC_BGDEFAULT_MASK & 0xff000000lu                                 \

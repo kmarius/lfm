@@ -10,20 +10,13 @@
 #include "loader.h"
 #include "log.h"
 #include "memory.h"
-#include "stc/cstr.h"
 #include "ui.h"
 #include "util.h"
 
 #include <ev.h>
+#include <stc/cstr.h>
 
-#include <dirent.h>
-#include <pthread.h>
 #include <stdatomic.h>
-#include <stdint.h>
-#include <sys/stat.h>
-#include <sys/sysinfo.h>
-#include <sys/types.h>
-#include <unistd.h>
 
 #define FILEINFO_THRESHOLD 200 // send batches of dircounts around every 200ms
 
@@ -103,7 +96,7 @@ struct file_path_tup {
 };
 
 #define i_TYPE fileinfos, struct fileinfo
-#include "stc/vec.h"
+#include <stc/vec.h>
 
 struct fileinfo_result {
   struct result super;

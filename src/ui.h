@@ -9,11 +9,9 @@
 #include <ev.h>
 #include <notcurses/notcurses.h>
 
-#include <stdarg.h>
-#include <stdint.h>
 #include <sys/ioctl.h>
 
-#include "stc/types.h"
+#include <stc/types.h>
 declare_vec(vec_ncplane, struct ncplane *);
 
 struct message {
@@ -25,13 +23,13 @@ struct message {
 #define i_type vec_message, struct message
 #define i_keydrop(p) (cstr_drop(&p->text))
 #define i_no_clone
-#include "stc/vec.h"
+#include <stc/vec.h>
 
 #define i_TYPE vec_input, input_t
-#include "stc/vec.h"
+#include <stc/vec.h>
 
 #define i_TYPE queue_input, input_t
-#include "stc/queue.h"
+#include <stc/queue.h>
 
 #define REDRAW_INFO 1
 #define REDRAW_CMDLINE 2

@@ -6,9 +6,10 @@
 #pragma once
 
 #include "defs.h"
-#include "stc/cstr.h"
-#include "stc/types.h"
-#include "stc/zsview.h"
+
+#include <stc/cstr.h>
+#include <stc/types.h>
+#include <stc/zsview.h>
 
 #include <stdbool.h>
 

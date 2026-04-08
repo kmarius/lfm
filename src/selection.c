@@ -5,7 +5,8 @@
 #include "fm.h"
 #include "hooks.h"
 #include "lfm.h"
-#include "stc/common.h"
+
+#include <stc/common.h>
 
 void selection_toggle_path(Fm *fm, zsview path, bool run_hook) {
   if (!pathlist_remove(&fm->selection.current, path))

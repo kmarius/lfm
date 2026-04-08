@@ -6,14 +6,13 @@
  */
 
 #include "defs.h"
-#include "stc/zsview.h"
 
 #include <lauxlib.h>
 #include <lua.h>
+#include <stc/zsview.h>
 
 #include <stdbool.h>
 #include <string.h>
-#include <sys/types.h>
 
 struct Lfm;
 struct Dir;

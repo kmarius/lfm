@@ -3,23 +3,22 @@
 #include "hooks.h"
 #include "macro.h"
 #include "path.h"
+#include "private.h"
 #include "search.h"
 #include "selection.h"
-#include "stc/cstr.h"
 #include "ui.h"
-#include "visual.h"
-
-#include "private.h"
 #include "util.h"
+#include "visual.h"
 
 #include <ev.h>
 #include <lauxlib.h>
-#include <locale.h>
 #include <lua.h>
+#include <notcurses/notcurses.h>
+#include <stc/cstr.h>
+
+#include <locale.h>
 
 #include <linux/limits.h>
-#include <notcurses/notcurses.h>
-#include <stdint.h>
 
 static int l_get_height(lua_State *L) {
   lua_pushnumber(L, fm->height);

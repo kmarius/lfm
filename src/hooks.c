@@ -2,7 +2,6 @@
 
 #include "defs.h"
 #include "lfm.h"
-#include "lua/lfmlua.h"
 
 #include <lauxlib.h>
 #include <lua.h>
@@ -17,7 +16,7 @@ struct hook_change {
 
 #define i_declared
 #define i_type vec_hook_change, struct hook_change
-#include "stc/vec.h"
+#include <stc/vec.h>
 
 // we fold the hook_id and the ref into an id that is returned to the user
 //     id == (hook_id << 20) | ref

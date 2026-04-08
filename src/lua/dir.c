@@ -1,12 +1,12 @@
 #include "dir.h"
 #include "config.h"
 #include "private.h"
-#include "stc/cstr.h"
 #include "util.h"
 #include "visual.h"
 
 #include <lauxlib.h>
 #include <lua.h>
+#include <stc/cstr.h>
 
 #define DIR_META "Lfm.Dir.Meta"
 #define DIR_METHODS "Lfm.Dir.Methods"

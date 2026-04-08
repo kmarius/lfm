@@ -3,6 +3,8 @@
 #include "history.h"
 
 #include <notcurses/notcurses.h>
+#include <stc/cstr.h>
+#include <stc/zsview.h>
 
 #include <stdbool.h>
 

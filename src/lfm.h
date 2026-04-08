@@ -10,13 +10,11 @@
 #include "types/vec_zsview.h"
 #include "ui.h"
 
-#include "stc/types.h"
-
 #include <ev.h>
 #include <lua.h>
+#include <stc/types.h>
 
 #include <errno.h>
-#include <stdint.h>
 
 declare_vec(vec_hook_change, struct hook_change);
 declare_hmap(timers, u32, struct sched_timer *);

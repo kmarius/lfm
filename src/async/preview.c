@@ -19,19 +19,13 @@
 #include "loop.h"
 #include "memory.h"
 #include "preview.h"
-#include "stc/cstr.h"
 #include "ui.h"
 
 #include <ev.h>
+#include <stc/cstr.h>
 
-#include <dirent.h>
-#include <pthread.h>
 #include <semaphore.h>
 #include <signal.h>
-#include <stdint.h>
-#include <sys/stat.h>
-#include <sys/sysinfo.h>
-#include <sys/types.h>
 #include <unistd.h>
 
 // TODO: maybe we don't need some of these members since we can now acces the

@@ -2,7 +2,6 @@
 
 #include "defs.h"
 #include "log.h"
-#include "stc/cstr.h"
 
 #include <curses.h>
 #include <notcurses/notcurses.h>

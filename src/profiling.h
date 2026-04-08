@@ -3,7 +3,6 @@
 #include "util.h"
 
 #include <stdbool.h>
-#include <stdint.h>
 
 // is currently includes a handful of items from startup, and many "require"d
 // lua modules from startup and runtime

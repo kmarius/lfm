@@ -2,8 +2,8 @@
 
 #include "trie.h"
 
-#include "stc/cstr.h"
-#include "stc/zsview.h"
+#include <stc/cstr.h>
+#include <stc/zsview.h>
 
 #include <stdbool.h>
 
@@ -64,7 +64,7 @@ static inline struct mode mode_valfrom(struct mode mode) {
 #define i_hash zsview_hash
 #define i_eq zsview_eq
 #define i_no_clone
-#include "stc/hmap.h"
+#include <stc/hmap.h>
 
 /*
  * Initialize mode functionality.

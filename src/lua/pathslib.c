@@ -4,8 +4,6 @@
 #include <lauxlib.h>
 #include <lua.h>
 
-#include <stdint.h>
-
 #define PATHS_META "Lfm.Paths.Meta"
 
 static int l_paths_newindex(lua_State *L) {

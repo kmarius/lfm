@@ -1,6 +1,7 @@
-#include <stdbool.h>
 
 #include "file.h"
+
+#include <stdbool.h>
 
 #define FILTER_TYPE_GENERAL "filter"
 #define FILTER_TYPE_FUZZY "fuzzy"

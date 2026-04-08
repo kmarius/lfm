@@ -8,16 +8,15 @@
 #include "loop.h"
 #include "path.h"
 #include "preview.h"
-#include "stc/common.h"
-#include "stc/cstr.h"
-#include "stc/zsview.h"
 #include "ui.h"
 #include "util.h"
 
 #include <ev.h>
+#include <stc/common.h>
+#include <stc/cstr.h>
+#include <stc/zsview.h>
 
 #include <stddef.h>
-#include <stdint.h>
 
 // key is zsview of preview->path and owned by dir
 #define i_declared
@@ -28,7 +27,7 @@
 #define i_eq zsview_eq
 #define i_hash zsview_hash
 #define i_no_clone
-#include "stc/hmap.h"
+#include <stc/hmap.h>
 
 struct load_timer {
   ev_timer watcher;
@@ -41,13 +40,13 @@ struct load_timer {
 
 #define i_declared
 #define i_type list_load_timer, struct load_timer
-#include "stc/dlist.h"
+#include <stc/dlist.h>
 
 #define i_TYPE set_dir, Dir *
-#include "stc/hset.h"
+#include <stc/hset.h>
 
 #define i_TYPE set_preview, Preview *
-#include "stc/hset.h"
+#include <stc/hset.h>
 
 static inline void apply_dir_settings(Dir *dir);
 

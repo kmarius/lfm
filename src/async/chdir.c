@@ -5,19 +5,11 @@
 #include "getpwd.h"
 #include "hooks.h"
 #include "lfm.h"
-#include "memory.h"
-#include "stc/cstr.h"
 
 #include <ev.h>
+#include <stc/cstr.h>
 
-#include <dirent.h>
-#include <errno.h>
 #include <fcntl.h>
-#include <pthread.h>
-#include <stdint.h>
-#include <sys/stat.h>
-#include <sys/sysinfo.h>
-#include <sys/types.h>
 #include <unistd.h>
 
 struct chdir_data {

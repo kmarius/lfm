@@ -9,24 +9,20 @@
 #include "sha256.h"
 #include "types/bytes.h"
 #include "util.h"
-#include <asm-generic/errno-base.h>
-#include <semaphore.h>
-#include <stddef.h>
 
 #define STC_CSTR_IO
-#include "stc/cstr.h"
+#include <stc/cstr.h>
 
 #include <errno.h>
-#include <fcntl.h>
 #include <limits.h>
-#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+#include <fcntl.h>
 #include <linux/limits.h>
 #include <sys/stat.h>
-#include <sys/wait.h>
+#include <unistd.h>
 
 // a security measure, a bad previewer could try to send large files
 #define PREVIEW_MAX_BYTES (128 * 1024)

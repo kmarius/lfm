@@ -5,17 +5,11 @@
 #include "inotify.h"
 #include "lfm.h"
 #include "memory.h"
-#include "stc/cstr.h"
 
 #include <ev.h>
+#include <stc/cstr.h>
 
-#include <dirent.h>
 #include <fcntl.h>
-#include <pthread.h>
-#include <stdint.h>
-#include <sys/stat.h>
-#include <sys/sysinfo.h>
-#include <sys/types.h>
 #include <unistd.h>
 
 struct inotify_work {

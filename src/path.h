@@ -1,12 +1,14 @@
 #pragma once
 
 #include "defs.h"
-#include "stc/cstr.h"
-#include "stc/zsview.h"
+
+#include <stc/cstr.h>
+#include <stc/zsview.h>
+
+#include <stdbool.h>
 
 #include <libgen.h>
 #include <linux/limits.h>
-#include <stdbool.h>
 
 // zvsiew into static buffer
 zsview path_parent_zv(zsview path);

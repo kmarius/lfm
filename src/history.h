@@ -1,7 +1,8 @@
 #pragma once
 
 #include "defs.h"
-#include "stc/types.h"
+
+#include <stc/types.h>
 
 #include <stdbool.h>
 #include <stddef.h>

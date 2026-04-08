@@ -20,36 +20,28 @@
 #include "preview.h"
 #include "profiling.h"
 #include "statusline.h"
-#include "stc/cstr.h"
 #include "util.h"
 
 #include <ev.h>
-#include <linux/limits.h>
 #include <ncurses.h>
 #include <notcurses/notcurses.h>
+#include <stc/common.h>
+#include <stc/cstr.h>
 
-#include <stdio.h>
-#include <sys/ioctl.h>
-#include <sys/types.h>
-#include <unistd.h>
-
-#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
 
 #include <fcntl.h>
-#include <libgen.h>
+#include <sys/ioctl.h>
 #include <unistd.h>
-
-#include "stc/common.h"
 
 #define i_declared
 #define i_type vec_ncplane, struct ncplane *
 #define i_keydrop(p) (ncplane_destroy(*(p)))
 #define i_no_clone
-#include "stc/vec.h"
+#include <stc/vec.h>
 
 #define EXT_MAX_LEN 128 // to convert the extension to lowercase
 

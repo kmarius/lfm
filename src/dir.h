@@ -7,15 +7,14 @@
 #include "sort.h"
 #include "types/hmap_cstr.h"
 
-#include "stc/cstr.h"
-#include "stc/zsview.h"
+#include <stc/cstr.h>
+#include <stc/zsview.h>
 
 #include <stdatomic.h>
 #include <stdbool.h>
-#include <stdint.h>
 
 #define i_type vec_file, File *
-#include "stc/vec.h"
+#include <stc/vec.h>
 
 // we might have to use the full st_mtime, not just the seconds part
 struct tuple_mtime_count {
@@ -26,7 +25,7 @@ struct tuple_mtime_count {
 #define i_type map_str_int
 #define i_keypro cstr
 #define i_val struct tuple_mtime_count
-#include "stc/hmap.h"
+#include <stc/hmap.h>
 
 typedef enum {
   INFO_SIZE = 0,

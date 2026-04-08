@@ -3,17 +3,18 @@
 #include "log.h"
 #include "loop.h"
 #include "private.h"
-#include "stc/zsview.h"
 #include "types/bytes.h"
 #include "types/vec_bytes.h"
 #include "types/vec_env.h"
 
 #include <ev.h>
+#include <stc/zsview.h>
 
 #include <errno.h>
-#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
+
+#include <fcntl.h>
 #include <sys/poll.h>
 #include <sys/wait.h>
 #include <unistd.h>

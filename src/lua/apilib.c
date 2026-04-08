@@ -3,20 +3,17 @@
 #include "hooks.h"
 #include "input.h"
 #include "macro.h"
-#include "stc/cstr.h"
-#include "ui.h"
-
 #include "private.h"
+#include "ui.h"
 #include "util.h"
 
 #include <ev.h>
 #include <lauxlib.h>
-#include <locale.h>
 #include <lua.h>
+#include <notcurses/notcurses.h>
+#include <stc/cstr.h>
 
 #include <linux/limits.h>
-#include <notcurses/notcurses.h>
-#include <stdint.h>
 
 // lua/dir.c
 int l_get_dir(lua_State *L);

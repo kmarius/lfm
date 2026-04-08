@@ -3,22 +3,18 @@
 #include "config.h"
 #include "defs.h"
 
-#include "stc/cstr.h"
-
 #include <magic.h>
 
 #include <ctype.h>
 #include <errno.h>
-#include <libgen.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <strings.h> // strcasecmp
 
+#include <libgen.h>
 #include <linux/limits.h>
 #include <sys/stat.h>
 #include <sys/time.h>
-#include <sys/types.h>
 
 char *rtrim(char *s) {
   char *t = s;

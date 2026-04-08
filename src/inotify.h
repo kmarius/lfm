@@ -10,11 +10,10 @@
 #include "dir.h"
 
 #include <ev.h>
+#include <stc/types.h>
 
 #include <stdbool.h>
-#include <stdint.h>
 
-#include "stc/types.h"
 declare_hmap(map_int_dir, int, Dir *);
 declare_hmap(map_dir_int, Dir *, int);
 declare_hset(set_int, int);

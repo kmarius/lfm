@@ -1,13 +1,12 @@
 #pragma once
 
 #include "defs.h"
-#include "stc/cstr.h"
 #include "types/bytes.h"
+
+#include <stc/cstr.h>
 
 #include <stdatomic.h>
 #include <stdbool.h>
-#include <stdint.h>
-#include <sys/types.h>
 #include <time.h>
 
 struct ncplane;

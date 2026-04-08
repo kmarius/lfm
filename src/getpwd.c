@@ -1,5 +1,6 @@
 #include "getpwd.h"
-#include "stc/cstr.h"
+
+#include <stc/cstr.h>
 
 #include <pthread.h>
 

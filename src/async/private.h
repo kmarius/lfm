@@ -3,7 +3,6 @@
 #include "tpool.h"
 
 #include <stdatomic.h>
-#include <stdint.h>
 
 struct result {
   struct result *next;
@@ -15,11 +14,11 @@ struct result {
 
 #define i_declared
 #define i_type set_result, struct result *
-#include "stc/hset.h"
+#include <stc/hset.h>
 
 #define i_declared
 #define i_type set_ev_child, struct ev_child *
-#include "stc/hset.h"
+#include <stc/hset.h>
 
 // we only cancel from the main thread
 static inline void cancel(struct result *res) {
