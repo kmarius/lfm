@@ -129,7 +129,7 @@ static inline void set_dircount(Dir *dir, File *file, u32 count) {
       .count = count,
       .mtime = file->stat.st_mtim.tv_sec,
   };
-  hmap_dircount_emplace(&dir->dircounts, file_name_str(file), tup);
+  map_str_int_emplace(&dir->dircounts, file_name_str(file), tup);
 }
 
 static void fileinfo_callback(void *p, Lfm *lfm) {
@@ -185,7 +185,7 @@ fileinfo_result_create(Dir *dir, u32 cookie, fileinfos infos, bool is_last) {
 // directory
 static void async_load_fileinfo(struct async_ctx *async, Dir *dir, u32 cookie,
                                 u32 n, struct file_path_tup *files,
-                                hmap_dircount dircounts) {
+                                map_str_int dircounts) {
   fileinfos infos = fileinfos_init();
 
   u64 latest = current_millis();
@@ -228,7 +228,7 @@ static void async_load_fileinfo(struct async_ctx *async, Dir *dir, u32 cookie,
 
     // try to get dircounts from cache
     int count = -1;
-    hmap_dircount_iter it = hmap_dircount_find(&dircounts, files[i].name);
+    map_str_int_iter it = map_str_int_find(&dircounts, files[i].name);
     if (it.ref) {
       struct tuple_mtime_count tup = it.ref->second;
       if (tup.mtime == files[i].mtime) {
@@ -265,7 +265,7 @@ finalize:
   enqueue_and_signal(async, (struct result *)res);
 
   xfree(files);
-  hmap_dircount_drop(&dircounts);
+  map_str_int_drop(&dircounts);
 }
 
 struct dir_update_data {
@@ -276,14 +276,14 @@ struct dir_update_data {
   bool load_fileinfo;
   Dir *update;
   u32 level;
-  hmap_dircount dircounts;
+  map_str_int dircounts;
 };
 
 static void dir_update_destroy(void *p) {
   struct dir_update_data *res = p;
   dir_dec_ref(res->dir);
   dir_destroy(res->update);
-  hmap_dircount_drop(&res->dircounts);
+  map_str_int_drop(&res->dircounts);
   xfree(res);
 }
 
@@ -311,10 +311,10 @@ static void async_dir_load_worker(void *arg) {
   struct dir_update_data *work = arg;
   struct async_ctx *async = work->async;
 
-  hmap_dircount dircounts = hmap_dircount_move(&work->dircounts);
+  map_str_int dircounts = map_str_int_move(&work->dircounts);
 
   if (work->level == 0) {
-    work->update = dir_load(dir_path(work->dir), hmap_dircount_move(&dircounts),
+    work->update = dir_load(dir_path(work->dir), map_str_int_move(&dircounts),
                             work->load_fileinfo, &async->stop);
   } else {
     if (work->load_fileinfo) {
@@ -322,11 +322,11 @@ static void async_dir_load_worker(void *arg) {
       // otherwise it will be passed to the function that loads
       // dircounts, and freed there
       work->update = dir_load_flat(dir_path(work->dir), work->level,
-                                   hmap_dircount_move(&dircounts),
+                                   map_str_int_move(&dircounts),
                                    work->load_fileinfo, &async->stop);
     } else {
       work->update =
-          dir_load_flat(dir_path(work->dir), work->level, hmap_dircount_init(),
+          dir_load_flat(dir_path(work->dir), work->level, map_str_int_init(),
                         work->load_fileinfo, &async->stop);
     }
   }
@@ -336,7 +336,7 @@ static void async_dir_load_worker(void *arg) {
   if (work->load_fileinfo || num_files == 0 ||
       atomic_load_explicit(&async->stop, memory_order_relaxed)) {
     enqueue_and_signal(work->async, (struct result *)work);
-    hmap_dircount_drop(&dircounts);
+    map_str_int_drop(&dircounts);
     if (!work->load_fileinfo)
       dir_dec_ref(work->dir); // release the extra ref
 
@@ -401,7 +401,7 @@ void async_dir_load(struct async_ctx *async, Dir *dir, bool load_fileinfo) {
   work->dir = dir;
   work->load_fileinfo = load_fileinfo;
   work->level = dir->flatten_level;
-  work->dircounts = hmap_dircount_move(&dir->dircounts);
+  work->dircounts = map_str_int_move(&dir->dircounts);
   // we simply discard the update in the callback if another reload is requested
   // before the previous one is applied.
   work->cookie = ++dir->cookie;

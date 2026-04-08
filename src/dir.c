@@ -230,8 +230,7 @@ Dir *dir_create(zsview path) {
 }
 
 static inline void load_dircount_cached(Dir *dir, File *file) {
-  hmap_dircount_iter it =
-      hmap_dircount_find(&dir->dircounts, file_name_str(file));
+  map_str_int_iter it = map_str_int_find(&dir->dircounts, file_name_str(file));
   if (it.ref) {
     struct tuple_mtime_count tup = it.ref->second;
     if (tup.mtime == file->stat.st_mtim.tv_sec) {
@@ -248,31 +247,31 @@ static inline void load_dircount_cached(Dir *dir, File *file) {
         .mtime = file->stat.st_mtim.tv_sec,
         .count = file_load_dircount(file),
     };
-    hmap_dircount_emplace(&dir->dircounts, file_name_str(file), tup);
+    map_str_int_emplace(&dir->dircounts, file_name_str(file), tup);
   }
 }
 
 // re-creates the hash map if it has over 50% stale entries
 static inline void trim_dircount_cache(Dir *dir, uint32 num_dirs) {
-  usize cache_size = hmap_dircount_size(&dir->dircounts);
+  usize cache_size = map_str_int_size(&dir->dircounts);
   if (cache_size > 16 && cache_size > 2 * num_dirs) {
-    hmap_dircount_clear(&dir->dircounts);
+    map_str_int_clear(&dir->dircounts);
     c_foreach(it, vec_file, dir->files_all) {
       if (file_isdir(*it.ref)) {
         struct tuple_mtime_count tup = {
             .mtime = (*it.ref)->stat.st_mtim.tv_sec,
             .count = file_dircount(*it.ref),
         };
-        hmap_dircount_emplace(&dir->dircounts, file_name_str(*it.ref), tup);
+        map_str_int_emplace(&dir->dircounts, file_name_str(*it.ref), tup);
       }
     }
     // shrink, but leave some space for possible inserts, load factor is 0.8
     // (which would be exactly factor 1.25)
-    hmap_dircount_reserve(&dir->dircounts, (long)(num_dirs * 1.3));
+    map_str_int_reserve(&dir->dircounts, (long)(num_dirs * 1.3));
   }
 }
 
-Dir *dir_load(zsview path, hmap_dircount dircounts, bool load_fileinfo,
+Dir *dir_load(zsview path, map_str_int dircounts, bool load_fileinfo,
               atomic_bool *stop) {
   Dir *dir = dir_create(path);
   dir->has_fileinfo = load_fileinfo;
@@ -339,7 +338,7 @@ Dir *dir_load(zsview path, hmap_dircount dircounts, bool load_fileinfo,
   return dir;
 }
 
-Dir *dir_load_flat(zsview path, i32 level, hmap_dircount dircounts,
+Dir *dir_load_flat(zsview path, i32 level, map_str_int dircounts,
                    bool load_fileinfo, atomic_bool *stop) {
   Dir *dir = dir_create(path);
   dir->has_fileinfo = load_fileinfo;
@@ -545,7 +544,7 @@ void dir_update_with(Dir *dir, Dir *update, u32 height, u32 scrolloff) {
   dir->files_sorted = vec_file_move(&update->files_sorted);
   dir->files = vec_file_move(&update->files);
 
-  dir->dircounts = hmap_dircount_move(&update->dircounts);
+  dir->dircounts = map_str_int_move(&update->dircounts);
 
   dir->load_time = update->load_time;
   dir->error = update->error;
@@ -585,7 +584,7 @@ static inline void drop_fields(Dir *dir) {
   filter_destroy(dir->filter);
   cstr_drop(&dir->sel);
   hmap_cstr_drop(&dir->tags.tags);
-  hmap_dircount_drop(&dir->dircounts);
+  map_str_int_drop(&dir->dircounts);
 }
 
 void dir_destroy(Dir *dir) {

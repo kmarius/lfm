@@ -23,10 +23,9 @@ struct tuple_mtime_count {
   usize count;
 };
 
-#define i_type hmap_dircount
+#define i_type map_str_int
 #define i_keypro cstr
 #define i_val struct tuple_mtime_count
-#define c_pro_key
 #include "stc/hmap.h"
 
 typedef enum {
@@ -74,7 +73,7 @@ typedef struct Dir {
   // maps name -> (mtime, dircount) for every directory in this directory
   // we hand it over to the thread that will reload the directory
   // and get it back in the update
-  hmap_dircount dircounts;
+  map_str_int dircounts;
 
   bool visible;
   dir_loading_status status;
@@ -131,11 +130,11 @@ void dir_update_with(Dir *dir, Dir *update, u32 height, u32 scrolloff);
 // each subdirectory if `load_fileinfo` is `true`. If `load_fileinfo` is
 // `true` and a `stop` signal is passed, it is read with relaxed ordering
 // after each file to possibly abort early.
-Dir *dir_load(zsview path, hmap_dircount dircounts, bool load_fileinfo,
+Dir *dir_load(zsview path, map_str_int dircounts, bool load_fileinfo,
               atomic_bool *stop);
 
 // Load a flat directorie showing files up `level`s deep.
-Dir *dir_load_flat(zsview path, i32 level, hmap_dircount dircounts,
+Dir *dir_load_flat(zsview path, i32 level, map_str_int dircounts,
                    bool load_dircount, atomic_bool *stop);
 
 static inline usize dir_length(const Dir *dir) {
