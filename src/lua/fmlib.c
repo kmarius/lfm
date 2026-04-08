@@ -1,7 +1,6 @@
 #include "config.h"
 #include "fm.h"
 #include "hooks.h"
-#include "lfmlua.h"
 #include "macro.h"
 #include "path.h"
 #include "search.h"
@@ -499,10 +498,10 @@ static int l_set_flatten_level(lua_State *L) {
 }
 
 static int l_get_cached_dirs(lua_State *L) {
-  usize n = dircache_size(&lfm->loader.dc);
+  usize n = map_zsview_dir_size(&lfm->loader.dc);
   lua_createtable(L, n, 0);
   int i = 1;
-  c_foreach(it, dircache, lfm->loader.dc) {
+  c_foreach(it, map_zsview_dir, lfm->loader.dc) {
     lua_pushzsview(L, dir_path(it.ref->second));
     lua_rawseti(L, -2, i++);
   }

@@ -39,7 +39,7 @@ typedef struct Lfm {
   Ui ui;
   Fm fm;
   struct inotify_ctx inotify;
-  Loader loader;
+  struct loader_ctx loader;
   struct async_ctx async;
 
   lua_State *L;

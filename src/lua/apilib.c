@@ -465,7 +465,7 @@ static int l_get_tags(lua_State *L) {
   LUA_CHECK_ARGC(L, 1);
   luaL_checktype(L, 1, LUA_TSTRING);
   zsview path = lua_tozsview(L, 1);
-  dircache_value *v = dircache_get_mut(&lfm->loader.dc, path);
+  map_zsview_dir_value *v = map_zsview_dir_get_mut(&lfm->loader.dc, path);
   lua_newtable(L);
   if (v == NULL)
     return 1;
@@ -485,16 +485,17 @@ static int l_set_tags(lua_State *L) {
   luaL_checktype(L, 1, LUA_TSTRING);
   zsview path = lua_tozsview(L, 1);
 
-  dircache_value *v = dircache_get_mut(&lfm->loader.dc, path);
+  map_zsview_dir_value *v = map_zsview_dir_get_mut(&lfm->loader.dc, path);
   if (v == NULL) {
     // not loaded
     lua_pushboolean(L, false);
     return 1;
   }
+  Dir *dir = v->second;
 
   if (lua_isnil(L, 2)) {
-    hmap_cstr_clear(&v->second->tags.tags);
-    v->second->tags.cols = 0;
+    hmap_cstr_clear(&dir->tags.tags);
+    dir->tags.cols = 0;
     lua_pushboolean(L, true);
     ui_redraw(ui, REDRAW_FM);
     lua_pushboolean(L, true);
@@ -508,7 +509,7 @@ static int l_set_tags(lua_State *L) {
     lua_pop(L, 1);
   }
 
-  hmap_cstr *tags = &v->second->tags.tags;
+  hmap_cstr *tags = &dir->tags.tags;
   hmap_cstr_clear(tags);
   for (lua_pushnil(L); lua_next(L, -2); lua_pop(L, 1)) {
     hmap_cstr_insert(tags, lua_tocstr(L, -2), lua_tocstr(L, -1));
@@ -516,7 +517,7 @@ static int l_set_tags(lua_State *L) {
   lua_pop(L, 1);
 
   if (cols > -1)
-    v->second->tags.cols = cols;
+    dir->tags.cols = cols;
 
   ui_redraw(ui, REDRAW_FULL);
 

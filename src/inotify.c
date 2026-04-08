@@ -93,7 +93,7 @@ static void inotify_cb(EV_P_ ev_io *w, i32 revents) {
     }
   }
   if (!set_int_is_empty(&ctx->wds_dedup)) {
-    Loader *loader = &to_lfm(ctx)->loader;
+    struct loader_ctx *loader = &to_lfm(ctx)->loader;
     c_foreach(it, set_int, ctx->wds_dedup) {
       const map_int_dir_value *v = map_int_dir_get(&ctx->dirs, *it.ref);
       if (v)

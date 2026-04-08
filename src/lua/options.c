@@ -19,7 +19,7 @@
 static inline int llua_dir_settings_set(lua_State *L, zsview path, int ind) {
   if (lua_isnil(L, ind)) {
     hmap_dirsetting_erase(&cfg.dir_settings_map, path);
-    dircache_value *v = dircache_get_mut(&lfm->loader.dc, path);
+    map_zsview_dir_value *v = map_zsview_dir_get_mut(&lfm->loader.dc, path);
     if (v) {
       memcpy(&v->second->settings, &cfg.dir_settings,
              sizeof v->second->settings);
@@ -65,7 +65,7 @@ static inline int llua_dir_settings_set(lua_State *L, zsview path, int ind) {
 
   hmap_dirsetting_emplace_or_assign(&cfg.dir_settings_map, path, s);
 
-  dircache_value *v = dircache_get_mut(&lfm->loader.dc, path);
+  map_zsview_dir_value *v = map_zsview_dir_get_mut(&lfm->loader.dc, path);
   if (v) {
     memcpy(&v->second->settings, &s, sizeof s);
   }

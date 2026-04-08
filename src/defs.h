@@ -50,7 +50,8 @@ _Static_assert(sizeof(double) == 8, "double is not 8 bytes");
       struct async_ctx *: container_of((struct async_ctx *)ptr, Lfm, async),   \
       struct inotify_ctx *: container_of((struct inotify_ctx *)ptr, Lfm,       \
                                          inotify),                             \
-      Loader *: container_of((Loader *)ptr, Lfm, loader),                      \
+      struct loader_ctx *: container_of((struct loader_ctx *)ptr, Lfm,         \
+                                        loader),                               \
       default: NULL)
 
 #define likely(x) __builtin_expect(!!(x), 1)

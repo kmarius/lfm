@@ -210,21 +210,21 @@ void lfm_init(Lfm *lfm, struct lfm_opts *opts) {
 
   create_dirs(lfm);
   fifo_init(lfm);
+  setup_signal_handlers(lfm);
 
   /* inotify, loader and asnc must be available before fm */
   inotify_ctx_init(&lfm->inotify);
-  loader_init(&lfm->loader);
+  loader_ctx_init(&lfm->loader);
   async_ctx_init(&lfm->async);
   PROFILE("fm_init", { fm_init(&lfm->fm, &lfm->opts); });
   PROFILE("ui_init", { ui_init(&lfm->ui); });
-  setup_signal_handlers(lfm);
   lfm_hooks_init(lfm);
   lfm_modes_init(lfm);
 
   // Initialize lua state, we need to run some hooks that could not run during
   // fm initialization.
   PROFILE("lua_init", { lfm_lua_init(lfm); });
-  c_foreach(v, dircache, lfm->loader.dc) {
+  c_foreach(v, map_zsview_dir, lfm->loader.dc) {
     LFM_RUN_HOOK(lfm, LFM_HOOK_DIRLOADED, dir_path(v.ref->second));
   }
 }
@@ -238,7 +238,7 @@ void lfm_deinit(Lfm *lfm) {
   ui_deinit(&lfm->ui);
   fm_deinit(&lfm->fm);
   lfm_hooks_deinit(lfm);
-  loader_deinit(&lfm->loader);
+  loader_ctx_deinit(&lfm->loader);
   async_ctx_deinit(&lfm->async);
   fifo_deinit();
 
