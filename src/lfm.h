@@ -3,9 +3,9 @@
 #include "async/async.h"
 #include "fm.h"
 #include "hooks.h"
+#include "inotify.h"
 #include "loader.h"
 #include "mode.h"
-#include "notify.h"
 #include "types/vec_int.h"
 #include "types/vec_zsview.h"
 #include "ui.h"
@@ -38,7 +38,7 @@ struct lfm_opts {
 typedef struct Lfm {
   Ui ui;
   Fm fm;
-  Notify notify;
+  struct inotify_ctx inotify;
   Loader loader;
   Async async;
 

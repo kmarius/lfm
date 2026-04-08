@@ -34,8 +34,8 @@ typedef struct Async {
     set_ev_child previewer_children;
     set_result lua_previews;
     set_result dirs;
-    set_result notify;
-    struct result *notify_preview;
+    set_result inotify;
+    struct result *inotify_preview;
     struct result *chdir;
   } in_progress;
 } Async;
@@ -61,14 +61,14 @@ void async_preview_load(Async *async, struct Preview *pv);
 // change directory to the given path, optionally run on_chdir hook
 void async_chdir(Async *async, const char *path, bool hook);
 
-// add a notify watcher for the given directory
-void async_notify_add(Async *async, struct Dir *dir);
+// add an inotify watcher for the given directory
+void async_inotify_add(Async *async, struct Dir *dir);
 
-// add a notify watcher for a previewed directory
-void async_notify_add_previewed(Async *async, struct Dir *dir);
+// add an inotify watcher for a previewed directory
+void async_inotify_add_previewed(Async *async, struct Dir *dir);
 
 // cancel when dropping dir cache, and before setting multiple watchers
-void async_notify_cancel(Async *async);
+void async_inotify_cancel(Async *async);
 
 // cancel directory checks/loads when clearing the cache
 void async_dir_cancel(Async *async);

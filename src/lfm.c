@@ -7,13 +7,13 @@
 #include "fifo.h"
 #include "getpwd.h"
 #include "hooks.h"
+#include "inotify.h"
 #include "input.h"
 #include "loader.h"
 #include "log.h"
 #include "loop.h"
 #include "lua/lfmlua.h"
 #include "mode.h"
-#include "notify.h"
 #include "profiling.h"
 #include "stc/common.h"
 #include "stc/cstr.h"
@@ -211,8 +211,8 @@ void lfm_init(Lfm *lfm, struct lfm_opts *opts) {
   init_dirs(lfm);
   fifo_init(lfm);
 
-  /* notify should be available on fm startup */
-  notify_init(&lfm->notify);
+  /* inotify should be available on fm startup */
+  inotify_ctx_init(&lfm->inotify);
   loader_init(&lfm->loader);
   async_init(&lfm->async);
   PROFILE("fm_init", { fm_init(&lfm->fm, &lfm->opts); });
@@ -234,7 +234,7 @@ void lfm_deinit(Lfm *lfm) {
   call_dtors();
   lfm_modes_deinit(lfm);
   timers_drop(&lfm->schedule_timers);
-  notify_deinit(&lfm->notify);
+  inotify_ctx_deinit(&lfm->inotify);
   ui_deinit(&lfm->ui);
   fm_deinit(&lfm->fm);
   lfm_hooks_deinit(lfm);

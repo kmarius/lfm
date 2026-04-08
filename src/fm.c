@@ -6,11 +6,11 @@
 #include "dir.h"
 #include "getpwd.h"
 #include "hooks.h"
+#include "inotify.h"
 #include "lfm.h"
 #include "loader.h"
 #include "log.h"
 #include "loop.h"
-#include "notify.h"
 #include "path.h"
 #include "pathlist.h"
 #include "stcutil.h"
@@ -155,8 +155,8 @@ static inline bool fm_chdir_impl(Fm *fm, zsview path, bool save, bool hook,
     }
   }
 
-  notify_remove_watchers(&to_lfm(fm)->notify);
-  async_notify_cancel(&to_lfm(fm)->async);
+  inotify_remove_watchers(&to_lfm(fm)->inotify);
+  async_inotify_cancel(&to_lfm(fm)->async);
 
   cstr_assign_zv(&fm->pwd, path);
 
@@ -194,10 +194,10 @@ bool fm_async_chdir(Fm *fm, zsview path, bool save, bool hook) {
 
 static inline void fm_update_watchers(Fm *fm) {
   // watcher for preview is updated in update_preview
-  notify_remove_watchers(&to_lfm(fm)->notify);
-  async_notify_cancel(&to_lfm(fm)->async);
+  inotify_remove_watchers(&to_lfm(fm)->inotify);
+  async_inotify_cancel(&to_lfm(fm)->async);
   c_foreach(it, vec_dir, fm->dirs.visible) {
-    async_notify_add(&to_lfm(fm)->async, *it.ref);
+    async_inotify_add(&to_lfm(fm)->async, *it.ref);
   }
 }
 
@@ -235,8 +235,8 @@ void fm_check_dirs(const Fm *fm) {
 void fm_drop_cache(Fm *fm) {
   log_trace("fm_drop_cache");
 
-  notify_remove_watchers(&to_lfm(fm)->notify);
-  async_notify_cancel(&to_lfm(fm)->async);
+  inotify_remove_watchers(&to_lfm(fm)->inotify);
+  async_inotify_cancel(&to_lfm(fm)->async);
   async_dir_cancel(&to_lfm(fm)->async);
   fm_remove_preview(fm);
   loader_drop_dir_cache(&to_lfm(fm)->loader);
@@ -258,7 +258,7 @@ void fm_reload(Fm *fm) {
 static inline void fm_remove_preview(Fm *fm) {
   if (fm->dirs.preview) {
     log_trace("removing preview %s", dir_path_str(fm->dirs.preview));
-    notify_remove_watcher(&to_lfm(fm)->notify, fm->dirs.preview);
+    inotify_remove_watcher(&to_lfm(fm)->inotify, fm->dirs.preview);
     fm->dirs.preview->visible = false;
     fm->dirs.preview = NULL;
   }
@@ -281,7 +281,7 @@ static void on_cursor_resting(EV_P_ ev_timer *w, i32 revents) {
         async_dir_check(&lfm->async, dir);
       }
     }
-    async_notify_add_previewed(&lfm->async, lfm->fm.dirs.preview);
+    async_inotify_add_previewed(&lfm->async, lfm->fm.dirs.preview);
   }
 }
 

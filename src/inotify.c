@@ -1,4 +1,4 @@
-#include "notify.h"
+#include "inotify.h"
 
 #include "config.h"
 #include "defs.h"
@@ -42,29 +42,29 @@
 
 static void inotify_cb(EV_P_ ev_io *w, i32 revents);
 
-bool notify_init(Notify *notify) {
-  notify->inotify_fd = inotify_init1(IN_NONBLOCK);
-  if (notify->inotify_fd == -1) {
+bool inotify_ctx_init(struct inotify_ctx *ctx) {
+  ctx->fd = inotify_init1(IN_NONBLOCK);
+  if (ctx->fd == -1) {
     perror("inotify_init1");
     exit(EXIT_FAILURE);
   }
 
-  ev_io_init(&notify->watcher, inotify_cb, notify->inotify_fd, EV_READ);
-  notify->watcher.data = notify;
-  ev_io_start(event_loop, &notify->watcher);
+  ev_io_init(&ctx->watcher, inotify_cb, ctx->fd, EV_READ);
+  ctx->watcher.data = ctx;
+  ev_io_start(event_loop, &ctx->watcher);
 
   return true;
 }
 
-void notify_deinit(Notify *notify) {
-  c_foreach(it, map_dir_int, notify->wds) {
-    inotify_rm_watch(notify->inotify_fd, it.ref->second);
+void inotify_ctx_deinit(struct inotify_ctx *ctx) {
+  c_foreach(it, map_dir_int, ctx->wds) {
+    inotify_rm_watch(ctx->fd, it.ref->second);
   }
-  map_int_dir_drop(&notify->dirs);
-  map_dir_int_drop(&notify->wds);
-  set_int_drop(&notify->wds_dedup);
-  close(notify->inotify_fd);
-  notify->inotify_fd = -1;
+  map_int_dir_drop(&ctx->dirs);
+  map_dir_int_drop(&ctx->wds);
+  set_int_drop(&ctx->wds_dedup);
+  close(ctx->fd);
+  ctx->fd = -1;
 }
 
 /* TODO: we currently don't notice if the current directory is deleted while
@@ -73,7 +73,7 @@ static void inotify_cb(EV_P_ ev_io *w, i32 revents) {
   (void)loop;
   (void)revents;
 
-  Notify *notify = w->data;
+  struct inotify_ctx *ctx = w->data;
 
   char buf[EVENT_BUFZS];
   isize nread;
@@ -89,61 +89,60 @@ static void inotify_cb(EV_P_ ev_io *w, i32 revents) {
       if (event->len == 0)
         continue;
 
-      set_int_insert(&notify->wds_dedup, event->wd);
+      set_int_insert(&ctx->wds_dedup, event->wd);
     }
   }
-  if (!set_int_is_empty(&notify->wds_dedup)) {
-    Loader *loader = &to_lfm(notify)->loader;
-    c_foreach(it, set_int, notify->wds_dedup) {
-      const map_int_dir_value *v = map_int_dir_get(&notify->dirs, *it.ref);
+  if (!set_int_is_empty(&ctx->wds_dedup)) {
+    Loader *loader = &to_lfm(ctx)->loader;
+    c_foreach(it, set_int, ctx->wds_dedup) {
+      const map_int_dir_value *v = map_int_dir_get(&ctx->dirs, *it.ref);
       if (v)
         loader_dir_reload(loader, v->second);
     }
-    set_int_clear(&notify->wds_dedup);
+    set_int_clear(&ctx->wds_dedup);
   }
 }
 
-void notify_add_watcher(Notify *notify, Dir *dir) {
+void inotify_add_watcher(struct inotify_ctx *ctx, Dir *dir) {
   c_foreach(it, vec_cstr, cfg.inotify_blacklist) {
     if (zsview_starts_with_sv(dir_path(dir), cstr_sv(it.ref)))
       return;
   }
 
-  if (map_dir_int_contains(&notify->wds, dir))
+  if (map_dir_int_contains(&ctx->wds, dir))
     return;
 
-  int wd =
-      inotify_add_watch(notify->inotify_fd, dir_path_str(dir), NOTIFY_EVENTS);
+  int wd = inotify_add_watch(ctx->fd, dir_path_str(dir), NOTIFY_EVENTS);
   if (wd == -1) {
     log_error("inotify: %s", strerror(errno));
     return;
   }
 
-  map_int_dir_insert(&notify->dirs, wd, dir);
-  map_dir_int_insert(&notify->wds, dir, wd);
+  map_int_dir_insert(&ctx->dirs, wd, dir);
+  map_dir_int_insert(&ctx->wds, dir, wd);
 }
 
-bool notify_remove_watcher(Notify *notify, Dir *dir) {
-  map_dir_int_iter it = map_dir_int_find(&notify->wds, dir);
+bool inotify_remove_watcher(struct inotify_ctx *ctx, Dir *dir) {
+  map_dir_int_iter it = map_dir_int_find(&ctx->wds, dir);
   if (!it.ref)
     return false;
   int wd = it.ref->second;
-  inotify_rm_watch(notify->inotify_fd, wd);
-  map_dir_int_erase_at(&notify->wds, it);
-  map_int_dir_erase(&notify->dirs, wd);
+  inotify_rm_watch(ctx->fd, wd);
+  map_dir_int_erase_at(&ctx->wds, it);
+  map_int_dir_erase(&ctx->dirs, wd);
   return true;
 }
 
-void notify_set_watchers(Notify *notify, Dir **dirs, u32 n) {
-  c_foreach(it, map_dir_int, notify->wds) {
-    inotify_rm_watch(notify->inotify_fd, it.ref->second);
+void inotify_set_watchers(struct inotify_ctx *ctx, Dir **dirs, u32 n) {
+  c_foreach(it, map_dir_int, ctx->wds) {
+    inotify_rm_watch(ctx->fd, it.ref->second);
   }
-  map_dir_int_clear(&notify->wds);
-  map_int_dir_clear(&notify->dirs);
+  map_dir_int_clear(&ctx->wds);
+  map_int_dir_clear(&ctx->dirs);
 
   for (u32 i = 0; i < n; i++) {
     if (dirs[i]) {
-      notify_add_watcher(notify, dirs[i]);
+      inotify_add_watcher(ctx, dirs[i]);
     }
   }
 }

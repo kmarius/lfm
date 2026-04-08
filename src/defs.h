@@ -48,7 +48,8 @@ _Static_assert(sizeof(double) == 8, "double is not 8 bytes");
       Fm *: container_of((Fm *)ptr, Lfm, fm),                                  \
       const Fm *: container_of((const Fm *)ptr, Lfm, fm),                      \
       Async *: container_of((Async *)ptr, Lfm, async),                         \
-      Notify *: container_of((Notify *)ptr, Lfm, notify),                      \
+      struct inotify_ctx *: container_of((struct inotify_ctx *)ptr, Lfm,       \
+                                         inotify),                             \
       Loader *: container_of((Loader *)ptr, Lfm, loader),                      \
       default: NULL)
 

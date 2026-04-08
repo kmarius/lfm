@@ -1,7 +1,7 @@
 #include "config.h"
 
+#include "inotify.h"
 #include "ncutil.h"
-#include "notify.h"
 #include "stc/common.h"
 #include "stc/cstr.h"
 

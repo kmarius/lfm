@@ -15,46 +15,45 @@
 #include <stdint.h>
 
 #include "stc/types.h"
-declare_hmap(map_wd_dir, int, Dir *);
-declare_hmap(map_dir_wd, Dir *, int);
+declare_hmap(map_int_dir, int, Dir *);
+declare_hmap(map_dir_int, Dir *, int);
 declare_hset(set_int, int);
 
 // defaults used in the config, can be changed from lua
 #define NOTIFY_TIMEOUT 1000 // minimum time between directory reloads
 #define NOTIFY_DELAY 50 // delay before reloading after an event is triggered
 
-typedef struct notify {
-  ev_io watcher;  // io watcher for inotify_fd
-  int inotify_fd; // read from when notified by inotify
-  int fifo_wd;    // watch descriptor for the fifo (usually under /run/user/...)
-  map_wd_dir dirs;   // map currently watched directories to their wds
-  map_dir_wd wds;    // and vice versa
+struct inotify_ctx {
+  int fd;            // fd to inotify instance
+  ev_io watcher;     // io watcher for fd
+  map_int_dir dirs;  // map currently watched directories to their wds
+  map_dir_int wds;   // and vice versa
   set_int wds_dedup; // dedup wds when we receive multiple events
-} Notify;
+};
 
 // Initialize a Notify context. Returns false on failure.
 __lfm_nonnull()
-bool notify_init(Notify *notify);
+bool inotify_ctx_init(struct inotify_ctx *ctx);
+
+// Deinitialize an inotify context.
+__lfm_nonnull()
+void inotify_ctx_deinit(struct inotify_ctx *ctx);
 
 // Add a watcher for the directory `dir`.
 __lfm_nonnull()
-void notify_add_watcher(Notify *notify, Dir *dir);
+void inotify_add_watcher(struct inotify_ctx *ctx, Dir *dir);
 
 // Remove the watcher for the directory `dir`.
 // Returns `true` if the watcher was removed, `false` if it didn't exist.
 __lfm_nonnull()
-bool notify_remove_watcher(Notify *notify, Dir *dir);
+bool inotify_remove_watcher(struct inotify_ctx *ctx, Dir *dir);
 
 // Replace the current set of watchers with `n` watchers for the directories
-// passed in `dirs`. Incremets the notify->version counter.
+// passed in `dirs`.
 __lfm_nonnull(1)
-void notify_set_watchers(Notify *notify, Dir **dirs, u32 n);
+void inotify_set_watchers(struct inotify_ctx *ctx, Dir **dirs, u32 n);
 
-// Remove all watchers. Incremets the notify->version counter.
-static inline void notify_remove_watchers(Notify *notify) {
-  notify_set_watchers(notify, NULL, 0);
+// Remove all watchers.
+static inline void inotify_remove_watchers(struct inotify_ctx *ctx) {
+  inotify_set_watchers(ctx, NULL, 0);
 }
-
-// Deinitialize a Notify context.
-__lfm_nonnull()
-void notify_deinit(Notify *notify);
