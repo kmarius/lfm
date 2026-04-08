@@ -112,7 +112,7 @@ i32 main(i32 argc, char **argv) {
   // TODO: make it possible to move the cursor to a directory instead
   // of cd'ing into it
   if (optind < argc) {
-    cstr path = path_normalize_cstr(zsview_from(argv[optind]), NULL);
+    cstr path = path_normalize_cstr(zsview_from(argv[optind]), getenv("PWD"));
     struct stat statbuf;
     if (stat(cstr_str(&path), &statbuf) == -1) {
       // can't print to Ui yet, maybe pass something to init?
