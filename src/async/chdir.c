@@ -22,7 +22,7 @@
 
 struct chdir_data {
   struct result super;
-  Async *async;
+  struct async_ctx *async;
   char *destination;
   char *origin;
   int fd;
@@ -71,7 +71,7 @@ static void async_chdir_worker(void *arg) {
   enqueue_and_signal(work->async, (struct result *)work);
 }
 
-void async_chdir(Async *async, const char *path, bool hook) {
+void async_chdir(struct async_ctx *async, const char *path, bool hook) {
   struct chdir_data *work = xcalloc(1, sizeof *work);
   work->super.callback = &chdir_callback;
   work->super.destroy = &chdir_destroy;

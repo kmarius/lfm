@@ -1,8 +1,8 @@
 /**
- * Async preview loading is annoying because when we fork in another thread,
- * ev will reap the child and we will not get the exit status.
- * Hence, we fork in the main thread, install a child watcher, and, on exit,
- * signal the status to the worker thread.
+ * struct async_ctx preview loading is annoying because when we fork in another
+ * thread, ev will reap the child and we will not get the exit status. Hence, we
+ * fork in the main thread, install a child watcher, and, on exit, signal the
+ * status to the worker thread.
  *
  * Meanwhile, the worker thread is consuming the output of the previewer.
  * When it is signalled the exit status, it can continue e.g. loading an image
@@ -38,7 +38,7 @@
 // preview from the other thread
 struct preview_check_data {
   struct result super;
-  Async *async;
+  struct async_ctx *async;
   Preview *preview;
   int height;
   int width;
@@ -48,7 +48,7 @@ struct preview_check_data {
 
 struct preview_load_data {
   struct result super;
-  Async *async;
+  struct async_ctx *async;
   Preview *preview;
   Preview *update;
   ev_child watcher;
@@ -83,7 +83,7 @@ static void async_preview_check_worker(void *arg) {
   enqueue_and_signal(work->async, (struct result *)work);
 }
 
-void async_preview_check(Async *async, Preview *pv) {
+void async_preview_check(struct async_ctx *async, Preview *pv) {
   struct preview_check_data *work = xcalloc(1, sizeof *work);
   work->super.callback = &preview_check_callback;
   work->super.destroy = &preview_check_destroy;
@@ -149,7 +149,7 @@ static void child_exit_cb(EV_P_ ev_child *w, int revents) {
   ev_child_stop(EV_A_ w);
 }
 
-void async_preview_load(Async *async, Preview *pv) {
+void async_preview_load(struct async_ctx *async, Preview *pv) {
   if (pv->status == PV_LOADING_DISOWNED) {
     log_error("not reloading disowned preview %s", preview_path(pv).str);
     return;
@@ -192,7 +192,7 @@ void async_preview_load(Async *async, Preview *pv) {
   }
 }
 
-void async_preview_cancel(Async *async) {
+void async_preview_cancel(struct async_ctx *async) {
   c_foreach(it, set_ev_child, async->in_progress.previewer_children) {
     struct preview_load_data *work =
         container_of(*it.ref, struct preview_load_data, watcher);

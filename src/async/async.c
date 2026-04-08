@@ -21,7 +21,7 @@ static struct result *result_queue_get(struct result_queue *queue);
 
 static void async_result_cb(EV_P_ ev_async *w, int revents) {
   (void)revents;
-  Async *async = w->data;
+  struct async_ctx *async = w->data;
 
   struct result *res;
   while ((res = result_queue_get(&async->queue))) {
@@ -31,7 +31,7 @@ static void async_result_cb(EV_P_ ev_async *w, int revents) {
   }
 }
 
-void async_init(Async *async) {
+void async_ctx_init(struct async_ctx *async) {
   memset(async, 0, sizeof *async);
 
   pthread_mutex_init(&async->queue.mutex, NULL);
@@ -52,7 +52,7 @@ void async_init(Async *async) {
   async->tpool = tpool_create(nthreads);
 }
 
-void async_deinit(Async *async) {
+void async_ctx_deinit(struct async_ctx *async) {
   atomic_store_explicit(&async->stop, 1, memory_order_relaxed);
   async_preview_cancel(async);
   set_result_drop(&async->in_progress.lua_previews);
@@ -95,7 +95,7 @@ static inline struct result *result_queue_get(struct result_queue *queue) {
   return res;
 }
 
-void enqueue_and_signal(Async *async, struct result *res) {
+void enqueue_and_signal(struct async_ctx *async, struct result *res) {
   result_queue_put(&async->queue, res);
   ev_async_send(EV_DEFAULT_ & async->result_watcher);
 }

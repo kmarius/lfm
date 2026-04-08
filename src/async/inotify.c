@@ -20,7 +20,7 @@
 
 struct inotify_work {
   struct result super;
-  Async *async;
+  struct async_ctx *async;
   Dir *dir; // ref-counted
   bool ok;
 };
@@ -55,7 +55,7 @@ static void async_inotify_worker(void *arg) {
   enqueue_and_signal(work->async, (struct result *)work);
 }
 
-void async_inotify_add(Async *async, Dir *dir) {
+void async_inotify_add(struct async_ctx *async, Dir *dir) {
   struct inotify_work *work = xcalloc(1, sizeof *work);
   work->super.callback = &inotify_result_callback;
   work->super.destroy = &inotify_result_destroy;
@@ -67,7 +67,7 @@ void async_inotify_add(Async *async, Dir *dir) {
   tpool_add_work(async->tpool, async_inotify_worker, work, true);
 }
 
-void async_inotify_add_previewed(Async *async, Dir *dir) {
+void async_inotify_add_previewed(struct async_ctx *async, Dir *dir) {
   struct inotify_work *work = xcalloc(1, sizeof *work);
   work->super.callback = &inotify_result_callback;
   work->super.destroy = &inotify_result_destroy;
@@ -81,7 +81,7 @@ void async_inotify_add_previewed(Async *async, Dir *dir) {
   tpool_add_work(async->tpool, async_inotify_worker, work, true);
 }
 
-void async_inotify_cancel(Async *async) {
+void async_inotify_cancel(struct async_ctx *async) {
   (void)async;
   c_foreach(it, set_result, async->in_progress.inotify) {
     cancel(*it.ref);

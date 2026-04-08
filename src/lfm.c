@@ -142,7 +142,7 @@ static void sigpipe_cb(EV_P_ ev_signal *w, i32 revents) {
   log_error("received SIGHUP");
 }
 
-static inline void init_dirs(Lfm *lfm) {
+static inline void create_dirs(Lfm *lfm) {
   (void)lfm;
   if (mkdir_p(cstr_data(&cfg.rundir), 0700) == -1 && errno != EEXIST) {
     fprintf(stderr, "mkdir: %s", strerror(errno));
@@ -208,13 +208,13 @@ void lfm_init(Lfm *lfm, struct lfm_opts *opts) {
   event_loop = ev_default_loop(EVFLAG_NOENV);
   instance = lfm;
 
-  init_dirs(lfm);
+  create_dirs(lfm);
   fifo_init(lfm);
 
-  /* inotify should be available on fm startup */
+  /* inotify, loader and asnc must be available before fm */
   inotify_ctx_init(&lfm->inotify);
   loader_init(&lfm->loader);
-  async_init(&lfm->async);
+  async_ctx_init(&lfm->async);
   PROFILE("fm_init", { fm_init(&lfm->fm, &lfm->opts); });
   PROFILE("ui_init", { ui_init(&lfm->ui); });
   setup_signal_handlers(lfm);
@@ -239,7 +239,7 @@ void lfm_deinit(Lfm *lfm) {
   fm_deinit(&lfm->fm);
   lfm_hooks_deinit(lfm);
   loader_deinit(&lfm->loader);
-  async_deinit(&lfm->async);
+  async_ctx_deinit(&lfm->async);
   fifo_deinit();
 
   cstr_drop(&lfm->opts.startfile);

@@ -26,7 +26,7 @@ static int init_lua_thread_state() {
 
 struct lua_data {
   struct result super;
-  Async *async;
+  struct async_ctx *async;
   bytes chunk;  // lua code to execute
   bytes arg;    // optional argument
   bytes result; // error string if error == true, serialized result, otherwise
@@ -172,7 +172,7 @@ err:
   goto end;
 }
 
-void async_lua(Async *async, bytes chunk, bytes arg, int ref) {
+void async_lua(struct async_ctx *async, bytes chunk, bytes arg, int ref) {
   struct lua_data *work = xcalloc(1, sizeof *work);
   work->super.callback = &lua_result_callback;
   work->super.destroy = &lua_result_destroy;
@@ -188,7 +188,7 @@ void async_lua(Async *async, bytes chunk, bytes arg, int ref) {
 
 struct lua_preview_data {
   struct result super;
-  Async *async;
+  struct async_ctx *async;
   Preview *preview;
   bytes chunk; // lua code to execute
   int width;
@@ -294,7 +294,7 @@ err:
   goto end;
 }
 
-void async_lua_preview(Async *async, struct Preview *pv) {
+void async_lua_preview(struct async_ctx *async, struct Preview *pv) {
   struct lua_preview_data *work = xcalloc(1, sizeof *work);
   work->super.callback = &lua_preview_callback;
   work->super.destroy = &lua_preview_destroy;

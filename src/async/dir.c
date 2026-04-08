@@ -29,7 +29,7 @@
 
 struct dir_check_data {
   struct result super;
-  Async *async;
+  struct async_ctx *async;
   Dir *dir;
   time_t loadtime;
   __ino_t ino;
@@ -66,7 +66,7 @@ static void async_dir_check_worker(void *arg) {
   enqueue_and_signal(work->async, (struct result *)work);
 }
 
-void async_dir_check(Async *async, Dir *dir) {
+void async_dir_check(struct async_ctx *async, Dir *dir) {
   struct dir_check_data *work = xcalloc(1, sizeof *work);
   work->super.callback = &dir_check_callback;
   work->super.destroy = &dir_check_destroy;
@@ -183,8 +183,8 @@ fileinfo_result_create(Dir *dir, u32 cookie, fileinfos infos, bool is_last) {
 // dircounts will be dropped and not returned to the original directory
 // TODO: this creates two fileinfo items for every symlink that points to a
 // directory
-static void async_load_fileinfo(Async *async, Dir *dir, u32 cookie, u32 n,
-                                struct file_path_tup *files,
+static void async_load_fileinfo(struct async_ctx *async, Dir *dir, u32 cookie,
+                                u32 n, struct file_path_tup *files,
                                 hmap_dircount dircounts) {
   fileinfos infos = fileinfos_init();
 
@@ -270,7 +270,7 @@ finalize:
 
 struct dir_update_data {
   struct result super;
-  Async *async;
+  struct async_ctx *async;
   Dir *dir; // only access constant properties, such as path
   u32 cookie;
   bool load_fileinfo;
@@ -309,7 +309,7 @@ static void dir_update_callback(void *p, Lfm *lfm) {
 
 static void async_dir_load_worker(void *arg) {
   struct dir_update_data *work = arg;
-  Async *async = work->async;
+  struct async_ctx *async = work->async;
 
   hmap_dircount dircounts = hmap_dircount_move(&work->dircounts);
 
@@ -370,7 +370,7 @@ static void async_dir_load_worker(void *arg) {
   async_load_fileinfo(async, dir, work->cookie, j, files, dircounts);
 }
 
-void async_dir_load(Async *async, Dir *dir, bool load_fileinfo) {
+void async_dir_load(struct async_ctx *async, Dir *dir, bool load_fileinfo) {
   assert(dir->status != DIR_DISOWNED);
   if (dir->status == DIR_DISOWNED) {
     log_error("requested reload of disowned directory: %s", dir_path(dir).str);
@@ -411,7 +411,7 @@ void async_dir_load(Async *async, Dir *dir, bool load_fileinfo) {
   tpool_add_work(async->tpool, async_dir_load_worker, work, true);
 }
 
-void async_dir_cancel(Async *async) {
+void async_dir_cancel(struct async_ctx *async) {
   (void)async;
   c_foreach(it, set_result, async->in_progress.dirs) {
     cancel(*it.ref);

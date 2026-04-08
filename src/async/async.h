@@ -22,7 +22,7 @@ struct result_queue {
   pthread_mutex_t mutex;
 };
 
-typedef struct Async {
+struct async_ctx {
   struct tpool *tpool;
   struct result_queue queue;
   atomic_bool stop; // we store/load with relaxed
@@ -38,47 +38,47 @@ typedef struct Async {
     struct result *inotify_preview;
     struct result *chdir;
   } in_progress;
-} Async;
+};
 
-void async_init(Async *async);
+void async_ctx_init(struct async_ctx *async);
 
-void async_deinit(Async *async);
+void async_ctx_deinit(struct async_ctx *async);
 
 // Check the modification time of `dir` on disk. Possibly generates a `res_t`
 // to trigger reloading the directory.
-void async_dir_check(Async *async, struct Dir *dir);
+void async_dir_check(struct async_ctx *async, struct Dir *dir);
 
 // Reloads `dir` from disk.
-void async_dir_load(Async *async, struct Dir *dir, bool dircounts);
+void async_dir_load(struct async_ctx *async, struct Dir *dir, bool dircounts);
 
 // Check the modification time of `pv` on disk. Possibly generates a `res_t` to
 // trigger reloading the preview.
-void async_preview_check(Async *async, struct Preview *pv);
+void async_preview_check(struct async_ctx *async, struct Preview *pv);
 
 // Reloads preview of the file at `path` with `nrow` lines from disk.
-void async_preview_load(Async *async, struct Preview *pv);
+void async_preview_load(struct async_ctx *async, struct Preview *pv);
 
 // change directory to the given path, optionally run on_chdir hook
-void async_chdir(Async *async, const char *path, bool hook);
+void async_chdir(struct async_ctx *async, const char *path, bool hook);
 
 // add an inotify watcher for the given directory
-void async_inotify_add(Async *async, struct Dir *dir);
+void async_inotify_add(struct async_ctx *async, struct Dir *dir);
 
 // add an inotify watcher for a previewed directory
-void async_inotify_add_previewed(Async *async, struct Dir *dir);
+void async_inotify_add_previewed(struct async_ctx *async, struct Dir *dir);
 
 // cancel when dropping dir cache, and before setting multiple watchers
-void async_inotify_cancel(Async *async);
+void async_inotify_cancel(struct async_ctx *async);
 
 // cancel directory checks/loads when clearing the cache
-void async_dir_cancel(Async *async);
+void async_dir_cancel(struct async_ctx *async);
 
 // kills all preview loading processes, if drop is true, drops the used data
 // structures
-void async_preview_cancel(Async *async);
+void async_preview_cancel(struct async_ctx *async);
 
 // Takes ownership of chunk and arg
-void async_lua(struct Async *async, struct bytes chunk, struct bytes arg,
+void async_lua(struct async_ctx *async, struct bytes chunk, struct bytes arg,
                int ref);
 
-void async_lua_preview(struct Async *async, struct Preview *pv);
+void async_lua_preview(struct async_ctx *async, struct Preview *pv);
