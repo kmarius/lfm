@@ -4,7 +4,6 @@
 #include "defs.h"
 #include "dir.h"
 #include "hooks.h"
-#include "inotify.h"
 #include "lfm.h"
 #include "loop.h"
 #include "path.h"
@@ -22,7 +21,7 @@
 
 // key is zsview of preview->path and owned by dir
 #define i_declared
-#define i_type previewcache
+#define i_type map_zsview_preview
 #define i_key zsview
 #define i_val Preview *
 #define i_valdrop(p) preview_dec_ref(*(p))
@@ -53,19 +52,19 @@ struct load_timer {
 static inline void apply_dir_settings(Dir *dir);
 
 void loader_ctx_init(struct loader_ctx *ctx) {
-  ctx->dc = map_zsview_dir_init();
-  ctx->pc = previewcache_init();
+  ctx->dir_cache = map_zsview_dir_init();
+  ctx->preview_cache = map_zsview_preview_init();
 }
 
 void loader_ctx_deinit(struct loader_ctx *ctx) {
   list_load_timer_drop(&ctx->dir_timers);
   list_load_timer_drop(&ctx->preview_timers);
-  map_zsview_dir_drop(&ctx->dc);
-  previewcache_drop(&ctx->pc);
+  map_zsview_dir_drop(&ctx->dir_cache);
+  map_zsview_preview_drop(&ctx->preview_cache);
 }
 
 Dir *loader_dir_get_mut(struct loader_ctx *ctx, zsview path) {
-  map_zsview_dir_entry *v = map_zsview_dir_get_mut(&ctx->dc, path);
+  map_zsview_dir_entry *v = map_zsview_dir_get_mut(&ctx->dir_cache, path);
   if (!v)
     return NULL;
   return v->second;
@@ -196,7 +195,7 @@ Dir *loader_dir_from_path(struct loader_ctx *ctx, zsview path, bool do_load) {
     path.str = buf;
   }
 
-  map_zsview_dir_value *v = map_zsview_dir_get_mut(&ctx->dc, path);
+  map_zsview_dir_value *v = map_zsview_dir_get_mut(&ctx->dir_cache, path);
   Dir *dir = v ? v->second : NULL;
   if (dir) {
     if (do_load) {
@@ -220,7 +219,7 @@ Dir *loader_dir_from_path(struct loader_ctx *ctx, zsview path, bool do_load) {
     dir = dir_create(path);
     apply_dir_settings(dir);
 
-    map_zsview_dir_insert(&ctx->dc, dir_path(dir), dir_inc_ref(dir));
+    map_zsview_dir_insert(&ctx->dir_cache, dir_path(dir), dir_inc_ref(dir));
     if (do_load) {
       async_dir_load(&to_lfm(ctx)->async, dir, false);
       dir->last_loading_action = current_millis();
@@ -243,7 +242,8 @@ Preview *loader_preview_from_path(struct loader_ctx *ctx, zsview path,
     path.size = len;
   }
 
-  previewcache_value *v = previewcache_get_mut(&ctx->pc, path);
+  map_zsview_preview_value *v =
+      map_zsview_preview_get_mut(&ctx->preview_cache, path);
   Preview *preview;
   if (v) {
     // preview existing in cache
@@ -267,7 +267,8 @@ Preview *loader_preview_from_path(struct loader_ctx *ctx, zsview path,
     preview =
         preview_create_loading(path, to_lfm(ctx)->ui.y, to_lfm(ctx)->ui.x);
     preview_inc_ref(preview);
-    previewcache_insert(&ctx->pc, cstr_zv(&preview->path), preview);
+    map_zsview_preview_insert(&ctx->preview_cache, cstr_zv(&preview->path),
+                              preview);
     if (do_load) {
       async_preview_load(&to_lfm(ctx)->async, preview);
     }
@@ -276,10 +277,10 @@ Preview *loader_preview_from_path(struct loader_ctx *ctx, zsview path,
 }
 
 void loader_drop_preview_cache(struct loader_ctx *ctx) {
-  c_foreach(it, previewcache, ctx->pc) {
+  c_foreach(it, map_zsview_preview, ctx->preview_cache) {
     (*it.ref).second->status = PV_LOADING_DISOWNED;
   }
-  previewcache_clear(&ctx->pc);
+  map_zsview_preview_clear(&ctx->preview_cache);
   c_foreach(it, list_load_timer, ctx->preview_timers) {
     ev_timer_stop(event_loop, &it.ref->watcher);
   }
@@ -289,10 +290,10 @@ void loader_drop_preview_cache(struct loader_ctx *ctx) {
 void loader_drop_dir_cache(struct loader_ctx *ctx) {
   // we can't drop dirs that are referenced by lua
   // unload those instead and re-insert afterwards
-  c_foreach(it, map_zsview_dir, ctx->dc) {
+  c_foreach(it, map_zsview_dir, ctx->dir_cache) {
     (*it.ref).second->status = DIR_DISOWNED;
   }
-  map_zsview_dir_clear(&ctx->dc);
+  map_zsview_dir_clear(&ctx->dir_cache);
 
   c_foreach(it, list_load_timer, ctx->dir_timers) {
     ev_timer_stop(event_loop, &it.ref->watcher);
@@ -329,7 +330,8 @@ void loader_reschedule(struct loader_ctx *ctx) {
 }
 
 Preview *loader_preview_get(struct loader_ctx *ctx, zsview path) {
-  previewcache_value *v = previewcache_get_mut(&ctx->pc, path);
+  map_zsview_preview_value *v =
+      map_zsview_preview_get_mut(&ctx->preview_cache, path);
   return v ? v->second : NULL;
 }
 

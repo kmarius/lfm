@@ -364,7 +364,7 @@ void fm_on_resize(Fm *fm, u32 height) {
 
   // TODO: is there a way to restore the position when just undoing a previous
   // resize?
-  c_foreach(v, map_zsview_dir, to_lfm(fm)->loader.dc) {
+  c_foreach(v, map_zsview_dir, to_lfm(fm)->loader.dir_cache) {
     Dir *dir = v.ref->second;
     if (height > fm->height) {
       // terminal grew

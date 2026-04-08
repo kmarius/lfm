@@ -14,7 +14,7 @@ struct Dir;
 
 #include "stc/types.h"
 declare_dlist(list_load_timer, struct load_timer);
-declare_hmap(previewcache, zsview, struct Preview *);
+declare_hmap(map_zsview_preview, zsview, struct Preview *);
 
 // key is zsview of dir->path and owned by dir
 #define i_type map_zsview_dir
@@ -27,10 +27,9 @@ declare_hmap(previewcache, zsview, struct Preview *);
 #include "stc/hmap.h"
 
 struct loader_ctx {
-  map_zsview_dir dc;
-  previewcache pc;
-
+  map_zsview_dir dir_cache;
   list_load_timer dir_timers;
+  map_zsview_preview preview_cache;
   list_load_timer preview_timers;
 };
 

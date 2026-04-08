@@ -224,7 +224,7 @@ void lfm_init(Lfm *lfm, struct lfm_opts *opts) {
   // Initialize lua state, we need to run some hooks that could not run during
   // fm initialization.
   PROFILE("lua_init", { lfm_lua_init(lfm); });
-  c_foreach(v, map_zsview_dir, lfm->loader.dc) {
+  c_foreach(v, map_zsview_dir, lfm->loader.dir_cache) {
     LFM_RUN_HOOK(lfm, LFM_HOOK_DIRLOADED, dir_path(v.ref->second));
   }
 }

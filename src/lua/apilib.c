@@ -465,7 +465,8 @@ static int l_get_tags(lua_State *L) {
   LUA_CHECK_ARGC(L, 1);
   luaL_checktype(L, 1, LUA_TSTRING);
   zsview path = lua_tozsview(L, 1);
-  map_zsview_dir_value *v = map_zsview_dir_get_mut(&lfm->loader.dc, path);
+  map_zsview_dir_value *v =
+      map_zsview_dir_get_mut(&lfm->loader.dir_cache, path);
   lua_newtable(L);
   if (v == NULL)
     return 1;
@@ -485,7 +486,8 @@ static int l_set_tags(lua_State *L) {
   luaL_checktype(L, 1, LUA_TSTRING);
   zsview path = lua_tozsview(L, 1);
 
-  map_zsview_dir_value *v = map_zsview_dir_get_mut(&lfm->loader.dc, path);
+  map_zsview_dir_value *v =
+      map_zsview_dir_get_mut(&lfm->loader.dir_cache, path);
   if (v == NULL) {
     // not loaded
     lua_pushboolean(L, false);
