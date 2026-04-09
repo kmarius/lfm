@@ -98,10 +98,8 @@ void infoline_parse(zsview infoline) {
   num_placeholders++;
   static_len = 0;
 
-  if (zsview_is_empty(infoline)) {
-    // this will draw the default line
-    return;
-  }
+  if (zsview_is_empty(infoline))
+    return; // this will draw the default line
 
   char const *buf_end = static_buf + sizeof static_buf - 1;
   const char *line_end = infoline.str + infoline.size;

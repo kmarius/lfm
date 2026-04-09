@@ -35,9 +35,8 @@ static inline int llua_dir_settings_set(lua_State *L, zsview path, int ind) {
   if (!lua_isnil(L, -1)) {
     const char *op = luaL_checkstring(L, -1);
     int type = sorttype_from_str(op);
-    if (type < 0) {
+    if (unlikely(type < 0))
       return luaL_error(L, "unrecognized sort type: %s", op);
-    }
     s.sorttype = type;
   }
   lua_pop(L, 1);
@@ -227,14 +226,13 @@ static int l_config_newindex(lua_State *L) {
   } else if (streq(key, "ratios")) {
     luaL_checktype(L, 3, LUA_TTABLE);
     const usize l = lua_objlen(L, 3);
-    if (l == 0) {
+    if (unlikely(l == 0))
       luaL_argerror(L, 3, "no ratios given");
-    }
     vec_int ratios = vec_int_init();
     for (u32 i = 1; i <= l; i++) {
       lua_rawgeti(L, 3, i);
       i32 val = lua_tointeger(L, -1);
-      if (val <= 0) {
+      if (unlikely(val <= 0)) {
         vec_int_drop(&ratios);
         return luaL_error(L, "ratio must be non-negative");
       }
@@ -251,9 +249,8 @@ static int l_config_newindex(lua_State *L) {
     lua_read_vec_cstr(L, 3, &cfg.inotify_blacklist);
   } else if (streq(key, "inotify_timeout")) {
     long n = luaL_checkinteger(L, 3);
-    if (n < 100) {
+    if (unlikely(n < 100))
       luaL_argerror(L, 3, "timeout must be larger than 100");
-    }
     cfg.inotify_timeout = n;
     loader_reschedule(&lfm->loader);
   } else if (streq(key, "inotify_delay")) {
@@ -287,7 +284,8 @@ static int l_config_newindex(lua_State *L) {
     luaL_checktype(L, 3, LUA_TTABLE);
     hmap_icon_clear(&cfg.icon_map);
     for (lua_pushnil(L); lua_next(L, -2) != 0; lua_pop(L, 1)) {
-      if (lua_type(L, -2) != LUA_TSTRING || lua_type(L, -1) != LUA_TSTRING) {
+      if (unlikely(lua_type(L, -2) != LUA_TSTRING ||
+                   lua_type(L, -1) != LUA_TSTRING)) {
         return luaL_error(L, "icon_map: non-string key/value found");
       }
       hmap_icon_emplace_or_assign(&cfg.icon_map, lua_tostring(L, -2),
@@ -356,7 +354,7 @@ static int l_config_newindex(lua_State *L) {
   } else if (streq(key, "linkchars")) {
     usize len;
     const char *val = luaL_checklstring(L, 3, &len);
-    if (len > sizeof cfg.linkchars - 1) {
+    if (unlikely(len > sizeof cfg.linkchars - 1)) {
       return luaL_error(L, "linkchars too long");
     }
     strncpy(cfg.linkchars, val, sizeof(cfg.linkchars) - 1);
@@ -381,9 +379,8 @@ static int l_config_newindex(lua_State *L) {
     }
   } else if (streq(key, "mapleader")) {
     input_t key;
-    if (key_name_to_input(luaL_checkstring(L, 3), &key) < 0) {
+    if (unlikely(key_name_to_input(luaL_checkstring(L, 3), &key) < 0))
       return luaL_error(L, "invalid key");
-    }
     cfg.mapleader = key;
   } else if (streq(key, "extra_env")) {
     vec_env_clear(&cfg.extra_env);

@@ -19,7 +19,7 @@ static void fifo_cb(EV_P_ ev_io *w, i32 revents);
 i32 fifo_init(Lfm *lfm) {
   log_trace("setting up fifo");
 
-  if ((mkfifo(cstr_str(&cfg.fifopath), 0600) == -1 && errno != EEXIST)) {
+  if (mkfifo(cstr_str(&cfg.fifopath), 0600) == -1 && errno != EEXIST) {
     log_error("mkfifo: %s", strerror(errno));
     return -1;
   }
@@ -53,28 +53,27 @@ static void fifo_cb(EV_P_ ev_io *w, i32 revents) {
 
   Lfm *lfm = w->data;
 
-  char buf[512];
+  char buf[4];
+  char *buf1 = buf;
   isize nread = read(w->fd, buf, sizeof buf);
 
-  if (nread <= 0) {
+  if (nread <= 0)
     return;
-  }
 
-  if ((usize)nread < sizeof buf) {
-    lfm_lua_evaln(lfm->L, buf, nread);
-  } else {
+  usize length = nread;
+  if (length == sizeof buf) {
     usize capacity = 2 * sizeof buf;
-    char *dyn_buf = xmalloc(capacity);
-    usize length = nread;
-    memcpy(dyn_buf, buf, nread);
-    while ((nread = read(fifo_fd, dyn_buf + length, capacity - length)) > 0) {
+    buf1 = xmalloc(capacity);
+    memcpy(buf1, buf, sizeof buf);
+    while ((nread = read(fifo_fd, buf1 + length, capacity - length)) > 0) {
       length += nread;
       if (length == capacity) {
         capacity *= 2;
-        dyn_buf = xrealloc(dyn_buf, capacity);
+        buf1 = xrealloc(buf1, capacity);
       }
     }
-    lfm_lua_evaln(lfm->L, dyn_buf, length);
-    xfree(dyn_buf);
   }
+  lfm_lua_evaln(lfm->L, buf1, length);
+  if (buf1 != buf)
+    xfree(buf1);
 }

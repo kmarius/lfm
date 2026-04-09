@@ -52,9 +52,9 @@ static void normal_on_enter(Lfm *lfm) {
 }
 
 i32 lfm_mode_register(Lfm *lfm, struct mode *mode) {
-  if (lfm_mode_exists(lfm, cstr_zv(&mode->name))) {
+  if (lfm_mode_exists(lfm, cstr_zv(&mode->name)))
     return 1;
-  }
+
   cstr current = lfm->current_mode ? lfm->current_mode->name : cstr_init();
   hmap_modes_result res =
       hmap_modes_emplace(&lfm->modes, cstr_zv(&mode->name), *mode);
@@ -68,7 +68,7 @@ i32 lfm_mode_register(Lfm *lfm, struct mode *mode) {
 
 i32 lfm_mode_enter(Lfm *lfm, zsview name) {
   hmap_modes_value *v = hmap_modes_get_mut(&lfm->modes, name);
-  if (v == NULL)
+  if (unlikely(v == NULL))
     return 1;
 
   struct mode *mode = &v->second;
@@ -90,9 +90,8 @@ i32 lfm_mode_enter(Lfm *lfm, zsview name) {
 }
 
 i32 lfm_mode_exit(Lfm *lfm, zsview name) {
-  if (cstr_equals_zv(&lfm->current_mode->name, name)) {
+  if (cstr_equals_zv(&lfm->current_mode->name, name))
     return lfm_mode_normal(lfm);
-  }
   return 1;
 }
 

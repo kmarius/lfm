@@ -89,7 +89,7 @@ static void stdin_cb(EV_P_ ev_io *w, i32 revents) {
     if (in.id == 0)
       break;
 
-    if (in.id == NCKEY_EOF) {
+    if (unlikely(in.id == NCKEY_EOF)) {
       log_debug("received EOF, quitting");
       lfm_quit(lfm, 0);
       return;
@@ -111,9 +111,8 @@ static void stdin_cb(EV_P_ ev_io *w, i32 revents) {
                 in.shift, in.ctrl, in.alt, in.evtype,
                 in.utf8[1] != 0 || isprint(in.utf8[0]) ? in.utf8 : "");
       input_t key = ncinput_to_input(&in);
-      if (macro_recording) {
+      if (macro_recording)
         macro_add_key(key);
-      }
       input_handle_key(lfm, key);
     }
   }
@@ -309,7 +308,7 @@ static inline void handle_input_mode_key(Lfm *lfm, input_t in) {
 
   char buf[MB_LEN_MAX + 1];
   i32 n = wctomb(buf, in);
-  if (n < 0) {
+  if (unlikely(n < 0)) {
     log_error("invalid input: %lu", in);
     n = 0;
   }
@@ -321,7 +320,7 @@ static inline void handle_input_mode_key(Lfm *lfm, input_t in) {
 }
 
 void input_handle_key(Lfm *lfm, input_t in) {
-  if (in == CTRL('Q') || in == CTRL('q')) {
+  if (unlikely(in == CTRL('Q') || in == CTRL('q'))) {
     log_debug("received ctrl-q, quitting");
     lfm_quit(lfm, 0);
     return;

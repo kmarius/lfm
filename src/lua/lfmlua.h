@@ -62,7 +62,7 @@ bool lfm_lua_filter(lua_State *L, int ref, zsview name);
 // Gets the previously stored (via lua_set_callback) element with reference ref
 // from the registry and leaves it at the top of the stack.
 static inline void lfm_lua_push_callback(lua_State *L, i32 ref, bool unref) {
-  if (unlikely(!L))
+  if (unlikely(L == NULL))
     return;
   lua_rawgeti(L, LUA_REGISTRYINDEX, ref); // [elem]
   if (unref)

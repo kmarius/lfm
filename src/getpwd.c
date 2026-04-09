@@ -16,7 +16,7 @@ void setpwd(const char *path) {
 isize getpwd_buf(char *buf, usize bufzs) {
   pthread_rwlock_rdlock(&lock);
   isize len = cstr_size(&PWD);
-  if (len + 1 > (isize)bufzs) {
+  if (unlikely(len + 1 > (isize)bufzs)) {
     pthread_rwlock_unlock(&lock);
     return -1;
   }

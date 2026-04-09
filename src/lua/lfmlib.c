@@ -158,7 +158,7 @@ static int l_thread(lua_State *L) {
   if (lua_type(L, 1) == LUA_TFUNCTION) {
     // try to string.dump the function and insert it at position 1
     // TODO: we could store a ref to encode
-    if (lua_string_dump(L, 1))
+    if (unlikely(lua_string_dump(L, 1)))
       return lua_error(L);
     lua_replace(L, 1);
   }
@@ -172,7 +172,7 @@ static int l_thread(lua_State *L) {
   bytes arg = bytes_init();
   if (lua_gettop(L) == 3) {
     // encode optional argument
-    if (lua_encode(L, 3, &arg)) {
+    if (unlikely(lua_encode(L, 3, &arg))) {
       bytes_drop(&chunk);
       return lua_error(L);
     }

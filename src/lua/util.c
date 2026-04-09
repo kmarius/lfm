@@ -32,9 +32,8 @@ void set_package_path(lua_State *L) {
   char *ptr = strstr(buf, "./?.lua");
   if (ptr != NULL) {
     i32 l = sizeof "./?.lua" - 1;
-    if (buf[l] == ';') {
+    if (buf[l] == ';')
       l++;
-    }
     memmove(ptr, ptr + l, len - (ptr - buf) + 1);
     len -= l;
   }
@@ -83,7 +82,7 @@ int lua_encode(lua_State *L, int idx, bytes *chunk) {
   lua_pushstring(L, "string.buffer"); // [value, require, "string.buffer"]
 
   int status = lua_pcall(L, 1, 1, 0);
-  if (status != LUA_OK) {
+  if (unlikely(status != LUA_OK)) {
     // [value, err]
     lua_remove(L, -2);
     return status;
@@ -95,7 +94,7 @@ int lua_encode(lua_State *L, int idx, bytes *chunk) {
   lua_insert(L, -2);             // [encode, value]
 
   status = lua_pcall(L, 1, 1, 0);
-  if (status != LUA_OK) {
+  if (unlikely(status != LUA_OK)) {
     // [err]
     return status;
   }
@@ -112,7 +111,7 @@ int lua_decode(lua_State *L, bytes chunk) {
   lua_pushstring(L, "string.buffer"); // [require, "string.buffer"]
 
   int status = lua_pcall(L, 1, 1, 0);
-  if (status != LUA_OK) {
+  if (unlikely(status != LUA_OK)) {
     // [err]
     return status;
   }
@@ -123,7 +122,7 @@ int lua_decode(lua_State *L, bytes chunk) {
   lua_pushbytes(L, chunk);       // [decode, bytes]
 
   status = lua_pcall(L, 1, 1, 0);
-  if (status != LUA_OK) {
+  if (unlikely(status != LUA_OK)) {
     // [err]
     return status;
   }
@@ -256,9 +255,8 @@ int lua_string_dump(lua_State *L, int idx) {
   lua_remove(L, -2);           // [string.dump]
   lua_pushvalue(L, idx);       // [string.dump, func]
   int status = lua_pcall(L, 1, 1, 0);
-  if (status != LUA_OK) {
+  if (unlikely(status != LUA_OK))
     return status;
-  }
   // [bytecode]
   return LUA_OK;
 }

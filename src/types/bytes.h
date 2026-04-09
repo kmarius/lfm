@@ -19,9 +19,8 @@ static inline bytes bytes_init() {
 }
 
 static inline bytes bytes_from_n(const char *data, usize size) {
-  if (unlikely(size == 0)) {
+  if (unlikely(size == 0))
     return bytes_init();
-  }
   char *data_ = memdup(data, size);
   return (bytes){data_, data_ ? size : 0};
 }
@@ -37,7 +36,7 @@ static inline bytes bytes_move(bytes *self) {
 }
 
 static inline void bytes_drop(bytes *self) {
-  if (self) {
+  if (likely(self)) {
     free(self->buf);
   }
 }
@@ -47,7 +46,7 @@ static inline bool bytes_is_empty(bytes bs) {
 }
 
 static inline bytes *bytes_take(bytes *self, const bytes s) {
-  if (self->buf != s.buf)
+  if (likely(self->buf != s.buf))
     bytes_drop(self);
   *self = s;
   return self;

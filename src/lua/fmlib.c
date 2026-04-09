@@ -49,7 +49,7 @@ static int l_load(lua_State *L) {
   char buf[PATH_MAX + 1];
   zsview path = luaL_checkzsview(L, 1);
   zsview normalized = path_normalize3(path, fm_getpwd_str(fm), buf, sizeof buf);
-  if (zsview_is_empty(normalized))
+  if (unlikely(zsview_is_empty(normalized)))
     return luaL_error(L, "path too long");
   loader_dir_from_path(&lfm->loader, normalized, true);
   return 0;
@@ -177,7 +177,7 @@ static int l_current_file(lua_State *L) {
 static int l_push_files(lua_State *L) {
   zsview path = lua_tozsview(L, lua_upvalueindex(1));
   Dir *dir = loader_dir_from_path(&lfm->loader, path, false);
-  if (dir == NULL)
+  if (unlikely(dir == NULL))
     return luaL_error(L, "no such directory: %s", path.str);
 
   lua_createtable(L, dir_length(dir), 0);
@@ -225,7 +225,7 @@ static int l_get_info(lua_State *L) {
 static int l_set_info(lua_State *L) {
   const char *val = luaL_checkstring(L, 1);
   int info = fileinfo_from_str(val);
-  if (info < 0)
+  if (unlikely(info < 0))
     return luaL_error(L, "invalid option for info: %s", val);
   Dir *dir = fm_current_dir(fm);
   dir->settings.fileinfo = info;
@@ -254,7 +254,7 @@ static int l_add_selection(lua_State *L) {
     zsview path = lua_tozsview(L, -1);
     zsview normalized =
         path_normalize3(path, fm_getpwd_str(fm), buf, sizeof buf);
-    if (zsview_is_empty(normalized))
+    if (unlikely(zsview_is_empty(normalized)))
       return luaL_error(L, "path too long");
     selection_add_path(fm, zsview_from(buf), false);
     lua_pop(L, 1);
@@ -267,9 +267,8 @@ static int l_add_selection(lua_State *L) {
 }
 
 static int l_set_selection(lua_State *L) {
-  if (lua_gettop(L) > 0 && !lua_isnil(L, 1) && !lua_istable(L, 1)) {
+  if (unlikely(lua_gettop(L) > 0 && !lua_isnil(L, 1) && !lua_istable(L, 1)))
     return luaL_argerror(L, 1, "table or nil required");
-  }
   char buf[PATH_MAX];
   selection_clear(fm);
   lfm_mode_exit(lfm, c_zv("visual"));
@@ -278,7 +277,7 @@ static int l_set_selection(lua_State *L) {
       zsview str = lua_tozsview(L, -1);
       zsview normalized =
           path_normalize3(str, fm_getpwd_str(fm), buf, sizeof buf);
-      if (zsview_is_empty(normalized))
+      if (unlikely(zsview_is_empty(normalized)))
         return luaL_error(L, "path too long");
       selection_add_path(fm, zsview_from(buf), false);
     }
@@ -327,7 +326,7 @@ static int l_chdir(lua_State *L) {
                       (last_slash != NULL && last_slash[1] != 0));
 
   zsview path = path_normalize3(arg, fm_getpwd_str(fm), buf, sizeof buf);
-  if (zsview_is_empty(path))
+  if (unlikely(zsview_is_empty(path)))
     return luaL_error(L, "path too long");
 
   search_nohighlight(lfm);

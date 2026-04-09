@@ -42,23 +42,17 @@ static int l_set_keymap(lua_State *L) {
     lua_pop(L, 1);
   }
 
-  int ref = 0;
-  if (!lua_isnil(L, 2)) {
-    lua_pushvalue(L, 2);
-    ref = luaL_ref(L, LUA_REGISTRYINDEX);
-  }
+  lua_pushvalue(L, 2);
+  int ref = luaL_ref(L, LUA_REGISTRYINDEX);
 
   int oldref;
-
   int status = input_map(trie, lhs, ref, desc, &oldref);
-  if (status < 0) {
+  if (unlikely(status < 0)) {
     if (ref != 0)
       luaL_unref(L, LUA_REGISTRYINDEX, ref);
-    if (status == -2) {
+    if (status == -2)
       return luaL_error(L, "key sequence too long");
-    } else {
-      return luaL_error(L, "malformed key sequence");
-    }
+    return luaL_error(L, "malformed key sequence");
   }
 
   if (oldref)
@@ -84,13 +78,11 @@ static int l_del_keymap(lua_State *L) {
   }
 
   int oldref;
-
   int status = input_map(trie, lhs, 0, zsview_init(), &oldref);
-  if (status < 0) {
+  if (unlikely(status < 0)) {
     if (status == -2)
       return luaL_error(L, "key sequence too long");
-    else
-      return luaL_error(L, "malformed key sequence");
+    return luaL_error(L, "malformed key sequence");
   }
 
   if (oldref)
@@ -102,7 +94,7 @@ static int l_del_keymap(lua_State *L) {
 static int l_get_keymap(lua_State *L) {
   zsview name = luaL_checkzsview(L, 1);
   const struct mode *mode = hmap_modes_at(&lfm->modes, name);
-  if (!mode)
+  if (unlikely(mode == NULL))
     return luaL_error(L, "no such mode: %s", name);
 
   bool prune = luaL_optbool(L, 2, false);

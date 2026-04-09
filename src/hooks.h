@@ -72,7 +72,7 @@ static inline lfm_hook_id hook_name_to_id(const char *name) {
         if (N) /* the weird comparison shuts up the compiler */                \
           for (u32 hooks_h_i = 0; hooks_h_i < (N ? N : 1); hooks_h_i++)        \
             lua_pushvalue((lfm)->L, -(N + 1));                                 \
-        if (lfm_lua_pcall((lfm)->L, N, 0) != LUA_OK) {                         \
+        if (unlikely(lfm_lua_pcall((lfm)->L, N, 0) != LUA_OK)) {               \
           lfm_errorf(lfm, "%s", lua_tostring((lfm)->L, -1));                   \
           lua_pop((lfm)->L, 1);                                                \
         }                                                                      \

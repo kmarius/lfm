@@ -75,20 +75,19 @@ void history_load(History *h, zsview path) {
   memset(h, 0, sizeof *h);
 
   FILE *fp = fopen(path.str, "r");
-  if (fp == NULL) {
+  if (unlikely(fp == NULL))
     return;
-  }
 
   isize read;
   usize n;
   char *buf = NULL;
 
   while ((read = getline(&buf, &n, fp)) != -1) {
-    if (buf[read - 1] == '\n') {
+    if (buf[read - 1] == '\n')
       buf[--read] = 0;
-    }
+
     char *sep = strchr(buf, '\t');
-    if (sep == NULL) {
+    if (unlikely(sep == NULL)) {
       log_error("missing tab in history item: %s", buf);
       continue;
     }
@@ -97,7 +96,7 @@ void history_load(History *h, zsview path) {
     zsview prefix = zsview_from_n(buf, pos);
     zsview line = zsview_from_n(sep + 1, read - pos - 1);
 
-    if (zsview_is_empty(prefix) || zsview_is_empty(line)) {
+    if (unlikely(zsview_is_empty(prefix) || zsview_is_empty(line))) {
       log_error("missing prefix or line in history item: %s", buf);
       continue;
     }
@@ -117,12 +116,12 @@ void history_write(History *h, zsview path, i32 histsize) {
   char path_new[PATH_MAX + 1];
   snprintf(path_new, sizeof path_new - 1, "%s.XXXXXX", path.str);
   i32 fd = mkstemp(path_new);
-  if (fd < 0) {
+  if (unlikely(fd < 0)) {
     log_error("mkstemp: %s", strerror(errno));
     return;
   }
   FILE *fp_new = fdopen(fd, "w");
-  if (fp_new == NULL) {
+  if (unlikely(fp_new == NULL)) {
     log_error("fdopen: %s", strerror(errno));
     return;
   }
@@ -148,13 +147,11 @@ void history_write(History *h, zsview path, i32 histsize) {
       const i32 num_skip_old = num_old_lines - num_keep_old;
       i32 i = 0;
       while (i < num_skip_old && (c = fgetc(fp_old)) != EOF) {
-        if (c == '\n') {
+        if (c == '\n')
           i++;
-        }
       }
-      while ((c = fgetc(fp_old)) != EOF) {
+      while ((c = fgetc(fp_old)) != EOF)
         fputc(c, fp_new);
-      }
       fclose(fp_old);
       num_lines_written =
           num_old_lines > num_keep_old ? num_keep_old : num_old_lines;
@@ -175,17 +172,16 @@ void history_write(History *h, zsview path, i32 histsize) {
     for (; it.ref != _history_list_back(&h->list) && num_skip_new > 0;
          _history_list_next(&it)) {
       struct history_entry *e = it.ref;
-      if (e->is_new) {
+      if (e->is_new)
         num_skip_new--;
-      }
     }
 
     // write our new entries to path_new
     for (; it.ref; _history_list_next(&it)) {
       struct history_entry *e = it.ref;
-      if (!e->is_new) {
+      if (!e->is_new)
         continue;
-      }
+
       fwrite(cstr_str(&e->prefix), 1, cstr_size(&e->prefix), fp_new);
       fputc('\t', fp_new);
       fwrite(cstr_str(&e->line), 1, cstr_size(&e->line), fp_new);
@@ -203,13 +199,11 @@ void history_deinit(History *h) {
 }
 
 void history_append(History *h, zsview prefix, zsview line) {
-  if (zsview_is_empty(prefix) || zsview_is_empty(line)) {
+  if (zsview_is_empty(prefix) || zsview_is_empty(line))
     return;
-  }
 
-  if (append_or_move(h, prefix, line)) {
+  if (append_or_move(h, prefix, line))
     h->num_new_entries++;
-  }
 
   // reset cursor
   history_reset(h);
@@ -223,28 +217,24 @@ zsview history_prev(History *h) {
   if (h->cur.ref == NULL) {
     h->cur = _history_list_last(&h->list);
   } else {
-    if (h->cur.ref != _history_list_front(&h->list)) {
+    if (h->cur.ref != _history_list_front(&h->list))
       _history_list_prev(&h->cur);
-    }
   }
 
-  if (h->cur.ref == NULL) {
+  if (h->cur.ref == NULL)
     return c_zv("");
-  }
 
   return cstr_zv(&h->cur.ref->line);
 }
 
 zsview history_next_entry(History *h) {
-  if (h->cur.ref == NULL) {
+  if (h->cur.ref == NULL)
     return c_zv("");
-  }
 
   _history_list_next(&h->cur);
 
-  if (h->cur.ref == NULL) {
+  if (h->cur.ref == NULL)
     return c_zv("");
-  }
 
   return cstr_zv(&h->cur.ref->line);
 }

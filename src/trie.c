@@ -85,7 +85,7 @@ i32 trie_remove(Trie *t, const input_t *trie_keys) {
 }
 
 void trie_destroy(Trie *t) {
-  if (!t)
+  if (unlikely(t == NULL))
     return;
 
   for (Trie *next, *n = t->child; n; n = next) {

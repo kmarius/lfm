@@ -14,9 +14,8 @@ static int l_fn_normalize(lua_State *L) {
   char buf[PATH_MAX + 1];
   zsview path = luaL_checkzsview(L, 1);
   zsview normalized = path_normalize3(path, NULL, buf, sizeof buf);
-  if (zsview_is_empty(normalized)) {
+  if (unlikely(zsview_is_empty(normalized)))
     return luaL_error(L, "path too long");
-  }
   lua_pushzsview(L, normalized);
   return 1;
 }
@@ -24,11 +23,10 @@ static int l_fn_normalize(lua_State *L) {
 static int l_fn_mime(lua_State *L) {
   char mime[256];
   const char *path = luaL_checkstring(L, 1);
-  if (get_mimetype(path, mime, sizeof mime)) {
-    lua_pushstring(L, mime);
-    return 1;
-  }
-  return 0;
+  if (unlikely(get_mimetype(path, mime, sizeof mime)))
+    return 0;
+  lua_pushstring(L, mime);
+  return 1;
 }
 
 static int l_fn_tokenize(lua_State *L) {
@@ -36,9 +34,8 @@ static int l_fn_tokenize(lua_State *L) {
   char *buf = buf1;
   usize len;
   const char *string = luaL_checklstring(L, 1, &len);
-  if (len + 1 > sizeof buf1) {
+  if (len + 1 > sizeof buf1)
     buf = xmalloc(len + 1);
-  }
   const char *pos1, *tok;
   char *pos2;
   if ((tok = tokenize(string, buf, &pos1, &pos2))) {
@@ -50,27 +47,25 @@ static int l_fn_tokenize(lua_State *L) {
     lua_pushstring(L, tok);
     lua_rawseti(L, -2, i++);
   }
-  if (buf != buf1) {
+  if (buf != buf1)
     xfree(buf);
-  }
   return 2;
 }
 
 static int l_fn_split_last(lua_State *L) {
   usize len;
   const char *string = luaL_checklstring(L, 1, &len);
-  if (len == 0) {
+  if (unlikely(len == 0))
     return luaL_error(L, "empty string");
-  }
+
   bool esc = false;
   u32 last = 0;
   for (u32 i = 0; i < len; i++) {
     if (string[i] == '\\') {
       esc = !esc;
     } else {
-      if (string[i] == ' ' && !esc) {
+      if (string[i] == ' ' && !esc)
         last = i + 1;
-      }
       esc = false;
     }
   }
@@ -84,9 +79,8 @@ static int l_fn_unquote_space(lua_State *L) {
   char *buf = buf1;
   usize len;
   const char *string = luaL_checklstring(L, 1, &len);
-  if (len + 1 > sizeof buf1) {
+  if (len + 1 > sizeof buf1)
     buf = xmalloc(len + 1);
-  }
   char *t = buf;
   for (const char *s = string; *s != 0; s++) {
     if (*s != '\\' || *(s + 1) != ' ') {
@@ -94,9 +88,8 @@ static int l_fn_unquote_space(lua_State *L) {
     }
   }
   lua_pushlstring(L, buf, t - buf);
-  if (buf != buf1) {
+  if (buf != buf1)
     xfree(buf);
-  }
   return 1;
 }
 
@@ -105,9 +98,8 @@ static int l_fn_quote_space(lua_State *L) {
   char *buf = buf1;
   usize len;
   const char *string = luaL_checklstring(L, 1, &len);
-  if (2 * len + 1 > sizeof buf1) {
+  if (2 * len + 1 > sizeof buf1)
     buf = xmalloc(len * 2 + 1);
-  }
   char *t = buf;
   for (const char *s = string; *s; s++) {
     if (*s == ' ') {
@@ -116,9 +108,8 @@ static int l_fn_quote_space(lua_State *L) {
     *t++ = *s;
   }
   lua_pushlstring(L, buf, t - buf);
-  if (buf != buf1) {
+  if (buf != buf1)
     xfree(buf);
-  }
   return 1;
 }
 

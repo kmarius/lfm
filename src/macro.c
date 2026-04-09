@@ -82,7 +82,7 @@ i32 macro_play(input_t id, struct Lfm *lfm) {
 }
 
 i32 macro_add_key(input_t key) {
-  if (current == NULL) {
+  if (unlikely(current == NULL)) {
     log_error("macro_add_key called but not recording");
     return -1;
   }

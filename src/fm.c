@@ -36,10 +36,10 @@ void fm_init(Fm *fm, struct lfm_opts *opts) {
   fm->cursor_resting_timer.data = to_lfm(fm);
 
   if (!cstr_is_empty(&opts->startpath)) {
-    if (chdir(cstr_str(&opts->startpath)) != 0) {
-      lfm_perror(to_lfm(fm), "chdir");
-    } else {
+    if (chdir(cstr_str(&opts->startpath)) == 0) {
       fm->pwd = cstr_move(&opts->startpath);
+    } else {
+      lfm_perror(to_lfm(fm), "chdir");
     }
   }
 
@@ -142,12 +142,11 @@ static inline bool fm_chdir_impl(Fm *fm, zsview path, bool save, bool hook,
   if (async) {
     async_chdir(&to_lfm(fm)->async, path.str, hook);
   } else {
-    if (chdir(path.str) == 0) {
-      setpwd(path.str);
-    } else {
+    if (unlikely(chdir(path.str) != 0)) {
       lfm_perror(to_lfm(fm), "chdir");
       return false;
     }
+    setpwd(path.str);
   }
 
   inotify_remove_watchers(&to_lfm(fm)->inotify);
@@ -199,7 +198,7 @@ static inline void fm_update_watchers(Fm *fm) {
 /* TODO: maybe we can select the closest non-hidden file in case the
  * current one will be hidden (on 2021-10-17) */
 static inline void sort_and_reselect(Fm *fm, Dir *dir) {
-  if (!dir)
+  if (unlikely(dir == NULL))
     return;
 
   /* TODO: shouldn't apply the global hidden setting (on 2022-10-09) */

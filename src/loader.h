@@ -53,6 +53,5 @@ void loader_drop_dir_cache(struct loader_ctx *loader);
 
 Preview *loader_preview_from_path(struct loader_ctx *loader, zsview path,
                                   bool do_load);
-Preview *loader_preview_get(struct loader_ctx *loader, zsview path);
 void loader_preview_reload(struct loader_ctx *loader, Preview *pv);
 void loader_drop_preview_cache(struct loader_ctx *loader);

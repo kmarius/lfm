@@ -1,5 +1,6 @@
 #include "dir.h"
 
+#include "defs.h"
 #include "file.h"
 #include "log.h"
 #include "memory.h"
@@ -207,7 +208,7 @@ void dir_filter(Dir *dir, Filter *filter, u32 height, u32 scrolloff) {
 
 bool dir_check(const Dir *dir) {
   struct stat statbuf;
-  if (stat(dir_path_str(dir), &statbuf) == -1) {
+  if (unlikely(stat(dir_path_str(dir), &statbuf) == -1)) {
     log_error("stat: %s", strerror(errno));
     return false;
   }
@@ -272,20 +273,20 @@ Dir *dir_load(zsview path, map_str_int dircounts, bool load_fileinfo,
   if (!load_fileinfo)
     stop = NULL;
 
-  if (stat(path.str, &dir->stat) == -1) {
+  if (unlikely(stat(path.str, &dir->stat) == -1)) {
     log_debug("stat: %s", strerror(errno));
     dir->error = errno;
     return dir;
   }
 
   DIR *dirp = opendir(path.str);
-  if (!dirp) {
+  if (unlikely(dirp == NULL)) {
     log_error("opendir: %s", strerror(errno));
     dir->error = errno;
     return dir;
   }
   i32 dir_fd = open(path.str, O_RDONLY);
-  if (dir_fd < 0) {
+  if (unlikely(dir_fd < 0)) {
     log_error("open: %s", strerror(errno));
     dir->error = errno;
     closedir(dirp);
@@ -297,9 +298,8 @@ Dir *dir_load(zsview path, map_str_int dircounts, bool load_fileinfo,
 
   struct dirent *entry;
   while ((entry = readdir(dirp))) {
-    if (path_is_dot_or_dotdot(entry->d_name)) {
+    if (path_is_dot_or_dotdot(entry->d_name))
       continue;
-    }
 
     File *file = file_create(path.str, entry->d_name, dir_fd, load_fileinfo);
     if (file != NULL) {
@@ -337,11 +337,11 @@ Dir *dir_load_flat(zsview path, i32 level, map_str_int dircounts,
   dir->has_fileinfo = load_fileinfo;
   dir->dircounts = dircounts;
 
-  if (level < 0)
+  if (unlikely(level < 0))
     level = 0;
   dir->flatten_level = level;
 
-  if (lstat(path.str, &dir->stat) == -1) {
+  if (unlikely(lstat(path.str, &dir->stat) == -1)) {
     log_debug("lstat: %s", strerror(errno));
     dir->error = errno;
     return dir;
@@ -362,11 +362,11 @@ Dir *dir_load_flat(zsview path, i32 level, map_str_int dircounts,
     queue_dirs_pop(&queue);
 
     DIR *dirp = opendir(head.path);
-    if (!dirp)
+    if (unlikely(dirp == NULL))
       continue;
 
     i32 dir_fd = open(head.path, O_RDONLY);
-    if (dir_fd < 0) {
+    if (unlikely(dir_fd < 0)) {
       closedir(dirp);
       continue;
     }
@@ -472,10 +472,10 @@ static inline bool dir_cursor_move_to_ino(Dir *d, dev_t dev, ino_t ino,
 }
 
 void dir_move_cursor_to_name(Dir *d, zsview name, u32 height, u32 scrolloff) {
-  if (zsview_is_empty(name))
+  if (unlikely(zsview_is_empty(name)))
     return;
 
-  if (vec_file_is_empty(&d->files)) {
+  if (unlikely(vec_file_is_empty(&d->files))) {
     cstr_assign_zv(&d->sel, name);
     return;
   }
@@ -581,7 +581,7 @@ static inline void drop_fields(Dir *dir) {
 }
 
 void dir_destroy(Dir *dir) {
-  if (dir) {
+  if (likely(dir)) {
     assert(dir->refcount == 0);
     drop_fields(dir);
     xfree(dir);

@@ -161,9 +161,8 @@ static inline bool dir_loading(const Dir *dir) {
 // if files are filtered/hidden.
 __lfm_nonnull()
 static inline File *dir_current_file(const Dir *dir) {
-  if (unlikely(dir->ind >= dir_length(dir))) {
+  if (unlikely(dir->ind >= dir_length(dir)))
     return NULL;
-  }
   return *vec_file_at(&dir->files, dir->ind);
 }
 

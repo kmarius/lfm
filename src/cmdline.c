@@ -29,7 +29,7 @@ void cmdline_init(Self *self) {
 }
 
 void cmdline_deinit(Self *self) {
-  if (self == NULL)
+  if (unlikely(self == NULL))
     return;
 
   history_write(&self->history, cstr_zv(&cfg.historypath), cfg.histsize);
@@ -49,7 +49,7 @@ bool cmdline_prefix_set(Self *self, zsview zv) {
 }
 
 bool cmdline_insert(Self *self, zsview zv) {
-  if (cstr_is_empty(&self->prefix))
+  if (unlikely(cstr_is_empty(&self->prefix)))
     return false;
 
   csview sv = zsview_u8_subview(zv, 0, 1);

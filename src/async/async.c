@@ -35,7 +35,7 @@ void async_ctx_init(struct async_ctx *async) {
   ev_async_init(&async->result_watcher, async_result_cb);
   ev_async_start(event_loop, &async->result_watcher);
 
-  if (pthread_mutex_init(&async->queue.mutex, NULL) != 0) {
+  if (unlikely(pthread_mutex_init(&async->queue.mutex, NULL) != 0)) {
     perror("pthread_mutex_init");
     exit(EXIT_FAILURE);
   }

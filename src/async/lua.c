@@ -46,14 +46,14 @@ static void lua_result_destroy(void *p) {
 static void lua_result_callback(void *p, Lfm *lfm) {
   struct lua_data *res = p;
   lua_State *L = lfm->L;
-  if (L == NULL || res->ref == 0) {
+  if (unlikely(L == NULL || res->ref == 0)) {
     // lfm is shutting down; or no callback
     goto cleanup;
   }
 
   lfm_lua_push_callback(L, res->ref, true); // [cb]
 
-  if (res->error) {
+  if (unlikely(res->error)) {
     // res->result is error message, nil inserted later
     lua_pushbytes(L, res->result); // [cb, err]
     goto err;
@@ -63,7 +63,7 @@ static void lua_result_callback(void *p, Lfm *lfm) {
     // result was nil
     lua_pushnil(L); // [cb, nil]
   } else {
-    if (lua_decode(L, res->result)) {
+    if (unlikely(lua_decode(L, res->result))) {
       // [cb, err]
       goto err;
     }
@@ -73,7 +73,7 @@ static void lua_result_callback(void *p, Lfm *lfm) {
 
   // everything went well
 
-  if (lfm_lua_pcall(L, 1, 0)) {
+  if (unlikely(lfm_lua_pcall(L, 1, 0))) {
     // [err]
     lfm_errorf(lfm, "%s", lua_tostring(L, -1));
     lua_pop(L, 1);
@@ -99,7 +99,7 @@ err:
 void async_lua_worker(void *arg) {
   struct lua_data *work = arg;
 
-  if (L_thread == NULL) {
+  if (unlikely(L_thread == NULL)) {
     if (init_lua_thread_state()) {
       // [err]
       work->result = lua_tobytes(L_thread, -1);
@@ -111,7 +111,7 @@ void async_lua_worker(void *arg) {
   lua_State *L = L_thread; // []
 
   bytes chunk = work->chunk;
-  if (luaL_loadbuffer(L, chunk.buf, chunk.size, "chunk")) {
+  if (unlikely(luaL_loadbuffer(L, chunk.buf, chunk.size, "chunk"))) {
     // [err]
     work->result = lua_tobytes(L, -1);
     lua_pop(L, 1);
@@ -134,7 +134,7 @@ void async_lua_worker(void *arg) {
 
   // [func, arg]
 
-  if (lua_pcall(L, nargs, 1, 0)) {
+  if (unlikely(lua_pcall(L, nargs, 1, 0))) {
     // [err]
     work->result = lua_tobytes(L, -1);
     lua_pop(L, 1);
@@ -150,7 +150,7 @@ void async_lua_worker(void *arg) {
     lua_pop(L, 1);
   } else {
     // [res]
-    if (lua_encode(L, -1, &work->result)) {
+    if (unlikely(lua_encode(L, -1, &work->result))) {
       // [res, err]
       work->result = lua_tobytes(L, -1);
       lua_pop(L, 2); // []
@@ -162,9 +162,9 @@ void async_lua_worker(void *arg) {
 
 end:
   enqueue_and_signal(work->async, (struct result *)work);
-  if (L_thread != NULL) {
+  if (likely(L_thread != NULL))
     lua_gc(L_thread, LUA_GCCOLLECT, 0); // collectgarbage("collect")
-  }
+
   return;
 
 err:
@@ -219,7 +219,7 @@ void async_lua_preview_worker(void *arg) {
                                         work->height, work->width);
   work->update = pv;
 
-  if (L_thread == NULL) {
+  if (unlikely(L_thread == NULL)) {
     if (init_lua_thread_state()) {
       // [err]
       preview_error(pv, "%s", lua_tostring(L_thread, -1));
@@ -232,7 +232,7 @@ void async_lua_preview_worker(void *arg) {
   lua_State *L = L_thread;
 
   bytes chunk = work->chunk;
-  if (luaL_loadbuffer(L, chunk.buf, chunk.size, "chunk")) {
+  if (unlikely(luaL_loadbuffer(L, chunk.buf, chunk.size, "chunk"))) {
     // [encode, decode, err]
     preview_error(pv, "%s", lua_tostring(L_thread, -1));
     lua_pop(L, 1);
@@ -247,7 +247,7 @@ void async_lua_preview_worker(void *arg) {
   lua_pushnumber(L, work->width); // [encode, decode, func, path, height, width]
   int nargs = 3;
 
-  if (lua_pcall(L, nargs, 1, 0)) {
+  if (unlikely(lua_pcall(L, nargs, 1, 0))) {
     // [encode, decode, err]
     preview_error(pv, "%s", lua_tostring(L_thread, -1));
     lua_pop(L, 1);
@@ -284,9 +284,9 @@ void async_lua_preview_worker(void *arg) {
 
 end:
   enqueue_and_signal(work->async, (struct result *)work);
-  if (L_thread != NULL) {
+  if (likely(L_thread != NULL))
     lua_gc(L_thread, LUA_GCCOLLECT, 0); // collectgarbage("collect")
-  }
+
   return;
 
 err:

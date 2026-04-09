@@ -113,7 +113,7 @@ void inotify_add_watcher(struct inotify_ctx *ctx, Dir *dir) {
     return;
 
   int wd = inotify_add_watch(ctx->fd, dir_path_str(dir), NOTIFY_EVENTS);
-  if (wd == -1) {
+  if (unlikely(wd == -1)) {
     log_error("inotify: %s", strerror(errno));
     return;
   }
@@ -141,8 +141,7 @@ void inotify_set_watchers(struct inotify_ctx *ctx, Dir **dirs, u32 n) {
   map_int_dir_clear(&ctx->dirs);
 
   for (u32 i = 0; i < n; i++) {
-    if (dirs[i]) {
+    if (dirs[i])
       inotify_add_watcher(ctx, dirs[i]);
-    }
   }
 }

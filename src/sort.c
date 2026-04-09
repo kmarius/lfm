@@ -12,9 +12,8 @@ const char *sorttype_str[NUM_SORTTYPE] = {
 
 i32 sorttype_from_str(const char *str) {
   for (i32 j = 0; j < NUM_SORTTYPE; j++) {
-    if (streq(str, sorttype_str[j])) {
+    if (streq(str, sorttype_str[j]))
       return j;
-    }
   }
   return -1;
 }
@@ -27,10 +26,9 @@ i32 compare_size(const void *a, const void *b) {
   const File *aa = *(File **)a;
   const File *bb = *(File **)b;
   long cmp = file_size(aa) - file_size(bb);
-  if (cmp) {
+  if (cmp)
     // conversion from long to i32 breaks this for large files
     return cmp < 0 ? -1 : 1;
-  }
   return aa->lstat.st_ino - bb->lstat.st_ino;
 }
 
@@ -38,9 +36,8 @@ i32 compare_natural(const void *a, const void *b) {
   const File *aa = *(File **)a;
   const File *bb = *(File **)b;
   i32 cmp = strnatcasecmp(file_name_str(aa), file_name_str(bb));
-  if (cmp) {
+  if (cmp)
     return cmp;
-  }
   return aa->lstat.st_ino - bb->lstat.st_ino;
 }
 
@@ -48,13 +45,11 @@ i32 compare_ctime(const void *a, const void *b) {
   const File *aa = *(File **)a;
   const File *bb = *(File **)b;
   long cmp = aa->lstat.st_ctim.tv_sec - bb->lstat.st_ctim.tv_sec;
-  if (cmp) {
+  if (cmp)
     return cmp;
-  }
   cmp = aa->lstat.st_ctim.tv_nsec - bb->lstat.st_ctim.tv_nsec;
-  if (cmp) {
+  if (cmp)
     return cmp;
-  }
   return aa->lstat.st_ino - bb->lstat.st_ino;
 }
 
@@ -62,13 +57,11 @@ i32 compare_atime(const void *a, const void *b) {
   const File *aa = *(File **)a;
   const File *bb = *(File **)b;
   long cmp = aa->lstat.st_atim.tv_sec - bb->lstat.st_atim.tv_sec;
-  if (cmp) {
+  if (cmp)
     return cmp;
-  }
   cmp = aa->lstat.st_atim.tv_nsec - bb->lstat.st_atim.tv_nsec;
-  if (cmp) {
+  if (cmp)
     return cmp;
-  }
   return aa->lstat.st_ino - bb->lstat.st_ino;
 }
 
@@ -76,20 +69,21 @@ i32 compare_mtime(const void *a, const void *b) {
   const File *aa = *(File **)a;
   const File *bb = *(File **)b;
   long cmp = aa->lstat.st_mtim.tv_sec - bb->lstat.st_mtim.tv_sec;
-  if (cmp) {
+  if (cmp)
     return cmp;
-  }
   cmp = aa->lstat.st_mtim.tv_nsec - bb->lstat.st_mtim.tv_nsec;
-  if (cmp) {
+  if (cmp)
     return cmp;
-  }
   return aa->lstat.st_ino - bb->lstat.st_ino;
 }
 
 i32 compare_lua(const void *a, const void *b) {
   const File *aa = *(File **)a;
   const File *bb = *(File **)b;
-  return aa->key - bb->key;
+  long cmp = aa->key - bb->key;
+  if (cmp)
+    return cmp;
+  return aa->lstat.st_ino - bb->lstat.st_ino;
 }
 
 // https://stackoverflow.com/questions/6127503/shuffle-array-in-c
@@ -98,9 +92,8 @@ i32 compare_lua(const void *a, const void *b) {
 // if this may not be the case, use a better random
 // number generator.
 void shuffle(void *arr_, usize n, usize size) {
-  if (n <= 1) {
+  if (n <= 1)
     return;
-  }
 
   char *arr = arr_;
   char *tmp = xmalloc(size);

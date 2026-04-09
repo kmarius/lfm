@@ -78,9 +78,8 @@ Preview *preview_inc_ref(Preview *Preview) {
 
 void preview_dec_ref(Preview *p) {
   assert(p->refcount > 0);
-  if (unlikely(atomic_fetch_sub(&p->refcount, 1) == 1)) {
+  if (unlikely(atomic_fetch_sub(&p->refcount, 1) == 1))
     preview_destroy(p);
-  }
 }
 
 static void destroy_text_preview(Preview *p) {
@@ -208,9 +207,8 @@ static inline i32 gen_cache_path(zsview path, char *buf, usize buflen) {
   memcpy(buf, cstr_str(&cfg.cachedir), len);
   buf[len++] = '/';
 
-  if (len + 32 >= buflen) {
+  if (unlikely(len + 32 >= buflen))
     return -1;
-  }
   for (usize i = 0; i < 32; i++) {
     const char upper = hash[i] >> 4;
     const char lower = hash[i] & 0x0f;
@@ -239,9 +237,8 @@ Preview *preview_create_and_stat(zsview path, i32 height, i32 width) {
   p->loadtime = current_millis();
 
   struct stat statbuf;
-  if (stat(path.str, &statbuf) != -1) {
+  if (stat(path.str, &statbuf) != -1)
     p->mtime = statbuf.st_mtime;
-  }
 
   return p;
 }
@@ -272,17 +269,16 @@ Preview *preview_fork_previewer(zsview path, u32 width, u32 height,
   Preview *p = preview_create(path, height, width);
   p->loadtime = current_millis();
 
-  if (cstr_is_empty(&cfg.previewer)) {
+  if (cstr_is_empty(&cfg.previewer))
     return p;
-  }
 
   /* TODO: make proper use of the cache (on 2022-09-27) */
   /* we currently only use it as a place for the previewer to write to */
   char cache_path[PATH_MAX];
   if (cfg.preview_images) {
-    if (gen_cache_path(path, cache_path, sizeof cache_path) != 0) {
+    if (unlikely(gen_cache_path(path, cache_path, sizeof cache_path) != 0))
       return preview_error(p, "gen_cache_path");
-    }
+
   } else {
     cache_path[0] = 0;
   }
@@ -476,9 +472,8 @@ static void draw_text_preview(const Preview *p, struct ncplane *n) {
 static void draw_image_preview(const Preview *p, struct ncplane *n) {
   ncplane_erase(n);
 
-  if (!p->ncv) {
+  if (!p->ncv)
     return;
-  }
   struct ncvisual_options vopts = {
       .scaling = NCSCALE_SCALE,
       .n = n,

@@ -33,7 +33,7 @@ void strchrsub(char *str, char c, char x);
 
 static inline void *memdup(const void *src, usize n) {
   void *mem = malloc(n);
-  if (mem == NULL)
+  if (unlikely(mem == NULL))
     return NULL;
   return memcpy(mem, src, n);
 }

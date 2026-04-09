@@ -84,7 +84,7 @@ static inline int sort_dir(lua_State *L, int idx, Dir *dir) {
   if (!lua_isnil(L, -1)) {
     const char *op = luaL_checkstring(L, -1);
     int type = sorttype_from_str(op);
-    if (type < 0)
+    if (unlikely(type < 0))
       return luaL_error(L, "unrecognized sort type: %s", op);
     settings.sorttype = type;
   }
@@ -100,7 +100,7 @@ static inline int sort_dir(lua_State *L, int idx, Dir *dir) {
   }
   lua_pop(L, 1);
 
-  if (settings.sorttype == SORT_LUA && !have_keyfunc)
+  if (unlikely(settings.sorttype == SORT_LUA && !have_keyfunc))
     return luaL_error(L, "missing field: keyfunc");
 
   dir->settings = settings;

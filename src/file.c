@@ -74,9 +74,8 @@ File *file_create(const char *dir, const char *name, i32 fd, bool load_info) {
 }
 
 u32 file_load_dircount(File *file) {
-  if (file_isdir(file)) {
+  if (file_isdir(file))
     file->dircount = path_dircount(file_path_str(file));
-  }
   return file->dircount;
 }
 

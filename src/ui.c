@@ -129,9 +129,8 @@ void ui_resume(Ui *ui) {
   };
   log_debug("creating notcurses context");
   PROFILE_MAYBE("notcurses_init", { ui->nc = notcurses_init(&ncopts, NULL); });
-  if (!ui->nc) {
+  if (unlikely(!ui->nc))
     exit(EXIT_FAILURE);
-  }
 
   {
     // TODO: (2026-03-21) revisit in the future in case notcurses/tmux receives
@@ -150,9 +149,8 @@ void ui_resume(Ui *ui) {
   }
 
   if (notcurses_palette_size(ui->nc) == 8) {
-    if (cfg.current_char == 0) {
+    if (cfg.current_char == 0)
       cfg.current_char = '>';
-    }
   }
 
   struct ncplane *ncstd = notcurses_stdplane(ui->nc);
@@ -210,15 +208,14 @@ void ui_suspend(Ui *ui) {
   ui->planes.menu = NULL;
   ui->planes.info = NULL;
   ui->nc = NULL;
-  if (ui->preview.preview) {
+  if (ui->preview.preview)
     ui->preview.preview = NULL;
-  }
   kbblocking(true);
 }
 
 void kbblocking(bool blocking) {
   i32 val = fcntl(STDIN_FILENO, F_GETFL, 0);
-  if (val != -1) {
+  if (likely(val != -1)) {
     fcntl(STDIN_FILENO, F_SETFL,
           blocking ? val & ~O_NONBLOCK : val | O_NONBLOCK);
   }
@@ -259,9 +256,8 @@ void ui_recol(Ui *ui) {
   for (u32 i = 0; i < ui->num_columns - 1; i++) {
     opts.cols =
         (ui->x - ui->num_columns + 1) * *vec_int_at(&cfg.ratios, i) / sum;
-    if (opts.cols == 0) {
+    if (opts.cols == 0)
       opts.cols = 1;
-    }
     opts.x = xpos;
     vec_ncplane_push(&ui->planes.dirs, ncplane_create(ncstd, &opts));
     xpos += opts.cols + 1;
@@ -299,21 +295,16 @@ void ui_draw(Ui *ui) {
     mode &= ~REDRAW_CURRENT;
     draw_dirs(ui);
   }
-  if (mode & REDRAW_CURRENT) {
+  if (mode & REDRAW_CURRENT)
     draw_current(ui);
-  }
-  if (mode & REDRAW_MENU) {
+  if (mode & REDRAW_MENU)
     draw_menu(ui, &ui->menubuf);
-  }
-  if (mode & (REDRAW_FM | REDRAW_CMDLINE)) {
+  if (mode & (REDRAW_FM | REDRAW_CMDLINE))
     draw_cmdline(ui);
-  }
-  if (mode & (REDRAW_FM | REDRAW_INFO)) {
+  if (mode & (REDRAW_FM | REDRAW_INFO))
     infoline_draw(ui);
-  }
-  if (mode & (REDRAW_FM | REDRAW_PREVIEW)) {
+  if (mode & (REDRAW_FM | REDRAW_PREVIEW))
     draw_preview(ui);
-  }
 
   if (mode) {
     notcurses_render(ui->nc);
@@ -337,9 +328,8 @@ static void draw_current(Ui *ui) {
   Fm *fm = &to_lfm(ui)->fm;
 
   i32 idx = 0;
-  if (cfg.preview && vec_ncplane_size(&ui->planes.dirs) > 1) {
+  if (cfg.preview && vec_ncplane_size(&ui->planes.dirs) > 1)
     idx = 1;
-  }
 
   struct ncplane *n = *vec_ncplane_at(&ui->planes.dirs, idx);
   Dir *dir = fm_current_dir(fm);
@@ -358,9 +348,9 @@ static void draw_dirs(Ui *ui) {
   }
 
   i32 i = 0;
-  if (cfg.preview && vec_ncplane_size(&ui->planes.dirs) > 1) {
+  if (cfg.preview && vec_ncplane_size(&ui->planes.dirs) > 1)
     i = 1;
-  }
+
   bool is_current_dir = true;
   c_foreach(it, vec_dir, fm->dirs.visible) {
     struct ncplane *n = *vec_ncplane_at(&ui->planes.dirs, i);
@@ -427,9 +417,8 @@ static void message_clear_timer_cb(EV_P_ ev_timer *w, i32 revents) {
 
 /* most notably, replaces tabs with (up to) 8 spaces */
 static void draw_menu(Ui *ui, const vec_cstr *menubuf) {
-  if (!menubuf || !ui->menu_visible) {
+  if (!menubuf || !ui->menu_visible)
     return;
-  }
 
   struct ncplane *n = ui->planes.menu;
 
@@ -471,9 +460,8 @@ static void menu_resize(Ui *ui) {
   const u32 h = max(1, min(buf_sz, ui->y - 2));
   ncplane_resize(ui->planes.menu, 0, 0, 0, 0, 0, 0, h, ui->x);
   ncplane_move_yx(ui->planes.menu, ui->y - 1 - h, 0);
-  if (buf_sz) {
+  if (buf_sz)
     ncplane_move_top(ui->planes.menu);
-  }
 }
 
 void ui_menu_show(Ui *ui, vec_cstr *vec, u32 delay) {
@@ -526,27 +514,24 @@ static u64 ext_channel_get(const char *ext) {
     }
     buf[i] = 0;
     const hmap_channel_value *v = hmap_channel_get(&cfg.colors.color_map, buf);
-    if (v != NULL) {
+    if (v != NULL)
       return v->second;
-    }
   }
   return 0;
 }
 
 static i32 print_short_hl(struct ncplane *n, zsview name, i32 hl_begin,
                           i32 hl_end, i32 max_len, bool has_ext) {
-  if (max_len <= 0) {
+  if (unlikely(max_len <= 0))
     return 0;
-  }
 
   i32 name_len = zsview_u8_size(name);
 
   zsview ext = zsview_tail(name, 0);
   if (has_ext) {
     char *ptr = strrchr(name.str, '.');
-    if (ptr != NULL && ptr != name.str) {
+    if (ptr != NULL && ptr != name.str)
       ext = zsview_from_pos(name, ptr - name.str);
-    }
   }
   i32 ext_begin = ext.str - name.str;
   i32 ext_len = zsview_u8_size(ext);
@@ -853,9 +838,8 @@ static void draw_file(struct ncplane *n, const File *file, bool iscurrent,
     }
   }
 
-  if (iscurrent) {
+  if (iscurrent)
     ncplane_set_bchannel(n, cfg.colors.current);
-  }
 
   // space before the filename
   ncplane_putchar(n, ' ');
@@ -1115,9 +1099,9 @@ static void loading_indicator_timer_cb(EV_P_ ev_timer *w, i32 revents) {
 
 void ui_start_loading_indicator_timer(Ui *ui) {
   if (cfg.loading_indicator_delay > 0) {
-    if (ui->loading_indicator_timer_recheck_count >= 3) {
+    if (ui->loading_indicator_timer_recheck_count >= 3)
       return;
-    }
+
     if (ui->loading_indicator_timer_recheck_count++ == 0) {
       ui->loading_indicator_timer_recheck_count++;
       f64 delay = ((f64)(cfg.loading_indicator_delay + 10) / 2) / 1000.;

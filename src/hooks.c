@@ -72,21 +72,20 @@ i32 lfm_add_hook(Lfm *lfm, lfm_hook_id hook, i32 ref) {
 i32 lfm_remove_hook(Lfm *lfm, i32 id) {
   i32 ref = id & REF_MASK;
   lfm_hook_id hook = id >> REF_BITS;
-  if (hook < 0 || hook >= LFM_NUM_HOOKS) {
-    // invalid id
-    return 0;
-  }
+  if (unlikely(hook < 0 || hook >= LFM_NUM_HOOKS))
+    return 0; // invalid id
+
   c_foreach(it, vec_int, lfm->hook_refs[hook]) {
     if (*it.ref == ref) {
-      if (unlikely(lfm->hook_callback_depth > 0)) {
+      if (lfm->hook_callback_depth == 0) {
+        vec_int_erase_at(&lfm->hook_refs[hook], it);
+      } else {
         struct hook_change change = {
             .hook = hook,
             .ref = ref,
             .remove = true,
         };
         vec_hook_change_push(&lfm->hook_changes, change);
-      } else {
-        vec_int_erase_at(&lfm->hook_refs[hook], it);
       }
       return ref;
     }
@@ -103,7 +102,7 @@ i32 lfm_remove_hook(Lfm *lfm, i32 id) {
 }
 
 void lfm_apply_hook_changes(Lfm *lfm) {
-  if (likely(lfm->hook_callback_depth == 0)) {
+  if (lfm->hook_callback_depth == 0) {
     c_foreach(it, vec_hook_change, lfm->hook_changes) {
       lfm_hook_id hook = it.ref->hook;
       i32 ref = it.ref->ref;

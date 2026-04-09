@@ -107,13 +107,11 @@ static inline int ncplane_putstr_sanitized_yx(struct ncplane *n, int y, int x,
     if (unlikely(cols < 0)) {
       // possible broken char, try to print a ?
       cols = ncplane_putegc_yx(n, y, x, "?", &wcs);
-      if (cols < 0) {
+      if (cols < 0)
         return -ret;
-      }
     }
-    if (wcs == 0) {
+    if (wcs == 0)
       break;
-    }
     y = -1;
     x = -1;
     gclusters += wcs;

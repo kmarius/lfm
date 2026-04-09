@@ -60,14 +60,14 @@ static void init_io_watcher(struct io_watcher *w, Lfm *lfm, int fd, int ref) {
     return;
 
   FILE *stream = fdopen(fd, "r");
-  if (stream == NULL) {
+  if (unlikely(stream == NULL)) {
     log_error("fdopen: %s", strerror(errno));
     close(fd);
     return;
   }
 
   int flags = fcntl(fd, F_GETFL, 0);
-  if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) < 0) {
+  if (unlikely(fcntl(fd, F_SETFL, flags | O_NONBLOCK) < 0)) {
     log_error("fcntl");
     fclose(stream);
     return;
@@ -84,7 +84,7 @@ static void init_io_watcher(struct io_watcher *w, Lfm *lfm, int fd, int ref) {
 // watcher and corresponding stdout/-err watchers need to be stopped before
 // calling this function
 static inline void destroy_child_watcher(struct child_watcher *w) {
-  if (!w)
+  if (unlikely(w == NULL))
     return;
   Lfm *lfm = w->w.data;
   if (w->wstdout.stream) {
@@ -165,7 +165,7 @@ struct proc {
 
 static int l_proc_write(lua_State *L) {
   struct proc *proc = (struct proc *)lua_touserdata(L, 1);
-  if (proc->fd == -1) {
+  if (unlikely(proc->fd == -1)) {
     return luaL_error(L, "trying to write to closed stdin of process %d",
                       proc->pid);
   }
@@ -174,13 +174,11 @@ static int l_proc_write(lua_State *L) {
   const char *buf = lua_tolstring(L, 2, &len);
   isize n = write(proc->fd, buf, len);
 
-  if (n == -1) {
+  if (unlikely(n == -1)) {
     close(proc->fd);
     proc->fd = -1;
     return luaL_error(L, "write: %s", strerror(errno));
   }
-
-  log_debug("write %d bytes to %d", n, proc->fd);
 
   lua_pushnumber(L, n);
   return 1;
@@ -288,13 +286,13 @@ static inline int spawn(const struct spawn_opts *data, int *stdin_fd) {
     status |= pipe(pipe_stderr);
 
   if (unlikely(status != 0)) {
-    lfm_errorf(lfm, "pipe: %s", strerror(errno));
+    lfm_perror(lfm, "pipe");
     goto fail;
   }
 
   int pid = fork();
   if (unlikely(pid < 0)) {
-    lfm_errorf(lfm, "fork: %s", strerror(errno));
+    lfm_perror(lfm, "fork");
     goto fail;
   }
 
@@ -337,7 +335,7 @@ static inline int spawn(const struct spawn_opts *data, int *stdin_fd) {
     }
 
     if (!zsview_is_empty(data->working_directory)) {
-      if (chdir(data->working_directory.str) != 0) {
+      if (unlikely(chdir(data->working_directory.str) != 0)) {
         if (data->capture_stderr) {
           char buf[128];
           i32 len = snprintf(buf, sizeof buf - 1, "chdir: %s", strerror(errno));
@@ -484,7 +482,7 @@ int l_spawn(lua_State *L) {
   vec_env_drop(&opts.env);
   vec_bytes_drop(&opts.stdin_data);
 
-  if (pid == -1) {
+  if (unlikely(pid == -1)) {
     lua_pushnil(L);
     lua_pushstring(L, strerror(errno));
     return 2;

@@ -46,9 +46,8 @@ const char *ncplane_set_ansi_attrs(struct ncplane *n, const char *str,
 
   i32 num;
   while (str < end && *str != 'm') {
-    if (!parse_number(&str, end, &num)) {
+    if (unlikely(!parse_number(&str, end, &num)))
       goto err;
-    }
 
     if (num >= 30 && num <= 37) {
       ncplane_set_fg_palindex(n, num - 30);
@@ -97,21 +96,20 @@ const char *ncplane_set_ansi_attrs(struct ncplane *n, const char *str,
         break;
       case 38: {
         i32 op;
-        if (!parse_number(&str, end, &op)) {
+        if (unlikely(!parse_number(&str, end, &op)))
           goto err;
-        }
         switch (op) {
         case 5: {
           i32 p;
-          if (!parse_number(&str, end, &p)) {
+          if (unlikely(!parse_number(&str, end, &p)))
             goto err;
-          }
           ncplane_set_fg_palindex(n, p);
         } break;
         case 2: {
           i32 r, g, b;
-          if (!parse_number(&str, end, &r) || !parse_number(&str, end, &g) ||
-              !parse_number(&str, end, &b)) {
+          if (unlikely(!parse_number(&str, end, &r) ||
+                       !parse_number(&str, end, &g) ||
+                       !parse_number(&str, end, &b))) {
             goto err;
           }
           ncplane_set_fg_rgb8(n, r, g, b);
@@ -125,21 +123,20 @@ const char *ncplane_set_ansi_attrs(struct ncplane *n, const char *str,
         break;
       case 48: {
         i32 op;
-        if (!parse_number(&str, end, &op)) {
+        if (unlikely(!parse_number(&str, end, &op)))
           goto err;
-        }
         switch (op) {
         case 5: {
           i32 p;
-          if (!parse_number(&str, end, &p)) {
+          if (unlikely(!parse_number(&str, end, &p)))
             goto err;
-          }
           ncplane_set_bg_palindex(n, p);
         } break;
         case 2: {
           i32 r, g, b;
-          if (!parse_number(&str, end, &r) || !parse_number(&str, end, &g) ||
-              !parse_number(&str, end, &b)) {
+          if (unlikely(!parse_number(&str, end, &r) ||
+                       !parse_number(&str, end, &g) ||
+                       !parse_number(&str, end, &b))) {
             goto err;
           }
           ncplane_set_bg_rgb8(n, r, g, b);
@@ -232,7 +229,7 @@ usize ansi_mblen(const char *ptr) {
         ptr++; // skip 'm'
     } else {
       i32 l = mbtowc(NULL, ptr, end - ptr);
-      if (l < 0)
+      if (unlikely(l < 0))
         return len;
       ptr += l;
       len++;
@@ -256,12 +253,10 @@ i32 ncplane_putstr_yx_(struct ncplane *n, i32 y, i32 x, const char *gclusters) {
     i32 cols = ncplane_putegc_yx(n, y, x, gclusters, &wcs);
     // fprintf(stderr, "wrote %.*s %d cols %zu bytes\n", (i32)wcs, gclusters,
     // cols, wcs);
-    if (cols < 0) {
+    if (cols < 0)
       return -ret;
-    }
-    if (wcs == 0) {
+    if (wcs == 0)
       break;
-    }
     // after the first iteration, just let the cursor code control where we
     // print, so that scrolling is taken into account
     y = -1;
@@ -274,8 +269,7 @@ i32 ncplane_putstr_yx_(struct ncplane *n, i32 y, i32 x, const char *gclusters) {
 
 i32 notcurses_render_(struct notcurses *nc) {
   struct ncplane *stdn = notcurses_stdplane(nc);
-  if (ncpile_render(stdn)) {
+  if (unlikely(ncpile_render(stdn)))
     return -1;
-  }
   return ncpile_rasterize(stdn);
 }

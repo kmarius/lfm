@@ -28,7 +28,7 @@ static void inotify_result_destroy(void *p) {
 static void inotify_result_callback(void *p, Lfm *lfm) {
   struct inotify_work *res = p;
   set_result_erase(&lfm->async.in_progress.inotify, p);
-  if (res->ok)
+  if (likely(res->ok))
     inotify_add_watcher(&lfm->inotify, res->dir);
   if (lfm->async.in_progress.inotify_preview == p)
     lfm->async.in_progress.inotify_preview = NULL;

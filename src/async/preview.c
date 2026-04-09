@@ -96,7 +96,7 @@ void async_preview_check(struct async_ctx *async, Preview *pv) {
 
 static void preview_load_destroy(void *p) {
   struct preview_load_data *res = p;
-  if (res->fd[0] > 0)
+  if (likely(res->fd[0] > 0))
     close(res->fd[0]);
   sem_destroy(&res->semaphore);
   preview_destroy(res->update);
@@ -144,13 +144,13 @@ static void child_exit_cb(EV_P_ ev_child *w, int revents) {
 }
 
 void async_preview_load(struct async_ctx *async, Preview *pv) {
-  if (pv->status == PV_LOADING_DISOWNED) {
+  if (unlikely(pv->status == PV_LOADING_DISOWNED)) {
     log_error("not reloading disowned preview %s", preview_path(pv).str);
     return;
   }
   if (!bytes_is_empty(cfg.lua_previewer)) {
     async_lua_preview(async, pv);
-  } else if (cstr_is_empty(&cfg.previewer)) {
+  } else if (unlikely(cstr_is_empty(&cfg.previewer))) {
     log_error("no previewer configured");
   } else {
     struct preview_load_data *work = xcalloc(1, sizeof *work);

@@ -12,7 +12,7 @@
 
 #define LUA_CHECK_ARGC(L, expected)                                            \
   do {                                                                         \
-    if (lua_gettop(L) != (expected))                                           \
+    if (unlikely(lua_gettop(L) != (expected)))                                 \
       return luaL_error(L, "Expected %d %s, got %d", (expected),               \
                         expected == 1 ? "argument" : "arguments",              \
                         lua_gettop(L));                                        \
@@ -20,7 +20,7 @@
 
 #define LUA_CHECK_ARGMAX(L, expected)                                          \
   do {                                                                         \
-    if (lua_gettop(L) > (expected))                                            \
+    if (unlikely(lua_gettop(L) > (expected)))                                  \
       return luaL_error(L, "Expected at most %d %s, got %d", (expected),       \
                         expected == 1 ? "argument" : "arguments",              \
                         lua_gettop(L));                                        \

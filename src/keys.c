@@ -159,7 +159,7 @@ const char *input_to_key_name(input_t in, usize *len_out) {
     // not a special key
     // check if printable? otherwise notcurses won't print '>'
     i32 n = wctomb(buf + j, ID(in));
-    if (n < 0) {
+    if (unlikely(n > 0)) {
       buf[j++] = '?';
     } else {
       j += n;
@@ -180,9 +180,8 @@ i32 key_name_to_input(const char *key, input_t *out) {
   bool alt = false;
 
   // handles "" too
-  if (key[0] != '<') {
+  if (key[0] != '<')
     return mbtowc((wchar_t *)out, key, 8);
-  }
 
   const char *ptr = key + 1;
 
@@ -214,9 +213,8 @@ i32 key_name_to_input(const char *key, input_t *out) {
   }
 
   const char *end = strchr(ptr, '>');
-  if (end == NULL || end == ptr) {
+  if (unlikely(end == NULL || end == ptr))
     return -1;
-  }
 
   // check special key names
   i32 in = NCKEY_INVALID;
@@ -244,17 +242,15 @@ i32 key_name_to_input(const char *key, input_t *out) {
 
     wchar_t w;
     i32 l = mbtowc(&w, ptr, 8);
-    if (l == -1) {
+    if (unlikely(l == -1))
       return -1;
-    }
 
     // notcurses always sends uppercase with ctrl
     in = ctrl ? towupper(w) : (input_t)w;
     ptr += l;
 
-    if (ptr[0] != '>') {
+    if (unlikely(ptr[0] != '>'))
       return -1;
-    }
 
     ptr++;
   }
@@ -278,7 +274,7 @@ i32 key_names_to_input(zsview keys, input_t *buf, usize bufsz) {
 
   while (ptr < end) {
     i32 len = key_name_to_input(ptr, &buf[j++]);
-    if (len == -1 || j == bufsz) {
+    if (unlikely(len == -1 || j == bufsz)) {
       buf[0] = 0;
       return j < bufsz ? -1 : -2;
     }

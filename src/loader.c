@@ -62,13 +62,6 @@ void loader_ctx_deinit(struct loader_ctx *ctx) {
   map_zsview_preview_drop(&ctx->preview_cache);
 }
 
-Dir *loader_dir_get_mut(struct loader_ctx *ctx, zsview path) {
-  map_zsview_dir_entry *v = map_zsview_dir_get_mut(&ctx->dir_cache, path);
-  if (!v)
-    return NULL;
-  return v->second;
-}
-
 static void dir_load_timer_cb(EV_P_ ev_timer *w, i32 revents) {
   (void)revents;
   struct load_timer *timer = (struct load_timer *)w;
@@ -120,7 +113,10 @@ static inline void schedule_preview_load(struct loader_ctx *ctx, Preview *pv,
 }
 
 void loader_dir_reload(struct loader_ctx *ctx, Dir *dir) {
-  if (dir->scheduled || dir->status == DIR_DISOWNED)
+  if (unlikely(dir->status == DIR_DISOWNED))
+    return;
+
+  if (dir->scheduled)
     return;
 
   u64 now = current_millis();
@@ -128,9 +124,8 @@ void loader_dir_reload(struct loader_ctx *ctx, Dir *dir) {
 
   // Never schedule the same directory more than once. Once the update
   // of the directory is applied we will check if we need to load again.
-  if (latest >= now + cfg.inotify_timeout) {
+  if (latest >= now + cfg.inotify_timeout)
     return; // discard
-  }
 
   // Add a (small) delay so we don't show files that exist only very briefly
   u64 next = now < latest + cfg.inotify_timeout
@@ -159,7 +154,7 @@ void loader_dir_load_callback(struct loader_ctx *ctx, Dir *dir) {
 }
 
 void loader_preview_reload(struct loader_ctx *ctx, Preview *pv) {
-  if (pv->status == PV_LOADING_DISOWNED)
+  if (unlikely(pv->status == PV_LOADING_DISOWNED))
     return;
 
   u64 now = current_millis();
@@ -184,9 +179,9 @@ Dir *loader_dir_from_path(struct loader_ctx *ctx, zsview path, bool do_load) {
   // truncates, in the unlikely case we got passed something longer than
   // PATH_MAX
   if (path.size > 1 && path.str[path.size - 1] == '/') {
-    if (path.size + 1 > (ptrdiff_t)sizeof buf) {
+    if (path.size + 1 > (ptrdiff_t)sizeof buf)
       path.size = sizeof buf - 1;
-    }
+
     // copy into into our buffer and remove trailing slash
     path.size--;
     memcpy(buf, path.str, path.size);
@@ -225,9 +220,8 @@ Dir *loader_dir_from_path(struct loader_ctx *ctx, zsview path, bool do_load) {
       ui_start_loading_indicator_timer(&to_lfm(ctx)->ui);
       dir->loading = true;
     }
-    if (to_lfm(ctx)->L) {
+    if (likely(to_lfm(ctx)->L))
       LFM_RUN_HOOK(to_lfm(ctx), LFM_HOOK_DIRLOADED, path);
-    }
   }
   return dir;
 }
@@ -326,12 +320,6 @@ void loader_reschedule(struct loader_ctx *ctx) {
 
   set_dir_drop(&dirs);
   set_preview_drop(&previews);
-}
-
-Preview *loader_preview_get(struct loader_ctx *ctx, zsview path) {
-  map_zsview_preview_value *v =
-      map_zsview_preview_get_mut(&ctx->preview_cache, path);
-  return v ? v->second : NULL;
 }
 
 static inline void apply_dir_settings(Dir *dir) {

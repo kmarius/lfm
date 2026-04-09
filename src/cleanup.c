@@ -9,7 +9,7 @@ static dtor dtors[MAX_DTORS];
 static u32 n = 0;
 
 int add_dtor(void (*dtor)()) {
-  if (n == MAX_DTORS) {
+  if (unlikely(n == MAX_DTORS)) {
     fprintf(stderr, "ERROR: too many destructors\n");
     exit(EXIT_FAILURE);
   }

@@ -274,10 +274,10 @@ void lfm_printf(Lfm *lfm, const char *fmt, ...) {
   struct message msg = {};
   cstr_vfmt(&msg.text, 0, fmt, args);
 
-  if (!lfm->ui.running) {
-    vec_message_push(&lfm->messages, msg);
-  } else {
+  if (lfm->ui.running) {
     ui_display_message(&lfm->ui, msg);
+  } else {
+    vec_message_push(&lfm->messages, msg);
   }
 
   va_end(args);
@@ -292,10 +292,10 @@ void lfm_errorf(Lfm *lfm, const char *fmt, ...) {
   };
   cstr_vfmt(&msg.text, 0, fmt, args);
 
-  if (!lfm->ui.running) {
-    vec_message_push(&lfm->messages, msg);
-  } else {
+  if (lfm->ui.running) {
     ui_display_message(&lfm->ui, msg);
+  } else {
+    vec_message_push(&lfm->messages, msg);
   }
 
   va_end(args);

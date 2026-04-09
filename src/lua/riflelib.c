@@ -176,15 +176,15 @@ static bool check_fn_else(Condition *cond, const FileInfo *info) {
 /* TODO: log errors (on 2022-10-15) */
 static inline Condition condition_create_re(check_fn *f, const char *re,
                                             bool negate) {
-  const char *pcre_error_str;
+  const char *pcre_error_str = NULL;
   int pcre_error_offset;
   Condition c = condition_create(f, NULL, negate);
   c.pcre = pcre_compile(re, 0, &pcre_error_str, &pcre_error_offset, NULL);
-  if (!c.pcre) {
+  if (unlikely(!c.pcre)) {
     return (Condition){0};
   }
   c.pcre_extra = pcre_study(c.pcre, 0, &pcre_error_str);
-  if (pcre_error_str) {
+  if (unlikely(pcre_error_str)) {
     pcre_free(c.pcre);
     return (Condition){0};
   }
@@ -247,24 +247,21 @@ static inline Condition condition_create_re_match(const char *arg,
 }
 
 static inline char *split_command(char *s) {
-  if ((s = strstr(s, DELIM_COMMAND)) == NULL) {
+  if (unlikely((s = strstr(s, DELIM_COMMAND)) == NULL))
     return NULL;
-  }
   *s = '\0';
   return trim(s + 3);
 }
 
 static inline bool is_comment_or_whitespace(char *s) {
-  while (isspace(*s)) {
+  while (isspace(*s))
     s++;
-  }
   return *s == '#' || *s == '\0';
 }
 
 static inline bool rule_add_condition(Rule *self, char *cond_str) {
-  if (*cond_str == 0) {
+  if (unlikely(*cond_str == 0))
     return true;
-  }
 
   cond_str = rtrim(cond_str);
 
@@ -325,15 +322,14 @@ static inline bool rule_add_condition(Rule *self, char *cond_str) {
     }
   }
 
-  if (cond.check) {
+  if (cond.check)
     conditions_push(&self->conditions, cond);
-  }
 
   return true;
 }
 
 static inline int rule_init(Rule *self, char *str, const char *command) {
-  if (command == NULL) {
+  if (unlikely(command == NULL)) {
     rule_drop(self);
     return -1;
   }
@@ -355,9 +351,8 @@ static inline int rule_init(Rule *self, char *str, const char *command) {
 static inline bool rule_check(Rule *self, const FileInfo *info) {
   c_foreach(it, conditions, self->conditions) {
     Condition *c = it.ref;
-    if (!c->check(c, info)) {
+    if (!c->check(c, info))
       return false;
-    }
   }
   return true;
 }
@@ -366,9 +361,8 @@ static int l_rifle_fileinfo(lua_State *L) {
   const char *file = luaL_checkstring(L, 1);
 
   char path[PATH_MAX + 1];
-  if (realpath(file, path) == NULL) {
+  if (unlikely(realpath(file, path) == NULL))
     path[0] = 0;
-  }
 
   char mime[256];
   get_mimetype(path, mime, sizeof mime);
@@ -424,9 +418,8 @@ static int l_rifle_query_mime(lua_State *L) {
     lua_pop(L, 1);
 
     lua_getfield(L, 2, "pick");
-    if (!lua_isnil(L, -1)) {
+    if (!lua_isnil(L, -1))
       pick = lua_tozsview(L, -1);
-    }
     lua_pop(L, 1);
   }
 
@@ -441,9 +434,8 @@ static int l_rifle_query_mime(lua_State *L) {
   c_foreach(it, rules, rifle->rules) {
     Rule *r = it.ref;
     if (r->has_mime && rule_check(r, &info)) {
-      if (r->number > 0) {
+      if (r->number > 0)
         ct_match = r->number;
-      }
       ct_match++;
 
       if (!zsview_is_empty(pick)) {
@@ -458,9 +450,8 @@ static int l_rifle_query_mime(lua_State *L) {
       llua_push_rule(L, r, ct_match - 1);
       lua_rawseti(L, -2, i++);
 
-      if (limit > 0 && i > limit) {
+      if (limit > 0 && i > limit)
         break;
-      }
     }
   }
 
@@ -489,9 +480,8 @@ static int l_rifle_query(lua_State *L) {
   }
 
   char path[PATH_MAX + 1];
-  if (realpath(file.str, path) == NULL) {
+  if (unlikely(realpath(file.str, path) == NULL))
     path[0] = 0;
-  }
 
   char mime[256];
   get_mimetype(path, mime, sizeof mime);
@@ -507,9 +497,8 @@ static int l_rifle_query(lua_State *L) {
   c_foreach(it, rules, rifle->rules) {
     Rule *r = it.ref;
     if (rule_check(r, &info)) {
-      if (r->number > 0) {
+      if (r->number > 0)
         ct_match = r->number;
-      }
       ct_match++;
 
       if (!zsview_is_empty(pick)) {
@@ -524,9 +513,8 @@ static int l_rifle_query(lua_State *L) {
       llua_push_rule(L, r, ct_match - 1);
       lua_rawseti(L, -2, i++);
 
-      if (limit > 0 && i > limit) {
+      if (limit > 0 && i > limit)
         break;
-      }
     }
   }
 
@@ -535,30 +523,25 @@ static int l_rifle_query(lua_State *L) {
 
 // loads rules from the configuration file
 static void load_rules(Rifle *rifle) {
-  if (cstr_is_empty(&rifle->config_file)) {
+  if (cstr_is_empty(&rifle->config_file))
     return;
-  }
 
   FILE *fp = fopen(cstr_str(&rifle->config_file), "r");
-  if (!fp) {
+  if (unlikely(fp == NULL))
     return;
-  }
 
   char buf[BUFSIZE];
   while (fgets(buf, BUFSIZE, fp) != NULL) {
-    if (is_comment_or_whitespace(buf)) {
+    if (is_comment_or_whitespace(buf))
       continue;
-    }
 
     char *command = split_command(buf);
-    if (!command) {
+    if (!command)
       continue;
-    }
 
     Rule r;
-    if (rule_init(&r, buf, command) == 0) {
+    if (likely(rule_init(&r, buf, command) == 0))
       rules_push(&rifle->rules, r);
-    }
   }
 
   fclose(fp);
@@ -574,12 +557,13 @@ static inline int llua_parse_rules(lua_State *L, int idx, Rifle *rifle) {
     buf[sizeof buf - 1] = 0;
 
     char *command = split_command(buf);
-    if (!command) {
+    if (unlikely(!command)) {
       log_error("malformed rule: %s", str);
+      continue;
     }
 
     Rule r = {0};
-    if (rule_init(&r, buf, command) != 0) {
+    if (unlikely(rule_init(&r, buf, command) != 0)) {
       log_error("malformed rule: %s", str);
       continue;
     }

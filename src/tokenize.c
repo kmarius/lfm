@@ -10,13 +10,11 @@ char *tokenize(const char *str, char *buf, const char **pos_str,
     *pos_buf = buf;
   }
 
-  while ((c = **pos_str) && c == ' ') {
+  while ((c = **pos_str) && c == ' ')
     (*pos_str)++;
-  }
 
-  if (!c) {
+  if (!c)
     return NULL;
-  }
 
   char *ret = *pos_buf;
   while ((c = **pos_str)) {

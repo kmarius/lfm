@@ -24,7 +24,7 @@ struct chdir_data {
 
 static void chdir_destroy(void *p) {
   struct chdir_data *res = p;
-  if (res->fd > 0)
+  if (likely(res->fd > 0))
     close(res->fd);
   xfree(res->destination);
   xfree(res->origin);

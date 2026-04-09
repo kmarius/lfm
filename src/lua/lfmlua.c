@@ -140,7 +140,7 @@ static inline bool load_file(lua_State *L, const char *path,
     }
     return false;
   }
-  if (lfm_lua_pcall(L, 0, 0)) {
+  if (unlikely(lfm_lua_pcall(L, 0, 0))) {
     lfm_errorf(lfm, "%s", lua_tostring(L, -1));
     lua_pop(L, 1);
     return false;
@@ -156,7 +156,7 @@ int lfm_lua_pcall(lua_State *L, int nargs, int nresults) {
 
   int status = lua_pcall(L, nargs, nresults, -2 - nargs);
 
-  if (status != LUA_OK) {
+  if (unlikely(status != LUA_OK)) {
     lua_remove(L, -2);
   } else {
     lua_remove(L, -1 - nresults);
@@ -216,7 +216,7 @@ static inline bool init_packages(lua_State *L) {
 
   lua_getglobal(L, "require");
   lua_pushstring(L, "lfm._core");
-  if (lfm_lua_pcall(L, 1, 0)) {
+  if (unlikely(lfm_lua_pcall(L, 1, 0))) {
     lfm_errorf(lfm, "%s", lua_tostring(L, -1));
     lua_pop(L, 1);
     return false;
@@ -226,17 +226,21 @@ static inline bool init_packages(lua_State *L) {
 }
 
 void lfm_lua_cb(lua_State *L, int ref, bool unref) {
-  lfm_lua_push_callback(L, ref, unref); // [f]
-  if (lfm_lua_pcall(L, 0, 0)) {         // []
+  if (unlikely(L == NULL))
+    return;
+  lfm_lua_push_callback(L, ref, unref);   // [f]
+  if (unlikely(lfm_lua_pcall(L, 0, 0))) { // []
     lfm_errorf(lfm, "%s", lua_tostring(L, -1));
     lua_pop(L, 1);
   }
 }
 
 void lfm_lua_cb1(lua_State *L, int ref, zsview line) {
+  if (unlikely(L == NULL))
+    return;
   lfm_lua_push_callback(L, ref, false); // [f]
   lua_pushzsview(L, line);
-  if (lfm_lua_pcall(L, 1, 0)) { // []
+  if (unlikely(lfm_lua_pcall(L, 1, 0))) { // []
     lfm_errorf(lfm, "%s", lua_tostring(L, -1));
     lua_pop(L, 1);
   }
@@ -245,9 +249,9 @@ void lfm_lua_cb1(lua_State *L, int ref, zsview line) {
 void lfm_lua_child_exit_cb(lua_State *L, int ref, int rstatus) {
   if (unlikely(!L))
     return;
-  lfm_lua_push_callback(L, ref, true); // [f]
-  lua_pushnumber(L, rstatus);          // [f, rstatus]
-  if (lfm_lua_pcall(L, 1, 0)) {        // []
+  lfm_lua_push_callback(L, ref, true);    // [f]
+  lua_pushnumber(L, rstatus);             // [f, rstatus]
+  if (unlikely(lfm_lua_pcall(L, 1, 0))) { // []
     lfm_errorf(lfm, "%s", lua_tostring(L, -1));
     lua_pop(L, 1);
   }
@@ -257,7 +261,7 @@ void lfm_lua_child_exit_cb(lua_State *L, int ref, int rstatus) {
 // passed; len is negative, strlen(line) is used
 void lfm_lua_child_stdout_cb(lua_State *L, int ref, const char *line,
                              isize len) {
-  if (unlikely(!L))
+  if (unlikely(L == NULL))
     return;
 
   lfm_lua_push_callback(L, ref, line == NULL); // [f]
@@ -270,7 +274,7 @@ void lfm_lua_child_stdout_cb(lua_State *L, int ref, const char *line,
     len = strlen(line);
 
   lua_pushlstring(L, line, len);                // [f, line]
-  if (lfm_lua_pcall(L, 1, 00)) {                // []
+  if (unlikely(lfm_lua_pcall(L, 1, 00))) {      // []
     lfm_errorf(lfm, "%s", lua_tostring(L, -1)); // [err]
     lua_pop(L, 1);                              // []
   }
@@ -279,8 +283,8 @@ void lfm_lua_child_stdout_cb(lua_State *L, int ref, const char *line,
 void lfm_lua_cb_with_count(lua_State *L, int ref, int count) {
   lua_rawgeti(L, LUA_REGISTRYINDEX, ref); // [f]
   if (count > 0)
-    lua_pushnumber(L, count);                   // [f, count]
-  if (lfm_lua_pcall(L, count > 0 ? 1 : 0, 0)) { // []
+    lua_pushnumber(L, count);                             // [f, count]
+  if (unlikely(lfm_lua_pcall(L, count > 0 ? 1 : 0, 0))) { // []
     lfm_errorf(lfm, "%s", lua_tostring(L, -1));
     lua_pop(L, 1);
   }
@@ -288,10 +292,10 @@ void lfm_lua_cb_with_count(lua_State *L, int ref, int count) {
 
 void lfm_lua_evaln(lua_State *L, const char *expr, int len) {
   log_debug("lua_eval %.*s", len, expr);
-  lua_getglobal(L, "lfm");       // [lfm]
-  lua_getfield(L, -1, "eval");   // [lfm, lfm.eval]
-  lua_pushlstring(L, expr, len); // [lfm, lfm.eval, expr]
-  if (lfm_lua_pcall(L, 1, 0)) {  // [lfm]
+  lua_getglobal(L, "lfm");                // [lfm]
+  lua_getfield(L, -1, "eval");            // [lfm, lfm.eval]
+  lua_pushlstring(L, expr, len);          // [lfm, lfm.eval, expr]
+  if (unlikely(lfm_lua_pcall(L, 1, 0))) { // [lfm]
     lfm_errorf(lfm, "%s", lua_tostring(L, -1));
     lua_pop(L, 1);
   }
@@ -301,7 +305,7 @@ void lfm_lua_evaln(lua_State *L, const char *expr, int len) {
 bool lfm_lua_filter(lua_State *L, int ref, zsview name) {
   lfm_lua_push_callback(L, ref, false);
   lua_pushzsview(L, name);
-  if (lfm_lua_pcall(L, 1, 1)) { // []
+  if (unlikely(lfm_lua_pcall(L, 1, 1))) { // []
     lfm_errorf(lfm, "%s", lua_tostring(L, -1));
     lua_pop(L, 1);
   }

@@ -20,9 +20,8 @@ char *rtrim(char *s) {
   char *t = s;
   char *end = s - 1;
   while (*t) {
-    if (!isspace(*t)) {
+    if (!isspace(*t))
       end = t;
-    }
     t++;
   }
   *++end = 0;
@@ -38,17 +37,14 @@ char *ltrim(char *s) {
 
 char *strcasestr(const char *str, const char *sub) {
 
-  if (*sub == 0) {
+  if (unlikely(*sub == 0))
     return (char *)str;
-  }
 
   for (; *str != 0; str++) {
-    if (tolower(*str) != tolower(*sub)) {
+    if (tolower(*str) != tolower(*sub))
       continue;
-    }
-    if (hascaseprefix(str, sub)) {
+    if (hascaseprefix(str, sub))
       return (char *)str;
-    }
   }
 
   return NULL;
@@ -56,9 +52,8 @@ char *strcasestr(const char *str, const char *sub) {
 
 bool hascaseprefix(const char *restrict string, const char *restrict prefix) {
   while (*prefix != 0) {
-    if (tolower(*prefix++) != tolower(*string++)) {
+    if (tolower(*prefix++) != tolower(*string++))
       return false;
-    }
   }
   return true;
 }
@@ -128,9 +123,8 @@ bool get_mimetype(const char *path, char *dest, usize sz) {
 
 bool valgrind_active(void) {
   char *preload = getenv("LD_PRELOAD");
-  if (!preload) {
+  if (!preload)
     return false;
-  }
   return (strstr(preload, "/valgrind/") || strstr(preload, "/vgpreload"));
 }
 
@@ -142,9 +136,8 @@ i32 strcasecmp_strict(const char *s1, const char *s2) {
     char lower1 = tolower((u8)c1);
     char lower2 = tolower((u8)c2);
 
-    if (lower1 != lower2) {
+    if (lower1 != lower2)
       return (u8)lower1 - (u8)lower2;
-    }
 
     if (c1 != c2) {
       if (isupper((u8)c1) && islower((u8)c2)) {
@@ -162,19 +155,18 @@ i32 strcasecmp_strict(const char *s1, const char *s2) {
   return (u8)*s1 - (u8)*s2;
 }
 
-// TODO: add bufsz parameter
 i32 shorten_name(zsview name, i32 max_len, bool has_ext, char *buf,
                  usize bufsz) {
   usize pos = 0;
   char *ptr = buf;
   *ptr = 0;
-  if (max_len <= 0)
+  if (unlikely(max_len <= 0))
     return 0;
 
   i32 name_len = zsview_u8_size(name);
   if (name_len <= max_len) {
     // everything fits
-    if (name.size + 1 > (isize)bufsz)
+    if (unlikely(name.size + 1 > (isize)bufsz))
       return -1;
     memcpy(buf, name.str, name.size + 1); // includes nul
     return name_len;
@@ -183,9 +175,8 @@ i32 shorten_name(zsview name, i32 max_len, bool has_ext, char *buf,
   zsview ext = zsview_tail(name, 0);
   if (has_ext) {
     const char *ptr = strrchr(name.str, '.');
-    if (ptr != NULL && ptr != name.str) {
+    if (ptr != NULL && ptr != name.str)
       ext = zsview_tail(name, name.size - (ptr - name.str));
-    }
   }
   i32 ext_len = zsview_u8_size(ext);
 

@@ -34,9 +34,8 @@ char *basename_s(const char *p) {
 }
 
 zsview basename_zv(zsview path) {
-  if (zsview_is_empty(path)) {
+  if (unlikely(zsview_is_empty(path)))
     return c_zv(".");
-  }
 
   char *base = strrchr(path.str, '/');
 
@@ -49,7 +48,7 @@ zsview basename_zv(zsview path) {
 }
 
 void dirname_cstr(cstr *path) {
-  if (cstr_is_empty(path)) {
+  if (unlikely(cstr_is_empty(path))) {
     cstr_assign_n(path, ".", 1);
     return;
   }

@@ -35,7 +35,7 @@ int lfm_lua_apply_keyfunc(Lfm *lfm, Dir *dir, bool throw) {
   int ret = 0;
 
   get_keyfunc(L, dir_path(dir)); // [func]
-  if (lua_isnil(L, -1))
+  if (unlikely(lua_isnil(L, -1)))
     goto err;
 
   c_foreach(it, vec_file, dir->files_all) {

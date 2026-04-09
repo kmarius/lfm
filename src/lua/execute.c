@@ -64,13 +64,13 @@ static inline int execute(const struct execute_opts *data,
     status |= pipe(pipe_stderr);
 
   if (unlikely(status != 0)) {
-    lfm_errorf(lfm, "pipe: %s", strerror(errno));
+    lfm_perror(lfm, "pipe");
     goto fail;
   }
 
   int pid = fork();
   if (unlikely(pid < 0)) {
-    lfm_errorf(lfm, "fork: %s", strerror(errno));
+    lfm_perror(lfm, "fork");
     goto fail;
   }
 
