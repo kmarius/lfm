@@ -21,6 +21,7 @@ typedef struct Filter {
   void (*destroy)(Filter *);
   cstr string;
   zsview type;
+  cstr desc;
   __compar_fn_t cmp;
 } Filter;
 
@@ -28,16 +29,27 @@ bool filter_match(const Filter *filter, const File *file) {
   return filter->match(filter, file);
 }
 
+void filter_set_desc(Filter *filter, zsview desc) {
+  if (!filter)
+    return;
+  filter->desc = cstr_from_zv(desc);
+}
+
 void filter_destroy(Filter *filter) {
   if (filter) {
     cstr_drop(&filter->string);
     filter->destroy(filter);
+    cstr_drop(&filter->desc);
     xfree(filter);
   }
 }
 
 zsview filter_string(const Filter *filter) {
-  return filter ? cstr_zv(&filter->string) : c_zv("");
+  if (!filter)
+    return c_zv("");
+  if (!cstr_is_empty(&filter->desc))
+    return cstr_zv(&filter->desc);
+  return cstr_zv(&filter->string);
 }
 
 zsview filter_type(const Filter *filter) {

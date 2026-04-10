@@ -163,7 +163,12 @@ static inline int filter(lua_State *L, int idx, Dir *dir) {
     } else {
       return luaL_error(L, "unrecognized filter type: %s", type);
     }
-    lua_pop(L, 2);
+    lua_pop(L, 1);
+
+    lua_getfield(L, idx, "desc");
+    if (!lua_isnil(L, -1))
+      filter_set_desc(filter, lua_tozsview(L, -1));
+    lua_pop(L, 1);
   }
 
   dir_filter(dir, filter, fm->height, cfg.scrolloff);

@@ -41,6 +41,11 @@ void filter_destroy(Filter *filter);
 bool filter_match(const Filter *filter, const File *file);
 
 /*
+ * Set the description of a filter, it is printed in the UI instead of the type.
+ */
+void filter_set_desc(Filter *filter, zsview desc);
+
+/*
  * Get the pattern string used to create the filter.
  */
 zsview filter_string(const Filter *filter);
