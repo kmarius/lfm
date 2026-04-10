@@ -159,7 +159,7 @@ static inline int filter(lua_State *L, int idx, Dir *dir) {
     } else if (streq(type, "lua")) {
       lua_getfield(L, idx, "match");
       int ref = lua_register_callback(L, -1);
-      filter = filter_create_lua(ref, L);
+      filter = filter_create_lua(ref);
     } else {
       return luaL_error(L, "unrecognized filter type: %s", type);
     }

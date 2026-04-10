@@ -1,6 +1,7 @@
 #include "filter.h"
 
 #include "fuzzy.h"
+#include "lfm.h"
 #include "lua/lfmlua.h"
 #include "memory.h"
 #include "stcutil.h"
@@ -308,31 +309,32 @@ static i32 cmpchoice(const void *_idx1, const void *_idx2) {
 
 typedef struct LuaFilter {
   Filter super;
-  lua_State *L;
+  struct Lfm *lfm;
   i32 ref;
 } LuaFilter;
 
 bool lua_match(const Filter *filter, const File *file);
 void lua_destroy(Filter *filter);
 
-Filter *filter_create_lua(i32 ref, void *L) {
+Filter *filter_create_lua(i32 ref) {
   LuaFilter *f = xcalloc(1, sizeof *f);
   f->super.match = &lua_match;
   f->super.destroy = &lua_destroy;
   f->super.string = cstr_lit(FILTER_TYPE_LUA);
   f->super.type = c_zv(FILTER_TYPE_LUA);
 
-  f->L = L;
+  f->lfm = lfm_instance();
   f->ref = ref;
   return (Filter *)f;
 }
 
 bool lua_match(const Filter *filter, const File *file) {
   LuaFilter *f = (LuaFilter *)filter;
-  return lfm_lua_filter(f->L, f->ref, file_name(file));
+  return lfm_lua_filter(f->lfm->L, f->ref, file_name(file));
 }
 
 void lua_destroy(Filter *filter) {
   LuaFilter *f = (LuaFilter *)filter;
-  luaL_unref(f->L, LUA_REGISTRYINDEX, f->ref);
+  if (likely(f->lfm->L))
+    luaL_unref(f->lfm->L, LUA_REGISTRYINDEX, f->ref);
 }

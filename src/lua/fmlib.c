@@ -448,7 +448,7 @@ static int l_filter(lua_State *L) {
       filter = filter_create_fuzzy(lua_tozsview(L, 1));
     } else if (streq(type, "lua")) {
       int ref = lua_register_callback(L, 1);
-      filter = filter_create_lua(ref, L);
+      filter = filter_create_lua(ref);
     } else {
       return luaL_error(L, "unrecognized filter type: %s", type);
     }

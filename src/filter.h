@@ -28,7 +28,7 @@ Filter *filter_create_fuzzy(zsview filter);
  * Creates a filter that calls the lua function with reference `ref` with the
  * file name. `L` is the lua_State.
  */
-Filter *filter_create_lua(i32 ref, void *L);
+Filter *filter_create_lua(i32 ref);
 
 /*
  * Destroy a filter object.
