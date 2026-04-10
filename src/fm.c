@@ -38,6 +38,7 @@ void fm_init(Fm *fm, struct lfm_opts *opts) {
   if (!cstr_is_empty(&opts->startpath)) {
     if (chdir(cstr_str(&opts->startpath)) == 0) {
       fm->pwd = cstr_move(&opts->startpath);
+      setpwd(cstr_str(&fm->pwd));
     } else {
       lfm_perror(to_lfm(fm), "chdir");
     }
