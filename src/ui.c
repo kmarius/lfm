@@ -989,6 +989,9 @@ void ui_update_preview(Ui *ui, bool immediate) {
     return;
   }
 
+  if (to_lfm(ui)->fm.dirs.preview)
+    return;
+
   immediate |= cfg.preview_delay == 0;
 
   static u64 last_time_called = 0;
