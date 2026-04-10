@@ -1017,9 +1017,8 @@ void ui_update_preview(Ui *ui, bool immediate) {
     preview->status = PV_LOADING_DELAYED;
   }
 
-  if (preview_changed) {
+  if (preview_changed)
     remove_preview(ui);
-  }
 
   if (is_file_preview) {
     // gives us the existing preview or a dummy and, depending on
@@ -1029,7 +1028,8 @@ void ui_update_preview(Ui *ui, bool immediate) {
                                                    file_path(file), immediate);
   }
 
-  ui->preview.hidden = !immediate;
+  if (preview_changed)
+    ui->preview.hidden = !immediate;
   if (immediate) {
     ev_invoke(event_loop, &ui->preview_load_timer, 0);
   } else {
