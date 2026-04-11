@@ -478,3 +478,15 @@ function lfm.fm.scroll_down() end
 ---@param dir string destination path
 ---@param force_sync? boolean force chdir immediately
 function lfm.fm.chdir(dir, force_sync) end
+
+---
+---Get the current working directory of the file manager.
+---
+---Example:
+---```lua
+---  local pwd = lfm.fm.getpwd()
+---```
+---
+---@return string
+---@nodiscard
+function lfm.fm.getpwd() end

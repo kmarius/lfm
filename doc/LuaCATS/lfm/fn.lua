@@ -101,7 +101,8 @@ function lfm.fn.unquote_space(str) end
 function lfm.fn.getcwd() end
 
 ---
----Get the present working directory, equivalent to `os.getenv("PWD")`.
+---Get the current working directory of the process.
+---Use lfm.fm.getpwd() to get the current location of the file manager.
 ---
 ---Example:
 ---```lua

@@ -247,7 +247,7 @@ function M.paste()
 	if #files == 0 then
 		return
 	end
-	local pwd = lfm.fn.getpwd()
+	local pwd = lfm.fm.getpwd()
 	--- spawning all these shells is fine with a sane amount of files
 	local reload_dirs = { [pwd] = true }
 	if mode == "move" then
@@ -310,7 +310,7 @@ function M.paste_overwrite()
 	if #files == 0 then
 		return
 	end
-	local reload_dirs = { [lfm.fn.getpwd()] = true }
+	local reload_dirs = { [lfm.fm.getpwd()] = true }
 	if mode == "move" then
 		for _, file in ipairs(files) do
 			reload_dirs[fs.dirname(file)] = true

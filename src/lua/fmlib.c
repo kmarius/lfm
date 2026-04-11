@@ -25,6 +25,11 @@ static int l_get_height(lua_State *L) {
   return 1;
 }
 
+static int l_getpwd(lua_State *L) {
+  lua_pushcstr(L, &fm->pwd);
+  return 1;
+}
+
 static int l_drop_cache(lua_State *L) {
   (void)L;
   fm_drop_cache(fm);
@@ -507,6 +512,7 @@ static int l_get_cached_dirs(lua_State *L) {
 }
 
 static const struct luaL_Reg fm_funcs[] = {
+    {"getpwd",            l_getpwd           },
     {"chdir",             l_chdir            },
     {"up",                l_up               },
     {"down",              l_down             },
