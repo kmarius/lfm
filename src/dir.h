@@ -52,6 +52,7 @@ struct dir_settings {
   bool reverse;
   sorttype sorttype;
   fileinfo fileinfo;
+  u64 salt; // used for random sort
 };
 
 typedef struct Dir {
@@ -170,6 +171,9 @@ static inline File *dir_current_file(const Dir *dir) {
 // `dir->sorttype`. If `force` is not set, the directory is only sorted if its
 // `sorted` flag is false. Filters are always applied.
 void dir_sort(Dir *dir, bool force);
+
+// salt == 0 uses existing salt
+void dir_apply_random_keys(Dir *dir, u64 salt);
 
 // Applies the filter to `dir`. `NULL` clears the
 // filter. Attempts to re-select the previously selected file.

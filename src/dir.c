@@ -5,6 +5,7 @@
 #include "log.h"
 #include "memory.h"
 #include "path.h"
+#include "sha256.h"
 #include "sort.h"
 #include "stcutil.h"
 #include "util.h"
@@ -62,8 +63,8 @@ typedef struct flat_dir_node {
 #define i_cmp compare_mtime
 #include <stc/sort.h>
 
-#define i_type files_lua, File *
-#define i_cmp compare_lua
+#define i_type files_key, File *
+#define i_cmp compare_key
 #include <stc/sort.h>
 
 const char *fileinfo_str[] = {"size", "atime", "ctime", "mtime"};
@@ -107,6 +108,26 @@ static void apply_filters(Dir *d) {
   d->ind = max(min(d->ind, vec_file_size(&d->files) - 1), 0);
 }
 
+void dir_apply_random_keys(Dir *dir, u64 salt) {
+  u8 hash[32];
+  SHA256_CTX ctx;
+  if (salt)
+    dir->settings.salt = salt;
+  else
+    salt = dir->settings.salt;
+
+  c_foreach(it, Dir, dir) {
+    File *file = *it.ref;
+    zsview name = file_name(file);
+
+    sha256_init(&ctx);
+    sha256_update(&ctx, (u8 *)name.str, name.size);
+    sha256_update(&ctx, (u8 *)&salt, sizeof salt);
+    sha256_final(&ctx, hash);
+    file->key = 0x7FFFFFFFFFFFFFFF & *(u64 *)hash; // null highest bit
+  }
+}
+
 /* sort allfiles and copy non-hidden ones to sortedfiles */
 void dir_sort(Dir *d, bool force) {
   if (vec_file_is_empty(&d->files_all)) {
@@ -134,10 +155,8 @@ void dir_sort(Dir *d, bool force) {
       files_mtime_sort(d->files_all.data, d->files_all.size);
       break;
     case SORT_LUA:
-      files_lua_sort(d->files_all.data, d->files_all.size);
-      break;
     case SORT_RAND:
-      shuffle(d->files_all.data, d->files_all.size, sizeof(File *));
+      files_key_sort(d->files_all.data, d->files_all.size);
     default:
       break;
     }

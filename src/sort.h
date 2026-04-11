@@ -32,6 +32,4 @@ i64 compare_atime(const void *a, const void *b);
 
 i64 compare_mtime(const void *a, const void *b);
 
-i64 compare_lua(const void *a, const void *b);
-
-void shuffle(void *arr, usize n, usize size);
+i64 compare_key(const void *a, const void *b);

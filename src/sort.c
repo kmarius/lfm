@@ -1,7 +1,6 @@
 #include "sort.h"
 
 #include "file.h"
-#include "memory.h"
 #include "strnatcmp.h"
 
 #include <strings.h>
@@ -76,35 +75,11 @@ i64 compare_mtime(const void *a, const void *b) {
   return aa->lstat.st_ino - bb->lstat.st_ino;
 }
 
-i64 compare_lua(const void *a, const void *b) {
+i64 compare_key(const void *a, const void *b) {
   const File *aa = *(File **)a;
   const File *bb = *(File **)b;
   i64 cmp = aa->key - bb->key;
   if (cmp)
     return cmp;
   return aa->lstat.st_ino - bb->lstat.st_ino;
-}
-
-// https://stackoverflow.com/questions/6127503/shuffle-array-in-c
-// arrange the N elements of ARRAY in random order.
-// Only effective if N is much smaller than RAND_MAX;
-// if this may not be the case, use a better random
-// number generator.
-void shuffle(void *arr_, usize n, usize size) {
-  if (n <= 1)
-    return;
-
-  char *arr = arr_;
-  char *tmp = xmalloc(size);
-
-  for (usize i = 0; i < n - 1; ++i) {
-    const usize rnd = (usize)rand();
-    usize j = i + rnd / (RAND_MAX / (n - i) + 1);
-
-    memcpy(tmp, arr + j * size, size);
-    memcpy(arr + j * size, arr + i * size, size);
-    memcpy(arr + i * size, tmp, size);
-  }
-
-  xfree(tmp);
 }

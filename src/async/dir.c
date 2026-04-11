@@ -282,20 +282,25 @@ static void dir_update_destroy(void *p) {
 
 static void dir_update_callback(void *p, Lfm *lfm) {
   struct dir_update_data *res = p;
-  if (res->dir->cookie == res->cookie) {
-    loader_dir_load_callback(&lfm->loader, res->dir);
-    if (res->dir->settings.sorttype == SORT_LUA)
-      lfm_lua_apply_keyfunc(lfm, res->update, false);
-    dir_update_with(res->dir, res->update, lfm->fm.height, cfg.scrolloff);
-    LFM_RUN_HOOK(lfm, LFM_HOOK_DIRUPDATED, dir_path(res->dir));
-    if (res->dir->visible) {
-      if (fm_current_dir(&lfm->fm) == res->dir) {
+  Dir *dir = res->dir;
+  Dir *update = res->update;
+  if (dir->cookie == res->cookie) {
+    loader_dir_load_callback(&lfm->loader, dir);
+    // apply any keyfuncs before sorting in dir_update_with
+    if (dir->settings.sorttype == SORT_LUA)
+      lfm_lua_apply_keyfunc(lfm, update, false);
+    else if (dir->settings.sorttype == SORT_RAND)
+      dir_apply_random_keys(update, dir->settings.salt);
+    dir_update_with(dir, update, lfm->fm.height, cfg.scrolloff);
+    LFM_RUN_HOOK(lfm, LFM_HOOK_DIRUPDATED, dir_path(dir));
+    if (dir->visible) {
+      if (fm_current_dir(&lfm->fm) == dir) {
         fm_update_preview(&lfm->fm, true);
         ui_update_preview(&lfm->ui, true);
       }
       ui_redraw(&lfm->ui, REDRAW_FM);
     }
-    res->dir->last_loading_action = 0;
+    dir->last_loading_action = 0;
     res->update = NULL;
   }
 }

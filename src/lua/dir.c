@@ -7,6 +7,7 @@
 #include <lauxlib.h>
 #include <lua.h>
 #include <stc/cstr.h>
+#include <stdlib.h>
 
 #define DIR_META "Lfm.Dir.Meta"
 #define DIR_METHODS "Lfm.Dir.Methods"
@@ -87,6 +88,8 @@ static inline int sort_dir(lua_State *L, int idx, Dir *dir) {
     if (unlikely(type < 0))
       return luaL_error(L, "unrecognized sort type: %s", op);
     settings.sorttype = type;
+    if (type == SORT_RAND)
+      settings.salt = ((u64)rand() << 32) | rand(); // good enough
   }
   lua_pop(L, 1);
 
@@ -102,6 +105,12 @@ static inline int sort_dir(lua_State *L, int idx, Dir *dir) {
 
   if (unlikely(settings.sorttype == SORT_LUA && !have_keyfunc))
     return luaL_error(L, "missing field: keyfunc");
+
+  if (settings.sorttype == SORT_RAND) {
+    dir_apply_random_keys(dir, settings.salt);
+  } else {
+    settings.salt = 0;
+  }
 
   dir->settings = settings;
 
