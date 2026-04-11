@@ -18,33 +18,32 @@ i32 sorttype_from_str(const char *str) {
   return -1;
 }
 
-i32 compare_name(const void *a, const void *b) {
+i64 compare_name(const void *a, const void *b) {
   return strcasecmp(file_name_str(*(File **)a), file_name_str(*(File **)b));
 }
 
-i32 compare_size(const void *a, const void *b) {
+i64 compare_size(const void *a, const void *b) {
   const File *aa = *(File **)a;
   const File *bb = *(File **)b;
-  long cmp = file_size(aa) - file_size(bb);
-  if (cmp)
-    // conversion from long to i32 breaks this for large files
-    return cmp < 0 ? -1 : 1;
-  return aa->lstat.st_ino - bb->lstat.st_ino;
-}
-
-i32 compare_natural(const void *a, const void *b) {
-  const File *aa = *(File **)a;
-  const File *bb = *(File **)b;
-  i32 cmp = strnatcasecmp(file_name_str(aa), file_name_str(bb));
+  i64 cmp = file_size(aa) - file_size(bb);
   if (cmp)
     return cmp;
   return aa->lstat.st_ino - bb->lstat.st_ino;
 }
 
-i32 compare_ctime(const void *a, const void *b) {
+i64 compare_natural(const void *a, const void *b) {
   const File *aa = *(File **)a;
   const File *bb = *(File **)b;
-  long cmp = aa->lstat.st_ctim.tv_sec - bb->lstat.st_ctim.tv_sec;
+  i64 cmp = strnatcasecmp(file_name_str(aa), file_name_str(bb));
+  if (cmp)
+    return cmp;
+  return aa->lstat.st_ino - bb->lstat.st_ino;
+}
+
+i64 compare_ctime(const void *a, const void *b) {
+  const File *aa = *(File **)a;
+  const File *bb = *(File **)b;
+  i64 cmp = aa->lstat.st_ctim.tv_sec - bb->lstat.st_ctim.tv_sec;
   if (cmp)
     return cmp;
   cmp = aa->lstat.st_ctim.tv_nsec - bb->lstat.st_ctim.tv_nsec;
@@ -53,10 +52,10 @@ i32 compare_ctime(const void *a, const void *b) {
   return aa->lstat.st_ino - bb->lstat.st_ino;
 }
 
-i32 compare_atime(const void *a, const void *b) {
+i64 compare_atime(const void *a, const void *b) {
   const File *aa = *(File **)a;
   const File *bb = *(File **)b;
-  long cmp = aa->lstat.st_atim.tv_sec - bb->lstat.st_atim.tv_sec;
+  i64 cmp = aa->lstat.st_atim.tv_sec - bb->lstat.st_atim.tv_sec;
   if (cmp)
     return cmp;
   cmp = aa->lstat.st_atim.tv_nsec - bb->lstat.st_atim.tv_nsec;
@@ -65,10 +64,10 @@ i32 compare_atime(const void *a, const void *b) {
   return aa->lstat.st_ino - bb->lstat.st_ino;
 }
 
-i32 compare_mtime(const void *a, const void *b) {
+i64 compare_mtime(const void *a, const void *b) {
   const File *aa = *(File **)a;
   const File *bb = *(File **)b;
-  long cmp = aa->lstat.st_mtim.tv_sec - bb->lstat.st_mtim.tv_sec;
+  i64 cmp = aa->lstat.st_mtim.tv_sec - bb->lstat.st_mtim.tv_sec;
   if (cmp)
     return cmp;
   cmp = aa->lstat.st_mtim.tv_nsec - bb->lstat.st_mtim.tv_nsec;
@@ -77,10 +76,10 @@ i32 compare_mtime(const void *a, const void *b) {
   return aa->lstat.st_ino - bb->lstat.st_ino;
 }
 
-i32 compare_lua(const void *a, const void *b) {
+i64 compare_lua(const void *a, const void *b) {
   const File *aa = *(File **)a;
   const File *bb = *(File **)b;
-  long cmp = aa->key - bb->key;
+  i64 cmp = aa->key - bb->key;
   if (cmp)
     return cmp;
   return aa->lstat.st_ino - bb->lstat.st_ino;

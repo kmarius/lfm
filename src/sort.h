@@ -20,20 +20,18 @@ extern const char *sorttype_str[NUM_SORTTYPE];
 
 i32 sorttype_from_str(const char *str);
 
-i32 compare_name(const void *a, const void *b);
+i64 compare_name(const void *a, const void *b);
 
-i32 compare_size(const void *a, const void *b);
+i64 compare_size(const void *a, const void *b);
 
-i32 compare_natural(const void *a, const void *b);
+i64 compare_natural(const void *a, const void *b);
 
-i32 compare_ctime(const void *a, const void *b);
+i64 compare_ctime(const void *a, const void *b);
 
-i32 compare_atime(const void *a, const void *b);
+i64 compare_atime(const void *a, const void *b);
 
-i32 compare_mtime(const void *a, const void *b);
+i64 compare_mtime(const void *a, const void *b);
 
-i32 compare_lua(const void *a, const void *b);
-
-i32 compare_lua(const void *a, const void *b);
+i64 compare_lua(const void *a, const void *b);
 
 void shuffle(void *arr, usize n, usize size);
