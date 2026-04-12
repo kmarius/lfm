@@ -10,6 +10,7 @@
 #include <stc/cstr.h>
 
 #include <fcntl.h>
+#include <sys/stat.h>
 #include <unistd.h>
 
 struct chdir_data {
@@ -40,7 +41,7 @@ static void chdir_callback(void *p, Lfm *lfm) {
   lfm_mode_exit(lfm, c_zv("visual"));
   if (res->err) {
     // back to the where we cd'ed from
-    lfm_perror(lfm, "open");
+    lfm_errorf(lfm, "open: %s", strerror(res->err));
     fm_sync_chdir(&lfm->fm, zsview_from(res->origin), false, false);
   } else if (fchdir(res->fd) != 0) {
     lfm_perror(lfm, "fchdir");
@@ -55,9 +56,8 @@ static void chdir_callback(void *p, Lfm *lfm) {
 static void async_chdir_worker(void *arg) {
   struct chdir_data *work = arg;
 
-  // open the directory, use fchdir in the callback
   work->fd = open(work->destination, O_RDONLY);
-  if (work->fd <= 0)
+  if (work->fd < 0)
     work->err = errno;
 
   enqueue_and_signal(work->async, (struct result *)work);
