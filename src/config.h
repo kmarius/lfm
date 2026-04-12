@@ -43,6 +43,7 @@ typedef struct config {
   cstr configpath;  // ~/.config/lfm/init.lua
   cstr statedir;    // ~/.local/state/lfm
   cstr historypath; // ~/.local/state/lfm/history
+  cstr historylock; // {rundir}/history.lock
   cstr datadir;     // /usr/share/lfm
   cstr luadir;      // /usr/share/lfm/lua
   cstr corepath;    // /usr/share/lfm/lua/core.lua

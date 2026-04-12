@@ -85,6 +85,8 @@ void config_init(void) {
 
   cstr_printf(&cfg.historypath, "%s/history", cstr_str(&cfg.statedir));
 
+  cstr_printf(&cfg.historylock, "%s/history.lock", cstr_str(&cfg.rundir));
+
   cfg.luadir = cstr_from(default_lua_dir);
 
   cstr_printf(&cfg.corepath, "%s/lfm/core.lua", cstr_str(&cfg.luadir));
@@ -138,6 +140,7 @@ void config_deinit(void) {
   cstr_drop(&cfg.cachedir);
   cstr_drop(&cfg.fifopath);
   cstr_drop(&cfg.historypath);
+  cstr_drop(&cfg.historylock);
   cstr_drop(&cfg.logpath);
   cstr_drop(&cfg.previewer);
   cstr_drop(&cfg.luadir);

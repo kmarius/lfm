@@ -12,12 +12,15 @@
 #include <stdlib.h>
 
 #include <linux/limits.h>
+#include <unistd.h>
+
+#define LOCK_TIMEOUT_MS 250
 
 struct history_entry_raw {
   zsview prefix; // small string optimized, this is fine
   zsview line;
   bool is_new; // true if this item is new and not previously read from the
-               // history file
+               // history file, or old but moved in the history
 };
 
 #define i_declared
@@ -51,32 +54,52 @@ struct history_entry_raw {
 /* TODO: signal errors on load/write (on 2021-10-23) */
 /* TODO: only show history items with matching prefixes (on 2021-07-24) */
 
-// returns true on append (i.e. it is a new entry), false on move to back
-static inline bool append_or_move(History *self, zsview prefix, zsview line) {
-  // we aways append first and then remove the old entry, if it exists
+// New entry is marked with `is_new`.
+// Returns true if it is a new entry, or an old entry that was moved to
+// the back for the first time.
+static inline bool append_or_move(History *self, zsview prefix, zsview line,
+                                  bool is_new) {
+  struct history_entry *entry = NULL;
   _history_hmap_value *v = _history_hmap_get_mut(&self->map, line);
   if (v) {
     // move to back
     _history_list_unlink_node(&self->list, v->second);
     _history_list_push_back_node(&self->list, v->second);
+    entry = &v->second->value;
   } else {
     // construct and append new entry
-    struct history_entry *entry = _history_list_emplace_back(
-        &self->list, (struct history_entry_raw){
-                         .prefix = prefix, .line = line, .is_new = true});
+    struct history_entry_raw e = {
+        .prefix = prefix,
+        .line = line,
+        .is_new = true,
+    };
+    entry = _history_list_emplace_back(&self->list, e);
     _history_hmap_insert(&self->map, entry->line,
                          _history_list_get_node(entry));
   }
-  return v == NULL;
+  bool is_old = !entry->is_new;
+  entry->is_new = is_new;
+  return is_old;
 }
 
 // don't call this on loaded history.
-void history_load(History *h, zsview path) {
+void history_load(History *h, zsview path, const char *lockpath) {
   memset(h, 0, sizeof *h);
 
+  int lock = -1;
+  if (lockpath) {
+    lock = acquire_file_lock(lockpath, LOCK_TIMEOUT_MS);
+    if (lock < 0) {
+      log_error("could not acquire lock: %s", lockpath);
+      return;
+    }
+  }
+
   FILE *fp = fopen(path.str, "r");
-  if (unlikely(fp == NULL))
+  if (unlikely(fp == NULL)) {
+    release_file_lock(lock);
     return;
+  }
 
   isize read;
   usize n;
@@ -101,96 +124,72 @@ void history_load(History *h, zsview path) {
       continue;
     }
 
-    append_or_move(h, prefix, line);
+    append_or_move(h, prefix, line, false);
   }
   xfree(buf);
 
   fclose(fp);
+  release_file_lock(lock);
   log_trace("%d history entries loaded", _history_hmap_size(&h->map));
   assert(_history_list_count(&h->list) == _history_hmap_size(&h->map));
 }
 
-void history_write(History *h, zsview path, i32 histsize) {
+static inline void write_line(zsview prefix, zsview line, FILE *file) {
+  fwrite(prefix.str, 1, prefix.size, file);
+  fputc('\t', file);
+  fwrite(line.str, 1, line.size, file);
+  fputc('\n', file);
+}
+
+void history_write(History *h, zsview path, i32 histsize,
+                   const char *lockpath) {
   make_dirs(path, 755);
 
   char path_new[PATH_MAX + 1];
   snprintf(path_new, sizeof path_new - 1, "%s.XXXXXX", path.str);
-  i32 fd = mkstemp(path_new);
-  if (unlikely(fd < 0)) {
+
+  int fd = mkstemp(path_new);
+  if (fd < 0) {
     log_error("mkstemp: %s", strerror(errno));
     return;
   }
-  FILE *fp_new = fdopen(fd, "w");
-  if (unlikely(fp_new == NULL)) {
+  FILE *fp = fdopen(fd, "w");
+  if (fp == NULL) {
     log_error("fdopen: %s", strerror(errno));
+    close(fd);
     return;
   }
 
-  // We we read the history again here because another instace might have saved
-  // its history since we loaded ours.
+  // We read the history again from disk and append our new entries. We use a
+  // lock file in order not to overwrite changes from another instance. This
+  // might be a problem with larger history sizes
 
-  const i32 num_keep_old = histsize - h->num_new_entries;
-
-  i32 num_lines_written = 0;
-
-  if (num_keep_old > 0) {
-    FILE *fp_old = fopen(path.str, "r");
-    if (fp_old) {
-      i32 num_old_lines = 0;
-      i32 c;
-      while ((c = fgetc(fp_old)) != EOF) {
-        if (c == '\n') {
-          num_old_lines++;
-        }
-      }
-      rewind(fp_old);
-      const i32 num_skip_old = num_old_lines - num_keep_old;
-      i32 i = 0;
-      while (i < num_skip_old && (c = fgetc(fp_old)) != EOF) {
-        if (c == '\n')
-          i++;
-      }
-      while ((c = fgetc(fp_old)) != EOF)
-        fputc(c, fp_new);
-      fclose(fp_old);
-      num_lines_written =
-          num_old_lines > num_keep_old ? num_keep_old : num_old_lines;
-    }
+  int lock = acquire_file_lock(lockpath, LOCK_TIMEOUT_MS);
+  if (lock < 0) {
+    fclose(fp);
+    return;
   }
 
-  // new file now contains num_keep_old lines from the existing file if it was
-  // positive, or nothing
+  History old;
+  history_load(&old, path, NULL);
 
-  i32 num_save_new = histsize - num_lines_written;
-
-  if (num_save_new > 0) {
-    i32 num_skip_new = h->num_new_entries - num_save_new;
-
-    _history_list_iter it = _history_list_begin(&h->list);
-
-    // skip some of our new entries if we have more than histsize
-    for (; it.ref != _history_list_back(&h->list) && num_skip_new > 0;
-         _history_list_next(&it)) {
-      struct history_entry *e = it.ref;
-      if (e->is_new)
-        num_skip_new--;
-    }
-
-    // write our new entries to path_new
-    for (; it.ref; _history_list_next(&it)) {
-      struct history_entry *e = it.ref;
-      if (!e->is_new)
-        continue;
-
-      fwrite(cstr_str(&e->prefix), 1, cstr_size(&e->prefix), fp_new);
-      fputc('\t', fp_new);
-      fwrite(cstr_str(&e->line), 1, cstr_size(&e->line), fp_new);
-      fputc('\n', fp_new);
-    }
+  // append our new entries
+  c_foreach(it, _history_list, h->list) {
+    if (it.ref->is_new)
+      history_append(&old, cstr_zv(&it.ref->prefix), cstr_zv(&it.ref->line));
   }
-  fclose(fp_new);
 
+  i32 skip = history_size(&old) - histsize;
+
+  c_foreach(it, _history_list, old.list) {
+    if (skip-- <= 0)
+      write_line(cstr_zv(&it.ref->prefix), cstr_zv(&it.ref->line), fp);
+  }
+  fclose(fp);
   rename(path_new, path.str);
+  release_file_lock(lock);
+
+  history_deinit(&old);
 }
 
 void history_deinit(History *h) {
@@ -202,7 +201,7 @@ void history_append(History *h, zsview prefix, zsview line) {
   if (zsview_is_empty(prefix) || zsview_is_empty(line))
     return;
 
-  if (append_or_move(h, prefix, line))
+  if (append_or_move(h, prefix, line, true))
     h->num_new_entries++;
 
   // reset cursor

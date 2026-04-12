@@ -39,6 +39,10 @@ u64 current_micros(void);
 
 u64 current_millis(void);
 
+int msleep(long msec);
+
+int usleep(long usec);
+
 // recursive mkdir
 i32 mkdir_p(char *path, __mode_t mode);
 
@@ -65,3 +69,9 @@ i32 strcasecmp_strict(const char *s1, const char *s2);
 // returns -1 if the buffer is too short
 i32 shorten_name(zsview name, i32 max_len, bool has_ext, char *buf,
                  usize bufsz);
+
+// timeout is approximate
+int acquire_file_lock(const char *lockfile, u64 timeout_ms);
+
+// nop if lock < 0
+void release_file_lock(int lock);

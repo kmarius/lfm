@@ -2,6 +2,7 @@
 
 #include "config.h"
 #include "defs.h"
+#include "log.h"
 
 #include <magic.h>
 
@@ -13,8 +14,10 @@
 
 #include <libgen.h>
 #include <linux/limits.h>
+#include <sys/file.h>
 #include <sys/stat.h>
 #include <sys/time.h>
+#include <unistd.h>
 
 char *rtrim(char *s) {
   char *t = s;
@@ -79,6 +82,36 @@ u64 current_millis(void) {
   struct timeval tv;
   gettimeofday(&tv, NULL);
   return ((u64)tv.tv_sec) * 1000 + tv.tv_usec / 1000;
+}
+
+int msleep(long msec) {
+  struct timespec ts;
+  int res;
+  if (unlikely(msec < 0)) {
+    errno = EINVAL;
+    return -1;
+  }
+  ts.tv_sec = msec / 1000;
+  ts.tv_nsec = (msec % 1000) * 1000000;
+  do {
+    res = nanosleep(&ts, &ts);
+  } while (res && errno == EINTR);
+  return res;
+}
+
+int usleep(long msec) {
+  struct timespec ts;
+  int res;
+  if (unlikely(msec < 0)) {
+    errno = EINVAL;
+    return -1;
+  }
+  ts.tv_sec = msec / 1000000;
+  ts.tv_nsec = (msec % 1000000) * 1000;
+  do {
+    res = nanosleep(&ts, &ts);
+  } while (res && errno == EINTR);
+  return res;
 }
 
 i32 mkdir_p(char *path, __mode_t mode) {
@@ -231,4 +264,42 @@ i32 shorten_name(zsview name, i32 max_len, bool has_ext, char *buf,
   }
 
   return max_len;
+}
+
+int acquire_file_lock(const char *lockfile, u64 timeout_ms) {
+  u64 timeout = current_micros() + timeout_ms * 1000;
+  int fd = open(lockfile, O_CREAT, 0o700);
+  if (fd < 0) {
+    log_error("open: %s", strerror(errno));
+    return -1;
+  }
+  do {
+    if (flock(fd, LOCK_EX | LOCK_NB) == 0)
+      break;
+    if (errno != EINTR && errno != EWOULDBLOCK) {
+      close(fd);
+      log_error("flock: %s", strerror(errno));
+      return -1;
+    }
+    if (current_micros() > timeout) {
+      close(fd);
+      return -1;
+    }
+    usleep(500);
+  } while (1);
+  return fd;
+}
+
+void release_file_lock(int fd) {
+  if (fd < 0)
+    return;
+  do {
+    if (flock(fd, LOCK_UN) == 0)
+      break;
+    if (errno != EINTR) {
+      log_error("flock: %s", strerror(errno));
+      break;
+    }
+  } while (1);
+  close(fd);
 }

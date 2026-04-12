@@ -24,15 +24,18 @@ void cmdline_init(Self *self) {
   self->right = cstr_init();
   self->buf = cstr_with_capacity(32);
   self->overwrite = false;
-  PROFILE("history_load",
-          { history_load(&self->history, cstr_zv(&cfg.historypath)); })
+  PROFILE("history_load", {
+    history_load(&self->history, cstr_zv(&cfg.historypath),
+                 cstr_str(&cfg.historylock));
+  })
 }
 
 void cmdline_deinit(Self *self) {
   if (unlikely(self == NULL))
     return;
 
-  history_write(&self->history, cstr_zv(&cfg.historypath), cfg.histsize);
+  history_write(&self->history, cstr_zv(&cfg.historypath), cfg.histsize,
+                cstr_str(&cfg.historylock));
   history_deinit(&self->history);
 
   fputs("\033[2 q", stdout);
