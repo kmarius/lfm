@@ -1,5 +1,8 @@
 #pragma once
 
+#include "types/bytes.h"
+#include "types/vec_bytes.h"
+
 #include <ev.h>
 
 #include <pthread.h>
@@ -9,7 +12,6 @@
 struct Dir;
 struct Preview;
 struct Lfm;
-struct bytes;
 
 #include <stc/types.h>
 declare_hset(set_ev_child, struct ev_child *);
@@ -77,7 +79,7 @@ void async_dir_cancel(struct async_ctx *async);
 void async_preview_cancel(struct async_ctx *async);
 
 // Takes ownership of chunk and arg
-void async_lua(struct async_ctx *async, struct bytes chunk, struct bytes arg,
-               int ref);
+void async_lua(struct async_ctx *async, struct bytes chunk,
+               struct vec_bytes args, int ref);
 
 void async_lua_preview(struct async_ctx *async, struct Preview *pv);

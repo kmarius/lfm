@@ -18,6 +18,14 @@
                         lua_gettop(L));                                        \
   } while (0)
 
+#define LUA_CHECK_ARGMIN(L, expected)                                          \
+  do {                                                                         \
+    if (unlikely(lua_gettop(L) < (expected)))                                  \
+      return luaL_error(L, "Expected at least %d %s, got %d", (expected),      \
+                        expected == 1 ? "argument" : "arguments",              \
+                        lua_gettop(L));                                        \
+  } while (0)
+
 #define LUA_CHECK_ARGMAX(L, expected)                                          \
   do {                                                                         \
     if (unlikely(lua_gettop(L) > (expected)))                                  \

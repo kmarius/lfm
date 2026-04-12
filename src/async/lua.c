@@ -27,8 +27,8 @@ static int init_lua_thread_state() {
 struct lua_data {
   struct result super;
   struct async_ctx *async;
-  bytes chunk;  // lua code to execute
-  bytes arg;    // optional argument
+  bytes chunk; // lua code to execute
+  vec_bytes args;
   bytes result; // error string if error == true, serialized result, otherwise
   bool error;   // either loadstring or the code itself returned an error
   int ref;      // ref to the callback
@@ -38,7 +38,7 @@ static void lua_result_destroy(void *p) {
   // TODO: check if we unref in all cases
   struct lua_data *res = p;
   bytes_drop(&res->chunk);
-  bytes_drop(&res->arg);
+  vec_bytes_drop(&res->args);
   bytes_drop(&res->result);
   xfree(p);
 }
@@ -121,18 +121,24 @@ void async_lua_worker(void *arg) {
   // [func]
 
   int nargs = 0;
-  if (!bytes_is_empty(work->arg)) {
-    if (lua_decode(L, work->arg)) {
-      // [func, err]
-      work->result = lua_tobytes(L, -1);
-      lua_pop(L, 2);
-      goto err;
+  if (!vec_bytes_is_empty(&work->args)) {
+    c_foreach(it, vec_bytes, work->args) {
+      if (unlikely(lua_decode(L, *it.ref))) {
+        // unlikely that we can't docode something we encoded earlier
+        // [func, args..., err]
+        for (i32 i = 0; i < nargs; i++)
+          lua_remove(L, -2);
+        // [func, err]
+        work->result = lua_tobytes(L, -1);
+        lua_pop(L, 2);
+        goto err;
+      }
+      nargs++;
     }
-    // [func, arg]
-    nargs++;
+    // [func, args...]
   }
 
-  // [func, arg]
+  // [func, args...]
 
   if (unlikely(lua_pcall(L, nargs, 1, 0))) {
     // [err]
@@ -143,22 +149,18 @@ void async_lua_worker(void *arg) {
 
   // [res]
 
-  if (work->ref == 0) {
-    // don't serialize if there is no callback
-    // [nil]
-    work->result = bytes_init();
-    lua_pop(L, 1);
-  } else {
-    // [res]
+  // don't serialize if there is no callback
+  if (work->ref != 0) {
     if (unlikely(lua_encode(L, -1, &work->result))) {
       // [res, err]
       work->result = lua_tobytes(L, -1);
       lua_pop(L, 2); // []
       goto err;
     }
-    // [res]
-    lua_pop(L, 1); // []
+  } else {
+    work->result = bytes_init();
   }
+  lua_pop(L, 1); // []
 
 end:
   enqueue_and_signal(work->async, (struct result *)work);
@@ -172,14 +174,14 @@ err:
   goto end;
 }
 
-void async_lua(struct async_ctx *async, bytes chunk, bytes arg, int ref) {
+void async_lua(struct async_ctx *async, bytes chunk, vec_bytes args, int ref) {
   struct lua_data *work = xcalloc(1, sizeof *work);
   work->super.callback = &lua_result_callback;
   work->super.destroy = &lua_result_destroy;
 
   work->async = async;
   work->chunk = chunk;
-  work->arg = arg;
+  work->args = args;
   work->ref = ref;
 
   log_trace("async_lua");

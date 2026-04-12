@@ -252,9 +252,10 @@ function proc:close() end
 function lfm.spawn(command, opts) end
 
 ---
----Execute a chunk of lua code in a seperate thread. The chunk may return up one return value,
----which is passed to the callback function. On error, `on_exit` is called with `nil, errmsg`
----Currently, `lfm` is not accessible from seperate threads and only the modules luajit offers are loaded.
+---Execute a chunk of lua code in a seperate thread. The chunk may return up to one return value,
+---which is passed to the callback function (return a table if you need to return multiple values).
+---On error, `on_exit` is called with `nil, errmsg`. Arguments can be passed after the callback parameter.
+---Lua threads have limited access to `lfm`, currently only `lfm.fs` and `lfm.fn`.
 ---
 ---Example:
 ---```lua
@@ -267,33 +268,36 @@ function lfm.spawn(command, opts) end
 ---    print(val)
 ---  end)
 ---```
----Functions can be converted into bytecode using `string.dump` and passed to `lfm.thread`. Note that any upvalue
----will be `nil` when executed.
+---Functions will automatically be converted into bytecode using `string.dump`.
+---Note that the function can not have any upvalues.
 ---
 ---Example:
 ---```lua
----  local function test()
----    return 2 + 2
+---  local function test(path)
+---    -- access lfm.fs
+---    return require("lfm.fs").exists()
 ---  end
 ---
----  local bc = string.dump(test)
----
----  lfm.thread(bc, print)
+---  lfm.thread(path, print)
 ---```
 ---
----An arguments can be passed to the thread via the third argument:
+---Every additional argument after the callback is passed to the lua thread.
 ---```lua
----  local function adds_two(n)
----    return n + 2
+---  local function sum_numbers(...)
+---    local sum = 0
+---    for _, n in ipairs({...}) do
+---      sum = sum + n
+---    end
+---    return sum
 ---  end
 ---
----  lfm.thread(adds_two, print, 2) -- prints 4
+---  lfm.thread(sum_numbers, print, 1, 2, 3) -- prints 6
 ---```
 ---
 ---@param chunk string|function Lua code to execute. Functions are attempted to be converted via string.dump
 ---@param on_exit? fun(res: any, err: string) Callback for the result/error
----@param arg? any An optional argument to pass to the thread
-function lfm.thread(chunk, on_exit, arg) end
+---@param ... any Optional arguments to pass to the thread
+function lfm.thread(chunk, on_exit, ...) end
 
 ---
 ---Schedule a lua function to run after `delay` milliseconds. Runs `f` immediately after the programs main loop is back in control if `delay` non-positive.

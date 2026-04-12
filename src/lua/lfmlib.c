@@ -152,32 +152,34 @@ static int l_print2(lua_State *L) {
 }
 
 static int l_thread(lua_State *L) {
-  LUA_CHECK_ARGMAX(L, 3);
+  LUA_CHECK_ARGMIN(L, 1);
 
   int ref = 0;
   if (lua_type(L, 1) == LUA_TFUNCTION) {
-    // try to string.dump the function and insert it at position 1
-    // TODO: we could store a ref to encode
+    // string.dump the function and insert it at position 1
     if (unlikely(lua_string_dump(L, 1)))
       return lua_error(L);
     lua_replace(L, 1);
   }
   luaL_checktype(L, 1, LUA_TSTRING);
-  if (lua_gettop(L) >= 2) {
-    if (!lua_isnil(L, 2)) {
-      ref = lua_register_callback(L, 2);
-    }
-  }
+  if (!lua_isnoneornil(L, 2))
+    ref = lua_register_callback(L, 2);
   bytes chunk = lua_tobytes(L, 1);
-  bytes arg = bytes_init();
-  if (lua_gettop(L) == 3) {
-    // encode optional argument
-    if (unlikely(lua_encode(L, 3, &arg))) {
-      bytes_drop(&chunk);
-      return lua_error(L);
+  vec_bytes args = vec_bytes_init();
+  i32 nargs = lua_gettop(L) - 2;
+  if (nargs > 0) {
+    vec_bytes_reserve(&args, nargs);
+    for (i32 i = 0; i < nargs; i++) {
+      bytes arg = bytes_init();
+      if (unlikely(lua_encode(L, 3 + i, &arg))) {
+        bytes_drop(&chunk);
+        vec_bytes_drop(&args);
+        return lua_error(L);
+      }
+      vec_bytes_push_back(&args, arg);
     }
   }
-  async_lua(async, chunk, arg, ref);
+  async_lua(async, chunk, args, ref);
   return 0;
 }
 
