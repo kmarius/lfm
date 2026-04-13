@@ -17,7 +17,7 @@
 #include <errno.h>
 
 declare_vec(vec_hook_change, struct hook_change);
-declare_hmap(timers, u32, struct sched_timer *);
+declare_hmap(map_u32_timer, u32, struct sched_timer *);
 struct vec_str;
 struct vec_env;
 struct vec_bytes;
@@ -58,7 +58,7 @@ typedef struct Lfm {
   ev_signal sigpipe_watcher;
 
   // maps timer id -> schedule_timer
-  timers schedule_timers;
+  map_u32_timer schedule_timers;
   // counter for timer id
   u32 timers_ct;
 

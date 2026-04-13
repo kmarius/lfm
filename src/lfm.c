@@ -36,12 +36,15 @@ struct sched_timer {
   u32 id;  // timer id, key in lfm->schedule_timers
 };
 
+// Erasing from the map will stop the timer. We previously had problems
+// where stopping a different timer after just clearing the map (on shutdown)
+// would corrupt evs internal state.
 #define i_declared
-#define i_type timers, u32, struct sched_timer *
+#define i_type map_u32_timer, u32, struct sched_timer *
 #define i_valraw struct sched_timer
 #define i_valtoraw(p) (**(p))
 #define i_valfrom heapify
-#define i_valdrop(p) xfree(*(p))
+#define i_valdrop(p) (xfree(*(p)))
 #define i_no_clone
 #include <stc/hmap.h>
 
@@ -77,8 +80,8 @@ static void prepare_cb(EV_P_ ev_prepare *w, i32 revents) {
 static void check_cb(EV_P_ ev_check *w, i32 revents) {
   (void)revents;
   (void)w;
-  static i32 count = 0;
-  log_trace("ev_loop iteration % 5d", count++);
+  ev_verify(loop);
+  log_trace("ev_loop iteration % 5d", ev_loop_count(event_loop));
 }
 #endif
 
@@ -136,15 +139,15 @@ static void sigpipe_cb(EV_P_ ev_signal *w, i32 revents) {
 static inline void create_dirs(Lfm *lfm) {
   (void)lfm;
   if (mkdir_p(cstr_data(&cfg.rundir), 0700) == -1 && errno != EEXIST) {
-    fprintf(stderr, "mkdir: %s", strerror(errno));
+    perror("mkdir");
     exit(EXIT_FAILURE);
   }
   if (mkdir_p(cstr_data(&cfg.statedir), 0700) == -1 && errno != EEXIST) {
-    fprintf(stderr, "mkdir: %s", strerror(errno));
+    perror("mkdir");
     exit(EXIT_FAILURE);
   }
   if (mkdir_p(cstr_data(&cfg.cachedir), 0700) == -1 && errno != EEXIST) {
-    fprintf(stderr, "mkdir: %s", strerror(errno));
+    perror("mkdir");
     exit(EXIT_FAILURE);
   }
 }
@@ -224,7 +227,6 @@ void lfm_deinit(Lfm *lfm) {
   lfm_lua_deinit(lfm);
   call_dtors();
   lfm_modes_deinit(lfm);
-  timers_drop(&lfm->schedule_timers);
   inotify_ctx_deinit(&lfm->inotify);
   ui_deinit(&lfm->ui);
   fm_deinit(&lfm->fm);
@@ -232,6 +234,7 @@ void lfm_deinit(Lfm *lfm) {
   loader_ctx_deinit(&lfm->loader);
   async_ctx_deinit(&lfm->async);
   fifo_deinit();
+  map_u32_timer_drop(&lfm->schedule_timers);
 
   cstr_drop(&lfm->opts.startfile);
   cstr_drop(&lfm->opts.startpath);
@@ -253,11 +256,12 @@ void lfm_quit(Lfm *lfm, i32 ret) {
   if (lfm->opts.lastdir_path) {
     FILE *fp = fopen(lfm->opts.lastdir_path, "w");
     if (fp == NULL) {
-      lfm_perror(lfm, "fopen");
+      perror("fopen");
       return;
     }
     fwrite(cstr_str(&lfm->fm.pwd), 1, cstr_size(&lfm->fm.pwd), fp);
-    fclose(fp);
+    if (fclose(fp) != 0)
+      perror("fclose");
   }
 }
 
@@ -303,11 +307,11 @@ void lfm_errorf(Lfm *lfm, const char *fmt, ...) {
 
 static void schedule_timer_cb(EV_P_ ev_timer *w, i32 revents) {
   (void)revents;
+  ev_timer_stop(loop, w);
   struct sched_timer *timer = (struct sched_timer *)w;
   Lfm *lfm = w->data;
-  ev_timer_stop(EV_A_ w);
   lfm_lua_cb(lfm->L, timer->ref, true);
-  timers_erase(&lfm->schedule_timers, timer->id);
+  map_u32_timer_erase(&lfm->schedule_timers, timer->id);
 }
 
 i32 lfm_schedule(Lfm *lfm, i32 ref, u32 delay) {
@@ -316,7 +320,8 @@ i32 lfm_schedule(Lfm *lfm, i32 ref, u32 delay) {
       .ref = ref,
       .id = id,
   };
-  timers_result res = timers_emplace(&lfm->schedule_timers, id, timer_);
+  map_u32_timer_result res =
+      map_u32_timer_emplace(&lfm->schedule_timers, id, timer_);
   struct sched_timer *timer = res.ref->second;
   ev_timer_init(&timer->watcher, schedule_timer_cb, (f64)delay / 1000, 0);
   timer->watcher.data = lfm;
@@ -325,9 +330,9 @@ i32 lfm_schedule(Lfm *lfm, i32 ref, u32 delay) {
 }
 
 void lfm_cancel(Lfm *lfm, u32 id) {
-  timers_iter it = timers_find(&lfm->schedule_timers, id);
+  map_u32_timer_iter it = map_u32_timer_find(&lfm->schedule_timers, id);
   if (it.ref) {
     ev_timer_stop(event_loop, &it.ref->second->watcher);
-    timers_erase_at(&lfm->schedule_timers, it);
+    map_u32_timer_erase_at(&lfm->schedule_timers, it);
   }
 }
