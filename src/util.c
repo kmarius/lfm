@@ -268,7 +268,7 @@ i32 shorten_name(zsview name, i32 max_len, bool has_ext, char *buf,
 
 int acquire_file_lock(const char *lockfile, u64 timeout_ms) {
   u64 timeout = current_micros() + timeout_ms * 1000;
-  int fd = open(lockfile, O_CREAT, 0o700);
+  int fd = open(lockfile, O_CREAT, 0700);
   if (fd < 0) {
     log_perror("open");
     return -1;
