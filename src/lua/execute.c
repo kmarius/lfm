@@ -89,7 +89,7 @@ static inline int execute(const struct execute_opts *data,
 
     signal(SIGINT, SIG_DFL);
     if (chdir(cstr_str(&lfm->fm.pwd)) != 0) {
-      fprintf(stderr, "chdir: %s\n", strerror(errno));
+      perror("chdir");
       _exit(1);
     }
 
@@ -112,7 +112,7 @@ static inline int execute(const struct execute_opts *data,
     }
 
     execvp(data->args.data[0], (char *const *)data->args.data);
-    log_error("execvp: %s", strerror(errno));
+    log_perror("execvp");
     if (data->capture_stderr) {
       char buf[128];
       i32 len = snprintf(buf, sizeof buf - 1, "execvp: %s", strerror(errno));
@@ -134,7 +134,7 @@ static inline int execute(const struct execute_opts *data,
 
     file_stdout = fdopen(pipe_stdout[0], "r");
     if (file_stdout == NULL) {
-      log_error("fdopen: %s", strerror(errno));
+      log_perror("fdopen");
       close(pipe_stdout[0]);
     }
   }
@@ -148,7 +148,7 @@ static inline int execute(const struct execute_opts *data,
 
     file_stderr = fdopen(pipe_stderr[0], "r");
     if (file_stderr == NULL) {
-      log_error("fdopen: %s", strerror(errno));
+      log_perror("fdopen");
       close(pipe_stderr[0]);
     }
   }
@@ -222,7 +222,7 @@ static inline int execute(const struct execute_opts *data,
       if (poll(pfds, 2, -1) == -1) {
         if (errno == EINTR)
           continue;
-        log_error("poll: %s", strerror(errno));
+        log_perror("poll");
         break;
       }
 
@@ -377,6 +377,7 @@ int l_execute(lua_State *L) {
   vec_bytes stdout_data = vec_bytes_init();
   vec_bytes stderr_data = vec_bytes_init();
   int status = execute(&opts, &stdout_data, &stderr_data);
+  int err = errno;
 
   vec_env_drop(&opts.env);
   vec_str_drop(&opts.args);
@@ -384,7 +385,7 @@ int l_execute(lua_State *L) {
 
   if (status < 0) {
     lua_pushnil(L);
-    lua_pushstring(L, strerror(errno));
+    lua_pushstring(L, strerror(err));
     return 2;
   }
 

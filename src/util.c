@@ -270,7 +270,7 @@ int acquire_file_lock(const char *lockfile, u64 timeout_ms) {
   u64 timeout = current_micros() + timeout_ms * 1000;
   int fd = open(lockfile, O_CREAT, 0o700);
   if (fd < 0) {
-    log_error("open: %s", strerror(errno));
+    log_perror("open");
     return -1;
   }
   do {
@@ -278,7 +278,7 @@ int acquire_file_lock(const char *lockfile, u64 timeout_ms) {
       break;
     if (errno != EINTR && errno != EWOULDBLOCK) {
       close(fd);
-      log_error("flock: %s", strerror(errno));
+      log_perror("flock");
       return -1;
     }
     if (current_micros() > timeout) {
@@ -297,7 +297,7 @@ void release_file_lock(int fd) {
     if (flock(fd, LOCK_UN) == 0)
       break;
     if (errno != EINTR) {
-      log_error("flock: %s", strerror(errno));
+      log_perror("flock");
       break;
     }
   } while (1);
@@ -307,12 +307,12 @@ void release_file_lock(int fd) {
 FILE *mkstempf(char *template) {
   int fd = mkstemp(template);
   if (fd < 0) {
-    log_error("mkstemp: %s", strerror(errno));
+    log_perror("mkstemp");
     return NULL;
   }
   FILE *fp = fdopen(fd, "w");
   if (fp == NULL) {
-    log_error("fdopen: %s", strerror(errno));
+    log_perror("fdopen");
     close(fd);
     unlink(template);
     return NULL;

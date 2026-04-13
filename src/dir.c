@@ -228,7 +228,7 @@ void dir_filter(Dir *dir, Filter *filter, u32 height, u32 scrolloff) {
 bool dir_check(const Dir *dir) {
   struct stat statbuf;
   if (unlikely(stat(dir_path_str(dir), &statbuf) == -1)) {
-    log_error("stat: %s", strerror(errno));
+    log_perror("stat");
     return false;
   }
   return statbuf.st_mtime <= dir->load_time;
@@ -293,20 +293,20 @@ Dir *dir_load(zsview path, map_str_int dircounts, bool load_fileinfo,
     stop = NULL;
 
   if (unlikely(stat(path.str, &dir->stat) == -1)) {
-    log_debug("stat: %s", strerror(errno));
+    log_perror("stat");
     dir->error = errno;
     return dir;
   }
 
   DIR *dirp = opendir(path.str);
   if (unlikely(dirp == NULL)) {
-    log_error("opendir: %s", strerror(errno));
+    log_perror("opendir");
     dir->error = errno;
     return dir;
   }
   i32 dir_fd = open(path.str, O_RDONLY);
   if (unlikely(dir_fd < 0)) {
-    log_error("open: %s", strerror(errno));
+    log_perror("open");
     dir->error = errno;
     closedir(dirp);
     return dir;
@@ -361,7 +361,7 @@ Dir *dir_load_flat(zsview path, i32 level, map_str_int dircounts,
   dir->flatten_level = level;
 
   if (unlikely(lstat(path.str, &dir->stat) == -1)) {
-    log_debug("lstat: %s", strerror(errno));
+    log_perror("lstat");
     dir->error = errno;
     return dir;
   }

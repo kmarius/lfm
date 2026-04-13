@@ -318,7 +318,7 @@ Preview *preview_fork_previewer(zsview path, u32 width, u32 height,
     close(devnull);
 
     execv(args[0], (char **)args);
-    log_error("execv: %s", strerror(errno));
+    log_perror("execv");
     _exit(ENOSYS);
   }
 

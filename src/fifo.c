@@ -20,13 +20,13 @@ i32 fifo_init(Lfm *lfm) {
   log_trace("setting up fifo");
 
   if (mkfifo(cstr_str(&cfg.fifopath), 0600) == -1 && errno != EEXIST) {
-    log_error("mkfifo: %s", strerror(errno));
+    log_perror("mkfifo");
     return -1;
   }
 
   fifo_fd = open(cstr_str(&cfg.fifopath), O_RDWR | O_NONBLOCK, 0);
   if (fifo_fd == -1) {
-    log_error("open: %s", strerror(errno));
+    log_perror("open");
     remove(cstr_str(&cfg.fifopath));
     return -1;
   }

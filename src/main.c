@@ -120,7 +120,7 @@ i32 main(i32 argc, char **argv) {
     struct stat statbuf;
     if (stat(cstr_str(&path), &statbuf) == -1) {
       // can't print to Ui yet, maybe pass something to init?
-      log_error("%s: %s", strerror(errno), opts.startpath);
+      log_perror("stat");
       cstr_drop(&path);
     } else {
       if (!S_ISDIR(statbuf.st_mode)) {

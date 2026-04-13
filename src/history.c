@@ -5,6 +5,7 @@
 #include "stcutil.h"
 #include "util.h"
 
+#include <asm-generic/errno-base.h>
 #include <stc/cstr.h>
 
 #include <errno.h>
@@ -100,7 +101,7 @@ int history_load(History *h, zsview path, const char *lockpath) {
 
   fp = fopen(path.str, "r");
   if (unlikely(fp == NULL)) {
-    log_error("fopen: %s", strerror(errno));
+    log_perror("fopen");
     goto err;
   }
 
@@ -128,7 +129,7 @@ int history_load(History *h, zsview path, const char *lockpath) {
     append_or_move(h, prefix, line, false);
   }
   if (ferror(fp)) {
-    log_error("getline: %s", strerror(errno));
+    log_perror("getline");
     goto err;
   }
 
@@ -136,7 +137,7 @@ int history_load(History *h, zsview path, const char *lockpath) {
 
 out:
   if (fp && fclose(fp) != 0) {
-    log_error("fclose: %s", strerror(errno));
+    log_perror("fclose");
     rc = -1;
   }
   release_file_lock(lock);
@@ -174,7 +175,7 @@ int history_write(History *h, zsview path, i32 histsize, const char *lockpath) {
   History old = {0};
 
   if (make_dirs(path, 755) != 0) {
-    log_error("mkdir: %s", strerror(errno));
+    log_perror("mkdir");
     return -1;
   }
 
@@ -214,13 +215,13 @@ int history_write(History *h, zsview path, i32 histsize, const char *lockpath) {
     goto err; // err logged in write_line
 
   if (fclose(fp) != 0) {
-    log_error("fclose: %s", strerror(errno));
+    log_perror("fclose");
     goto err;
   }
   fp = NULL;
 
   if (rename(temp_path, path.str) != 0) {
-    log_error("rename: %s", strerror(errno));
+    log_perror("rename");
     goto err;
   }
 
@@ -232,9 +233,9 @@ out:
 
 err:
   if (fp && fclose(fp) != 0)
-    log_error("fclose: %s", strerror(errno));
-  if (unlink(temp_path) != 0)
-    log_error("unlink: %s", strerror(errno));
+    log_perror("fclose");
+  if (unlink(temp_path) != 0 && errno != ENOENT)
+    log_perror("unlink");
 
   rc = -1;
   goto out;

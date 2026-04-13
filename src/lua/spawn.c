@@ -61,7 +61,7 @@ static void init_io_watcher(struct io_watcher *w, Lfm *lfm, int fd, int ref) {
 
   FILE *stream = fdopen(fd, "r");
   if (unlikely(stream == NULL)) {
-    log_error("fdopen: %s", strerror(errno));
+    log_perror("fdopen");
     close(fd);
     return;
   }
@@ -346,7 +346,7 @@ static inline int spawn(const struct spawn_opts *data, int *stdin_fd) {
     }
 
     execvp(data->args.data[0], (char **)data->args.data);
-    log_error("execvp: %s", strerror(errno));
+    log_perror("execvp");
     if (data->capture_stderr) {
       char buf[128];
       i32 len = snprintf(buf, sizeof buf - 1, "execvp: %s", strerror(errno));

@@ -41,6 +41,7 @@ enum { LOG_TRACE, LOG_DEBUG, LOG_INFO, LOG_WARN, LOG_ERROR, LOG_FATAL };
 #define log_warn(...) log_log(LOG_WARN, __RELFILE__, __LINE__, __VA_ARGS__)
 #define log_error(...) log_log(LOG_ERROR, __RELFILE__, __LINE__, __VA_ARGS__)
 #define log_fatal(...) log_log(LOG_FATAL, __RELFILE__, __LINE__, __VA_ARGS__)
+#define log_perror(s) log_error("%s: %s", s, strerror(errno))
 
 const char *log_level_string(i32 level);
 void log_set_lock(log_LockFn fn, void *udata);

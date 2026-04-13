@@ -114,7 +114,7 @@ void inotify_add_watcher(struct inotify_ctx *ctx, Dir *dir) {
 
   int wd = inotify_add_watch(ctx->fd, dir_path_str(dir), NOTIFY_EVENTS);
   if (unlikely(wd == -1)) {
-    log_error("inotify: %s", strerror(errno));
+    log_perror("inotify");
     return;
   }
 
