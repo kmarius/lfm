@@ -33,12 +33,12 @@ typedef struct History {
  * Initialize a history object and load history from file `path`. Pass NULL as
  * lockpath to load without locking (i.e. if we already have the lock).
  */
-void history_load(History *h, zsview path, const char *loackpath);
+int history_load(History *h, zsview path, const char *loackpath);
 
 /*
- * Write history to file `path`.
+ * Write history to file `path`. Unlike history_load, lockpath must be passed.
  */
-void history_write(History *h, zsview path, i32 histsize, const char *lockpath);
+int history_write(History *h, zsview path, i32 histsize, const char *lockpath);
 
 /*
  * Append a line to the history. Duplicates are eliminated and only the newest

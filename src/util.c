@@ -303,3 +303,19 @@ void release_file_lock(int fd) {
   } while (1);
   close(fd);
 }
+
+FILE *mkstempf(char *template) {
+  int fd = mkstemp(template);
+  if (fd < 0) {
+    log_error("mkstemp: %s", strerror(errno));
+    return NULL;
+  }
+  FILE *fp = fdopen(fd, "w");
+  if (fp == NULL) {
+    log_error("fdopen: %s", strerror(errno));
+    close(fd);
+    unlink(template);
+    return NULL;
+  }
+  return fp;
+}

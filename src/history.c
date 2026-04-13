@@ -9,7 +9,6 @@
 
 #include <errno.h>
 #include <stdio.h>
-#include <stdlib.h>
 
 #include <linux/limits.h>
 #include <unistd.h>
@@ -83,35 +82,37 @@ static inline bool append_or_move(History *self, zsview prefix, zsview line,
 }
 
 // don't call this on loaded history.
-void history_load(History *h, zsview path, const char *lockpath) {
+int history_load(History *h, zsview path, const char *lockpath) {
   memset(h, 0, sizeof *h);
 
+  int rc = 0;
+  char *buf = NULL;
   int lock = -1;
+  FILE *fp = NULL;
+
   if (lockpath) {
     lock = acquire_file_lock(lockpath, LOCK_TIMEOUT_MS);
     if (lock < 0) {
       log_error("could not acquire lock: %s", lockpath);
-      return;
+      goto err;
     }
   }
 
-  FILE *fp = fopen(path.str, "r");
+  fp = fopen(path.str, "r");
   if (unlikely(fp == NULL)) {
-    release_file_lock(lock);
-    return;
+    log_error("fopen: %s", strerror(errno));
+    goto err;
   }
 
   isize read;
   usize n;
-  char *buf = NULL;
-
   while ((read = getline(&buf, &n, fp)) != -1) {
     if (buf[read - 1] == '\n')
       buf[--read] = 0;
 
     char *sep = strchr(buf, '\t');
     if (unlikely(sep == NULL)) {
-      log_error("missing tab in history item: %s", buf);
+      log_error("malformed history item: %s", buf);
       continue;
     }
     i32 pos = sep - buf;
@@ -120,58 +121,80 @@ void history_load(History *h, zsview path, const char *lockpath) {
     zsview line = zsview_from_n(sep + 1, read - pos - 1);
 
     if (unlikely(zsview_is_empty(prefix) || zsview_is_empty(line))) {
-      log_error("missing prefix or line in history item: %s", buf);
+      log_error("malformed history item: %s", buf);
       continue;
     }
 
     append_or_move(h, prefix, line, false);
   }
+  if (ferror(fp)) {
+    log_error("getline: %s", strerror(errno));
+    goto err;
+  }
+
+  assert(_history_list_count(&h->list) == _history_hmap_size(&h->map));
+
+out:
+  if (fp && fclose(fp) != 0) {
+    log_error("fclose: %s", strerror(errno));
+    rc = -1;
+  }
+  release_file_lock(lock);
   xfree(buf);
 
-  fclose(fp);
-  release_file_lock(lock);
-  log_trace("%d history entries loaded", _history_hmap_size(&h->map));
-  assert(_history_list_count(&h->list) == _history_hmap_size(&h->map));
+  return rc;
+
+err:
+  rc = -1;
+  goto out;
 }
 
-static inline void write_line(zsview prefix, zsview line, FILE *file) {
-  fwrite(prefix.str, 1, prefix.size, file);
-  fputc('\t', file);
-  fwrite(line.str, 1, line.size, file);
-  fputc('\n', file);
+static inline int write_line(zsview prefix, zsview line, FILE *file) {
+  if (fwrite(prefix.str, 1, prefix.size, file) != (usize)prefix.size) {
+    perror("fwrite");
+    return -1;
+  }
+  if (fputc('\t', file) == EOF) {
+    perror("fputc");
+    return -1;
+  }
+  if (fwrite(line.str, 1, line.size, file) != (usize)line.size) {
+    perror("fwrite");
+    return -1;
+  }
+  if (fputc('\n', file) == EOF) {
+    perror("fputc");
+    return -1;
+  }
+  return 0;
 }
 
-void history_write(History *h, zsview path, i32 histsize,
-                   const char *lockpath) {
-  make_dirs(path, 755);
+int history_write(History *h, zsview path, i32 histsize, const char *lockpath) {
+  int rc = 0;
+  History old = {0};
 
-  char path_new[PATH_MAX + 1];
-  snprintf(path_new, sizeof path_new - 1, "%s.XXXXXX", path.str);
+  if (make_dirs(path, 755) != 0) {
+    log_error("mkdir: %s", strerror(errno));
+    return -1;
+  }
 
-  int fd = mkstemp(path_new);
-  if (fd < 0) {
-    log_error("mkstemp: %s", strerror(errno));
-    return;
-  }
-  FILE *fp = fdopen(fd, "w");
-  if (fp == NULL) {
-    log_error("fdopen: %s", strerror(errno));
-    close(fd);
-    return;
-  }
+  char temp_path[PATH_MAX + 1];
+  snprintf(temp_path, sizeof temp_path - 1, "%s.XXXXXX", path.str);
+
+  FILE *fp = mkstempf(temp_path);
+  if (fp == NULL)
+    return -1; // err logged in mkstempf
 
   // We read the history again from disk and append our new entries. We use a
   // lock file in order not to overwrite changes from another instance. This
   // might be a problem with larger history sizes
 
   int lock = acquire_file_lock(lockpath, LOCK_TIMEOUT_MS);
-  if (lock < 0) {
-    fclose(fp);
-    return;
-  }
+  if (lock < 0)
+    goto err;
 
-  History old;
-  history_load(&old, path, NULL);
+  if (history_load(&old, path, NULL) != 0)
+    goto err;
 
   // append our new entries
   c_foreach(it, _history_list, h->list) {
@@ -183,13 +206,38 @@ void history_write(History *h, zsview path, i32 histsize,
 
   c_foreach(it, _history_list, old.list) {
     if (skip-- <= 0)
-      write_line(cstr_zv(&it.ref->prefix), cstr_zv(&it.ref->line), fp);
+      rc = write_line(cstr_zv(&it.ref->prefix), cstr_zv(&it.ref->line), fp);
+    if (rc != 0)
+      break;
   }
-  fclose(fp);
-  rename(path_new, path.str);
+  if (rc != 0)
+    goto err; // err logged in write_line
+
+  if (fclose(fp) != 0) {
+    log_error("fclose: %s", strerror(errno));
+    goto err;
+  }
+  fp = NULL;
+
+  if (rename(temp_path, path.str) != 0) {
+    log_error("rename: %s", strerror(errno));
+    goto err;
+  }
+
+out:
   release_file_lock(lock);
 
   history_deinit(&old);
+  return rc;
+
+err:
+  if (fp && fclose(fp) != 0)
+    log_error("fclose: %s", strerror(errno));
+  if (unlink(temp_path) != 0)
+    log_error("unlink: %s", strerror(errno));
+
+  rc = -1;
+  goto out;
 }
 
 void history_deinit(History *h) {

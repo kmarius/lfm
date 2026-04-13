@@ -75,3 +75,6 @@ int acquire_file_lock(const char *lockfile, u64 timeout_ms);
 
 // nop if lock < 0
 void release_file_lock(int lock);
+
+// create a temp file similar to `mkstemp`, but returns a FILE *.
+FILE *mkstempf(char *template);
