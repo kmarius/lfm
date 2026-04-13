@@ -245,6 +245,18 @@ i32 lfm_run(Lfm *lfm) {
   return lfm->ret;
 }
 
+static inline void write_lastdir(const char *path, zsview pwd) {
+  FILE *fp = fopen(path, "w");
+  if (fp == NULL) {
+    perror("fopen");
+    return;
+  }
+  if (fwrite(pwd.str, 1, pwd.size, fp) != (usize)pwd.size)
+    perror("fwrite");
+  if (fclose(fp) != 0)
+    perror("fclose");
+}
+
 void lfm_quit(Lfm *lfm, i32 ret) {
   LFM_RUN_HOOK(lfm, LFM_HOOK_EXITPRE, ret);
   ev_break(event_loop, EVBREAK_ALL);
@@ -253,16 +265,8 @@ void lfm_quit(Lfm *lfm, i32 ret) {
   lfm->ui.running = false;
   lfm->ret = ret;
 
-  if (lfm->opts.lastdir_path) {
-    FILE *fp = fopen(lfm->opts.lastdir_path, "w");
-    if (fp == NULL) {
-      perror("fopen");
-      return;
-    }
-    fwrite(cstr_str(&lfm->fm.pwd), 1, cstr_size(&lfm->fm.pwd), fp);
-    if (fclose(fp) != 0)
-      perror("fclose");
-  }
+  if (lfm->opts.lastdir_path)
+    write_lastdir(lfm->opts.lastdir_path, cstr_zv(&lfm->fm.pwd));
 }
 
 void lfm_on_resize(Lfm *lfm) {
