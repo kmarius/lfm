@@ -13,8 +13,8 @@ set(NOTCURSES_DEFINITIONS ${PC_NOTCURSES_CFLAGS_OTHER})
 find_path(NOTCURSES_INCLUDE_DIR notcurses/notcurses.h
           PATHS ${PC_NOTCURSES_INCLUDEDIR} ${PC_NOTCURSES_INCLUDE_DIRS})
 
-list(APPEND NOTCURSES_NAMES libnotcurses.a)
-list(APPEND NOTCURSES_CORE_NAMES libnotcurses-core.a)
+list(APPEND NOTCURSES_NAMES libnotcurses.a libnotcurses.so)
+list(APPEND NOTCURSES_CORE_NAMES libnotcurses-core.a libnotcurses-core.so)
 
 find_library(NOTCURSES_LIBRARY NAMES ${NOTCURSES_NAMES}
              PATHS ${PC_NOTCURSES_LIBDIR} ${PC_NOTCURSES_LIBRARY_DIRS})

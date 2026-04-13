@@ -37,16 +37,16 @@ add_definitions("-DSOURCE_PATH_SIZE=${SOURCE_PATH_SIZE}")
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 message(STATUS "C_FLAGS: ${CMAKE_C_FLAGS}")
 
-set(DEPS_PREFIX "${CMAKE_CURRENT_SOURCE_DIR}/.deps/usr")
+if (BUILD_STATIC_NOTCURSES STREQUAL "on")
+  set(DEPS_PREFIX "${CMAKE_CURRENT_SOURCE_DIR}/.deps/usr")
+  list(INSERT CMAKE_PREFIX_PATH 0 ${DEPS_PREFIX})
+  set(ENV{PKG_CONFIG_PATH} "${DEPS_PREFIX}/lib/pkgconfig")
 
-list(INSERT CMAKE_PREFIX_PATH 0 ${DEPS_PREFIX})
-set(ENV{PKG_CONFIG_PATH} "$ENV{PKG_CONFIG_PATH}:${DEPS_PREFIX}/lib/pkgconfig")
-
-if(NOT EXISTS ${DEPS_PREFIX})
-  message(STATUS "Building dependencies...")
-  set(DEPS_BUILD_DIR ${PROJECT_SOURCE_DIR}/.deps)
-  file(MAKE_DIRECTORY ${DEPS_BUILD_DIR})
-  execute_process(
+  if(NOT EXISTS ${DEPS_PREFIX})
+    message(STATUS "Building dependencies...")
+    set(DEPS_BUILD_DIR ${PROJECT_SOURCE_DIR}/.deps)
+    file(MAKE_DIRECTORY ${DEPS_BUILD_DIR})
+    execute_process(
       COMMAND ${CMAKE_COMMAND} -G ${CMAKE_GENERATOR}
         -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}
         -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
@@ -59,11 +59,13 @@ if(NOT EXISTS ${DEPS_PREFIX})
         -DCMAKE_MAKE_PROGRAM=${CMAKE_MAKE_PROGRAM}
         ${PROJECT_SOURCE_DIR}/third-party
       WORKING_DIRECTORY ${DEPS_BUILD_DIR})
-  execute_process(
+    execute_process(
       COMMAND ${CMAKE_COMMAND} --build ${DEPS_BUILD_DIR}
         --config ${CMAKE_BUILD_TYPE})
-  set(DEPS_PREFIX ${DEPS_BUILD_DIR}/usr)
+    set(DEPS_PREFIX ${DEPS_BUILD_DIR}/usr)
+  endif()
 endif()
+
 option(DEV "dev" OFF)
 
 set(LUA_PRG luajit)
