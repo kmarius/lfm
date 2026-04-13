@@ -6,6 +6,7 @@
 #include "profiling.h"
 #include "util.h"
 
+#include <bits/getopt_core.h>
 #include <errno.h>
 #include <locale.h>
 #include <stdio.h>
@@ -66,6 +67,8 @@ i32 main(i32 argc, char **argv) {
 
   struct lfm_opts opts = {.log = log};
 
+  const char *pwd = getenv("PWD");
+
   i32 opt;
   while ((opt = getopt(argc, argv, ":c:hl:L:s:u:v")) != -1) {
     switch (opt) {
@@ -76,7 +79,7 @@ i32 main(i32 argc, char **argv) {
       usage(argv[0]);
       goto cleanup;
     case 'l':
-      opts.lastdir_path = optarg;
+      opts.lastdir_path = path_normalize_cstr(zsview_from(optarg), pwd);
       break;
     case 'L':
       log_level = atoi(optarg);
@@ -88,7 +91,8 @@ i32 main(i32 argc, char **argv) {
       }
       break;
     case 's':
-      opts.selection_path = optarg;
+      opts.selection_path = path_normalize_cstr(zsview_from(optarg), pwd);
+      ;
       break;
     case 'u':
       // we should print an error if a config is provided here and not found
@@ -112,7 +116,7 @@ i32 main(i32 argc, char **argv) {
   // TODO: make it possible to move the cursor to a directory instead
   // of cd'ing into it
   if (optind < argc) {
-    cstr path = path_normalize_cstr(zsview_from(argv[optind]), getenv("PWD"));
+    cstr path = path_normalize_cstr(zsview_from(argv[optind]), pwd);
     struct stat statbuf;
     if (stat(cstr_str(&path), &statbuf) == -1) {
       // can't print to Ui yet, maybe pass something to init?

@@ -238,6 +238,8 @@ void lfm_deinit(Lfm *lfm) {
 
   cstr_drop(&lfm->opts.startfile);
   cstr_drop(&lfm->opts.startpath);
+  cstr_drop(&lfm->opts.lastdir_path);
+  cstr_drop(&lfm->opts.selection_path);
 }
 
 i32 lfm_run(Lfm *lfm) {
@@ -265,8 +267,8 @@ void lfm_quit(Lfm *lfm, i32 ret) {
   lfm->ui.running = false;
   lfm->ret = ret;
 
-  if (lfm->opts.lastdir_path)
-    write_lastdir(lfm->opts.lastdir_path, cstr_zv(&lfm->fm.pwd));
+  if (!cstr_is_empty(&lfm->opts.lastdir_path))
+    write_lastdir(cstr_str(&lfm->opts.lastdir_path), cstr_zv(&lfm->fm.pwd));
 }
 
 void lfm_on_resize(Lfm *lfm) {

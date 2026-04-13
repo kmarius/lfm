@@ -154,8 +154,8 @@ static int l_open(lua_State *L) {
   lfm_mode_exit(lfm, c_zv("visual"));
   File *file = fm_open(fm);
   if (file) {
-    if (lfm->opts.selection_path) {
-      selection_write(&lfm->fm, zsview_from(lfm->opts.selection_path));
+    if (!cstr_is_empty(&lfm->opts.selection_path)) {
+      selection_write(&lfm->fm, cstr_zv(&lfm->opts.selection_path));
       return lua_quit(L, lfm);
     }
 

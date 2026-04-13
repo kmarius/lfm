@@ -25,12 +25,12 @@ struct vec_bytes;
 // we will free startpath/startfile and commands in lfm
 struct lfm_opts {
   FILE *log;
-  vec_zsview commands;        // lua commands to run after start
-  const char *lastdir_path;   // output current pwd on exit
-  const char *selection_path; // output selection on open
-  cstr startpath;             // override pwd
-  cstr startfile;             // move cursor to this file
-  const char *config;         // override config path
+  vec_zsview commands; // lua commands to run after start
+  cstr lastdir_path;   // output current pwd on exit
+  cstr selection_path; // output selection on "open"
+  cstr startpath;      // override pwd
+  cstr startfile;      // move cursor to this file
+  const char *config;  // override config path
 };
 
 typedef struct Lfm {
