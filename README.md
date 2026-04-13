@@ -21,7 +21,7 @@ Install dependencies
 In the root of this repository perform
 
     mkdir build && cd build
-    cmake .. -DCMAKE_INSTALL_PREFIX=~/.local -DCMAKE_BUILD_TYPE=RelWithDebInfo
+    cmake .. -DCMAKE_INSTALL_PREFIX=~/.local -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_STATIC_NOTCURSES=on
     make
     make install
 
