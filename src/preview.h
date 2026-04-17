@@ -36,7 +36,6 @@ typedef struct Preview {
   };
   u64 next;
   time_t mtime;
-  u64 loadtime;
   bool loading;
   pv_loading_status status;
   preview_draw_fun draw;

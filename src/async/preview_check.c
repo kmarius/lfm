@@ -58,7 +58,6 @@ void async_preview_check(struct async_ctx *async, Preview *pv) {
   work->height = pv->height;
   work->width = pv->width;
   work->mtime = pv->mtime;
-  work->load_time = pv->loadtime;
 
   log_trace("checking preview %s", preview_path_str(pv));
   tpool_add_work(async->tpool, worker, work, true);

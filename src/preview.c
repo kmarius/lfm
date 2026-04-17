@@ -99,7 +99,6 @@ static void update_text_preview(Preview *p, Preview *u) {
   p->mtime = u->mtime;
   p->width = u->width;
   p->height = u->height;
-  p->loadtime = u->loadtime;
   p->loading = false;
   p->status = PV_LOADING_NORMAL;
 
@@ -116,7 +115,6 @@ static void update_image_preview(Preview *p, Preview *u) {
   }
   p->ncv = u->ncv;
   p->mtime = u->mtime;
-  p->loadtime = u->loadtime;
   p->loading = false;
   p->width = u->width;
   p->height = u->height;
@@ -234,7 +232,6 @@ Preview *preview_error(Preview *p, const char *fmt, ...) {
 
 Preview *preview_create_and_stat(zsview path, i32 height, i32 width) {
   Preview *p = preview_create(path, height, width);
-  p->loadtime = current_millis();
 
   struct stat statbuf;
   if (stat(path.str, &statbuf) != -1)
@@ -267,7 +264,6 @@ static void downscale_image(struct ncvisual *ncv, i32 y, i32 x) {
 Preview *preview_fork_previewer(zsview path, u32 width, u32 height,
                                 i32 *pid_out, i32 fd[2]) {
   Preview *p = preview_create(path, height, width);
-  p->loadtime = current_millis();
 
   if (cstr_is_empty(&cfg.previewer))
     return p;
