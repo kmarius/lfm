@@ -28,19 +28,7 @@
 #include <signal.h>
 #include <unistd.h>
 
-// TODO: maybe we don't need some of these members since we can now acces the
-// preview from the other thread
-struct preview_check_data {
-  struct result super;
-  struct async_ctx *async;
-  Preview *preview;
-  int height;
-  int width;
-  time_t mtime;
-  u64 loadtime;
-};
-
-struct preview_load_data {
+struct preview_load_work {
   struct result super;
   struct async_ctx *async;
   Preview *preview;
@@ -51,72 +39,29 @@ struct preview_load_data {
   int fd[2]; // stdout pipe of the process
 };
 
-static void preview_check_destroy(void *p) {
-  struct preview_check_data *res = p;
-  preview_dec_ref(res->preview);
-  xfree(res);
+static void destroy(void *p) {
+  struct preview_load_work *work = p;
+  if (likely(work->fd[0] > 0))
+    close(work->fd[0]);
+  sem_destroy(&work->semaphore);
+  preview_destroy(work->update);
+  ev_child_stop(EV_DEFAULT_ & work->watcher);
+  set_ev_child_erase(&work->async->in_progress.previewer_children,
+                     &work->watcher);
+  preview_dec_ref(work->preview);
+  xfree(work);
 }
 
-static void preview_check_callback(void *p, Lfm *lfm) {
-  struct preview_check_data *res = p;
-  loader_preview_reload(&lfm->loader, res->preview);
-}
-
-static void async_preview_check_worker(void *arg) {
-  struct preview_check_data *work = arg;
-  struct stat statbuf;
-
-  /* TODO: can we actually use st_mtim.tv_nsec? (on 2022-03-07) */
-  if (stat(preview_path(work->preview).str, &statbuf) == -1 ||
-      (statbuf.st_mtime <= work->mtime &&
-       statbuf.st_mtime <= (long)(work->loadtime / 1000 - 1))) {
-    preview_check_destroy(work);
-    return;
-  }
-
-  submit_async_result(work->async, (struct result *)work);
-}
-
-void async_preview_check(struct async_ctx *async, Preview *pv) {
-  struct preview_check_data *work = xcalloc(1, sizeof *work);
-  work->super.callback = &preview_check_callback;
-  work->super.destroy = &preview_check_destroy;
-  work->super.next = NULL;
-
-  work->async = async;
-  work->preview = preview_inc_ref(pv);
-  work->height = pv->height;
-  work->width = pv->width;
-  work->mtime = pv->mtime;
-  work->loadtime = pv->loadtime;
-
-  log_trace("checking preview %s", preview_path_str(pv));
-  tpool_add_work(async->tpool, async_preview_check_worker, work, true);
-}
-
-static void preview_load_destroy(void *p) {
-  struct preview_load_data *res = p;
-  if (likely(res->fd[0] > 0))
-    close(res->fd[0]);
-  sem_destroy(&res->semaphore);
-  preview_destroy(res->update);
-  ev_child_stop(EV_DEFAULT_ & res->watcher);
-  set_ev_child_erase(&res->async->in_progress.previewer_children,
-                     &res->watcher);
-  preview_dec_ref(res->preview);
-  xfree(res);
-}
-
-static void preview_load_callback(void *p, Lfm *lfm) {
-  struct preview_load_data *res = p;
-  preview_update(res->preview, res->update);
-  res->update = NULL;
-  if (res->preview == lfm->ui.preview.preview)
+static void callback(void *p, Lfm *lfm) {
+  struct preview_load_work *work = p;
+  preview_update(work->preview, work->update);
+  work->update = NULL;
+  if (work->preview == lfm->ui.preview.preview)
     ui_redraw(&lfm->ui, REDRAW_PREVIEW);
 }
 
-static void async_preview_load_worker(void *arg) {
-  struct preview_load_data *work = arg;
+static void worker(void *arg) {
+  struct preview_load_work *work = arg;
 
   log_trace("reading preview output: %s", cstr_str(&work->update->path));
   preview_read_output(work->update, work->fd);
@@ -134,8 +79,8 @@ static void async_preview_load_worker(void *arg) {
 
 static void child_exit_cb(EV_P_ ev_child *w, int revents) {
   (void)revents;
-  struct preview_load_data *work =
-      container_of(w, struct preview_load_data, watcher);
+  struct preview_load_work *work =
+      container_of(w, struct preview_load_work, watcher);
 
   work->status = w->rstatus;
   sem_post(&work->semaphore);
@@ -153,9 +98,9 @@ void async_preview_load(struct async_ctx *async, Preview *pv) {
   } else if (unlikely(cstr_is_empty(&cfg.previewer))) {
     log_error("no previewer configured");
   } else {
-    struct preview_load_data *work = xcalloc(1, sizeof *work);
-    work->super.callback = preview_load_callback;
-    work->super.destroy = preview_load_destroy;
+    struct preview_load_work *work = xcalloc(1, sizeof *work);
+    work->super.callback = callback;
+    work->super.destroy = destroy;
 
     pv->status = pv->status == PV_LOADING_DELAYED ? PV_LOADING_INITIAL
                                                   : PV_LOADING_NORMAL;
@@ -182,14 +127,14 @@ void async_preview_load(struct async_ctx *async, Preview *pv) {
     set_ev_child_push(&async->in_progress.previewer_children, &work->watcher);
 
     log_trace("loading preview for %s", preview_path_str(pv));
-    tpool_add_work(async->tpool, async_preview_load_worker, work, true);
+    tpool_add_work(async->tpool, worker, work, true);
   }
 }
 
 void async_preview_cancel(struct async_ctx *async) {
   c_foreach(it, set_ev_child, async->in_progress.previewer_children) {
-    struct preview_load_data *work =
-        container_of(*it.ref, struct preview_load_data, watcher);
+    struct preview_load_work *work =
+        container_of(*it.ref, struct preview_load_work, watcher);
     kill(work->watcher.pid, SIGTERM);
     sem_post(&work->semaphore);
     cancel(&work->super);
