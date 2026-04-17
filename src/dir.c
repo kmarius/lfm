@@ -344,8 +344,8 @@ Dir *dir_load(zsview path, map_str_int dircounts, bool load_fileinfo,
     trim_dircount_cache(dir, num_dirs);
   }
 
-  dir->status = DIR_LOADING_FULLY;
-  dir->loading = false;
+  dir->status = DIR_LOADED;
+  dir->is_loading = false;
 
   return dir;
 }
@@ -562,8 +562,8 @@ void dir_update_with(Dir *dir, Dir *update, u32 height, u32 scrolloff) {
   dir->error = update->error;
   dir->flatten_level = update->flatten_level;
   dir->stat = update->stat;
-  dir->status = DIR_LOADING_FULLY;
-  dir->loading = false;
+  dir->status = DIR_LOADED;
+  dir->is_loading = false;
 
   dir_sort(dir, true);
 

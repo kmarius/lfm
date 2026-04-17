@@ -67,7 +67,7 @@ static void dir_load_timer_cb(EV_P_ ev_timer *w, i32 revents) {
   struct load_timer *timer = (struct load_timer *)w;
   Lfm *lfm = timer->lfm;
   async_dir_load(&lfm->async, timer->dir, true);
-  timer->dir->loading = true;
+  timer->dir->is_loading = true;
   ev_timer_stop(EV_A_ w);
   list_load_timer_erase_node(&lfm->loader.dir_timers,
                              list_load_timer_get_node(timer));
@@ -96,7 +96,7 @@ static inline void schedule_dir_load(struct loader_ctx *ctx, Dir *dir,
   ev_timer_again(event_loop, &timer->watcher);
   dir->next_scheduled_load = time;
   dir->next_requested_load = 0;
-  dir->scheduled = true;
+  dir->is_scheduled = true;
 }
 
 static inline void schedule_preview_load(struct loader_ctx *ctx, Preview *pv,
@@ -116,7 +116,7 @@ void loader_dir_reload(struct loader_ctx *ctx, Dir *dir) {
   if (unlikely(dir->status == DIR_DISOWNED))
     return;
 
-  if (dir->scheduled)
+  if (dir->is_scheduled)
     return;
 
   u64 now = current_millis();
@@ -131,7 +131,7 @@ void loader_dir_reload(struct loader_ctx *ctx, Dir *dir) {
   u64 next = now < latest + cfg.inotify_timeout
                  ? latest + cfg.inotify_timeout + cfg.inotify_delay
                  : now + cfg.inotify_delay;
-  if (dir->loading) {
+  if (dir->is_loading) {
     dir->next_requested_load = next;
   } else {
     schedule_dir_load(ctx, dir, next);
@@ -139,14 +139,14 @@ void loader_dir_reload(struct loader_ctx *ctx, Dir *dir) {
 }
 
 void loader_dir_load_callback(struct loader_ctx *ctx, Dir *dir) {
-  dir->scheduled = false;
+  dir->is_scheduled = false;
   if (dir->next_requested_load > 0) {
     u64 now = current_millis();
     if (dir->next_requested_load <= now) {
       async_dir_load(&to_lfm(ctx)->async, dir, true);
       dir->next_scheduled_load = now;
       dir->next_requested_load = 0;
-      dir->loading = true;
+      dir->is_loading = true;
     } else {
       schedule_dir_load(ctx, dir, dir->next_requested_load);
     }
@@ -193,14 +193,14 @@ Dir *loader_dir_from_path(struct loader_ctx *ctx, zsview path, bool do_load) {
   Dir *dir = v ? v->second : NULL;
   if (dir) {
     if (do_load) {
-      if (dir->status == DIR_LOADING_DELAYED && do_load) {
+      if (dir->status == DIR_DELAYED && do_load) {
         // delayed loading
         async_dir_load(&to_lfm(ctx)->async, dir, false);
         dir->last_loading_action = current_millis();
         ui_start_loading_indicator_timer(&to_lfm(ctx)->ui);
         return dir;
       }
-      if (dir->status == DIR_LOADING_FULLY && do_load) {
+      if (dir->status == DIR_LOADED && do_load) {
         // don't check before we have actually loaded the directory
         // (in particular stat data which we compare)
         async_dir_check(&to_lfm(ctx)->async, dir);
@@ -218,7 +218,7 @@ Dir *loader_dir_from_path(struct loader_ctx *ctx, zsview path, bool do_load) {
       async_dir_load(&to_lfm(ctx)->async, dir, false);
       dir->last_loading_action = current_millis();
       ui_start_loading_indicator_timer(&to_lfm(ctx)->ui);
-      dir->loading = true;
+      dir->is_loading = true;
     }
     if (likely(to_lfm(ctx)->L))
       LFM_RUN_HOOK(to_lfm(ctx), LFM_HOOK_DIRLOADED, path);

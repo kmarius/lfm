@@ -270,7 +270,7 @@ static void on_cursor_resting(EV_P_ ev_timer *w, i32 revents) {
   Dir *dir = lfm->fm.dirs.preview;
   if (dir) {
     if (revents != 0) { // ev calls this with revents == 256, we pass 0
-      if (dir->status == DIR_LOADING_DELAYED) {
+      if (dir->status == DIR_DELAYED) {
         async_dir_load(&lfm->async, lfm->fm.dirs.preview, false);
       } else {
         async_dir_check(&lfm->async, dir);

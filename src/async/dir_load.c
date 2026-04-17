@@ -318,8 +318,8 @@ void async_dir_load(struct async_ctx *async, Dir *dir, bool load_fileinfo) {
   work->super.destroy = &dir_update_destroy;
 
   dir->has_fileinfo = load_fileinfo;
-  dir->status = dir->status == DIR_LOADING_DELAYED ? DIR_LOADING_INITIAL
-                                                   : DIR_LOADING_FULLY;
+  if (dir->status == DIR_DELAYED)
+    dir->status = DIR_SCHEDULED;
   if (dir->last_loading_action == 0) {
     dir->last_loading_action = current_millis();
     ui_start_loading_indicator_timer(&to_lfm(async)->ui);

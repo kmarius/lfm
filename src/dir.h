@@ -38,10 +38,10 @@ typedef enum {
 i32 fileinfo_from_str(const char *str);
 
 typedef enum {
-  DIR_LOADING_DELAYED = 0,
-  DIR_LOADING_INITIAL,
-  DIR_LOADING_FULLY,
-  DIR_DISOWNED, // removed from loader cache, should not be scheduled
+  DIR_DELAYED = 0, // dir was not scheduled to load yet
+  DIR_SCHEDULED,   // initial loading was scheduled
+  DIR_LOADED,      // dir was loaded (at least once)
+  DIR_DISOWNED,    // removed from loader cache, should not be re-scheduled
 } dir_loading_status;
 
 extern const char *fileinfo_str[NUM_FILEINFO];
@@ -89,8 +89,8 @@ typedef struct Dir {
   u64 next_scheduled_load; // time of the next (or latest) scheduled reload
   u64 next_requested_load; // will be set if a reload is requested when
                            // one is already scheduled, otherwise 0
-  bool loading;            // is a reload in the process
-  bool scheduled;          // is a reload scheduled
+  bool is_loading;         // is a reload in the process
+  bool is_scheduled;       // is a reload scheduled
   u32 cookie;
 
   u32 ind; // cursor position in files[]
@@ -155,7 +155,7 @@ static inline zsview dir_name(const Dir *dir) {
 
 // Is the directory in the process of being loaded?
 static inline bool dir_loading(const Dir *dir) {
-  return dir->status < DIR_LOADING_FULLY;
+  return dir->status < DIR_LOADED;
 }
 
 // Current file of `dir`. Can be `NULL` if it is empty or not yet loaded, or
