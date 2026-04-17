@@ -54,8 +54,7 @@ static void search_next_forward(Lfm *lfm, bool inclusive) {
     if (strcasestr(file_name_str(*vec_file_at(&dir->files, idx)),
                    cstr_str(&lfm->ui.search_string))) {
       if (dir_set_cursor(dir, idx, lfm->fm.height, cfg.scrolloff)) {
-        fm_update_preview(&lfm->fm, true);
-        ui_update_preview(&lfm->ui, true);
+        ui_on_cursor_moved(&lfm->ui, true);
         ui_redraw(&lfm->ui, REDRAW_CURRENT);
       }
       return;
@@ -74,8 +73,7 @@ static void search_next_backwards(Lfm *lfm, bool inclusive) {
     if (strcasestr(file_name_str(*vec_file_at(&dir->files, idx)),
                    cstr_str(&lfm->ui.search_string))) {
       if (dir_set_cursor(dir, idx, lfm->fm.height, cfg.scrolloff)) {
-        fm_update_preview(&lfm->fm, true);
-        ui_update_preview(&lfm->ui, true);
+        ui_on_cursor_moved(&lfm->ui, true);
         ui_redraw(&lfm->ui, REDRAW_CURRENT);
       }
       return;

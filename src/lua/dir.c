@@ -131,7 +131,7 @@ int l_fm_sort(lua_State *L) {
   Dir *dir = fm_current_dir(fm);
   sort_dir(L, 1, dir);
 
-  ui_update_preview(ui, true);
+  ui_on_cursor_moved(ui, true);
   ui_redraw(ui, REDRAW_FM);
   return 0;
 }

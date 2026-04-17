@@ -144,8 +144,7 @@ static int l_updir(lua_State *L) {
     // since we are also not running the pre hook
     // LFM_RUN_HOOK(lfm, LFM_HOOK_CHDIRPOST, &fm->pwd);
     search_nohighlight(lfm);
-    ui_update_preview(ui, true);
-    ui_redraw(ui, REDRAW_FM);
+    ui_on_cursor_moved(ui, true);
   }
   return 0;
 }
@@ -164,8 +163,7 @@ static int l_open(lua_State *L) {
   } else {
     /* changed directory */
     // LFM_RUN_HOOK(lfm, LFM_HOOK_CHDIRPOST, &fm->pwd);
-    ui_update_preview(ui, true);
-    ui_redraw(ui, REDRAW_FM);
+    ui_on_cursor_moved(ui, true);
     search_nohighlight(lfm);
     return 0;
   }
@@ -342,8 +340,7 @@ static int l_chdir(lua_State *L) {
   } else {
     fm_async_chdir(fm, path, should_save, true);
   }
-  ui_update_preview(ui, true);
-  ui_redraw(ui, REDRAW_FM);
+  ui_on_cursor_moved(ui, true);
   return 0;
 }
 
@@ -476,7 +473,7 @@ static int l_jump_automark(lua_State *L) {
   LFM_RUN_HOOK(lfm, LFM_HOOK_CHDIRPRE, &fm->pwd);
   lfm_mode_exit(lfm, c_zv("visual"));
   fm_jump_automark(fm);
-  ui_update_preview(ui, true);
+  ui_on_cursor_moved(ui, true);
   ui_redraw(ui, REDRAW_FM);
   return 0;
 }

@@ -220,8 +220,7 @@ static int l_config_newindex(lua_State *L) {
   } else if (streq(key, "hidden")) {
     cfg.dir_settings.hidden = lua_toboolean(L, 3);
     fm_sort(fm);
-    fm_update_preview(fm, true);
-    ui_update_preview(ui, true);
+    ui_on_cursor_moved(ui, true);
     ui_redraw(ui, REDRAW_FM);
   } else if (streq(key, "ratios")) {
     luaL_checktype(L, 3, LUA_TTABLE);
@@ -368,8 +367,7 @@ static int l_config_newindex(lua_State *L) {
     long delay = luaL_checkinteger(L, 3);
     luaL_argcheck(L, delay >= 0, 3, "preview_delay must be non-negative");
     cfg.preview_delay = delay;
-    lfm->fm.cursor_resting_timer.repeat = delay / 1000.0;
-    lfm->ui.preview_load_timer.repeat = delay / 1000.0;
+    lfm->ui.cursor_resting_timer.repeat = delay / 1000.0;
   } else if (streq(key, "tags")) {
     luaL_checktype(L, 3, LUA_TBOOLEAN);
     bool val = lua_toboolean(L, 3);

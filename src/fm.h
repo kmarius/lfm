@@ -5,7 +5,6 @@
 #include "pathlist.h"
 #include "selection.h"
 
-#include <ev.h>
 #include <stc/types.h>
 
 #include <stdbool.h>
@@ -60,9 +59,6 @@ typedef struct Fm {
     // Start index of the visual selection.
     u32 anchor;
   } visual;
-
-  // timer for delayed preview loading
-  ev_timer cursor_resting_timer;
 
   // Previous directory, not changed on updir/open.
   cstr automark;
@@ -128,8 +124,8 @@ static inline bool fm_jump_automark(Fm *fm) {
   return fm_async_chdir(fm, cstr_zv(&fm->automark), true, true);
 }
 
-// Update preview after moving the cursor in the current directory.
-void fm_update_preview(Fm *fm, bool immediate);
+// Update directory perview after cursor moved
+void fm_update_preview(Fm *fm);
 
 // Drop directory cache and reload visible directories from disk.
 void fm_drop_cache(Fm *fm);

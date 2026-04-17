@@ -10,7 +10,6 @@
 #include "lfm.h"
 #include "loader.h"
 #include "log.h"
-#include "loop.h"
 #include "path.h"
 #include "pathlist.h"
 #include "stcutil.h"
@@ -23,17 +22,12 @@
 #include <linux/limits.h>
 #include <unistd.h>
 
-static void on_cursor_resting(EV_P_ ev_timer *w, i32 revents);
 static void fm_update_watchers(Fm *fm);
 static void fm_remove_preview(Fm *fm);
 static void fm_populate(Fm *fm);
 
 void fm_init(Fm *fm, struct lfm_opts *opts) {
   fm->paste.mode = PASTE_MODE_COPY;
-
-  ev_timer_init(&fm->cursor_resting_timer, on_cursor_resting, 0,
-                cfg.preview_delay / 1000.0);
-  fm->cursor_resting_timer.data = to_lfm(fm);
 
   if (!cstr_is_empty(&opts->startpath)) {
     if (chdir(cstr_str(&opts->startpath)) == 0) {
@@ -69,7 +63,7 @@ void fm_init(Fm *fm, struct lfm_opts *opts) {
   }
 
   fm_update_watchers(fm);
-  fm_update_preview(fm, true);
+  fm_update_preview(fm);
 }
 
 void fm_deinit(Fm *fm) {
@@ -125,7 +119,7 @@ void fm_recol(Fm *fm) {
 
   fm_populate(fm);
   fm_update_watchers(fm);
-  fm_update_preview(fm, true);
+  fm_update_preview(fm);
 }
 
 static inline bool fm_chdir_impl(Fm *fm, zsview path, bool save, bool hook,
@@ -170,7 +164,7 @@ static inline bool fm_chdir_impl(Fm *fm, zsview path, bool save, bool hook,
 
   fm_populate(fm);
   fm_update_watchers(fm);
-  fm_update_preview(fm, true);
+  fm_update_preview(fm);
 
   if (!async && hook) {
     LFM_RUN_HOOK(to_lfm(fm), LFM_HOOK_CHDIRPOST, &fm->pwd);
@@ -238,7 +232,7 @@ void fm_drop_cache(Fm *fm) {
 
   fm_populate(fm);
   fm_update_watchers(fm);
-  fm_update_preview(fm, true);
+  fm_update_preview(fm);
 }
 
 void fm_reload(Fm *fm) {
@@ -259,69 +253,37 @@ static inline void fm_remove_preview(Fm *fm) {
   }
 }
 
-// Loads the directory, if not done already, and adds an inotify watcher.
-// Pass revents == 0 when calling manually to indicate we have already loaded
-// the directory.
-static void on_cursor_resting(EV_P_ ev_timer *w, i32 revents) {
-  ev_timer_stop(loop, w);
-
-  Lfm *lfm = w->data;
-
-  Dir *dir = lfm->fm.dirs.preview;
-  if (dir) {
-    if (revents != 0) { // ev calls this with revents == 256, we pass 0
-      if (dir->status == DIR_DELAYED) {
-        async_dir_load(&lfm->async, lfm->fm.dirs.preview, false);
-      } else {
-        async_dir_check(&lfm->async, dir);
-      }
-    }
-    async_inotify_add_previewed(&lfm->async, lfm->fm.dirs.preview);
-  }
-}
-
-void fm_update_preview(Fm *fm, bool immediate) {
-  immediate |= cfg.preview_delay == 0;
-
-  static u64 last_time_called = 0;
-  u64 now = current_millis();
-  if (!immediate) {
-    if (now - last_time_called > cfg.preview_delay)
-      immediate = true; // cursor was resting, don't delay
-  }
-  last_time_called = now;
-
+void fm_update_preview(Fm *fm) {
   if (!cfg.preview) {
     fm_remove_preview(fm);
     return;
   }
 
-  const File *file = fm_current_file(fm);
+  Lfm *lfm = to_lfm(fm);
+
+  File *file = fm_current_file(fm);
   bool is_directory_preview = file != NULL && file_isdir(file);
+  if (!is_directory_preview) {
+    fm_remove_preview(fm);
+    return;
+  }
+
   bool preview_changed =
       file == NULL || fm->dirs.preview == NULL ||
       !zsview_eq2(dir_path(fm->dirs.preview), file_path(file));
-
-  if (preview_changed)
-    fm_remove_preview(fm);
-
-  if (is_directory_preview && preview_changed) {
+  if (preview_changed) {
     fm->dirs.preview =
-        loader_dir_from_path(&to_lfm(fm)->loader, file_path(file), immediate);
+        loader_dir_from_path(&to_lfm(fm)->loader, file_path(file), false);
     fm->dirs.preview->visible = true;
   }
 
-  if (preview_changed) {
-    // invoke on_cursor_resting (on delay) to set up watcher/actually load the
-    // directory
-
-    if (immediate) {
-      if (file)
-        ev_invoke(event_loop, &fm->cursor_resting_timer, 0);
-    } else {
-      ev_timer_again(event_loop, &fm->cursor_resting_timer);
-    }
+  Dir *dir = fm->dirs.preview;
+  if (dir->status == DIR_DELAYED) {
+    async_dir_load(&lfm->async, lfm->fm.dirs.preview, false);
+  } else {
+    async_dir_check(&lfm->async, dir);
   }
+  async_inotify_add_previewed(&lfm->async, lfm->fm.dirs.preview);
 }
 
 File *fm_open(Fm *fm) {
@@ -347,7 +309,7 @@ bool fm_updir(Fm *fm) {
   fm_async_chdir(fm, path, false, true);
   Dir *parent = fm_current_dir(fm);
   dir_move_cursor_to_name(parent, dir_name(dir), fm->height, cfg.scrolloff);
-  fm_update_preview(fm, true);
+  fm_update_preview(fm);
   return true;
 }
 

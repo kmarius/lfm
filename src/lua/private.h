@@ -14,8 +14,7 @@ extern Fm *fm;
 
 // update fm state, call when the current directory is changed
 static inline void update_preview(bool immediate) {
-  fm_update_preview(fm, immediate);
-  ui_update_preview(ui, immediate);
+  ui_on_cursor_moved(ui, immediate);
 }
 
 #define luaL_optbool(L, i, d) lua_isnoneornil(L, i) ? d : lua_toboolean(L, i)

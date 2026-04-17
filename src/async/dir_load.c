@@ -94,8 +94,7 @@ static void fileinfo_callback(void *p, Lfm *lfm) {
     } else {
       dir_sort(res->dir, false);
     }
-    fm_update_preview(&lfm->fm, true);
-    ui_redraw(&lfm->ui, REDRAW_FM);
+    ui_on_cursor_moved(&lfm->ui, true);
   }
 }
 
@@ -234,11 +233,8 @@ static void dir_update_callback(void *p, Lfm *lfm) {
     dir_update_with(dir, update, lfm->fm.height, cfg.scrolloff);
     LFM_RUN_HOOK(lfm, LFM_HOOK_DIRUPDATED, dir_path(dir));
     if (dir->visible) {
-      if (fm_current_dir(&lfm->fm) == dir) {
-        fm_update_preview(&lfm->fm, true);
-        ui_update_preview(&lfm->ui, true);
-      }
-      ui_redraw(&lfm->ui, REDRAW_FM);
+      if (fm_current_dir(&lfm->fm) == dir)
+        ui_on_cursor_moved(&lfm->ui, true);
     }
     dir->last_loading_action = 0;
     work->update = NULL;

@@ -96,7 +96,7 @@ typedef struct Ui {
   ev_timer menu_delay_timer;
   ev_timer map_clear_timer;
   ev_timer map_suggestion_timer;
-  ev_timer preview_load_timer;
+  ev_timer cursor_resting_timer;
   ev_timer message_clear_timer;
 
   vec_message messages;
@@ -122,7 +122,7 @@ void ui_clear(Ui *ui);
 
 void ui_draw(Ui *ui);
 
-void ui_update_preview(Ui *ui, bool immediate);
+void ui_on_cursor_moved(Ui *ui, bool immediate);
 
 static inline void ui_redraw(Ui *ui, u32 mode) {
   ui->redraw |= mode;

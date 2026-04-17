@@ -4,6 +4,7 @@
 #include "dir.h"
 #include "inotify.h"
 #include "lfm.h"
+#include "log.h"
 #include "memory.h"
 
 #include <ev.h>
@@ -57,6 +58,7 @@ void async_inotify_add(struct async_ctx *async, Dir *dir) {
   work->async = async;
   work->dir = dir_inc_ref(dir);
 
+  log_trace("adding inotify watcher %s", dir_path_str(dir));
   set_result_insert(&async->in_progress.inotify, &work->super);
   tpool_add_work(async->tpool, worker, work, true);
 }
@@ -72,6 +74,7 @@ void async_inotify_add_previewed(struct async_ctx *async, Dir *dir) {
   cancel(async->in_progress.inotify_preview);
   async->in_progress.inotify_preview = &work->super;
 
+  log_trace("adding inotify watcher %s", dir_path_str(dir));
   tpool_add_work(async->tpool, worker, work, true);
 }
 
