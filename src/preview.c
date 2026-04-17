@@ -8,7 +8,6 @@
 #include "ncutil.h"
 #include "sha256.h"
 #include "types/bytes.h"
-#include "util.h"
 
 #define STC_CSTR_IO
 #include <stc/cstr.h>
@@ -24,7 +23,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-// a security measure, a bad previewer could try to send large files
+// arbitrary upper bound for text previews
 #define PREVIEW_MAX_BYTES (128 * 1024)
 
 // return code interpretation of the previewer script taken from ranger
@@ -51,12 +50,12 @@ static inline Preview *preview_init(Preview *p, zsview path, i32 height,
   p->path = cstr_from_zv(path);
   p->height = height;
   p->width = width;
-  p->next = current_millis();
+  p->next_scheduled_load = 0;
 
   p->draw = draw_text_preview;
   p->update = update_text_preview;
   p->destroy = destroy_text_preview;
-  p->loading = PV_LOADING_DELAYED;
+  p->status = PV_DELAYED;
 
   return p;
 }
@@ -89,7 +88,7 @@ static void destroy_text_preview(Preview *p) {
 
 Preview *preview_create_loading(zsview path, i32 height, i32 width) {
   Preview *p = preview_create(path, height, width);
-  p->loading = true;
+  p->is_loading = true;
   return p;
 }
 
@@ -99,8 +98,8 @@ static void update_text_preview(Preview *p, Preview *u) {
   p->mtime = u->mtime;
   p->width = u->width;
   p->height = u->height;
-  p->loading = false;
-  p->status = PV_LOADING_NORMAL;
+  p->is_loading = false;
+  p->status = PV_LOADED;
 
   p->draw = u->draw;
   p->update = u->update;
@@ -115,10 +114,10 @@ static void update_image_preview(Preview *p, Preview *u) {
   }
   p->ncv = u->ncv;
   p->mtime = u->mtime;
-  p->loading = false;
+  p->is_loading = false;
   p->width = u->width;
   p->height = u->height;
-  p->status = PV_LOADING_NORMAL;
+  p->status = PV_LOADED;
 
   destroy_preview(u);
 }

@@ -13,15 +13,15 @@ struct ncplane;
 struct Preview;
 
 typedef enum {
-  PV_LOADING_DELAYED = 0,
-  PV_LOADING_INITIAL,
-  PV_LOADING_NORMAL,
-  PV_LOADING_DISOWNED,
-} pv_loading_status;
+  PV_DELAYED = 0, // preview was not scheduled to load yet
+  PV_LOADED,      // preview has been loaded
+  PV_DISOWNED,    // preview won't be reloaded and destroyed after the last ref
+                  // drops
+} pv_status;
 
-typedef void (*preview_draw_fun)(const struct Preview *, struct ncplane *);
-typedef void (*preview_update_fun)(struct Preview *, struct Preview *);
-typedef void (*preview_destroy_fun)(struct Preview *);
+typedef void (*preview_draw_func)(const struct Preview *, struct ncplane *);
+typedef void (*preview_update_func)(struct Preview *, struct Preview *);
+typedef void (*preview_destroy_func)(struct Preview *);
 
 typedef struct Preview {
   atomic_uint refcount;
@@ -34,13 +34,14 @@ typedef struct Preview {
     bytes data;
     struct ncvisual *ncv;
   };
-  u64 next;
+  u64 next_scheduled_load; /* next scheduled load in ms */
   time_t mtime;
-  bool loading;
-  pv_loading_status status;
-  preview_draw_fun draw;
-  preview_update_fun update;
-  preview_destroy_fun destroy;
+  bool is_loading;
+  pv_status status;
+
+  preview_draw_func draw;
+  preview_update_func update;
+  preview_destroy_func destroy;
 } Preview;
 
 __lfm_nonnull()

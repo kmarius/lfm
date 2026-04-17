@@ -154,11 +154,11 @@ void loader_dir_load_callback(struct loader_ctx *ctx, Dir *dir) {
 }
 
 void loader_preview_reload(struct loader_ctx *ctx, Preview *pv) {
-  if (unlikely(pv->status == PV_LOADING_DISOWNED))
+  if (unlikely(pv->status == PV_DISOWNED))
     return;
 
   u64 now = current_millis();
-  u64 latest = pv->next; // possibly in the future
+  u64 latest = pv->next_scheduled_load; // possibly in the future
 
   if (latest >= now + cfg.inotify_timeout)
     return; // discard
@@ -168,7 +168,7 @@ void loader_preview_reload(struct loader_ctx *ctx, Preview *pv) {
                  ? latest + cfg.inotify_timeout + cfg.inotify_delay
                  : now + cfg.inotify_delay;
   schedule_preview_load(ctx, pv, next);
-  pv->next = next;
+  pv->next_scheduled_load = next;
 }
 
 // path must be absolute
@@ -243,11 +243,11 @@ Preview *loader_preview_from_path(struct loader_ctx *ctx, zsview path,
     preview = v->second;
 
     if (do_load) {
-      if (preview->status == PV_LOADING_DELAYED) {
+      if (preview->status == PV_DELAYED) {
         async_preview_load(&to_lfm(ctx)->async, preview);
         return preview;
       }
-      if (preview->status == PV_LOADING_NORMAL) {
+      if (preview->status == PV_LOADED) {
         if (preview->height < to_lfm(ctx)->ui.preview.y ||
             preview->width < to_lfm(ctx)->ui.preview.x) {
           async_preview_load(&to_lfm(ctx)->async, preview);
@@ -271,7 +271,7 @@ Preview *loader_preview_from_path(struct loader_ctx *ctx, zsview path,
 
 void loader_drop_preview_cache(struct loader_ctx *ctx) {
   c_foreach(it, map_zsview_preview, ctx->preview_cache) {
-    (*it.ref).second->status = PV_LOADING_DISOWNED;
+    (*it.ref).second->status = PV_DISOWNED;
   }
   map_zsview_preview_clear(&ctx->preview_cache);
   c_foreach(it, list_load_timer, ctx->preview_timers) {

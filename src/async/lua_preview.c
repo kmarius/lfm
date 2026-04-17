@@ -124,9 +124,8 @@ void async_lua_preview(struct async_ctx *async, struct Preview *pv) {
   work->super.callback = &callback;
   work->super.destroy = &destroy;
 
-  pv->status =
-      pv->status == PV_LOADING_DELAYED ? PV_LOADING_INITIAL : PV_LOADING_NORMAL;
-  pv->loading = true;
+  pv->status = PV_LOADED;
+  pv->is_loading = true;
 
   work->async = async;
   work->chunk = bytes_clone(cfg.lua_previewer);

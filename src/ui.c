@@ -963,7 +963,7 @@ static void on_cursor_resting(EV_P_ ev_timer *w, i32 revents) {
   Preview *preview = ui->preview.preview;
   if (preview) {
     if (revents != 0) { // called by libev, need to check/load here
-      if (preview->status == PV_LOADING_DELAYED) {
+      if (preview->status == PV_DELAYED) {
         async_preview_load(&lfm->async, preview);
       } else {
         async_preview_check(&lfm->async, preview);
@@ -981,7 +981,7 @@ void ui_update_file_preview_delayed(Ui *ui) {
 }
 
 // check if the dimensions changed and the preview should be reloaded
-#define CHECK_DIMS(pv, nrow) (!(pv)->loading && (pv)->height < (nrow))
+#define CHECK_DIMS(pv, nrow) (!(pv)->is_loading && (pv)->height < (nrow))
 
 void ui_update_preview(Ui *ui, bool immediate) {
   if (!cfg.preview) {
@@ -1014,7 +1014,7 @@ void ui_update_preview(Ui *ui, bool immediate) {
   bool dims_changed = preview != NULL && CHECK_DIMS(preview, nrow);
 
   if (!preview_changed && dims_changed) {
-    preview->status = PV_LOADING_DELAYED;
+    preview->status = PV_DELAYED;
   }
 
   if (preview_changed)

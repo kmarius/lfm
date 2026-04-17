@@ -14,7 +14,6 @@
 #include "config.h"
 #include "defs.h"
 #include "lfm.h"
-#include "loader.h"
 #include "log.h"
 #include "loop.h"
 #include "memory.h"
@@ -89,7 +88,7 @@ static void child_exit_cb(EV_P_ ev_child *w, int revents) {
 }
 
 void async_preview_load(struct async_ctx *async, Preview *pv) {
-  if (unlikely(pv->status == PV_LOADING_DISOWNED)) {
+  if (unlikely(pv->status == PV_DISOWNED)) {
     log_error("not reloading disowned preview %s", preview_path(pv).str);
     return;
   }
@@ -102,9 +101,8 @@ void async_preview_load(struct async_ctx *async, Preview *pv) {
     work->super.callback = callback;
     work->super.destroy = destroy;
 
-    pv->status = pv->status == PV_LOADING_DELAYED ? PV_LOADING_INITIAL
-                                                  : PV_LOADING_NORMAL;
-    pv->loading = true;
+    pv->status = PV_LOADED;
+    pv->is_loading = true;
 
     work->async = async;
     work->preview = preview_inc_ref(pv);
