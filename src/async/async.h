@@ -60,7 +60,7 @@ void async_preview_check(struct async_ctx *async, struct Preview *pv);
 void async_preview_load(struct async_ctx *async, struct Preview *pv);
 
 // change directory to the given path, optionally run on_chdir hook
-void async_chdir(struct async_ctx *async, const char *path, bool hook);
+void async_chdir(struct async_ctx *async, const char *path, bool run_hook);
 
 // add an inotify watcher for the given directory
 void async_inotify_add(struct async_ctx *async, struct Dir *dir);

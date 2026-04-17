@@ -19,22 +19,22 @@ struct inotify_work {
   bool ok;
 };
 
-static void inotify_result_destroy(void *p) {
-  struct inotify_work *res = p;
-  dir_dec_ref(res->dir);
-  xfree(res);
+static void destroy(void *p) {
+  struct inotify_work *work = p;
+  dir_dec_ref(work->dir);
+  xfree(work);
 }
 
-static void inotify_result_callback(void *p, Lfm *lfm) {
-  struct inotify_work *res = p;
+static void callback(void *p, Lfm *lfm) {
+  struct inotify_work *work = p;
   set_result_erase(&lfm->async.in_progress.inotify, p);
-  if (likely(res->ok))
-    inotify_add_watcher(&lfm->inotify, res->dir);
+  if (likely(work->ok))
+    inotify_add_watcher(&lfm->inotify, work->dir);
   if (lfm->async.in_progress.inotify_preview == p)
     lfm->async.in_progress.inotify_preview = NULL;
 }
 
-static void async_inotify_worker(void *arg) {
+static void worker(void *arg) {
   struct inotify_work *work = arg;
 
   // We open the directory here so that the inotify watcher
@@ -51,20 +51,20 @@ static void async_inotify_worker(void *arg) {
 
 void async_inotify_add(struct async_ctx *async, Dir *dir) {
   struct inotify_work *work = xcalloc(1, sizeof *work);
-  work->super.callback = &inotify_result_callback;
-  work->super.destroy = &inotify_result_destroy;
+  work->super.callback = &callback;
+  work->super.destroy = &destroy;
 
   work->async = async;
   work->dir = dir_inc_ref(dir);
 
   set_result_insert(&async->in_progress.inotify, &work->super);
-  tpool_add_work(async->tpool, async_inotify_worker, work, true);
+  tpool_add_work(async->tpool, worker, work, true);
 }
 
 void async_inotify_add_previewed(struct async_ctx *async, Dir *dir) {
   struct inotify_work *work = xcalloc(1, sizeof *work);
-  work->super.callback = &inotify_result_callback;
-  work->super.destroy = &inotify_result_destroy;
+  work->super.callback = &callback;
+  work->super.destroy = &destroy;
 
   work->async = async;
   work->dir = dir_inc_ref(dir);
@@ -72,7 +72,7 @@ void async_inotify_add_previewed(struct async_ctx *async, Dir *dir) {
   cancel(async->in_progress.inotify_preview);
   async->in_progress.inotify_preview = &work->super;
 
-  tpool_add_work(async->tpool, async_inotify_worker, work, true);
+  tpool_add_work(async->tpool, worker, work, true);
 }
 
 void async_inotify_cancel(struct async_ctx *async) {

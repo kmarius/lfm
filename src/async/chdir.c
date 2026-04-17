@@ -13,69 +13,69 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-struct chdir_data {
+struct chdir_work {
   struct result super;
   struct async_ctx *async;
-  char *destination;
+  char *dest;
   char *origin;
   int fd;
   int err;
   bool run_hook;
 };
 
-static void chdir_destroy(void *p) {
-  struct chdir_data *res = p;
-  if (likely(res->fd > 0))
-    close(res->fd);
-  xfree(res->destination);
-  xfree(res->origin);
-  xfree(res);
+static void destroy(void *p) {
+  struct chdir_work *work = p;
+  if (likely(work->fd > 0))
+    close(work->fd);
+  xfree(work->dest);
+  xfree(work->origin);
+  xfree(work);
 }
 
-static void chdir_callback(void *p, Lfm *lfm) {
-  struct chdir_data *res = p;
+static void callback(void *p, Lfm *lfm) {
+  struct chdir_work *work = p;
 
   if (lfm->async.in_progress.chdir == p)
     lfm->async.in_progress.chdir = NULL;
 
   lfm_mode_exit(lfm, c_zv("visual"));
-  if (res->err) {
+
+  if (work->fd < 0) {
     // back to the where we cd'ed from
-    lfm_errorf(lfm, "open: %s", strerror(res->err));
-    fm_sync_chdir(&lfm->fm, zsview_from(res->origin), false, false);
-  } else if (fchdir(res->fd) != 0) {
+    lfm_errorf(lfm, "open: %s", strerror(work->err));
+    fm_sync_chdir(&lfm->fm, zsview_from(work->origin), false, false);
+  } else if (fchdir(work->fd) != 0) {
     lfm_perror(lfm, "fchdir");
-    fm_sync_chdir(&lfm->fm, zsview_from(res->origin), false, false);
+    fm_sync_chdir(&lfm->fm, zsview_from(work->origin), false, false);
   } else {
-    setpwd(res->destination);
-    if (res->run_hook)
-      LFM_RUN_HOOK(lfm, LFM_HOOK_CHDIRPOST, res->destination);
+    setpwd(work->dest);
+    if (work->run_hook)
+      LFM_RUN_HOOK(lfm, LFM_HOOK_CHDIRPOST, work->dest);
   }
 }
 
-static void async_chdir_worker(void *arg) {
-  struct chdir_data *work = arg;
+static void worker(void *arg) {
+  struct chdir_work *work = arg;
 
-  work->fd = open(work->destination, O_RDONLY);
+  work->fd = open(work->dest, O_RDONLY);
   if (work->fd < 0)
     work->err = errno;
 
   submit_async_result(work->async, (struct result *)work);
 }
 
-void async_chdir(struct async_ctx *async, const char *path, bool hook) {
-  struct chdir_data *work = xcalloc(1, sizeof *work);
-  work->super.callback = &chdir_callback;
-  work->super.destroy = &chdir_destroy;
+void async_chdir(struct async_ctx *async, const char *path, bool run_hook) {
+  struct chdir_work *work = xcalloc(1, sizeof *work);
+  work->super.callback = &callback;
+  work->super.destroy = &destroy;
 
-  work->destination = strdup(path);
+  work->dest = strdup(path);
   work->origin = cstr_strdup(&to_lfm(async)->fm.pwd);
   work->async = async;
-  work->run_hook = hook;
+  work->run_hook = run_hook;
 
-  if (async->in_progress.chdir)
-    cancel(async->in_progress.chdir);
+  cancel(async->in_progress.chdir);
   async->in_progress.chdir = &work->super;
 
-  tpool_add_work(async->tpool, async_chdir_worker, work, true);
+  tpool_add_work(async->tpool, worker, work, true);
 }
