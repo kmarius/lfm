@@ -60,7 +60,7 @@ static void async_chdir_worker(void *arg) {
   if (work->fd < 0)
     work->err = errno;
 
-  enqueue_and_signal(work->async, (struct result *)work);
+  submit_async_result(work->async, (struct result *)work);
 }
 
 void async_chdir(struct async_ctx *async, const char *path, bool hook) {

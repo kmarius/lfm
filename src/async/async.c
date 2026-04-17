@@ -91,7 +91,7 @@ static inline struct result *result_queue_get(struct result_queue *queue) {
   return res;
 }
 
-void enqueue_and_signal(struct async_ctx *async, struct result *res) {
+void submit_async_result(struct async_ctx *async, struct result *res) {
   result_queue_put(&async->queue, res);
   ev_async_send(EV_DEFAULT_ & async->result_watcher);
 }

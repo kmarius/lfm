@@ -32,4 +32,4 @@ static inline bool is_cancelled(struct result *res) {
   return res->cancelled;
 }
 
-void enqueue_and_signal(struct async_ctx *async, struct result *res);
+void submit_async_result(struct async_ctx *async, struct result *res);

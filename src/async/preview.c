@@ -74,7 +74,7 @@ static void async_preview_check_worker(void *arg) {
     return;
   }
 
-  enqueue_and_signal(work->async, (struct result *)work);
+  submit_async_result(work->async, (struct result *)work);
 }
 
 void async_preview_check(struct async_ctx *async, Preview *pv) {
@@ -129,7 +129,7 @@ static void async_preview_load_worker(void *arg) {
   preview_handle_exit_status(work->update, work->status);
   log_trace("finished preview: %s", cstr_str(&work->update->path));
 
-  enqueue_and_signal(work->async, (struct result *)work);
+  submit_async_result(work->async, (struct result *)work);
 }
 
 static void child_exit_cb(EV_P_ ev_child *w, int revents) {

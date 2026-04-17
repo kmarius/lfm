@@ -163,7 +163,7 @@ void async_lua_worker(void *arg) {
   lua_pop(L, 1); // []
 
 end:
-  enqueue_and_signal(work->async, (struct result *)work);
+  submit_async_result(work->async, (struct result *)work);
   if (likely(L_thread != NULL))
     lua_gc(L_thread, LUA_GCCOLLECT, 0); // collectgarbage("collect")
 
@@ -285,7 +285,7 @@ void async_lua_preview_worker(void *arg) {
   }
 
 end:
-  enqueue_and_signal(work->async, (struct result *)work);
+  submit_async_result(work->async, (struct result *)work);
   if (likely(L_thread != NULL))
     lua_gc(L_thread, LUA_GCCOLLECT, 0); // collectgarbage("collect")
 

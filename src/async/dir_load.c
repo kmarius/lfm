@@ -20,66 +20,6 @@
 
 #define FILEINFO_THRESHOLD 200 // send batches of dircounts around every 200ms
 
-struct dir_check_data {
-  struct result super;
-  struct async_ctx *async;
-  Dir *dir;
-  time_t loadtime;
-  __ino_t ino;
-  bool reload;
-};
-
-static void dir_check_destroy(void *p) {
-  struct dir_check_data *res = p;
-  dir_dec_ref(res->dir);
-  xfree(res);
-}
-
-static void dir_check_callback(void *p, Lfm *lfm) {
-  struct dir_check_data *res = p;
-  if (res->reload) {
-    loader_dir_reload(&lfm->loader, res->dir);
-  } else {
-    res->dir->last_loading_action = 0;
-  }
-  set_result_erase(&lfm->async.in_progress.dirs, &res->super);
-}
-
-static void async_dir_check_worker(void *arg) {
-  struct dir_check_data *work = arg;
-  struct stat statbuf;
-
-  if (stat(dir_path(work->dir).str, &statbuf) == -1 ||
-      (statbuf.st_ino == work->ino && statbuf.st_mtime <= work->loadtime)) {
-    work->reload = false;
-  } else {
-    work->reload = true;
-  }
-
-  enqueue_and_signal(work->async, (struct result *)work);
-}
-
-void async_dir_check(struct async_ctx *async, Dir *dir) {
-  struct dir_check_data *work = xcalloc(1, sizeof *work);
-  work->super.callback = &dir_check_callback;
-  work->super.destroy = &dir_check_destroy;
-
-  if (dir->last_loading_action == 0) {
-    dir->last_loading_action = current_millis();
-    ui_start_loading_indicator_timer(&to_lfm(async)->ui);
-  }
-
-  work->async = async;
-  work->dir = dir_inc_ref(dir);
-  work->loadtime = dir->load_time;
-  work->ino = dir->stat.st_ino;
-
-  set_result_insert(&async->in_progress.dirs, &work->super);
-
-  log_trace("checking directory %s", dir_path_str(dir));
-  tpool_add_work(async->tpool, async_dir_check_worker, work, true);
-}
-
 struct fileinfo {
   File *file;
   i32 count;        // number of files, if it is a directory, -1 if no result
@@ -201,7 +141,7 @@ static void async_load_fileinfo(struct async_ctx *async, Dir *dir, u32 cookie,
     if (now - latest > FILEINFO_THRESHOLD) {
       struct fileinfo_result *res =
           fileinfo_result_create(dir, cookie, infos, false);
-      enqueue_and_signal(async, (struct result *)res);
+      submit_async_result(async, (struct result *)res);
 
       infos = fileinfos_init();
       latest = now;
@@ -238,7 +178,7 @@ static void async_load_fileinfo(struct async_ctx *async, Dir *dir, u32 cookie,
     if (now - latest > FILEINFO_THRESHOLD) {
       struct fileinfo_result *res =
           fileinfo_result_create(dir, cookie, infos, false);
-      enqueue_and_signal(async, (struct result *)res);
+      submit_async_result(async, (struct result *)res);
 
       infos = fileinfos_init();
       latest = now;
@@ -255,13 +195,13 @@ finalize:
 
   struct fileinfo_result *res =
       fileinfo_result_create(dir, cookie, infos, true);
-  enqueue_and_signal(async, (struct result *)res);
+  submit_async_result(async, (struct result *)res);
 
   xfree(files);
   map_str_int_drop(&dircounts);
 }
 
-struct dir_update_data {
+struct dir_update_work {
   struct result super;
   struct async_ctx *async;
   Dir *dir; // only access constant properties, such as path
@@ -273,18 +213,18 @@ struct dir_update_data {
 };
 
 static void dir_update_destroy(void *p) {
-  struct dir_update_data *res = p;
-  dir_dec_ref(res->dir);
-  dir_destroy(res->update);
-  map_str_int_drop(&res->dircounts);
-  xfree(res);
+  struct dir_update_work *work = p;
+  dir_dec_ref(work->dir);
+  dir_destroy(work->update);
+  map_str_int_drop(&work->dircounts);
+  xfree(work);
 }
 
 static void dir_update_callback(void *p, Lfm *lfm) {
-  struct dir_update_data *res = p;
-  Dir *dir = res->dir;
-  Dir *update = res->update;
-  if (dir->cookie == res->cookie) {
+  struct dir_update_work *work = p;
+  Dir *dir = work->dir;
+  Dir *update = work->update;
+  if (dir->cookie == work->cookie) {
     loader_dir_load_callback(&lfm->loader, dir);
     // apply any keyfuncs before sorting in dir_update_with
     if (dir->settings.sorttype == SORT_LUA)
@@ -301,12 +241,12 @@ static void dir_update_callback(void *p, Lfm *lfm) {
       ui_redraw(&lfm->ui, REDRAW_FM);
     }
     dir->last_loading_action = 0;
-    res->update = NULL;
+    work->update = NULL;
   }
 }
 
 static void async_dir_load_worker(void *arg) {
-  struct dir_update_data *work = arg;
+  struct dir_update_work *work = arg;
   struct async_ctx *async = work->async;
 
   map_str_int dircounts = map_str_int_move(&work->dircounts);
@@ -333,7 +273,7 @@ static void async_dir_load_worker(void *arg) {
 
   if (work->load_fileinfo || num_files == 0 ||
       atomic_load_explicit(&async->stop, memory_order_relaxed)) {
-    enqueue_and_signal(work->async, (struct result *)work);
+    submit_async_result(work->async, (struct result *)work);
     map_str_int_drop(&dircounts);
     if (!work->load_fileinfo)
       dir_dec_ref(work->dir); // release the extra ref
@@ -358,12 +298,11 @@ static void async_dir_load_worker(void *arg) {
     }
   }
 
-  /* Copy these because the main thread can invalidate the work struct in
-   * extremely rare cases after we enqueue, and before we call
-   * async_load_fileinfo */
+  /* Copy these because the main thread can invalidate the work
+   * struct in rare cases before we can call async_load_fileinfo */
   Dir *dir = work->dir;
 
-  enqueue_and_signal(work->async, (struct result *)work);
+  submit_async_result(work->async, (struct result *)work);
 
   async_load_fileinfo(async, dir, work->cookie, j, files, dircounts);
 }
@@ -374,7 +313,7 @@ void async_dir_load(struct async_ctx *async, Dir *dir, bool load_fileinfo) {
     log_error("requested reload of disowned directory: %s", dir_path(dir).str);
     return;
   }
-  struct dir_update_data *work = xcalloc(1, sizeof *work);
+  struct dir_update_work *work = xcalloc(1, sizeof *work);
   work->super.callback = &dir_update_callback;
   work->super.destroy = &dir_update_destroy;
 

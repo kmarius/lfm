@@ -46,7 +46,7 @@ static void async_inotify_worker(void *arg) {
     close(fd);
   }
 
-  enqueue_and_signal(work->async, (struct result *)work);
+  submit_async_result(work->async, (struct result *)work);
 }
 
 void async_inotify_add(struct async_ctx *async, Dir *dir) {
