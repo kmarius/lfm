@@ -5,6 +5,7 @@
 #include "dir.h"
 #include "hooks.h"
 #include "lfm.h"
+#include "log.h"
 #include "loop.h"
 #include "path.h"
 #include "preview.h"

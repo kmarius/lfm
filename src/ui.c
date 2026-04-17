@@ -989,9 +989,6 @@ void ui_update_preview(Ui *ui, bool immediate) {
     return;
   }
 
-  if (to_lfm(ui)->fm.dirs.preview)
-    return;
-
   immediate |= cfg.preview_delay == 0;
 
   static u64 last_time_called = 0;
@@ -1003,6 +1000,12 @@ void ui_update_preview(Ui *ui, bool immediate) {
   }
   last_time_called = now;
 
+  if (to_lfm(ui)->fm.dirs.preview) {
+    // directory preview active
+    remove_preview(ui);
+    goto callback;
+  }
+
   File *file = fm_current_file(&to_lfm(ui)->fm);
   Preview *preview = ui->preview.preview;
   bool is_file_preview = file && !file_isdir(file);
@@ -1013,9 +1016,8 @@ void ui_update_preview(Ui *ui, bool immediate) {
   ncplane_dim_yx(ui->planes.preview, &nrow, &ncol);
   bool dims_changed = preview != NULL && CHECK_DIMS(preview, nrow);
 
-  if (!preview_changed && dims_changed) {
+  if (!preview_changed && dims_changed)
     preview->status = PV_DELAYED;
-  }
 
   if (preview_changed)
     remove_preview(ui);
@@ -1028,8 +1030,9 @@ void ui_update_preview(Ui *ui, bool immediate) {
                                                    file_path(file), immediate);
   }
 
-  if (preview_changed)
-    ui->preview.hidden = !immediate;
+callback:
+  ui->preview.hidden = !immediate;
+
   if (immediate) {
     ev_invoke(event_loop, &ui->preview_load_timer, 0);
   } else {

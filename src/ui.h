@@ -88,7 +88,7 @@ typedef struct Ui {
   struct {
     Preview *preview;
     u32 y, x;    // dimensions of the preview ncplane
-    bool hidden; // temporarily hidden
+    bool hidden; // temporarily hidden to prevent flickering while moving
   } preview;
 
   vec_cstr menubuf;
