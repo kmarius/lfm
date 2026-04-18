@@ -47,6 +47,7 @@
 
 struct cdims cdims = {0};
 
+static inline void kbblocking(bool blocking);
 static void message_clear_timer_cb(EV_P_ ev_timer *w, i32 revents);
 static void menu_delay_timer_cb(EV_P_ ev_timer *w, i32 revents);
 static void draw_dirs(Ui *ui);
@@ -211,7 +212,7 @@ void ui_suspend(Ui *ui) {
   kbblocking(true);
 }
 
-void kbblocking(bool blocking) {
+static inline void kbblocking(bool blocking) {
   i32 val = fcntl(STDIN_FILENO, F_GETFL, 0);
   if (likely(val != -1)) {
     fcntl(STDIN_FILENO, F_SETFL,

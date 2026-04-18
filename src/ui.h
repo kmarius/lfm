@@ -108,8 +108,6 @@ typedef struct Ui {
   bool search_forward;
 } Ui;
 
-void kbblocking(bool blocking);
-
 void ui_init(Ui *ui);
 
 void ui_recol(Ui *ui);
