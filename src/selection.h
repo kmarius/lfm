@@ -25,8 +25,8 @@ bool selection_clear(struct Fm *fm);
 void selection_reverse(struct Fm *fm, struct Dir *dir);
 
 // Write the current celection to the file given as `path`.
-// Directories are created as needed.
-void selection_write(struct Fm *fm, zsview path);
+// Directories are created as needed. Returns 0 on success.
+int selection_write(struct Fm *fm, zsview path);
 
 // Set the current selection into the load buffer with mode `mode`.
 void paste_mode_set(struct Fm *fm, paste_mode mode);

@@ -5,8 +5,10 @@
 #include "fm.h"
 #include "hooks.h"
 #include "lfm.h"
+#include "stc/cstr.h"
 
 #include <stc/common.h>
+#include <stddef.h>
 
 void selection_toggle_path(Fm *fm, zsview path, bool run_hook) {
   if (!pathlist_remove(&fm->selection.current, path))
@@ -38,36 +40,61 @@ void selection_reverse(Fm *fm, Dir *dir) {
   LFM_RUN_HOOK(lfm_instance(), LFM_HOOK_SELECTION);
 }
 
-void selection_write(Fm *fm, zsview path) {
+int selection_write(Fm *fm, zsview path) {
+  int rc = 0;
+
+  Lfm *lfm = lfm_instance();
   if (path.size > PATH_MAX) {
-    lfm_errorf(lfm_instance(), "path too long");
-    return;
+    lfm_errorf(lfm, "path too long");
+    return -1;
   }
 
   if (make_dirs(path, 755) != 0) {
-    lfm_perror(lfm_instance(), "mkdir");
-    return;
+    lfm_perror(lfm, "mkdir");
+    return -1;
   }
 
   FILE *fp = fopen(path.str, "w");
   if (!fp) {
-    lfm_perror(lfm_instance(), "fopen");
-    return;
+    lfm_perror(lfm, "fopen");
+    return -1;
   }
 
   if (!pathlist_empty(&fm->selection.current)) {
     c_foreach(it, pathlist, fm->selection.current) {
-      fwrite(cstr_str(it.ref), 1, cstr_size(it.ref), fp);
-      fputc('\n', fp);
+      zsview path = cstr_zv(it.ref);
+      if (fwrite(path.str, 1, path.size, fp) < (usize)path.size) {
+        lfm_perror(lfm, "fwrite");
+        goto err;
+      }
+      if (fputc('\n', fp) == EOF) {
+        lfm_perror(lfm, "fputc");
+        goto err;
+      }
     }
   } else {
     File *file = fm_current_file(fm);
-    if (file) {
-      fputs(file_path_str(file), fp);
-      fputc('\n', fp);
+    zsview path = file_path(file);
+    if (fwrite(path.str, 1, path.size, fp) < (usize)path.size) {
+      lfm_perror(lfm, "fwrite");
+      goto err;
+    }
+    if (fputc('\n', fp) == EOF) {
+      lfm_perror(lfm, "fputc");
+      goto err;
     }
   }
-  fclose(fp);
+
+out:
+  if (fclose(fp) != 0) {
+    lfm_perror(lfm, "fclose");
+    rc = -1;
+  }
+  return rc;
+
+err:
+  rc = -1;
+  goto out;
 }
 
 void paste_mode_set(Fm *fm, paste_mode mode) {
