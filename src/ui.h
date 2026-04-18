@@ -118,8 +118,6 @@ void ui_on_resize(Ui *ui);
 
 void ui_clear(Ui *ui);
 
-void ui_draw(Ui *ui);
-
 void ui_on_cursor_moved(Ui *ui, bool immediate);
 
 static inline void ui_redraw(Ui *ui, u32 mode) {

@@ -48,22 +48,24 @@
 struct cdims cdims = {0};
 
 static inline void kbblocking(bool blocking);
+static i32 resize_cb(struct ncplane *n);
 static void message_clear_timer_cb(EV_P_ ev_timer *w, i32 revents);
+static void on_cursor_resting(EV_P_ ev_timer *w, i32 revents);
+
 static void menu_delay_timer_cb(EV_P_ ev_timer *w, i32 revents);
+static void menu_resize(Ui *ui);
+static inline void print_message(Ui *ui, zsview msg, bool error);
+
+static void redraw_cb(EV_P_ ev_idle *w, i32 revents);
+static inline void ui_draw(Ui *ui);
 static void draw_dirs(Ui *ui);
 static void plane_draw_dir(struct ncplane *n, Dir *dir, pathlist *sel,
                            pathlist *load, paste_mode mode, zsview highlight,
                            bool print_info);
+static void draw_current_dir(Ui *ui);
 static void draw_preview(Ui *ui);
 static void draw_menu(Ui *ui, const vec_cstr *menu);
-static void menu_resize(Ui *ui);
-static inline void print_message(Ui *ui, zsview msg, bool error);
 static inline void draw_cmdline(Ui *ui);
-static void redraw_cb(EV_P_ ev_idle *w, i32 revents);
-static i32 resize_cb(struct ncplane *n);
-static void draw_current(Ui *ui);
-
-static void on_cursor_resting(EV_P_ ev_timer *w, i32 revents);
 
 static inline void clear_pane(struct ncplane *n) {
   ncplane_erase(n);
@@ -281,7 +283,7 @@ static void redraw_cb(EV_P_ ev_idle *w, i32 revents) {
   ev_idle_stop(EV_A_ w);
 }
 
-void ui_draw(Ui *ui) {
+static inline void ui_draw(Ui *ui) {
   u64 t0 = current_micros();
 
   u32 mode = ui->redraw;
@@ -291,7 +293,7 @@ void ui_draw(Ui *ui) {
     draw_dirs(ui);
   }
   if (mode & REDRAW_CURRENT)
-    draw_current(ui);
+    draw_current_dir(ui);
   if (mode & REDRAW_MENU)
     draw_menu(ui, &ui->menubuf);
   if (mode & (REDRAW_FM | REDRAW_CMDLINE))
@@ -316,10 +318,11 @@ void ui_clear(Ui *ui) {
   notcurses_cursor_enable(ui->nc, 0, 0);
   notcurses_cursor_disable(ui->nc);
 
+  // TODO: draw immediately to reduce flicker?
   ui_redraw(ui, REDRAW_FULL);
 }
 
-static void draw_current(Ui *ui) {
+static void draw_current_dir(Ui *ui) {
   Fm *fm = &to_lfm(ui)->fm;
 
   i32 idx = 0;
