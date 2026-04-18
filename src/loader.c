@@ -194,22 +194,18 @@ Dir *loader_dir_from_path(struct loader_ctx *ctx, zsview path, bool do_load) {
   Dir *dir = v ? v->second : NULL;
   if (dir) {
     if (do_load) {
-      if (dir->status == DIR_DELAYED && do_load) {
+      if (dir->status == DIR_DELAYED) {
         // delayed loading
         async_dir_load(&to_lfm(ctx)->async, dir, false);
         dir->last_loading_action = current_millis();
         ui_start_loading_indicator_timer(&to_lfm(ctx)->ui);
-        return dir;
-      }
-      if (dir->status == DIR_LOADED && do_load) {
+      } else if (dir->status == DIR_LOADED) {
         // don't check before we have actually loaded the directory
         // (in particular stat data which we compare)
         async_dir_check(&to_lfm(ctx)->async, dir);
       }
-      /* TODO: no (on 2022-10-09) */
-      dir->settings.hidden = cfg.dir_settings.hidden;
-      dir_sort(dir, false);
     }
+    dir_set_hidden(dir, cfg.dir_settings.hidden);
   } else {
     dir = dir_create(path);
     apply_dir_settings(dir);

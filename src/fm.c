@@ -164,7 +164,6 @@ static inline bool fm_chdir_impl(Fm *fm, zsview path, bool save, bool hook,
 
   fm_populate(fm);
   fm_update_watchers(fm);
-  fm_update_preview(fm);
 
   if (!async && hook) {
     LFM_RUN_HOOK(to_lfm(fm), LFM_HOOK_CHDIRPOST, &fm->pwd);

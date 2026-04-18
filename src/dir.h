@@ -172,6 +172,13 @@ static inline File *dir_current_file(const Dir *dir) {
 // `sorted` flag is false. Filters are always applied.
 void dir_sort(Dir *dir, bool force);
 
+static inline void dir_set_hidden(Dir *dir, bool hidden) {
+  if (dir->settings.hidden != hidden) {
+    dir->settings.hidden = hidden;
+    dir_sort(dir, false);
+  }
+}
+
 // salt == 0 uses existing salt
 void dir_apply_random_keys(Dir *dir, u64 salt);
 
