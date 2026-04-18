@@ -11,6 +11,7 @@
 #include <stc/zsview.h>
 
 #include <ctype.h>
+#include <errno.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -522,13 +523,16 @@ static int l_rifle_query(lua_State *L) {
 }
 
 // loads rules from the configuration file
-static void load_rules(Rifle *rifle) {
+static int load_rules(Rifle *rifle) {
+  int rc = 0;
   if (cstr_is_empty(&rifle->config_file))
-    return;
+    return 0;
 
   FILE *fp = fopen(cstr_str(&rifle->config_file), "r");
-  if (unlikely(fp == NULL))
-    return;
+  if (unlikely(fp == NULL)) {
+    log_error("fopen: %s", strerror(errno));
+    return -1;
+  }
 
   char buf[BUFSIZE];
   while (fgets(buf, BUFSIZE, fp) != NULL) {
@@ -543,8 +547,15 @@ static void load_rules(Rifle *rifle) {
     if (likely(rule_init(&r, buf, command) == 0))
       rules_push(&rifle->rules, r);
   }
-
-  fclose(fp);
+  if (ferror(fp)) {
+    log_error("fgets: %s", strerror(errno));
+    rc = -1;
+  }
+  if (fclose(fp)) {
+    log_error("fclose: %s", strerror(errno));
+    rc = -1;
+  }
+  return rc;
 }
 
 // loads rules from the table at the stack position idx
@@ -592,7 +603,9 @@ static int l_rifle_setup(lua_State *L) {
     lua_pop(L, 1);
   }
 
-  load_rules(rifle);
+  if (load_rules(rifle))
+    return luaL_error(L, "error loading rules from %s: %s",
+                      cstr_str(&rifle->config_file), strerror(errno));
 
   return 0;
 }
