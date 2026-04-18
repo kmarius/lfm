@@ -1,18 +1,19 @@
 #include "keys.h"
-
 #include "config.h"
-#include "log.h"
 
 #include <string.h>
 #include <strings.h>
 #include <wchar.h>
 #include <wctype.h>
 
-#define MAX_KEY_WITH_MODIFIERS 2 + 9 + 2 + 2 + 2 /* <c-a-s-backspace> */
+#define MAX_KEY_WITHOUT_MODIFIERS 9 /* backspace */
+#define MAX_KEY_WITH_MODIFIERS                                                 \
+  (MAX_KEY_WITHOUT_MODIFIERS + 2 + 2 + 2 + 2) /* <c-a-s-backspace> */
+#define MAPLEADER (NCKEY_F60 + 1)             /* unused, surely */
 
 static struct {
   u32 id;
-  char name[12];
+  char name[MAX_KEY_WITHOUT_MODIFIERS + 1];
 } key_names[] = {
     {' ',             "Space"    },
     {'<',             "lt"       },
@@ -103,6 +104,7 @@ static struct {
     {NCKEY_F58,       "F58"      },
     {NCKEY_F59,       "F59"      },
     {NCKEY_F60,       "F60"      },
+    {MAPLEADER,       "Leader"   },
     {NCKEY_ENTER,     "Enter"    },
     {NCKEY_CLS,       "Clear"    }, // ctrl-l / formfeed?
     {NCKEY_DLEFT,     "DownLeft" },
@@ -120,14 +122,14 @@ static struct {
     {NCKEY_REFRESH,   "Refresh"  }
 };
 
-static const i32 key_names_len = sizeof(key_names) / sizeof(key_names[0]);
+static const i32 len_key_names = sizeof(key_names) / sizeof(key_names[0]);
 
 const char *input_to_key_name(input_t in, usize *len_out) {
   static char buf[MAX_KEY_WITH_MODIFIERS + 1];
   u32 j = 0;
   const char *name = NULL;
   if (ID(in) <= '<' || (ID(in) >= NCKEY_INVALID && ID(in) <= NCKEY_REFRESH)) {
-    for (u32 i = 0; i < key_names_len; i++) {
+    for (u32 i = 0; i < len_key_names; i++) {
       if (key_names[i].id == ID(in)) {
         name = key_names[i].name;
         break;
@@ -135,10 +137,9 @@ const char *input_to_key_name(input_t in, usize *len_out) {
     }
   }
 
-  bool is_modified = ISSHIFT(in) | ISALT(in) | ISCTRL(in);
-  if (is_modified || name != NULL) {
+  bool is_modified = ISMODIFIED(in);
+  if (is_modified || name != NULL)
     buf[j++] = '<';
-  }
 
   if (ISSHIFT(in)) {
     buf[j++] = 's';
@@ -166,9 +167,9 @@ const char *input_to_key_name(input_t in, usize *len_out) {
       j += n;
     }
   }
-  if (is_modified || name != NULL) {
+  if (is_modified || name != NULL)
     buf[j++] = '>';
-  }
+
   buf[j] = 0;
   if (len_out)
     *len_out = j;
@@ -186,25 +187,25 @@ i32 key_name_to_input(const char *key, input_t *out) {
 
   const char *ptr = key + 1;
 
-  if (ptr[0] == 0) {
+  if (unlikely(ptr[0] == 0)) {
     // string was "<"
     *out = '<';
     return 1;
   }
 
-  // check modifiers, blatantly checking past nul in a malformed string
+  // check modifiers
   while (ptr[0] != 0 && ptr[1] == '-') {
     char c = tolower(ptr[0]);
     if (c == 'a') {
-      if (alt)
+      if (unlikely(alt))
         return -1;
       alt = true;
     } else if (c == 'c') {
-      if (ctrl)
+      if (unlikely(ctrl))
         return -1;
       ctrl = true;
     } else if (c == 's') {
-      if (shift)
+      if (unlikely(shift))
         return -1;
       shift = true;
     } else {
@@ -219,9 +220,9 @@ i32 key_name_to_input(const char *key, input_t *out) {
 
   // check special key names
   i32 in = NCKEY_INVALID;
-  // currently longest would be backspace (9)
-  if (end - ptr < 10) {
-    for (i32 i = 0; i < key_names_len; i++) {
+  if (end - ptr <= MAX_KEY_WITHOUT_MODIFIERS) {
+    for (i32 i = 0; i < len_key_names; i++) {
+      /* note that strings in the array are zero-padded */
       if (key_names[i].name[end - ptr] == 0 &&
           strncasecmp(ptr, key_names[i].name, end - ptr) == 0) {
         ptr = end + 1;
@@ -231,14 +232,9 @@ i32 key_name_to_input(const char *key, input_t *out) {
     }
   }
 
-  if (in == NCKEY_INVALID) {
-    if (strncasecmp(ptr, "leader", end - ptr) == 0) {
-      ptr = end + 1;
-      in = cfg.mapleader;
-    }
-  }
-
-  if (in == NCKEY_INVALID) {
+  if (in == MAPLEADER) {
+    in = cfg.mapleader;
+  } else if (in == NCKEY_INVALID) {
     // some other key
 
     wchar_t w;

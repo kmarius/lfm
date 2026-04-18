@@ -108,7 +108,8 @@ static void stdin_cb(EV_P_ ev_io *w, i32 revents) {
       LFM_RUN_HOOK(lfm, LFM_HOOK_FOCUSLOST);
     } else {
       log_trace("id=%d shift=%d ctrl=%d alt=%d type=%d utf8=%s", in.id,
-                in.shift, in.ctrl, in.alt, in.evtype,
+                ncinput_shift_p(&in), ncinput_ctrl_p(&in), ncinput_alt_p(&in),
+                in.evtype,
                 in.utf8[1] != 0 || isprint(in.utf8[0]) ? in.utf8 : "");
       input_t key = ncinput_to_input(&in);
       if (macro_recording)
@@ -212,8 +213,8 @@ static inline void handle_non_input_mode_key(Lfm *lfm, input_t in) {
       i += len;
     }
     buf[i] = 0;
-    log_debug("unmapped key sequence: %s (id=%d shift=%d ctrl=%d alt=%d)", buf,
-              ID(in), ISSHIFT(in), ISCTRL(in), ISALT(in));
+    log_debug("unmapped sequence: %s (last: id=%d shift=%d ctrl=%d alt=%d)",
+              buf, ID(in), ISSHIFT(in), ISCTRL(in), ISALT(in));
     input_clear(lfm);
     return;
   }
