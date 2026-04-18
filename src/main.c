@@ -7,7 +7,6 @@
 #include "util.h"
 
 #include <bits/getopt_core.h>
-#include <errno.h>
 #include <locale.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -45,19 +44,28 @@ static Lfm lfm;
 
 i32 main(i32 argc, char **argv) {
   i32 ret = EXIT_SUCCESS;
+  FILE *log = NULL;
 
   PROFILING_INIT();
 
   if (!isatty(0) || !isatty(1) || !isatty(2)) {
     fprintf(stderr, "Error: %s must be run in a terminal\n", argv[0]);
-    if (!valgrind_active()) {
-      exit(EXIT_FAILURE);
-    }
+    if (!valgrind_active())
+      goto err;
+  }
+
+  if (!setlocale(LC_ALL, "")) {
+    fprintf(stderr, "setlocale\n");
+    goto err;
   }
 
   config_init();
 
-  FILE *log = fopen(cstr_str(&cfg.logpath), "w");
+  log = fopen(cstr_str(&cfg.logpath), "w");
+  if (!log) {
+    perror("fopen");
+    goto err;
+  }
   log_set_quiet(true);
   i32 log_level = LOG_INFO;
 
@@ -86,13 +94,11 @@ i32 main(i32 argc, char **argv) {
       if (log_level < LOG_TRACE || log_level > LOG_FATAL) {
         fprintf(stderr, "Invalid log level: %s\n", optarg);
         usage(argv[0]);
-        ret = EXIT_FAILURE;
-        goto cleanup;
+        goto err;
       }
       break;
     case 's':
       opts.selection_path = path_normalize_cstr(zsview_from(optarg), pwd);
-      ;
       break;
     case 'u':
       // we should print an error if a config is provided here and not found
@@ -104,8 +110,7 @@ i32 main(i32 argc, char **argv) {
     case '?':
       fprintf(stderr, "Unknown option: %c\n", optopt);
       usage(argv[0]);
-      ret = EXIT_FAILURE;
-      goto cleanup;
+      goto err;
     }
   }
 
@@ -133,8 +138,6 @@ i32 main(i32 argc, char **argv) {
     }
   }
 
-  setlocale(LC_ALL, "");
-
   srand(time(NULL));
 
   PROFILE("lfm_init", { lfm_init(&lfm, &opts); });
@@ -143,19 +146,23 @@ i32 main(i32 argc, char **argv) {
   ret = lfm_run(&lfm);
 
   lfm_deinit(&lfm);
+  log_info("fin");
 
 cleanup:
-
-  log_info("fin");
-  fclose(log);
-
+  if (log && fclose(log)) {
+    perror("fclose");
+    ret = EXIT_FAILURE;
+  }
 #ifdef NDEBUG
   remove(cstr_str(&cfg.logpath));
 #endif
-
   config_deinit();
 
   exit(ret);
+
+err:
+  ret = EXIT_FAILURE;
+  goto cleanup;
 }
 
 static void lock_mutex(bool lock, void *ud) {
