@@ -72,8 +72,6 @@ static inline void clear_pane(struct ncplane *n) {
   ncplane_set_bg_default(n);
 }
 
-/* init/resize {{{ */
-
 void ui_init(Ui *ui) {
   ev_idle_init(&ui->redraw_watcher, redraw_cb);
   ui->redraw_watcher.data = ui;
@@ -276,10 +274,6 @@ void ui_recol(Ui *ui) {
   ui->preview.y = ui->y - 2;
 }
 
-/* }}} */
-
-/* main drawing/echo/err {{{ */
-
 static void redraw_cb(EV_P_ ev_idle *w, i32 revents) {
   (void)revents;
   ui_draw(w->data);
@@ -411,10 +405,6 @@ static void message_clear_timer_cb(EV_P_ ev_timer *w, i32 revents) {
   ui_redraw(ui, REDRAW_CMDLINE);
 }
 
-/* }}} */
-
-/* menu {{{ */
-
 /* most notably, replaces tabs with (up to) 8 spaces */
 static void draw_menu(Ui *ui, const vec_cstr *menubuf) {
   if (!menubuf || !ui->menu_visible)
@@ -498,10 +488,6 @@ static void menu_delay_timer_cb(EV_P_ ev_timer *w, i32 revents) {
   ui_redraw(ui, REDRAW_MENU);
   ev_timer_stop(EV_A_ w);
 }
-
-/* }}} */
-
-/* draw_dir {{{ */
 
 static u64 ext_channel_get(const char *ext) {
   char buf[EXT_MAX_LEN];
@@ -942,9 +928,6 @@ static void plane_draw_dir(struct ncplane *n, Dir *dir, pathlist *sel,
     }
   }
 }
-/* }}} */
-
-/* preview {{{ */
 
 static inline void remove_preview(Ui *ui) {
   // ncvisual_blit shrinks the ncplane to approximately fit the image, we
@@ -1054,8 +1037,6 @@ void ui_drop_cache(Ui *ui) {
   ui_on_cursor_moved(ui, true);
   ui_redraw(ui, REDRAW_CMDLINE | REDRAW_PREVIEW);
 }
-
-/* }}} */
 
 static inline void print_message(Ui *ui, zsview msg, bool error) {
   struct ncplane *n = ui->planes.cmdline;
