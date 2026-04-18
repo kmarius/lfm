@@ -122,16 +122,20 @@ static void update_image_preview(Preview *p, Preview *u) {
   destroy_preview(u);
 }
 
-static inline void data_from_stream(bytes *data, FILE *file, i32 max_lines) {
+// returns 0 on success, -1 if fread fails
+static inline int data_from_stream(bytes *data, FILE *file, i32 max_lines) {
   char static_buf[4096];
 
   char *buf = static_buf;
   usize buf_sz = sizeof static_buf;
 
   usize size = fread(buf, 1, buf_sz, file);
+  if (ferror(file))
+    goto err;
+
   if (size == 0) {
     *data = bytes_init();
-    return;
+    return 0;
   }
 
   i32 num_lines = 0;
@@ -155,6 +159,10 @@ static inline void data_from_stream(bytes *data, FILE *file, i32 max_lines) {
     for (;;) {
       usize i = size;
       size += fread(buf + size, 1, buf_sz - size, file);
+      if (ferror(file)) {
+        log_error("fread: %s", strerror(errno));
+        goto err;
+      }
 
       for (; i < size; i++) {
         if (buf[i] == '\n') {
@@ -172,7 +180,7 @@ static inline void data_from_stream(bytes *data, FILE *file, i32 max_lines) {
         break;
 
       if (size > PREVIEW_MAX_BYTES) {
-        log_error("previewer is sending too much data, stopping here");
+        log_debug("previewer is sending too much data, stopping here");
         // make sure we backtrack to the last newline
         num_lines = max_lines;
         break;
@@ -190,6 +198,13 @@ static inline void data_from_stream(bytes *data, FILE *file, i32 max_lines) {
     buf = memdup(static_buf, size);
 
   *data = (bytes){.buf = buf, .size = size};
+  return 0;
+
+err:
+  if (buf != static_buf)
+    xfree(buf);
+  *data = bytes_init();
+  return -1;
 }
 
 // caller must pass a buffer of size PATH_MAX
@@ -331,27 +346,46 @@ Preview *preview_fork_previewer(zsview path, u32 width, u32 height,
 
 Preview *preview_read_output(Preview *p, i32 fd[2]) {
   struct stat statbuf;
-  p->mtime = stat(cstr_str(&p->path), &statbuf) != -1 ? statbuf.st_mtime : 0;
+  if (stat(cstr_str(&p->path), &statbuf)) {
+    preview_error(p, "stat: %s", strerror(errno));
+    goto err;
+  }
+  p->mtime = statbuf.st_mtime;
 
   FILE *stdout = fdopen(fd[0], "r");
-  if (unlikely(stdout == NULL)) {
-    close(fd[0]);
-    fd[0] = -1;
-    return preview_error(p, "fdopen: %s", strerror(errno));
+  if (stdout == NULL) {
+    preview_error(p, "fdopen: %s", strerror(errno));
+    goto err;
   }
 
-  data_from_stream(&p->data, stdout, p->height);
+  if (data_from_stream(&p->data, stdout, p->height)) {
+    preview_error(p, "fread: %s", strerror(errno));
+    goto err1;
+  }
 
   {
     char buf[4096];
     while (fread(buf, 1, sizeof buf, stdout) > 0) {
     }
+    if (ferror(stdout)) {
+      preview_error(p, "fread: %s", strerror(errno));
+      goto err1;
+    }
   }
+  if (fclose(stdout))
+    preview_error(p, "fclose: %s", strerror(errno));
 
-  fclose(stdout);
+out:
   fd[0] = -1;
-
   return p;
+err:
+  if (close(fd[0]))
+    log_perror("close");
+  goto out;
+err1:
+  if (fclose(stdout))
+    log_perror("fclose");
+  goto out;
 }
 
 Preview *preview_handle_exit_status(Preview *p, i32 status) {
@@ -365,13 +399,14 @@ Preview *preview_handle_exit_status(Preview *p, i32 status) {
     case PREVIEW_NONE:
       break; // no preview
     case PREVIEW_FILE_CONTENTS: {
-      FILE *fp_file = fopen(cstr_str(&p->path), "r");
-      if (fp_file == NULL) {
+      FILE *fp = fopen(cstr_str(&p->path), "r");
+      if (fp == NULL)
         return preview_error(p, "fopen: ", strerror(errno));
-      }
       bytes_drop(&p->data);
-      data_from_stream(&p->data, fp_file, p->height);
-      fclose(fp_file);
+      if (data_from_stream(&p->data, fp, p->height))
+        return preview_error(p, "fread: %s", strerror(errno));
+      if (fclose(fp))
+        return preview_error(p, "fclose: %s", strerror(errno));
     } break;
     case PREVIEW_FIX_WIDTH:
       p->width = INT_MAX;
