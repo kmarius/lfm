@@ -1,6 +1,7 @@
 #include "keys.h"
 
 #include "config.h"
+#include "log.h"
 
 #include <string.h>
 #include <strings.h>
@@ -159,7 +160,7 @@ const char *input_to_key_name(input_t in, usize *len_out) {
     // not a special key
     // check if printable? otherwise notcurses won't print '>'
     i32 n = wctomb(buf + j, ID(in));
-    if (unlikely(n > 0)) {
+    if (unlikely(n < 0)) {
       buf[j++] = '?';
     } else {
       j += n;
