@@ -207,8 +207,8 @@ err:
   return -1;
 }
 
-// caller must pass a buffer of size PATH_MAX
-static inline i32 gen_cache_path(zsview path, char *buf, usize buflen) {
+// caller must pass a buffer of size PATH_MAX (symbol exported for ffi)
+i32 gen_cache_path(zsview path, char *buf, usize buflen) {
   u8 hash[32];
   SHA256_CTX ctx;
   sha256_init(&ctx);
