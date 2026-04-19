@@ -141,7 +141,7 @@ static int l_dir_sort(lua_State *L) {
   sort_dir(L, 2, dir);
 
   if (dir == fm_current_dir(fm))
-    update_preview(false);
+    update_preview(true);
   if (dir->visible)
     ui_redraw(ui, REDRAW_FM);
 

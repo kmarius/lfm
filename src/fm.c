@@ -269,19 +269,21 @@ void fm_update_preview(Fm *fm) {
   bool preview_changed =
       file == NULL || fm->dirs.preview == NULL ||
       !zsview_eq2(dir_path(fm->dirs.preview), file_path(file));
+
   if (preview_changed) {
-    fm->dirs.preview =
+    Dir *dir =
         loader_dir_from_path(&to_lfm(fm)->loader, file_path(file), false);
-    fm->dirs.preview->visible = true;
+    fm->dirs.preview = dir;
+    dir->visible = true;
+
+    if (dir->status != DIR_DELAYED)
+      async_dir_check(&lfm->async, dir);
+    async_inotify_add_previewed(&lfm->async, lfm->fm.dirs.preview);
   }
 
   Dir *dir = fm->dirs.preview;
-  if (dir->status == DIR_DELAYED) {
+  if (dir && dir->status == DIR_DELAYED)
     async_dir_load(&lfm->async, lfm->fm.dirs.preview, false);
-  } else {
-    async_dir_check(&lfm->async, dir);
-  }
-  async_inotify_add_previewed(&lfm->async, lfm->fm.dirs.preview);
 }
 
 File *fm_open(Fm *fm) {

@@ -974,6 +974,8 @@ void ui_update_file_preview_delayed(Ui *ui) {
 #define CHECK_DIMS(pv, nrow) (!(pv)->is_loading && (pv)->height < (nrow))
 
 void ui_on_cursor_moved(Ui *ui, bool immediate) {
+  log_trace("ui_on_cursor_moved immediate=%d", immediate);
+
   // currently only deals with preview logic (both here and in fm.c)
   if (!cfg.preview) {
     remove_preview(ui);
@@ -1009,10 +1011,9 @@ void ui_on_cursor_moved(Ui *ui, bool immediate) {
     if (!preview_changed && dims_changed)
       preview->status = PV_DELAYED;
 
-    if (preview_changed)
+    if (preview_changed) {
       remove_preview(ui);
 
-    if (is_file_preview) {
       // gives us the existing preview or a dummy and, depending on
       // delay_action, loads the preview in the background (or checks and
       // reloads it)
