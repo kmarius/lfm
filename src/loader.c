@@ -78,6 +78,7 @@ static void preview_load_timer_cb(EV_P_ ev_timer *w, i32 revents) {
   struct load_timer *timer = (struct load_timer *)w;
   Lfm *lfm = timer->lfm;
   async_preview_load(&lfm->async, timer->preview);
+  timer->preview->is_loading = true;
   ev_timer_stop(EV_A_ w);
   list_load_timer_erase_node(&lfm->loader.preview_timers,
                              list_load_timer_get_node(timer));
@@ -110,6 +111,9 @@ static inline void schedule_preview_load(struct loader_ctx *ctx, Preview *pv,
   ev_timer_init(&timer->watcher, preview_load_timer_cb, 0,
                 (time - current_millis()) / 1000.);
   ev_timer_again(event_loop, &timer->watcher);
+  pv->next_scheduled_load = time;
+  pv->next_requested_load = 0;
+  pv->is_scheduled = true;
 }
 
 void loader_dir_reload(struct loader_ctx *ctx, Dir *dir) {
@@ -157,6 +161,9 @@ void loader_preview_reload(struct loader_ctx *ctx, Preview *pv) {
   if (unlikely(pv->status == PV_DISOWNED))
     return;
 
+  if (pv->is_scheduled)
+    return;
+
   u64 now = current_millis();
   u64 latest = pv->next_scheduled_load; // possibly in the future
 
@@ -167,8 +174,27 @@ void loader_preview_reload(struct loader_ctx *ctx, Preview *pv) {
   u64 next = now < latest + cfg.inotify_timeout
                  ? latest + cfg.inotify_timeout + cfg.inotify_delay
                  : now + cfg.inotify_delay;
-  schedule_preview_load(ctx, pv, next);
-  pv->next_scheduled_load = next;
+
+  if (pv->is_loading) {
+    pv->next_requested_load = next;
+  } else {
+    schedule_preview_load(ctx, pv, next);
+  }
+}
+
+void loader_preview_load_callback(struct loader_ctx *ctx, Preview *pv) {
+  pv->is_scheduled = false;
+  if (pv->next_requested_load > 0) {
+    u64 now = current_millis();
+    if (pv->next_requested_load <= now) {
+      async_preview_load(&to_lfm(ctx)->async, pv);
+      pv->next_scheduled_load = now;
+      pv->next_requested_load = 0;
+      pv->is_loading = true;
+    } else {
+      schedule_preview_load(ctx, pv, pv->next_requested_load);
+    }
+  }
 }
 
 // path must be absolute
@@ -258,9 +284,8 @@ Preview *loader_preview_from_path(struct loader_ctx *ctx, zsview path,
     preview_inc_ref(preview);
     map_zsview_preview_insert(&ctx->preview_cache, cstr_zv(&preview->path),
                               preview);
-    if (do_load) {
+    if (do_load)
       async_preview_load(&to_lfm(ctx)->async, preview);
-    }
   }
   return preview;
 }

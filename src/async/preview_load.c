@@ -53,6 +53,7 @@ static void destroy(void *p) {
 
 static void callback(void *p, Lfm *lfm) {
   struct preview_load_work *work = p;
+  loader_preview_load_callback(&lfm->loader, work->preview);
   preview_update(work->preview, work->update);
   work->update = NULL;
   if (work->preview == lfm->ui.preview.preview)

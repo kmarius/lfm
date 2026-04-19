@@ -35,8 +35,11 @@ typedef struct Preview {
     struct ncvisual *ncv;
   };
   u64 next_scheduled_load; /* next scheduled load in ms */
+  bool is_scheduled;
   time_t mtime;
   bool is_loading;
+  u64 next_requested_load;
+
   pv_status status;
 
   preview_draw_func draw;
