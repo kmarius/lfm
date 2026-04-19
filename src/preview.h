@@ -16,8 +16,6 @@ struct Preview;
 typedef enum {
   PV_DELAYED = 0, // preview was not scheduled to load yet
   PV_LOADED,      // preview has been loaded
-  PV_DISOWNED,    // preview won't be reloaded and destroyed after the last ref
-                  // drops
 } pv_status;
 
 typedef void (*preview_draw_func)(const struct Preview *, struct ncplane *);

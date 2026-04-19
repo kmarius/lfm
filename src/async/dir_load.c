@@ -222,7 +222,7 @@ static void dir_update_callback(void *p, Lfm *lfm) {
   Dir *dir = work->dir;
   Dir *update = work->update;
   if (dir->cookie == work->cookie) {
-    loader_dir_load_callback(&lfm->loader, dir);
+    loader_callback(&lfm->loader, &dir->loadable);
     // apply any keyfuncs before sorting in dir_update_with
     if (dir->settings.sorttype == SORT_LUA)
       lfm_lua_apply_keyfunc(lfm, update, false);
@@ -304,11 +304,6 @@ static void async_dir_load_worker(void *arg) {
 }
 
 void async_dir_load(struct async_ctx *async, Dir *dir, bool load_fileinfo) {
-  assert(dir->status != DIR_DISOWNED);
-  if (dir->status == DIR_DISOWNED) {
-    log_error("requested reload of disowned directory: %s", dir_path(dir).str);
-    return;
-  }
   struct dir_update_work *work = xcalloc(1, sizeof *work);
   work->super.callback = &dir_update_callback;
   work->super.destroy = &dir_update_destroy;

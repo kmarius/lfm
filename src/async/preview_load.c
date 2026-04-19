@@ -53,7 +53,7 @@ static void destroy(void *p) {
 
 static void callback(void *p, Lfm *lfm) {
   struct preview_load_work *work = p;
-  loader_preview_load_callback(&lfm->loader, work->preview);
+  loader_callback(&lfm->loader, &work->preview->loadable);
   preview_update(work->preview, work->update);
   work->update = NULL;
   if (work->preview == lfm->ui.preview.preview)
@@ -89,10 +89,6 @@ static void child_exit_cb(EV_P_ ev_child *w, int revents) {
 }
 
 void async_preview_load(struct async_ctx *async, Preview *pv) {
-  if (unlikely(pv->status == PV_DISOWNED)) {
-    log_error("not reloading disowned preview %s", preview_path(pv).str);
-    return;
-  }
   if (!bytes_is_empty(cfg.lua_previewer)) {
     async_lua_preview(async, pv);
   } else if (unlikely(cstr_is_empty(&cfg.previewer))) {

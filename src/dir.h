@@ -42,7 +42,6 @@ typedef enum {
   DIR_DELAYED = 0, // dir was not scheduled to load yet
   DIR_SCHEDULED,   // initial loading was scheduled
   DIR_LOADED,      // dir was loaded (at least once)
-  DIR_DISOWNED,    // removed from loader cache, should not be re-scheduled
 } dir_loading_status;
 
 extern const char *fileinfo_str[NUM_FILEINFO];
