@@ -216,11 +216,18 @@ static inline i32 gen_cache_path(zsview path, char *buf, usize buflen) {
   sha256_final(&ctx, hash);
 
   usize len = cstr_size(&cfg.cachedir);
+  if (unlikely(len + 4 + 64 >= buflen))
+    return -1;
+
   memcpy(buf, cstr_str(&cfg.cachedir), len);
   buf[len++] = '/';
 
-  if (unlikely(len + 32 >= buflen))
-    return -1;
+  const char upper = hash[0] >> 4;
+  const char lower = hash[0] & 0x0f;
+  buf[len++] = lower < 10 ? '0' + lower : 'a' + lower - 10;
+  buf[len++] = upper < 10 ? '0' + upper : 'a' + upper - 10;
+  buf[len++] = '/';
+
   for (usize i = 0; i < 32; i++) {
     const char upper = hash[i] >> 4;
     const char lower = hash[i] & 0x0f;
