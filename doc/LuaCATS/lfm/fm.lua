@@ -451,7 +451,8 @@ function lfm.fm.down(ct) end
 ---  lfm.fm.scroll_up()
 ---```
 ---
-function lfm.fm.scroll_up() end
+---@param ct? integer
+function lfm.fm.scroll_up(ct) end
 
 ---
 ---Scroll down while keeping the cursor on the current file (if possible).
@@ -461,7 +462,8 @@ function lfm.fm.scroll_up() end
 ---  lfm.fm.scroll_down()
 ---```
 ---
-function lfm.fm.scroll_down() end
+---@param ct? integer
+function lfm.fm.scroll_down(ct) end
 
 ---
 ---Navigate to location given by dir

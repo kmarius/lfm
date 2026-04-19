@@ -192,11 +192,8 @@ static inline bool dir_set_cursor(Dir *dir, u32 ind) {
 // Move the cursor in the current dir to the file `name`.
 void dir_move_cursor_to_name(Dir *dir, zsview name);
 
-// Scroll up the directory while keeping the cursor position if possible.
-bool dir_scroll_up(Dir *dir);
-
-// Scroll down the directory while keeping the cursor position if possible.
-bool dir_scroll_down(Dir *dir);
+// Scroll the directory up/down while keeping the cursor position if possible.
+bool dir_scroll(Dir *dir, i32 ct);
 
 // Sort `dir` with respect to `dir->hidden`, `dir->dirfirst`, `dir->reverse`,
 // `dir->sorttype`. If `force` is not set, the directory is only sorted if its

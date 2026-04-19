@@ -639,34 +639,18 @@ i32 fileinfo_from_str(const char *str) {
   return -1;
 }
 
-bool dir_scroll_up(Dir *dir) {
-  if (dir->ind > 0 && dir->ind == dir->pos)
-    return dir_move_cursor(dir, -1);
-
-  if (dir->pos < dir->height - dir->scrolloff - 1) {
-    dir->pos++;
-  } else {
-    dir->pos = dir->height - dir->scrolloff - 1;
-    dir->ind--;
-    if (dir->ind > dir_length(dir) - dir->scrolloff - 1)
-      dir->ind = dir_length(dir) - dir->scrolloff - 1;
-    return true;
-  }
-  return false;
+bool dir_scroll(Dir *dir, i32 ct) {
+  if (ct < 0 && dir->pos < dir->height - dir->scrolloff - 1)
+    dir->pos -= ct;
+  if (ct > 0 && dir->pos > dir->scrolloff)
+    dir->pos -= ct;
+  return dir_move_cursor(dir, ct);
 }
 
-bool dir_scroll_down(Dir *dir) {
-  if (dir_length(dir) - dir->ind + dir->pos - 1 < dir->height)
-    return dir_move_cursor(dir, -1);
+bool dir_scroll_up(Dir *dir, i32 ct) {
+  return dir_scroll(dir, -ct);
+}
 
-  if (dir->pos > dir->scrolloff) {
-    dir->pos--;
-  } else {
-    dir->pos = dir->scrolloff;
-    dir->ind++;
-    if (dir->ind < dir->pos)
-      dir->ind = dir->pos;
-    return true;
-  }
-  return false;
+bool dir_scroll_down(Dir *dir, i32 ct) {
+  return dir_scroll(dir, ct);
 }

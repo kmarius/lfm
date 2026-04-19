@@ -118,8 +118,9 @@ static int l_bot(lua_State *L) {
 
 static int l_scroll_up(lua_State *L) {
   (void)L;
+  i32 ct = luaL_optinteger(L, 1, 1);
   Dir *dir = fm_current_dir(fm);
-  if (dir_scroll_up(dir)) {
+  if (dir_scroll(dir, -ct)) {
     update_preview(true);
     ui_redraw(ui, REDRAW_FM);
   }
@@ -128,8 +129,9 @@ static int l_scroll_up(lua_State *L) {
 
 static int l_scroll_down(lua_State *L) {
   (void)L;
+  i32 ct = luaL_optinteger(L, 1, 1);
   Dir *dir = fm_current_dir(fm);
-  if (dir_scroll_down(dir)) {
+  if (dir_scroll(dir, ct)) {
     update_preview(true);
     ui_redraw(ui, REDRAW_FM);
   }
