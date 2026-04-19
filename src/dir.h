@@ -3,6 +3,7 @@
 #include "defs.h"
 #include "file.h"
 #include "filter.h"
+#include "loadable.h"
 #include "path.h"
 #include "sort.h"
 #include "types/hmap_cstr.h"
@@ -70,47 +71,45 @@ typedef struct Dir {
   vec_file files_all;    // every file in the directory
   vec_file files_sorted; // every file, but sorted
 
-  // maps name -> (mtime, dircount) for every directory in this directory
-  // we hand it over to the thread that will reload the directory
-  // and get it back in the update
-  map_str_int dircounts;
-
-  bool visible;
   dir_loading_status status;
+  i32 error; // errno if an error occured during loading, 0 otherwise
 
-  i32 error; // shows errno if an error occured during loading, 0 otherwise
-
-  time_t load_time;        // used to check for changes
-  u64 last_loading_action; // Time (in milliseconds) at which the last
-                           // action started after which a "loading"
-                           // indicator should be shown for this directory.
-                           // 0 if there is no loading/checking.
-
-  u64 next_scheduled_load; // time of the next (or latest) scheduled reload
-  u64 next_requested_load; // will be set if a reload is requested when
-                           // one is already scheduled, otherwise 0
-  bool is_loading;         // is a reload in the process
-  bool is_scheduled;       // is a reload scheduled
-  u32 cookie;
-
-  u32 ind; // cursor position in files[]
-  u32 pos; // cursor position in the ui, offset from the top row
-  u32 height;
-  u32 scrolloff;
-  cstr sel;
-
+  bool is_sorted;
   Filter *filter;
-
   u32 flatten_level;
-  bool has_fileinfo;
-  bool sorted;
-  struct dir_settings settings;
+
+  cstr sel; // file name to select after loading the directory
 
   // maps name -> string; displays up to cols chars before the file, if enabled
   struct tags {
     hmap_cstr tags;
     i32 cols;
   } tags;
+
+  struct dir_settings settings;
+
+  // used by ui
+  bool visible;
+  u32 ind; // cursor position in files[]
+  u32 pos; // cursor position in the ui, offset from the top row
+  u32 height;
+  u32 scrolloff;
+  u64 last_loading_action; // Time (in milliseconds) at which the last
+                           // action started after which a "loading"
+                           // indicator should be shown for this directory.
+                           // 0 if there is no loading/checking.
+
+  // loader
+  struct loadable_data loadable;
+
+  // async_dir_load
+  bool is_loading; // is a reload in progress
+  u32 cookie;
+  // maps name -> (mtime, dircount) for every directory in this directory
+  // we hand it over to the thread that will reload the directory
+  // and get it back in the update
+  map_str_int dircounts;
+  bool has_fileinfo;
 } Dir;
 
 // Creates a directory, no files are loaded. Takes an absolute path.
@@ -175,10 +174,6 @@ void dir_apply_random_keys(Dir *dir, u64 salt);
 // Applies the filter to `dir`. `NULL` clears the
 // filter. Attempts to re-select the previously selected file.
 void dir_filter(Dir *dir, Filter *filter);
-
-// Check `dir` for changes on disk by comparing mtime. Returns `true` if there
-// are no changes, `false` otherwise.
-bool dir_check(const Dir *dir);
 
 // Move the cursor in the current dir by `ct`.
 int dir_move_cursor(Dir *dir, i32 ct);

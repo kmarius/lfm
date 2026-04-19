@@ -1,6 +1,7 @@
 #pragma once
 
 #include "defs.h"
+#include "loadable.h"
 #include "types/bytes.h"
 
 #include <stc/cstr.h>
@@ -26,21 +27,20 @@ typedef void (*preview_destroy_func)(struct Preview *);
 typedef struct Preview {
   atomic_uint refcount;
   cstr path;
+  time_t mtime;
+  pv_status status;
+
+  u32 height;
   u32 width; // geometry of the preview window when this preview was loaded
              // requested width and height of this preview checked to see
              // if a reload is necessary, INT_MAX when disabled.
-  u32 height;
   union {
     bytes data;
     struct ncvisual *ncv;
   };
-  u64 next_scheduled_load; /* next scheduled load in ms */
-  bool is_scheduled;
-  time_t mtime;
-  bool is_loading;
-  u64 next_requested_load;
 
-  pv_status status;
+  struct loadable_data loadable;
+  bool is_loading;
 
   preview_draw_func draw;
   preview_update_func update;

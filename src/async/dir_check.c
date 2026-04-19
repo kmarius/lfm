@@ -13,7 +13,7 @@ struct dir_check_work {
   struct result super;
   struct async_ctx *async;
   Dir *dir;
-  time_t load_time;
+  time_t mtime;
   __ino_t ino;
   bool reload; // should we reload
 };
@@ -39,7 +39,7 @@ static void worker(void *arg) {
 
   struct stat statbuf;
   if (stat(dir_path(work->dir).str, &statbuf) == -1 ||
-      (statbuf.st_ino == work->ino && statbuf.st_mtime <= work->load_time)) {
+      (statbuf.st_ino == work->ino && statbuf.st_mtime <= work->mtime)) {
     work->reload = false;
   } else {
     work->reload = true;
@@ -60,7 +60,7 @@ void async_dir_check(struct async_ctx *async, Dir *dir) {
 
   work->async = async;
   work->dir = dir_inc_ref(dir);
-  work->load_time = dir->load_time;
+  work->mtime = dir->stat.st_mtime;
   work->ino = dir->stat.st_ino;
 
   set_result_insert(&async->in_progress.dirs, &work->super);

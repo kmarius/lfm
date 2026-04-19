@@ -131,10 +131,10 @@ void dir_apply_random_keys(Dir *dir, u64 salt) {
 /* sort allfiles and copy non-hidden ones to sortedfiles */
 void dir_sort(Dir *d, bool force) {
   if (vec_file_is_empty(&d->files_all)) {
-    d->sorted = true;
+    d->is_sorted = true;
     return;
   }
-  if (force || !d->sorted) {
+  if (force || !d->is_sorted) {
     switch (d->settings.sorttype) {
     case SORT_NATURAL:
       files_natural_sort(d->files_all.data, d->files_all.size);
@@ -160,7 +160,7 @@ void dir_sort(Dir *d, bool force) {
     default:
       break;
     }
-    d->sorted = true;
+    d->is_sorted = true;
   }
   usize num_dirs = 0;
   usize j = 0;
@@ -225,20 +225,10 @@ void dir_filter(Dir *dir, Filter *filter) {
   dir_move_cursor_to_ptr(dir, file);
 }
 
-bool dir_check(const Dir *dir) {
-  struct stat statbuf;
-  if (unlikely(stat(dir_path_str(dir), &statbuf) == -1)) {
-    log_perror("stat");
-    return false;
-  }
-  return statbuf.st_mtime <= dir->load_time;
-}
-
 Dir *dir_create(zsview path, u32 height, u32 scrolloff) {
   Dir *dir = xcalloc(1, sizeof *dir);
   dir->path = cstr_from_zv(path);
   dir->name = basename_zv(cstr_zv(&dir->path));
-  dir->load_time = time(NULL);
   dir->height = height;
   dir->scrolloff = scrolloff;
   return dir;
@@ -558,7 +548,6 @@ void dir_update_with(Dir *dir, Dir *update) {
 
   dir->dircounts = map_str_int_move(&update->dircounts);
 
-  dir->load_time = update->load_time;
   dir->error = update->error;
   dir->flatten_level = update->flatten_level;
   dir->stat = update->stat;
@@ -627,7 +616,6 @@ void dir_unload(Dir *dir) {
   memset(dir, 0, sizeof *dir);
   dir->path = path;
   dir->name = basename_zv(cstr_zv(&dir->path));
-  dir->load_time = time(NULL);
 }
 
 i32 fileinfo_from_str(const char *str) {

@@ -209,14 +209,12 @@ void fm_sort(Fm *fm) {
 }
 
 void fm_check_dirs(const Fm *fm) {
+  struct async_ctx *async = &to_lfm(fm)->async;
   c_foreach(it, vec_dir, fm->dirs.visible) {
-    if (!dir_check(*it.ref)) {
-      loader_dir_reload(&to_lfm(fm)->loader, *it.ref);
-    }
+    async_dir_check(async, *it.ref);
   }
-  if (fm->dirs.preview && !dir_check(fm->dirs.preview)) {
-    loader_dir_reload(&to_lfm(fm)->loader, fm->dirs.preview);
-  }
+  if (fm->dirs.preview)
+    async_dir_check(async, fm->dirs.preview);
 }
 
 void fm_drop_cache(Fm *fm) {

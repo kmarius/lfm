@@ -50,7 +50,6 @@ static inline Preview *preview_init(Preview *p, zsview path, i32 height,
   p->path = cstr_from_zv(path);
   p->height = height;
   p->width = width;
-  p->next_scheduled_load = 0;
 
   p->draw = draw_text_preview;
   p->update = update_text_preview;

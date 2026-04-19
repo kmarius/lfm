@@ -95,9 +95,9 @@ static inline void schedule_dir_load(struct loader_ctx *ctx, Dir *dir,
   ev_timer_init(&timer->watcher, dir_load_timer_cb, 0,
                 (time - current_millis()) / 1000.);
   ev_timer_again(event_loop, &timer->watcher);
-  dir->next_scheduled_load = time;
-  dir->next_requested_load = 0;
-  dir->is_scheduled = true;
+  dir->loadable.next_scheduled = time;
+  dir->loadable.next_requested = 0;
+  dir->loadable.is_scheduled = true;
 }
 
 static inline void schedule_preview_load(struct loader_ctx *ctx, Preview *pv,
@@ -111,20 +111,20 @@ static inline void schedule_preview_load(struct loader_ctx *ctx, Preview *pv,
   ev_timer_init(&timer->watcher, preview_load_timer_cb, 0,
                 (time - current_millis()) / 1000.);
   ev_timer_again(event_loop, &timer->watcher);
-  pv->next_scheduled_load = time;
-  pv->next_requested_load = 0;
-  pv->is_scheduled = true;
+  pv->loadable.next_scheduled = time;
+  pv->loadable.next_requested = 0;
+  pv->loadable.is_scheduled = true;
 }
 
 void loader_dir_reload(struct loader_ctx *ctx, Dir *dir) {
   if (unlikely(dir->status == DIR_DISOWNED))
     return;
 
-  if (dir->is_scheduled)
+  if (dir->loadable.is_scheduled)
     return;
 
   u64 now = current_millis();
-  u64 latest = dir->next_scheduled_load;
+  u64 latest = dir->loadable.next_scheduled;
 
   // Never schedule the same directory more than once. Once the update
   // of the directory is applied we will check if we need to load again.
@@ -136,23 +136,23 @@ void loader_dir_reload(struct loader_ctx *ctx, Dir *dir) {
                  ? latest + cfg.inotify_timeout + cfg.inotify_delay
                  : now + cfg.inotify_delay;
   if (dir->is_loading) {
-    dir->next_requested_load = next;
+    dir->loadable.next_requested = next;
   } else {
     schedule_dir_load(ctx, dir, next);
   }
 }
 
 void loader_dir_load_callback(struct loader_ctx *ctx, Dir *dir) {
-  dir->is_scheduled = false;
-  if (dir->next_requested_load > 0) {
+  dir->loadable.is_scheduled = false;
+  if (dir->loadable.next_requested > 0) {
     u64 now = current_millis();
-    if (dir->next_requested_load <= now) {
+    if (dir->loadable.next_requested <= now) {
       async_dir_load(&to_lfm(ctx)->async, dir, true);
-      dir->next_scheduled_load = now;
-      dir->next_requested_load = 0;
+      dir->loadable.next_scheduled = now;
+      dir->loadable.next_requested = 0;
       dir->is_loading = true;
     } else {
-      schedule_dir_load(ctx, dir, dir->next_requested_load);
+      schedule_dir_load(ctx, dir, dir->loadable.next_requested);
     }
   }
 }
@@ -161,11 +161,11 @@ void loader_preview_reload(struct loader_ctx *ctx, Preview *pv) {
   if (unlikely(pv->status == PV_DISOWNED))
     return;
 
-  if (pv->is_scheduled)
+  if (pv->loadable.is_scheduled)
     return;
 
   u64 now = current_millis();
-  u64 latest = pv->next_scheduled_load; // possibly in the future
+  u64 latest = pv->loadable.next_scheduled; // possibly in the future
 
   if (latest >= now + cfg.inotify_timeout)
     return; // discard
@@ -176,23 +176,23 @@ void loader_preview_reload(struct loader_ctx *ctx, Preview *pv) {
                  : now + cfg.inotify_delay;
 
   if (pv->is_loading) {
-    pv->next_requested_load = next;
+    pv->loadable.next_requested = next;
   } else {
     schedule_preview_load(ctx, pv, next);
   }
 }
 
 void loader_preview_load_callback(struct loader_ctx *ctx, Preview *pv) {
-  pv->is_scheduled = false;
-  if (pv->next_requested_load > 0) {
+  pv->loadable.is_scheduled = false;
+  if (pv->loadable.next_requested > 0) {
     u64 now = current_millis();
-    if (pv->next_requested_load <= now) {
+    if (pv->loadable.next_requested <= now) {
       async_preview_load(&to_lfm(ctx)->async, pv);
-      pv->next_scheduled_load = now;
-      pv->next_requested_load = 0;
+      pv->loadable.next_scheduled = now;
+      pv->loadable.next_requested = 0;
       pv->is_loading = true;
     } else {
-      schedule_preview_load(ctx, pv, pv->next_requested_load);
+      schedule_preview_load(ctx, pv, pv->loadable.next_requested);
     }
   }
 }
