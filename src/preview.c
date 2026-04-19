@@ -285,13 +285,8 @@ Preview *preview_fork_previewer(zsview path, u32 width, u32 height,
   /* TODO: make proper use of the cache (on 2022-09-27) */
   /* we currently only use it as a place for the previewer to write to */
   char cache_path[PATH_MAX];
-  if (cfg.preview_images) {
-    if (unlikely(gen_cache_path(path, cache_path, sizeof cache_path) != 0))
-      return preview_error(p, "gen_cache_path");
-
-  } else {
-    cache_path[0] = 0;
-  }
+  if (unlikely(gen_cache_path(path, cache_path, sizeof cache_path) != 0))
+    return preview_error(p, "gen_cache_path");
 
   char width_str[32];
   char height_str[32];

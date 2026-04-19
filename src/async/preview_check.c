@@ -1,6 +1,5 @@
 #include "private.h"
 
-#include "defs.h"
 #include "lfm.h"
 #include "loader.h"
 #include "log.h"
@@ -10,8 +9,8 @@
 #include <ev.h>
 #include <stc/cstr.h>
 
-// TODO: maybe we don't need some of these members since we can now acces the
-// preview from the other thread
+// TODO: maybe we don't need some of these members since we can now acces
+// the preview from the other thread
 struct preview_check_work {
   struct result super;
   struct async_ctx *async;
@@ -19,7 +18,6 @@ struct preview_check_work {
   int height;
   int width;
   time_t mtime;
-  u64 load_time;
 };
 
 static void destroy(void *p) {
@@ -39,8 +37,7 @@ static void worker(void *arg) {
   /* TODO: can we actually use st_mtim.tv_nsec? (on 2022-03-07) */
   struct stat statbuf;
   if (stat(preview_path(work->preview).str, &statbuf) == -1 ||
-      (statbuf.st_mtime <= work->mtime &&
-       statbuf.st_mtime <= (long)(work->load_time / 1000 - 1))) {
+      (statbuf.st_mtime <= work->mtime)) {
     destroy(work);
     return;
   }

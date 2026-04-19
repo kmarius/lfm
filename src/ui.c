@@ -1019,6 +1019,8 @@ void ui_on_cursor_moved(Ui *ui, bool immediate) {
       // reloads it)
       ui->preview.preview = loader_preview_from_path(
           &to_lfm(ui)->loader, file_path(file), immediate);
+    } else {
+      async_preview_check(&to_lfm(ui)->async, ui->preview.preview);
     }
   }
 
