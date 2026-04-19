@@ -233,6 +233,8 @@ static void dir_update_callback(void *p, Lfm *lfm) {
     if (dir->visible) {
       if (fm_current_dir(&lfm->fm) == dir)
         ui_on_cursor_moved(&lfm->ui, true);
+      else
+        ui_redraw(&lfm->ui, REDRAW_FM);
     }
     dir->last_loading_action = 0;
     work->update = NULL;
