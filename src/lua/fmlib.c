@@ -1,4 +1,3 @@
-#include "config.h"
 #include "fm.h"
 #include "hooks.h"
 #include "macro.h"
@@ -63,7 +62,7 @@ static int l_load(lua_State *L) {
 static int l_select(lua_State *L) {
   Dir *dir = fm_current_dir(fm);
   zsview name = luaL_checkzsview(L, 1);
-  dir_move_cursor_to_name(dir, name, fm->height, cfg.scrolloff);
+  dir_move_cursor_to_name(dir, name);
   update_preview(true);
   ui_redraw(ui, REDRAW_FM);
   return 0;
@@ -73,7 +72,7 @@ static int l_up(lua_State *L) {
   i32 ct = luaL_optinteger(L, 1, 1);
   Dir *dir = fm_current_dir(fm);
   u32 ind = dir->ind;
-  if (dir_move_cursor(dir, -ct, fm->height, cfg.scrolloff)) {
+  if (dir_move_cursor(dir, -ct)) {
     update_preview(false);
     visual_update_selection(fm, ind, dir->ind);
     ui_redraw(ui, REDRAW_FM);
@@ -85,7 +84,7 @@ static int l_down(lua_State *L) {
   i32 ct = luaL_optinteger(L, 1, 1);
   Dir *dir = fm_current_dir(fm);
   u32 ind = dir->ind;
-  if (dir_move_cursor(dir, ct, fm->height, cfg.scrolloff)) {
+  if (dir_move_cursor(dir, ct)) {
     update_preview(false);
     visual_update_selection(fm, ind, dir->ind);
     ui_redraw(ui, REDRAW_FM);
@@ -97,7 +96,7 @@ static int l_top(lua_State *L) {
   (void)L;
   Dir *dir = fm_current_dir(fm);
   u32 ind = dir->ind;
-  if (dir_set_cursor(dir, 0, fm->height, cfg.scrolloff)) {
+  if (dir_set_cursor(dir, 0)) {
     update_preview(true);
     visual_update_selection(fm, ind, dir->ind);
     ui_redraw(ui, REDRAW_FM);
@@ -109,7 +108,7 @@ static int l_bot(lua_State *L) {
   (void)L;
   Dir *dir = fm_current_dir(fm);
   u32 ind = dir->ind;
-  if (dir_set_cursor(dir, dir_length(dir) /*-1*/, fm->height, cfg.scrolloff)) {
+  if (dir_set_cursor(dir, dir_length(dir) /*-1*/)) {
     update_preview(true);
     visual_update_selection(fm, ind, dir->ind);
     ui_redraw(ui, REDRAW_FM);
@@ -120,7 +119,7 @@ static int l_bot(lua_State *L) {
 static int l_scroll_up(lua_State *L) {
   (void)L;
   Dir *dir = fm_current_dir(fm);
-  if (dir_scroll_up(dir, fm->height, cfg.scrolloff)) {
+  if (dir_scroll_up(dir)) {
     update_preview(true);
     ui_redraw(ui, REDRAW_FM);
   }
@@ -130,7 +129,7 @@ static int l_scroll_up(lua_State *L) {
 static int l_scroll_down(lua_State *L) {
   (void)L;
   Dir *dir = fm_current_dir(fm);
-  if (dir_scroll_down(dir, fm->height, cfg.scrolloff)) {
+  if (dir_scroll_down(dir)) {
     update_preview(true);
     ui_redraw(ui, REDRAW_FM);
   }
@@ -455,7 +454,7 @@ static int l_filter(lua_State *L) {
       return luaL_error(L, "unrecognized filter type: %s", type);
     }
   }
-  dir_filter(dir, filter, fm->height, cfg.scrolloff);
+  dir_filter(dir, filter);
   update_preview(false);
   ui_redraw(ui, REDRAW_FM);
   return 0;

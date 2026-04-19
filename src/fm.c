@@ -58,8 +58,7 @@ void fm_init(Fm *fm, struct lfm_opts *opts) {
   fm_populate(fm);
   if (!cstr_is_empty(&opts->startfile)) {
     Dir *dir = fm_current_dir(fm);
-    dir_move_cursor_to_name(dir, cstr_zv(&opts->startfile), fm->height,
-                            cfg.scrolloff);
+    dir_move_cursor_to_name(dir, cstr_zv(&opts->startfile));
   }
 
   fm_update_watchers(fm);
@@ -93,7 +92,7 @@ static void fm_populate(Fm *fm) {
         zsview name = dir_name(*vec_dir_at(
             &fm->dirs.visible, vec_dir_size(&fm->dirs.visible) - 2));
 
-        dir_move_cursor_to_name(dir, name, fm->height, cfg.scrolloff);
+        dir_move_cursor_to_name(dir, name);
       }
     }
   }
@@ -192,14 +191,14 @@ static inline void fm_update_watchers(Fm *fm) {
 /* TODO: maybe we can select the closest non-hidden file in case the
  * current one will be hidden (on 2021-10-17) */
 static inline void sort_and_reselect(Fm *fm, Dir *dir) {
+  (void)fm;
   if (unlikely(dir == NULL))
     return;
 
-  /* TODO: shouldn't apply the global hidden setting (on 2022-10-09) */
   dir->settings.hidden = cfg.dir_settings.hidden;
   File *file = dir_current_file(dir);
   dir_sort(dir, false);
-  dir_move_cursor_to_ptr(dir, file, fm->height, cfg.scrolloff);
+  dir_move_cursor_to_ptr(dir, file);
 }
 
 void fm_sort(Fm *fm) {
@@ -307,47 +306,52 @@ bool fm_updir(Fm *fm) {
   zsview path = path_parent(dir_path(dir));
   fm_async_chdir(fm, path, false, true);
   Dir *parent = fm_current_dir(fm);
-  dir_move_cursor_to_name(parent, dir_name(dir), fm->height, cfg.scrolloff);
+  dir_move_cursor_to_name(parent, dir_name(dir));
   fm_update_preview(fm);
   return true;
 }
 
 void fm_on_resize(Fm *fm, u32 height) {
   u32 scrolloff = cfg.scrolloff;
-  if (height < cfg.scrolloff * 2) {
+  if (height < cfg.scrolloff * 2)
     scrolloff = height / 2;
-  }
 
-  // TODO: is there a way to restore the position when just undoing a previous
-  // resize?
+  // update height/scrolloff and adjust cursor position for
+  // all loaded directories
   c_foreach(v, map_zsview_dir, to_lfm(fm)->loader.dir_cache) {
     Dir *dir = v.ref->second;
-    if (height > fm->height) {
+    dir->height = height;
+    dir->scrolloff = scrolloff;
+
+    usize len = dir_length(dir);
+
+    if (height >= fm->height) {
       // terminal grew
       u32 scrolloff_top = dir->ind;
-      if (scrolloff_top > scrolloff) {
+      if (scrolloff_top > scrolloff)
         scrolloff_top = scrolloff;
-      }
-      if (dir_length(dir) + dir->pos < height + dir->ind) {
-        dir->pos = height - dir_length(dir) + dir->ind;
-      }
-      if (dir_length(dir) > height && dir->pos < scrolloff_top) {
+
+      if (len + dir->pos < height + dir->ind)
+        dir->pos = height - len + dir->ind;
+      if (len > height && dir->pos < scrolloff_top)
         dir->pos = scrolloff_top;
-      }
+
     } else if (height < fm->height) {
       // terminal shrinked
       u32 scrolloff = cfg.scrolloff;
       if (height < scrolloff * 2) {
         scrolloff = height / 2;
       }
-      if (scrolloff >= dir_length(dir) - dir->ind) {
+      if (scrolloff >= len - dir->ind) {
         // closer to the end of directory than scrolloff
-        dir->pos = height - (dir_length(dir) - dir->ind);
+        dir->pos = height - (len - dir->ind);
       } else if (dir->pos + scrolloff >= height) {
         dir->pos = height - scrolloff - 1;
       }
     }
-  }
 
+    // applies scrolloff for the directory
+    dir_move_cursor(dir, 0);
+  }
   fm->height = height;
 }

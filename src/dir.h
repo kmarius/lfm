@@ -95,6 +95,8 @@ typedef struct Dir {
 
   u32 ind; // cursor position in files[]
   u32 pos; // cursor position in the ui, offset from the top row
+  u32 height;
+  u32 scrolloff;
   cstr sel;
 
   Filter *filter;
@@ -112,7 +114,7 @@ typedef struct Dir {
 } Dir;
 
 // Creates a directory, no files are loaded. Takes an absolute path.
-Dir *dir_create(zsview path);
+Dir *dir_create(zsview path, u32 height, u32 scrolloff);
 
 // Free all resources belonging to `dir`.
 void dir_destroy(Dir *dir);
@@ -124,7 +126,7 @@ void dir_dec_ref(Dir *dir);
 void dir_unload(Dir *dir);
 
 // Replace files and metadata of `dir` with those of `update`. Frees `update`.
-void dir_update_with(Dir *dir, Dir *update, u32 height, u32 scrolloff);
+void dir_update_with(Dir *dir, Dir *update);
 
 // Loads the directory at `path` from disk. Additionally count the files in
 // each subdirectory if `load_fileinfo` is `true`. If `load_fileinfo` is
@@ -167,6 +169,35 @@ static inline File *dir_current_file(const Dir *dir) {
   return *vec_file_at(&dir->files, dir->ind);
 }
 
+// salt == 0 uses existing salt
+void dir_apply_random_keys(Dir *dir, u64 salt);
+
+// Applies the filter to `dir`. `NULL` clears the
+// filter. Attempts to re-select the previously selected file.
+void dir_filter(Dir *dir, Filter *filter);
+
+// Check `dir` for changes on disk by comparing mtime. Returns `true` if there
+// are no changes, `false` otherwise.
+bool dir_check(const Dir *dir);
+
+// Move the cursor in the current dir by `ct`.
+int dir_move_cursor(Dir *dir, i32 ct);
+
+int dir_move_cursor_to_ptr(Dir *dir, const File *file);
+
+static inline bool dir_set_cursor(Dir *dir, u32 ind) {
+  return dir_move_cursor(dir, ind - dir->ind);
+}
+
+// Move the cursor in the current dir to the file `name`.
+void dir_move_cursor_to_name(Dir *dir, zsview name);
+
+// Scroll up the directory while keeping the cursor position if possible.
+bool dir_scroll_up(Dir *dir);
+
+// Scroll down the directory while keeping the cursor position if possible.
+bool dir_scroll_down(Dir *dir);
+
 // Sort `dir` with respect to `dir->hidden`, `dir->dirfirst`, `dir->reverse`,
 // `dir->sorttype`. If `force` is not set, the directory is only sorted if its
 // `sorted` flag is false. Filters are always applied.
@@ -175,42 +206,12 @@ void dir_sort(Dir *dir, bool force);
 static inline void dir_set_hidden(Dir *dir, bool hidden) {
   if (dir->settings.hidden != hidden) {
     dir->settings.hidden = hidden;
+    File *file = dir_current_file(dir);
     dir_sort(dir, false);
+    if (file)
+      dir_move_cursor_to_ptr(dir, file);
   }
 }
-
-// salt == 0 uses existing salt
-void dir_apply_random_keys(Dir *dir, u64 salt);
-
-// Applies the filter to `dir`. `NULL` clears the
-// filter. Attempts to re-select the previously selected file.
-void dir_filter(Dir *dir, Filter *filter, u32 height, u32 scrolloff);
-
-// Check `dir` for changes on disk by comparing mtime. Returns `true` if there
-// are no changes, `false` otherwise.
-bool dir_check(const Dir *dir);
-
-// Move the cursor in the current dir by `ct`, respecting the `scrolloff`
-// setting by passing it and the current `height` of the viewport.
-int dir_move_cursor(Dir *dir, i32 ct, u32 height, u32 scrolloff);
-
-int dir_move_cursor_to_ptr(Dir *dir, const File *file, u32 height,
-                           u32 scrolloff);
-
-static inline bool dir_set_cursor(Dir *dir, u32 ind, u32 height,
-                                  u32 scrolloff) {
-  return dir_move_cursor(dir, ind - dir->ind, height, scrolloff);
-}
-
-// Move the cursor in the current dir to the file `name`, respecting the
-// `scrolloff` setting by passing it and the current `height` of the viewport.
-void dir_move_cursor_to_name(Dir *dir, zsview name, u32 height, u32 scrolloff);
-
-// Scroll up the directory while keeping the cursor position if possible.
-bool dir_scroll_up(Dir *dir, u32 height, u32 scrolloff);
-
-// Scroll down the directory while keeping the cursor position if possible.
-bool dir_scroll_down(Dir *dir, u32 height, u32 scrolloff);
 
 // Returns true `d` is the root directory.
 static inline bool dir_is_root(const Dir *dir) {

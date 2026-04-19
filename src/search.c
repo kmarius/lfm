@@ -1,6 +1,5 @@
 #include "search.h"
 
-#include "config.h"
 #include "dir.h"
 #include "fm.h"
 #include "lfm.h"
@@ -53,7 +52,7 @@ static void search_next_forward(Lfm *lfm, bool inclusive) {
     u32 idx = (dir->ind + i) % dir_length(dir);
     if (strcasestr(file_name_str(*vec_file_at(&dir->files, idx)),
                    cstr_str(&lfm->ui.search_string))) {
-      if (dir_set_cursor(dir, idx, lfm->fm.height, cfg.scrolloff)) {
+      if (dir_set_cursor(dir, idx)) {
         ui_on_cursor_moved(&lfm->ui, true);
         ui_redraw(&lfm->ui, REDRAW_CURRENT);
       }
@@ -72,7 +71,7 @@ static void search_next_backwards(Lfm *lfm, bool inclusive) {
     u32 idx = (dir->ind + dir_length(dir) - i) % dir_length(dir);
     if (strcasestr(file_name_str(*vec_file_at(&dir->files, idx)),
                    cstr_str(&lfm->ui.search_string))) {
-      if (dir_set_cursor(dir, idx, lfm->fm.height, cfg.scrolloff)) {
+      if (dir_set_cursor(dir, idx)) {
         ui_on_cursor_moved(&lfm->ui, true);
         ui_redraw(&lfm->ui, REDRAW_CURRENT);
       }

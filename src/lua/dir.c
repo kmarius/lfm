@@ -1,5 +1,4 @@
 #include "dir.h"
-#include "config.h"
 #include "private.h"
 #include "util.h"
 #include "visual.h"
@@ -20,7 +19,7 @@ static inline Dir *checkdir(lua_State *L, int idx) {
 
 static inline void move_cursor(Dir *dir, i32 ct) {
   u32 cur = dir->ind;
-  dir_move_cursor(dir, ct, fm->height, cfg.scrolloff);
+  dir_move_cursor(dir, ct);
   if (dir->ind != cur) {
     if (dir == fm_current_dir(fm)) {
       visual_update_selection(fm, cur, dir->ind);
@@ -32,7 +31,7 @@ static inline void move_cursor(Dir *dir, i32 ct) {
 }
 
 static inline void move_cursor_to_name(Dir *dir, zsview name) {
-  dir_move_cursor_to_name(dir, name, fm->height, cfg.scrolloff);
+  dir_move_cursor_to_name(dir, name);
   if (dir == fm_current_dir(fm))
     update_preview(false);
   if (dir->visible)
@@ -180,7 +179,7 @@ static inline int filter(lua_State *L, int idx, Dir *dir) {
     lua_pop(L, 1);
   }
 
-  dir_filter(dir, filter, fm->height, cfg.scrolloff);
+  dir_filter(dir, filter);
 
   if (dir == fm_current_dir(fm))
     update_preview(false);

@@ -261,6 +261,8 @@ static int l_config_newindex(lua_State *L) {
     long n = luaL_checkinteger(L, 3);
     luaL_argcheck(L, 3, n >= 0, "scrolloff must be non-negative");
     cfg.scrolloff = n;
+    fm_on_resize(fm, fm->height);
+    ui_redraw(ui, REDRAW_FM);
   } else if (streq(key, "preview")) {
     cfg.preview = lua_toboolean(L, 3);
     if (!cfg.preview) {

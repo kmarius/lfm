@@ -1,6 +1,5 @@
 #include "private.h"
 
-#include "config.h"
 #include "defs.h"
 #include "dir.h"
 #include "file.h"
@@ -88,8 +87,7 @@ static void fileinfo_callback(void *p, Lfm *lfm) {
       File *file = dir_current_file(res->dir);
       dir_sort(res->dir, false);
       if (file && dir_current_file(res->dir) != file) {
-        dir_move_cursor_to_name(res->dir, file_name(file), lfm->fm.height,
-                                cfg.scrolloff);
+        dir_move_cursor_to_name(res->dir, file_name(file));
       }
     } else {
       dir_sort(res->dir, false);
@@ -230,7 +228,7 @@ static void dir_update_callback(void *p, Lfm *lfm) {
       lfm_lua_apply_keyfunc(lfm, update, false);
     else if (dir->settings.sorttype == SORT_RAND)
       dir_apply_random_keys(update, dir->settings.salt);
-    dir_update_with(dir, update, lfm->fm.height, cfg.scrolloff);
+    dir_update_with(dir, update);
     LFM_RUN_HOOK(lfm, LFM_HOOK_DIRUPDATED, dir_path(dir));
     if (dir->visible) {
       if (fm_current_dir(&lfm->fm) == dir)

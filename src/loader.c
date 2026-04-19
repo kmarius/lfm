@@ -5,7 +5,6 @@
 #include "dir.h"
 #include "hooks.h"
 #include "lfm.h"
-#include "log.h"
 #include "loop.h"
 #include "path.h"
 #include "preview.h"
@@ -207,7 +206,7 @@ Dir *loader_dir_from_path(struct loader_ctx *ctx, zsview path, bool do_load) {
     }
     dir_set_hidden(dir, cfg.dir_settings.hidden);
   } else {
-    dir = dir_create(path);
+    dir = dir_create(path, to_lfm(ctx)->fm.height, cfg.scrolloff);
     apply_dir_settings(dir);
 
     map_zsview_dir_insert(&ctx->dir_cache, dir_path(dir), dir_inc_ref(dir));

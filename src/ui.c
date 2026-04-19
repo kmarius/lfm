@@ -157,7 +157,8 @@ void ui_resume(Ui *ui) {
   struct ncplane *ncstd = notcurses_stdplane(ui->nc);
 
   ncplane_dim_yx(ncstd, &ui->y, &ui->x);
-  to_lfm(ui)->fm.height = ui->y - 2;
+  Fm *fm = &to_lfm(ui)->fm;
+  fm_on_resize(fm, ui->y - 2);
 
   struct ncplane_options opts = {
       .y = 0,

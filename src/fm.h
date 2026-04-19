@@ -19,8 +19,8 @@ typedef struct Fm {
   // Height of the fm.
   u32 height;
 
-  // Not guaranteed to coincide with PWD or this processe's working directory,
-  // which is only set once we know the destination is reachable.
+  // Not guaranteed to coincide with PWD or this processe's working
+  // directory, which is only set once we know the destination is reachable.
   cstr pwd;
 
   struct {
@@ -72,7 +72,7 @@ void fm_init(Fm *fm, struct lfm_opts *opts);
 void fm_deinit(Fm *fm);
 
 // Must be called with the new height of the file manager when the Ui is
-// resized.
+// resized, or when cfg.scrolloff changes.
 void fm_on_resize(Fm *fm, u32 height);
 
 static inline const cstr *fm_getpwd(const Fm *fm) {

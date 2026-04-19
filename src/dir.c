@@ -214,7 +214,7 @@ void dir_sort(Dir *d, bool force) {
   apply_filters(d);
 }
 
-void dir_filter(Dir *dir, Filter *filter, u32 height, u32 scrolloff) {
+void dir_filter(Dir *dir, Filter *filter) {
   File *file = dir_current_file(dir);
   if (dir->filter) {
     filter_destroy(dir->filter);
@@ -222,7 +222,7 @@ void dir_filter(Dir *dir, Filter *filter, u32 height, u32 scrolloff) {
   }
   dir->filter = filter;
   apply_filters(dir);
-  dir_move_cursor_to_ptr(dir, file, height, scrolloff);
+  dir_move_cursor_to_ptr(dir, file);
 }
 
 bool dir_check(const Dir *dir) {
@@ -234,11 +234,13 @@ bool dir_check(const Dir *dir) {
   return statbuf.st_mtime <= dir->load_time;
 }
 
-Dir *dir_create(zsview path) {
+Dir *dir_create(zsview path, u32 height, u32 scrolloff) {
   Dir *dir = xcalloc(1, sizeof *dir);
   dir->path = cstr_from_zv(path);
   dir->name = basename_zv(cstr_zv(&dir->path));
   dir->load_time = time(NULL);
+  dir->height = height;
+  dir->scrolloff = scrolloff;
   return dir;
 }
 
@@ -286,7 +288,7 @@ static inline void trim_dircount_cache(Dir *dir, uint32 num_dirs) {
 
 Dir *dir_load(zsview path, map_str_int dircounts, bool load_fileinfo,
               atomic_bool *stop) {
-  Dir *dir = dir_create(path);
+  Dir *dir = dir_create(path, 0, 0);
   dir->has_fileinfo = load_fileinfo;
   dir->dircounts = dircounts;
   if (!load_fileinfo)
@@ -352,7 +354,7 @@ Dir *dir_load(zsview path, map_str_int dircounts, bool load_fileinfo,
 
 Dir *dir_load_flat(zsview path, i32 level, map_str_int dircounts,
                    bool load_fileinfo, atomic_bool *stop) {
-  Dir *dir = dir_create(path);
+  Dir *dir = dir_create(path, 0, 0);
   dir->has_fileinfo = load_fileinfo;
   dir->dircounts = dircounts;
 
@@ -443,19 +445,19 @@ Dir *dir_load_flat(zsview path, i32 level, map_str_int dircounts,
   return dir;
 }
 
-int dir_move_cursor(Dir *d, i32 ct, u32 height, u32 scrolloff) {
+int dir_move_cursor(Dir *d, i32 ct) {
   u32 prev = d->ind;
   d->ind = max(min(d->ind + ct, dir_length(d) - 1), 0);
   if (ct < 0) {
-    d->pos = min(max(scrolloff, d->pos + ct), d->ind);
+    d->pos = min(max(d->scrolloff, d->pos + ct), d->ind);
   } else {
-    d->pos = max(min(height - 1 - scrolloff, d->pos + ct),
-                 height - dir_length(d) + d->ind);
+    d->pos = max(min(d->height - 1 - d->scrolloff, d->pos + ct),
+                 d->height - dir_length(d) + d->ind);
   }
   return d->ind != prev;
 }
 
-static inline bool dir_cursor_move_to_sel(Dir *d, u32 height, u32 scrolloff) {
+static inline bool dir_cursor_move_to_sel(Dir *d) {
   if (cstr_is_empty(&d->sel) || vec_file_is_empty(&d->files)) {
     return true;
   }
@@ -464,7 +466,7 @@ static inline bool dir_cursor_move_to_sel(Dir *d, u32 height, u32 scrolloff) {
   i32 i = 0;
   c_foreach(it, vec_file, d->files) {
     if (cstr_equals_zv(&d->sel, file_name(*it.ref))) {
-      dir_move_cursor(d, i - d->ind, height, scrolloff);
+      dir_move_cursor(d, i - d->ind);
       ret = true;
       break;
     }
@@ -476,12 +478,11 @@ static inline bool dir_cursor_move_to_sel(Dir *d, u32 height, u32 scrolloff) {
   return ret;
 }
 
-static inline bool dir_cursor_move_to_ino(Dir *d, dev_t dev, ino_t ino,
-                                          u32 height, u32 scrolloff) {
+static inline bool dir_cursor_move_to_ino(Dir *d, dev_t dev, ino_t ino) {
   i32 i = 0;
   c_foreach(it, vec_file, d->files) {
     if ((*it.ref)->lstat.st_dev == dev && (*it.ref)->lstat.st_ino == ino) {
-      dir_move_cursor(d, i - d->ind, height, scrolloff);
+      dir_move_cursor(d, i - d->ind);
       return true;
     }
     i++;
@@ -490,7 +491,7 @@ static inline bool dir_cursor_move_to_ino(Dir *d, dev_t dev, ino_t ino,
   return false;
 }
 
-void dir_move_cursor_to_name(Dir *d, zsview name, u32 height, u32 scrolloff) {
+void dir_move_cursor_to_name(Dir *d, zsview name) {
   if (unlikely(zsview_is_empty(name)))
     return;
 
@@ -502,7 +503,7 @@ void dir_move_cursor_to_name(Dir *d, zsview name, u32 height, u32 scrolloff) {
   i32 i = 0;
   c_foreach(it, vec_file, d->files) {
     if (zsview_eq2(file_name(*it.ref), name)) {
-      dir_set_cursor(d, i, height, scrolloff);
+      dir_set_cursor(d, i);
       return;
     }
     i++;
@@ -510,32 +511,31 @@ void dir_move_cursor_to_name(Dir *d, zsview name, u32 height, u32 scrolloff) {
   d->ind = min(d->ind, dir_length(d));
 }
 
-int dir_move_cursor_to_ptr(Dir *dir, const File *file, u32 height,
-                           u32 scrolloff) {
+int dir_move_cursor_to_ptr(Dir *dir, const File *file) {
   if (!file)
     return false;
   i32 i = 0;
   c_foreach(it, Dir, dir) {
     if (*it.ref == file)
-      return dir_set_cursor(dir, i, height, scrolloff);
+      return dir_set_cursor(dir, i);
     i++;
   }
   dir->ind = min(dir->ind, dir_length(dir));
   return true;
 }
 
-static inline void apply_scroll(Dir *dir, u32 height, u32 scrolloff) {
-  (void)scrolloff;
+static inline void apply_scroll(Dir *dir) {
   i32 num_files = vec_file_size(&dir->files);
   i32 files_above_viewport = dir->ind - dir->pos;
   i32 num_files_below_cursor = num_files - dir->ind - 1;
-  i32 space_below_last_file = height - dir->pos - num_files_below_cursor - 1;
+  i32 space_below_last_file =
+      dir->height - dir->pos - num_files_below_cursor - 1;
   if (files_above_viewport > 0 && space_below_last_file > 0) {
     dir->pos += min(files_above_viewport, space_below_last_file);
   }
 }
 
-void dir_update_with(Dir *dir, Dir *update, u32 height, u32 scrolloff) {
+void dir_update_with(Dir *dir, Dir *update) {
   // will try to select the file the cursor is on, dev/inode take priority
   // in case of a rename. Otherwise, we use the name.
   // TODO: why do we store both ino and file name?
@@ -572,11 +572,11 @@ void dir_update_with(Dir *dir, Dir *update, u32 height, u32 scrolloff) {
   // position and scroll
   // I think in general we should try to keep dir->pos stable here, if possible
   if (!cstr_is_empty(&dir->sel)) {
-    dir_cursor_move_to_sel(dir, height, scrolloff);
+    dir_cursor_move_to_sel(dir);
   } else {
-    dir_cursor_move_to_ino(dir, sel.dev, sel.ino, height, scrolloff);
+    dir_cursor_move_to_ino(dir, sel.dev, sel.ino);
   }
-  apply_scroll(dir, height, scrolloff);
+  apply_scroll(dir);
 
   dir_destroy(update);
 }
@@ -639,30 +639,30 @@ i32 fileinfo_from_str(const char *str) {
   return -1;
 }
 
-bool dir_scroll_up(Dir *dir, u32 height, u32 scrolloff) {
+bool dir_scroll_up(Dir *dir) {
   if (dir->ind > 0 && dir->ind == dir->pos)
-    return dir_move_cursor(dir, -1, height, scrolloff);
+    return dir_move_cursor(dir, -1);
 
-  if (dir->pos < height - scrolloff - 1) {
+  if (dir->pos < dir->height - dir->scrolloff - 1) {
     dir->pos++;
   } else {
-    dir->pos = height - scrolloff - 1;
+    dir->pos = dir->height - dir->scrolloff - 1;
     dir->ind--;
-    if (dir->ind > dir_length(dir) - scrolloff - 1)
-      dir->ind = dir_length(dir) - scrolloff - 1;
+    if (dir->ind > dir_length(dir) - dir->scrolloff - 1)
+      dir->ind = dir_length(dir) - dir->scrolloff - 1;
     return true;
   }
   return false;
 }
 
-bool dir_scroll_down(Dir *dir, u32 height, u32 scrolloff) {
-  if (dir_length(dir) - dir->ind + dir->pos - 1 < height)
-    return dir_move_cursor(dir, -1, height, scrolloff);
+bool dir_scroll_down(Dir *dir) {
+  if (dir_length(dir) - dir->ind + dir->pos - 1 < dir->height)
+    return dir_move_cursor(dir, -1);
 
-  if (dir->pos > scrolloff) {
+  if (dir->pos > dir->scrolloff) {
     dir->pos--;
   } else {
-    dir->pos = scrolloff;
+    dir->pos = dir->scrolloff;
     dir->ind++;
     if (dir->ind < dir->pos)
       dir->ind = dir->pos;
