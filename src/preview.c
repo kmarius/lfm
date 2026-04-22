@@ -207,6 +207,7 @@ err:
 }
 
 // caller must pass a buffer of size PATH_MAX (symbol exported for ffi)
+// returns the length on success, -1 if the buffer is too small.
 i32 gen_cache_path(zsview path, char *buf, usize buflen) {
   u8 hash[32];
   SHA256_CTX ctx;
@@ -234,7 +235,7 @@ i32 gen_cache_path(zsview path, char *buf, usize buflen) {
     buf[len++] = upper < 10 ? '0' + upper : 'a' + upper - 10;
   }
   buf[len] = 0;
-  return 0;
+  return len;
 }
 
 // Set preview contents to an error message and log it
@@ -291,7 +292,7 @@ Preview *preview_fork_previewer(zsview path, u32 width, u32 height,
   /* TODO: make proper use of the cache (on 2022-09-27) */
   /* we currently only use it as a place for the previewer to write to */
   char cache_path[PATH_MAX];
-  if (unlikely(gen_cache_path(path, cache_path, sizeof cache_path) != 0))
+  if (unlikely(gen_cache_path(path, cache_path, sizeof cache_path) < 0))
     return preview_error(p, "gen_cache_path");
 
   char width_str[32];
