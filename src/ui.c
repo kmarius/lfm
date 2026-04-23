@@ -1009,19 +1009,16 @@ void ui_on_cursor_moved(Ui *ui, bool immediate) {
     bool dims_changed = preview != NULL && CHECK_DIMS(preview, nrow);
 
     if (!preview_changed && dims_changed)
-      preview->status = PV_DELAYED;
+      preview->status = PV_DELAYED; // forces loader to load a larger preview
 
-    if (preview_changed) {
+    if (preview_changed)
       remove_preview(ui);
 
-      // gives us the existing preview or a dummy and, depending on
-      // delay_action, loads the preview in the background (or checks and
-      // reloads it)
-      ui->preview.preview = loader_preview_from_path(
-          &to_lfm(ui)->loader, file_path(file), immediate);
-    } else {
-      async_preview_check(&to_lfm(ui)->async, ui->preview.preview);
-    }
+    // gives us the existing preview or a dummy and, depending on
+    // delay_action, loads the preview in the background (or checks and
+    // reloads it)
+    ui->preview.preview = loader_preview_from_path(&to_lfm(ui)->loader,
+                                                   file_path(file), immediate);
   }
 
   // we don't draw previews while the cursor is moving
