@@ -84,7 +84,7 @@ u64 current_millis(void) {
   return ((u64)tv.tv_sec) * 1000 + tv.tv_usec / 1000;
 }
 
-int msleep(long msec) {
+int msleep(i64 msec) {
   struct timespec ts;
   int res;
   if (unlikely(msec < 0)) {
@@ -99,15 +99,15 @@ int msleep(long msec) {
   return res;
 }
 
-int usleep(long msec) {
+int usleep(i64 usec) {
   struct timespec ts;
   int res;
-  if (unlikely(msec < 0)) {
+  if (unlikely(usec < 0)) {
     errno = EINVAL;
     return -1;
   }
-  ts.tv_sec = msec / 1000000;
-  ts.tv_nsec = (msec % 1000000) * 1000;
+  ts.tv_sec = usec / 1000000;
+  ts.tv_nsec = (usec % 1000000) * 1000;
   do {
     res = nanosleep(&ts, &ts);
   } while (res && errno == EINTR);
