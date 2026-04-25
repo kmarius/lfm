@@ -271,7 +271,7 @@ local reserved = {
 ---@param name string Command name, can not contain whitespace.
 ---@param f function The function to execute.
 ---@param opts? Lfm.CommandOpts Additional options.
-local function create_command(name, f, opts)
+function lfm.api.create_command(name, f, opts)
 	lfm.validate("name", name, "string")
 	lfm.validate("name", name, function(val)
 		return not reserved[val]
@@ -286,7 +286,6 @@ local function create_command(name, f, opts)
 	commands[name] = opts --[[@as Lfm.Command]]
 	log.tracef("registered command: %s", name)
 end
-api.create_command = create_command
 
 ---
 ---Delete a command.
@@ -297,11 +296,10 @@ api.create_command = create_command
 ---```
 ---
 ---@param name string Command name, can not contain whitespace.
-local function del_command(name)
+function lfm.api.del_command(name)
 	commands[name] = nil
 	log.tracef("deleted command: %s", name)
 end
-api.del_command = del_command
 
 ---
 ---Evaluates a line of lua code. If the first whitespace delimited token is a
@@ -315,7 +313,7 @@ api.del_command = del_command
 ---```
 ---
 ---@param line string
-local function eval(line)
+function lfm.eval(line)
 	local cmd = string_match(line, "^[^ ]*")
 	if not cmd then
 		return
@@ -343,7 +341,6 @@ local function eval(line)
 		end
 	end
 end
-lfm.eval = eval
 
 require("lfm.modes")
 
