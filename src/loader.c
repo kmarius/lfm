@@ -161,7 +161,8 @@ void loader_reschedule(struct loader_ctx *ctx) {
 
 static void load_dir(struct loader_ctx *ctx, struct loadable_data *loadable) {
   Dir *dir = container_of(loadable, Dir, loadable);
-  async_dir_load(&to_lfm(ctx)->async, dir, true);
+  bool load_fileinfo = dir->status != DIR_DELAYED;
+  async_dir_load(&to_lfm(ctx)->async, dir, load_fileinfo);
   dir->last_loading_action = current_millis();
   ui_start_loading_indicator_timer(&to_lfm(ctx)->ui);
 }

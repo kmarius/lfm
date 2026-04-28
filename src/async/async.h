@@ -50,7 +50,8 @@ void async_ctx_deinit(struct async_ctx *async);
 void async_dir_check(struct async_ctx *async, struct Dir *dir);
 
 // Reloads `dir` from disk.
-void async_dir_load(struct async_ctx *async, struct Dir *dir, bool dircounts);
+void async_dir_load(struct async_ctx *async, struct Dir *dir,
+                    bool load_fileinfo);
 
 // Check the modification time of `pv` on disk. Possibly generates a `res_t` to
 // trigger reloading the preview.

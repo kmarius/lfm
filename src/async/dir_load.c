@@ -334,8 +334,8 @@ void async_dir_load(struct async_ctx *async, Dir *dir, bool load_fileinfo) {
   // before the previous one is applied.
   work->cookie = ++dir->cookie;
 
-  log_trace("loading directory %s level=%d", dir_path_str(dir),
-            dir->flatten_level);
+  log_trace("loading directory %s level=%d file_info=%d", dir_path_str(dir),
+            dir->flatten_level, load_fileinfo);
   tpool_add_work(async->tpool, async_dir_load_worker, work, true);
 }
 
