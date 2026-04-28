@@ -35,7 +35,7 @@ Priority: optional
 Architecture: $arch
 Depends: lua-posix, libpcre3-dev, libmagic-dev, luajit, libluajit-5.1-dev, libreadline-dev, zlib1g-dev, libunistring-dev, libev-dev, gcc, g++, pkg-config, libavformat-dev, libswscale-dev, libavcodec-dev, libdeflate-dev, libavdevice-dev
 Maintainer: kmarius
-Homepage: https://github.com/kmarius/lfm
+Homepage: https://codeberg.org/kmarius/lfm
 Description: terminal file manager
 EOF
 

@@ -3,14 +3,14 @@ _pkgname=lfm
 pkgver=r1516.2d7b7ce
 pkgrel=1
 pkgdesc="terminal file manager"
-url="https://github.com/kmarius/lfm"
+url="https://codeberg.org/kmarius/lfm"
 license=('MIT')
 arch=('x86_64' 'aarch64')
 depends=('luajit' 'libev' 'ffmpeg' 'libdeflate' 'lua51-posix' 'notcurses-lfm')
 makedepends=('git' 'cmake' 'ninja' 'gcc')
 optdepends=("trash-cli: trash files"
   "wl-clipboard: clipboard support on wayland")
-source=(git+https://github.com/kmarius/lfm)
+source=(git+https://codeberg.org/kmarius/lfm)
 conflicts=()
 md5sums=('SKIP')
 options=('!strip')
