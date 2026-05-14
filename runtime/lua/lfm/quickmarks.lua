@@ -57,7 +57,7 @@ local escape = {
 
 ---Writes currently set quickmarks to disk.
 local function write_to_file()
-	local tmp_path = fs.joinpath(fs.dirname(M.path), "." .. fs.basename(os.tmpname()))
+	local tmp_path = fs.joinpath(fs.dirname(M.path), string.format(".%d.tmp", fn.getpid()))
 	local file = assert(io.open(tmp_path, "w"))
 	file:write("return {\n")
 	for char, loc in pairs(marks) do
