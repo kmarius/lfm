@@ -392,7 +392,7 @@ api.create_command(
 	{ tokenize = false, complete = complete.limit(1, complete.files), desc = "Rename the current file." }
 )
 
-api.create_command("cd", fm.chdir, { tokenize = true, complete = complete.dirs })
+api.create_command("cd", fm.chdir, { tokenize = false, complete = complete.dirs })
 
 api.create_command("startuptime", function()
 	require("lfm.profiling").startuptime()
