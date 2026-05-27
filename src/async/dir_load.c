@@ -17,7 +17,7 @@
 
 #include <stdatomic.h>
 
-#define FILEINFO_THRESHOLD 200 // send batches of dircounts around every 200ms
+#define FILEINFO_THRESHOLD 100 // send batches of dircounts around every 100ms
 
 struct fileinfo {
   File *file;
