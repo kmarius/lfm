@@ -6,7 +6,8 @@
 #include <lauxlib.h>
 #include <lua.h>
 #include <lualib.h>
-#include <pcre.h>
+#define PCRE2_CODE_UNIT_WIDTH 8
+#include <pcre2.h>
 #include <stc/cstr.h>
 #include <stc/zsview.h>
 
@@ -38,15 +39,13 @@ typedef bool(check_fn)(struct Condition *, const struct FileInfo *);
 typedef struct Condition {
   bool negate;
   cstr arg;
-  pcre *pcre;
-  pcre_extra *pcre_extra;
+  pcre2_code *re;
   check_fn *check;
 } Condition;
 
 static inline void condition_drop(Condition *self) {
-  if (self->pcre_extra) {
-    pcre_free(self->pcre);
-    pcre_free(self->pcre_extra);
+  if (self->re) {
+    pcre2_code_free(self->re);
   } else {
     cstr_drop(&self->arg);
   }
@@ -135,10 +134,12 @@ static inline void rule_set_flags(Rule *r, const char *flags) {
   }
 }
 
-static inline bool re_match(pcre *re, pcre_extra *re_extra, zsview string) {
-  int substr_vec[32];
-  return pcre_exec(re, re_extra, string.str, string.size, 0, 0, substr_vec,
-                   30) >= 0;
+static inline bool re_match(pcre2_code *re, zsview string) {
+  pcre2_match_data *match_data = pcre2_match_data_create_from_pattern(re, NULL);
+  int rc = pcre2_match(re, (PCRE2_SPTR)string.str, string.size, 0, 0,
+                       match_data, NULL);
+  pcre2_match_data_free(match_data);
+  return rc >= 0;
 }
 
 static bool check_fn_file(Condition *cond, const FileInfo *info) {
@@ -175,44 +176,39 @@ static bool check_fn_else(Condition *cond, const FileInfo *info) {
 }
 
 /* TODO: log errors (on 2022-10-15) */
-static inline Condition condition_create_re(check_fn *f, const char *re,
+static inline Condition condition_create_re(check_fn *f, const char *pattern,
                                             bool negate) {
-  const char *pcre_error_str = NULL;
-  int pcre_error_offset;
+  int errornumber;
+  PCRE2_SIZE erroroffset;
   Condition c = condition_create(f, NULL, negate);
-  c.pcre = pcre_compile(re, 0, &pcre_error_str, &pcre_error_offset, NULL);
-  if (unlikely(!c.pcre)) {
-    return (Condition){0};
-  }
-  c.pcre_extra = pcre_study(c.pcre, 0, &pcre_error_str);
-  if (unlikely(pcre_error_str)) {
-    pcre_free(c.pcre);
+  c.re = pcre2_compile((PCRE2_SPTR)pattern, PCRE2_ZERO_TERMINATED, 0,
+                       &errornumber, &erroroffset, NULL);
+  if (unlikely(!c.re)) {
     return (Condition){0};
   }
   return c;
 }
 
 static bool check_fn_path(Condition *cond, const FileInfo *info) {
-  return re_match(cond->pcre, cond->pcre_extra, info->path) != cond->negate;
+  return re_match(cond->re, info->path) != cond->negate;
 }
 
 static bool check_fn_mime(Condition *cond, const FileInfo *info) {
-  return re_match(cond->pcre, cond->pcre_extra, info->mime) != cond->negate;
+  return re_match(cond->re, info->mime) != cond->negate;
 }
 
 static bool check_fn_name(Condition *cond, const FileInfo *info) {
   const char *ptr = strrchr(info->file.str, '/');
   if (ptr) {
     int pos = ptr - info->file.str;
-    return re_match(cond->pcre, cond->pcre_extra,
-                    zsview_from_pos(info->file, pos)) != cond->negate;
+    return re_match(cond->re, zsview_from_pos(info->file, pos)) != cond->negate;
   } else {
-    return re_match(cond->pcre, cond->pcre_extra, info->file) != cond->negate;
+    return re_match(cond->re, info->file) != cond->negate;
   }
 }
 
 static bool check_fn_match(Condition *cond, const FileInfo *info) {
-  return re_match(cond->pcre, cond->pcre_extra, info->file) != cond->negate;
+  return re_match(cond->re, info->file) != cond->negate;
 }
 
 static bool check_fn_has(Condition *cond, const FileInfo *info) {

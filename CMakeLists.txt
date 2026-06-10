@@ -188,7 +188,7 @@ find_package(LuaJit)
 include_directories(${LUAJIT_INCLUDE_DIRS})
 
 find_package(Magic REQUIRED)
-find_package(Pcre REQUIRED)
+find_package(Pcre2 REQUIRED)
 find_package(ZLIB REQUIRED)
 find_package(Ev REQUIRED)
 find_package(FFmpeg REQUIRED COMPONENTS AVCODEC AVFORMAT AVUTIL SWSCALE)
@@ -212,7 +212,7 @@ target_link_libraries(lfm
  ${EV_LIBRARY}
  ${PTHREAD_LIBRARY}
  ${MAGIC_LIBRARY}
- ${PCRE_LIBRARY})
+ ${PCRE2_LIBRARY})
 
 install(TARGETS lfm DESTINATION bin)
 install(DIRECTORY runtime DESTINATION share/lfm)
