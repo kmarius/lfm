@@ -2,10 +2,7 @@
 
 #include "defs.h"
 #include "dir_settings.h"
-#include "file.h"
-#include "filter.h"
 #include "loadable.h"
-#include "path.h"
 #include "types/hmap_cstr.h"
 
 #include <stc/cstr.h>
@@ -13,6 +10,10 @@
 
 #include <stdatomic.h>
 #include <stdbool.h>
+#include <sys/stat.h>
+
+typedef struct File File;
+typedef struct Filter Filter;
 
 #define i_type vec_file, File *
 #include <stc/vec.h>
@@ -140,11 +141,7 @@ static inline bool dir_loading(const Dir *dir) {
 // Current file of `dir`. Can be `NULL` if it is empty or not yet loaded, or
 // if files are filtered/hidden.
 __lfm_nonnull()
-static inline File *dir_current_file(const Dir *dir) {
-  if (unlikely(dir->ind >= dir_length(dir)))
-    return NULL;
-  return *vec_file_at(&dir->files, dir->ind);
-}
+File *dir_current_file(const Dir *dir);
 
 // salt == 0 uses existing salt
 void dir_apply_random_keys(Dir *dir, u64 salt);
@@ -173,20 +170,10 @@ bool dir_scroll(Dir *dir, i32 ct);
 // `sorted` flag is false. Filters are always applied.
 void dir_sort(Dir *dir, bool force);
 
-static inline void dir_set_hidden(Dir *dir, bool hidden) {
-  if (dir->settings.hidden != hidden) {
-    dir->settings.hidden = hidden;
-    File *file = dir_current_file(dir);
-    dir_sort(dir, false);
-    if (file)
-      dir_move_cursor_to_ptr(dir, file);
-  }
-}
+void dir_set_hidden(Dir *dir, bool hidden);
 
-// Returns true `d` is the root directory.
-static inline bool dir_is_root(const Dir *dir) {
-  return path_is_root(dir_path(dir));
-}
+// Returns true if `dir` is the root directory.
+bool dir_is_root(const Dir *dir);
 
 // define iterators so we can use c_foreach with Dir
 #define Dir_iter vec_file_iter

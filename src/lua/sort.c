@@ -1,4 +1,5 @@
 #include "dir.h"
+#include "file.h"
 #include "lfm.h"
 #include "lfmlua.h"
 #include "util.h"

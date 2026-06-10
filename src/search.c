@@ -1,6 +1,7 @@
 #include "search.h"
 
 #include "dir.h"
+#include "file.h"
 #include "fm.h"
 #include "lfm.h"
 #include "stcutil.h"

@@ -1,5 +1,8 @@
 #include "dir.h"
+#include "file.h"
+#include "filter.h"
 #include "lua/lfmlua.h"
+#include "path.h"
 #include "private.h"
 #include "util.h"
 #include "visual.h"

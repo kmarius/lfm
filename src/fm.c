@@ -4,6 +4,7 @@
 #include "config.h"
 #include "defs.h"
 #include "dir.h"
+#include "file.h"
 #include "getpwd.h"
 #include "hooks.h"
 #include "inotify.h"
@@ -13,7 +14,6 @@
 #include "path.h"
 #include "pathlist.h"
 #include "stcutil.h"
-#include "util.h"
 
 #include <ev.h>
 #include <stc/cstr.h>

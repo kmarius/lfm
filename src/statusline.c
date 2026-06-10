@@ -3,6 +3,7 @@
 #include "config.h"
 #include "defs.h"
 #include "file.h"
+#include "filter.h"
 #include "keys.h"
 #include "lfm.h"
 #include "macro.h"

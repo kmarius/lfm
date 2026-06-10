@@ -1,5 +1,6 @@
 #include "visual.h"
 
+#include "file.h"
 #include "hooks.h"
 #include "lfm.h"
 #include "selection.h"

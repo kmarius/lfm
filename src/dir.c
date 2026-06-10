@@ -2,11 +2,11 @@
 
 #include "defs.h"
 #include "file.h"
+#include "filter.h"
 #include "log.h"
 #include "memory.h"
 #include "path.h"
 #include "sha256.h"
-#include "sort.h"
 #include "stcutil.h"
 #include "util.h"
 
@@ -38,6 +38,7 @@ typedef struct flat_dir_node {
 #include <stc/queue.h>
 
 // define templated sorting functions
+#include "sort.h"
 
 #define i_type files_natural, File *
 #define i_cmp compare_natural
@@ -212,6 +213,26 @@ void dir_sort(Dir *d, bool force) {
   }
 
   apply_filters(d);
+}
+
+File *dir_current_file(const Dir *dir) {
+  if (unlikely(dir->ind >= dir_length(dir)))
+    return NULL;
+  return *vec_file_at(&dir->files, dir->ind);
+}
+
+void dir_set_hidden(Dir *dir, bool hidden) {
+  if (dir->settings.hidden != hidden) {
+    dir->settings.hidden = hidden;
+    File *file = dir_current_file(dir);
+    dir_sort(dir, false);
+    if (file)
+      dir_move_cursor_to_ptr(dir, file);
+  }
+}
+
+bool dir_is_root(const Dir *dir) {
+  return path_is_root(dir_path(dir));
 }
 
 void dir_filter(Dir *dir, Filter *filter) {

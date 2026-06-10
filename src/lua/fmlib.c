@@ -1,3 +1,5 @@
+#include "file.h"
+#include "filter.h"
 #include "fm.h"
 #include "hooks.h"
 #include "macro.h"

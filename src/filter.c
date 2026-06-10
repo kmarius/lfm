@@ -1,5 +1,6 @@
 #include "filter.h"
 
+#include "file.h"
 #include "fuzzy.h"
 #include "lfm.h"
 #include "lua/lfmlua.h"
