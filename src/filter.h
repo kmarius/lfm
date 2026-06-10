@@ -1,7 +1,13 @@
+#pragma once
 
-#include "file.h"
+#include "defs.h"
+
+#include <stc/zsview.h>
 
 #include <stdbool.h>
+#include <stdlib.h>
+
+typedef struct File File;
 
 #define FILTER_TYPE_GENERAL "filter"
 #define FILTER_TYPE_FUZZY "fuzzy"

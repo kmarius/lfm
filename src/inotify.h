@@ -7,12 +7,13 @@
 #pragma once
 
 #include "defs.h"
-#include "dir.h"
 
 #include <ev.h>
 #include <stc/types.h>
 
 #include <stdbool.h>
+
+typedef struct Dir Dir;
 
 declare_hmap(map_int_dir, int, Dir *);
 declare_hmap(map_dir_int, Dir *, int);
