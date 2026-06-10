@@ -56,16 +56,16 @@ void statusline_draw(Ui *ui) {
 
     rhs_sz =
         snprintf(nums, sizeof nums, "%u/%u",
-                 dir_length(dir) > 0 ? dir->ind + 1 : 0, (i32)dir_length(dir));
+                 dir_length(dir) > 0 ? dir->ui.ind + 1 : 0, (i32)dir_length(dir));
     ncplane_putstr_yx(n, 0, ui->x - rhs_sz, nums);
 
     // these are drawn right to left
-    if (dir->filter) {
-      rhs_sz += mbstowcs(NULL, filter_string(dir->filter).str, 0) + 2 + 1;
+    if (dir->view.filter) {
+      rhs_sz += mbstowcs(NULL, filter_string(dir->view.filter).str, 0) + 2 + 1;
       ncplane_set_bg_palindex(n, COLOR_GREEN);
       ncplane_set_fg_palindex(n, COLOR_BLACK);
       ncplane_putchar_yx(n, 0, ui->x - rhs_sz, ' ');
-      ncplane_putstr(n, filter_string(dir->filter).str);
+      ncplane_putstr(n, filter_string(dir->view.filter).str);
       ncplane_putchar(n, ' ');
       ncplane_set_bg_default(n);
       ncplane_set_fg_default(n);
@@ -95,8 +95,8 @@ void statusline_draw(Ui *ui) {
       ncplane_set_fg_default(n);
       ncplane_putchar(n, ' ');
     }
-    if (dir->last_loading_action > 0 &&
-        current_millis() - dir->last_loading_action >=
+    if (dir->ui.last_loading_action > 0 &&
+        current_millis() - dir->ui.last_loading_action >=
             cfg.loading_indicator_delay) {
       rhs_sz += 10;
       ncplane_set_bg_palindex(n, 237);

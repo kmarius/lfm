@@ -53,42 +53,48 @@ typedef struct Dir {
   dir_loading_status status;
   i32 error; // errno if an error occured during loading, 0 otherwise
 
-  bool is_sorted;
-  Filter *filter;
-  u32 flatten_level;
-
-  cstr sel; // file name to select after loading the directory
+  // view/filter state
+  struct {
+    bool sorted;
+    Filter *filter;
+    u32 flatten_level;
+    cstr sel; // file name to select after loading the directory
+  } view;
 
   // maps name -> string; displays up to cols chars before the file, if enabled
   struct tags {
-    hmap_cstr tags;
+    hmap_cstr map;
     i32 cols;
   } tags;
 
   struct dir_settings settings;
 
-  // used by ui
-  bool visible;
-  u32 ind; // cursor position in files[]
-  u32 pos; // cursor position in the ui, offset from the top row
-  u32 height;
-  u32 scrolloff;
-  u64 last_loading_action; // Time (in milliseconds) at which the last
-                           // action started after which a "loading"
-                           // indicator should be shown for this directory.
-                           // 0 if there is no loading/checking.
+  // ui display state
+  struct {
+    bool visible;
+    u32 ind; // cursor position in files[]
+    u32 pos; // cursor position in the ui, offset from the top row
+    u32 height;
+    u32 scrolloff;
+    u64 last_loading_action; // Time (in milliseconds) at which the last
+                             // action started after which a "loading"
+                             // indicator should be shown for this directory.
+                             // 0 if there is no loading/checking.
+  } ui;
 
   // loader
   struct loadable_data loadable;
 
-  // async_dir_load
-  bool is_loading; // is a reload in progress
-  u32 cookie;
-  // maps name -> (mtime, dircount) for every directory in this directory
-  // we hand it over to the thread that will reload the directory
-  // and get it back in the update
-  map_str_int dircounts;
-  bool has_fileinfo;
+  // async loading state
+  struct {
+    bool active; // is a reload in progress
+    u32 cookie;
+    // maps name -> (mtime, dircount) for every directory in this directory
+    // we hand it over to the thread that will reload the directory
+    // and get it back in the update
+    map_str_int dircounts;
+    bool has_fileinfo;
+  } load;
 } Dir;
 
 // Creates a directory, no files are loaded. Takes an absolute path.
@@ -156,7 +162,7 @@ int dir_move_cursor(Dir *dir, i32 ct);
 int dir_move_cursor_to_ptr(Dir *dir, const File *file);
 
 static inline bool dir_set_cursor(Dir *dir, u32 ind) {
-  return dir_move_cursor(dir, ind - dir->ind);
+  return dir_move_cursor(dir, ind - dir->ui.ind);
 }
 
 // Move the cursor in the current dir to the file `name`.

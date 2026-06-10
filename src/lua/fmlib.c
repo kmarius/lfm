@@ -73,10 +73,10 @@ static int l_select(lua_State *L) {
 static int l_up(lua_State *L) {
   i32 ct = luaL_optinteger(L, 1, 1);
   Dir *dir = fm_current_dir(fm);
-  u32 ind = dir->ind;
+  u32 ind = dir->ui.ind;
   if (dir_move_cursor(dir, -ct)) {
     update_preview(false);
-    visual_update_selection(fm, ind, dir->ind);
+    visual_update_selection(fm, ind, dir->ui.ind);
     ui_redraw(ui, REDRAW_FM);
   }
   return 0;
@@ -85,10 +85,10 @@ static int l_up(lua_State *L) {
 static int l_down(lua_State *L) {
   i32 ct = luaL_optinteger(L, 1, 1);
   Dir *dir = fm_current_dir(fm);
-  u32 ind = dir->ind;
+  u32 ind = dir->ui.ind;
   if (dir_move_cursor(dir, ct)) {
     update_preview(false);
-    visual_update_selection(fm, ind, dir->ind);
+    visual_update_selection(fm, ind, dir->ui.ind);
     ui_redraw(ui, REDRAW_FM);
   }
   return 0;
@@ -97,10 +97,10 @@ static int l_down(lua_State *L) {
 static int l_top(lua_State *L) {
   (void)L;
   Dir *dir = fm_current_dir(fm);
-  u32 ind = dir->ind;
+  u32 ind = dir->ui.ind;
   if (dir_set_cursor(dir, 0)) {
     update_preview(true);
-    visual_update_selection(fm, ind, dir->ind);
+    visual_update_selection(fm, ind, dir->ui.ind);
     ui_redraw(ui, REDRAW_FM);
   }
   return 0;
@@ -109,10 +109,10 @@ static int l_top(lua_State *L) {
 static int l_bot(lua_State *L) {
   (void)L;
   Dir *dir = fm_current_dir(fm);
-  u32 ind = dir->ind;
+  u32 ind = dir->ui.ind;
   if (dir_set_cursor(dir, dir_length(dir) /*-1*/)) {
     update_preview(true);
-    visual_update_selection(fm, ind, dir->ind);
+    visual_update_selection(fm, ind, dir->ui.ind);
     ui_redraw(ui, REDRAW_FM);
   }
   return 0;
@@ -434,7 +434,7 @@ static int l_cut(lua_State *L) {
 }
 
 static int l_get_filter(lua_State *L) {
-  Filter *filter = fm_current_dir(fm)->filter;
+  Filter *filter = fm_current_dir(fm)->view.filter;
   if (!filter)
     return 0;
   lua_pushzsview(L, filter_string(filter));
@@ -482,7 +482,7 @@ static int l_jump_automark(lua_State *L) {
 }
 
 static int l_get_flatten_level(lua_State *L) {
-  lua_pushinteger(L, fm_current_dir(fm)->flatten_level);
+  lua_pushinteger(L, fm_current_dir(fm)->view.flatten_level);
   return 1;
 }
 
@@ -494,7 +494,7 @@ static int l_set_flatten_level(lua_State *L) {
   /* TODO: To reload flattened directories properly, more inotify watchers are
    * needed (on 2022-02-06) */
   Dir *dir = fm_current_dir(fm);
-  dir->flatten_level = level;
+  dir->view.flatten_level = level;
   async_dir_load(async, dir, level == 0);
   ui_redraw(ui, REDRAW_FM);
   return 0;

@@ -22,14 +22,14 @@ static inline Dir *checkdir(lua_State *L, int idx) {
 }
 
 static inline void move_cursor(Dir *dir, i32 ct) {
-  u32 cur = dir->ind;
+  u32 cur = dir->ui.ind;
   dir_move_cursor(dir, ct);
-  if (dir->ind != cur) {
+  if (dir->ui.ind != cur) {
     if (dir == fm_current_dir(fm)) {
-      visual_update_selection(fm, cur, dir->ind);
+      visual_update_selection(fm, cur, dir->ui.ind);
       update_preview(false);
     }
-    if (dir->visible)
+    if (dir->ui.visible)
       ui_redraw(ui, REDRAW_FM);
   }
 }
@@ -38,7 +38,7 @@ static inline void move_cursor_to_name(Dir *dir, zsview name) {
   dir_move_cursor_to_name(dir, name);
   if (dir == fm_current_dir(fm))
     update_preview(false);
-  if (dir->visible)
+  if (dir->ui.visible)
     ui_redraw(ui, REDRAW_FM);
 }
 
@@ -146,7 +146,7 @@ static int l_dir_sort(lua_State *L) {
 
   if (dir == fm_current_dir(fm))
     update_preview(true);
-  if (dir->visible)
+  if (dir->ui.visible)
     ui_redraw(ui, REDRAW_FM);
 
   return 0;
@@ -187,7 +187,7 @@ static inline int filter(lua_State *L, int idx, Dir *dir) {
 
   if (dir == fm_current_dir(fm))
     update_preview(false);
-  if (dir->visible)
+  if (dir->ui.visible)
     ui_redraw(ui, REDRAW_FM);
 
   return 0;
@@ -219,7 +219,7 @@ static int l_dir__index(lua_State *L) {
     // TODO: how do we want to show visible/hidden/filtered?
     lua_pushinteger(L, dir_length(dir));
   } else if (streq(field, "index")) {
-    lua_pushinteger(L, dir->ind + 1);
+    lua_pushinteger(L, dir->ui.ind + 1);
   } else if (streq(field, "files")) {
     lua_createtable(L, dir_length(dir), 0);
     usize i = 1;
@@ -234,7 +234,7 @@ static int l_dir__index(lua_State *L) {
     lua_pushzsview(L, file_name(file));
   } else if (streq(field, "filter")) {
     Dir *dir = checkdir(L, 1);
-    Filter *filter = dir->filter;
+    Filter *filter = dir->view.filter;
     if (!filter)
       return 0;
     lua_newtable(L);
@@ -253,7 +253,7 @@ static int l_dir__newindex(lua_State *L) {
   const char *field = luaL_checkstring(L, 2);
   if (streq(field, "index")) {
     i32 ind = luaL_checkinteger(L, 3) - 1;
-    i64 cur = dir->ind;
+    i64 cur = dir->ui.ind;
     move_cursor(dir, ind - cur);
   } else if (streq(field, "filter")) {
     filter(L, 3, dir);

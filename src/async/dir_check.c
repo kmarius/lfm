@@ -29,7 +29,7 @@ static void callback(void *p, Lfm *lfm) {
   if (work->reload) {
     loader_dir_reload(&lfm->loader, work->dir);
   } else {
-    work->dir->last_loading_action = 0;
+    work->dir->ui.last_loading_action = 0;
   }
   set_result_erase(&lfm->async.in_progress.dirs, &work->super);
 }
@@ -53,8 +53,8 @@ void async_dir_check(struct async_ctx *async, Dir *dir) {
   work->super.callback = &callback;
   work->super.destroy = &destroy;
 
-  if (dir->last_loading_action == 0) {
-    dir->last_loading_action = current_millis();
+  if (dir->ui.last_loading_action == 0) {
+    dir->ui.last_loading_action = current_millis();
     ui_start_loading_indicator_timer(&to_lfm(async)->ui);
   }
 

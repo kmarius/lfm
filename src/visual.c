@@ -69,7 +69,7 @@ static void visual_on_enter(Lfm *lfm) {
     return;
 
   fm->visual.active = true;
-  fm->visual.anchor = dir->ind;
+  fm->visual.anchor = dir->ui.ind;
 
   selection_add_path(fm, file_path(dir_current_file(dir)), false);
   pathlist_clear(&fm->selection.keep_in_visual);

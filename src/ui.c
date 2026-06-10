@@ -754,7 +754,7 @@ static void draw_file(struct ncplane *n, const File *file, bool iscurrent,
   }
 
   if (tags) {
-    const hmap_cstr_value *v = hmap_cstr_get(&tags->tags, file_name(file));
+    const hmap_cstr_value *v = hmap_cstr_get(&tags->map, file_name(file));
     if (v != NULL) {
       u64 channels = ncplane_channels(n);
       u16 styles = ncplane_styles(n);
@@ -916,9 +916,9 @@ static void plane_draw_dir(struct ncplane *n, Dir *dir, pathlist *sel,
       ncplane_putstr_yx(n, 0, 2, "empty");
     }
   } else {
-    dir->pos = min(min(dir->pos, nrow - 1), dir->ind);
+    dir->ui.pos = min(min(dir->ui.pos, nrow - 1), dir->ui.ind);
 
-    u32 offset = max(dir->ind - dir->pos, 0);
+    u32 offset = max(dir->ui.ind - dir->ui.pos, 0);
 
     if (dir_length(dir) <= (u32)nrow) {
       offset = 0;
@@ -929,8 +929,8 @@ static void plane_draw_dir(struct ncplane *n, Dir *dir, pathlist *sel,
     for (u32 i = 0; i < l; i++) {
       ncplane_cursor_move_yx(n, i, 0);
       File *file = *vec_file_at(&dir->files, i + offset);
-      draw_file(n, file, i == dir->pos, sel, load, mode, highlight, print_info,
-                dir->settings.fileinfo, tags);
+      draw_file(n, file, i == dir->ui.pos, sel, load, mode, highlight,
+                print_info, dir->settings.fileinfo, tags);
     }
   }
 }
@@ -1084,8 +1084,8 @@ static void loading_indicator_timer_cb(EV_P_ ev_timer *w, i32 revents) {
   (void)revents;
   Ui *ui = w->data;
   Dir *dir = fm_current_dir(&to_lfm(ui)->fm);
-  if (dir->last_loading_action > 0 &&
-      current_millis() - dir->last_loading_action >=
+  if (dir->ui.last_loading_action > 0 &&
+      current_millis() - dir->ui.last_loading_action >=
           cfg.loading_indicator_delay) {
     ui_redraw(ui, REDRAW_CMDLINE);
   }

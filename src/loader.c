@@ -163,7 +163,7 @@ static void load_dir(struct loader_ctx *ctx, struct loadable_data *loadable) {
   Dir *dir = container_of(loadable, Dir, loadable);
   bool load_fileinfo = dir->status != DIR_DELAYED;
   async_dir_load(&to_lfm(ctx)->async, dir, load_fileinfo);
-  dir->last_loading_action = current_millis();
+  dir->ui.last_loading_action = current_millis();
   ui_start_loading_indicator_timer(&to_lfm(ctx)->ui);
 }
 
@@ -230,7 +230,7 @@ Dir *loader_dir_from_path(struct loader_ctx *ctx, zsview path, bool do_load) {
     map_zsview_dir_insert(&ctx->dir_cache, dir_path(dir), dir_inc_ref(dir));
     if (do_load) {
       load_dir(ctx, &dir->loadable);
-      dir->is_loading = true;
+      dir->load.active = true;
     }
     if (likely(to_lfm(ctx)->L))
       LFM_RUN_HOOK(to_lfm(ctx), LFM_HOOK_DIRLOADED, path);

@@ -61,13 +61,13 @@ static inline void set_dircount(Dir *dir, File *file, u32 count) {
       .count = count,
       .mtime = file->stat.st_mtim.tv_sec,
   };
-  map_str_int_emplace(&dir->dircounts, file_name_str(file), tup);
+  map_str_int_emplace(&dir->load.dircounts, file_name_str(file), tup);
 }
 
 static void fileinfo_callback(void *p, Lfm *lfm) {
   struct fileinfo_result *res = p;
   // discard if any other update has been scheduled in the meantime
-  if (res->cookie == res->dir->cookie) {
+  if (res->cookie == res->dir->load.cookie) {
     c_foreach(it, fileinfos, res->infos) {
       if (it.ref->ret == 0) {
         it.ref->file->stat = it.ref->stat;
@@ -80,9 +80,9 @@ static void fileinfo_callback(void *p, Lfm *lfm) {
       }
     }
     if (res->is_last_batch) {
-      res->dir->has_fileinfo = true;
+      res->dir->load.has_fileinfo = true;
     }
-    if (res->dir->ind != 0) {
+    if (res->dir->ui.ind != 0) {
       // if the cursor doesn't rest on the first file, try to reselect it
       File *file = dir_current_file(res->dir);
       dir_sort(res->dir, false);
@@ -221,7 +221,7 @@ static void dir_update_callback(void *p, Lfm *lfm) {
   struct dir_update_work *work = p;
   Dir *dir = work->dir;
   Dir *update = work->update;
-  if (dir->cookie == work->cookie) {
+  if (dir->load.cookie == work->cookie) {
     loader_callback(&lfm->loader, &dir->loadable);
     // apply any keyfuncs before sorting in dir_update_with
     if (dir->settings.sorttype == SORT_LUA)
@@ -230,13 +230,13 @@ static void dir_update_callback(void *p, Lfm *lfm) {
       dir_apply_random_keys(update, dir->settings.salt);
     dir_update_with(dir, update);
     LFM_RUN_HOOK(lfm, LFM_HOOK_DIRUPDATED, dir_path(dir));
-    if (dir->visible) {
+    if (dir->ui.visible) {
       if (fm_current_dir(&lfm->fm) == dir)
         ui_on_cursor_moved(&lfm->ui, true);
       else
         ui_redraw(&lfm->ui, REDRAW_FM);
     }
-    dir->last_loading_action = 0;
+    dir->ui.last_loading_action = 0;
     work->update = NULL;
   }
 }
@@ -308,11 +308,11 @@ void async_dir_load(struct async_ctx *async, Dir *dir, bool load_fileinfo) {
   work->super.callback = &dir_update_callback;
   work->super.destroy = &dir_update_destroy;
 
-  dir->has_fileinfo = load_fileinfo;
+  dir->load.has_fileinfo = load_fileinfo;
   if (dir->status == DIR_DELAYED)
     dir->status = DIR_SCHEDULED;
-  if (dir->last_loading_action == 0) {
-    dir->last_loading_action = current_millis();
+  if (dir->ui.last_loading_action == 0) {
+    dir->ui.last_loading_action = current_millis();
     ui_start_loading_indicator_timer(&to_lfm(async)->ui);
   }
 
@@ -328,14 +328,14 @@ void async_dir_load(struct async_ctx *async, Dir *dir, bool load_fileinfo) {
   work->async = async;
   work->dir = dir;
   work->load_fileinfo = load_fileinfo;
-  work->level = dir->flatten_level;
-  work->dircounts = map_str_int_move(&dir->dircounts);
+  work->level = dir->view.flatten_level;
+  work->dircounts = map_str_int_move(&dir->load.dircounts);
   // we simply discard the update in the callback if another reload is requested
   // before the previous one is applied.
-  work->cookie = ++dir->cookie;
+  work->cookie = ++dir->load.cookie;
 
   log_trace("loading directory %s level=%d file_info=%d", dir_path_str(dir),
-            dir->flatten_level, load_fileinfo);
+            dir->view.flatten_level, load_fileinfo);
   tpool_add_work(async->tpool, async_dir_load_worker, work, true);
 }
 

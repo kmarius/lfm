@@ -88,25 +88,25 @@ static inline void reverse(File **a, usize len) {
 
 // does not attempt to keep the cursor position
 static void apply_filters(Dir *d) {
-  if (d->filter) {
+  if (d->view.filter) {
     usize i = 0;
     c_foreach(it, vec_file, d->files_sorted) {
-      if (filter_match(d->filter, *it.ref)) {
+      if (filter_match(d->view.filter, *it.ref)) {
         vec_file_set(&d->files, i++, *it.ref);
       } else {
         (*it.ref)->score = 0;
       }
     }
     d->files.size = i;
-    if (filter_cmp(d->filter)) {
-      vec_file_qsort(d->files, filter_cmp(d->filter));
+    if (filter_cmp(d->view.filter)) {
+      vec_file_qsort(d->files, filter_cmp(d->view.filter));
     }
   } else {
     memcpy(d->files.data, d->files_sorted.data,
            d->files_sorted.size * sizeof(File *));
     d->files.size = d->files_sorted.size;
   }
-  d->ind = max(min(d->ind, vec_file_size(&d->files) - 1), 0);
+  d->ui.ind = max(min(d->ui.ind, vec_file_size(&d->files) - 1), 0);
 }
 
 void dir_apply_random_keys(Dir *dir, u64 salt) {
@@ -132,10 +132,10 @@ void dir_apply_random_keys(Dir *dir, u64 salt) {
 /* sort allfiles and copy non-hidden ones to sortedfiles */
 void dir_sort(Dir *d, bool force) {
   if (vec_file_is_empty(&d->files_all)) {
-    d->is_sorted = true;
+    d->view.sorted = true;
     return;
   }
-  if (force || !d->is_sorted) {
+  if (force || !d->view.sorted) {
     switch (d->settings.sorttype) {
     case SORT_NATURAL:
       files_natural_sort(d->files_all.data, d->files_all.size);
@@ -161,7 +161,7 @@ void dir_sort(Dir *d, bool force) {
     default:
       break;
     }
-    d->is_sorted = true;
+    d->view.sorted = true;
   }
   usize num_dirs = 0;
   usize j = 0;
@@ -216,9 +216,9 @@ void dir_sort(Dir *d, bool force) {
 }
 
 File *dir_current_file(const Dir *dir) {
-  if (unlikely(dir->ind >= dir_length(dir)))
+  if (unlikely(dir->ui.ind >= dir_length(dir)))
     return NULL;
-  return *vec_file_at(&dir->files, dir->ind);
+  return *vec_file_at(&dir->files, dir->ui.ind);
 }
 
 void dir_set_hidden(Dir *dir, bool hidden) {
@@ -237,11 +237,11 @@ bool dir_is_root(const Dir *dir) {
 
 void dir_filter(Dir *dir, Filter *filter) {
   File *file = dir_current_file(dir);
-  if (dir->filter) {
-    filter_destroy(dir->filter);
-    dir->filter = NULL;
+  if (dir->view.filter) {
+    filter_destroy(dir->view.filter);
+    dir->view.filter = NULL;
   }
-  dir->filter = filter;
+  dir->view.filter = filter;
   apply_filters(dir);
   dir_move_cursor_to_ptr(dir, file);
 }
@@ -250,13 +250,13 @@ Dir *dir_create(zsview path, u32 height, u32 scrolloff) {
   Dir *dir = xcalloc(1, sizeof *dir);
   dir->path = cstr_from_zv(path);
   dir->name = basename_zv(cstr_zv(&dir->path));
-  dir->height = height;
-  dir->scrolloff = scrolloff;
+  dir->ui.height = height;
+  dir->ui.scrolloff = scrolloff;
   return dir;
 }
 
 static inline void load_dircount_cached(Dir *dir, File *file) {
-  map_str_int_iter it = map_str_int_find(&dir->dircounts, file_name_str(file));
+  map_str_int_iter it = map_str_int_find(&dir->load.dircounts, file_name_str(file));
   if (it.ref) {
     struct tuple_mtime_count tup = it.ref->second;
     if (tup.mtime == file->stat.st_mtim.tv_sec) {
@@ -273,35 +273,35 @@ static inline void load_dircount_cached(Dir *dir, File *file) {
         .mtime = file->stat.st_mtim.tv_sec,
         .count = file_load_dircount(file),
     };
-    map_str_int_emplace(&dir->dircounts, file_name_str(file), tup);
+    map_str_int_emplace(&dir->load.dircounts, file_name_str(file), tup);
   }
 }
 
 // re-creates the hash map if it has over 50% stale entries
 static inline void trim_dircount_cache(Dir *dir, uint32 num_dirs) {
-  usize cache_size = map_str_int_size(&dir->dircounts);
+  usize cache_size = map_str_int_size(&dir->load.dircounts);
   if (cache_size > 16 && cache_size > 2 * num_dirs) {
-    map_str_int_clear(&dir->dircounts);
+    map_str_int_clear(&dir->load.dircounts);
     c_foreach(it, vec_file, dir->files_all) {
       if (file_isdir(*it.ref)) {
         struct tuple_mtime_count tup = {
             .mtime = (*it.ref)->stat.st_mtim.tv_sec,
             .count = file_dircount(*it.ref),
         };
-        map_str_int_emplace(&dir->dircounts, file_name_str(*it.ref), tup);
+        map_str_int_emplace(&dir->load.dircounts, file_name_str(*it.ref), tup);
       }
     }
     // shrink, but leave some space for possible inserts, load factor is 0.8
     // (which would be exactly factor 1.25)
-    map_str_int_reserve(&dir->dircounts, (long)(num_dirs * 1.3));
+    map_str_int_reserve(&dir->load.dircounts, (long)(num_dirs * 1.3));
   }
 }
 
 Dir *dir_load(zsview path, map_str_int dircounts, bool load_fileinfo,
               atomic_bool *stop) {
   Dir *dir = dir_create(path, 0, 0);
-  dir->has_fileinfo = load_fileinfo;
-  dir->dircounts = dircounts;
+  dir->load.has_fileinfo = load_fileinfo;
+  dir->load.dircounts = dircounts;
   if (!load_fileinfo)
     stop = NULL;
 
@@ -358,7 +358,7 @@ Dir *dir_load(zsview path, map_str_int dircounts, bool load_fileinfo,
   }
 
   dir->status = DIR_LOADED;
-  dir->is_loading = false;
+  dir->load.active = false;
 
   return dir;
 }
@@ -366,12 +366,12 @@ Dir *dir_load(zsview path, map_str_int dircounts, bool load_fileinfo,
 Dir *dir_load_flat(zsview path, i32 level, map_str_int dircounts,
                    bool load_fileinfo, atomic_bool *stop) {
   Dir *dir = dir_create(path, 0, 0);
-  dir->has_fileinfo = load_fileinfo;
-  dir->dircounts = dircounts;
+  dir->load.has_fileinfo = load_fileinfo;
+  dir->load.dircounts = dircounts;
 
   if (unlikely(level < 0))
     level = 0;
-  dir->flatten_level = level;
+  dir->view.flatten_level = level;
 
   if (unlikely(lstat(path.str, &dir->stat) == -1)) {
     log_perror("lstat");
@@ -457,35 +457,35 @@ Dir *dir_load_flat(zsview path, i32 level, map_str_int dircounts,
 }
 
 int dir_move_cursor(Dir *d, i32 ct) {
-  u32 prev = d->ind;
-  d->ind = max(min(d->ind + ct, dir_length(d) - 1), 0);
+  u32 prev = d->ui.ind;
+  d->ui.ind = max(min(d->ui.ind + ct, dir_length(d) - 1), 0);
   if (ct < 0) {
-    d->pos = min(max(d->scrolloff, d->pos + ct), d->ind);
+    d->ui.pos = min(max(d->ui.scrolloff, d->ui.pos + ct), d->ui.ind);
   } else {
-    d->pos = max(min(d->height - 1 - d->scrolloff, d->pos + ct),
-                 d->height - dir_length(d) + d->ind);
+    d->ui.pos = max(min(d->ui.height - 1 - d->ui.scrolloff, d->ui.pos + ct),
+                 d->ui.height - dir_length(d) + d->ui.ind);
   }
-  return d->ind != prev;
+  return d->ui.ind != prev;
 }
 
 static inline bool dir_cursor_move_to_sel(Dir *d) {
-  if (cstr_is_empty(&d->sel) || vec_file_is_empty(&d->files)) {
+  if (cstr_is_empty(&d->view.sel) || vec_file_is_empty(&d->files)) {
     return true;
   }
   bool ret = false;
 
   i32 i = 0;
   c_foreach(it, vec_file, d->files) {
-    if (cstr_equals_zv(&d->sel, file_name(*it.ref))) {
-      dir_move_cursor(d, i - d->ind);
+    if (cstr_equals_zv(&d->view.sel, file_name(*it.ref))) {
+      dir_move_cursor(d, i - d->ui.ind);
       ret = true;
       break;
     }
     i++;
   }
-  d->ind = min(d->ind, dir_length(d));
+  d->ui.ind = min(d->ui.ind, dir_length(d));
 
-  cstr_clear(&d->sel);
+  cstr_clear(&d->view.sel);
   return ret;
 }
 
@@ -493,12 +493,12 @@ static inline bool dir_cursor_move_to_ino(Dir *d, dev_t dev, ino_t ino) {
   i32 i = 0;
   c_foreach(it, vec_file, d->files) {
     if ((*it.ref)->lstat.st_dev == dev && (*it.ref)->lstat.st_ino == ino) {
-      dir_move_cursor(d, i - d->ind);
+      dir_move_cursor(d, i - d->ui.ind);
       return true;
     }
     i++;
   }
-  d->ind = min(d->ind, dir_length(d));
+  d->ui.ind = min(d->ui.ind, dir_length(d));
   return false;
 }
 
@@ -507,7 +507,7 @@ void dir_move_cursor_to_name(Dir *d, zsview name) {
     return;
 
   if (unlikely(vec_file_is_empty(&d->files))) {
-    cstr_assign_zv(&d->sel, name);
+    cstr_assign_zv(&d->view.sel, name);
     return;
   }
 
@@ -519,7 +519,7 @@ void dir_move_cursor_to_name(Dir *d, zsview name) {
     }
     i++;
   }
-  d->ind = min(d->ind, dir_length(d));
+  d->ui.ind = min(d->ui.ind, dir_length(d));
 }
 
 int dir_move_cursor_to_ptr(Dir *dir, const File *file) {
@@ -531,18 +531,18 @@ int dir_move_cursor_to_ptr(Dir *dir, const File *file) {
       return dir_set_cursor(dir, i);
     i++;
   }
-  dir->ind = min(dir->ind, dir_length(dir));
+  dir->ui.ind = min(dir->ui.ind, dir_length(dir));
   return true;
 }
 
 static inline void apply_scroll(Dir *dir) {
   i32 num_files = vec_file_size(&dir->files);
-  i32 files_above_viewport = dir->ind - dir->pos;
-  i32 num_files_below_cursor = num_files - dir->ind - 1;
+  i32 files_above_viewport = dir->ui.ind - dir->ui.pos;
+  i32 num_files_below_cursor = num_files - dir->ui.ind - 1;
   i32 space_below_last_file =
-      dir->height - dir->pos - num_files_below_cursor - 1;
+      dir->ui.height - dir->ui.pos - num_files_below_cursor - 1;
   if (files_above_viewport > 0 && space_below_last_file > 0) {
-    dir->pos += min(files_above_viewport, space_below_last_file);
+    dir->ui.pos += min(files_above_viewport, space_below_last_file);
   }
 }
 
@@ -555,7 +555,7 @@ void dir_update_with(Dir *dir, Dir *update) {
     ino_t ino;
   } sel = {0};
 
-  if (cstr_is_empty(&dir->sel) && dir->ind < dir_length(dir)) {
+  if (cstr_is_empty(&dir->view.sel) && dir->ui.ind < dir_length(dir)) {
     File *file = dir_current_file(dir);
     sel.dev = file->lstat.st_dev;
     sel.ino = file->lstat.st_ino;
@@ -567,21 +567,21 @@ void dir_update_with(Dir *dir, Dir *update) {
   dir->files_sorted = vec_file_move(&update->files_sorted);
   dir->files = vec_file_move(&update->files);
 
-  dir->dircounts = map_str_int_move(&update->dircounts);
+  dir->load.dircounts = map_str_int_move(&update->load.dircounts);
 
   dir->error = update->error;
-  dir->flatten_level = update->flatten_level;
+  dir->view.flatten_level = update->view.flatten_level;
   dir->stat = update->stat;
   dir->status = DIR_LOADED;
-  dir->is_loading = false;
+  dir->load.active = false;
 
   dir_sort(dir, true);
 
   // TODO: if the cursor rest in the middle of the viewport, and files are
   // inserted above, the cursor is moved down, instead we could keep the cursor
   // position and scroll
-  // I think in general we should try to keep dir->pos stable here, if possible
-  if (!cstr_is_empty(&dir->sel)) {
+  // I think in general we should try to keep dir->ui.pos stable here, if possible
+  if (!cstr_is_empty(&dir->view.sel)) {
     dir_cursor_move_to_sel(dir);
   } else {
     dir_cursor_move_to_ino(dir, sel.dev, sel.ino);
@@ -603,10 +603,10 @@ static inline void drop_files(Dir *dir) {
 static inline void drop_fields(Dir *dir) {
   cstr_drop(&dir->path);
   drop_files(dir);
-  filter_destroy(dir->filter);
-  cstr_drop(&dir->sel);
-  hmap_cstr_drop(&dir->tags.tags);
-  map_str_int_drop(&dir->dircounts);
+  filter_destroy(dir->view.filter);
+  cstr_drop(&dir->view.sel);
+  hmap_cstr_drop(&dir->tags.map);
+  map_str_int_drop(&dir->load.dircounts);
 }
 
 void dir_destroy(Dir *dir) {
@@ -649,10 +649,10 @@ i32 fileinfo_from_str(const char *str) {
 }
 
 bool dir_scroll(Dir *dir, i32 ct) {
-  if (ct < 0 && dir->pos < dir->height - dir->scrolloff - 1)
-    dir->pos -= ct;
-  if (ct > 0 && dir->pos > dir->scrolloff)
-    dir->pos -= ct;
+  if (ct < 0 && dir->ui.pos < dir->ui.height - dir->ui.scrolloff - 1)
+    dir->ui.pos -= ct;
+  if (ct > 0 && dir->ui.pos > dir->ui.scrolloff)
+    dir->ui.pos -= ct;
   return dir_move_cursor(dir, ct);
 }
 

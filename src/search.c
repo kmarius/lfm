@@ -50,7 +50,7 @@ static void search_next_forward(Lfm *lfm, bool inclusive) {
   Dir *dir = fm_current_dir(&lfm->fm);
   search_rehighlight(&lfm->ui);
   for (u32 i = inclusive ? 0 : 1; i < dir_length(dir); i++) {
-    u32 idx = (dir->ind + i) % dir_length(dir);
+    u32 idx = (dir->ui.ind + i) % dir_length(dir);
     if (strcasestr(file_name_str(*vec_file_at(&dir->files, idx)),
                    cstr_str(&lfm->ui.search_string))) {
       if (dir_set_cursor(dir, idx)) {
@@ -69,7 +69,7 @@ static void search_next_backwards(Lfm *lfm, bool inclusive) {
   Dir *dir = fm_current_dir(&lfm->fm);
   search_rehighlight(&lfm->ui);
   for (u32 i = inclusive ? 0 : 1; i < dir_length(dir); i++) {
-    u32 idx = (dir->ind + dir_length(dir) - i) % dir_length(dir);
+    u32 idx = (dir->ui.ind + dir_length(dir) - i) % dir_length(dir);
     if (strcasestr(file_name_str(*vec_file_at(&dir->files, idx)),
                    cstr_str(&lfm->ui.search_string))) {
       if (dir_set_cursor(dir, idx)) {

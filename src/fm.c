@@ -79,14 +79,14 @@ static void fm_populate(Fm *fm) {
   vec_dir_clear(&fm->dirs.visible);
   Dir *dir = loader_dir_from_path(&to_lfm(fm)->loader, cstr_zv(&fm->pwd),
                                   true); /* current dir */
-  dir->visible = true;
+  dir->ui.visible = true;
   vec_dir_push_back(&fm->dirs.visible, dir);
 
   for (i32 i = 0; i < fm->dirs.max_visible - 1; i++) {
     zsview parent = path_parent(dir_path(dir));
     if (!zsview_is_empty(parent)) {
       dir = loader_dir_from_path(&to_lfm(fm)->loader, parent, true);
-      dir->visible = true;
+      dir->ui.visible = true;
       vec_dir_push_back(&fm->dirs.visible, dir);
       if (dir_loading(dir)) {
         zsview name = dir_name(*vec_dir_at(
@@ -107,7 +107,7 @@ void fm_recol(Fm *fm) {
   fm_remove_preview(fm);
 
   c_foreach(it, vec_dir, fm->dirs.visible) {
-    (*it.ref)->visible = false;
+    (*it.ref)->ui.visible = false;
   }
 
   i32 max = vec_int_size(&cfg.ratios);
@@ -158,7 +158,7 @@ static inline bool fm_chdir_impl(Fm *fm, zsview path, bool save, bool hook,
 
   fm_remove_preview(fm);
   c_foreach(it, vec_dir, fm->dirs.visible) {
-    (*it.ref)->visible = false;
+    (*it.ref)->ui.visible = false;
   }
 
   fm_populate(fm);
@@ -244,7 +244,7 @@ static inline void fm_remove_preview(Fm *fm) {
   if (fm->dirs.preview) {
     log_trace("removing preview %s", dir_path_str(fm->dirs.preview));
     inotify_remove_watcher(&to_lfm(fm)->inotify, fm->dirs.preview);
-    fm->dirs.preview->visible = false;
+    fm->dirs.preview->ui.visible = false;
     fm->dirs.preview = NULL;
   }
 }
@@ -272,7 +272,7 @@ void fm_update_preview(Fm *fm) {
     Dir *dir =
         loader_dir_from_path(&to_lfm(fm)->loader, file_path(file), false);
     fm->dirs.preview = dir;
-    dir->visible = true;
+    dir->ui.visible = true;
 
     if (dir->status != DIR_DELAYED)
       async_dir_check(&lfm->async, dir);
@@ -324,21 +324,21 @@ void fm_on_resize(Fm *fm, u32 height) {
   // all loaded directories
   c_foreach(v, map_zsview_dir, to_lfm(fm)->loader.dir_cache) {
     Dir *dir = v.ref->second;
-    dir->height = height;
-    dir->scrolloff = scrolloff;
+    dir->ui.height = height;
+    dir->ui.scrolloff = scrolloff;
 
     usize len = dir_length(dir);
 
     if (height >= fm->height) {
       // terminal grew
-      u32 scrolloff_top = dir->ind;
+      u32 scrolloff_top = dir->ui.ind;
       if (scrolloff_top > scrolloff)
         scrolloff_top = scrolloff;
 
-      if (len + dir->pos < height + dir->ind)
-        dir->pos = height - len + dir->ind;
-      if (len > height && dir->pos < scrolloff_top)
-        dir->pos = scrolloff_top;
+      if (len + dir->ui.pos < height + dir->ui.ind)
+        dir->ui.pos = height - len + dir->ui.ind;
+      if (len > height && dir->ui.pos < scrolloff_top)
+        dir->ui.pos = scrolloff_top;
 
     } else if (height < fm->height) {
       // terminal shrinked
@@ -346,11 +346,11 @@ void fm_on_resize(Fm *fm, u32 height) {
       if (height < scrolloff * 2) {
         scrolloff = height / 2;
       }
-      if (scrolloff >= len - dir->ind) {
+      if (scrolloff >= len - dir->ui.ind) {
         // closer to the end of directory than scrolloff
-        dir->pos = height - (len - dir->ind);
-      } else if (dir->pos + scrolloff >= height) {
-        dir->pos = height - scrolloff - 1;
+        dir->ui.pos = height - (len - dir->ui.ind);
+      } else if (dir->ui.pos + scrolloff >= height) {
+        dir->ui.pos = height - scrolloff - 1;
       }
     }
 

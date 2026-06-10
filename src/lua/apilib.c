@@ -461,7 +461,7 @@ static int l_get_tags(lua_State *L) {
     return 1;
 
   Dir *dir = v->second;
-  c_foreach_kv(k, v, hmap_cstr, dir->tags.tags) {
+  c_foreach_kv(k, v, hmap_cstr, dir->tags.map) {
     lua_pushcstr(L, v);
     lua_setfield(L, -2, cstr_str(k));
   }
@@ -485,7 +485,7 @@ static int l_set_tags(lua_State *L) {
   Dir *dir = v->second;
 
   if (lua_isnil(L, 2)) {
-    hmap_cstr_clear(&dir->tags.tags);
+    hmap_cstr_clear(&dir->tags.map);
     dir->tags.cols = 0;
     lua_pushboolean(L, true);
     ui_redraw(ui, REDRAW_FM);
@@ -500,7 +500,7 @@ static int l_set_tags(lua_State *L) {
     lua_pop(L, 1);
   }
 
-  hmap_cstr *tags = &dir->tags.tags;
+  hmap_cstr *tags = &dir->tags.map;
   hmap_cstr_clear(tags);
   for (lua_pushnil(L); lua_next(L, -2); lua_pop(L, 1)) {
     hmap_cstr_insert(tags, lua_tocstr(L, -2), lua_tocstr(L, -1));
