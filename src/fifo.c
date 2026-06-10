@@ -4,6 +4,7 @@
 #include "lfm.h"
 #include "log.h"
 #include "loop.h"
+#include "lua/lfmlua.h"
 
 #include <ev.h>
 

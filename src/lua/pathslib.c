@@ -1,4 +1,5 @@
 #include "config.h"
+#include "lua/util.h"
 #include "private.h"
 
 #include <lauxlib.h>

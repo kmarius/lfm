@@ -4,6 +4,7 @@
 #include "lfmlua.h"
 #include "log.h"
 #include "loop.h"
+#include "lua/util.h"
 #include "private.h"
 #include "types/vec_bytes.h"
 #include "types/vec_env.h"

@@ -20,6 +20,7 @@
 #include "preview.h"
 #include "profiling.h"
 #include "statusline.h"
+#include "stcutil.h"
 #include "util.h"
 
 #include <ev.h>

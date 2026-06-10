@@ -2,6 +2,7 @@
 
 #include "lfm.h"
 #include "log.h"
+#include "lua/lfmlua.h"
 #include "lua/thread.h"
 #include "lua/util.h"
 #include "types/bytes.h"

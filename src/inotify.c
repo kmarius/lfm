@@ -7,6 +7,7 @@
 #include "loader.h"
 #include "log.h"
 #include "loop.h"
+#include "stcutil.h"
 
 #include <ev.h>
 

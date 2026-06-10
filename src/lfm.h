@@ -2,7 +2,7 @@
 
 #include "async/async.h"
 #include "fm.h"
-#include "hooks.h"
+#include "hooks_types.h"
 #include "inotify.h"
 #include "loader.h"
 #include "mode.h"

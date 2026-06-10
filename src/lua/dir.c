@@ -1,4 +1,5 @@
 #include "dir.h"
+#include "lua/lfmlua.h"
 #include "private.h"
 #include "util.h"
 #include "visual.h"

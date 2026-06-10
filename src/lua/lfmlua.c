@@ -5,6 +5,7 @@
 #include "lfmlib.h"
 #include "log.h"
 #include "loop.h"
+#include "lua/util.h"
 #include "private.h"
 #include "profiling.h"
 

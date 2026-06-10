@@ -1,11 +1,14 @@
 #include "config.h"
 #include "defs.h"
+#include "hooks.h"
 #include "log.h"
 #include "loop.h"
+#include "lua/util.h"
 #include "private.h"
 #include "types/bytes.h"
 #include "types/vec_bytes.h"
 #include "types/vec_env.h"
+#include "types/vec_str.h"
 
 #include <ev.h>
 #include <stc/zsview.h>
