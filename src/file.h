@@ -1,7 +1,6 @@
 #pragma once
 
-#include "fuzzy.h"
-#include "util.h"
+#include "util.h" // includes defs.h which has score_t
 
 #include <stc/cstr.h>
 

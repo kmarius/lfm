@@ -1,6 +1,6 @@
 #pragma once
 
-#include "dir.h"
+#include "dir_settings.h"
 #include "keys.h"
 #include "types/bytes.h"
 #include "types/vec_cstr.h"

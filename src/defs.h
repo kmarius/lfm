@@ -25,6 +25,9 @@ typedef double f64;
 _Static_assert(sizeof(float) == 4, "float is not 4 bytes");
 _Static_assert(sizeof(double) == 8, "double is not 8 bytes");
 
+// Score type for fuzzy matching (extracted from fuzzy.h)
+typedef f64 score_t;
+
 /*
  * Macros
  */

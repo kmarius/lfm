@@ -1,11 +1,11 @@
 #pragma once
 
 #include "defs.h"
+#include "dir_settings.h"
 #include "file.h"
 #include "filter.h"
 #include "loadable.h"
 #include "path.h"
-#include "sort.h"
 #include "types/hmap_cstr.h"
 
 #include <stc/cstr.h>
@@ -29,31 +29,10 @@ struct tuple_mtime_count {
 #include <stc/hmap.h>
 
 typedef enum {
-  INFO_SIZE = 0,
-  INFO_ATIME,
-  INFO_CTIME,
-  INFO_MTIME,
-  NUM_FILEINFO
-} fileinfo;
-
-i32 fileinfo_from_str(const char *str);
-
-typedef enum {
   DIR_DELAYED = 0, // dir was not scheduled to load yet
   DIR_SCHEDULED,   // initial loading was scheduled
   DIR_LOADED,      // dir was loaded (at least once)
 } dir_loading_status;
-
-extern const char *fileinfo_str[NUM_FILEINFO];
-
-struct dir_settings {
-  bool hidden;
-  bool dirfirst;
-  bool reverse;
-  sorttype sorttype;
-  fileinfo fileinfo;
-  u64 salt; // used for random sort
-};
 
 typedef struct Dir {
   // refcounting dirs makes reloading and passing dirs to lua much easier.
