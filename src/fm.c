@@ -284,6 +284,10 @@ void fm_update_preview(Fm *fm) {
     async_dir_load(&lfm->async, lfm->fm.dirs.preview, false);
 }
 
+File *fm_current_file(const Fm *fm) {
+  return dir_current_file(fm_current_dir(fm));
+}
+
 File *fm_open(Fm *fm) {
   File *file = fm_current_file(fm);
   if (!file)

@@ -1,13 +1,15 @@
 #pragma once
 
-#include "dir.h"
-#include "file.h"
 #include "pathlist.h"
 #include "selection.h"
 
+#include <stc/cstr.h>
 #include <stc/types.h>
 
 #include <stdbool.h>
+
+typedef struct Dir Dir;
+typedef struct File File;
 
 #define i_type vec_dir, Dir *
 #include <stc/vec.h>
@@ -91,7 +93,7 @@ void fm_recol(Fm *fm);
 #define fm_current_dir(fm) (fm)->dirs.visible.data[0]
 
 // Current file of the current directory. Can be `NULL`.
-#define fm_current_file(fm) dir_current_file(fm_current_dir(fm))
+File *fm_current_file(const Fm *fm);
 
 // Changes directory to the directory given by `path`. If `save` then the
 // current directory will be saved as the special "'" automark. Returns `true´
