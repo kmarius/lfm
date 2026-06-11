@@ -36,15 +36,13 @@ struct sched_timer {
   u32 id;  // timer id, key in lfm->schedule_timers
 };
 
-// Erasing from the map will stop the timer. We previously had problems
-// where stopping a different timer after just clearing the map (on shutdown)
-// would corrupt evs internal state.
+// Erasing from the map will stop the timer
 #define i_declared
 #define i_type map_u32_timer, u32, struct sched_timer *
 #define i_valraw struct sched_timer
 #define i_valtoraw(p) (**(p))
 #define i_valfrom heapify
-#define i_valdrop(p) (xfree(*(p)))
+#define i_valdrop(p) (ev_timer_stop(event_loop, &(*p)->watcher), xfree(*p))
 #define i_no_clone
 #include <stc/hmap.h>
 
