@@ -222,3 +222,31 @@ install(FILES runtime/preview.sh DESTINATION share/lfm/runtime
   OWNER_READ OWNER_WRITE OWNER_EXECUTE
   GROUP_READ GROUP_EXECUTE
   WORLD_READ WORLD_EXECUTE)
+
+# Testing
+enable_testing()
+
+include(FetchContent)
+FetchContent_Declare(
+  unity
+  GIT_REPOSITORY https://github.com/ThrowTheSwitch/Unity.git
+  GIT_TAG v2.6.1
+)
+FetchContent_MakeAvailable(unity)
+
+add_executable(path_test EXCLUDE_FROM_ALL test/c/path_test.c)
+target_link_libraries(path_test PRIVATE unity)
+target_include_directories(path_test PRIVATE src)
+add_test(NAME path_test COMMAND path_test)
+
+add_executable(tokenize_test EXCLUDE_FROM_ALL test/c/tokenize_test.c)
+target_link_libraries(tokenize_test PRIVATE unity)
+target_include_directories(tokenize_test PRIVATE src)
+add_test(NAME tokenize_test COMMAND tokenize_test)
+
+add_executable(trie_test EXCLUDE_FROM_ALL test/c/trie_test.c)
+target_link_libraries(trie_test PRIVATE unity)
+target_include_directories(trie_test PRIVATE src ${CMAKE_SOURCE_DIR}/.deps/usr/include)
+add_test(NAME trie_test COMMAND trie_test)
+
+add_custom_target(build_tests DEPENDS path_test tokenize_test trie_test)
