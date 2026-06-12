@@ -195,9 +195,6 @@ void ui_resume(Ui *ui) {
 void ui_suspend(Ui *ui) {
   log_debug("suspending ui");
   ui->running = false;
-  // this breaks if called after ev_break, for now, ensure that the spinner is
-  // re-initialized in ui_resume before the event-loop calls its callback with
-  // invalid notcurses spinner_off(&ui->spinner);
   input_suspend(to_lfm(ui));
   vec_ncplane_clear(&ui->planes.dirs);
   infoline_suspend();

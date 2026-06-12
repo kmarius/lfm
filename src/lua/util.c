@@ -52,17 +52,20 @@ void set_package_path(lua_State *L) {
 
   lua_getfield(L, -1, "cpath");
   path = lua_tolstring(L, -1, &len);
-  memcpy(buf, path, len + 1);
 
-  // remove ./?.so
-  ptr = strstr(buf, "./?.so");
+  // new cpath: our cmod dir first, then existing (minus ./?.so)
+  usize pos = snprintf(buf, sizeof buf, "%s/?.so;", cstr_str(&cfg.cmoddir));
+
+  ptr = strstr(path, "./?.so");
   if (ptr != NULL) {
-    i32 l = sizeof "./?.so" - 1;
-    if (buf[l] == ';') {
-      l++;
-    }
-    memmove(ptr, ptr + l, len - (ptr - buf) + 1);
-    len -= l;
+    memcpy(buf + pos, path, ptr - path);
+    pos += ptr - path;
+    const char *rest = ptr + sizeof("./?.so") - 1;
+    if (*rest == ';')
+      rest++;
+    strcpy(buf + pos, rest);
+  } else {
+    strcpy(buf + pos, path);
   }
 
   lua_pop(L, 1);

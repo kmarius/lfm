@@ -1,2 +1,3 @@
 char *default_data_dir = "${LFM_DATA_DIR}";
 char *default_lua_dir = "${LFM_LUA_DIR}";
+char *default_cmod_dir = "${LFM_CMOD_DIR}";

@@ -76,11 +76,14 @@ set(LFM_DATA_DIR ${CMAKE_INSTALL_PREFIX}/share/lfm)
 
 if(DEV STREQUAL "ON")
   set(LFM_LUA_DIR "${CMAKE_SOURCE_DIR}/runtime/lua")
+  set(LFM_CMOD_DIR "${CMAKE_BINARY_DIR}/third-party/lua-ev")
 else()
   set(LFM_LUA_DIR "${LFM_DATA_DIR}/runtime/lua")
+  set(LFM_CMOD_DIR "${LFM_DATA_DIR}/lib")
 endif()
 
 message(STATUS "lua dir: ${LFM_LUA_DIR}")
+message(STATUS "cmod dir: ${LFM_CMOD_DIR}")
 message(STATUS "data dir: ${LFM_DATA_DIR}")
 
 include(GetGitRevisionDescription)
@@ -187,6 +190,14 @@ include_directories(SYSTEM ${NOTCURSES_INCLUDE_DIRS})
 find_package(LuaJit)
 include_directories(${LUAJIT_INCLUDE_DIRS})
 
+# Set variables for lua-ev's CMakeLists.txt
+set(LUA_INCLUDE_DIR "${LUAJIT_INCLUDE_DIRS}")
+# set(LUA_LIBRARIES "")  # Module doesn't link lua - symbols from host
+set(INSTALL_CMOD "${LFM_DATA_DIR}/lib" CACHE PATH "" FORCE)
+
+add_subdirectory(third-party/lua-ev EXCLUDE_FROM_ALL)
+add_dependencies(lfm cmod_ev)
+
 find_package(Magic REQUIRED)
 find_package(Pcre2 REQUIRED)
 find_package(ZLIB REQUIRED)
@@ -215,6 +226,7 @@ target_link_libraries(lfm
  ${PCRE2_LIBRARY})
 
 install(TARGETS lfm DESTINATION bin)
+install(TARGETS cmod_ev DESTINATION share/lfm/lib)
 install(DIRECTORY runtime DESTINATION share/lfm)
 install(DIRECTORY doc/LuaCATS DESTINATION share/lfm)
 install(FILES runtime/preview.sh DESTINATION share/lfm/runtime

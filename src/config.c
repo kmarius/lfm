@@ -12,6 +12,7 @@
 // automatically generated, see config/pathdefs.c.in
 extern char *default_data_dir;
 extern char *default_lua_dir;
+extern char *default_cmod_dir;
 
 // fields not listed deliberately initialized to 0
 // clang-format off
@@ -88,6 +89,7 @@ void config_init(void) {
   cstr_printf(&cfg.historylock, "%s/history.lock", cstr_str(&cfg.rundir));
 
   cfg.luadir = cstr_from(default_lua_dir);
+  cfg.cmoddir = cstr_from(default_cmod_dir);
 
   cstr_printf(&cfg.corepath, "%s/lfm/core.lua", cstr_str(&cfg.luadir));
 
@@ -144,6 +146,7 @@ void config_deinit(void) {
   cstr_drop(&cfg.logpath);
   cstr_drop(&cfg.previewer);
   cstr_drop(&cfg.luadir);
+  cstr_drop(&cfg.cmoddir);
   cstr_drop(&cfg.timefmt);
 }
 

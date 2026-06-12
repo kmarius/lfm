@@ -46,6 +46,7 @@ typedef struct config {
   cstr historylock; // {rundir}/history.lock
   cstr datadir;     // /usr/share/lfm
   cstr luadir;      // /usr/share/lfm/lua
+  cstr cmoddir;     // /usr/share/lfm/lib (for C modules like ev.so)
   cstr corepath;    // /usr/share/lfm/lua/core.lua
   cstr rundir;      // $XDG_RUNTIME_DIR or /tmp/runtime-$USER
   cstr cachedir;    // $XDG_CACHE_HOME/lfm or ~/.cache/lfm
