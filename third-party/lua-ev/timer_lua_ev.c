@@ -27,6 +27,7 @@ static int create_timer_mt(lua_State *L) {
         { "stop",          timer_stop },
         { "start",         timer_start },
         { "clear_pending", timer_clear_pending },
+        { "__gc",          timer_gc },
         { NULL, NULL }
     };
     luaL_newmetatable(L, TIMER_MT);
@@ -95,11 +96,13 @@ static int timer_again(lua_State *L) {
     if ( timer->repeat ) {
         ev_timer_again(loop, timer);
         loop_start_watcher(L, 2, 1, -1);
+        timer->data = loop;
     } else {
         /* Just calling stop instead of again in case the symantics
          * change in libev */
         loop_stop_watcher(L, 2, 1);
         ev_timer_stop(loop, timer);
+        timer->data = NULL;
     }
 
     return 0;
@@ -119,6 +122,7 @@ static int timer_stop(lua_State *L) {
 
     loop_stop_watcher(L, 2, 1);
     ev_timer_stop(loop, timer);
+    timer->data = NULL;
 
     return 0;
 }
@@ -138,6 +142,7 @@ static int timer_start(lua_State *L) {
 
     ev_timer_start(loop, timer);
     loop_start_watcher(L, 2, 1, is_daemon);
+    timer->data = loop;
 
     return 0;
 }
@@ -164,4 +169,26 @@ static int timer_clear_pending(lua_State *L) {
 
     lua_pushnumber(L, revents);
     return 1;
+}
+
+/**
+ * __gc metamethod, only purpose is to stop timers when the Lua state is closed.
+ *
+ * lua-ev ensures that running timers are not accidentally collected, but
+ * it doesn't stop timers when the lua state is closed, causing ev to possibly access
+ * invalid memory. For now only timers seem to be an issue, might have to extend this
+ * to other watchers in the future. Only tested with the default loop.
+ *
+ * See: https://github.com/brimworks/lua-ev/issues/32
+ *
+ * [+0, -0, e]
+ */
+static int timer_gc(lua_State *L) {
+    ev_timer* timer = check_timer(L, 1);
+
+    struct ev_loop* loop = timer->data;
+    if (loop) {
+      ev_timer_stop(loop, timer);
+    }
+    return 0;
 }

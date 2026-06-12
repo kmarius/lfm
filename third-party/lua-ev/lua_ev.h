@@ -159,6 +159,7 @@ static int               timer_again(lua_State *L);
 static int               timer_stop(lua_State *L);
 static int               timer_start(lua_State *L);
 static int               timer_clear_pending(lua_State *L);
+static int               timer_gc(lua_State *L);
 
 /**
  * IO functions:
