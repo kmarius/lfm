@@ -1,9 +1,9 @@
 #pragma once
 
 #include "cmdline.h"
+#include "input.h"
 #include "loop.h"
 #include "preview.h"
-#include "trie.h"
 #include "types/vec_cstr.h"
 
 #include <ev.h>
@@ -24,12 +24,6 @@ struct message {
 #define i_keydrop(p) (cstr_drop(&p->text))
 #define i_no_clone
 #include <stc/vec.h>
-
-#define i_TYPE vec_input, input_t
-#include <stc/vec.h>
-
-#define i_TYPE queue_input, input_t
-#include <stc/queue.h>
 
 #define REDRAW_INFO 1
 #define REDRAW_CMDLINE 2
@@ -69,18 +63,7 @@ typedef struct Ui {
   ev_timer loading_indicator_timer;
   i32 loading_indicator_timer_recheck_count;
 
-  ev_io input_watcher;
-  ev_idle input_buffer_watcher;
-  queue_input input_buffer;
-  struct {
-    struct Trie *cur;       // current leaf in the trie of the active mode
-    struct Trie *cur_input; // current leaf in the trie of input maps
-    vec_input seq;          // current key sequence
-    i32 count;
-    bool accept_count;
-    Trie *input;
-    Trie *normal;
-  } maps;
+  struct input_state input_state;
 
   // "hidden" under statusline if inactive
   Cmdline cmdline;
@@ -94,8 +77,6 @@ typedef struct Ui {
   vec_cstr menubuf;
   bool menu_visible;
   ev_timer menu_delay_timer;
-  ev_timer map_clear_timer;
-  ev_timer map_suggestion_timer;
   ev_timer cursor_resting_timer;
   ev_timer message_clear_timer;
 

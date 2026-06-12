@@ -1,6 +1,5 @@
 #include "cmdline.h"
 #include "history.h"
-#include "hooks.h"
 #include "input.h"
 #include "macro.h"
 #include "private.h"
@@ -22,7 +21,7 @@ static int l_set_keymap(lua_State *L) {
   luaL_checktype(L, 2, LUA_TFUNCTION);
 
   zsview lhs = luaL_checkzsview(L, 1);
-  Trie *trie = lfm->ui.maps.normal;
+  Trie *trie = lfm->ui.input_state.normal_maps;
   zsview desc = zsview_init();
 
   if (lua_type(L, 3) == LUA_TTABLE) {
@@ -63,7 +62,7 @@ static int l_set_keymap(lua_State *L) {
 
 static int l_del_keymap(lua_State *L) {
   zsview lhs = luaL_checkzsview(L, 1);
-  Trie *trie = lfm->ui.maps.normal;
+  Trie *trie = lfm->ui.input_state.normal_maps;
 
   if (lua_type(L, 3) == LUA_TTABLE) {
     lua_getfield(L, 3, "mode");
@@ -130,7 +129,7 @@ static int l_feedkeys(lua_State *L) {
     i32 n = key_name_to_input(keys, &u);
     if (n < 0)
       return luaL_error(L, "invalid key");
-    input_handle_key(lfm, u);
+    input_handle_key(&ui->input_state, lfm, u);
     keys += n;
   }
   return 0;
@@ -144,7 +143,7 @@ static int l_input(lua_State *L) {
     i32 n = key_name_to_input(keys, &u);
     if (n < 0)
       return luaL_error(L, "invalid key");
-    input_buffer_add(lfm, u);
+    input_buffer_add(&ui->input_state, u);
     keys += n;
   }
   return 0;

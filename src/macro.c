@@ -72,7 +72,7 @@ i32 macro_play(input_t id, struct Lfm *lfm) {
   if (v != NULL) {
     macro_playing = true;
     c_foreach(it, vec_input, v->second) {
-      input_handle_key(lfm, *it.ref);
+      input_handle_key(&lfm->ui.input_state, lfm, *it.ref);
     }
     macro_playing = false;
     return 0;
