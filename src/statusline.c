@@ -114,12 +114,12 @@ void statusline_draw(Ui *ui) {
       ncplane_putstr_yx(n, 0, ui->x - rhs_sz, buf);
       ncplane_putchar(n, ' ');
     }
-    if (vec_input_size(&ui->input_state.seq) > 0) {
+    if (vec_input_size(&ui->input.seq) > 0) {
       // unlikely we get to print this much anyway
       char buf[256];
       i32 j = 0;
       usize len;
-      c_foreach(it, vec_input, ui->input_state.seq) {
+      c_foreach(it, vec_input, ui->input.seq) {
         const char *str = input_to_key_name(*it.ref, &len);
         if (j + len > sizeof buf - 1) {
           break;

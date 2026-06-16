@@ -12,14 +12,20 @@
 #define i_type queue_input, input_t
 #include <stc/queue.h>
 
-struct input_state {
-  Trie *cur;         // current leaf in the trie of the active mode
-  Trie *cur_input;   // current leaf in the trie of input maps
-  vec_input seq;     // current key sequence
-  i32 count;         // count accumulator
-  bool accept_count; // are we still accepting numbers as count
-  Trie *normal_maps; // "normal" mode mappings
-  Trie *input_maps;  // "input" mode mappings
+typedef enum {
+  INPUT_STATE_IDLE,     // waiting for first key
+  INPUT_STATE_COUNT,    // accumulating count digits
+  INPUT_STATE_SEQUENCE, // matching key sequence in trie
+} input_machine_state_t;
+
+struct input_ctx {
+  input_machine_state_t state; // explicit state machine state
+  Trie *cur;                   // current position in the current mode's trie (precedence)
+  Trie *cur_base;              // current position in base trie (input_maps or normal_maps)
+  vec_input seq;               // current key sequence
+  i32 count;                   // count accumulator
+  Trie *normal_maps;           // "normal" mode mappings
+  Trie *input_maps;            // "input" mode mappings
   queue_input input_buffer;
   ev_io input_watcher;          // watch for input on notcurses' inputready fd
   ev_idle input_buffer_watcher; // processes keys in the input buffer once the
@@ -33,24 +39,27 @@ struct Lfm;
 struct notcurses;
 
 __lfm_nonnull()
-void input_init(struct input_state *state, struct Lfm *lfm);
+void input_init(struct input_ctx *ctx, struct Lfm *lfm);
 
 __lfm_nonnull()
-void input_deinit(struct input_state *state);
+void input_deinit(struct input_ctx *ctx);
 
 // Resume waiting input, after (re-)init of notcurses.
 __lfm_nonnull()
-void input_resume(struct input_state *state, struct notcurses *nc);
+void input_resume(struct input_ctx *ctx, struct notcurses *nc);
 
 // Stop waiting for input.
 __lfm_nonnull()
-void input_suspend(struct input_state *state);
+void input_suspend(struct input_ctx *ctx);
 
+// Handle a single key.
 __lfm_nonnull()
-void input_handle_key(struct input_state *state, struct Lfm *lfm, input_t in);
+void input_handle_key(struct input_ctx *ctx, struct Lfm *lfm, input_t in);
 
+// Add a key to the input buffer. the input buffer will be processed after the
+// ne event loop goes idle.
 __lfm_nonnull()
-void input_buffer_add(struct input_state *state, input_t in);
+void input_buffer_add(struct input_ctx *ctx, input_t in);
 
 // Maps a key sequence to a lua function (i.e. a reference to the registry).
 // `ref == 0` unmaps. Returns -1 on invalid key sequence, -2 on input too long.

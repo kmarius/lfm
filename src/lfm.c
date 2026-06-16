@@ -99,7 +99,7 @@ static void sigint_cb(EV_P_ ev_signal *w, i32 revents) {
   (void)revents;
   Lfm *lfm = w->data;
   log_trace("received SIGINT");
-  input_handle_key(&lfm->ui.input_state, lfm, CTRL('C'));
+  input_handle_key(&lfm->ui.input, lfm, CTRL('C'));
 }
 
 // unclear if this happens before/after resizecb is called by notcurses

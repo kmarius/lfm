@@ -63,7 +63,7 @@ typedef struct Ui {
   ev_timer loading_indicator_timer;
   i32 loading_indicator_timer_recheck_count;
 
-  struct input_state input_state;
+  struct input_ctx input;
 
   // "hidden" under statusline if inactive
   Cmdline cmdline;

@@ -89,7 +89,7 @@ void ui_init(Ui *ui) {
 
   cmdline_init(&ui->cmdline);
   infoline_init();
-  input_init(&ui->input_state, to_lfm(ui));
+  input_init(&ui->input, to_lfm(ui));
   ui_resume(ui);
 
   ioctl(STDOUT_FILENO, TIOCGWINSZ, &ui->winsize);
@@ -104,7 +104,7 @@ void ui_deinit(Ui *ui) {
   vec_ncplane_drop(&ui->planes.dirs);
   cmdline_deinit(&ui->cmdline);
   cstr_drop(&ui->search_string);
-  input_deinit(&ui->input_state);
+  input_deinit(&ui->input);
 }
 
 void ui_on_resize(Ui *ui) {
@@ -187,7 +187,7 @@ void ui_resume(Ui *ui) {
   ev_timer_init(&ui->menu_delay_timer, menu_delay_timer_cb, 0, 0);
   ui->menu_delay_timer.data = to_lfm(ui);
 
-  input_resume(&ui->input_state, ui->nc);
+  input_resume(&ui->input, ui->nc);
   ui_on_cursor_moved(ui, true);
   ui_redraw(ui, REDRAW_FM);
   ui->running = true;
@@ -196,7 +196,7 @@ void ui_resume(Ui *ui) {
 void ui_suspend(Ui *ui) {
   log_debug("suspending ui");
   ui->running = false;
-  input_suspend(&ui->input_state);
+  input_suspend(&ui->input);
   vec_ncplane_clear(&ui->planes.dirs);
   infoline_suspend();
   ncplane_destroy(ui->planes.cmdline);

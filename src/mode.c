@@ -3,6 +3,7 @@
 #include "cmdline.h"
 #include "hooks.h"
 #include "lfm.h"
+#include "log.h"
 #include "lua/lfmlua.h"
 #include "trie.h"
 #include "ui.h"
@@ -27,14 +28,14 @@ void lfm_modes_init(Lfm *lfm) {
   lfm_mode_register(lfm, &visual_mode);
 
   const struct mode *input = hmap_modes_at(&lfm->modes, c_zv("input"));
-  lfm->ui.input_state.input_maps = input->maps;
+  lfm->ui.input.input_maps = input->maps;
   lfm->current_mode = hmap_modes_at_mut(&lfm->modes, c_zv("normal"));
-  lfm->ui.input_state.normal_maps = lfm->current_mode->maps;
+  lfm->ui.input.normal_maps = lfm->current_mode->maps;
 
   // TODO: should be done properly eventually, like we do with input modes
   struct mode *visual = hmap_modes_at_mut(&lfm->modes, c_zv("visual"));
   trie_destroy(visual->maps);
-  visual->maps = lfm->ui.input_state.normal_maps;
+  visual->maps = lfm->ui.input.normal_maps;
 }
 
 void lfm_modes_deinit(Lfm *lfm) {
@@ -82,7 +83,7 @@ i32 lfm_mode_enter(Lfm *lfm, zsview name) {
   if (mode->is_input && !cstr_is_empty(&mode->prefix)) {
     cmdline_prefix_set(&lfm->ui.cmdline, cstr_zv(&mode->prefix));
   }
-  lfm->ui.input_state.cur_input = NULL;
+  lfm->ui.input.cur_base = NULL;
   LFM_RUN_HOOK(lfm, LFM_HOOK_MODECHANGED, &mode->name);
 
   ui_redraw(&lfm->ui, REDRAW_INFO | REDRAW_CMDLINE);

@@ -38,9 +38,12 @@ function M.ok(assert_true, desc, ...)
 	counter = counter + 1
 end
 
-function M.test(name, f)
+function M.test(name, f, cleanup)
 	print(name)
 	f()
+	if cleanup then
+		cleanup()
+	end
 end
 
 return M
