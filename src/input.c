@@ -17,6 +17,7 @@
 #include "stcutil.h"
 #include "trie.h"
 #include "ui.h"
+#include "util.h"
 
 #include <notcurses/nckeys.h>
 #include <notcurses/notcurses.h>
@@ -369,9 +370,36 @@ static void map_suggestion_timer_cb(EV_P_ ev_timer *w, i32 revents) {
   (void)revents;
   ev_timer_stop(EV_A_ w);
   Lfm *lfm = w->data;
+  struct input_ctx *ctx = &lfm->ui.input;
 
-  vec_trie maps = trie_collect_leaves(lfm->ui.input.cur, true);
+  vec_trie maps = {0};
+  vec_trie base_maps = {0};
+
+  if (ctx->cur)
+    maps = trie_collect_leaves(ctx->cur, true);
+  if (ctx->cur_base)
+    base_maps = trie_collect_leaves(ctx->cur_base, true);
   vec_trie_sort(&maps);
+  vec_trie_sort(&base_maps);
+
+  // merge base_maps into maps, skipping shadowed entries
+  // we could actually merge instead of nested loop.
+  c_foreach(b, vec_trie, base_maps) {
+    bool shadowed = false;
+    c_foreach(m, vec_trie, maps) {
+      if (cstr_cmp(&(*m.ref)->keys, &(*b.ref)->keys) > 0)
+        break;
+      if (hascaseprefix(cstr_str(&(*b.ref)->keys), cstr_str(&(*m.ref)->keys))) {
+        shadowed = true;
+        break;
+      }
+    }
+    if (!shadowed)
+      vec_trie_push(&maps, *b.ref);
+  }
+  vec_trie_drop(&base_maps);
+  vec_trie_sort(&maps);
+
   vec_cstr lines = vec_cstr_with_capacity(vec_trie_size(&maps) + 1);
   // bold header
   vec_cstr_emplace(&lines, "\033[1mkeys\tcommand\033[0m");
