@@ -243,12 +243,9 @@ FetchContent_Declare(
   unity
   GIT_REPOSITORY https://github.com/ThrowTheSwitch/Unity.git
   GIT_TAG v2.6.1
+  EXCLUDE_FROM_ALL
 )
-FetchContent_GetProperties(unity)
-if(NOT unity_POPULATED)
-  FetchContent_Populate(unity)
-  add_subdirectory(${unity_SOURCE_DIR} ${unity_BINARY_DIR} EXCLUDE_FROM_ALL)
-endif()
+FetchContent_MakeAvailable(unity)
 
 add_executable(path_test EXCLUDE_FROM_ALL test/c/path_test.c)
 target_link_libraries(path_test PRIVATE unity)
