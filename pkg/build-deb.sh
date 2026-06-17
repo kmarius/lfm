@@ -19,7 +19,7 @@ if command -v ninja >/dev/null; then
 fi
 
 ### compile
-cmake -B build $generator -DCMAKE_INSTALL_PREFIX="/usr" -DCMAKE_BUILD_TYPE=RelWithDebInfo
+cmake -B build $generator -DCMAKE_INSTALL_PREFIX="/usr" -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_STATIC_NOTCURSES=on
 cmake --build build
 
 ### install
