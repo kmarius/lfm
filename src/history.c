@@ -101,6 +101,8 @@ int history_load(History *h, zsview path, const char *lockpath) {
 
   fp = fopen(path.str, "r");
   if (unlikely(fp == NULL)) {
+    if (errno == ENOENT)
+      goto out;
     log_perror("fopen");
     goto err;
   }
