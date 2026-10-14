@@ -263,6 +263,8 @@ void history_reset(History *h) {
 
 zsview history_prev(History *h) {
   if (h->cur.ref == NULL) {
+    if (_history_list_is_empty(&h->list))
+      return c_zv("");
     h->cur = _history_list_last(&h->list);
   } else {
     if (h->cur.ref != _history_list_front(&h->list))
